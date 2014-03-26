@@ -1,0 +1,500 @@
+# Copyright 2013 Novo Nordisk Foundation Center for Biosustainability, DTU.
+
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+
+#     http://www.apache.org/licenses/LICENSE-2.0
+
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
+from copy import deepcopy
+from cobra.core.Reaction import Reaction as OriginalReaction
+from cobra.core.Model import Model
+from cobra.core.Solution import Solution
+from cobra.core.DictList import DictList
+import optlang
+import sympy
+from copy import copy
+from sympy.core.add import _unevaluated_Add
+from sympy.core.mul import _unevaluated_Mul
+
+
+def to_solver_based_model(model, solver=None, deepcopy_model=True):
+    """Convert a core model into a solver-based model.
+
+    """
+    if solver is None:
+        # Generate the default optlang solver instance
+        solver = optlang.Model()
+    sbmodel = OptlangBasedModel(
+        solver=solver, description=model, deepcopy_model=deepcopy_model)
+    for y in ['reactions', 'genes', 'metabolites']:
+        for x in sbmodel.__dict__[y]:
+            setattr(x, '_model', sbmodel)
+    new_reactions = DictList()
+    for reaction in sbmodel.reactions:
+        new_reaction = Reaction(name=reaction.name)
+        new_reaction.__dict__.update(reaction.__dict__)
+        new_reactions.append(new_reaction)
+    sbmodel.reactions = new_reactions
+    for metabolite in sbmodel.metabolites:
+        metabolite._reaction = set([sbmodel.reactions.get_by_id(reaction.id)
+                                   for reaction in metabolite._reaction])
+    for gene in sbmodel.genes:
+        gene._reaction = set([sbmodel.reactions.get_by_id(reaction.id)
+                             for reaction in gene._reaction])
+    return sbmodel
+
+
+class LazySolution(object):
+
+    """This class implements a lazily evaluating version of the original cobrapy Solution class."""
+
+    def __init__(self, solver):
+        # TODO: this should probably make a copy of solver???
+        self.solver = solver
+
+    @property
+    def f(self):
+        return self.solver.objective.value
+
+    @property
+    def x(self):
+        return [variable.primal for variable in self.solver.variables.values()]
+
+    @property
+    def x_dict(self):
+        return dict([(variable.name, variable.primal) for variable in self.solver.variables.values()])
+
+    @property
+    def y(self):
+        return [variable.dual for variable in self.solver.variables.values()]
+
+    @property
+    def y_dict(self):
+        return dict([(variable.name, variable.dual) for variable in self.solver.variables.values()])
+
+    @property
+    def status(self):
+        return self.solver.status
+
+
+class Reaction(OriginalReaction):
+
+    """docstring for Reaction"""
+
+    def __init__(self, name=None):
+        super(Reaction, self).__init__(name=name)
+        self._lower_bound = 0
+        self._upper_bound = 1000.
+
+    def __str__(self):
+        return self.build_reaction_string()
+
+    @property
+    def lower_bound(self):
+        if self.get_model() is not None:
+            return self.get_model().solver.variables[self.id].lb
+        else:
+            return self._lower_bound
+
+    @lower_bound.setter
+    def lower_bound(self, value):
+        if self.get_model() is not None:
+            try:
+                self.get_model().solver.variables[self.id].lb = value
+            except ValueError:
+                self.get_model().solver.variables[self.id].ub = value
+                self.get_model().solver.variables[self.id].lb = value
+            self._lower_bound = value
+        else:
+            self._lower_bound = value
+
+    @property
+    def upper_bound(self):
+        if self.get_model() is not None:
+            return self.get_model().solver.variables[self.id].ub
+        else:
+            return self._upper_bound
+
+    @upper_bound.setter
+    def upper_bound(self, value):
+        if self.get_model() is not None:
+            try:
+                self.get_model().solver.variables[self.id].ub = value
+            except ValueError:
+                self.get_model().solver.variables[self.id].lb = value
+                self.get_model().solver.variables[self.id].ub = value
+            self._upper_bound = value
+        else:
+            self._upper_bound = value
+
+
+class OptlangBasedModel(Model):
+
+    """Implements a model with an attached optlang solver instance.
+
+    Every model manipulation is immediately reflected in the solver instance.
+    """
+
+    def __init__(self, solver=None, description=None, deepcopy_model=False, **kwargs):
+        if deepcopy_model and isinstance(description, Model):
+            description = description.copy()
+        super(OptlangBasedModel, self).__init__(description, **kwargs)
+        if isinstance(solver, optlang.interface.Model):
+            self._solver = solver
+            self._populate_solver_from_scratch()
+        else:
+            self._solver = solver
+
+    @property
+    def objective(self):
+        return self.solver.objective
+
+    @objective.setter
+    def objective(self, value):
+        if isinstance(value, str):
+            self.solver.objective = optlang.Objective(
+                1. * self.solver.variables[value])
+        elif isinstance(value, Reaction):
+            self.solver.objective = optlang.Objective(
+                1. * self.solver.variables[value.id])
+        elif isinstance(value, optlang.Objective):
+            self.solver.objective = value
+        else:
+            raise Exception('%s is not a valid objective.' % value)
+
+    @property
+    def solver(self):
+        return self._solver
+
+    @solver.setter
+    def solver(self, value):
+        if self._solver is None:
+            self._solver = value
+            self._populate_solver_from_scratch()
+        else:
+            previous_solver = self._solver
+            self._solver = value
+            self._populate_solver_from_other_solver(previous_solver)
+
+        # TODO: something like this ...
+        # self._populate_solver()
+        # should follow ...
+        # or if previous solver
+
+    def copy(self):
+        model_copy = super(OptlangBasedModel, self).copy()
+        model_copy.solver = deepcopy(model_copy.solver)
+        return model_copy
+
+    def _populate_solver_from_scratch(self):
+        """
+
+        """
+        objective = optlang.Objective(0)
+        constr_terms = dict()
+        for rxn in self.reactions:
+            var = self.solver._add_variable(
+                optlang.Variable(rxn.id, lb=rxn.lower_bound, ub=rxn.upper_bound))
+            if rxn.objective_coefficient != 0.:
+                objective.expression += rxn.objective_coefficient * var
+            # print rxn
+            # var = self.solver.variables[rxn.id]
+            for met, coeff in rxn._metabolites.iteritems():
+                if constr_terms.has_key(met.id):
+                    constr_terms[met.id] += [(sympy.Real(coeff), var)]
+                else:
+                    constr_terms[met.id] = [(sympy.Real(coeff), var)]
+
+        # for the_reaction in reaction_list:
+        #     reaction_index = self.reactions.index(the_reaction.id)
+        #     for the_key, the_value in the_reaction._metabolites.items():
+        #         coefficient_dictionary[(self.metabolites.index(the_key.id), reaction_index)] = the_value
+        # import pprint
+        # pprint.pprint(constr_terms)
+        # blub = dict()
+        for met_id, terms in constr_terms.iteritems():
+            expr = _unevaluated_Add(*[_unevaluated_Mul(coeff, var)
+                                    for coeff, var in terms])
+            constr = optlang.Constraint(expr, lb=0, ub=0, name=met_id)
+            # blub[met_id] = constr
+            # print constr
+            try:
+                self.solver._add_constraint(constr, sloppy=True)
+            except Exception, e:
+                print e
+                raise
+        self.solver.objective = objective
+
+    def _populate_solver_from_other_solver(self, other_solver):
+        """
+
+        """
+        print "Populating from other solver ..."
+        pass
+
+    def add_metabolites(self, metabolite_list):
+        super(OptlangBasedModel, self).add_metabolites(metabolite_list)
+        for met in metabolite_list:
+            self.solver.add(optlang.Constraint(name=met.name))
+
+    def add_reactions(self, reaction_list):
+        """
+
+        """
+        for rxn in reaction_list:
+            if rxn.id not in self.solver.variables.keys():
+                var = optlang.Variable(
+                    rxn.id, lb=rxn.lower_bound, ub=rxn.upper_bound)
+                self.solver.add(var)
+                for met, coeff in rxn.metabolites.iteritems():
+                    try:
+                        expression = self.solver.constraints[met.id].expression
+                        expression = _unevaluated_Add(expression, coeff * var)
+                        # print "!!!!!!!!!", expression
+                    except KeyError:
+                        self.solver._add_constraint(
+                            optlang.Constraint(_unevaluated_Mul(sympy.Real(coeff), var), name=met.id, lb=0, ub=0))
+                # for met in rxn.get_products():
+                #     coeff = rxn.get_coefficient(met)
+                #     try:
+                #         self.solver.constraints[met.id].expression += coeff*var
+                #         expr = self.solver.constraints[met.id].expression
+                #         expr = _unevaluated_Add(expr, coeff*var)
+                #     except KeyError:
+                #         self.solver.add(optlang.Constraint(coeff*var, name=met.id, lb=0, ub=0))
+                self.solver._add_constraint(optlang.Constraint(
+                    _unevaluated_Mul(sympy.Real(coeff), var), name=met.id, lb=0, ub=0))
+        super(OptlangBasedModel, self).add_reactions(reaction_list)
+
+    def remove_reactions(self, the_reactions):
+        for reaction in the_reactions:
+            self.solver.remove(reaction.id)
+        super(OptlangBasedModel, self).remove_reactions(the_reactions)
+
+    # def remove_reaction(self, reaction):
+    #     super(OptlangBasedModel, self).remove_reactions([reaction])
+
+    def add_demand(self, metabolite, prefix="DM_"):
+        demand_reaction = Reaction(prefix + metabolite.id)
+        demand_reaction.add_metabolites({metabolite: -1})
+        demand_reaction.lower_bound = 0
+        demand_reaction.upper_bound = 1000
+        self.add_reactions([demand_reaction])
+        return demand_reaction
+
+    def optimize(self, new_objective=None, objective_sense='maximize', **kwargs):
+        objective_formula = sympy.Add()
+        [setattr(x, 'objective_coefficient', 0.) for x in self.reactions]
+        # print new_objective, type(new_objective)
+        if new_objective is None or new_objective == 0:
+            pass
+        elif isinstance(new_objective, dict):
+            for the_reaction, the_coefficient in new_objective.iteritems():
+                if isinstance(the_reaction, int):
+                    the_reaction = self.reactions[the_reaction]
+                else:
+                    if hasattr(the_reaction, 'id'):
+                        the_reaction = the_reaction.id
+                    the_reaction = self.reactions.get_by_id(the_reaction)
+                the_reaction.objective_coefficient = the_coefficient
+                objective_formula += the_coefficient * \
+                    self.solver.variables[the_reaction.id]
+        else:
+            # Allow for objectives to be constructed from multiple reactions
+            if not isinstance(new_objective, list) and \
+                    not isinstance(new_objective, tuple):
+                new_objective = [new_objective]
+            for the_reaction in new_objective:
+                if isinstance(the_reaction, int):
+                    the_reaction = self.reactions[the_reaction]
+                else:
+                    if hasattr(the_reaction, 'id'):
+                        the_reaction = the_reaction.id
+                    the_reaction = self.reactions.get_by_id(the_reaction)
+                the_reaction.objective_coefficient = 1.
+                objective_formula += 1. * \
+                    self.solver.variables[the_reaction.id]
+
+        if objective_formula != 0:
+            self.solver.objective = optlang.Objective(
+                objective_formula, direction={'minimize': 'min', 'maximize': 'max'}[objective_sense])
+        # self.solver.objective.direction = {'minimize':'min', 'maximize': 'max'}[objective_sense]
+        status = self.solver.optimize()
+        # x_tuples = [(variable.name, variable.primal) for variable in self.solver.variables.values()]
+        # y_tuples = [(constraint.name, constraint.primal) for constraint in self.solver.constraints.values()]
+        # solution = Solution(self.solver.objective.value,
+        #     x=[elem[1] for elem in x_tuples],
+        #     x_dict=dict(x_tuples),
+        #     y=[elem[1] for elem in x_tuples],
+        #     y_dict=dict(x_tuples),
+        #     status=status
+        #     )
+        solution = LazySolution(self.solver)
+        self.solution = solution
+        return solution
+
+
+if __name__ == '__main__':
+    import pickle
+    import time
+    from optlang.glpk_interface import Model as GlpkModel
+    from cobra.manipulation.delete import delete_model_genes
+
+    with open("../../test/data/iJO1366.pickle") as fhandle:
+        model = pickle.load(fhandle)
+        sbmodel = to_solver_based_model(model)
+
+    choice = 55
+    if choice == 1:
+        solver = GlpkModel()
+        sbmodel = to_solver_based_model(model, solver)
+    elif choice == 2:
+
+        from cobra.flux_analysis.variability import flux_variability_analysis
+        with open("../../test/data/iJO1366.pickle") as fhandle:
+            model = pickle.load(fhandle)
+        model.reactions.get_by_id(
+            'Ec_biomass_iJO1366_core_53p95M').lower_bound = 0.9823718127269797
+
+        # Run standard cobrapy fva
+        if True:
+            t = time.time()
+            fva_sol_model = flux_variability_analysis(
+                model, the_reactions=model.reactions[0:100],
+                fraction_of_optimum=1., solver="glpk")
+            elapsed = time.time() - t
+            print 'Cobrapy FVA time elapsed: ', elapsed
+            # 473.228835106 last time I checked
+
+        # Run solver-based-model fva
+        solver = GlpkModel()
+        sbmodel = to_solver_based_model(model, solver)
+        t = time.time()
+        fva_sol_sbmodel = flux_variability_analysis(
+            sbmodel, the_reactions=sbmodel.reactions[0:100],
+            fraction_of_optimum=1.
+        )
+        elapsed = time.time() - t
+        print 'optlang based FVA time elapsed: ', elapsed
+
+        # Run fva manually
+        fva_sol_sbmodel2 = dict()
+        for rxn in sbmodel.reactions:
+            fva_sol_sbmodel2[rxn.id] = dict()
+        t = time.time()
+        for rxn in sbmodel.reactions[0:100]:
+            print "Minimize", rxn
+            sbmodel.solver.objective = optlang.Objective(
+                1. * sbmodel.solver.variables[rxn.id], direction='min')
+            status = sbmodel.solver.optimize()
+
+            if status is 'optimal':
+                fva_sol_sbmodel2[rxn.id][
+                    'minimum'] = sbmodel.solver.objective.value
+            else:
+                fva_sol_sbmodel2[rxn.id]['minimum'] = None
+                # lb = sbmodel.solver.objective.value
+                # if abs(lb) < 10**-6:
+                #     lb = 0.
+                # sbmodel.solver.variables[rxn.id].lb = lb
+        for rxn in sbmodel.reactions[0:100]:
+            print "Maximize", rxn
+            sbmodel.solver.objective = optlang.Objective(
+                1. * sbmodel.solver.variables[rxn.id], direction='max')
+            status = sbmodel.solver.optimize()
+            if status is 'optimal':
+                fva_sol_sbmodel2[rxn.id][
+                    'maximum'] = sbmodel.solver.objective.value
+                # ub = sbmodel.solver.objective.value
+                # if abs(ub) < 10**-6:
+                #     ub = 0.
+                # sbmodel.solver.variables[rxn.id].ub = ub
+            else:
+                fva_sol_sbmodel2[rxn.id][
+                    'maximum'] = sbmodel.solver.objective.value
+        elapsed = time.time() - t
+        print 'optlang based FVA time elapsed: ', elapsed
+        # 15.3940598965 last time checked
+        # open('test.lp', 'w').write(str(sbmodel.solver))
+
+        # stuff = sbmodel._populate_solver_from_scratch()
+        # sbmodel = OptlangBasedModel(solver=solver)
+        # sbmodel.add_metabolites(model.metabolites[0:3])
+        # sbmodel.add_reactions(model.reactions)
+        # print sbmodel.reactions.EX_12ppd__R_e
+        # print sbmodel.solver
+        # print sbmodel.solver
+        # sbmodel.remove_reactions(['DM_AACALD'])
+        # print sbmodel.solver
+        for key in fva_sol_model.keys():
+            print key
+            print fva_sol_model[key]
+            print fva_sol_sbmodel[key]
+            print fva_sol_sbmodel2[key]
+
+    elif choice == 3:
+        solver = GlpkModel()
+        with open("../../test/data/salmonella.pickle") as fhandle:
+            model = pickle.load(fhandle)
+
+        cobra_model = to_solver_based_model(model, solver)
+        print "move to test"
+        # TODO: Add in tests for each function
+        cumulative_deletions = False
+        disable_orphans = False
+        gene_list = ['STM1067', 'STM0227']
+        # The following reactions are trimmed when STM1332 and STM1101 are
+        # deleted
+        dependent_reactions = set(['3HAD121',
+                                   '3HAD160',
+                                   '3HAD80',
+                                   '3HAD140',
+                                   '3HAD180',
+                                   '3HAD100',
+                                   '3HAD181',
+                                   '3HAD120',
+                                   '3HAD60',
+                                   '3HAD141',
+                                   '3HAD161',
+                                   'T2DECAI',
+                                   '3HAD40'])
+        delete_model_genes(cobra_model, gene_list)
+        symmetric_difference = dependent_reactions.symmetric_difference(
+            [x.id for x in cobra_model._trimmed_reactions])
+        if len(symmetric_difference) == 0:
+            print 'Successful deletion of %s' % repr(gene_list)
+        else:
+            print 'Failed deletion of %s\n%s reactions did not match' % (repr(gene_list),
+                                                                         repr(symmetric_difference))
+    elif choice == 4:
+        from functools import partial
+        from time_machine import TimeMachine
+        with open("../../test/data/salmonella.pickle") as fhandle:
+            model = pickle.load(fhandle)
+        model = to_solver_based_model(model)
+        tm = TimeMachine()
+        rxn = model.reactions.get_by_id('ENO')
+        tm(do=partial(setattr, rxn, 'lower_bound', -666), undo=partial(setattr,
+           rxn, 'lower_bound', model.reactions.get_by_id('ENO').lower_bound))
+        print model.reactions.get_by_id('ENO').lower_bound
+        tm.undo()
+        print model.reactions.get_by_id('ENO').lower_bound
+    elif choice == 5:
+        with open("../../test/data/salmonella.pickle") as fhandle:
+            model = to_solver_based_model(pickle.load(fhandle))
+        print model.solver.constraints['atp_c']
+        demand_rxn = Reaction(name='DM_atp')
+        demand_rxn.add_metabolites({model.metabolites.get_by_id('atp_c'): -1})
+        print demand_rxn.build_reaction_string()
+        print "Is there already a model defined?", demand_rxn.get_model()
+        model.add_reaction(demand_rxn)
+        print model.reactions.get_by_id('DM_atp').build_reaction_string()
+        print model.solver.constraints['atp_c']

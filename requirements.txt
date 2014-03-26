@@ -1,0 +1,2 @@
+-e git://github.com/biosustain/optlang.git#egg=optlang
+-e git://github.com/opencobra/cobrapy.git#egg=cobrapy
