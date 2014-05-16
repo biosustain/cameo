@@ -15,7 +15,15 @@
 
 __version__ = 'v0.0.0'
 
-__all__ = []
+from .io import load_model
+import config
+
+# from cameo.io import load_model
+
+# from .io import load_model
+# from .solver_based_model import Reaction
+# from .solver_based_model import OptlangBasedModel as Model
+
 
 # import os
 # from cameo.io import load_model
