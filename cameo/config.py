@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 import logging
 log = logging.getLogger(__name__)
 
@@ -22,13 +21,13 @@ try:
     client.block = True
     default_view = client.direct_view()
 except:
-    log.info(
+    log.debug(
         'IPython parallel not available ... using std lib multiprocessing')
     try:
         from .parallel import MultiprocessingView
         default_view = MultiprocessingView(4)
     except:
-        log.info(
+        log.debug(
             'multiprocessing not available ... using wrapper for standard map and apply (SequentialView)')
         from .parallel import SequentialView
         default_view = SequentialView()

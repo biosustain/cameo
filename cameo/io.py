@@ -1,7 +1,6 @@
 # Copyright (c) 2014 Novo Nordisk Foundation Center for Biosustainability, DTU.
 # See LICENSE for details.
 
-import os
 import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -34,11 +33,11 @@ def load_model(path_or_handle):
         handle = path_or_handle
     else:
         raise ValueError('Provided argument %s has to be either a file path or handle' % path_or_handle)
-    logger.info('Reading file from %s assuming pickled model.' % path)
+    logger.debug('Reading file from %s assuming pickled model.' % path)
     try:
         model = pickle.load(handle)
     except Exception:
-        logger.info('Cannot unpickle %s. Assuming sbml model next.' % path)
+        logger.debug('Cannot unpickle %s. Assuming sbml model next.' % path)
         try:
             model = read_sbml_model(path)
         except AttributeError:  # TODO: cobrapy doesn't raise a proper exception if a file does not contain an SBML model
