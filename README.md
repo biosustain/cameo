@@ -1,5 +1,3 @@
-cameo - computer assisted metabolic engineering & *omics
-or
 cameo - computer assisted metabolic engineering & optimization
 =======
 
@@ -8,6 +6,7 @@ Provide a high-level python library to aid the strain design efforts of the CFB 
 
 ### Design
 
+**No more copying** making copies of models is expensive, stick to the [_command pattern_](http://en.wikipedia.org/wiki/Command_pattern) using TimeMachine (util.py)
 **Database**: no more flatfiles ...
 **Caching**: optimization results are cached
 **Parallelization**: parallelize algorithms
@@ -20,5 +19,5 @@ This library dependes on
 - [cobrapy](https://github.com/opencobra/cobrapy) for constraint-based modeling
 - [optlang](https://github.com/biosustain/optlang) for heuristic optimization and mathematical programming
 
-Computationally heavy methods have been parallelized and can be run on clusters using IPython parallelization framework (see example and documetnation for more details). The default fallback is python's multiprocessing library.
+Computationally heavy methods have been parallelized and can be run on a clusters using the IPython parallelization framework (see example and documetnation for more details). The default fallback is python's multiprocessing library.
 

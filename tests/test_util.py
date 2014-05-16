@@ -3,7 +3,7 @@
 
 import unittest
 
-class TimeMachineTestCase(unittest.TestCase):
 
+class TimeMachineTestCase(unittest.TestCase):
     def setUp(self):
         pass        
