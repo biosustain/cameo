@@ -16,13 +16,21 @@
 from copy import copy
 import itertools
 from collections import OrderedDict
-from functools import partial
+
 import numpy
 from cobra.core import Reaction
-from cameo.config import default_view
-from cameo.util import partition, TimeMachine
-from IPython.parallel import interactive
 
+from cameo import config
+from cameo.util import TimeMachine, partition
+from functools import partial
+
+from sympy import Add, Mul
+from sympy.core.singleton import S
+
+from optlang import Objective
+
+def pFBA():
+    pass
 
 def trace_dead_routes(model, dead_reaction):
     """Explain a dead reaction by recursively tracing dead paths through the system."""
@@ -32,7 +40,6 @@ def trace_dead_routes(model, dead_reaction):
         solution = model.optimize()
         if solution.status == 'optimal':
             print solution.f
-        model.remove_reactions([demand_reaction])
 
 
 def _ids_to_reactions(model, reactions):
@@ -46,6 +53,15 @@ def _ids_to_reactions(model, reactions):
         else:
             raise Exception('%s is not a reaction or reaction ID.' % reaction)
     return clean_reactions
+
+
+class FvaFunctionObject(object):
+
+    def __init__(self, model):
+        self.model = model
+
+    def __call__(self, reactions):
+        return _flux_variability_analysis(self.model, reactions)
 
 
 def _flux_variability_analysis(model, reactions=None):
@@ -81,15 +97,6 @@ def _flux_variability_analysis(model, reactions=None):
         # tm.reset()
     model.objective = original_objective
     return fva_sol
-
-
-class FvaFunctionObject(object):
-
-    def __init__(self, model):
-        self.model = model
-
-    def __call__(self, reactions):
-        return _flux_variability_analysis(self.model, reactions)
 
 
 def flux_variability_analysis(model, reactions=None, view=default_view):
@@ -210,43 +217,103 @@ def production_envelope(model, target, variables=[], points=20):
     return final_envelope
 
 
-if __name__ == '__main__':
 
-    # repickled = pickle.loads(pickle.dumps(model))
-    # print "#"*80
-    # print model.solver.variables.keys()
-    # print "#"*80
-    # print repickled.solver.variables.keys()
-    # print "#"*80
+def cycle_free_flux(model, fluxes, fix=[]):
+    tm = TimeMachine()
+    exchange_reactions = model.exchanges
+    exchange_ids = [exchange.id for exchange in exchange_reactions]
+    internal_reactions = [reaction for reaction in model.reactions if reaction.id not in exchange_ids]
+    for exchange in exchange_reactions:
+        exchange_flux = fluxes[exchange.id]
+        tm(do=partial(setattr, exchange, 'lower_bound', exchange_flux), undo=partial(setattr, exchange, 'lower_bound', exchange.lower_bound))
+        tm(do=partial(setattr, exchange, 'upper_bound', exchange_flux), undo=partial(setattr, exchange, 'upper_bound', exchange.upper_bound))
+    obj_terms = list()
+    for internal_reaction in internal_reactions:
+        internal_flux = fluxes[internal_reaction.id]
+        if internal_flux >= 0:
+            obj_terms.append(Mul._from_args([S.One, internal_reaction.variable]))
+            tm(do=partial(setattr, internal_reaction, 'lower_bound', 0), undo=partial(setattr, internal_reaction, 'lower_bound', internal_reaction.lower_bound))
+            tm(do=partial(setattr, internal_reaction, 'upper_bound', internal_flux), undo=partial(setattr, internal_reaction, 'upper_bound', internal_reaction.upper_bound))
+        elif internal_flux < 0:
+            obj_terms.append(Mul._from_args([S.NegativeOne, internal_reaction.variable]))
+            tm(do=partial(setattr, internal_reaction, 'lower_bound', internal_flux), undo=partial(setattr, internal_reaction, 'lower_bound', internal_reaction.lower_bound))
+            tm(do=partial(setattr, internal_reaction, 'upper_bound', 0), undo=partial(setattr, internal_reaction, 'upper_bound', internal_reaction.upper_bound))
+        else:
+            pass
+            # print internal_flux, internal_reaction
+    for reaction_id in fix:
+        reaction_to_fix = model.reactions.get_by_id(reaction_id)
+        tm(do=partial(setattr, reaction_to_fix, 'lower_bound', fluxes[reaction_id]), undo=partial(setattr, reaction_to_fix, 'lower_bound', reaction_to_fix.lower_bound))
+        tm(do=partial(setattr, reaction_to_fix, 'upper_bound', fluxes[reaction_id]), undo=partial(setattr, reaction_to_fix, 'upper_bound', reaction_to_fix.upper_bound))
+    tm(do=partial(setattr, model, 'objective', Objective(Add._from_args(obj_terms), name='Flux minimization', direction='min', sloppy=True)), undo=partial(setattr, model, 'objective', model.objective))
+    solution = model.optimize()
+    tm.reset()
+    return solution.x_dict
 
-    client = parallel.Client()
-    client.block = True
-    view = client.direct_view()
+def cycle_free_fva(model, reactions=None, sloppy=False):
+    """Flux-variability analysis."""
+    original_objective = copy(model.objective)
+    if reactions is None:
+        reactions = model.reactions
+    else:
+        reactions = _ids_to_reactions(model, reactions)
+    fva_sol = OrderedDict()
+    for reaction in reactions:
+        fva_sol[reaction.id] = dict()
+        model.objective = reaction
+        model.objective.direction = 'min'
+        solution = model.optimize()
+        if solution.status == 'optimal':
+            bound = solution.f
+            if sloppy and bound > -100:
+                fva_sol[reaction.id]['minimum'] = bound
+            else:
+                v0_fluxes = solution.x_dict
+                v1_cycle_free_fluxes = cycle_free_flux(model, v0_fluxes)
+                if abs(v1_cycle_free_fluxes[reaction.id] - bound) < 10**-6:
+                    fva_sol[reaction.id]['minimum'] = bound
+                else:
+                    v2_one_cycle_fluxes = cycle_free_flux(model, v0_fluxes, fix=[reaction.id])
+                    zero_in_v1_but_not_in_v2 = list()
+                    model_broken_cyle = copy(model)
+                    for key, v1_flux in v1_cycle_free_fluxes.iteritems():
+                        if v1_flux == 0 and v2_one_cycle_fluxes[key] != 0:
+                            knockout_reaction = model_broken_cyle.reactions.get_by_id(key)
+                            knockout_reaction.lower_bound = 0.
+                            knockout_reaction.upper_bound = 0.
+                    model_broken_cyle.objective.direction = 'min'
+                    solution = model_broken_cyle.optimize()
+                    if solution.status == 'optimal':
+                        fva_sol[reaction.id]['minimum'] = solution.f
+        else:
+            fva_sol[reaction.id]['minimum'] = model.solution.status
+    for reaction in reactions:
+        model.objective = reaction
+        model.objective.direction = 'max'
+        solution = model.optimize()
+        if solution.status == 'optimal':
+            bound = solution.f
+            if sloppy and bound < 100:
+                fva_sol[reaction.id]['maximum'] = bound
+            else:
+                v0_fluxes = solution.x_dict
+                v1_cycle_free_fluxes = cycle_free_flux(model, v0_fluxes)
 
-    t1 = time.time()
-    fva_sol_p = flux_variability_analysis_parallel(model, view=view)
-    t2 = time.time()
-    print "Execution time: %s" % (t2 - t1)
-    # print fva_sol_p
-
-    print "#" * 80
-    # fva_sol = flux_variability_analysis(model, ['Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2',
-    #     'EX_o2_LPAREN_e_RPAREN_'])
-    t1 = time.time()
-    fva_sol = flux_variability_analysis(model)
-    t2 = time.time()
-    print "Execution time: %s" % (t2 - t1)
-    # print fva_sol
-
-    for key, val in fva_sol.iteritems():
-        val2 = fva_sol_p[key]
-        # print key, val, val2
-        print key, abs(val['minimum'] - val['minimum']), abs(val['maximum'] - val['maximum'])
-
-
-    # envelope = production_envelope(model,
-    # 'EX_ac_LPAREN_e_RPAREN_',
-    # variables=['Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2',
-    # 'EX_o2_LPAREN_e_RPAREN_'],
-    # points=10
-    # )
+                if abs(v1_cycle_free_fluxes[reaction.id] - bound) < 10**-6:
+                    fva_sol[reaction.id]['maximum'] = v0_fluxes[reaction.id]
+                else:
+                    v2_one_cycle_fluxes = cycle_free_flux(model, v0_fluxes, fix=[reaction.id])
+                    model_broken_cyle = copy(model)
+                    for key, v1_flux in v1_cycle_free_fluxes.iteritems():
+                        if v1_flux == 0 and v2_one_cycle_fluxes[key] != 0:
+                            knockout_reaction = model_broken_cyle.reactions.get_by_id(key)
+                            knockout_reaction.lower_bound = 0.
+                            knockout_reaction.upper_bound = 0.
+                    model_broken_cyle.objective.direction = 'max'
+                    solution = model_broken_cyle.optimize()
+                    if solution.status == 'optimal':
+                        fva_sol[reaction.id]['maximum'] = solution.f
+        else:
+            fva_sol[reaction.id]['maximum'] = model.solution.status
+    model.objective = original_objective
+    return fva_sol
