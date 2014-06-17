@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+non_zero_flux_threshold = 1e-6
+
 import logging
 log = logging.getLogger(__name__)
 

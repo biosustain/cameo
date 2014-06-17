@@ -4,7 +4,7 @@
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 
-#     http://www.apache.org/licenses/LICENSE-2.0
+# http://www.apache.org/licenses/LICENSE-2.0
 
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,6 +15,9 @@
 
 import logging
 import random
+from cameo import config
+from cobra.flux_analysis.single_deletion import single_gene_deletion
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 from cameo.basics import production_envelope
@@ -23,7 +26,6 @@ import inspyred
 
 
 class StrainDesignMethod(object):
-
     def __init__(self, *args, **kwargs):
         super(StrainDesignMethod, self).__init__(*args, **kwargs)
 
@@ -35,7 +37,6 @@ class StrainDesignMethod(object):
 
 
 class HeuristicStrainOptimization(StrainDesignMethod):
-
     """docstring for HeuristicStrainOptimization"""
 
     def __init__(self, objective=None, termination_condition=False, *args, **kwargs):
@@ -50,16 +51,33 @@ class HeuristicKnockoutSearch(HeuristicStrainOptimization):
 
 
 class OptGene(HeuristicStrainOptimization):
-
     """Implements OptGene.
 
     
     }
     """
 
+    def __init__(self, model=model, objective_function=objective_function, sense='max',
+                 max_evaluations=50000, simulation_method='fba',
+                 genes_to_knockout=[], *args, **kwargs):
+        super(HeuristicStrainOptimization, self).__init__(*args, **kwargs)
+        self.model = model
+        self.objective_function = objective_function
+        self.sense = sense
+        self.max_evaluations = max_evaluations,
+        self.simulation_method = simulation_method
+        self.genes_to_knockout = self._filter_gene_to_knockout(genes_to_knockout)
+
+        def _filter_genes_to_knockout(self, genes_to_knockout):
+            list(set(genes_to_knockout).difference(set(self._get_nonessential_genes())))
+
+        def _get_nonessential_genes(self):
+            genes = [gene for gene, value in single_gene_deletion(model).iteritems() if value > config.non_zero_flux_threshold]
+            return genes
+
+
 
 class DifferentialFVA(StrainDesignMethod):
-
     """Differential flux variability analysis.__init__.py
 
     Compare flux ranges of a reference model to and a set of models that
@@ -91,19 +109,20 @@ class DifferentialFVA(StrainDesignMethod):
         self.envelope = production_envelope(
             self.design_space_model, self.target, self.variables, points=self.points)
         zipped_envelope = zip(*self.envelope.itervalues())
-        max_interval_in_envelope = sorted(zipped_envelope, key=lambda xy: abs(xy[0]-xy[1]), reverse=True)[0]
-        step_size = (max_interval_in_envelope[1] - max_interval_in_envelope[0])/(self.points - 1)
+        max_interval_in_envelope = sorted(zipped_envelope, key=lambda xy: abs(xy[0] - xy[1]), reverse=True)[0]
+        step_size = (max_interval_in_envelope[1] - max_interval_in_envelope[0]) / (self.points - 1)
         self.grid = list()
         for lb, ub in zipped_envelope:
             step = 0
             while step < ub:
-                self.grid.append((lb, lb+step))
+                self.grid.append((lb, lb + step))
                 step += step_size
         self.grid += zipped_envelope
         logger.info('...')
 
     def run(self):
         return self.envelope
+
 
 if __name__ == '__main__':
     from optlang import Objective
@@ -117,7 +136,7 @@ if __name__ == '__main__':
     # print model.optimize().f
 
     bpcy_objective = Objective('bpcy', model.solver.variables[
-                               'Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2'] + model.solver.variables['EX_ac_LPAREN_e_RPAREN_'])
+        'Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2'] + model.solver.variables['EX_ac_LPAREN_e_RPAREN_'])
     print bpcy_objective
 
 
