@@ -25,6 +25,8 @@ from cobra.core.DictList import DictList
 import sympy
 from sympy.core.add import _unevaluated_Add
 from sympy.core.mul import _unevaluated_Mul
+from sympy import Add, Mul
+from sympy.core.singleton import S
 
 def to_solver_based_model(model, solver=None, deepcopy_model=True):
     """Convert a core model into a solver-based model.
@@ -175,7 +177,6 @@ class Reaction(OriginalReaction):
     def objective_coefficient(self, value):
         model = self.get_model()
         if model is not None:
-            # print "i am used"
             objective = model.objective
             # print model.solver.variables[self.id]
             # print value * model.solver.variables[self.id]
@@ -246,14 +247,14 @@ class OptlangBasedModel(Model):
     def objective(self, value):
         if isinstance(value, str):
             self.solver.objective = optlang.Objective(
-                1. * self.solver.variables[value])
+                Mul._from_args([S.One, self.solver.variables[value]]), sloppy=True)
         elif isinstance(value, Reaction):
             self.solver.objective = optlang.Objective(
-                1. * self.solver.variables[value.id])
+                Mul._from_args([S.One, self.solver.variables[value.id]]), sloppy=True)
         elif isinstance(value, optlang.Objective):
             self.solver.objective = value
         elif isinstance(value, sympy.Basic):
-            self.solver.objective = optlang.Objective(value)
+            self.solver.objective = optlang.Objective(value, sloppy=True)
         else:
             raise Exception('%s is not a valid objective.' % value)
 
@@ -413,7 +414,6 @@ class OptlangBasedModel(Model):
         #     y_dict=dict(x_tuples),
         #     status=status
         #     )
-        print "I am used!"
         solution = solution_type(self)
         self.solution = solution
         return solution

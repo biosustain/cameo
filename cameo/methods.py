@@ -17,7 +17,7 @@ import logging
 import random
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-from .basics import production_envelope
+from cameo.basics import production_envelope
 from deap import creator, base, tools, algorithms
 import inspyred
 
@@ -90,7 +90,16 @@ class DifferentialFVA(StrainDesignMethod):
         logger.info('Running DifferentialFVA initialization ...')
         self.envelope = production_envelope(
             self.design_space_model, self.target, self.variables, points=self.points)
-
+        zipped_envelope = zip(*self.envelope.itervalues())
+        max_interval_in_envelope = sorted(zipped_envelope, key=lambda xy: abs(xy[0]-xy[1]), reverse=True)[0]
+        step_size = (max_interval_in_envelope[1] - max_interval_in_envelope[0])/(self.points - 1)
+        self.grid = list()
+        for lb, ub in zipped_envelope:
+            step = 0
+            while step < ub:
+                self.grid.append((lb, lb+step))
+                step += step_size
+        self.grid += zipped_envelope
         logger.info('...')
 
     def run(self):

@@ -99,7 +99,7 @@ def _flux_variability_analysis(model, reactions=None):
     return fva_sol
 
 
-def flux_variability_analysis(model, reactions=None, view=default_view):
+def flux_variability_analysis(model, reactions=None, view=config.default_view):
     """Flux-variability analysis."""
     if reactions is None:
         reactions = model.reactions
@@ -115,29 +115,38 @@ def flux_variability_analysis(model, reactions=None, view=default_view):
 
 
 def _production_envelope_inner(model, point, variable_reactions):
-    envelope = OrderedDict()
     for (reaction, coordinate) in zip(variable_reactions, point):
-        if reaction.lower_bound > coordinate:
-            reaction.lower_bound = coordinate
-            reaction.upper_bound = coordinate
-        else:
-            reaction.upper_bound = coordinate
-            reaction.lower_bound = coordinate
+        reaction.lower_bound = coordinate
+        reaction.upper_bound = coordinate
+    interval = []
+    model.objective.direction = 'min'
+    solution = model.optimize()
+    if solution.status == 'optimal':
+        interval.append(solution.f)
+    else:
+        model.solver.configuration.presolver = True
+        model.solver.configuration.verbosity = 3
         solution = model.optimize()
         if solution.status == 'optimal':
-            return solution.f
+            interval.append(solution.f)
         else:
-            # print zip(variable_reactions, point), solution.status, solution.f
-            model.solver.configuration.presolver = True
-            model.solver.configuration.verbosity = 3
-            solution = model.optimize()
-            if solution.status == 'optimal':
-                return solution.f
-            else:
-                return 0
+            interval.append(solution.status)
+    model.objective.direction = 'max'
+    solution = model.optimize()
+    if solution.status == 'optimal':
+        interval.append(solution.f)
+    else:
+        model.solver.configuration.presolver = True
+        model.solver.configuration.verbosity = 3
+        solution = model.optimize()
+        if solution.status == 'optimal':
+            interval.append(solution.f)
+        else:
+            interval.append(solution.status)
+    return interval
 
 
-def production_envelope2(model, target, variables=[], points=20, view=None):
+def production_envelope(model, target, variables=[], points=20, view=None):
     """Calculate a production envelope ..."""
     tm = TimeMachine()
     original_objective = copy(model.objective)
@@ -167,54 +176,54 @@ def production_envelope2(model, target, variables=[], points=20, view=None):
     return final_envelope
 
 
-def production_envelope(model, target, variables=[], points=20):
-    """Calculate a production envelope ..."""
-    tm = TimeMachine()
-    original_objective = copy(model.objective)
-    init_bookmark = tm(do=partial(setattr, model, 'objective', target),
-                       undo=partial(setattr, model, 'objective', original_objective))
-    variable_reactions = _ids_to_reactions(model, variables)
-    variables_min_max = flux_variability_analysis(
-        model, reactions=variable_reactions)
-    grid = [numpy.linspace(val['minimum'], val['maximum'], points, endpoint=True)
-            for key, val in variables_min_max.iteritems()]
-    generator = itertools.product(*grid)
-    original_bounds = dict([(reaction, (reaction.lower_bound, reaction.upper_bound))
-                           for reaction in variable_reactions])
-    envelope = OrderedDict()
-    for point in generator:
-        for (reaction, coordinate) in zip(variable_reactions, point):
-            if reaction.lower_bound > coordinate:
-                reaction.lower_bound = coordinate
-                reaction.upper_bound = coordinate
-            else:
-                reaction.upper_bound = coordinate
-                reaction.lower_bound = coordinate
-
-        solution = model.optimize()
-        if solution.status == 'optimal':
-            envelope[point] = solution.f
-        else:
-            # print zip(variable_reactions, point), solution.status, solution.f
-            model.solver.configuration.presolver = True
-            model.solver.configuration.verbosity = 3
-            solution = model.optimize()
-            if solution.status == 'optimal':
-                envelope[point] = solution.f
-            else:
-                envelope[point] = 0
-            model.solver.configuration.presolver = False
-            model.solver.configuration.verbosity = 0
-            # tm.undo(bookmark)
-    for reaction, bounds in original_bounds.iteritems():
-        reaction.lower_bound = bounds[0]
-        reaction.upper_bound = bounds[1]
-    tm.undo(init_bookmark)
-    final_envelope = OrderedDict()
-    for i, reaction in enumerate(variable_reactions):
-        final_envelope[reaction.id] = [elem[i] for elem in envelope.keys()]
-    final_envelope[target] = envelope.values()
-    return final_envelope
+# def production_envelope(model, target, variables=[], points=20):
+#     """Calculate a production envelope ..."""
+#     tm = TimeMachine()
+#     original_objective = copy(model.objective)
+#     init_bookmark = tm(do=partial(setattr, model, 'objective', target),
+#                        undo=partial(setattr, model, 'objective', original_objective))
+#     variable_reactions = _ids_to_reactions(model, variables)
+#     variables_min_max = flux_variability_analysis(
+#         model, reactions=variable_reactions)
+#     grid = [numpy.linspace(val['minimum'], val['maximum'], points, endpoint=True)
+#             for key, val in variables_min_max.iteritems()]
+#     generator = itertools.product(*grid)
+#     original_bounds = dict([(reaction, (reaction.lower_bound, reaction.upper_bound))
+#                            for reaction in variable_reactions])
+#     envelope = OrderedDict()
+#     for point in generator:
+#         for (reaction, coordinate) in zip(variable_reactions, point):
+#             if reaction.lower_bound > coordinate:
+#                 reaction.lower_bound = coordinate
+#                 reaction.upper_bound = coordinate
+#             else:
+#                 reaction.upper_bound = coordinate
+#                 reaction.lower_bound = coordinate
+#
+#         solution = model.optimize()
+#         if solution.status == 'optimal':
+#             envelope[point] = solution.f
+#         else:
+#             # print zip(variable_reactions, point), solution.status, solution.f
+#             model.solver.configuration.presolver = True
+#             model.solver.configuration.verbosity = 3
+#             solution = model.optimize()
+#             if solution.status == 'optimal':
+#                 envelope[point] = solution.f
+#             else:
+#                 envelope[point] = 0
+#             model.solver.configuration.presolver = False
+#             model.solver.configuration.verbosity = 0
+#             # tm.undo(bookmark)
+#     for reaction, bounds in original_bounds.iteritems():
+#         reaction.lower_bound = bounds[0]
+#         reaction.upper_bound = bounds[1]
+#     tm.undo(init_bookmark)
+#     final_envelope = OrderedDict()
+#     for i, reaction in enumerate(variable_reactions):
+#         final_envelope[reaction.id] = [elem[i] for elem in envelope.keys()]
+#     final_envelope[target] = envelope.values()
+#     return final_envelope
 
 
 

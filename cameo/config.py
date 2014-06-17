@@ -21,13 +21,16 @@ try:
     client.block = True
     default_view = client.direct_view()
 except:
-    log.debug(
-        'IPython parallel not available ... using std lib multiprocessing')
-    try:
-        from .parallel import MultiprocessingView
-        default_view = MultiprocessingView(4)
-    except:
-        log.debug(
-            'multiprocessing not available ... using wrapper for standard map and apply (SequentialView)')
-        from .parallel import SequentialView
-        default_view = SequentialView()
+    from .parallel import SequentialView
+    default_view = SequentialView()
+# except:
+#     log.debug(
+#         'IPython parallel not available ... using std lib multiprocessing')
+#     try:
+#         from .parallel import MultiprocessingView
+#         default_view = MultiprocessingView(4)
+#     except:
+#         log.debug(
+#             'multiprocessing not available ... using wrapper for standard map and apply (SequentialView)')
+#         from .parallel import SequentialView
+#         default_view = SequentialView()

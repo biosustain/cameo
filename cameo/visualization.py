@@ -25,6 +25,8 @@ log = logging.getLogger(__name__)
 import collections
 import functools
 
+from IPython.display import HTML, SVG
+
 class memoized(object):
    '''Decorator. Caches a function's return value each time it is called.
    If called later with the same arguments, the cached value is returned
@@ -58,15 +60,16 @@ def pathviz_maps():
 
 
 def pathviz_svg(map_id='EcoliCore_coreMap', **kwargs):
-    config = {"map": map_id, "ImageSize": 800., "Boundary": "false"}
+    config = {"map": map_id, "ImageSize": 800., "Boundary": False}
     for key, value in kwargs.iteritems():
         config[key] = value
     fd, tmp_pathviz_input = tempfile.mkstemp(prefix='pathviz_svg_', suffix='.json')
+    print tmp_pathviz_input
     with open(tmp_pathviz_input, 'w') as fhandle:
         json.dump(config, fhandle)
     fd, tmp_pathviz_output = tempfile.mkstemp(prefix='pathviz_svg_', suffix='.svg')
+    print tmp_pathviz_output
     output = subprocess.check_output(['pathviz.m', '-o', tmp_pathviz_output, '-i', tmp_pathviz_input])
-    log.debug(output)
     with open(tmp_pathviz_output, 'r') as fhandle:
         svg_map = fhandle.read()
     return SVG(svg_map)
@@ -94,12 +97,9 @@ cdf.embed("%s", 942, 678);
 </body>
 </html>"""
     html_template2 = """
-$("#IframeId").load(function() {
-    $(this).height( $(this).contents().find("body").height() );
-});
-<iframe src="%s" id="CDF"></iframe>
+<iframe width=800 height=700 src="files/%s" id="CDF"></iframe>
 """
-    config = {"map": map_id, "ImageSize": 800., "Boundary": "false"}
+    config = {"map": map_id, "ImageSize": 800., "Boundary": False}
     for key, value in kwargs.iteritems():
         config[key] = value
     fd, tmp_pathviz_input = tempfile.mkstemp(prefix='pathviz_svg_', suffix='.json')
@@ -111,4 +111,4 @@ $("#IframeId").load(function() {
     fd, tmp_html = tempfile.mkstemp(prefix='pathviz_cdf_embedded_', suffix='.html', dir='.')
     with open(tmp_html, 'w') as fhandle:
         fhandle.write(html_template % os.path.basename(tmp_pathviz_output))
-    return HTML('' % os.path.join('files', os.path.basename(tmp_html)))
+    return HTML(html_template2 % os.path.basename(tmp_html))
