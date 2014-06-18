@@ -27,6 +27,9 @@ from sympy.core.mul import _unevaluated_Mul
 from sympy import Mul
 from sympy.core.singleton import S
 
+from pandas import Series, DataFrame
+
+
 def to_solver_based_model(model, solver=None, deepcopy_model=True):
     """Convert a core model into a solver-based model."""
 
@@ -60,6 +63,9 @@ class LazySolution(object):
         self.model = model
         self._time_stamp = self.model._timestamp_last_optimization
         self._f = None
+
+    def __str__(self):
+        return str(DataFrame({'primal': Series(self.x_dict), 'dual': Series(self.y_dict)}))
 
     def _check_freshness(self):
         if self._time_stamp != self.model._timestamp_last_optimization:

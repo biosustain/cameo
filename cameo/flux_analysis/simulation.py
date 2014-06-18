@@ -12,10 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#TODO: Niko
+from functools import partial
+from cameo.util import TimeMachine
+
 
 def fba(model, objective=None):
-    pass
+    """Perform flux balance analysis."""
+    tm = TimeMachine()
+    if objective is not None:
+        tm(do=partial(setattr, model, 'objective', objective),
+           undo=partial(setattr, model, 'objective', model.objective))
+    solution = model.solve()
+    print tm.history
+    tm.reset()
+    return solution
+
 
 def pfba(model, objective=None):
     pass
@@ -26,3 +37,11 @@ def moma(model, objective=None):
 def lmoma(model, objective=None):
     pass
 
+
+if __name__ == '__main__':
+    from cameo import load_model
+
+    model = load_model('../../tests/data/EcoliCore.xml')
+    print fba(model)
+    print fba(model, 'TPI')
+    print model.objective
