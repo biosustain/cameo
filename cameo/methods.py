@@ -121,7 +121,9 @@ class DifferentialFVA(StrainDesignMethod):
         logger.info('...')
 
     def run(self):
-        return self.envelope
+        for point in self.grid:
+            print point
+        return 1
 
 
 if __name__ == '__main__':

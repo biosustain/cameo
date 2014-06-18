@@ -4,7 +4,7 @@
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 
-#     http://www.apache.org/licenses/LICENSE-2.0
+# http://www.apache.org/licenses/LICENSE-2.0
 
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -29,18 +29,6 @@ from sympy.core.singleton import S
 
 from optlang import Objective
 
-def pFBA():
-    pass
-
-def trace_dead_routes(model, dead_reaction):
-    """Explain a dead reaction by recursively tracing dead paths through the system."""
-    for metabolite in dead_reaction.metabolites:
-        demand_reaction = model.add_demand(metabolite)
-        model.objective = demand_reaction
-        solution = model.optimize()
-        if solution.status == 'optimal':
-            print solution.f
-
 
 def _ids_to_reactions(model, reactions):
     """translates reaction ids into reactions (skips reactions)."""
@@ -56,7 +44,6 @@ def _ids_to_reactions(model, reactions):
 
 
 class FvaFunctionObject(object):
-
     def __init__(self, model):
         self.model = model
 
@@ -84,7 +71,7 @@ def _flux_variability_analysis(model, reactions=None):
             fva_sol[reaction.id]['minimum'] = model.solution.f
         else:
             fva_sol[reaction.id]['minimum'] = model.solution.status
-        # tm.reset()
+            # tm.reset()
     for reaction in reactions:
         # tm(do=partial(setattr, model, 'objective', reaction), undo=partial(setattr, model, 'objective', original_objective))
         model.objective = reaction
@@ -94,7 +81,7 @@ def _flux_variability_analysis(model, reactions=None):
             fva_sol[reaction.id]['maximum'] = model.solution.f
         else:
             fva_sol[reaction.id]['maximum'] = model.solution.status
-        # tm.reset()
+            # tm.reset()
     model.objective = original_objective
     return fva_sol
 
@@ -159,7 +146,7 @@ def production_envelope(model, target, variables=[], points=20, view=None):
             for key, val in variables_min_max.iteritems()]
     generator = itertools.product(*grid)
     original_bounds = dict([(reaction, (reaction.lower_bound, reaction.upper_bound))
-                           for reaction in variable_reactions])
+                            for reaction in variable_reactions])
     envelope = OrderedDict()
     for point in generator:
         envelope[point] = _production_envelope_inner(
@@ -176,57 +163,6 @@ def production_envelope(model, target, variables=[], points=20, view=None):
     return final_envelope
 
 
-# def production_envelope(model, target, variables=[], points=20):
-#     """Calculate a production envelope ..."""
-#     tm = TimeMachine()
-#     original_objective = copy(model.objective)
-#     init_bookmark = tm(do=partial(setattr, model, 'objective', target),
-#                        undo=partial(setattr, model, 'objective', original_objective))
-#     variable_reactions = _ids_to_reactions(model, variables)
-#     variables_min_max = flux_variability_analysis(
-#         model, reactions=variable_reactions)
-#     grid = [numpy.linspace(val['minimum'], val['maximum'], points, endpoint=True)
-#             for key, val in variables_min_max.iteritems()]
-#     generator = itertools.product(*grid)
-#     original_bounds = dict([(reaction, (reaction.lower_bound, reaction.upper_bound))
-#                            for reaction in variable_reactions])
-#     envelope = OrderedDict()
-#     for point in generator:
-#         for (reaction, coordinate) in zip(variable_reactions, point):
-#             if reaction.lower_bound > coordinate:
-#                 reaction.lower_bound = coordinate
-#                 reaction.upper_bound = coordinate
-#             else:
-#                 reaction.upper_bound = coordinate
-#                 reaction.lower_bound = coordinate
-#
-#         solution = model.optimize()
-#         if solution.status == 'optimal':
-#             envelope[point] = solution.f
-#         else:
-#             # print zip(variable_reactions, point), solution.status, solution.f
-#             model.solver.configuration.presolver = True
-#             model.solver.configuration.verbosity = 3
-#             solution = model.optimize()
-#             if solution.status == 'optimal':
-#                 envelope[point] = solution.f
-#             else:
-#                 envelope[point] = 0
-#             model.solver.configuration.presolver = False
-#             model.solver.configuration.verbosity = 0
-#             # tm.undo(bookmark)
-#     for reaction, bounds in original_bounds.iteritems():
-#         reaction.lower_bound = bounds[0]
-#         reaction.upper_bound = bounds[1]
-#     tm.undo(init_bookmark)
-#     final_envelope = OrderedDict()
-#     for i, reaction in enumerate(variable_reactions):
-#         final_envelope[reaction.id] = [elem[i] for elem in envelope.keys()]
-#     final_envelope[target] = envelope.values()
-#     return final_envelope
-
-
-
 def cycle_free_flux(model, fluxes, fix=[]):
     tm = TimeMachine()
     exchange_reactions = model.exchanges
@@ -234,30 +170,41 @@ def cycle_free_flux(model, fluxes, fix=[]):
     internal_reactions = [reaction for reaction in model.reactions if reaction.id not in exchange_ids]
     for exchange in exchange_reactions:
         exchange_flux = fluxes[exchange.id]
-        tm(do=partial(setattr, exchange, 'lower_bound', exchange_flux), undo=partial(setattr, exchange, 'lower_bound', exchange.lower_bound))
-        tm(do=partial(setattr, exchange, 'upper_bound', exchange_flux), undo=partial(setattr, exchange, 'upper_bound', exchange.upper_bound))
+        tm(do=partial(setattr, exchange, 'lower_bound', exchange_flux),
+           undo=partial(setattr, exchange, 'lower_bound', exchange.lower_bound))
+        tm(do=partial(setattr, exchange, 'upper_bound', exchange_flux),
+           undo=partial(setattr, exchange, 'upper_bound', exchange.upper_bound))
     obj_terms = list()
     for internal_reaction in internal_reactions:
         internal_flux = fluxes[internal_reaction.id]
         if internal_flux >= 0:
             obj_terms.append(Mul._from_args([S.One, internal_reaction.variable]))
-            tm(do=partial(setattr, internal_reaction, 'lower_bound', 0), undo=partial(setattr, internal_reaction, 'lower_bound', internal_reaction.lower_bound))
-            tm(do=partial(setattr, internal_reaction, 'upper_bound', internal_flux), undo=partial(setattr, internal_reaction, 'upper_bound', internal_reaction.upper_bound))
+            tm(do=partial(setattr, internal_reaction, 'lower_bound', 0),
+               undo=partial(setattr, internal_reaction, 'lower_bound', internal_reaction.lower_bound))
+            tm(do=partial(setattr, internal_reaction, 'upper_bound', internal_flux),
+               undo=partial(setattr, internal_reaction, 'upper_bound', internal_reaction.upper_bound))
         elif internal_flux < 0:
             obj_terms.append(Mul._from_args([S.NegativeOne, internal_reaction.variable]))
-            tm(do=partial(setattr, internal_reaction, 'lower_bound', internal_flux), undo=partial(setattr, internal_reaction, 'lower_bound', internal_reaction.lower_bound))
-            tm(do=partial(setattr, internal_reaction, 'upper_bound', 0), undo=partial(setattr, internal_reaction, 'upper_bound', internal_reaction.upper_bound))
+            tm(do=partial(setattr, internal_reaction, 'lower_bound', internal_flux),
+               undo=partial(setattr, internal_reaction, 'lower_bound', internal_reaction.lower_bound))
+            tm(do=partial(setattr, internal_reaction, 'upper_bound', 0),
+               undo=partial(setattr, internal_reaction, 'upper_bound', internal_reaction.upper_bound))
         else:
             pass
             # print internal_flux, internal_reaction
     for reaction_id in fix:
         reaction_to_fix = model.reactions.get_by_id(reaction_id)
-        tm(do=partial(setattr, reaction_to_fix, 'lower_bound', fluxes[reaction_id]), undo=partial(setattr, reaction_to_fix, 'lower_bound', reaction_to_fix.lower_bound))
-        tm(do=partial(setattr, reaction_to_fix, 'upper_bound', fluxes[reaction_id]), undo=partial(setattr, reaction_to_fix, 'upper_bound', reaction_to_fix.upper_bound))
-    tm(do=partial(setattr, model, 'objective', Objective(Add._from_args(obj_terms), name='Flux minimization', direction='min', sloppy=True)), undo=partial(setattr, model, 'objective', model.objective))
+        tm(do=partial(setattr, reaction_to_fix, 'lower_bound', fluxes[reaction_id]),
+           undo=partial(setattr, reaction_to_fix, 'lower_bound', reaction_to_fix.lower_bound))
+        tm(do=partial(setattr, reaction_to_fix, 'upper_bound', fluxes[reaction_id]),
+           undo=partial(setattr, reaction_to_fix, 'upper_bound', reaction_to_fix.upper_bound))
+    tm(do=partial(setattr, model, 'objective',
+                  Objective(Add._from_args(obj_terms), name='Flux minimization', direction='min', sloppy=True)),
+       undo=partial(setattr, model, 'objective', model.objective))
     solution = model.optimize()
     tm.reset()
     return solution.x_dict
+
 
 def cycle_free_fva(model, reactions=None, sloppy=False):
     """Flux-variability analysis."""
@@ -279,7 +226,7 @@ def cycle_free_fva(model, reactions=None, sloppy=False):
             else:
                 v0_fluxes = solution.x_dict
                 v1_cycle_free_fluxes = cycle_free_flux(model, v0_fluxes)
-                if abs(v1_cycle_free_fluxes[reaction.id] - bound) < 10**-6:
+                if abs(v1_cycle_free_fluxes[reaction.id] - bound) < 10 ** -6:
                     fva_sol[reaction.id]['minimum'] = bound
                 else:
                     v2_one_cycle_fluxes = cycle_free_flux(model, v0_fluxes, fix=[reaction.id])
@@ -308,7 +255,7 @@ def cycle_free_fva(model, reactions=None, sloppy=False):
                 v0_fluxes = solution.x_dict
                 v1_cycle_free_fluxes = cycle_free_flux(model, v0_fluxes)
 
-                if abs(v1_cycle_free_fluxes[reaction.id] - bound) < 10**-6:
+                if abs(v1_cycle_free_fluxes[reaction.id] - bound) < 10 ** -6:
                     fva_sol[reaction.id]['maximum'] = v0_fluxes[reaction.id]
                 else:
                     v2_one_cycle_fluxes = cycle_free_flux(model, v0_fluxes, fix=[reaction.id])

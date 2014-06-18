@@ -4,7 +4,7 @@
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 
-#     http://www.apache.org/licenses/LICENSE-2.0
+# http://www.apache.org/licenses/LICENSE-2.0
 
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,7 +14,6 @@
 
 
 from copy import deepcopy, copy
-import time
 
 import optlang
 
@@ -25,13 +24,14 @@ from cobra.core.DictList import DictList
 import sympy
 from sympy.core.add import _unevaluated_Add
 from sympy.core.mul import _unevaluated_Mul
-from sympy import Add, Mul
+from sympy import Mul
 from sympy.core.singleton import S
 
-def to_solver_based_model(model, solver=None, deepcopy_model=True):
-    """Convert a core model into a solver-based model.
+from .util import append_docstring_from
 
-    """
+def to_solver_based_model(model, solver=None, deepcopy_model=True):
+    """Convert a core model into a solver-based model."""
+
     if solver is None:
         # Generate the default optlang solver instance
         solver = optlang.Model()
@@ -56,7 +56,6 @@ def to_solver_based_model(model, solver=None, deepcopy_model=True):
 
 
 class LazySolution(object):
-
     """This class implements a lazily evaluating version of the original cobrapy Solution class."""
 
     def __init__(self, model):
@@ -70,7 +69,7 @@ class LazySolution(object):
             print self.model._timestamp_last_optimization
             raise Exception(
                 'The solution (capture around %s) has become invalid as the model has been re-optimized recently (%s).' % (
-                time.ctime(self._time_stamp), time.ctime(self.model._timestamp_last_optimization)))
+                    time.ctime(self._time_stamp), time.ctime(self.model._timestamp_last_optimization)))
 
     @property
     def f(self):
@@ -193,7 +192,6 @@ class Reaction(OriginalReaction):
 
 
 class OptlangBasedModel(Model):
-
     """Implements a model with an attached optlang solver instance.
 
     Every model manipulation is immediately reflected in the solver instance.
@@ -321,15 +319,14 @@ class OptlangBasedModel(Model):
         """
         pass
 
+    @append_docstring_from(Model)
     def add_metabolites(self, metabolite_list):
         super(OptlangBasedModel, self).add_metabolites(metabolite_list)
         for met in metabolite_list:
             self.solver.add(optlang.Constraint(name=met.name))
 
+    @append_docstring_from(Model)
     def add_reactions(self, reaction_list):
-        """
-
-        """
         for reaction in reaction_list:
             try:
                 reaction_variable = self.solver.variables[reaction.id]
@@ -348,13 +345,11 @@ class OptlangBasedModel(Model):
 
         super(OptlangBasedModel, self).add_reactions(reaction_list)
 
+    @append_docstring_from(Model)
     def remove_reactions(self, the_reactions):
         for reaction in the_reactions:
             self.solver.remove(reaction.id)
         super(OptlangBasedModel, self).remove_reactions(the_reactions)
-
-    # def remove_reaction(self, reaction):
-    #     super(OptlangBasedModel, self).remove_reactions([reaction])
 
     def add_demand(self, metabolite, prefix="DM_"):
         demand_reaction = Reaction(prefix + metabolite.id)
@@ -364,8 +359,9 @@ class OptlangBasedModel(Model):
         self.add_reactions([demand_reaction])
         return demand_reaction
 
+    @append_docstring_from(Model)
     def optimize(self, new_objective=None, objective_sense='maximize', solution_type=LazySolution, **kwargs):
-        # print new_objective, type(new_objective)
+        """OptlangBasedModel implementation of optimize. Returns lazy solution object. Exists for compatibility reasons. Uses model.solve() instead."""
         if new_objective is None or new_objective == 0:
             pass
         else:
@@ -402,21 +398,26 @@ class OptlangBasedModel(Model):
             if objective_formula != 0:
                 self.solver.objective = optlang.Objective(
                     objective_formula, direction={'minimize': 'min', 'maximize': 'max'}[objective_sense])
-        # self.solver.objective.direction = {'minimize':'min', 'maximize': 'max'}[objective_sense]
         self._timestamp_last_optimization = time.time()
         status = self.solver.optimize()
-        # x_tuples = [(variable.name, variable.primal) for variable in self.solver.variables.values()]
-        # y_tuples = [(constraint.name, constraint.primal) for constraint in self.solver.constraints.values()]
-        # solution = Solution(self.solver.objective.value,
-        #     x=[elem[1] for elem in x_tuples],
-        #     x_dict=dict(x_tuples),
-        #     y=[elem[1] for elem in x_tuples],
-        #     y_dict=dict(x_tuples),
-        #     status=status
-        #     )
         solution = solution_type(self)
         self.solution = solution
         return solution
+
+    def solve(self, *args, **kwargs):
+        """Optimize model."""
+        solution = self.optimize(*args, **kwargs)
+        if solution.status is not 'optimal':
+            raise Exception(solution.status)
+            return solution
+        else:
+            return solution
+
+    def __dir__(self):
+        # Hide 'optimize' from user.
+        fields = sorted(dir(type(self)) + self.__dict__.keys())
+        fields.remove('optimize')
+        return fields
 
 
 if __name__ == '__main__':
@@ -437,6 +438,7 @@ if __name__ == '__main__':
         from cobra.flux_analysis.variability import flux_variability_analysis
 
         from cobra.flux_analysis.variability import flux_variability_analysis
+
         with open("../tests/data/iJO1366.pickle") as fhandle:
             model = pickle.load(fhandle)
         model.reactions.get_by_id(
