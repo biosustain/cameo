@@ -34,7 +34,7 @@ class AutoVivification(dict):
 
 class TimeMachine(object):
 
-    """docstring for TimeMachine"""
+    """Travel back and forth in time."""
 
     def __init__(self):
         super(TimeMachine, self).__init__()
@@ -90,3 +90,10 @@ def partition(lst, n):
     """Partition a list into n bite size chunks."""
     division = len(lst) / float(n)
     return [lst[int(round(division * i)): int(round(division * (i + 1)))] for i in xrange(n)]
+
+def use_docstring_from(cls):
+    """A decorator that appends the docstring of, for example, a parent class."""
+    def docstring_inheriting_decorator(fn):
+        fn.__doc__ = fn.__doc__ + getattr(cls,fn.__name__).__doc__
+        return fn
+    return docstring_inheriting_decorator
