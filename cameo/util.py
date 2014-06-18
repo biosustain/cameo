@@ -54,6 +54,7 @@ class TimeMachine(object):
         return entry_id
 
     def __str__(self):
+        # FIXME: entry['undo'].func works only for partials ... (Niko)
         info = '\n'
         for uuid, entry in self.history.iteritems():
             info += datetime.fromtimestamp(entry['unix_epoch']
@@ -71,8 +72,11 @@ class TimeMachine(object):
 
     def undo(self, bookmark=None):
         if bookmark is None:
-            (uuid, entry) = self.history.popitem()
-            entry['undo']()
+            try:
+                (uuid, entry) = self.history.popitem()
+                entry['undo']()
+            except KeyError:  # history is empty
+                pass
         elif bookmark in self.history.keys():
             uuid = False
             while uuid is not bookmark:
@@ -83,7 +87,8 @@ class TimeMachine(object):
                 'Provided bookmark %s cannot be found in the time machine.')
 
     def reset(self):
-        self.undo(bookmark=self.history.keys()[0])
+        if self.history:  # history is not empty
+            self.undo(bookmark=self.history.keys()[0])
 
 
 def partition(lst, n):
