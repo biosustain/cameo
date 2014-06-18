@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
+import time
 from copy import deepcopy, copy
 
 import optlang
@@ -26,8 +26,6 @@ from sympy.core.add import _unevaluated_Add
 from sympy.core.mul import _unevaluated_Mul
 from sympy import Mul
 from sympy.core.singleton import S
-
-from .util import append_docstring_from
 
 def to_solver_based_model(model, solver=None, deepcopy_model=True):
     """Convert a core model into a solver-based model."""
@@ -319,13 +317,11 @@ class OptlangBasedModel(Model):
         """
         pass
 
-    @append_docstring_from(Model)
     def add_metabolites(self, metabolite_list):
         super(OptlangBasedModel, self).add_metabolites(metabolite_list)
         for met in metabolite_list:
             self.solver.add(optlang.Constraint(name=met.name))
 
-    @append_docstring_from(Model)
     def add_reactions(self, reaction_list):
         for reaction in reaction_list:
             try:
@@ -345,7 +341,6 @@ class OptlangBasedModel(Model):
 
         super(OptlangBasedModel, self).add_reactions(reaction_list)
 
-    @append_docstring_from(Model)
     def remove_reactions(self, the_reactions):
         for reaction in the_reactions:
             self.solver.remove(reaction.id)
@@ -359,7 +354,6 @@ class OptlangBasedModel(Model):
         self.add_reactions([demand_reaction])
         return demand_reaction
 
-    @append_docstring_from(Model)
     def optimize(self, new_objective=None, objective_sense='maximize', solution_type=LazySolution, **kwargs):
         """OptlangBasedModel implementation of optimize. Returns lazy solution object. Exists for compatibility reasons. Uses model.solve() instead."""
         if new_objective is None or new_objective == 0:
@@ -399,7 +393,7 @@ class OptlangBasedModel(Model):
                 self.solver.objective = optlang.Objective(
                     objective_formula, direction={'minimize': 'min', 'maximize': 'max'}[objective_sense])
         self._timestamp_last_optimization = time.time()
-        status = self.solver.optimize()
+        self.solver.optimize()
         solution = solution_type(self)
         self.solution = solution
         return solution

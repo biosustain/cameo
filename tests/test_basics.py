@@ -11,7 +11,7 @@ from cameo.parallel import SequentialView
 
 cameo.config.default_view = SequentialView()
 from cameo.io import load_model
-from cameo.basics import flux_variability_analysis, _flux_variability_analysis
+from cameo.flux_analysis.analysis import flux_variability_analysis, _flux_variability_analysis
 from cobra.io import read_sbml_model
 
 

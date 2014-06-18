@@ -25,7 +25,7 @@ class TestLazySolution(CommonGround):
         solution = self.model.optimize()
         self.assertAlmostEqual(solution.f, 0.873921506968431)
         self.model.optimize()
-        self.assertRaises(Exception, solution, f)
+        self.assertRaises(Exception, getattr, solution, 'f')
 
 
 class TestOptlangBasedModel(unittest.TestCase):
