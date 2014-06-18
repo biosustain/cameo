@@ -60,6 +60,7 @@ ga = GA(r)
 ga.observer = my_observer
 ga.variator = [inspyred.ec.variators.n_point_crossover, custom_mutation]
 ga.terminator = inspyred.ec.terminators.evaluation_termination
+
 final_pop = ga.evolve(generator=custom_generator,
                       evaluator=eval_pop,
                       pop_size=100,
