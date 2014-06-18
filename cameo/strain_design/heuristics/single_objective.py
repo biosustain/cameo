@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from functools import partial
-from random import sample
+from random import sample, Random
 import inspyred
 from cameo import config
 
@@ -25,10 +25,14 @@ from cobra.manipulation.delete import find_gene_knockout_reactions
 
 
 class HeuristicOptimization(object):
-    def __init__(self, model=None, heuristic_method=inspyred.ec.GA, objective_function=None, *args, **kwargs):
+    def __init__(self, model=None, heuristic_method=inspyred.ec.GA, objective_function=None, random=None, *args,
+                 **kwargs):
         super(HeuristicOptimization, self).__init__(*args, **kwargs)
+        if random is None:
+            random = Random()
+        self.random = random
         self.model = model
-        self.heuristic_method = heuristic_method
+        self.heuristic_method = heuristic_method()
         self.objective_function = objective_function
 
     def run(self, **kwargs):
@@ -36,8 +40,7 @@ class HeuristicOptimization(object):
 
 
 class KnockoutOptimization(HeuristicOptimization):
-
-    class _ChunkEval(object):
+    class _ChunkEvaluation(object):
 
         def __init__(self, optimization):
             self.optimization = optimization
@@ -50,7 +53,7 @@ class KnockoutOptimization(HeuristicOptimization):
         super(HeuristicOptimization, self).__init__(*args, **kwargs)
         self.simulation_method = simulation_method
         self.solution_pool = BestSolutionPool(max_size)
-       #self.observer = BestSolutionObserver()
+        # self.observer = BestSolutionObserver()
 
     def _decode_individual(self, individual):
         raise NotImplementedError
@@ -85,7 +88,7 @@ class KnockoutOptimization(HeuristicOptimization):
     def _evaluate_population(self, population, args):
         view = args.get('view')
         population_chunks = (chunk for chunk in partition(population, len(view)))
-        func_obj = self._ChunkEval(self)
+        func_obj = self._ChunkEvaluation(self)
         results = view.map(func_obj, population_chunks)
         return reduce(list.__add__, results)
 
@@ -107,14 +110,14 @@ class ReactionKnockoutOptimization(KnockoutOptimization):
 
     def _generate_population(self, args):
         max_size = args.get('max_size', 9)
-        individual = sample(xrange(len(self.model.reactions)), self.heuristic_method.random.randint(1, max_size))
+        individual = sample(xrange(len(self.model.reactions)), self.random.randint(1, max_size))
         return individual
 
     def custom_mutation(self, random, individual, args):
         new_individual = list()
         for index in individual:
             if random.random() < args.get('mutation_rate', .1):
-                new_individual.append(random.randint(0, len(self.model.reactions)-1))
+                new_individual.append(random.randint(0, len(self.model.reactions) - 1))
             else:
                 new_individual.append(index)
 
@@ -132,14 +135,14 @@ class GeneKnockoutOptimization(KnockoutOptimization):
 
     def _generate_population(self, args):
         max_size = args.get('max_size', 9)
-        individual = sample(xrange(len(self.model.genes)), self.heuristic_method.random.randint(1, max_size))
+        individual = sample(xrange(len(self.model.genes)), self.random.randint(1, max_size))
         return individual
 
     def custom_mutation(self, random, individual, args):
         new_individual = list()
         for index in individual:
             if random.random() < args.get('mutation_rate', .1):
-                new_individual.append(random.randint(0, len(self.model.genes)-1))
+                new_individual.append(random.randint(0, len(self.model.genes) - 1))
             else:
                 new_individual.append(index)
 
