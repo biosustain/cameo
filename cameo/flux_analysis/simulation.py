@@ -23,7 +23,6 @@ def fba(model, objective=None):
         tm(do=partial(setattr, model, 'objective', objective),
            undo=partial(setattr, model, 'objective', model.objective))
     solution = model.solve()
-    print tm.history
     tm.reset()
     return solution
 

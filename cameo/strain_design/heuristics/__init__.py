@@ -11,7 +11,34 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from bisect import bisect
+from bisect import bisect, insort
+import matplotlib.pyplot as plt
+
+try:
+    from IPython.display import display
+    USE_IPYTHON = True
+except:
+    USE_IPYTHON = False
+
+
+class PlotObserver(object):
+    def __init__(self):
+        self.i = 0
+        self.iterations = []
+        self.fitness = []
+        self.f, self.ax = plt.subplots()
+
+    def __call__(self, population, num_generations, num_evaluations, args):
+        best = max(population)
+        self.i += 1
+        self.iterations.append(self.i)
+        self.fitness.append(best.fitness)
+        self.ax.plot(self.iterations, self.fitness, 'ro')
+        if USE_IPYTHON:
+            display(self.f)
+
+    def __name__(self):
+        return "Fitness Plot"
 
 
 class BestSolutionPool(object):
@@ -21,40 +48,59 @@ class BestSolutionPool(object):
             self.solution = set(solution)
             self.fitness = fitness
 
+        def __eq__(self, other):
+            return self.solution == other.solution and self.fitness == other.fitness
+
         def __cmp__(self, other):
             if self.fitness > other.fitness:
-                return 1
-            elif self.fitness == other.fitness:
-                return 0
-            else:
                 return -1
+            elif self.fitness == other.fitness:
+                if self.improves(other):
+                    return -1
+                elif self == other:
+                    return 0
+                else:
+                    return 1
+            else:
+                return 1
+
+        def __str__(self):
+            return "%s - %s" % (list(self.solution), self.fitness)
 
         def issubset(self, other):
             return self.solution.issubset(other.solution)
 
-        def difference(self, other):
-            return self.solution.difference(other.solution)
+        def symmetric_difference(self, other):
+            return self.solution.symmetric_difference(other.solution)
+
+        def improves(self, other):
+            return self.issubset(other) and len(self.symmetric_difference(other)) > 0 and self.fitness >= other.fitness
 
     def __init__(self, size):
-        self.solutions = bisect([])
+        self.pool = []
+        bisect(self.pool, 0)
         self.size = size
+        self.worst_fitness = 0
 
     def add(self, solution, fitness):
-        if fitness > self.worst_fitness:
+        if fitness >= self.worst_fitness:
 
             solution = self.SolutionTuple(solution, fitness)
-            self.solutions.insort(solution)
-            worst_fitness = fitness
-            worst_solution = None
 
-            for sol, fit in self.solutions:
+            for sol in self.pool:
+                if solution.improves(sol) or solution == sol:
+                    self.pool.remove(sol)
 
-                if solution.issubset(sol) and len(solution.difference(fit)) == 0 and fit <= fitness:
-                    del self.solutions[sol]
+            insort(self.pool, solution)
 
-                if fit < worst_fitness:
-                    worst_fitness = fit
-                    worst_solution = sol
+            while len(self.pool) > self.size:
+                self.pool.pop()
 
-            if len(self.solutions) > self.size:
-                del self.solutions[worst_solution]
+            self.worst_fitness = self.pool[len(self.pool) - 1].fitness
+
+    def length(self):
+        return len(self.pool)
+
+    def get(self, index):
+        return self.pool[index]
+
