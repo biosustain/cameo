@@ -67,6 +67,7 @@ class BestSolutionPool(object):
         def __str__(self):
             return "%s - %s" % (list(self.solution), self.fitness)
 
+
         def issubset(self, other):
             return self.solution.issubset(other.solution)
 
@@ -103,4 +104,5 @@ class BestSolutionPool(object):
 
     def get(self, index):
         return self.pool[index]
+
 

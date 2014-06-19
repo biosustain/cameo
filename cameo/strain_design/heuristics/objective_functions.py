@@ -17,6 +17,7 @@ def bpcy(biomass, product, substrate):
     def f(solution):
         try:
             return (solution.x_dict[biomass] * solution.x_dict[product]) / -solution.x_dict[substrate]
+
         except ZeroDivisionError:
             return 0
     return f
