@@ -105,7 +105,6 @@ class KnockoutOptimization(HeuristicOptimization):
         self.heuristic_method.observer = self.observer
         self.heuristic_method.variator = [inspyred.ec.variators.n_point_crossover, self._mutator]
         self.heuristic_method.terminator = inspyred.ec.terminators.evaluation_termination
-        print kwargs
         final_population = self.heuristic_method.evolve(
             generator=self._generate_individual,
             maximize=True,

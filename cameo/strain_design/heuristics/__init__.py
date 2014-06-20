@@ -15,7 +15,7 @@ from bisect import bisect, insort
 import matplotlib.pyplot as plt
 
 try:
-    from IPython.display import display
+    from IPython.display import display, clear_output
     USE_IPYTHON = True
 except:
     USE_IPYTHON = False
@@ -33,9 +33,12 @@ class PlotObserver(object):
         self.i += 1
         self.iterations.append(self.i)
         self.fitness.append(best.fitness)
-        self.ax.plot(self.iterations, self.fitness, 'ro')
-        if USE_IPYTHON:
-            display(self.f)
+        if self.i % 20 == 0:
+            self.ax.plot(self.iterations, self.fitness, 'ro')
+            self.ax.axis([0, self.i+1, 0, max(self.fitness)+0.5])
+            if USE_IPYTHON:
+                clear_output()
+                display(self.f)
 
     def __name__(self):
         return "Fitness Plot"
