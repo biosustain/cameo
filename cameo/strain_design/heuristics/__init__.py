@@ -13,9 +13,12 @@
 # limitations under the License.
 from bisect import bisect, insort
 import matplotlib.pyplot as plt
+from cameo.util import TimeMachine
+
 
 try:
     from IPython.display import display, clear_output
+
     USE_IPYTHON = True
 except:
     USE_IPYTHON = False
@@ -29,13 +32,17 @@ class PlotObserver(object):
         self.f, self.ax = plt.subplots()
 
     def __call__(self, population, num_generations, num_evaluations, args):
-        best = max(population)
         self.i += 1
         self.iterations.append(self.i)
-        self.fitness.append(best.fitness)
-        if self.i % 20 == 0:
+        if len(population) > 0:
+            best = max(population)
+            self.fitness.append(best.fitness)
+        else:
+            self.fitness.append(None)
+
+        if self.i % args.get('n', 20) == 0:
             self.ax.plot(self.iterations, self.fitness, 'ro')
-            self.ax.axis([0, self.i+1, 0, max(self.fitness)+0.5])
+            self.ax.axis([0, self.i + 1, 0, max(self.fitness) + 0.01])
             if USE_IPYTHON:
                 clear_output()
                 display(self.f)
@@ -43,9 +50,16 @@ class PlotObserver(object):
     def __name__(self):
         return "Fitness Plot"
 
+    def reset(self):
+        self.i = 0
+        self.iterations = []
+        self.fitness = []
+        self.f, self.ax = plt.subplots()
+        if USE_IPYTHON:
+            clear_output()
+
 
 class BestSolutionPool(object):
-
     class SolutionTuple(object):
         def __init__(self, solution, fitness):
             self.solution = set(solution)
@@ -70,6 +84,8 @@ class BestSolutionPool(object):
         def __str__(self):
             return "%s - %s" % (list(self.solution), self.fitness)
 
+        def __repr__(self):
+            return "SolutionTuple #%s: %s" % (id(self), self.__str__())
 
         def issubset(self, other):
             return self.solution.issubset(other.solution)
@@ -108,4 +124,6 @@ class BestSolutionPool(object):
     def get(self, index):
         return self.pool[index]
 
-
+    def __iter__(self):
+        for solution in self.pool:
+            yield solution

@@ -20,22 +20,34 @@ def bpcy(biomass, product, substrate):
 
         except ZeroDivisionError:
             return 0
+
+    f.__name__ = "bpcy = (%s * %s) / %s" % (biomass, product, substrate)
+
     return f
 
 
-def yieldf(product, substrate):
+def product_yield(product, substrate):
     def f(solution):
         try:
             return solution[product] / -solution[substrate]
         except ZeroDivisionError:
             return 0
+
+    f.__name__ = "yield = (%s / %s)" % (product, substrate)
+
     return f
 
 
-def number_of_knockouts(sense):
+def number_of_knockouts(sense='min'):
     def f(solution):
         if sense == 'max':
             return solution.knockouts
         else:
             return 1/solution.knockouts
+
+    if sense == max:
+        f.__name__ = "max #knockouts"
+    else:
+        f.__name__ = "min #knockouts"
+
     return f
