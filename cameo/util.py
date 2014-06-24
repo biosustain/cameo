@@ -54,17 +54,23 @@ class TimeMachine(object):
         return entry_id
 
     def __str__(self):
-        # FIXME: entry['undo'].func works only for partials ... (Niko)
         info = '\n'
         for uuid, entry in self.history.iteritems():
             info += datetime.fromtimestamp(entry['unix_epoch']
                                            ).strftime('%Y-%m-%d %H:%M:%S') + '\n'
-            info += 'undo: ' + \
-                ' '.join([str(elem)
-                         for elem in (entry['undo'].func, entry['undo'].args, entry['undo'].keywords)]) + '\n'
-            info += 'redo: ' + \
-                ' '.join([str(elem)
-                         for elem in (entry['redo'].func, entry['undo'].args, entry['undo'].keywords)]) + '\n'
+            undo_entry = entry['undo']
+            try:
+                elements = undo_entry.func, undo_entry.args, undo_entry.keywords  # partial
+                info += 'undo: ' + ' '.join([str(elem) for elem in elements]) + '\n'
+            except AttributeError:  # normal python function
+                info += 'undo: ' + undo_entry.func_name + '\n'
+
+            redo_entry = entry['redo']
+            try:
+                elements = redo_entry.func, redo_entry.args, redo_entry.keywords  # partial
+                info += 'redo: ' + ' '.join([str(elem) for elem in elements]) + '\n'
+            except AttributeError:
+                info += 'redo: ' + redo_entry.func_name + '\n'
         return info
 
     def __repr__(self):
@@ -85,6 +91,9 @@ class TimeMachine(object):
         else:
             raise Exception(
                 'Provided bookmark %s cannot be found in the time machine.')
+
+    def redo(self):
+        raise NotImplementedError
 
     def reset(self):
         if self.history:  # history is not empty
