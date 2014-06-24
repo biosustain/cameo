@@ -12,24 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from bisect import bisect, insort
-import matplotlib.pyplot as plt
-from cameo.util import TimeMachine
-
-
-try:
-    from IPython.display import display, clear_output
-
-    USE_IPYTHON = True
-except:
-    USE_IPYTHON = False
+from uuid import uuid1
+from bokeh.plotting import *
+import pandas.core.common
 
 
 class PlotObserver(object):
-    def __init__(self):
+    def __init__(self, url='default'):
         self.i = 0
         self.iterations = []
         self.fitness = []
-        self.f, self.ax = plt.subplots()
+        self.uuid = uuid1()
+        self.in_ipnb = pandas.core.common.in_ipnb()
+        if self.in_ipnb:
+            output_notebook(url=url, docname=str(self.uuid))
+            scatter([], [], tools='', title="Convergence")
+            self.plot = curplot()
+            renderer = [r for r in self.plot.renderers if isinstance(r, Glyph)][0]
+            self.ds = renderer.data_source
+            show()
 
     def __call__(self, population, num_generations, num_evaluations, args):
         self.i += 1
@@ -41,22 +42,24 @@ class PlotObserver(object):
             self.fitness.append(None)
 
         if self.i % args.get('n', 20) == 0:
-            self.ax.plot(self.iterations, self.fitness, 'ro')
-            self.ax.axis([0, self.i + 1, 0, max(self.fitness) + 0.01])
-            if USE_IPYTHON:
-                clear_output()
-                display(self.f)
+            self._ipnb_plot()
 
     def __name__(self):
         return "Fitness Plot"
+
+    def _ipnb_plot(self):
+        if self.in_ipnb:
+            self.ds.data['x'] = self.iterations
+            self.ds.data['y'] = self.fitness
+
+            session().store_obj(self.ds)
 
     def reset(self):
         self.i = 0
         self.iterations = []
         self.fitness = []
-        self.f, self.ax = plt.subplots()
-        if USE_IPYTHON:
-            clear_output()
+        self._ipnb_plot()
+
 
 
 class BestSolutionPool(object):

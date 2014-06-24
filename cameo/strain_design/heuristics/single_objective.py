@@ -222,6 +222,7 @@ class KnockoutOptimizationResult(object):
             return "<tr>" \
                    "    <td>" + ", ".join([ko.id for ko in self.knockout_list]) + "</td>" \
                    "    <td>" + str(self.fitness) + "</td>" \
+                   "    <td>" + str(self.biomass) + "</td>" \
                    "</tr>"
 
     def __init__(self, model, heuristic_method, simulation_method, solutions, objective_function,
@@ -250,7 +251,7 @@ class KnockoutOptimizationResult(object):
                   "    <li>heuristic: " + self.heuristic_method.__class__.__name__ + "</li>" \
                   "    <li>objective function: " + self.objective_function.__name__ + "</li>" \
                   "    <li>simulation method: " + self.simulation_method.__name__ + "</li>" \
-                  "    <li>type:"+self.ko_type+"<li>" \
+                  "    <li>type:"+self.ko_type+"</li>" \
                   "</ul>" \
                   "<h4>Solutions:</h4>"
         solutions = "<table>" \
@@ -258,6 +259,7 @@ class KnockoutOptimizationResult(object):
                     "       <tr>" \
                     "           <th>Knockouts</th>" \
                     "           <th>Fitness</th>" \
+                    "           <th>Biomass</th>" \
                     "       </tr>" \
                     "   </thead>" \
                     "   <tbody>" \
