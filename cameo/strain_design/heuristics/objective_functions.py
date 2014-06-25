@@ -14,11 +14,14 @@
 
 
 def bpcy(biomass, product, substrate):
-    def f(solution):
+    def f(model, solution, decoded_representation):
         try:
-            return (solution.x_dict[biomass] * solution.x_dict[product]) / -solution.x_dict[substrate]
+            biomass_flux = solution.get_primal_by_id(biomass)
+            product_flux = solution.get_primal_by_id(product)
+            substrate_flux = abs(solution.get_primal_by_id(substrate))
+            return (biomass_flux * product_flux) / substrate_flux
 
-        except ZeroDivisionError:
+        except ZeroDivisionError, e:
             return 0
 
     f.__name__ = "bpcy = (%s * %s) / %s" % (biomass, product, substrate)
@@ -27,9 +30,9 @@ def bpcy(biomass, product, substrate):
 
 
 def product_yield(product, substrate):
-    def f(solution):
+    def f(model, solution, decoded_representation):
         try:
-            return solution[product] / -solution[substrate]
+            return solution.get_primal_by_id(product) / -solution.get_primal_by_id(substrate)
         except ZeroDivisionError:
             return 0
 
@@ -39,11 +42,11 @@ def product_yield(product, substrate):
 
 
 def number_of_knockouts(sense='min'):
-    def f(solution):
+    def f(model, solution, decoded_representation):
         if sense == 'max':
-            return solution.knockouts
+            return len(decoded_representation[1])
         else:
-            return 1/solution.knockouts
+            return 1 / len(decoded_representation[1])
 
     if sense == max:
         f.__name__ = "max #knockouts"

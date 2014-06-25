@@ -116,6 +116,17 @@ class LazySolution(object):
         self._check_freshness()
         return self.model.solver.status
 
+    @property
+    def primal_dict(self):
+        return self.x_dict
+
+    @property
+    def dual_dict(self):
+        return self.y_dict
+
+    def get_primal_by_id(self, reaction_id):
+        self._check_freshness()
+        return self.model.reactions.get_by_id(reaction_id).variable.primal
 
 class Reaction(OriginalReaction):
     """docstring for Reaction"""

@@ -21,7 +21,7 @@ from random import Random
 
 from cameo import config
 from cameo.flux_analysis.simulation import pfba
-from cameo.strain_design.heuristics import BestSolutionPool, PlotObserver
+from cameo.strain_design.heuristics import BestSolutionPool, PlotObserver, ParetoPlotObserver
 from cameo.util import partition, TimeMachine
 
 from cobra.manipulation.delete import find_gene_knockout_reactions
@@ -30,11 +30,12 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 
-def _setup(algorithm, variator, selector, replacer, terminator):
+def _setup(algorithm, variator, selector, replacer, archiver, terminator):
     logger.debug("Setting up algorithm: %s" % algorithm.heuristic_method)
     algorithm.heuristic_method.variator = variator
     algorithm.heuristic_method.selector = selector
     algorithm.heuristic_method.replacer = replacer
+    algorithm.heuristic_method.archiver = archiver
     algorithm.heuristic_method.terminator = terminator
 
 
@@ -48,6 +49,7 @@ PRE_CONFIGURED = {
         ],
         inspyred.ec.selectors.rank_selection,
         inspyred.ec.replacers.generational_replacement,
+        algorithm.archiver,
         algorithm.termination
     ),
 
@@ -57,22 +59,53 @@ PRE_CONFIGURED = {
         [algorithm._mutator],
         inspyred.ec.selectors.default_selection,
         inspyred.ec.replacers.simulated_annealing_replacement,
+        algorithm.archiver,
         algorithm.termination
-    )
+    ),
+    inspyred.ec.emo.NSGA2: lambda algorithm:
+        _setup(
+            algorithm,
+            [algorithm._mutator],
+            inspyred.ec.selectors.tournament_selection,
+            inspyred.ec.replacers.crowding_replacement,
+            algorithm.archiver,
+            algorithm.termination
+        )
 }
 
 
 class HeuristicOptimization(object):
     def __init__(self, model=None, heuristic_method=inspyred.ec.GA, objective_function=None, random=None,
-                 termination=inspyred.ec.terminators.evaluation_termination, *args, **kwargs):
+                 termination=inspyred.ec.terminators.evaluation_termination, archive=[],
+                 archiver=inspyred.ec.archivers.default_archiver, *args, **kwargs):
         super(HeuristicOptimization, self).__init__(*args, **kwargs)
+
         if random is None:
             random = Random()
         self.random = random
         self.model = model
         self.termination = termination
+        self._objective_function = objective_function
+        self.archive = archive
+        self.archiver = archiver
+        self._heuristic_method = heuristic_method
         self.heuristic_method = heuristic_method
-        self.objective_function = objective_function
+
+    @property
+    def objective_function(self):
+        return self._objective_function
+
+    @objective_function.setter
+    def objective_function(self, objective_function):
+        if self._heuristic_method.__module__ == inspyred.ec.ec.__name__ and isinstance(objective_function, list):
+            if len(objective_function) == 1:
+                self._objective_function = objective_function[0]
+            else:
+                raise TypeError("single objective heuristics do not support multiple objective functions")
+        elif self._heuristic_method.__module__ == inspyred.ec.emo.__name__ and not isinstance(objective_function, list):
+            self._objective_function = [objective_function]
+        else:
+            self._objective_function = objective_function
 
     @property
     def heuristic_method(self):
@@ -80,10 +113,23 @@ class HeuristicOptimization(object):
 
     @heuristic_method.setter
     def heuristic_method(self, heuristic_method):
+        if heuristic_method.__module__ == inspyred.ec.emo.__name__ and not isinstance(self.objective_function, list):
+            self._objective_function = [self.objective_function]
+        elif heuristic_method.__module__ == inspyred.ec.ec.__name__ and isinstance(self.objective_function, list):
+            if len(self.objective_function) == 1:
+                self._objective_function = self.objective_function[0]
+            else:
+                raise TypeError("single objective heuristics do not support multiple objective functions")
         self._heuristic_method = heuristic_method(self.random)
 
-    def run(self, **kwargs):
-        return self.heuristic_method.evolve(**kwargs)
+    def run(self, view=config.default_view, **kwargs):
+        return self.heuristic_method.evolve(
+            generator=self._generate_individual,
+            maximize=True,
+            view=view,
+            evaluator=self._evaluate_population,
+            archive=self.archive,
+            **kwargs)
 
 
 class _ChunkEvaluation(object):
@@ -97,12 +143,19 @@ class _ChunkEvaluation(object):
 
 class KnockoutOptimization(HeuristicOptimization):
     def __init__(self, simulation_method=pfba, max_size=100, *args, **kwargs):
-        super(KnockoutOptimization, self).__init__(*args, **kwargs)
+        super(KnockoutOptimization, self).__init__(archiver=self._archiver, *args, **kwargs)
         self.simulation_method = simulation_method
-        self.solution_pool = BestSolutionPool(max_size)
-        self.observer = PlotObserver()
         self.representation = None
         self.ko_type = None
+        self.solution_pool = BestSolutionPool(max_size)
+
+    def _distance_function(self, candidate1, candidate2):
+        return len(set(candidate1).symmetric_difference(set(candidate2)))
+
+    def _archiver(self, random, population, archive, args):
+        for individual in population:
+            self.solution_pool.add(individual.candidate, individual.fitness)
+        return archive
 
     def _decode_individual(self, individual):
         raise NotImplementedError
@@ -137,7 +190,8 @@ class KnockoutOptimization(HeuristicOptimization):
         return list(OrderedSet(individual))
 
     def evaluate_individual(self, individual, tm):
-        reactions = self._decode_individual(individual)[0]
+        decoded = self._decode_individual(individual)
+        reactions = decoded[0]
 
         for reaction in reactions:
             tm(do=partial(setattr, reaction, 'lower_bound', 0),
@@ -147,13 +201,25 @@ class KnockoutOptimization(HeuristicOptimization):
 
         try:
             solution = self.simulation_method(self.model)
-            fitness = self.objective_function(solution)
-        except Exception:
-            fitness = 0
+            fitness = self._calculate_fitness(solution, decoded)
+        except Exception,e:
+            logger.exception(e)
+            if isinstance(self.objective_function, list):
+                fitness = inspyred.ec.emo.Pareto(values=[0 for of in self.objective_function])
+            else:
+                fitness = 0
 
         tm.reset()
 
         return fitness
+
+    def _calculate_fitness(self, solution, decoded):
+        if isinstance(self.objective_function, list):
+            logger.debug("evaluate multi objective")
+            return inspyred.ec.emo.Pareto(values=[of(self.model, solution, decoded) for of in self.objective_function])
+        else:
+            logger.debug("evaluate single objective")
+            return self.objective_function(self.model, solution, decoded)
 
     def _evaluate_population(self, candidates, args):
         view = args.get('view')
@@ -161,34 +227,35 @@ class KnockoutOptimization(HeuristicOptimization):
         func_obj = _ChunkEvaluation(self)
         results = view.map(func_obj, population_chunks)
         fitness = reduce(list.__add__, results)
-        for individual, fit in zip(candidates, fitness):
-            self.solution_pool.add(individual, fit)
 
         return fitness
 
-    @property
-    def heuristic_method(self):
-        return self._heuristic_method
-
-    @heuristic_method.setter
+    @HeuristicOptimization.heuristic_method.setter
     def heuristic_method(self, heuristic_method):
-        self._heuristic_method = heuristic_method(self.random)
+        HeuristicOptimization.heuristic_method.fset(self, heuristic_method)
+        self._set_observer()
         try:
             PRE_CONFIGURED[heuristic_method](self)
         except KeyError:
             logger.warning("Please verify the variator is compatible with set representation")
 
-    def run(self, view=config.default_view, **kwargs):
+    @HeuristicOptimization.objective_function.setter
+    def objective_function(self, objective_function):
+        HeuristicOptimization.objective_function.fset(self, objective_function)
+        self._set_observer()
+
+    def _set_observer(self):
+        if isinstance(self._objective_function, list):
+            self.observer = ParetoPlotObserver()
+        else:
+            self.observer = PlotObserver()
+
+    def run(self, **kwargs):
         self.observer.reset()
         self.heuristic_method.observer = self.observer
-        self.heuristic_method.evolve(
-            generator=self._generate_individual,
-            maximize=True,
-            view=view,
-            evaluator=self._evaluate_population,
-            **kwargs)
+        super(KnockoutOptimization, self).run(distance_function=self._distance_function, **kwargs)
         return KnockoutOptimizationResult(self.model, self.heuristic_method, self.simulation_method, self.solution_pool,
-                                          self.objective_function, self.ko_type, self._decode_individual)
+                            self.objective_function, self.ko_type, self._decode_individual)
 
 
 class KnockoutOptimizationResult(object):
@@ -197,7 +264,6 @@ class KnockoutOptimizationResult(object):
             super(KnockoutOptimizationResult.KnockoutOptimizationSolution, self).__init__(*args, **kwargs)
             decoded_solution = decoder(solution.solution)
             self.knockout_list = decoded_solution[1]
-            self.model = model
             result = self._simulate(decoded_solution[0], simulation_method, model)
             self.biomass = result.f
             self.fitness = solution.fitness
@@ -213,7 +279,7 @@ class KnockoutOptimizationResult(object):
             try:
                 solution = method(model)
             except Exception, e:
-                print e.message
+                logger.exception(e)
 
             tm.reset()
             return solution
@@ -231,7 +297,10 @@ class KnockoutOptimizationResult(object):
         self.model = model
         self.heuristic_method = heuristic_method
         self.simulation_method = simulation_method
-        self.objective_function = objective_function
+        if isinstance(objective_function, list):
+            self.objective_functions = objective_function
+        else:
+            self.objective_functions = [objective_function]
         self.ko_type = ko_type
         self.decoder = decoder
         self.solutions = [self._build_solution(s, model, simulation_method, decoder) for s in solutions]
@@ -249,7 +318,7 @@ class KnockoutOptimizationResult(object):
                   "<ul>" \
                   "    <li>model: " + self.model.id + "</li>" \
                   "    <li>heuristic: " + self.heuristic_method.__class__.__name__ + "</li>" \
-                  "    <li>objective function: " + self.objective_function.__name__ + "</li>" \
+                  "    <li>objective function: " + "|".join([o.__name__ for o in self.objective_functions]) + "</li>" \
                   "    <li>simulation method: " + self.simulation_method.__name__ + "</li>" \
                   "    <li>type:"+self.ko_type+"</li>" \
                   "</ul>" \

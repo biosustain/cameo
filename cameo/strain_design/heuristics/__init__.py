@@ -16,7 +16,6 @@ from uuid import uuid1
 from bokeh.plotting import *
 import pandas.core.common
 
-
 class PlotObserver(object):
     def __init__(self, url='default'):
         self.i = 0
@@ -60,6 +59,40 @@ class PlotObserver(object):
         self.fitness = []
         self._ipnb_plot()
 
+class ParetoPlotObserver(object):
+    def __init__(self, x=0, y=1, url='default'):
+        self.x = x
+        self.y = y
+        self.fitness = []
+        self.uuid = uuid1()
+        self.in_ipnb = pandas.core.common.in_ipnb()
+        if self.in_ipnb:
+            output_notebook(url=url, docname=str(self.uuid))
+            scatter([], [], tools='', title="Pareto")
+            self.plot = curplot()
+            renderer = [r for r in self.plot.renderers if isinstance(r, Glyph)][0]
+            self.ds = renderer.data_source
+            show()
+
+    def __call__(self, population, num_generations, num_evaluations, args):
+        self.fitness.append(max(population).fitness)
+        if num_evaluations % args.get('n', 20) == 0:
+            self._ipnb_plot()
+
+    def __name__(self):
+        return "Fitness Plot"
+
+    def _ipnb_plot(self):
+        if self.in_ipnb:
+            self.ds.data['x'] = [e[self.x] for e in self.fitness]
+            self.ds.data['y'] = [e[self.y] for e in self.fitness]
+
+            session().store_obj(self.ds)
+
+    def reset(self):
+
+        self.fitness = []
+        self._ipnb_plot()
 
 
 class BestSolutionPool(object):
@@ -103,9 +136,12 @@ class BestSolutionPool(object):
         self.pool = []
         bisect(self.pool, 0)
         self.size = size
-        self.worst_fitness = 0
+        self.worst_fitness = None
 
     def add(self, solution, fitness):
+        if self.worst_fitness is None:
+            self.worst_fitness = fitness
+
         if fitness >= self.worst_fitness:
 
             solution = self.SolutionTuple(solution, fitness)
