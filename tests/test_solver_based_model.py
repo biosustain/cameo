@@ -13,14 +13,15 @@ from cameo import load_model
 TESTDIR = os.path.dirname(__file__)
 TESTMODEL = load_model(os.path.join(TESTDIR, 'data/EcoliCore.xml'))
 
-class CommonGround(unittest.TestCase):
 
+class CommonGround(unittest.TestCase):
     def setUp(self):
         self.model = TESTMODEL.copy()
+        # self.model = TESTMODEL
         self.model.optimize()
 
-class TestLazySolution(CommonGround):
 
+class TestLazySolution(CommonGround):
     def test_self_invalidation(self):
         solution = self.model.optimize()
         self.assertAlmostEqual(solution.f, 0.873921506968431)
@@ -28,11 +29,7 @@ class TestLazySolution(CommonGround):
         self.assertRaises(Exception, getattr, solution, 'f')
 
 
-class TestOptlangBasedModel(unittest.TestCase):
-    def setUp(self):
-        self.model = TESTMODEL.copy()
-        self.model.optimize()
-
+class TestOptlangBasedModel(CommonGround):
     def test_reactions_and_variables_match(self):
         reactions = self.model.reactions
         for reaction in reactions:
@@ -77,7 +74,6 @@ class TestOptlangBasedModel(unittest.TestCase):
         primals_original = [variable.primal for variable in self.model.solver.variables.values()]
         primals_copy = [variable.primal for variable in model_cp.solver.variables.values()]
         self.assertEqual(primals_copy, primals_original)
-
 
 
 if __name__ == '__main__':
