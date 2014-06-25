@@ -16,7 +16,7 @@ class TimeMachineTestCase(unittest.TestCase):
         self.tm(do=partial(l.append, 5), undo=l.pop)
         self.assertEqual(l, [1, 2, 3, 4, 5])
         self.tm.reset()
-        self.assertEqual(l, [1, 2, 3, 4, 5])
+        self.assertEqual(l, [1, 2, 3, 4])
 
     def test_str_handles_different_types_of_stored_operations(self):
         def normal_function():
