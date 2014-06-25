@@ -1,7 +1,7 @@
 from random import Random
 from random import sample, randint
 import inspyred
-from inspyred.ec import GA
+from inspyred.ec import SA
 from cameo import load_model
 
 model = load_model("../tests/data/EcoliCore.xml")
@@ -56,10 +56,14 @@ def custom_mutation(random, individual, args):
     return list(set(new_individual))
 
 r = Random()
-ga = GA(r)
+ga = SA(r)
 ga.observer = my_observer
-ga.variator = [inspyred.ec.variators.n_point_crossover, custom_mutation]
+ga.variator = [
+    inspyred.ec.variators.n_point_crossover,
+    custom_mutation
+]
 ga.terminator = inspyred.ec.terminators.evaluation_termination
+
 final_pop = ga.evolve(generator=custom_generator,
                       evaluator=eval_pop,
                       pop_size=100,

@@ -17,9 +17,13 @@ from copy import deepcopy, copy
 
 import optlang
 
+from cameo.util import TimeMachine
+from functools import partial
+
 from cobra.core.Reaction import Reaction as OriginalReaction
 from cobra.core.Model import Model
 from cobra.core.DictList import DictList
+from cobra.manipulation.delete import find_gene_knockout_reactions
 
 import sympy
 from sympy.core.add import _unevaluated_Add
@@ -419,6 +423,39 @@ class OptlangBasedModel(Model):
         fields.remove('optimize')
         return fields
 
+    def essential_reactions(self, threshold=1e-6):
+        essential = []
+        time_machine = TimeMachine()
+        solution = self.solve()
+        for reaction_id, flux in solution.x_dict.iteritems():
+            reaction = self.reactions.get_by_id(reaction_id)
+            if flux > 0:
+                time_machine(do=partial(setattr, reaction, 'lower_bound', 0),
+                             undo=partial(setattr, reaction, 'lower_bound', reaction.lower_bound))
+                time_machine(do=partial(setattr, reaction, 'upper_bound', 0),
+                             undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
+                sol = self.solve()
+                if sol.f < threshold:
+                    essential.append(reaction)
+                time_machine.reset()
+        return essential
+
+    def essential_genes(self, threshold=1e-6):
+        essential = []
+        time_machine = TimeMachine()
+
+        for gene in self.genes:
+            reactions = find_gene_knockout_reactions(self, [gene])
+            for reaction in reactions:
+                time_machine(do=partial(setattr, reaction, 'lower_bound', 0),
+                             undo=partial(setattr, reaction, 'lower_bound', reaction.lower_bound))
+                time_machine(do=partial(setattr, reaction, 'upper_bound', 0),
+                             undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
+            sol = self.solve()
+            if sol.f < threshold:
+                essential.append(gene)
+            time_machine.reset()
+        return essential
 
 if __name__ == '__main__':
     import pickle
@@ -557,7 +594,6 @@ if __name__ == '__main__':
                                                                          repr(symmetric_difference))
     elif choice == 4:
         from functools import partial
-        from time_machine import TimeMachine
 
         with open("../tests/data/salmonella.pickle") as fhandle:
             model = pickle.load(fhandle)
