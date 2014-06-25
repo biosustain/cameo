@@ -65,9 +65,23 @@ PRE_CONFIGURED = {
     inspyred.ec.emo.NSGA2: lambda algorithm:
         _setup(
             algorithm,
-            [algorithm._mutator],
+            [
+                algorithm._mutator,
+                inspyred.ec.variators.crossovers.n_point_crossover],
             inspyred.ec.selectors.tournament_selection,
-            inspyred.ec.replacers.crowding_replacement,
+            inspyred.ec.replacers.nsga_replacement,
+            algorithm.archiver,
+            algorithm.termination
+        ),
+    inspyred.ec.emo.PAES: lambda algorithm:
+        _setup(
+            algorithm,
+            [
+                algorithm._mutator,
+                inspyred.ec.variators.crossovers.n_point_crossover
+            ],
+            inspyred.ec.selectors.default_selection,
+            inspyred.ec.replacers.paes_replacement,
             algorithm.archiver,
             algorithm.termination
         )

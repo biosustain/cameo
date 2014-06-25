@@ -32,6 +32,8 @@ from sympy.core.singleton import S
 
 from pandas import Series, DataFrame
 
+from functools import partial
+
 
 def to_solver_based_model(cobrapy_model, solver_interface=optlang, deepcopy_model=True):
     """Convert a core model into a solver-based model."""
