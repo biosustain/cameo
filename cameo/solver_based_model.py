@@ -34,6 +34,8 @@ from pandas import Series, DataFrame
 
 from functools import partial
 
+_SOLVER_INTERFACES = {'glpk': optlang.glpk_interface, 'cplex': optlang.cplex_interface}
+
 
 def to_solver_based_model(cobrapy_model, solver_interface=optlang, deepcopy_model=True):
     """Convert a core model into a solver-based model."""
@@ -123,6 +125,7 @@ class LazySolution(object):
     def get_primal_by_id(self, reaction_id):
         self._check_freshness()
         return self.model.reactions.get_by_id(reaction_id).variable.primal
+
 
 class Reaction(OriginalReaction):
     """docstring for Reaction"""
@@ -270,11 +273,12 @@ class OptlangBasedModel(Model):
 
     @solver.setter
     def solver(self, value):
+        interface = _SOLVER_INTERFACES.get(value, value)
         if self._solver is None:
-            self._solver = value.Model()
+            self._solver = interface.Model()
             self._populate_solver_from_scratch()
         else:
-            self._solver = self._solver.clone(value)
+            self._solver = interface.Model.clone(self._solver)
 
     @property
     def exchanges(self):
@@ -478,7 +482,7 @@ if __name__ == '__main__':
         # t = time.time()
         # fva_sol_sbmodel = flux_variability_analysis(
         # sbmodel, the_reactions=sbmodel.reactions[0:100],
-        #     fraction_of_optimum=1.
+        # fraction_of_optimum=1.
         # )
         # elapsed = time.time() - t
         # print 'optlang based FVA time elapsed: ', elapsed
