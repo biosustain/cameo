@@ -13,7 +13,7 @@
 # limitations under the License.
 import inspyred
 
-from cameo.strain_design.heuristics.single_objective import ReactionKnockoutOptimization
+from cameo.strain_design.heuristics.algorithms import ReactionKnockoutOptimization
 from cameo import load_model
 from cameo.strain_design.heuristics.objective_functions import bpcy
 from cameo.flux_analysis.simulation import fba

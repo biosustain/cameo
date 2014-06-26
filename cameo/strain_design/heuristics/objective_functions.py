@@ -11,15 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from cameo import config
 
 
 def bpcy(biomass, product, substrate):
     def f(model, solution, decoded_representation):
         try:
-            biomass_flux = solution.get_primal_by_id(biomass)
-            product_flux = solution.get_primal_by_id(product)
-            substrate_flux = abs(solution.get_primal_by_id(substrate))
-            return (biomass_flux * product_flux) / substrate_flux
+            biomass_flux = round(solution.get_primal_by_id(biomass), config.ndecimals)
+            product_flux = round(solution.get_primal_by_id(product), config.ndecimals)
+            substrate_flux = round(abs(solution.get_primal_by_id(substrate)), config.ndecimals)
+            return round((biomass_flux * product_flux) / substrate_flux, config.ndecimals)
 
         except ZeroDivisionError, e:
             return 0
@@ -32,7 +33,9 @@ def bpcy(biomass, product, substrate):
 def product_yield(product, substrate):
     def f(model, solution, decoded_representation):
         try:
-            return solution.get_primal_by_id(product) / -solution.get_primal_by_id(substrate)
+            product_flux = round(solution.get_primal_by_id(product), config.ndecimals)
+            substrate_flux = round(abs(solution.get_primal_by_id(substrate)), config.ndecimals)
+            return round(product_flux / substrate_flux, config.ndecimals)
         except ZeroDivisionError:
             return 0
 
@@ -46,7 +49,7 @@ def number_of_knockouts(sense='min'):
         if sense == 'max':
             return len(decoded_representation[1])
         else:
-            return 1 / len(decoded_representation[1])
+            return round(1.0 / len(decoded_representation[1]), config.ndecimals)
 
     if sense == max:
         f.__name__ = "max #knockouts"

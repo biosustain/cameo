@@ -11,10 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from functools import partial
 
 import unittest
-from cameo.strain_design.heuristics import BestSolutionPool
-
+from cameo import load_model
+from cameo.strain_design.heuristics.archivers import SolutionTuple, BestSolutionArchiver
+from cameo.strain_design.heuristics.objective_functions import bpcy, product_yield, number_of_knockouts
+from cobra.manipulation.delete import find_gene_knockout_reactions
+from cameo.util import TimeMachine
 
 SOLUTIONS = [
     [[1, 2, 3], 0.1],
@@ -30,11 +34,11 @@ SOLUTIONS = [
 ]
 
 
-class TestBestSolutionPool(unittest.TestCase):
+class TestBestSolutionArchiver(unittest.TestCase):
     def test_solution_comparison(self):
-        sol1 = BestSolutionPool.SolutionTuple(SOLUTIONS[0][0], SOLUTIONS[0][1])
-        sol2 = BestSolutionPool.SolutionTuple(SOLUTIONS[1][0], SOLUTIONS[1][1])
-        sol3 = BestSolutionPool.SolutionTuple(SOLUTIONS[2][0], SOLUTIONS[2][1])
+        sol1 = SolutionTuple(SOLUTIONS[0][0], SOLUTIONS[0][1])
+        sol2 = SolutionTuple(SOLUTIONS[1][0], SOLUTIONS[1][1])
+        sol3 = SolutionTuple(SOLUTIONS[2][0], SOLUTIONS[2][1])
 
         #testing issubset
         self.assertTrue(sol1.issubset(sol2), msg="Solution 1 is subset of Solution 2")
@@ -59,74 +63,127 @@ class TestBestSolutionPool(unittest.TestCase):
         self.assertFalse(sol2.improves(sol3), msg="Solution 2 does not improve Solution 3")
 
     def test_add_greater_solution_with_same_fitness(self):
-        pool = BestSolutionPool(1)
-        pool.add(SOLUTIONS[0][0], SOLUTIONS[0][1])
-        pool.add(SOLUTIONS[1][0], SOLUTIONS[1][1])
+        size = 1
+        pool = BestSolutionArchiver()
+        pool.add(SOLUTIONS[0][0], SOLUTIONS[0][1], size)
+        pool.add(SOLUTIONS[1][0], SOLUTIONS[1][1], size)
         self.assertEqual(pool.length(), 1, msg="Pool must keep one solution (length=%s)" % pool.length())
         best_solution = set(SOLUTIONS[0][0])
         best_fitness = SOLUTIONS[0][1]
-        sol_tuple = pool.get(0)
-        self.assertEqual(sol_tuple.solution, best_solution, msg="Best solution set must be the first")
-        self.assertEqual(sol_tuple.fitness, best_fitness, msg="Best solution fitness must be the first")
+        sol = pool.get(0)
+        self.assertEqual(sol.candidate, best_solution, msg="Best solution set must be the first")
+        self.assertEqual(sol.fitness, best_fitness, msg="Best solution fitness must be the first")
 
     def test_add_smaller_solution_with_same_fitness(self):
-        pool = BestSolutionPool(1)
-        pool.add(SOLUTIONS[1][0], SOLUTIONS[1][1])
-        pool.add(SOLUTIONS[0][0], SOLUTIONS[0][1])
+        size = 1
+        pool = BestSolutionArchiver()
+        pool.add(SOLUTIONS[1][0], SOLUTIONS[1][1], size)
+        pool.add(SOLUTIONS[0][0], SOLUTIONS[0][1], size)
         self.assertEqual(pool.length(), 1, msg="Pool must keep one solution (length=%s)" % pool.length())
         solution = set(SOLUTIONS[0][0])
         fitness = SOLUTIONS[0][1]
-        sol_tuple = pool.get(0)
-        self.assertEqual(sol_tuple.solution, solution, msg="Best solution must be the first (%s)" % sol_tuple.solution)
-        self.assertEqual(sol_tuple.fitness, fitness, msg="Best fitness must be the first (%s)" % sol_tuple.fitness)
+        sol = pool.get(0)
+        self.assertEqual(sol.candidate, solution, msg="Best solution must be the first (%s)" % sol.candidate)
+        self.assertEqual(sol.fitness, fitness, msg="Best fitness must be the first (%s)" % sol.fitness)
 
     def test_pool_size_limit(self):
-        pool = BestSolutionPool(1)
-        pool.add(SOLUTIONS[0][0], SOLUTIONS[0][1])
-        pool.add(SOLUTIONS[1][0], SOLUTIONS[1][1])
-        pool.add(SOLUTIONS[2][0], SOLUTIONS[2][1])
-        pool.add(SOLUTIONS[3][0], SOLUTIONS[3][1])
-        pool.add(SOLUTIONS[4][0], SOLUTIONS[4][1])
-        pool.add(SOLUTIONS[5][0], SOLUTIONS[5][1])
-        pool.add(SOLUTIONS[6][0], SOLUTIONS[6][1])
-        pool.add(SOLUTIONS[7][0], SOLUTIONS[7][1])
-        pool.add(SOLUTIONS[8][0], SOLUTIONS[8][1])
-        pool.add(SOLUTIONS[9][0], SOLUTIONS[9][1])
+        size = 1
+        pool = BestSolutionArchiver()
+        pool.add(SOLUTIONS[0][0], SOLUTIONS[0][1], size)
+        pool.add(SOLUTIONS[1][0], SOLUTIONS[1][1], size)
+        pool.add(SOLUTIONS[2][0], SOLUTIONS[2][1], size)
+        pool.add(SOLUTIONS[3][0], SOLUTIONS[3][1], size)
+        pool.add(SOLUTIONS[4][0], SOLUTIONS[4][1], size)
+        pool.add(SOLUTIONS[5][0], SOLUTIONS[5][1], size)
+        pool.add(SOLUTIONS[6][0], SOLUTIONS[6][1], size)
+        pool.add(SOLUTIONS[7][0], SOLUTIONS[7][1], size)
+        pool.add(SOLUTIONS[8][0], SOLUTIONS[8][1], size)
+        pool.add(SOLUTIONS[9][0], SOLUTIONS[9][1], size)
         self.assertLessEqual(pool.length(), 1, msg="Pool must keep one solution (length=%s)" % pool.length())
-        pool = BestSolutionPool(2)
-        pool.add(SOLUTIONS[0][0], SOLUTIONS[0][1])
-        pool.add(SOLUTIONS[1][0], SOLUTIONS[1][1])
-        pool.add(SOLUTIONS[2][0], SOLUTIONS[2][1])
-        pool.add(SOLUTIONS[3][0], SOLUTIONS[3][1])
-        pool.add(SOLUTIONS[4][0], SOLUTIONS[4][1])
-        pool.add(SOLUTIONS[5][0], SOLUTIONS[5][1])
-        pool.add(SOLUTIONS[6][0], SOLUTIONS[6][1])
-        pool.add(SOLUTIONS[7][0], SOLUTIONS[7][1])
-        pool.add(SOLUTIONS[8][0], SOLUTIONS[8][1])
-        pool.add(SOLUTIONS[9][0], SOLUTIONS[9][1])
+        size = 2
+        pool = BestSolutionArchiver()
+        pool.add(SOLUTIONS[0][0], SOLUTIONS[0][1], size)
+        pool.add(SOLUTIONS[1][0], SOLUTIONS[1][1], size)
+        pool.add(SOLUTIONS[2][0], SOLUTIONS[2][1], size)
+        pool.add(SOLUTIONS[3][0], SOLUTIONS[3][1], size)
+        pool.add(SOLUTIONS[4][0], SOLUTIONS[4][1], size)
+        pool.add(SOLUTIONS[5][0], SOLUTIONS[5][1], size)
+        pool.add(SOLUTIONS[6][0], SOLUTIONS[6][1], size)
+        pool.add(SOLUTIONS[7][0], SOLUTIONS[7][1], size)
+        pool.add(SOLUTIONS[8][0], SOLUTIONS[8][1], size)
+        pool.add(SOLUTIONS[9][0], SOLUTIONS[9][1], size)
         self.assertLessEqual(pool.length(), 2, msg="Pool must keep one solution (length=%s)" % pool.length())
-        pool = BestSolutionPool(3)
-        pool.add(SOLUTIONS[0][0], SOLUTIONS[0][1])
-        pool.add(SOLUTIONS[1][0], SOLUTIONS[1][1])
-        pool.add(SOLUTIONS[2][0], SOLUTIONS[2][1])
-        pool.add(SOLUTIONS[3][0], SOLUTIONS[3][1])
-        pool.add(SOLUTIONS[4][0], SOLUTIONS[4][1])
-        pool.add(SOLUTIONS[5][0], SOLUTIONS[5][1])
-        pool.add(SOLUTIONS[6][0], SOLUTIONS[6][1])
-        pool.add(SOLUTIONS[7][0], SOLUTIONS[7][1])
-        pool.add(SOLUTIONS[8][0], SOLUTIONS[8][1])
-        pool.add(SOLUTIONS[9][0], SOLUTIONS[9][1])
+        size = 3
+        pool = BestSolutionArchiver()
+        pool.add(SOLUTIONS[0][0], SOLUTIONS[0][1], size)
+        pool.add(SOLUTIONS[1][0], SOLUTIONS[1][1], size)
+        pool.add(SOLUTIONS[2][0], SOLUTIONS[2][1], size)
+        pool.add(SOLUTIONS[3][0], SOLUTIONS[3][1], size)
+        pool.add(SOLUTIONS[4][0], SOLUTIONS[4][1], size)
+        pool.add(SOLUTIONS[5][0], SOLUTIONS[5][1], size)
+        pool.add(SOLUTIONS[6][0], SOLUTIONS[6][1], size)
+        pool.add(SOLUTIONS[7][0], SOLUTIONS[7][1], size)
+        pool.add(SOLUTIONS[8][0], SOLUTIONS[8][1], size)
+        pool.add(SOLUTIONS[9][0], SOLUTIONS[9][1], size)
         self.assertLessEqual(pool.length(), 3, msg="Pool must keep one solution (length=%s)" % pool.length())
-        pool = BestSolutionPool(4)
-        pool.add(SOLUTIONS[0][0], SOLUTIONS[0][1])
-        pool.add(SOLUTIONS[1][0], SOLUTIONS[1][1])
-        pool.add(SOLUTIONS[2][0], SOLUTIONS[2][1])
-        pool.add(SOLUTIONS[3][0], SOLUTIONS[3][1])
-        pool.add(SOLUTIONS[4][0], SOLUTIONS[4][1])
-        pool.add(SOLUTIONS[5][0], SOLUTIONS[5][1])
-        pool.add(SOLUTIONS[6][0], SOLUTIONS[6][1])
-        pool.add(SOLUTIONS[7][0], SOLUTIONS[7][1])
-        pool.add(SOLUTIONS[8][0], SOLUTIONS[8][1])
-        pool.add(SOLUTIONS[9][0], SOLUTIONS[9][1])
+        size = 4
+        pool = BestSolutionArchiver()
+        pool.add(SOLUTIONS[0][0], SOLUTIONS[0][1], size)
+        pool.add(SOLUTIONS[1][0], SOLUTIONS[1][1], size)
+        pool.add(SOLUTIONS[2][0], SOLUTIONS[2][1], size)
+        pool.add(SOLUTIONS[3][0], SOLUTIONS[3][1], size)
+        pool.add(SOLUTIONS[4][0], SOLUTIONS[4][1], size)
+        pool.add(SOLUTIONS[5][0], SOLUTIONS[5][1], size)
+        pool.add(SOLUTIONS[6][0], SOLUTIONS[6][1], size)
+        pool.add(SOLUTIONS[7][0], SOLUTIONS[7][1], size)
+        pool.add(SOLUTIONS[8][0], SOLUTIONS[8][1], size)
+        pool.add(SOLUTIONS[9][0], SOLUTIONS[9][1], size)
         self.assertLessEqual(pool.length(), 4, msg="Pool must keep one solution (length=%s)" % pool.length())
 
+class TestObjectiveFunctions(unittest.TestCase):
+    lvaline_sol = ["b0115", "b3236", "b3916"] #aceF, mdh, pfkA from Park et al. 2007 (PNAS)
+
+    def test_bpcy(self):
+        model = load_model("/Users/joao/Downloads/iJO1366.xml")
+        of = bpcy("Ec_biomass_iJO1366_core_53p95M", "EX_succ_LPAREN_e_RPAREN_", "EX_glc_LPAREN_e_RPAREN_")
+        reactions = find_gene_knockout_reactions(model, [model.genes.get_by_id(gene) for gene in self.lvaline_sol])
+        tm = TimeMachine()
+        for reaction in reactions:
+            tm(do=partial(setattr, reaction, 'lower_bound', 0),
+               undo=partial(setattr, reaction, 'lower_bound', reaction.lower_bound))
+            tm(do=partial(setattr, reaction, 'upper_bound', 0),
+               undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
+
+        solution = model.optimize()
+        tm.reset()
+        print of(model, solution, [reactions, self.lvaline_sol])
+
+    def test_yield(self):
+        model = load_model("/Users/joao/Downloads/iJO1366.xml")
+        of = product_yield("EX_succ_LPAREN_e_RPAREN_", "EX_glc_LPAREN_e_RPAREN_")
+        reactions = find_gene_knockout_reactions(model, [model.genes.get_by_id(gene) for gene in self.lvaline_sol])
+        tm = TimeMachine()
+        for reaction in reactions:
+            tm(do=partial(setattr, reaction, 'lower_bound', 0),
+               undo=partial(setattr, reaction, 'lower_bound', reaction.lower_bound))
+            tm(do=partial(setattr, reaction, 'upper_bound', 0),
+               undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
+
+        solution = model.optimize()
+        tm.reset()
+        print of(model, solution, [reactions, self.lvaline_sol])
+
+    def test_number_of_knockouts(self):
+        model = load_model("/Users/joao/Downloads/iJO1366.xml")
+        of = number_of_knockouts(sense='min')
+        reactions = find_gene_knockout_reactions(model, [model.genes.get_by_id(gene) for gene in self.lvaline_sol])
+        tm = TimeMachine()
+        for reaction in reactions:
+            tm(do=partial(setattr, reaction, 'lower_bound', 0),
+               undo=partial(setattr, reaction, 'lower_bound', reaction.lower_bound))
+            tm(do=partial(setattr, reaction, 'upper_bound', 0),
+               undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
+
+        solution = model.optimize()
+        tm.reset()
+        print of(model, solution, [reactions, self.lvaline_sol])

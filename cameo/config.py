@@ -13,6 +13,7 @@
 # limitations under the License.
 
 non_zero_flux_threshold = 1e-6
+ndecimals = 6
 
 import logging
 log = logging.getLogger(__name__)
