@@ -18,6 +18,7 @@ from copy import deepcopy, copy
 import optlang
 
 from cameo.util import TimeMachine
+from cameo import exceptions
 
 from cobra.core.Reaction import Reaction as OriginalReaction
 from cobra.core.Model import Model
@@ -395,7 +396,13 @@ class OptlangBasedModel(Model):
         """Optimize model."""
         solution = self.optimize(*args, **kwargs)
         if solution.status is not 'optimal':
-            raise Exception(solution.status)
+            self.solver.configuration.presolve = True
+            solution = self.optimize(*args, **kwargs)
+            self.solver.configuration.presolve = False
+            if solution.status is not 'optimal':
+                raise exceptions._OPTLANG_TO_EXCEPTIONS_DICT.get(solution.status, exceptions.ModelSolveError)(
+                    'Solving model %s did not return an optimal solution. The returned solution status is "%s"' % (
+                        self, solution.status))
             return solution
         else:
             return solution
@@ -434,10 +441,16 @@ class OptlangBasedModel(Model):
                              undo=partial(setattr, reaction, 'lower_bound', reaction.lower_bound))
                 time_machine(do=partial(setattr, reaction, 'upper_bound', 0),
                              undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
-            sol = self.solve()
-            if sol.f < threshold:
+            try:
+                sol = self.solve()
+            except exceptions.ModelInfeasible:
                 essential.append(gene)
-            time_machine.reset()
+            else:
+                if sol.f < threshold:
+                    essential.append(gene)
+                time_machine.reset()
+            finally:
+                time_machine.reset()
         return essential
 
 
@@ -505,7 +518,7 @@ if __name__ == '__main__':
                 fva_sol_sbmodel2[rxn.id]['minimum'] = None
                 # lb = sbmodel.solver.objective.value
                 # if abs(lb) < 10**-6:
-                #     lb = 0.
+                # lb = 0.
                 # sbmodel.solver.variables[rxn.id].lb = lb
         for rxn in sbmodel.reactions:
             # print "Maximize", rxn
@@ -517,7 +530,7 @@ if __name__ == '__main__':
                     'maximum'] = sbmodel.solver.objective.value
                 # ub = sbmodel.solver.objective.value
                 # if abs(ub) < 10**-6:
-                #     ub = 0.
+                # ub = 0.
                 # sbmodel.solver.variables[rxn.id].ub = ub
             else:
                 fva_sol_sbmodel2[rxn.id][
@@ -537,7 +550,7 @@ if __name__ == '__main__':
         # sbmodel.remove_reactions(['DM_AACALD'])
         # print sbmodel.solver
         # for key in fva_sol_model.keys():
-        #     print key
+        # print key
         #     print fva_sol_model[key]
         #     print fva_sol_sbmodel[key]
         #     print fva_sol_sbmodel2[key]
