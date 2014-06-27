@@ -14,6 +14,7 @@
 
 from cameo.strain_design.heuristics import archivers
 from cameo.strain_design.heuristics import plotters
+from cameo.strain_design.heuristics import observers
 from cameo import config
 from cameo.flux_analysis.simulation import pfba
 from cameo.util import partition, TimeMachine
@@ -26,9 +27,9 @@ from ordered_set import OrderedSet
 from functools import partial
 from random import Random
 
-
-
 from cobra.manipulation.delete import find_gene_knockout_reactions
+
+from pandas.core.common import in_ipnb
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -51,7 +52,7 @@ PRE_CONFIGURED = {
             inspyred.ec.variators.crossovers.n_point_crossover,
             algorithm._mutator
         ],
-        inspyred.ec.selectors.rank_selection,
+        inspyred.ec.selectors.tournament_selection,
         inspyred.ec.replacers.generational_replacement,
         archivers.BestSolutionArchiver(),
         algorithm.termination
@@ -256,12 +257,18 @@ class KnockoutOptimization(HeuristicOptimization):
 
     def _set_observer(self):
         if self.is_mo():
-            self.observer = plotters.ParetoPlotObserver(ofs=self.objective_function)
+            plotter = plotters.ParetoPlotObserver(ofs=self.objective_function)
         else:
-            self.observer = plotters.PlotObserver()
+            plotter = plotters.PlotObserver()
+
+        if in_ipnb():
+            self.observer = [observers.IPythonNotebookObserver(), plotter]
+        else:
+            self.observer = [plotter]
 
     def run(self, **kwargs):
-        self.observer.reset()
+        for observer in self.observer:
+            observer.reset()
         self.heuristic_method.observer = self.observer
         super(KnockoutOptimization, self).run(distance_function=self._distance_function, **kwargs)
         return KnockoutOptimizationResult(self.model, self.heuristic_method, self.simulation_method,

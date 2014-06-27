@@ -40,9 +40,9 @@ class BestSolutionArchiver(object):
             candidate = SolutionTuple(candidate, fitness)
             add = True
             for c in self.archive:
-                if candidate.improves(c) or candidate.__eq__(c):
+                if candidate.improves(c) and candidate.fitness == c.fitness:
                     self.archive.remove(c)
-                if c.improves(candidate):
+                if c.improves(candidate) and candidate.fitness == c.fitness:
                     add = False
 
             if add:

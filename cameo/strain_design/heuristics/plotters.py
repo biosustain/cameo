@@ -18,8 +18,9 @@ import pandas
 
 
 class PlotObserver(object):
-    def __init__(self, url='default'):
+    def __init__(self, window_size=1000,url='default'):
         self.i = 0
+        self.window_size = window_size
         self.url = url
         self.iterations = []
         self.fitness = []
@@ -60,8 +61,8 @@ class PlotObserver(object):
 
     def _ipnb_plot(self):
         if self.in_ipnb:
-            self.ds.data['x'] = self.iterations
-            self.ds.data['y'] = self.fitness
+            self.ds.data['x'] = self.iterations[-self.window_size:]
+            self.ds.data['y'] = self.fitness[-self.window_size:]
 
             session().store_obj(self.ds)
 
