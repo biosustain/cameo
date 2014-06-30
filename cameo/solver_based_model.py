@@ -19,6 +19,9 @@ import optlang
 
 from cameo.util import TimeMachine
 from cameo import exceptions
+from cameo.exceptions import ModelSolveError, ModelInfeasible, ModelUnbounded, ModelFeasibleButNotOptimal, \
+    ModelUndefinedSolution
+from cameo.flux_analysis.analysis import _flux_variability_analysis
 
 from cobra.core.Reaction import Reaction as OriginalReaction
 from cobra.core.Model import Model
@@ -200,6 +203,16 @@ class Reaction(OriginalReaction):
 
         self._objective_coefficient = value
 
+    @property
+    def effective_lower_bound(self):
+        model = self.get_model()
+        return _flux_variability_analysis(model, reactions=[self])[self.id]['minimum']
+
+    @property
+    def effective_upper_bound(self):
+        model = self.get_model()
+        return _flux_variability_analysis(model, reactions=[self])[self.id]['maximum']
+
 
 class OptlangBasedModel(Model):
     """Implements a model with an attached optlang solver instance.
@@ -311,9 +324,9 @@ class OptlangBasedModel(Model):
         self.solver.objective = objective
 
     def add_metabolites(self, metabolite_list):
-        super(self.solver.interfaceBasedModel, self).add_metabolites(metabolite_list)
+        super(OptlangBasedModel, self).add_metabolites(metabolite_list)
         for met in metabolite_list:
-            self.solver.add(self.solver.interface.Constraint(name=met.name))
+            self.solver.add(self.solver.interface.Constraint(S.Zero, name=met.name, lb=0, ub=0))
 
     def add_reactions(self, reaction_list):
         for reaction in reaction_list:
@@ -328,8 +341,9 @@ class OptlangBasedModel(Model):
             for metabolite, coeff in metabolite_coeff_dict.iteritems():
                 try:
                     metabolite_constraint = self.solver.constraints[metabolite.id]
-                except KeyError:
-                    self.solver.add(self.solver.interface.Constraint(1, lb=0, ub=0, name=metabolite.id))
+                except KeyError:  # cannot override add_metabolites here as it is not used by cobrapy in add_reactions
+                    self.solver.add(self.solver.interface.Constraint(S.Zero, lb=0, ub=0,
+                                                                     name=metabolite.id))  # TODO: 1 will not work ...
                     metabolite_constraint = self.solver.constraints[metabolite.id]
                 metabolite_constraint += coeff * reaction_variable
 
@@ -400,7 +414,7 @@ class OptlangBasedModel(Model):
             solution = self.optimize(*args, **kwargs)
             self.solver.configuration.presolve = False
             if solution.status is not 'optimal':
-                raise exceptions._OPTLANG_TO_EXCEPTIONS_DICT.get(solution.status, exceptions.ModelSolveError)(
+                raise exceptions._OPTLANG_TO_EXCEPTIONS_DICT.get(solution.status, ModelSolveError)(
                     'Solving model %s did not return an optimal solution. The returned solution status is "%s"' % (
                         self, solution.status))
             return solution
@@ -416,25 +430,42 @@ class OptlangBasedModel(Model):
     def essential_reactions(self, threshold=1e-6):
         essential = []
         time_machine = TimeMachine()
-        solution = self.solve()
+        try:
+            solution = self.solve()
+        except ModelSolveError as e:
+            print 'Cannot determine essential reactions for un-optimal model.'
+            raise e
         for reaction_id, flux in solution.x_dict.iteritems():
-            reaction = self.reactions.get_by_id(reaction_id)
-            if flux > 0:
+            if abs(flux) > 0:
+                reaction = self.reactions.get_by_id(reaction_id)
                 time_machine(do=partial(setattr, reaction, 'lower_bound', 0),
                              undo=partial(setattr, reaction, 'lower_bound', reaction.lower_bound))
                 time_machine(do=partial(setattr, reaction, 'upper_bound', 0),
                              undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
-                sol = self.solve()
-                if sol.f < threshold:
+                try:
+                    sol = self.solve()
+                except (ModelInfeasible, ModelUndefinedSolution):
                     essential.append(reaction)
-                time_machine.reset()
+                else:
+                    if sol.f < threshold:
+                        essential.append(reaction)
+                finally:
+                    time_machine.reset()
         return essential
 
     def essential_genes(self, threshold=1e-6):
         essential = []
         time_machine = TimeMachine()
-
-        for gene in self.genes:
+        try:
+            solution = self.solve()
+        except ModelSolveError as e:
+            print 'Cannot determine essential genes for unoptimal model.'
+            raise e
+        genes_to_check = set()
+        for reaction_id, flux in solution.x_dict.iteritems():
+            if abs(flux) > 0:
+                genes_to_check.update(self.reactions.get_by_id(reaction_id).genes)
+        for gene in genes_to_check:
             reactions = find_gene_knockout_reactions(self, [gene])
             for reaction in reactions:
                 time_machine(do=partial(setattr, reaction, 'lower_bound', 0),
@@ -443,7 +474,7 @@ class OptlangBasedModel(Model):
                              undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
             try:
                 sol = self.solve()
-            except exceptions.ModelInfeasible:
+            except (ModelInfeasible, ModelUndefinedSolution):
                 essential.append(gene)
             else:
                 if sol.f < threshold:

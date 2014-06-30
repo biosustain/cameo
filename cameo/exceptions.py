@@ -18,6 +18,10 @@ class ModelFeasibleButNotOptimal(ModelSolveError):
     pass
 
 
+class ModelUndefinedSolution(ModelSolveError):
+    pass
+
+
 _OPTLANG_TO_EXCEPTIONS_DICT = dict((
     (optlang.interface.INFEASIBLE, ModelInfeasible), (optlang.interface.UNBOUNDED, ModelUnbounded),
-    (optlang.interface.FEASIBLE, ModelFeasibleButNotOptimal)))
+    (optlang.interface.FEASIBLE, ModelFeasibleButNotOptimal), (optlang.interface.UNDEFINED, ModelUndefinedSolution)))
