@@ -17,8 +17,8 @@ from cameo.strain_design.heuristics import plotters
 from cameo.strain_design.heuristics import observers
 from cameo import config
 from cameo.flux_analysis.simulation import pfba
+from cameo.strain_design.heuristics.plotters import GeneFrequencyPlotter
 from cameo.util import partition, TimeMachine
-
 
 import inspyred
 import logging
@@ -191,7 +191,7 @@ class KnockoutOptimization(HeuristicOptimization):
         return new_individual
 
     def _indel(self, random, individual, args):
-        if random.random() < args.get('mutation_rate', .1):
+        if random.random() < args.get('indel_rate', .1):
             if random.random() > 0.5:
                 if len(individual) > 1:
                     individual.pop(random.randint(0, len(individual) - 1))
@@ -216,7 +216,7 @@ class KnockoutOptimization(HeuristicOptimization):
         except Exception, e:
             logger.exception(e)
             if isinstance(self.objective_function, list):
-                fitness = inspyred.ec.emo.Pareto(values=[0 for of in self.objective_function])
+                fitness = inspyred.ec.emo.Pareto(values=[0 for _ in self.objective_function])
             else:
                 fitness = 0
 
@@ -268,7 +268,7 @@ class KnockoutOptimization(HeuristicOptimization):
 
     def run(self, **kwargs):
         for observer in self.observer:
-            observer.reset()
+            observer.reset(kwargs)
         self.heuristic_method.observer = self.observer
         super(KnockoutOptimization, self).run(distance_function=self._distance_function, **kwargs)
         return KnockoutOptimizationResult(self.model, self.heuristic_method, self.simulation_method,
@@ -277,6 +277,7 @@ class KnockoutOptimization(HeuristicOptimization):
 
 
 class KnockoutOptimizationResult(object):
+
     class KnockoutOptimizationSolution(object):
         def __init__(self, solution, model, simulation_method, decoder, *args, **kwargs):
             super(KnockoutOptimizationResult.KnockoutOptimizationSolution, self).__init__(*args, **kwargs)
@@ -322,6 +323,7 @@ class KnockoutOptimizationResult(object):
         self.ko_type = ko_type
         self.decoder = decoder
         self.solutions = [self._build_solution(s, model, simulation_method, decoder) for s in solutions]
+        self.plotter = None
 
     def _build_solution(self, solution, model, simulation_method, decoder):
         return KnockoutOptimizationResult.KnockoutOptimizationSolution(
@@ -332,6 +334,8 @@ class KnockoutOptimizationResult(object):
         )
 
     def _repr_html_(self):
+
+
         results = "<h4>Result:</h4>" \
                   "<ul>" \
                   "    <li>model: " + self.model.id + "</li>" \
@@ -352,9 +356,17 @@ class KnockoutOptimizationResult(object):
                     "   <tbody>" \
                     "       " + "\n".join([solution.html_row() for solution in self.solutions]) + "" \
                     "   </tbody>" \
-                    "<table>" \
+                    "<table>"
+        #TODO: wip
+        #self._plot_frequency()
 
         return results + solutions
+
+    #TODO: find out how to plot an histogram (?) in bokeh
+    def _plot_frequency(self):
+        if self.plotter is None:
+            self.plotter = GeneFrequencyPlotter(self.solutions)
+        self.plotter.plot()
 
 
 class ReactionKnockoutOptimization(KnockoutOptimization):

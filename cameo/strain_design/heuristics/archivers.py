@@ -40,15 +40,17 @@ class BestSolutionArchiver(object):
             candidate = SolutionTuple(candidate, fitness)
             add = True
             for c in self.archive:
-                if candidate.improves(c) and candidate.fitness == c.fitness:
-                    self.archive.remove(c)
-                if c.improves(candidate) and candidate.fitness == c.fitness:
+                if c == candidate:
                     add = False
+                elif c.improves(candidate) and candidate.fitness == c.fitness:
+                    add = False
+                elif candidate.improves(c) and candidate.fitness == c.fitness:
+                    self.archive.remove(c)
 
             if add:
                 insort(self.archive, candidate)
 
-            while len(self.archive) > max_size:
+            while self.length() > max_size:
                 self.archive.pop()
 
             self.worst_fitness = self.archive[len(self.archive) - 1].fitness

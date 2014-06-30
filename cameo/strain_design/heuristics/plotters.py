@@ -11,27 +11,31 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from multiprocessing.sharedctypes import synchronized
 
 from uuid import uuid1
 from bokeh.plotting import *
-import pandas
-
+from pandas.core.common import in_ipnb
+import numpy as np
+import scipy.stats
 
 class PlotObserver(object):
-    def __init__(self, window_size=1000,url='default'):
+    def __init__(self, window_size=1000, url='default'):
         self.i = 0
         self.window_size = window_size
         self.url = url
         self.iterations = []
         self.fitness = []
         self.uuid = None
-        self.in_ipnb = pandas.core.common.in_ipnb()
+        self.in_ipnb = in_ipnb()
         self.plotted = False
 
     def _set_plot(self):
         if self.in_ipnb:
             self.uuid = uuid1()
             output_notebook(url=self.url, docname=str(self.uuid))
+            figure()
+            hold()
             scatter([], [], tools='', title="Best solution convergence plot")
             xaxis().axis_label = "Iteration"
             yaxis().axis_label = "Fitness"
@@ -66,7 +70,7 @@ class PlotObserver(object):
 
             session().store_obj(self.ds)
 
-    def reset(self):
+    def reset(self, args):
         self.i = 0
         self.iterations = []
         self.fitness = []
@@ -81,7 +85,7 @@ class ParetoPlotObserver(object):
         self.ofs = ofs
         self.fitness = []
         self.uuid = None
-        self.in_ipnb = pandas.core.common.in_ipnb()
+        self.in_ipnb = in_ipnb()
         self.plotted = False
 
     def _set_plot(self):
@@ -114,6 +118,35 @@ class ParetoPlotObserver(object):
             self.ds.data['y'] = [e[self.y] for e in self.fitness]
             session().store_obj(self.ds)
 
-    def reset(self):
+    def reset(self, args):
         self.fitness = []
         self.plotted = False
+
+
+class GeneFrequencyPlotter():
+    def __init__(self, solutions, url='default'):
+        self.solutions = solutions
+        self.url = url
+        self.in_ipnb = in_ipnb()
+        self.freqs = self.frequencies()
+
+    def frequencies(self):
+        kos = []
+        for solution in self.solutions:
+            for ko in solution.knockout_list:
+                kos.append(ko.id)
+
+        return scipy.stats.itemfreq(kos)
+
+    def plot(self):
+        if in_ipnb():
+            self.uuid = uuid1()
+            output_notebook(url=self.url, docname=str(self.uuid))
+            figure()
+
+            quad(top=self.freqs[:, 1], left=self.freqs[:, 1], bottom=np.zeros(len(self.freqs[:, 1])),
+                 right=self.freqs[:, 1], x_range=list(self.freqs[:, 0]))
+            xaxis().major_label_orientation = np.pi/3
+            show()
+
+
