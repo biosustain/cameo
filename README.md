@@ -20,3 +20,4 @@ This library dependes on
 
 Computationally heavy methods have been parallelized and can be run on a clusters using the IPython parallelization framework (see example and documetnation for more details). The default fallback is python's multiprocessing library.
 
+trigger ...
