@@ -1,16 +1,24 @@
 language: python
-#python:
-# - "2.6"
-# - "2.7"
+python:
+ - "2.7"
 # command to install dependencies
 virtualenv:
   system_site_packages: true
 before_install:
-  - sudo apt-get install libglpk-dev python-scipy libgmp-dev
+  - sudo apt-get install libglpk-dev swig python-numpy glpk-utils
+  - pip install ply
+  - cd /home/travis
+  - wget http://www.dcc.fc.up.pt/~jpp/code/python-glpk/python-glpk_0.4.45.orig.tar.gz
+  - tar xzf python-glpk_0.4.45.orig.tar.gz
+  - cd python-glpk-0.4.45/src/
+  - sudo make install
+  - cd $TRAVIS_BUILD_DIR
 install:
   - ln -s /usr/lib/python2.7/dist-packages/scipy ~/virtualenv/python2.7/lib/python2.7/site-packages/
   - pip install http://clostridium.ucsd.edu/python_libsbml_experimental-5.9.2-cp27-none-linux_x86_64.whl
-  - pip install glpk cython
-  - python setup.py develop
+  - pip install coveralls coverage
+  - pip install -r requirements.txt
 # # command to run tests
-script: python setup.py test
+script: coverage run --omit=cameo/parallel.py --source=cameo setup.py nosetests
+after_success:
+  - coveralls

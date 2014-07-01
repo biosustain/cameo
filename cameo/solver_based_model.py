@@ -317,9 +317,9 @@ class OptlangBasedModel(Model):
                 objective.expression += rxn.objective_coefficient * var
             for met, coeff in rxn._metabolites.iteritems():
                 if constr_terms.has_key(met.id):
-                    constr_terms[met.id] += [(sympy.Real(coeff), var)]
+                    constr_terms[met.id] += [(sympy.RealNumber(coeff), var)]
                 else:
-                    constr_terms[met.id] = [(sympy.Real(coeff), var)]
+                    constr_terms[met.id] = [(sympy.RealNumber(coeff), var)]
 
         for met_id, terms in constr_terms.iteritems():
             expr = _unevaluated_Add(*[_unevaluated_Mul(coeff, var)
