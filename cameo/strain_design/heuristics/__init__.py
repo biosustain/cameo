@@ -203,24 +203,25 @@ class KnockoutOptimization(HeuristicOptimization):
     def evaluate_individual(self, individual, tm):
         decoded = self._decoder(individual)
         reactions = decoded[0]
-
-        for reaction in reactions:
-            tm(do=partial(setattr, reaction, 'lower_bound', 0),
-               undo=partial(setattr, reaction, 'lower_bound', reaction.lower_bound))
-            tm(do=partial(setattr, reaction, 'upper_bound', 0),
-               undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
-
         try:
-            solution = self.simulation_method(self.model)
-            fitness = self._calculate_fitness(solution, decoded)
-        except Exception, e:
-            logger.exception(e)
-            if isinstance(self.objective_function, list):
-                fitness = inspyred.ec.emo.Pareto(values=[0 for _ in self.objective_function])
-            else:
-                fitness = 0
+            for reaction in reactions:
+                tm(do=partial(setattr, reaction, 'lower_bound', 0),
+                   undo=partial(setattr, reaction, 'lower_bound', reaction.lower_bound))
+                tm(do=partial(setattr, reaction, 'upper_bound', 0),
+                   undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
 
-        tm.reset()
+            try:
+                solution = self.simulation_method(self.model)
+                fitness = self._calculate_fitness(solution, decoded)
+            except ModelSolveError as e:
+                logger.exception(e)
+                if isinstance(self.objective_function, list):
+                    fitness = inspyred.ec.emo.Pareto(values=[0 for _ in self.objective_function])
+                else:
+                    fitness = 0
+
+        finally:
+            tm.reset()
 
         return fitness
 
@@ -268,7 +269,7 @@ class KnockoutOptimization(HeuristicOptimization):
 
     def run(self, **kwargs):
         for observer in self.observer:
-            observer.reset(kwargs)
+            observer.reset()
         self.heuristic_method.observer = self.observer
         super(KnockoutOptimization, self).run(distance_function=self._distance_function, **kwargs)
         return KnockoutOptimizationResult(self.model, self.heuristic_method, self.simulation_method,

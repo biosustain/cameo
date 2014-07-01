@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import multiprocessing
+from threading import Thread
 
 from ipython_notebook_utils import ProgressBar
 
@@ -28,25 +29,5 @@ class IPythonNotebookObserver():
     def __name__(self):
         return "IPython Notebook progress"
 
-    def reset(self, args):
+    def reset(self):
         self.progress.start()
-
-class IPythonMultiprocessObserver():
-    def __init__(self, number_of_islands):
-        self.progress = dict([(i, ProgressBar(label="Island %i" % i)) for i in xrange(number_of_islands)])
-        self._lock = multiprocessing.Lock()
-
-    def __call__(self, population, num_generations, num_evaluations, args):
-        with self._lock:
-            i = args.get('i')
-            if num_evaluations % args.get('n', 1) == 0:
-                p = (float(num_evaluations) / float(args.get('max_evaluations', 50000))) * 100.0
-                self.progress[i].set(p)
-
-    def __name__(self):
-        return "Multiprocess IPython Notebook progress"
-
-    def reset(self, args):
-        i = args.get('i')
-        with self._lock:
-            self.progress[i].start()

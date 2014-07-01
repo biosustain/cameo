@@ -11,10 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from multiprocessing import Process, Pool
-from cameo import config
+from multiprocessing import Process
+
 import inspyred
-from cameo.strain_design.heuristics.observers import IPythonMultiprocessObserver
+
+from cameo import config
+from cameo.strain_design.heuristics.multiprocess.observers import IPythonMultiprocessObserver
 
 
 class MultiprocessHeuristicOptimization(object):
@@ -26,28 +28,28 @@ class MultiprocessHeuristicOptimization(object):
     def run(self, *args, **kwargs):
         migrator = inspyred.ec.migrators.MultiprocessingMigrator(self.number_of_migrators)
         jobs = []
-        i = 1
+        i = 0
         observer = IPythonMultiprocessObserver(len(self.islands))
+        observer.start()
         for island in self.islands:
-            island.observer = [observer]
+            island.observer = [observer.clients[i]]
             island.heuristic_method.migrator = migrator
             p = Process(target=self._run_island, args=(island, config.SequentialView(), i, kwargs))
             p.start()
             jobs.append(p)
             i += 1
+        try:
+            for job in jobs:
+                job.join()
+        except KeyboardInterrupt:
+            for job in jobs:
+                job.terminate()
 
-        for job in jobs:
-            print job.is_alive()
-            job.join()
-
-        for island in self.islands:
-            island.heuristic_method.migrator = None
 
     def _run_island(self, island, view, i, kwargs):
-        print "Launching island %i with **%s" % (i, kwargs)
         try:
             island.run(view=view, i=i, evaluate_migrant=False, **kwargs)
         except Exception, e:
             print e
-
-        print "Run finished"
+        finally:
+            island.heuristic_method.observer[0].close()

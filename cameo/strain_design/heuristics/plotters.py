@@ -70,7 +70,7 @@ class PlotObserver(object):
 
             session().store_obj(self.ds)
 
-    def reset(self, args):
+    def reset(self):
         self.i = 0
         self.iterations = []
         self.fitness = []
@@ -118,7 +118,7 @@ class ParetoPlotObserver(object):
             self.ds.data['y'] = [e[self.y] for e in self.fitness]
             session().store_obj(self.ds)
 
-    def reset(self, args):
+    def reset(self):
         self.fitness = []
         self.plotted = False
 
