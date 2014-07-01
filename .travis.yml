@@ -15,7 +15,7 @@ before_install:
   - cd $TRAVIS_BUILD_DIR
 install:
   - ln -s /usr/lib/python2.7/dist-packages/scipy ~/virtualenv/python2.7/lib/python2.7/site-packages/
-  - pip install http://clostridium.ucsd.edu/python_libsbml_experimental-5.9.2-cp27-none-linux_x86_64.whl
+  - pip install python_libsbml_experimental
   - pip install coveralls coverage
   - pip install -r requirements.txt
 # # command to run tests
