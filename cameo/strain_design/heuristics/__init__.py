@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from cameo.exceptions import ModelSolveError
 from cameo.strain_design.heuristics import archivers
 from cameo.strain_design.heuristics import plotters
 from cameo.strain_design.heuristics import observers
