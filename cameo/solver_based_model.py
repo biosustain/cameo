@@ -134,6 +134,13 @@ class LazySolution(object):
 class Reaction(OriginalReaction):
     """docstring for Reaction"""
 
+    @classmethod
+    def clone(cls, reaction):
+        new_reaction = cls(name=reaction.name)
+        for attribute, value in reaction.__dict__.iteritems():
+            setattr(new_reaction, attribute, value)
+        return new_reaction
+
     def __init__(self, name=None):
         super(Reaction, self).__init__(name=name)
         self._lower_bound = 0
@@ -310,9 +317,9 @@ class OptlangBasedModel(Model):
                 objective.expression += rxn.objective_coefficient * var
             for met, coeff in rxn._metabolites.iteritems():
                 if constr_terms.has_key(met.id):
-                    constr_terms[met.id] += [(sympy.Real(coeff), var)]
+                    constr_terms[met.id] += [(sympy.RealNumber(coeff), var)]
                 else:
-                    constr_terms[met.id] = [(sympy.Real(coeff), var)]
+                    constr_terms[met.id] = [(sympy.RealNumber(coeff), var)]
 
         for met_id, terms in constr_terms.iteritems():
             expr = _unevaluated_Add(*[_unevaluated_Mul(coeff, var)
@@ -331,12 +338,18 @@ class OptlangBasedModel(Model):
             self.solver.add(self.solver.interface.Constraint(S.Zero, name=met.name, lb=0, ub=0))
 
     def add_reactions(self, reaction_list):
-        for reaction in reaction_list:
+        cloned_reaction_list = list()
+        for reaction in reaction_list:  # this is necessary for cobrapy compatibility
+            if not isinstance(reaction, Reaction):
+                cloned_reaction_list.append(Reaction.clone(reaction))
+            else:
+                cloned_reaction_list.append(reaction)
+        for reaction in cloned_reaction_list:
             try:
                 reaction_variable = self.solver.variables[reaction.id]
             except KeyError:
                 self.solver.add(
-                    self.solver.interface.Variable(reaction.id, lb=reaction.lower_bound, ub=reaction.upper_bound))
+                    self.solver.interface.Variable(reaction.id, lb=reaction._lower_bound, ub=reaction._upper_bound))
                 reaction_variable = self.solver.variables[reaction.id]
 
             metabolite_coeff_dict = reaction.metabolites
@@ -349,7 +362,7 @@ class OptlangBasedModel(Model):
                     metabolite_constraint = self.solver.constraints[metabolite.id]
                 metabolite_constraint += coeff * reaction_variable
 
-        super(OptlangBasedModel, self).add_reactions(reaction_list)
+        super(OptlangBasedModel, self).add_reactions(cloned_reaction_list)
 
     def remove_reactions(self, the_reactions):
         for reaction in the_reactions:
@@ -488,162 +501,6 @@ class OptlangBasedModel(Model):
 
 
 if __name__ == '__main__':
-    import pickle
-    import time
-    from optlang.glpk_interface import Model as GlpkModel
-    from cobra.manipulation.delete import delete_model_genes
+    from cameo import load_model
 
-    with open("../tests/data/iJO1366.pickle") as fhandle:
-        model = pickle.load(fhandle)
-        sbmodel = to_solver_based_model(model)
-
-    choice = -444
-    if choice == 1:
-        solver = GlpkModel()
-        sbmodel = to_solver_based_model(model, solver)
-    elif choice == 2:
-        from cobra.flux_analysis.variability import flux_variability_analysis
-
-        from cobra.flux_analysis.variability import flux_variability_analysis
-
-        with open("../tests/data/iJO1366.pickle") as fhandle:
-            model = pickle.load(fhandle)
-        model.reactions.get_by_id(
-            'Ec_biomass_iJO1366_core_53p95M').lower_bound = 0.9823718127269797
-
-        # Run standard cobrapy fva
-        if False:
-            t = time.time()
-            fva_sol_model = flux_variability_analysis(
-                model, the_reactions=model.reactions,
-                fraction_of_optimum=1., solver="glpk")
-            elapsed = time.time() - t
-            print 'Cobrapy FVA time elapsed: ', elapsed
-            # 473.228835106 last time I checked
-
-        # Run solver-based-model fva
-        solver = GlpkModel()
-        sbmodel = to_solver_based_model(model, solver)
-        sbmodel.solver.configuration.verbosity = 3
-        # t = time.time()
-        # fva_sol_sbmodel = flux_variability_analysis(
-        # sbmodel, the_reactions=sbmodel.reactions[0:100],
-        # fraction_of_optimum=1.
-        # )
-        # elapsed = time.time() - t
-        # print 'optlang based FVA time elapsed: ', elapsed
-
-        # Run fva manually
-        fva_sol_sbmodel2 = dict()
-        for rxn in sbmodel.reactions:
-            fva_sol_sbmodel2[rxn.id] = dict()
-        t = time.time()
-        for rxn in sbmodel.reactions:
-            # print "Minimize", rxn
-            sbmodel.solver.objective = optlang.Objective(
-                1. * sbmodel.solver.variables[rxn.id], direction='min')
-            status = sbmodel.solver.optimize()
-
-            if status is 'optimal':
-                fva_sol_sbmodel2[rxn.id][
-                    'minimum'] = sbmodel.solver.objective.value
-            else:
-                fva_sol_sbmodel2[rxn.id]['minimum'] = None
-                # lb = sbmodel.solver.objective.value
-                # if abs(lb) < 10**-6:
-                # lb = 0.
-                # sbmodel.solver.variables[rxn.id].lb = lb
-        for rxn in sbmodel.reactions:
-            # print "Maximize", rxn
-            sbmodel.solver.objective = optlang.Objective(
-                1. * sbmodel.solver.variables[rxn.id], direction='max')
-            status = sbmodel.solver.optimize()
-            if status is 'optimal':
-                fva_sol_sbmodel2[rxn.id][
-                    'maximum'] = sbmodel.solver.objective.value
-                # ub = sbmodel.solver.objective.value
-                # if abs(ub) < 10**-6:
-                # ub = 0.
-                # sbmodel.solver.variables[rxn.id].ub = ub
-            else:
-                fva_sol_sbmodel2[rxn.id][
-                    'maximum'] = sbmodel.solver.objective.value
-        elapsed = time.time() - t
-        print 'optlang based FVA time elapsed: ', elapsed
-        # 15.3940598965 last time checked
-        # open('test.lp', 'w').write(str(sbmodel.solver))
-
-        # stuff = sbmodel._populate_solver_from_scratch()
-        # sbmodel = OptlangBasedModel(solver=solver)
-        # sbmodel.add_metabolites(model.metabolites[0:3])
-        # sbmodel.add_reactions(model.reactions)
-        # print sbmodel.reactions.EX_12ppd__R_e
-        # print sbmodel.solver
-        # print sbmodel.solver
-        # sbmodel.remove_reactions(['DM_AACALD'])
-        # print sbmodel.solver
-        # for key in fva_sol_model.keys():
-        # print key
-        #     print fva_sol_model[key]
-        #     print fva_sol_sbmodel[key]
-        #     print fva_sol_sbmodel2[key]
-
-    elif choice == 3:
-        solver = GlpkModel()
-        with open("../../test/data/salmonella.pickle") as fhandle:
-            model = pickle.load(fhandle)
-
-        cobra_model = to_solver_based_model(model, solver)
-        print "move to test"
-        # TODO: Add in tests for each function
-        cumulative_deletions = False
-        disable_orphans = False
-        gene_list = ['STM1067', 'STM0227']
-        # The following reactions are trimmed when STM1332 and STM1101 are
-        # deleted
-        dependent_reactions = set(['3HAD121',
-                                   '3HAD160',
-                                   '3HAD80',
-                                   '3HAD140',
-                                   '3HAD180',
-                                   '3HAD100',
-                                   '3HAD181',
-                                   '3HAD120',
-                                   '3HAD60',
-                                   '3HAD141',
-                                   '3HAD161',
-                                   'T2DECAI',
-                                   '3HAD40'])
-        delete_model_genes(cobra_model, gene_list)
-        symmetric_difference = dependent_reactions.symmetric_difference(
-            [x.id for x in cobra_model._trimmed_reactions])
-        if len(symmetric_difference) == 0:
-            print 'Successful deletion of %s' % repr(gene_list)
-        else:
-            print 'Failed deletion of %s\n%s reactions did not match' % (repr(gene_list),
-                                                                         repr(symmetric_difference))
-    elif choice == 4:
-        from functools import partial
-
-        with open("../tests/data/salmonella.pickle") as fhandle:
-            model = pickle.load(fhandle)
-        model = to_solver_based_model(model)
-        tm = TimeMachine()
-        rxn = model.reactions.get_by_id('ENO')
-        tm(do=partial(setattr, rxn, 'lower_bound', -666), undo=partial(setattr,
-                                                                       rxn, 'lower_bound',
-                                                                       model.reactions.get_by_id('ENO').lower_bound))
-        print model.reactions.get_by_id('ENO').lower_bound
-        tm.undo()
-        print model.reactions.get_by_id('ENO').lower_bound
-    elif choice == 5:
-        with open("../../test/data/salmonella.pickle") as fhandle:
-            model = to_solver_based_model(pickle.load(fhandle))
-        print model.solver.constraints['atp_c']
-        demand_rxn = Reaction(name='DM_atp')
-        demand_rxn.add_metabolites({model.metabolites.get_by_id('atp_c'): -1})
-        print demand_rxn.build_reaction_string()
-        print "Is there already a model defined?", demand_rxn.get_model()
-        model.add_reaction(demand_rxn)
-        print model.reactions.get_by_id('DM_atp').build_reaction_string()
-        print model.solver.constraints['atp_c']
+    model = load_model('../../test/data/EcoliCore.xml')
