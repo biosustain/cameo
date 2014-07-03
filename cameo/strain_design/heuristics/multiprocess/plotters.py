@@ -32,9 +32,14 @@ class IPythonNotebookBokehMultiprocessPlotObserver(AbstractParallelObserver):
         self.data_frame = DataFrame(columns=['iteration', 'island', 'color', 'fitness'])
 
     def _create_client(self, i):
-        self.clients[i] = self.Client(queue=self.queue, index=i)
+        self.clients[i] = self.IPythonNotebookBokehMultiprocessPlotObserverClient(queue=self.queue, index=i)
 
-    def _set_plot(self):
+    def start(self):
+        AbstractParallelObserver.start(self)
+        self._plot()
+
+    def _plot(self):
+        print "Open plot!"
         self.plotted = True
         self.uuid = uuid1()
         output_notebook(url=self.url, docname=str(self.uuid))
@@ -49,7 +54,7 @@ class IPythonNotebookBokehMultiprocessPlotObserver(AbstractParallelObserver):
 
     def _process_message(self, message):
         if not self.plotted:
-            self._set_plot()
+            self._plot()
 
         index = message['index']
         df = DataFrame({
@@ -60,9 +65,9 @@ class IPythonNotebookBokehMultiprocessPlotObserver(AbstractParallelObserver):
         })
         self.data_frame = self.data_frame.append(df, ignore_index=True)
         if message['iteration'] % self.n == 0:
-            self._ipnb_plot()
+            self._update_plot()
 
-    def _ipnb_plot(self):
+    def _update_plot(self):
         self.ds.data['x'] = self.data_frame['iteration']
         self.ds.data['y'] = self.data_frame['fitness']
         self.ds.data['fill_color'] = self.data_frame['color']
@@ -70,28 +75,28 @@ class IPythonNotebookBokehMultiprocessPlotObserver(AbstractParallelObserver):
         self.ds._dirty = True
         session().store_obj(self.ds)
 
-    def reset(self):
+    def stop(self):
         self.data_frame = DataFrame(columns=['iteration', 'island', 'color', 'fitness'])
         self.plotted = False
 
-    class Client(AbstractParallelObserverClient):
+class IPythonNotebookBokehMultiprocessPlotObserverClient(AbstractParallelObserverClient):
 
-        __name__ = "IPython Notebook Bokeh Multiprocess Plot Observer"
+    __name__ = "IPython Notebook Bokeh Multiprocess Plot Observer"
 
-        def __init__(self, *args, **kwargs):
-            super(IPythonNotebookBokehMultiprocessPlotObserver.Client, self).__init__(*args, **kwargs)
-            self.iteration = 0
+    def __init__(self, *args, **kwargs):
+        super(IPythonNotebookBokehMultiprocessPlotObserverClient, self).__init__(*args, **kwargs)
+        self.iteration = 0
 
-        def __call__(self, population, num_generations, num_evaluations, args):
-            self.iteration += 1
-            best = max(population)
-            try:
-                self._queue.put_notwai({'fitness': best.fitness, 'iteration': self.iteration, 'index': self.index})
-            except Exception:
-                pass
+    def __call__(self, population, num_generations, num_evaluations, args):
+        self.iteration += 1
+        best = max(population)
+        try:
+            self._queue.put_notwai({'fitness': best.fitness, 'iteration': self.iteration, 'index': self.index})
+        except Exception:
+            pass
 
-        def reset(self):
-            self.iteration = 0
+    def reset(self):
+        self.iteration = 0
 
-        def close(self):
-            self.connection.close()
+    def close(self):
+        self.connection.close()

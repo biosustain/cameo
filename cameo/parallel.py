@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-import multiprocessing
+from pathos.multiprocessing import ProcessingPool
 
 
 class MultiprocessingView(object):
@@ -22,16 +21,19 @@ class MultiprocessingView(object):
 
     def __init__(self, *args, **kwargs):
         # super(MultiprocessingView, self).__init__(*args, **kwargs)
-        self.pool = multiprocessing.Pool(*args, **kwargs)
+        self.pool = ProcessingPool(*args, **kwargs)
 
     def map(self, *args, **kwargs):
         return self.pool.map(*args, **kwargs)
 
     def apply(self, *args, **kwargs):
-        return self.pool.apply(*args, **kwargs)
+        raise NotImplementedError
 
     def __len__(self):
         return self.pool._processes
+
+    def shutdown(self):
+        pass
 
 
 class SequentialView(object):
@@ -44,6 +46,9 @@ class SequentialView(object):
 
     def __len__(self):
         return 1
+
+    def shutdown(self):
+        pass
 
 
 if __name__ == '__main__':

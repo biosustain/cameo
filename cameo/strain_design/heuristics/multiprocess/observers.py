@@ -46,7 +46,7 @@ class AbstractParallelObserver(object):
         t = Thread(target=self._listen)
         t.start()
 
-    def stop(self):
+    def finish(self):
         self.run = False
 
 
@@ -79,7 +79,7 @@ class CliMultiprocessProgressObserver(AbstractParallelObserver):
         super(CliMultiprocessProgressObserver, self).__init__(*args, **kwargs)
 
     def _create_client(self, i):
-        self.clients[i] = CliMultiprocessProgressObserver.Client(index=i, queue=self.queue)
+        self.clients[i] = CliMultiprocessProgressObserverClient(index=i, queue=self.queue)
 
     def _process_message(self, message):
         i = message['index']
@@ -110,22 +110,23 @@ class CliMultiprocessProgressObserver(AbstractParallelObserver):
             with self.term.location(0, self.pos):
                 print(string)
 
-    class Client(AbstractParallelObserverClient):
 
-        __name__ = "CLI Multiprocess Progress Observer"
+class CliMultiprocessProgressObserverClient(AbstractParallelObserverClient):
 
-        def __init__(self, *args, **kwargs):
-            super(CliMultiprocessProgressObserver.Client, self).__init__(*args, **kwargs)
+    __name__ = "CLI Multiprocess Progress Observer"
 
-        def __call__(self, population, num_generations, num_evaluations, args):
-            self._queue.put_nowait({
-                'index': self.index,
-                'num_evaluations': num_evaluations,
-                'max_evaluations': args.get('max_evaluations', 50000)
-            })
+    def __init__(self, *args, **kwargs):
+        super(CliMultiprocessProgressObserverClient, self).__init__(*args, **kwargs)
 
-        def reset(self):
-            pass
+    def __call__(self, population, num_generations, num_evaluations, args):
+        self._queue.put_nowait({
+            'index': self.index,
+            'num_evaluations': num_evaluations,
+            'max_evaluations': args.get('max_evaluations', 50000)
+        })
+
+    def reset(self):
+        pass
 
 
 class IPythonNotebookMultiprocessProgressObserver(AbstractParallelObserver):
@@ -139,7 +140,7 @@ class IPythonNotebookMultiprocessProgressObserver(AbstractParallelObserver):
         super(IPythonNotebookMultiprocessProgressObserver, self).__init__(*args, **kwargs)
 
     def _create_client(self, i):
-        self.clients[i] = self.Client(queue=self.queue, index=i)
+        self.clients[i] = IPythonNotebookMultiprocessProgressObserverClient(queue=self.queue, index=i)
         label = "<span style='color:%s;'>Island %i </span>" % (self.color_map[i], i+1)
         self.progress[i] = IPythonProgressBar(label=label)
 
@@ -148,19 +149,20 @@ class IPythonNotebookMultiprocessProgressObserver(AbstractParallelObserver):
             self.progress[message['index']].start()
         self.progress[message['index']].set(message['progress'])
 
-    class Client(AbstractParallelObserverClient):
 
-        __name__ = "IPython Notebook Multiprocess Progress Observer"
+class IPythonNotebookMultiprocessProgressObserverClient(AbstractParallelObserverClient):
 
-        def __init__(self, *args, **kwargs):
-            super(IPythonNotebookMultiprocessProgressObserver.Client, self).__init__(*args, **kwargs)
+    __name__ = "IPython Notebook Multiprocess Progress Observer"
 
-        def __call__(self, population, num_generations, num_evaluations, args):
-            p = (float(num_evaluations) / float(args.get('max_evaluations', 50000))) * 100.0
-            try:
-                self._queue.put_nowait({'progress': p, 'index': self.index})
-            except Exception:
-                pass
+    def __init__(self, *args, **kwargs):
+        super(IPythonNotebookMultiprocessProgressObserverClient, self).__init__(*args, **kwargs)
 
-        def reset(self):
+    def __call__(self, population, num_generations, num_evaluations, args):
+        p = (float(num_evaluations) / float(args.get('max_evaluations', 50000))) * 100.0
+        try:
+            self._queue.put_nowait({'progress': p, 'index': self.index})
+        except Exception:
             pass
+
+    def reset(self):
+        pass

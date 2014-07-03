@@ -279,7 +279,6 @@ class KnockoutOptimization(HeuristicOptimization):
                 pass
             self.observer.append(observers.CLIProgressObserver())
 
-
     def run(self, **kwargs):
         for observer in self.observer:
             observer.reset()
@@ -384,14 +383,20 @@ class KnockoutOptimizationResult(object):
 
 
 class ReactionKnockoutOptimization(KnockoutOptimization):
-    def __init__(self, reactions=None, *args, **kwargs):
+    def __init__(self, reactions=None, essential_reactions=None, *args, **kwargs):
         super(ReactionKnockoutOptimization, self).__init__(*args, **kwargs)
         if reactions is None:
-            reactions = set([r.id for r in self.model.reactions])
+            self.reactions = set([r.id for r in self.model.reactions])
+        else:
+            self.reactions = reactions
 
-        essential_reactions = set([r.id for r in self.model.essential_reactions()])
+        if essential_reactions is None:
+            self.essential_reactions = set([r.id for r in self.model.essential_reactions()])
+        else:
+            self.essential_reactions = essential_reactions
+
         exchange_reactions = set([r.id for r in self.model.exchanges])
-        self.representation = list(reactions.difference(essential_reactions).difference(exchange_reactions))
+        self.representation = list(self.reactions.difference(self.essential_reactions).difference(exchange_reactions))
         self.ko_type = 'reaction'
 
     def _decoder(self, individual):
@@ -400,13 +405,19 @@ class ReactionKnockoutOptimization(KnockoutOptimization):
 
 
 class GeneKnockoutOptimization(KnockoutOptimization):
-    def __init__(self, genes=None, *args, **kwargs):
+    def __init__(self, genes=None, essential_genes=None, *args, **kwargs):
         super(GeneKnockoutOptimization, self).__init__(*args, **kwargs)
         if genes is None:
-            genes = set([g.id for g in self.model.genes])
+            self.genes = set([g.id for g in self.model.genes])
+        else:
+            self.genes = genes
 
-        essential_genes = set([g.id for g in self.model.essential_genes()])
-        self.representation = list(genes.difference(essential_genes))
+        if essential_genes is None:
+            self.essential_genes = set([g.id for g in self.model.essential_genes()])
+        else:
+            self.essential_genes = essential_genes
+
+        self.representation = list(self.genes.difference(self.essential_genes))
         self.ko_type = 'gene'
 
 

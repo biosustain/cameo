@@ -11,72 +11,138 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import colorsys
-from multiprocessing import Process
+from cameo import parallel
 
 import inspyred
 from pandas.core.common import in_ipnb
-
+from cameo import util
 from cameo import config
+from cameo.flux_analysis.simulation import pfba
+from cameo.strain_design.heuristics import HeuristicOptimization, ReactionKnockoutOptimization, GeneKnockoutOptimization
 from cameo.strain_design.heuristics.multiprocess.observers import IPythonNotebookMultiprocessProgressObserver, \
     CliMultiprocessProgressObserver
 from cameo.strain_design.heuristics.multiprocess.plotters import IPythonNotebookBokehMultiprocessPlotObserver
 
 
-class MultiprocessHeuristicOptimization(object):
-    def __init__(self, view=config.default_view, islands=[], number_of_migrators=1):
+class MultiprocessRunner(object):
+    def __init__(self, kwargs):
+        self._kwargs = kwargs
+
+    def __call__(self, island):
+        return island.evolve(**self._kwargs)
+
+
+class MultiprocessHeuristicOptimization(HeuristicOptimization):
+    def __init__(self, view=config.default_view, number_of_islands=4, number_of_migrators=1, *args, **kwargs):
+        self.islands = []
+        self.number_of_islands = number_of_islands
+        super(MultiprocessHeuristicOptimization, self).__init__(*args, **kwargs)
         self.view = view
-        self.islands = islands
-        self.number_of_migrators = number_of_migrators
-        self.color_map = {}
-        self._generate_colors(len(islands))
+        self.color_map = util.generate_colors(number_of_islands)
+        self._migrator = inspyred.ec.migrators.MultiprocessingMigrator(number_of_migrators)
+        self._build_islands(*args, **kwargs)
 
-    def _generate_colors(self, n):
-        hsv_tuples = [(v*1.0/n, 0.5, 0.5) for v in xrange(n)]
-        for i in xrange(n):
-            color = colorsys.hsv_to_rgb(*hsv_tuples[i])
-            color = tuple(map(lambda v: v*256, color))
-            self.color_map[i] = '#%02x%02x%02x' % color
+    def _build_islands(self, *args, **kwargs):
+        raise NotImplementedError
 
-    def run(self, *args, **kwargs):
-        migrator = inspyred.ec.migrators.MultiprocessingMigrator(self.number_of_migrators)
-        jobs = []
-        i = 0
-        if in_ipnb():
-            progress_observer = IPythonNotebookMultiprocessProgressObserver(number_of_islands=len(self.islands),
-                                                                            color_map=self.color_map)
-            plotting_observer = IPythonNotebookBokehMultiprocessPlotObserver(number_of_islands=len(self.islands),
-                                                                             color_map=self.color_map,
-                                                                             n=kwargs.get('n', 20))
-            progress_observer.start()
-            plotting_observer.start()
-        else:
-            progress_observer = CliMultiprocessProgressObserver(number_of_islands=len(self.islands))
-            plotting_observer = None
-            progress_observer.start()
-            plotting_observer.start()
-
-        for island in self.islands:
-            island.observer = []
-            if not plotting_observer is None:
-                island.observer.append(plotting_observer.clients[i])
-            if not progress_observer is None:
-                island.observer.append(progress_observer.clients[i])
-            island.heuristic_method.migrator = migrator
-            p = Process(target=self._run_island, args=(island, config.SequentialView(), i, kwargs))
-            p.start()
-            jobs.append(p)
-            i += 1
+    def run(self,  **kwargs):
+        kwargs['view'] = parallel.SequentialView()
+        runner = MultiprocessRunner(kwargs)
         try:
-            for job in jobs:
-                job.join()
-        except KeyboardInterrupt:
-            for job in jobs:
-                job.terminate()
+            results = self.view.map(runner, self.islands)
+        except KeyboardInterrupt as e:
+            self.view.shutdown()
+            raise e
 
-        finally:
-            plotting_observer.close()
-            progress_observer.stop()
+        return results
 
-    def _run_island(self, island, view, i, kwargs):
-        island.run(view=view, i=i, evaluate_migrant=False, **kwargs)
+    @HeuristicOptimization.heuristic_method.setter
+    def heuristic_method(self, heuristic_method):
+        for island in self.islands:
+            island.heuristic_method = heuristic_method
+
+    @HeuristicOptimization.objective_function.setter
+    def objective_function(self, objective_function):
+        for island in self.islands:
+            island.objective_function = objective_function
+
+
+class MultiprocessKnockoutOptimization(MultiprocessHeuristicOptimization):
+    def __init__(self, simulation_method=pfba, *args, **kwargs):
+        self.simulation_method = simulation_method
+        super(MultiprocessKnockoutOptimization, self).__init__(*args, **kwargs)
+        self.observers = self._set_observers(**kwargs)
+
+    def _set_observers(self, **kwargs):
+        observers = []
+        progress_observer = None
+        plotting_observer = None
+        if in_ipnb():
+            progress_observer = IPythonNotebookMultiprocessProgressObserver(number_of_islands=self.number_of_islands,
+                                                                            color_map=self.color_map)
+            if config.use_bokeh:
+                plotting_observer = IPythonNotebookBokehMultiprocessPlotObserver(number_of_islands=self.number_of_islands,
+                                                                                 color_map=self.color_map,
+                                                                                 n=kwargs.get('n', 20))
+            elif config.use_matplotlib:
+                pass
+        else:
+            progress_observer = CliMultiprocessProgressObserver(number_of_islands=self.number_of_islands)
+
+        if not progress_observer is None:
+            observers.append(progress_observer)
+        if not plotting_observer is None:
+            observers.append(plotting_observer)
+
+        return observers
+
+    def run(self,  **kwargs):
+        for observer in self.observers:
+            observer.start()
+
+        for i in xrange(self.number_of_islands):
+            for observer in self.observers:
+                self.islands[i].observers = observer.clients[i]
+
+        results = MultiprocessHeuristicOptimization.run(self, **kwargs)
+
+        for observer in self.observers:
+            observer.finish()
+
+        return results
+
+
+class MultiprocessReactionKnockoutOptimization(MultiprocessKnockoutOptimization):
+    def __init__(self, reactions=None, essential_reactions=None, *args, **kwargs):
+        self.essential_reactions = essential_reactions
+        self.reactions = reactions
+        super(MultiprocessReactionKnockoutOptimization, self).__init__(*args, **kwargs)
+
+    def _build_islands(self, *args, **kwargs):
+        for i in xrange(self.number_of_islands):
+            self.islands.append(ReactionKnockoutOptimization(simulation_method=self.simulation_method,
+                                                             reactions=self.reactions,
+                                                             essential_reactions=self.essential_reactions,
+                                                             *args, **kwargs))
+            self.islands[i].migrator = self._migrator
+            if self.reactions is None:
+                self.reactions = self.islands[i].reactions
+                self.essential_reactions = self.islands[i].essential_reactions
+
+
+class MultiprocessGeneKnockoutOptimization(MultiprocessKnockoutOptimization):
+    def __init__(self, genes=None, essential_genes=None, *args, **kwargs):
+        self.essential_genes = essential_genes
+        self.genes = genes
+        super(MultiprocessGeneKnockoutOptimization, self).__init__(*args, **kwargs)
+
+    def _build_islands(self, *args, **kwargs):
+        for i in xrange(self.number_of_islands):
+            self.islands.append(GeneKnockoutOptimization(simulation_method=self.simulation_method,
+                                                         genes=self.genes,
+                                                         essential_genes=self.essential_genes,
+                                                         *args, **kwargs))
+            self.islands[i].migrator = self._migrator
+            if self.genes is None:
+                self.genes = self.islands[i].genes
+                self.essential_genes = self.islands[i].essential_genes

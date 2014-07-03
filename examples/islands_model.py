@@ -12,28 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from cameo.strain_design.heuristics import ReactionKnockoutOptimization
-from cameo.strain_design.heuristics.multiprocess import MultiprocessHeuristicOptimization
-from cameo.strain_design.heuristics.objective_functions import bpcy
+from cameo.strain_design.heuristics.multiprocess import MultiprocessReactionKnockoutOptimization
+from cameo.strain_design.heuristics.objective_functions import biomass_product_coupled_yield
 from cameo.flux_analysis.simulation import fba
 from cameo.solver_based_model import to_solver_based_model
 from cobra.io import read_sbml_model
 from optlang import glpk_interface
 import inspyred
 
-model = read_sbml_model("/Users/joao/Documents/repos/cameo/tests/data/iJO1366.xml")
+model = read_sbml_model("../tests/data/iJO1366.xml")
 model = to_solver_based_model(model, solver_interface=glpk_interface)
 
-of = bpcy("Ec_biomass_iJO1366_core_53p95M", "EX_ac_LPAREN_e_RPAREN_", "EX_glc_LPAREN_e_RPAREN_")
+of = biomass_product_coupled_yield("Ec_biomass_iJO1366_core_53p95M", "EX_ac_LPAREN_e_RPAREN_", "EX_glc_LPAREN_e_RPAREN_")
 
-ko1 = ReactionKnockoutOptimization(model=model, objective_function=of,
-                                   simulation_method=fba, heuristic_method=inspyred.ec.GA)
-ko2 = ReactionKnockoutOptimization(model=model, objective_function=of,
-                                   simulation_method=fba, heuristic_method=inspyred.ec.GA)
-ko3 = ReactionKnockoutOptimization(model=model, objective_function=of,
-                                   simulation_method=fba, heuristic_method=inspyred.ec.GA)
-ko4 = ReactionKnockoutOptimization(model=model, objective_function=of,
-                                   simulation_method=fba, heuristic_method=inspyred.ec.GA)
-
-mp = MultiprocessHeuristicOptimization(islands=[ko1, ko2, ko3, ko4])
+mp = MultiprocessReactionKnockoutOptimization(model=model, heuristic_method=inspyred.ec.GA, objective_function=of, simulation_method=fba)
 mp.run(max_evaluations=30000, n=2)

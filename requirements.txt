@@ -1,3 +1,4 @@
+pathos
 blessings
 progressbar
 bokeh

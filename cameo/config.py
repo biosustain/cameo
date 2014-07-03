@@ -15,6 +15,8 @@
 non_zero_flux_threshold = 1e-6
 ndecimals = 6
 
+import pickle
+#import dill
 import logging
 log = logging.getLogger(__name__)
 
@@ -32,12 +34,18 @@ except ImportError:
 
 try:
     from IPython import parallel
+    from IPython.kernel.zmq import serialize
+    serialize.pickle = pickle
     client = parallel.Client()
     client.block = True
     default_view = client.direct_view()
-except:
-    from .parallel import SequentialView
-    default_view = SequentialView()
+except Exception:
+    try:
+        from .parallel import MultiprocessingView
+        default_view = MultiprocessingView()
+    except ImportError:
+        from .parallel import SequentialView
+        default_view = SequentialView()
 # except:
 #     log.debug(
 #         'IPython parallel not available ... using std lib multiprocessing')
