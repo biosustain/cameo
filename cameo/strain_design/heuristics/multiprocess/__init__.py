@@ -15,10 +15,12 @@ import colorsys
 from multiprocessing import Process
 
 import inspyred
+from pandas.core.common import in_ipnb
 
 from cameo import config
-from cameo.strain_design.heuristics.multiprocess.observers import IPythonMultiprocessObserver
-from cameo.strain_design.heuristics.multiprocess.plotters import IslandsPlotObserver
+from cameo.strain_design.heuristics.multiprocess.observers import IPythonNotebookMultiprocessProgressObserver, \
+    CliMultiprocessProgressObserver
+from cameo.strain_design.heuristics.multiprocess.plotters import IPythonNotebookBokehMultiprocessPlotObserver
 
 
 class MultiprocessHeuristicOptimization(object):
@@ -40,12 +42,26 @@ class MultiprocessHeuristicOptimization(object):
         migrator = inspyred.ec.migrators.MultiprocessingMigrator(self.number_of_migrators)
         jobs = []
         i = 0
-        progress_observer = IPythonMultiprocessObserver(len(self.islands), color_map=self.color_map)
-        plotting_observer = IslandsPlotObserver(number_of_islands=len(self.islands), color_map=self.color_map)
-        progress_observer.start()
-        plotting_observer.start(kwargs.get('n', 20))
+        if in_ipnb():
+            progress_observer = IPythonNotebookMultiprocessProgressObserver(number_of_islands=len(self.islands),
+                                                                            color_map=self.color_map)
+            plotting_observer = IPythonNotebookBokehMultiprocessPlotObserver(number_of_islands=len(self.islands),
+                                                                             color_map=self.color_map,
+                                                                             n=kwargs.get('n', 20))
+            progress_observer.start()
+            plotting_observer.start()
+        else:
+            progress_observer = CliMultiprocessProgressObserver(number_of_islands=len(self.islands))
+            plotting_observer = None
+            progress_observer.start()
+            plotting_observer.start()
+
         for island in self.islands:
-            island.observer = [progress_observer.clients[i], plotting_observer.clients[i]]
+            island.observer = []
+            if not plotting_observer is None:
+                island.observer.append(plotting_observer.clients[i])
+            if not progress_observer is None:
+                island.observer.append(progress_observer.clients[i])
             island.heuristic_method.migrator = migrator
             p = Process(target=self._run_island, args=(island, config.SequentialView(), i, kwargs))
             p.start()
@@ -59,15 +75,8 @@ class MultiprocessHeuristicOptimization(object):
                 job.terminate()
 
         finally:
-            progress_observer.close()
             plotting_observer.close()
+            progress_observer.stop()
 
     def _run_island(self, island, view, i, kwargs):
-        try:
-            island.run(view=view, i=i, evaluate_migrant=False, **kwargs)
-        except Exception, e:
-            print e
-
-
-
-
+        island.run(view=view, i=i, evaluate_migrant=False, **kwargs)

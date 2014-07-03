@@ -258,15 +258,27 @@ class KnockoutOptimization(HeuristicOptimization):
         self._set_observer()
 
     def _set_observer(self):
-        if self.is_mo():
-            plotter = plotters.ParetoPlotObserver(ofs=self.objective_function)
-        else:
-            plotter = plotters.PlotObserver()
+        self.observer = []
 
         if in_ipnb():
-            self.observer = [observers.IPythonNotebookObserver(), plotter]
+            if config.use_bokeh:
+                if self.is_mo():
+                    self.observer.append(plotters.IPythonBokehParetoPlotter(self.objective_function))
+                else:
+                    self.observer.append(plotters.IPythonBokehFitnessPlotter())
+            elif config.use_matplotlib:
+                pass
+            else:
+                pass
+            self.observer.append(observers.IPythonNotebookProgressObserver())
+
         else:
-            self.observer = [plotter]
+            if config.use_bokeh:
+                pass
+            else:
+                pass
+            self.observer.append(observers.CLIProgressObserver())
+
 
     def run(self, **kwargs):
         for observer in self.observer:

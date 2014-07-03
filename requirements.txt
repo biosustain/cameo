@@ -1,3 +1,5 @@
+blessings
+progressbar
 bokeh
 inspyred
 cobra

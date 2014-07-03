@@ -14,7 +14,15 @@
 from cameo import config
 
 
-def bpcy(biomass, product, substrate):
+def biomass_product_coupled_yield(biomass, product, substrate):
+    """
+    Biomass-Product Coupled Yield: (v[biomass] * v[product]) / v[substrate]
+
+    :param biomass: biomass reaction identifier
+    :param product: product reaction identifier
+    :param substrate: substrate reaction identifier
+    :return: fitness value
+    """
     def f(model, solution, decoded_representation):
         try:
             biomass_flux = round(solution.get_primal_by_id(biomass), config.ndecimals)
@@ -31,6 +39,12 @@ def bpcy(biomass, product, substrate):
 
 
 def product_yield(product, substrate):
+    """
+    Product Yield Objective function: v[product]/v[substrate]
+    :param product: product reaction identifier
+    :param substrate: substrate reaction identifier
+    :return: fitness value
+    """
     def f(model, solution, decoded_representation):
         try:
             product_flux = round(solution.get_primal_by_id(product), config.ndecimals)
@@ -45,6 +59,13 @@ def product_yield(product, substrate):
 
 
 def number_of_knockouts(sense='min'):
+    """
+    Number of Knockouts objective function.
+    If sense is maximize then fitness is the number of knockouts, otherwise 1/#knockouts
+
+    :param sense: 'max' or 'min'
+    :return: fitness value
+    """
     def f(model, solution, decoded_representation):
         if sense == 'max':
             return len(decoded_representation[1])

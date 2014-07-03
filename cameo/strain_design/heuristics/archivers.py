@@ -12,9 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from bisect import insort, bisect
-import inspyred
-
+from bisect import insort
 
 class BestSolutionArchiver(object):
 

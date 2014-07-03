@@ -19,6 +19,18 @@ import logging
 log = logging.getLogger(__name__)
 
 try:
+    import bokeh
+    use_bokeh = True
+except ImportError:
+    use_bokeh = False
+
+try:
+    import matplotlib
+    use_matplotlib = True
+except ImportError:
+    use_matplotlib = False
+
+try:
     from IPython import parallel
     client = parallel.Client()
     client.block = True
