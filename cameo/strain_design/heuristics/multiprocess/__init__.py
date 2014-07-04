@@ -11,17 +11,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from cameo import parallel
 
-import inspyred
 from pandas.core.common import in_ipnb
 from cameo import util
 from cameo import config
+from cameo import parallel
 from cameo.flux_analysis.simulation import pfba
 from cameo.strain_design.heuristics import HeuristicOptimization, ReactionKnockoutOptimization, GeneKnockoutOptimization
 from cameo.strain_design.heuristics.multiprocess.observers import IPythonNotebookMultiprocessProgressObserver, \
     CliMultiprocessProgressObserver
 from cameo.strain_design.heuristics.multiprocess.plotters import IPythonNotebookBokehMultiprocessPlotObserver
+from cameo.strain_design.heuristics.multiprocess.migrators import MultiprocessingMigrator
 
 
 class MultiprocessRunner(object):
@@ -33,14 +33,15 @@ class MultiprocessRunner(object):
 
 
 class MultiprocessHeuristicOptimization(HeuristicOptimization):
-    def __init__(self, view=config.default_view, number_of_islands=4, number_of_migrators=1, *args, **kwargs):
+    def __init__(self, view=config.default_view, number_of_islands=4, max_migrants=1, *args, **kwargs):
         self.islands = []
         self.number_of_islands = number_of_islands
         super(MultiprocessHeuristicOptimization, self).__init__(*args, **kwargs)
         self.view = view
         self.color_map = util.generate_colors(number_of_islands)
-        self._migrator = inspyred.ec.migrators.MultiprocessingMigrator(number_of_migrators)
+        self._migrator = MultiprocessingMigrator(max_migrants)
         self._build_islands(*args, **kwargs)
+        self.observers = []
 
     def _build_islands(self, *args, **kwargs):
         raise NotImplementedError
@@ -48,6 +49,7 @@ class MultiprocessHeuristicOptimization(HeuristicOptimization):
     def run(self,  **kwargs):
         kwargs['view'] = parallel.SequentialView()
         runner = MultiprocessRunner(kwargs)
+
         try:
             results = self.view.map(runner, self.islands)
         except KeyboardInterrupt as e:

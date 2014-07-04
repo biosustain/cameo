@@ -12,14 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from uuid import uuid1
-from pandas.core.common import in_ipnb
-# import numpy as np
-# import scipy.stats
-from cameo import config
+import scipy
+import numpy as np
 
-if config.use_bokeh:
-    from bokeh.plotting import *
+from uuid import uuid1
+from bokeh.plotting import *
 
 
 class IPythonBokehFitnessPlotter(object):
@@ -27,10 +24,6 @@ class IPythonBokehFitnessPlotter(object):
     __name__ = "IPython Bokeh Fitness Plot"
 
     def __init__(self, window_size=1000, url='default'):
-
-        if not (in_ipnb() and config.use_bokeh):
-            raise RuntimeError("This class can only be used on ipython notebook using bokeh library")
-
         self.iteration = 0
         self.window_size = window_size
         self.url = url
@@ -86,8 +79,6 @@ class IPythonBokehParetoPlotter(object):
     __name__ = "IPython Bokeh Pareto Plotter"
 
     def __init__(self, ofs=None, x=0, y=1, url='default'):
-        if not (in_ipnb() and config.use_bokeh):
-            raise RuntimeError("This class can only be used on ipython notebook using bokeh library")
         self.url = url
         self.x = x
         self.y = y
@@ -130,7 +121,6 @@ class GeneFrequencyPlotter():
     def __init__(self, solutions, url='default'):
         self.solutions = solutions
         self.url = url
-        self.in_ipnb = in_ipnb()
         self.freqs = self.frequencies()
 
     def frequencies(self):
@@ -142,12 +132,11 @@ class GeneFrequencyPlotter():
         return scipy.stats.itemfreq(kos)
 
     def plot(self):
-        if in_ipnb():
-            self.uuid = uuid1()
-            output_notebook(url=self.url, docname=str(self.uuid))
-            figure()
+        self.uuid = uuid1()
+        output_notebook(url=self.url, docname=str(self.uuid))
+        figure()
 
-            quad(top=self.freqs[:, 1], left=self.freqs[:, 1], bottom=np.zeros(len(self.freqs[:, 1])),
-                 right=self.freqs[:, 1], x_range=list(self.freqs[:, 0]))
-            xaxis().major_label_orientation = np.pi/3
-            show()
+        quad(top=self.freqs[:, 1], left=self.freqs[:, 1], bottom=np.zeros(len(self.freqs[:, 1])),
+             right=self.freqs[:, 1], x_range=list(self.freqs[:, 0]))
+        xaxis().major_label_orientation = np.pi/3
+        show()

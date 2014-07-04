@@ -12,15 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from Queue import Empty
-
-from multiprocessing import Queue
+from uuid import uuid4
+from cameo.parallel import RedisQueue
 
 
 class AbstractParallelObserver(object):
     def __init__(self, number_of_islands=None, *args, **kwargs):
         assert isinstance(number_of_islands, int)
         super(AbstractParallelObserver, self).__init__(*args, **kwargs)
-        self.queue = Queue()
+        self.queue = RedisQueue(name=uuid4(), namespace=self.__class__)
         self.clients = {}
         self.run = True
         for i in xrange(number_of_islands):
