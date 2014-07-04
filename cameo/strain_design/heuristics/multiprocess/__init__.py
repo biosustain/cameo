@@ -29,7 +29,7 @@ class MultiprocessRunner(object):
         self._kwargs = kwargs
 
     def __call__(self, island):
-        return island.evolve(**self._kwargs)
+        return island.run(**self._kwargs)
 
 
 class MultiprocessHeuristicOptimization(HeuristicOptimization):

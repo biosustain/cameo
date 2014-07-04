@@ -58,7 +58,7 @@ class IPythonBokehFitnessPlotter(object):
         else:
             self.fitness.append(None)
 
-        if self.i % args.get('n', 20) == 0:
+        if self.iteration % args.get('n', 20) == 0:
             self._update_plot()
 
     def _update_plot(self):

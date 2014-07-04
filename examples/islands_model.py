@@ -25,5 +25,7 @@ model = to_solver_based_model(model, solver_interface=glpk_interface)
 
 of = biomass_product_coupled_yield("Ec_biomass_iJO1366_core_53p95M", "EX_ac_LPAREN_e_RPAREN_", "EX_glc_LPAREN_e_RPAREN_")
 
-mp = MultiprocessReactionKnockoutOptimization(model=model, heuristic_method=inspyred.ec.GA, objective_function=of, simulation_method=fba)
+mp = MultiprocessReactionKnockoutOptimization(model=model, heuristic_method=inspyred.ec.GA,
+                                              objective_function=of, simulation_method=fba)
+
 mp.run(max_evaluations=30000, n=2)

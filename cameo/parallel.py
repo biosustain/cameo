@@ -32,10 +32,10 @@ class MultiprocessingView(object):
         raise NotImplementedError
 
     def __len__(self):
-        return self.pool._processes
+        return self.pool.nodes
 
     def shutdown(self):
-        pass
+        self.pool.terminate()
 
 
 class SequentialView(object):
@@ -54,7 +54,10 @@ class SequentialView(object):
 
 
 class RedisQueue(object):
-    """Queue with Redis Backend"""
+    """
+    Queue with Redis Backend
+    http://peter-hoffmann.com/2012/python-simple-queue-redis-queue.html
+    """
 
     MAX_REDIS_LIST_SIZE = 4294967295L
 

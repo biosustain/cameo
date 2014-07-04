@@ -2,5 +2,10 @@ pathos
 blessings
 progressbar
 bokeh
-inspyred
-cobra
+cobra==0.3.0b3
+# -e git+https://github.com/biosustain/optlang.git@devel#egg=optlang
+ipython>=2.1.0
+pyzmq>=14.3.1
+numpy>=1.8.1
+inspyred==1.0
+pandas==0.14.0

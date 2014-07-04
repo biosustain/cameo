@@ -353,8 +353,8 @@ class KnockoutOptimizationResult(object):
                   "<ul>" \
                   "    <li>model: " + self.model.id + "</li>" \
                   "    <li>heuristic: " + self.heuristic_method.__class__.__name__ + "</li>" \
-                  "    <li>objective function: " + "|".join([o.__name__ for o in self.objective_functions]) + "</li>" \
-                  "    <li>simulation method: " + self.simulation_method.__name__ + "</li>" \
+                  "    <li>objective function: " + "|".join([o.name for o in self.objective_functions]) + "</li>" \
+                  "    <li>simulation method: " + self.simulation_method.name + "</li>" \
                   "    <li>type: " + self.ko_type + "</li>" \
                   "</ul>" \
                   "<h4>Solutions:</h4>"

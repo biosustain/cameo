@@ -16,7 +16,6 @@ non_zero_flux_threshold = 1e-6
 ndecimals = 6
 
 import pickle
-import dill
 import logging
 log = logging.getLogger(__name__)
 
@@ -35,7 +34,7 @@ except ImportError:
 try:
     from IPython import parallel
     from IPython.kernel.zmq import serialize
-    serialize.pickle = pickle
+    #serialize.pickle = pickle
     client = parallel.Client()
     client.block = True
     default_view = client.direct_view()
