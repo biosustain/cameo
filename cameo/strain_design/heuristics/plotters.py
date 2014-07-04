@@ -16,7 +16,10 @@ import scipy
 import numpy as np
 
 from uuid import uuid1
-from bokeh.plotting import *
+from cameo import config
+
+if config.use_bokeh:
+    from bokeh.plotting import *
 
 
 class IPythonBokehFitnessPlotter(object):

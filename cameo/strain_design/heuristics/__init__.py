@@ -20,6 +20,7 @@ from cameo import config
 from cameo.flux_analysis.simulation import pfba
 from cameo.strain_design.heuristics.plotters import GeneFrequencyPlotter
 from cameo.util import partition, TimeMachine
+from pandas import DataFrame
 
 import inspyred
 import logging
@@ -284,48 +285,23 @@ class KnockoutOptimization(HeuristicOptimization):
             observer.reset()
         self.heuristic_method.observer = self.observer
         super(KnockoutOptimization, self).run(distance_function=self._distance_function, **kwargs)
-        return KnockoutOptimizationResult(self.model, self.heuristic_method, self.simulation_method,
-                                          self.heuristic_method.archive, self.objective_function,
-                                          self.ko_type, self._decoder)
+        return KnockoutOptimizationResult(model=self.model,
+                                          heuristic_method=self.heuristic_method,
+                                          simulation_method=self.simulation_method,
+                                          solutions=self.heuristic_method.archive,
+                                          objective_function=self.objective_function,
+                                          ko_type=self.ko_type,
+                                          decoder=self._decoder,
+                                          product=kwargs.get('product', None))
 
 
 class KnockoutOptimizationResult(object):
-
-    class KnockoutOptimizationSolution(object):
-        def __init__(self, solution, model, simulation_method, decoder, *args, **kwargs):
-            super(KnockoutOptimizationResult.KnockoutOptimizationSolution, self).__init__(*args, **kwargs)
-            decoded_solution = decoder(solution.candidate)
-            self.knockout_list = decoded_solution[1]
-            result = self._simulate(decoded_solution[0], simulation_method, model)
-            self.biomass = result.f
-            self.fitness = solution.fitness
-
-        def _simulate(self, reactions, method, model):
-            tm = TimeMachine()
-            for reaction in reactions:
-                tm(do=partial(setattr, reaction, 'lower_bound', 0),
-                   undo=partial(setattr, reaction, 'lower_bound', reaction.lower_bound))
-                tm(do=partial(setattr, reaction, 'upper_bound', 0),
-                   undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
-
-            try:
-                solution = method(model)
-            except Exception, e:
-                logger.exception(e)
-
-            tm.reset()
-            return solution
-
-        def html_row(self):
-            return "<tr>" \
-                   "    <td>" + ", ".join([ko.id for ko in self.knockout_list]) + "</td>" \
-                   "    <td>" + str(self.fitness) + "</td>" \
-                   "    <td>" + str(self.biomass) + "</td>" \
-                   "</tr>"
-
-    def __init__(self, model, heuristic_method, simulation_method, solutions, objective_function,
-                 ko_type, decoder, *args, **kwargs):
+    def __init__(self, model=None, heuristic_method=None, simulation_method=None, solutions=None,
+                 objective_function=None, ko_type=None, decoder=None, product=None, *args, **kwargs):
         super(KnockoutOptimizationResult, self).__init__(*args, **kwargs)
+        self.product = None
+        if not product is None:
+            self.product = product
         self.model = model
         self.heuristic_method = heuristic_method
         self.simulation_method = simulation_method
@@ -335,45 +311,69 @@ class KnockoutOptimizationResult(object):
             self.objective_functions = [objective_function]
         self.ko_type = ko_type
         self.decoder = decoder
-        self.solutions = [self._build_solution(s, model, simulation_method, decoder) for s in solutions]
+        self.solutions = self._build_solutions(solutions, model, simulation_method, decoder)
         self.plotter = None
 
-    def _build_solution(self, solution, model, simulation_method, decoder):
-        return KnockoutOptimizationResult.KnockoutOptimizationSolution(
-            solution,
-            model,
-            simulation_method,
-            decoder
-        )
+    def _build_solutions(self, solutions, model, simulation_method, decoder):
+        knockouts = []
+        biomasses = []
+        fitness = []
+        products = []
+        for solution in solutions:
+            decoded_solution = decoder(solution.candidate)
+            simulation_result = self._simulate(decoded_solution[0], simulation_method, model)
+
+            biomasses.append(simulation_result.f)
+            fitness.append(solution.fitness)
+            knockouts.append([v.id for v in decoded_solution[1]])
+
+            if isinstance(self.product, (list, tuple)):
+                products.append([simulation_result.get_primal_by_id(p) for p in self.product])
+            elif not self.product is None:
+                products.append(simulation_result.get_primal_by_id(self.product))
+
+        if self.product is None:
+            data_frame = DataFrame({'Knockouts': knockouts, "Biomass": biomasses, "Fitness": fitness})
+        elif isinstance(self.product, (list, tuple)):
+            data = {'Knockouts': knockouts, "Biomass": biomasses, "Fitness": fitness}
+            for i in xrange(self.product):
+                data[self.product[i]] = products[i:]
+            data_frame = DataFrame(data)
+        else:
+            data_frame = DataFrame({'Knockouts': knockouts, "Biomass": biomasses,
+                                   "Fitness": fitness, self.product: products})
+
+        return data_frame
+
+    def _simulate(self, reactions, method, model):
+        tm = TimeMachine()
+        for reaction in reactions:
+            tm(do=partial(setattr, reaction, 'lower_bound', 0),
+               undo=partial(setattr, reaction, 'lower_bound', reaction.lower_bound))
+            tm(do=partial(setattr, reaction, 'upper_bound', 0),
+               undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
+
+        try:
+            solution = method(model)
+        except Exception, e:
+            logger.exception(e)
+
+        tm.reset()
+        return solution
 
     def _repr_html_(self):
-
 
         results = "<h4>Result:</h4>" \
                   "<ul>" \
                   "    <li>model: " + self.model.id + "</li>" \
                   "    <li>heuristic: " + self.heuristic_method.__class__.__name__ + "</li>" \
                   "    <li>objective function: " + "|".join([o.name for o in self.objective_functions]) + "</li>" \
-                  "    <li>simulation method: " + self.simulation_method.name + "</li>" \
+                  "    <li>simulation method: " + self.simulation_method.__name__ + "</li>" \
                   "    <li>type: " + self.ko_type + "</li>" \
                   "</ul>" \
-                  "<h4>Solutions:</h4>"
-        solutions = "<table>" \
-                    "   <thead>" \
-                    "       <tr>" \
-                    "           <th>Knockouts</th>" \
-                    "           <th>Fitness</th>" \
-                    "           <th>Biomass</th>" \
-                    "       </tr>" \
-                    "   </thead>" \
-                    "   <tbody>" \
-                    "       " + "\n".join([solution.html_row() for solution in self.solutions]) + "" \
-                    "   </tbody>" \
-                    "<table>"
-        #TODO: wip
-        #self._plot_frequency()
 
-        return results + solutions
+
+        return results
 
     #TODO: find out how to plot an histogram (?) in bokeh
     def _plot_frequency(self):

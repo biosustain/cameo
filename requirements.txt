@@ -1,4 +1,4 @@
-pathos
+scipy
 blessings
 progressbar
 bokeh
