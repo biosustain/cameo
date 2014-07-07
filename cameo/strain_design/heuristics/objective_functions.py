@@ -14,23 +14,40 @@
 from cameo import config
 
 
-def bpcy(biomass, product, substrate):
-    def f(model, solution, decoded_representation):
+class biomass_product_coupled_yield():
+    """
+    Biomass-Product Coupled Yield: (v[biomass] * v[product]) / v[substrate]
+
+    :param biomass: biomass reaction identifier
+    :param product: product reaction identifier
+    :param substrate: substrate reaction identifier
+    :return: fitness value
+    """
+
+    def __init__(self, biomass, product, substrate):
+        self.biomass = biomass
+        self.product = product
+        self.substrate = substrate
+        self.name = "bpcy = (%s * %s) / %s" % (biomass, product, substrate)
+        self.__name__ = self.__class__.__name__
+
+    def __call__(self, model, solution, decoded_representation):
         try:
-            biomass_flux = round(solution.get_primal_by_id(biomass), config.ndecimals)
-            product_flux = round(solution.get_primal_by_id(product), config.ndecimals)
-            substrate_flux = round(abs(solution.get_primal_by_id(substrate)), config.ndecimals)
+            biomass_flux = round(solution.get_primal_by_id(self.biomass), config.ndecimals)
+            product_flux = round(solution.get_primal_by_id(self.product), config.ndecimals)
+            substrate_flux = round(abs(solution.get_primal_by_id(self.substrate)), config.ndecimals)
             return round((biomass_flux * product_flux) / substrate_flux, config.ndecimals)
 
-        except ZeroDivisionError, e:
+        except ZeroDivisionError:
             return 0
 
-    f.__name__ = "bpcy = (%s * %s) / %s" % (biomass, product, substrate)
-
-    return f
-
-
 def product_yield(product, substrate):
+    """
+    Product Yield Objective function: v[product]/v[substrate]
+    :param product: product reaction identifier
+    :param substrate: substrate reaction identifier
+    :return: fitness value
+    """
     def f(model, solution, decoded_representation):
         try:
             product_flux = round(solution.get_primal_by_id(product), config.ndecimals)
@@ -39,12 +56,19 @@ def product_yield(product, substrate):
         except ZeroDivisionError:
             return 0
 
-    f.__name__ = "yield = (%s / %s)" % (product, substrate)
+    f.name = "yield = (%s / %s)" % (product, substrate)
 
     return f
 
 
 def number_of_knockouts(sense='min'):
+    """
+    Number of Knockouts objective function.
+    If sense is maximize then fitness is the number of knockouts, otherwise 1/#knockouts
+
+    :param sense: 'max' or 'min'
+    :return: fitness value
+    """
     def f(model, solution, decoded_representation):
         if sense == 'max':
             return len(decoded_representation[1])
@@ -52,8 +76,8 @@ def number_of_knockouts(sense='min'):
             return round(1.0 / len(decoded_representation[1]), config.ndecimals)
 
     if sense == max:
-        f.__name__ = "max #knockouts"
+        f.name = "max #knockouts"
     else:
-        f.__name__ = "min #knockouts"
+        f.name = "min #knockouts"
 
     return f

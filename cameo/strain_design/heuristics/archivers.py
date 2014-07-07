@@ -12,18 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from bisect import insort, bisect
-import inspyred
+from bisect import insort
 
 
 class BestSolutionArchiver(object):
-
     def __init__(self):
+        self.__name__ = self.__class__.__name__
         self.worst_fitness = None
         self.archive = []
 
-    def __name__(self):
-        return "BestSolutionArchiver"
 
     def __call__(self, random, population, archive, args):
         self.archive = archive

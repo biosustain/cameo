@@ -11,116 +11,92 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import colorsys
-from multiprocessing import Pipe
-from threading import Thread, current_thread
 
 from uuid import uuid1
-from IPython.core.display import display
-from bokeh.plotting import *
 from pandas import DataFrame
-from pandas.core.common import in_ipnb
+from cameo import config
+from cameo.strain_design.heuristics.multiprocess.observers import AbstractParallelObserver, \
+    AbstractParallelObserverClient
+if config.use_bokeh:
+    from bokeh.plotting import *
 
 
-class IslandsPlotObserver(object):
-    def __init__(self, url='default', number_of_islands=None, color_map={}):
+class IPythonNotebookBokehMultiprocessPlotObserver(AbstractParallelObserver):
+    def __init__(self, url='default', color_map={}, n=1, *args, **kwargs):
+        super(IPythonNotebookBokehMultiprocessPlotObserver, self).__init__(*args, **kwargs)
         self.url = url
-        self.iterations = []
-        self.fitness = []
-        self.uuid = None
-        self.in_ipnb = in_ipnb()
+        self.n = n
         self.plotted = False
-        self.color_map = {}
         self.connections = {}
-        self.clients = {}
         self.color_map = color_map
-        for i in xrange(number_of_islands):
-            parent_conn, child_conn = Pipe()
-            self.connections[i] = parent_conn
-            self.clients[i] = self.Client(child_conn)
-
         self.data_frame = DataFrame(columns=['iteration', 'island', 'color', 'fitness'])
 
-    def _set_plot(self):
-        if self.in_ipnb:
-            self.uuid = uuid1()
-            output_notebook(url=self.url, docname=str(self.uuid))
-            figure()
-            scatter([], [], title="Best solution convergence plot", tools='', x_axis_label="Iteration",
-                    y_axis_label="Fitness", color=self.color_map, fill_alpha=0.2, size=7)
+    def _create_client(self, i):
+        self.clients[i] = self.IPythonNotebookBokehMultiprocessPlotObserverClient(queue=self.queue, index=i)
 
-            self.plot = curplot()
-            renderer = [r for r in self.plot.renderers if isinstance(r, Glyph)][0]
-            self.ds = renderer.data_source
-            show()
+    def start(self):
+        AbstractParallelObserver.start(self)
+        self._plot()
 
-    def _listen(self, connection, index, n):
-        while True:
-            try:
-                message = connection.recv()
-                df = DataFrame({'iteration': [message['iteration']], 'fitness': [message['fitness']],
-                                'color': [self.color_map[index]], 'island': index})
-                self.data_frame = self.data_frame.append(df, ignore_index=True)
-                if message['iteration'] % n == 0:
-                    self._ipnb_plot()
-            except EOFError:
-                print "Broken pipe"
-                break
-            except Exception:
-                pass
-        current_thread().exit()
+    def _plot(self):
+        print "Open plot!"
+        self.plotted = True
+        self.uuid = uuid1()
+        output_notebook(url=self.url, docname=str(self.uuid))
+        figure()
+        scatter([], [], title="Best solution convergence plot", tools='', x_axis_label="Iteration",
+                y_axis_label="Fitness", color=self.color_map, fill_alpha=0.2, size=7)
 
-    def _ipnb_plot(self):
-        if self.in_ipnb:
-            self.ds.data['x'] = self.data_frame['iteration']
-            self.ds.data['y'] = self.data_frame['fitness']
-            self.ds.data['fill_color'] = self.data_frame['color']
-            self.ds.data['line_color'] = self.data_frame['color']
-            self.ds.data['colors'] = self.data_frame['color']
-            self.ds._dirty = True
-            session().store_obj(self.ds)
+        self.plot = curplot()
+        renderer = [r for r in self.plot.renderers if isinstance(r, Glyph)][0]
+        self.ds = renderer.data_source
+        show()
 
-    def start(self, n):
-        self._set_plot()
-        for i, connection in self.connections.iteritems():
-            t = Thread(target=self._listen, args=(connection, i, n))
-            t.start()
+    def _process_message(self, message):
+        if not self.plotted:
+            self._plot()
+
+        index = message['index']
+        df = DataFrame({
+             'iteration': [message['iteration']],
+             'fitness': [message['fitness']],
+             'color': [self.color_map[index]],
+             'island': [index]
+        })
+        self.data_frame = self.data_frame.append(df, ignore_index=True)
+        if message['iteration'] % self.n == 0:
+            self._update_plot()
+
+    def _update_plot(self):
+        self.ds.data['x'] = self.data_frame['iteration']
+        self.ds.data['y'] = self.data_frame['fitness']
+        self.ds.data['fill_color'] = self.data_frame['color']
+        self.ds.data['line_color'] = self.data_frame['color']
+        self.ds._dirty = True
+        session().store_obj(self.ds)
+
+    def stop(self):
+        self.data_frame = DataFrame(columns=['iteration', 'island', 'color', 'fitness'])
+        self.plotted = False
+
+class IPythonNotebookBokehMultiprocessPlotObserverClient(AbstractParallelObserverClient):
+
+    __name__ = "IPython Notebook Bokeh Multiprocess Plot Observer"
+
+    def __init__(self, *args, **kwargs):
+        super(IPythonNotebookBokehMultiprocessPlotObserverClient, self).__init__(*args, **kwargs)
+        self.iteration = 0
+
+    def __call__(self, population, num_generations, num_evaluations, args):
+        self.iteration += 1
+        best = max(population)
+        try:
+            self._queue.put_notwai({'fitness': best.fitness, 'iteration': self.iteration, 'index': self.index})
+        except Exception:
+            pass
 
     def reset(self):
-        self.data_frame = DataFrame(columns=['iteration', 'island', 'color', 'fitness'])
-        self.plotted = False
+        self.iteration = 0
 
     def close(self):
-        for i, connection in self.connections.iteritems():
-            client = self.clients[i]
-            try:
-                client.close()
-            except Exception as e:
-                print e
-            try:
-                connection.close()
-            except Exception as e:
-                print e
-
-
-    class Client():
-        def __init__(self, connection):
-            self.connection = connection
-            self.iteration = 0
-
-        def __call__(self, population, num_generations, num_evaluations, args):
-            self.iteration += 1
-            best = max(population)
-            try:
-                self.connection.send({'fitness': best.fitness, 'iteration': self.iteration})
-            except Exception:
-                pass
-
-        def __name__(self):
-            return "Fitness Plot Client"
-
-        def reset(self):
-            self.iteration = 0
-
-        def close(self):
-            self.connection.close()
+        self.connection.close()

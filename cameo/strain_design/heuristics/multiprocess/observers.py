@@ -11,73 +11,158 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import multiprocessing
-from threading import Thread, current_thread
-import threading
-from ipython_notebook_utils import ProgressBar
+from Queue import Empty
+from uuid import uuid4
+from cameo.parallel import RedisQueue
 
 
-class IPythonMultiprocessObserver():
-    def __init__(self, number_of_islands, color_map={}):
-        self.progress = {}
-        self.connections = {}
+class AbstractParallelObserver(object):
+    def __init__(self, number_of_islands=None, *args, **kwargs):
+        assert isinstance(number_of_islands, int)
+        super(AbstractParallelObserver, self).__init__(*args, **kwargs)
+        self.queue = RedisQueue(name=uuid4(), namespace=self.__class__)
         self.clients = {}
-        self.color_map = color_map
-        self.thread_pool = []
+        self.run = True
         for i in xrange(number_of_islands):
-            label = "<span style='color:%s;'>Island %i </span>" % (self.color_map[i], i+1)
-            self.progress[i] = ProgressBar(label=label)
-            self.progress[i].start()
-            parent_conn, child_conn = multiprocessing.Pipe()
-            self.connections[i] = parent_conn
-            self.clients[i] = self.Client(child_conn)
+            self._create_client(i)
+
+    def _create_client(self, i):
+        raise NotImplementedError
+
+    def _listen(self):
+        while self.run:
+            try:
+                message = self.queue.get(block=True, timeout=5)
+                self._process_message(message)
+            except Empty:
+                pass
+            except Exception as e:
+                print e
+
+    def _process_message(self, message):
+        raise NotImplementedError
 
     def start(self):
-        for i, connection in self.connections.iteritems():
-            t = Thread(target=self._listen, args=(connection, self.progress[i]))
-            t.start()
-            self.thread_pool.append(t)
+        t = Thread(target=self._listen)
+        t.start()
 
-    def _listen(self, connection, progress):
-        while True:
-            try:
-                res = connection.recv()
-                progress.set(res)
-            except EOFError as e:
-                print "Broken pipe"
-                break
-            except Exception:
-                pass
-        threading.exit()
+    def finish(self):
+        self.run = False
 
-    def close(self):
-        for i, connection in self.connections.iteritems():
-            client = self.clients[i]
-            try:
-                client.close()
-            except Exception as e:
-                print e
-            try:
-                connection.close()
-            except Exception as e:
-                print e
 
-    class Client():
-        def __init__(self, connection):
-            self.connection = connection
+class AbstractParallelObserverClient(object):
+    def __init__(self, index=None, queue=None, *args, **kwargs):
+        assert isinstance(index, int)
+        super(AbstractParallelObserverClient, self).__init__(*args, **kwargs)
+        self.index = index
+        self._queue = queue
 
-        def __call__(self, population, num_generations, num_evaluations, args):
-            p = (float(num_evaluations) / float(args.get('max_evaluations', 50000))) * 100.0
-            try:
-                self.connection.send(p)
-            except Exception:
-                pass
+    def __call__(self, population, num_generations, num_evaluations, args):
+        raise NotImplementedError
 
-        def reset(self):
+    def reset(self):
+        pass
+
+from threading import Thread
+from ipython_notebook_utils import ProgressBar as IPythonProgressBar
+from blessings import Terminal
+from progressbar import ProgressBar as CLIProgressBar, Percentage, Bar, RotatingMarker
+
+
+class CliMultiprocessProgressObserver(AbstractParallelObserver):
+    """
+    Command line progress display for multiprocess run
+    """
+    def __init__(self, *args, **kwargs):
+        self.progress = {}
+        self.terminal = Terminal()
+        super(CliMultiprocessProgressObserver, self).__init__(*args, **kwargs)
+
+    def _create_client(self, i):
+        self.clients[i] = CliMultiprocessProgressObserverClient(index=i, queue=self.queue)
+
+    def _process_message(self, message):
+        i = message['index']
+        if not i in self.progress:
+            print ""
+            label = "Island %i" % i
+            writer = self.TerminalWriter((self.terminal.height or 1) - 1, self.terminal)
+            self.progress[i] = CLIProgressBar(fd=writer,
+                                              maxval=message['max_evaluations'],
+                                              widgets=[label, Percentage(), Bar(marker=RotatingMarker())]).start()
+
+        self.progress[i].update(message['progress'])
+
+    def _listen(self):
+        AbstractParallelObserver._listen(self)
+        for i, progress in self.progress.iteritems():
+            progress.finish()
+
+    class TerminalWriter(object):
+        """
+        Writer wrapper to write the progress in a specific terminal position
+        """
+        def __init__(self, pos, term):
+            self.pos = pos
+            self.term = term
+
+        def write(self, string):
+            with self.term.location(0, self.pos):
+                print(string)
+
+
+class CliMultiprocessProgressObserverClient(AbstractParallelObserverClient):
+
+    __name__ = "CLI Multiprocess Progress Observer"
+
+    def __init__(self, *args, **kwargs):
+        super(CliMultiprocessProgressObserverClient, self).__init__(*args, **kwargs)
+
+    def __call__(self, population, num_generations, num_evaluations, args):
+        self._queue.put_nowait({
+            'index': self.index,
+            'num_evaluations': num_evaluations,
+            'max_evaluations': args.get('max_evaluations', 50000)
+        })
+
+    def reset(self):
+        pass
+
+
+class IPythonNotebookMultiprocessProgressObserver(AbstractParallelObserver):
+    """
+    IPython Notebook Progress Observer for multiprocess run
+    """
+
+    def __init__(self, color_map=None, *args, **kwargs):
+        self.progress = {}
+        self.color_map = color_map
+        super(IPythonNotebookMultiprocessProgressObserver, self).__init__(*args, **kwargs)
+
+    def _create_client(self, i):
+        self.clients[i] = IPythonNotebookMultiprocessProgressObserverClient(queue=self.queue, index=i)
+        label = "<span style='color:%s;'>Island %i </span>" % (self.color_map[i], i+1)
+        self.progress[i] = IPythonProgressBar(label=label)
+
+    def _process_message(self, message):
+        if self.progress[message['index']].id is None:
+            self.progress[message['index']].start()
+        self.progress[message['index']].set(message['progress'])
+
+
+class IPythonNotebookMultiprocessProgressObserverClient(AbstractParallelObserverClient):
+
+    __name__ = "IPython Notebook Multiprocess Progress Observer"
+
+    def __init__(self, *args, **kwargs):
+        super(IPythonNotebookMultiprocessProgressObserverClient, self).__init__(*args, **kwargs)
+
+    def __call__(self, population, num_generations, num_evaluations, args):
+        p = (float(num_evaluations) / float(args.get('max_evaluations', 50000))) * 100.0
+        try:
+            self._queue.put_nowait({'progress': p, 'index': self.index})
+        except Exception:
             pass
 
-        def __name__(self):
-            return "Multiprocess IPython Notebook progress"
-
-        def close(self):
-            self.connection.close()
+    def reset(self):
+        pass
