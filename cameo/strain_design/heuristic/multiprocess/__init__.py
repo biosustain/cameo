@@ -17,11 +17,11 @@ from cameo import util
 from cameo import config
 from cameo import parallel
 from cameo.flux_analysis.simulation import pfba
-from cameo.strain_design.heuristics import HeuristicOptimization, ReactionKnockoutOptimization, GeneKnockoutOptimization
-from cameo.strain_design.heuristics.multiprocess.observers import IPythonNotebookMultiprocessProgressObserver, \
+from cameo.strain_design.heuristic import HeuristicOptimization, ReactionKnockoutOptimization, GeneKnockoutOptimization
+from cameo.strain_design.heuristic.multiprocess.observers import IPythonNotebookMultiprocessProgressObserver, \
     CliMultiprocessProgressObserver
-from cameo.strain_design.heuristics.multiprocess.plotters import IPythonNotebookBokehMultiprocessPlotObserver
-from cameo.strain_design.heuristics.multiprocess.migrators import MultiprocessingMigrator
+from cameo.strain_design.heuristic.multiprocess.plotters import IPythonNotebookBokehMultiprocessPlotObserver
+from cameo.strain_design.heuristic.multiprocess.migrators import MultiprocessingMigrator
 
 
 class MultiprocessRunner(object):

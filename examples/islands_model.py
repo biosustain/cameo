@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from cameo.strain_design.heuristics.multiprocess import MultiprocessReactionKnockoutOptimization
-from cameo.strain_design.heuristics.objective_functions import biomass_product_coupled_yield
+from cameo.strain_design.heuristic.multiprocess import MultiprocessReactionKnockoutOptimization
+from cameo.strain_design.heuristic.objective_functions import biomass_product_coupled_yield
 from cameo.flux_analysis.simulation import fba
 from cameo.solver_based_model import to_solver_based_model
 from cobra.io import read_sbml_model

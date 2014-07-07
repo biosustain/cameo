@@ -15,8 +15,8 @@ from functools import partial
 
 import unittest
 from cameo import load_model
-from cameo.strain_design.heuristics.archivers import SolutionTuple, BestSolutionArchiver
-from cameo.strain_design.heuristics.objective_functions import bpcy, product_yield, number_of_knockouts
+from cameo.strain_design.heuristic.archivers import SolutionTuple, BestSolutionArchiver
+from cameo.strain_design.heuristic.objective_functions import bpcy, product_yield, number_of_knockouts
 from cobra.manipulation.delete import find_gene_knockout_reactions
 from cameo.util import TimeMachine
 

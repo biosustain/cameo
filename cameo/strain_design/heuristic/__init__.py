@@ -13,12 +13,12 @@
 # limitations under the License.
 
 from cameo.exceptions import ModelSolveError
-from cameo.strain_design.heuristics import archivers
-from cameo.strain_design.heuristics import plotters
-from cameo.strain_design.heuristics import observers
+from cameo.strain_design.heuristic import archivers
+from cameo.strain_design.heuristic import plotters
+from cameo.strain_design.heuristic import observers
 from cameo import config
 from cameo.flux_analysis.simulation import pfba
-from cameo.strain_design.heuristics.plotters import GeneFrequencyPlotter
+from cameo.strain_design.heuristic.plotters import GeneFrequencyPlotter
 from cameo.util import partition, TimeMachine
 from pandas import DataFrame
 
@@ -118,7 +118,7 @@ class HeuristicOptimization(object):
             if len(objective_function) == 1:
                 self._objective_function = objective_function[0]
             else:
-                raise TypeError("single objective heuristics do not support multiple objective functions")
+                raise TypeError("single objective heuristic do not support multiple objective functions")
         elif self._heuristic_method.__module__ == inspyred.ec.emo.__name__ and not isinstance(objective_function, list):
             self._objective_function = [objective_function]
         else:
@@ -326,6 +326,7 @@ class KnockoutOptimizationResult(object):
             biomasses.append(simulation_result.f)
             fitness.append(solution.fitness)
             knockouts.append([v.id for v in decoded_solution[1]])
+            size = len(knockouts)
 
             if isinstance(self.product, (list, tuple)):
                 products.append([simulation_result.get_primal_by_id(p) for p in self.product])
@@ -333,15 +334,17 @@ class KnockoutOptimizationResult(object):
                 products.append(simulation_result.get_primal_by_id(self.product))
 
         if self.product is None:
-            data_frame = DataFrame({'Knockouts': knockouts, "Biomass": biomasses, "Fitness": fitness})
+            data_frame = DataFrame({'Knockouts': knockouts, "Biomass": biomasses, "Fitness": fitness, "Size": size})
         elif isinstance(self.product, (list, tuple)):
             data = {'Knockouts': knockouts, "Biomass": biomasses, "Fitness": fitness}
             for i in xrange(self.product):
                 data[self.product[i]] = products[i:]
             data_frame = DataFrame(data)
+
+            data["Size"] = size
         else:
             data_frame = DataFrame({'Knockouts': knockouts, "Biomass": biomasses,
-                                   "Fitness": fitness, self.product: products})
+                                   "Fitness": fitness, self.product: products, "Size": size})
 
         return data_frame
 
@@ -420,9 +423,7 @@ class GeneKnockoutOptimization(KnockoutOptimization):
         self.representation = list(self.genes.difference(self.essential_genes))
         self.ko_type = 'gene'
 
-
     def _decoder(self, individual):
         genes = [self.model.genes.get_by_id(self.representation[index]) for index in individual]
-        reactions = [find_gene_knockout_reactions(self.model, [gene]) for gene in genes]
-        reactions = reduce(list.__add__, reactions)
+        reactions = find_gene_knockout_reactions(self.model, genes)
         return [reactions, genes]
