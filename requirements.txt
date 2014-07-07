@@ -3,9 +3,13 @@ blessings
 progressbar
 bokeh
 cobra==0.3.0b3
-# -e git+https://github.com/biosustain/optlang.git@devel#egg=optlang
+-e git+https://github.com/biosustain/optlang.git@devel#egg=optlang
+-e git+https://github.com/biosustain/ipython_notebook_utils.git@master#egg=ipython_notebook_utils
 ipython>=2.1.0
+Jinja2==2.7.3
 pyzmq>=14.3.1
 numpy>=1.8.1
+scipy==0.14.0
 inspyred==1.0
 pandas==0.14.0
+ordered-set==1.2

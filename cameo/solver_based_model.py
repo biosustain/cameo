@@ -14,6 +14,7 @@
 
 import time
 from copy import deepcopy, copy
+from cobra.core import Solution
 
 import optlang
 
@@ -65,7 +66,7 @@ def to_solver_based_model(cobrapy_model, solver_interface=optlang, deepcopy_mode
 
 
 class LazySolution(object):
-    """This class implements a lazily evaluating version of the original cobrapy Solution class."""
+    """This class implements a lazy evaluating version of the original cobrapy Solution class."""
 
     def __init__(self, model):
         self.model = model
@@ -80,6 +81,11 @@ class LazySolution(object):
             raise Exception(
                 'The solution (capture around %s) has become invalid as the model has been re-optimized recently (%s).' % (
                     time.ctime(self._time_stamp), time.ctime(self.model._timestamp_last_optimization)))
+
+    def as_cobrapy_solution(self):
+        return Solution(self.f, x=self.x,
+                        x_dict=self.x_dict, y=self.y, y_dict=self.y_dict,
+                        the_solver=None, the_time=0, status=self.status)
 
     @property
     def f(self):
