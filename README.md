@@ -1,5 +1,6 @@
-cameo - computer assisted metabolic engineering & optimization
-=======
+[![Build Status](https://travis-ci.org/biosustain/cameo.svg?branch=devel)](https://travis-ci.org/biosustain/cameo)
+
+##cameo - computer assisted metabolic engineering & optimization *....UNDER CONSTRUCTION....*
 
 ### Vision
 Provide a high-level python library to aid the strain design efforts of the CFB iLoop design group. The library provides a modular architecture that enables the efficient construction of custom analysis workflows.
@@ -20,4 +21,3 @@ This library dependes on
 - [optlang](https://github.com/biosustain/optlang) for heuristic optimization and mathematical programming
 
 Computationally heavy methods have been parallelized and can be run on a clusters using the IPython parallelization framework (see example and documetnation for more details). The default fallback is python's multiprocessing library.
-
