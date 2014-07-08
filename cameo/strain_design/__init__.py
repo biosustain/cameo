@@ -11,3 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+
+class StrainDesignMethod(object):
+    def __init__(self, *args, **kwargs):
+        super(StrainDesignMethod, self).__init__(*args, **kwargs)
+
+    def __call__(self, *args, **kwargs):
+        self.run(*args, **kwargs)
+
+    def run(self, *args, **kwargs):
+        raise NotImplementedError
