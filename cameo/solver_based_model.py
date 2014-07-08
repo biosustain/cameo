@@ -45,7 +45,7 @@ _SOLVER_INTERFACES = {'glpk': optlang.glpk_interface, 'cplex': optlang.cplex_int
 def to_solver_based_model(cobrapy_model, solver_interface=optlang, deepcopy_model=True):
     """Convert a core model into a solver-based model."""
 
-    solver_based_model = OptlangBasedModel(
+    solver_based_model = SolverBasedModel(
         solver_interface=solver_interface, description=cobrapy_model, deepcopy_model=deepcopy_model)
     for y in ['reactions', 'genes', 'metabolites']:
         for x in solver_based_model.__dict__[y]:
@@ -212,9 +212,6 @@ class Reaction(OriginalReaction):
         model = self.get_model()
         if model is not None:
             model.solver._set_linear_objective_term(self.variable, value)
-            # model.objective += 1.*model.solver.variables[self.id]
-            # expression = copy(model.objective.expression)
-            # model.objective = optlang.Objective(expression + value * model.solver.variables[self.id])
 
         self._objective_coefficient = value
 
@@ -229,7 +226,7 @@ class Reaction(OriginalReaction):
         return _flux_variability_analysis(model, reactions=[self])[self.id]['maximum']
 
 
-class OptlangBasedModel(Model):
+class SolverBasedModel(Model):
     """Implements a model with an attached optlang solver instance.
 
     Every model manipulation is immediately reflected in the solver instance.
@@ -238,7 +235,7 @@ class OptlangBasedModel(Model):
     def __init__(self, solver_interface=optlang, description=None, deepcopy_model=False, **kwargs):
         if deepcopy_model and isinstance(description, Model):
             description = description.copy()
-        super(OptlangBasedModel, self).__init__(description, **kwargs)
+        super(SolverBasedModel, self).__init__(description, **kwargs)
         self._solver = solver_interface.Model()
         self._populate_solver_from_scratch()
 
@@ -250,7 +247,7 @@ class OptlangBasedModel(Model):
 
     def copy(self):
         """Needed for compatibility with cobrapy."""
-        model_copy = super(OptlangBasedModel, self).copy()
+        model_copy = super(SolverBasedModel, self).copy()
         model_copy._solver = deepcopy(model_copy.solver)
         return model_copy
 
@@ -284,15 +281,15 @@ class OptlangBasedModel(Model):
     @objective.setter
     def objective(self, value):
         if isinstance(value, str):
-            self.solver.objective = optlang.Objective(
+            self.solver.objective = self.solver.interface.Objective(
                 Mul._from_args([S.One, self.solver.variables[value]]), sloppy=True)
         elif isinstance(value, Reaction):
-            self.solver.objective = optlang.Objective(
+            self.solver.objective = self.solver.interface.Objective(
                 Mul._from_args([S.One, self.solver.variables[value.id]]), sloppy=True)
-        elif isinstance(value, optlang.Objective):
+        elif isinstance(value, self.solver.interface.Objective):
             self.solver.objective = value
         elif isinstance(value, sympy.Basic):
-            self.solver.objective = optlang.Objective(value, sloppy=False)
+            self.solver.objective = self.solver.interface.Objective(value, sloppy=False)
         else:
             raise Exception('%s is not a valid objective.' % value)
 
@@ -339,7 +336,7 @@ class OptlangBasedModel(Model):
         self.solver.objective = objective
 
     def add_metabolites(self, metabolite_list):
-        super(OptlangBasedModel, self).add_metabolites(metabolite_list)
+        super(SolverBasedModel, self).add_metabolites(metabolite_list)
         for met in metabolite_list:
             self.solver.add(self.solver.interface.Constraint(S.Zero, name=met.name, lb=0, ub=0))
 
@@ -368,12 +365,12 @@ class OptlangBasedModel(Model):
                     metabolite_constraint = self.solver.constraints[metabolite.id]
                 metabolite_constraint += coeff * reaction_variable
 
-        super(OptlangBasedModel, self).add_reactions(cloned_reaction_list)
+        super(SolverBasedModel, self).add_reactions(cloned_reaction_list)
 
     def remove_reactions(self, the_reactions):
         for reaction in the_reactions:
             self.solver.remove(reaction.id)
-        super(OptlangBasedModel, self).remove_reactions(the_reactions)
+        super(SolverBasedModel, self).remove_reactions(the_reactions)
 
     def add_demand(self, metabolite, prefix="DM_"):
         demand_reaction = Reaction(prefix + metabolite.id)

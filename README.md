@@ -1,4 +1,5 @@
-##cameo - computer assisted metabolic engineering & optimization *....UNDER CONSTRUCTION....*
+cameo - computer assisted metabolic engineering & optimization
+=======
 
 ### Vision
 Provide a high-level python library to aid the strain design efforts of the CFB iLoop design group. The library provides a modular architecture that enables the efficient construction of custom analysis workflows.
@@ -20,4 +21,3 @@ This library dependes on
 
 Computationally heavy methods have been parallelized and can be run on a clusters using the IPython parallelization framework (see example and documetnation for more details). The default fallback is python's multiprocessing library.
 
-trigger ...

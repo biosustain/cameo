@@ -12,13 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from functools import partial
+import os
 
 import unittest
 from cameo import load_model
 from cameo.strain_design.heuristic.archivers import SolutionTuple, BestSolutionArchiver
-from cameo.strain_design.heuristic.objective_functions import bpcy, product_yield, number_of_knockouts
+from cameo.strain_design.heuristic.objective_functions import biomass_product_coupled_yield, product_yield, \
+    number_of_knockouts
 from cobra.manipulation.delete import find_gene_knockout_reactions
 from cameo.util import TimeMachine
+
+iJO1366_PATH = os.path.join(os.path.dirname(__file__), "data/iJO1366.xml")
 
 SOLUTIONS = [
     [[1, 2, 3], 0.1],
@@ -143,9 +147,10 @@ class TestBestSolutionArchiver(unittest.TestCase):
 class TestObjectiveFunctions(unittest.TestCase):
     lvaline_sol = ["b0115", "b3236", "b3916"] #aceF, mdh, pfkA from Park et al. 2007 (PNAS)
 
-    def test_bpcy(self):
-        model = load_model("/Users/joao/Downloads/iJO1366.xml")
-        of = bpcy("Ec_biomass_iJO1366_core_53p95M", "EX_succ_LPAREN_e_RPAREN_", "EX_glc_LPAREN_e_RPAREN_")
+    def test_biomass_product_coupled_yield(self):
+        model = load_model(iJO1366_PATH)
+        of = biomass_product_coupled_yield("Ec_biomass_iJO1366_core_53p95M", "EX_succ_LPAREN_e_RPAREN_",
+                                           "EX_glc_LPAREN_e_RPAREN_")
         reactions = find_gene_knockout_reactions(model, [model.genes.get_by_id(gene) for gene in self.lvaline_sol])
         tm = TimeMachine()
         for reaction in reactions:
@@ -159,7 +164,7 @@ class TestObjectiveFunctions(unittest.TestCase):
         print of(model, solution, [reactions, self.lvaline_sol])
 
     def test_yield(self):
-        model = load_model("/Users/joao/Downloads/iJO1366.xml")
+        model = load_model(iJO1366_PATH)
         of = product_yield("EX_succ_LPAREN_e_RPAREN_", "EX_glc_LPAREN_e_RPAREN_")
         reactions = find_gene_knockout_reactions(model, [model.genes.get_by_id(gene) for gene in self.lvaline_sol])
         tm = TimeMachine()
@@ -174,7 +179,7 @@ class TestObjectiveFunctions(unittest.TestCase):
         print of(model, solution, [reactions, self.lvaline_sol])
 
     def test_number_of_knockouts(self):
-        model = load_model("/Users/joao/Downloads/iJO1366.xml")
+        model = load_model(iJO1366_PATH)
         of = number_of_knockouts(sense='min')
         reactions = find_gene_knockout_reactions(model, [model.genes.get_by_id(gene) for gene in self.lvaline_sol])
         tm = TimeMachine()

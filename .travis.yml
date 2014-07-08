@@ -15,7 +15,8 @@ before_install:
   - cd $TRAVIS_BUILD_DIR
 install:
   - ln -s /usr/lib/python2.7/dist-packages/scipy ~/virtualenv/python2.7/lib/python2.7/site-packages/
-  - pip install python_libsbml_experimental
+  - pip install python-libsbml-experimental -f https://pypi.drosophi.la --no-index
+  - pip install cython
   - pip install coveralls coverage
   - pip install -r requirements.txt
 # # command to run tests

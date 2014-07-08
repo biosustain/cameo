@@ -13,31 +13,33 @@
 # limitations under the License.
 
 import Queue
+from multiprocessing import Pool
+
+
+class MultiprocessingView(object):
+
+    """docstring for Parallel"""
+
+    def __init__(self, *args, **kwargs):
+        # super(MultiprocessingView, self).__init__(*args, **kwargs)
+        self.pool = Pool(*args, **kwargs)
+
+    def map(self, *args, **kwargs):
+        return self.pool.map(*args, **kwargs)
+
+    def apply(self, *args, **kwargs):
+        self.pool.apply(*args, **kwargs)
+
+    def __len__(self):
+        return self.pool._processes
+
+    def shutdown(self):
+        self.pool.terminate()
+
 
 try:
-    from pathos.multiprocessing import ProcessingPool
     import redis
 
-
-    class MultiprocessingView(object):
-
-        """docstring for Parallel"""
-
-        def __init__(self, *args, **kwargs):
-            # super(MultiprocessingView, self).__init__(*args, **kwargs)
-            self.pool = ProcessingPool(*args, **kwargs)
-
-        def map(self, *args, **kwargs):
-            return self.pool.map(*args, **kwargs)
-
-        def apply(self, *args, **kwargs):
-            raise NotImplementedError
-
-        def __len__(self):
-            return self.pool.nodes
-
-        def shutdown(self):
-            self.pool.terminate()
 
 
     class RedisQueue(object):

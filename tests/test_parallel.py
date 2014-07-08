@@ -7,24 +7,27 @@ from time import sleep
 
 from IPython.parallel import Client, interactive
 
-from cameo.parallel import MultiprocessingView
+try:
+    from cameo.parallel import MultiprocessingView
 
 
-@interactive
-def to_the_power_of_2_interactive(arg):
-    return arg ** 2
+    @interactive
+    def to_the_power_of_2_interactive(arg):
+        return arg ** 2
 
 
-def to_the_power_of_2(arg):
-    return arg ** 2
+    def to_the_power_of_2(arg):
+        return arg ** 2
 
 
-class TestMultiprocessingView(unittest.TestCase):
-    def setUp(self):
-        self.view = MultiprocessingView()
+    class TestMultiprocessingView(unittest.TestCase):
+        def setUp(self):
+            self.view = MultiprocessingView()
 
-    def test_map(self):
-        self.assertEqual(self.view.map(to_the_power_of_2, range(100)), map(lambda x: x ** 2, range(100)))
+        def test_map(self):
+            self.assertEqual(self.view.map(to_the_power_of_2, range(100)), map(lambda x: x ** 2, range(100)))
+except ImportError:
+    print "Skipping MultiprocessingView tests ..."
 
 
 # class TestIPythonParallelView(unittest.TestCase):
