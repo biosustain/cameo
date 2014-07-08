@@ -17,7 +17,8 @@ from cameo import util
 from cameo import config
 from cameo import parallel
 from cameo.flux_analysis.simulation import pfba
-from cameo.strain_design.heuristic import HeuristicOptimization, ReactionKnockoutOptimization, GeneKnockoutOptimization
+from cameo.strain_design.heuristic import HeuristicOptimization, ReactionKnockoutOptimization, GeneKnockoutOptimization, \
+    KnockoutOptimizationResult
 from cameo.strain_design.heuristic.multiprocess.observers import IPythonNotebookMultiprocessProgressObserver, \
     CliMultiprocessProgressObserver
 from cameo.strain_design.heuristic.multiprocess.plotters import IPythonNotebookBokehMultiprocessPlotObserver
@@ -25,8 +26,9 @@ from cameo.strain_design.heuristic.multiprocess.migrators import Multiprocessing
 
 
 class MultiprocessRunner(object):
-    def __init__(self, kwargs):
+    def __init__(self, kwargs, island_class):
         self._kwargs = kwargs
+        self.island_class = island_class
 
     def __call__(self, island):
         return island.run(**self._kwargs)
@@ -111,7 +113,7 @@ class MultiprocessKnockoutOptimization(MultiprocessHeuristicOptimization):
         for observer in self.observers:
             observer.finish()
 
-        return results
+        return map(KnockoutOptimizationResult.merge, results)
 
 
 class MultiprocessReactionKnockoutOptimization(MultiprocessKnockoutOptimization):

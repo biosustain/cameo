@@ -94,8 +94,8 @@ class IPythonBokehParetoPlotter(object):
         self.uuid = uuid1()
         output_notebook(url=self.url, docname=str(self.uuid))
         scatter([], [], tools='', title="Multi-objective Pareto Fitness Plot")
-        xaxis()[0].axis_label = self.ofs[self.x].__name__
-        yaxis()[0].axis_label = self.ofs[self.y].__name__
+        xaxis()[0].axis_label = self.ofs[self.x].name
+        yaxis()[0].axis_label = self.ofs[self.y].name
         self.plot = curplot()
         renderer = [r for r in self.plot.renderers if isinstance(r, Glyph)][0]
         self.ds = renderer.data_source

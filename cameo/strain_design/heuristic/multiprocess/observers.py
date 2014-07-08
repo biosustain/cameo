@@ -89,7 +89,8 @@ class CliMultiprocessProgressObserver(AbstractParallelObserver):
             writer = self.TerminalWriter((self.terminal.height or 1) - 1, self.terminal)
             self.progress[i] = CLIProgressBar(fd=writer,
                                               maxval=message['max_evaluations'],
-                                              widgets=[label, Percentage(), Bar(marker=RotatingMarker())]).start()
+                                              widgets=[label, Percentage(), Bar(marker=RotatingMarker())])
+            self.progress[i].start()
 
         self.progress[i].update(message['progress'])
 

@@ -41,27 +41,28 @@ class biomass_product_coupled_yield():
         except ZeroDivisionError:
             return 0
 
-def product_yield(product, substrate):
+class product_yield():
     """
     Product Yield Objective function: v[product]/v[substrate]
     :param product: product reaction identifier
     :param substrate: substrate reaction identifier
     :return: fitness value
     """
-    def f(model, solution, decoded_representation):
+    def __init__(self, product, substrate):
+        self.product = product
+        self.substrate = substrate
+        self.name = "yield = (%s / %s)" % (product, substrate)
+
+    def __call__(self, model, solution, decoded_representation):
         try:
-            product_flux = round(solution.get_primal_by_id(product), config.ndecimals)
-            substrate_flux = round(abs(solution.get_primal_by_id(substrate)), config.ndecimals)
+            product_flux = round(solution.get_primal_by_id(self.product), config.ndecimals)
+            substrate_flux = round(abs(solution.get_primal_by_id(self.substrate)), config.ndecimals)
             return round(product_flux / substrate_flux, config.ndecimals)
         except ZeroDivisionError:
             return 0
 
-    f.name = "yield = (%s / %s)" % (product, substrate)
 
-    return f
-
-
-def number_of_knockouts(sense='min'):
+class number_of_knockouts():
     """
     Number of Knockouts objective function.
     If sense is maximize then fitness is the number of knockouts, otherwise 1/#knockouts
@@ -69,15 +70,16 @@ def number_of_knockouts(sense='min'):
     :param sense: 'max' or 'min'
     :return: fitness value
     """
-    def f(model, solution, decoded_representation):
-        if sense == 'max':
+
+    def __init__(self, sense='min'):
+        self.sense = sense
+        if sense == max:
+            self.name = "max #knockouts"
+        else:
+            self.name = "min #knockouts"
+
+    def __call__(self, model, solution, decoded_representation):
+        if self.sense == 'max':
             return len(decoded_representation[1])
         else:
             return round(1.0 / len(decoded_representation[1]), config.ndecimals)
-
-    if sense == max:
-        f.name = "max #knockouts"
-    else:
-        f.name = "min #knockouts"
-
-    return f

@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from IPython.parallel.error import CompositeError
 
 from cameo.strain_design.heuristic.multiprocess import MultiprocessReactionKnockoutOptimization
 from cameo.strain_design.heuristic.objective_functions import biomass_product_coupled_yield
@@ -28,4 +29,10 @@ of = biomass_product_coupled_yield("Ec_biomass_iJO1366_core_53p95M", "EX_ac_LPAR
 mp = MultiprocessReactionKnockoutOptimization(model=model, heuristic_method=inspyred.ec.GA,
                                               objective_function=of, simulation_method=fba)
 
-mp.run(max_evaluations=30000, n=2)
+
+try:
+    mp.run(max_evaluations=300, n=2)
+except CompositeError as c:
+    for e in c.elist:
+        for v in e:
+            print v

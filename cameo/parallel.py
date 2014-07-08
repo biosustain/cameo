@@ -116,4 +116,3 @@ if __name__ == '__main__':
 
     view = MultiprocessingView(processes=4)
     print view.map(FunctionObject(), range(0, 100))
-

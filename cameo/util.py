@@ -109,7 +109,7 @@ def generate_colors(n):
     hsv_tuples = [(v*1.0/n, 0.5, 0.5) for v in xrange(n)]
     color_map = {}
     for i in xrange(n):
-        color = colorsys.hsv_to_rgb(*hsv_tuples[i])
-        color = tuple(map(lambda v: v*256, color))
+        rgb = colorsys.hsv_to_rgb(*hsv_tuples[i])
+        color = tuple([rgb[0]*256, rgb[1]*256, rgb[2]*256])
         color_map[i] = '#%02x%02x%02x' % color
     return color_map
