@@ -212,9 +212,6 @@ class Reaction(OriginalReaction):
         model = self.get_model()
         if model is not None:
             model.solver._set_linear_objective_term(self.variable, value)
-            # model.objective += 1.*model.solver.variables[self.id]
-            # expression = copy(model.objective.expression)
-            # model.objective = optlang.Objective(expression + value * model.solver.variables[self.id])
 
         self._objective_coefficient = value
 
@@ -284,15 +281,15 @@ class OptlangBasedModel(Model):
     @objective.setter
     def objective(self, value):
         if isinstance(value, str):
-            self.solver.objective = optlang.Objective(
+            self.solver.objective = self.solver.interface.Objective(
                 Mul._from_args([S.One, self.solver.variables[value]]), sloppy=True)
         elif isinstance(value, Reaction):
-            self.solver.objective = optlang.Objective(
+            self.solver.objective = self.solver.interface(
                 Mul._from_args([S.One, self.solver.variables[value.id]]), sloppy=True)
-        elif isinstance(value, optlang.Objective):
+        elif isinstance(value, self.solver.interface.Objective):
             self.solver.objective = value
         elif isinstance(value, sympy.Basic):
-            self.solver.objective = optlang.Objective(value, sloppy=False)
+            self.solver.objective = self.solver.interface.Objective(value, sloppy=False)
         else:
             raise Exception('%s is not a valid objective.' % value)
 
