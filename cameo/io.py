@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 import types
 import pickle
 from cobra.io import read_sbml_model
-from cameo.solver_based_model import OptlangBasedModel, to_solver_based_model
+from cameo.solver_based_model import SolverBasedModel, to_solver_based_model
 
 def load_model(path_or_handle):
     """Read a model from a file.
@@ -42,8 +42,8 @@ def load_model(path_or_handle):
             model = read_sbml_model(path)
         except AttributeError:  # TODO: cobrapy doesn't raise a proper exception if a file does not contain an SBML model
             raise ValueError('FIXME')
-    
-    if not isinstance(model, OptlangBasedModel):
+
+    if not isinstance(model, SolverBasedModel):
         return to_solver_based_model(model)
     else:
         return model
