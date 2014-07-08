@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/biosustain/cameo.svg?branch=devel)](https://travis-ci.org/biosustain/cameo)
+
 ##cameo - computer assisted metabolic engineering & optimization *....UNDER CONSTRUCTION....*
 
 ### Vision
