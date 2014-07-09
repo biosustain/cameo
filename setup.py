@@ -20,9 +20,6 @@ from optlang import __version__
 with open('requirements.txt') as fhandle:
     requirements = [line.strip() for line in fhandle]
 
-print requirements
-print find_packages()
-
 setup(
     name='cameo',
     version=__version__,
