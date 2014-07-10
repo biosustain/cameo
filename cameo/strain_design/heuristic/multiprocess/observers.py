@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from Queue import Empty
+import traceback
 from uuid import uuid4
 from cameo.parallel import RedisQueue
 
@@ -38,6 +39,7 @@ class AbstractParallelObserver(object):
                 pass
             except Exception as e:
                 print e
+                print traceback.format_exc()
 
     def _process_message(self, message):
         raise NotImplementedError
@@ -92,7 +94,7 @@ class CliMultiprocessProgressObserver(AbstractParallelObserver):
                                               widgets=[label, Percentage(), Bar(marker=RotatingMarker())])
             self.progress[i].start()
 
-        self.progress[i].update(message['progress'])
+        self.progress[i].update(message['num_evaluations'])
 
     def _listen(self):
         AbstractParallelObserver._listen(self)

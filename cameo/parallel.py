@@ -27,8 +27,11 @@ class MultiprocessingView(object):
     def map(self, *args, **kwargs):
         return self.pool.map(*args, **kwargs)
 
-    def apply(self, *args, **kwargs):
-        self.pool.apply(*args, **kwargs)
+    def apply(self, func, *args, **kwargs):
+        self.pool.apply(func, args=args, **kwargs)
+
+    def apply_async(self, func, *args, **kwargs):
+        self.pool.apply_async(func, args=args, **kwargs)
 
     def __len__(self):
         return self.pool._processes
@@ -39,8 +42,7 @@ class MultiprocessingView(object):
 
 try:
     import redis
-
-
+    import cPickle as pickle
 
     class RedisQueue(object):
         """
@@ -50,25 +52,47 @@ try:
 
         MAX_REDIS_LIST_SIZE = 4294967295L
 
-        def __init__(self, name, maxsize=0, namespace='queue', **kwargs):
+        def __init__(self, name, maxsize=0, namespace='queue', **connection_args):
             """The default connection parameters are: host='localhost', port=6379, db=0"""
             if maxsize <= 0:
                 maxsize = self.MAX_REDIS_LIST_SIZE
             self._maxsize = maxsize
-            self._db = redis.Redis(**kwargs)
+            self._connection_args = connection_args
+            self._db = redis.Redis(**connection_args)
             self._key = '%s:%s' % (namespace, name)
 
+        def __getstate__(self):
+            return {
+                '_maxsize': self._maxsize,
+                '_connection_args': self._connection_args,
+                '_key': self._key
+            }
+
+        def __setstate__(self, dict):
+            self._maxsize = dict['_maxsize']
+            self._connection_args = dict['_connection_args']
+            self._key = dict['_key']
+            self._db = redis.Redis(**self._connection_args)
+
         def __len__(self):
+            return self.lenght()
+
+        def lenght(self):
             return self._db.llen(self._key)
 
         def empty(self):
-            return self.qsize() == 0
+            return self.lenght() == 0
 
         def put(self, item):
-            if len(self) > self._maxsize:
+            if self.lenght() >= self._maxsize:
                 raise Queue.Full
 
+            item = pickle.dumps(item)
+
             self._db.rpush(self._key, item)
+
+        def put_nowait(self, item):
+            self.put(item)
 
         def get(self, block=True, timeout=None):
             if block:
@@ -80,11 +104,12 @@ try:
                 item = item[1]
             else:
                 raise Queue.Empty
-            return item
+            return pickle.loads(item)
 
         def get_nowait(self):
             """Equivalent to get(False)."""
             return self.get(False)
+
 except ImportError:
     pass
 
@@ -93,8 +118,11 @@ class SequentialView(object):
     def map(self, *args, **kwargs):
         return map(*args, **kwargs)
 
-    def apply(self, *args, **kwargs):
-        return apply(*args, **kwargs)
+    def apply(self, func, *args, **kwargs):
+        return apply(func, args=args, **kwargs)
+
+    def apply_async(self, func, *args, **kwargs):
+        return apply(func, args=args, **kwargs)
 
     def __len__(self):
         return 1

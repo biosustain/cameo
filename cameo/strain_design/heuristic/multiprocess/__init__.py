@@ -11,13 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import inspyred
 
 from pandas.core.common import in_ipnb
 from cameo import util
 from cameo import config
 from cameo import parallel
 from cameo.flux_analysis.simulation import pfba
-from cameo.strain_design.heuristic import HeuristicOptimization, ReactionKnockoutOptimization, GeneKnockoutOptimization, \
+from cameo.strain_design.heuristic import ReactionKnockoutOptimization, GeneKnockoutOptimization, \
     KnockoutOptimizationResult
 from cameo.strain_design.heuristic.multiprocess.observers import IPythonNotebookMultiprocessProgressObserver, \
     CliMultiprocessProgressObserver
@@ -25,59 +26,73 @@ from cameo.strain_design.heuristic.multiprocess.plotters import IPythonNotebookB
 from cameo.strain_design.heuristic.multiprocess.migrators import MultiprocessingMigrator
 
 
-class MultiprocessRunner(object):
-    def __init__(self, kwargs, island_class):
-        self._kwargs = kwargs
-        self.island_class = island_class
-
-    def __call__(self, island):
-        return island.run(**self._kwargs)
+def run_island(island_class, init_kwargs, clients, migrator, run_kwargs):
+    island = island_class(**init_kwargs)
+    island.migrator = migrator
+    island.observer = clients
+    return island.run(**run_kwargs)
 
 
-class MultiprocessHeuristicOptimization(HeuristicOptimization):
-    def __init__(self, view=config.default_view, number_of_islands=4, max_migrants=1, *args, **kwargs):
-        self.islands = []
-        self.number_of_islands = number_of_islands
+class MultiprocessHeuristicOptimization(object):
+
+    _island_class = None
+
+    def __init__(self, model=None, objective_function=None, heuristic_method=inspyred.ec.GA,
+                 view=config.default_view, number_of_islands=4, max_migrants=1, *args, **kwargs):
         super(MultiprocessHeuristicOptimization, self).__init__(*args, **kwargs)
+        self.model = model
+        self.objective_function = objective_function
+        self.heuristic_method = heuristic_method
+        self.number_of_islands = number_of_islands
         self.view = view
         self.color_map = util.generate_colors(number_of_islands)
-        self._migrator = MultiprocessingMigrator(max_migrants)
-        self._build_islands(*args, **kwargs)
+        self.migrator = MultiprocessingMigrator(max_migrants)
         self.observers = []
 
-    def _build_islands(self, *args, **kwargs):
-        raise NotImplementedError
+    def _init_kwargs(self):
+        return {
+            'model': self.model,
+            'objective_function': self.objective_function,
+            'heuristic_method': self.heuristic_method
+        }
 
-    def run(self,  **kwargs):
-        kwargs['view'] = parallel.SequentialView()
-        runner = MultiprocessRunner(kwargs)
+    def run(self, **run_kwargs):
+        run_kwargs['view'] = parallel.SequentialView()
 
+        results = []
         try:
-            results = self.view.map(runner, self.islands)
+            async_res = []
+            for i in xrange(self.number_of_islands):
+                clients = [o.clients[i] for o in self.observers]
+                res = self.view.apply_async(run_island,
+                                            self._island_class,
+                                            self._init_kwargs(),
+                                            clients,
+                                            self.migrator,
+                                            run_kwargs)
+                async_res.append(res)
+
+            results = [res.get() for res in async_res]
+
         except KeyboardInterrupt as e:
             self.view.shutdown()
             raise e
 
         return results
 
-    @HeuristicOptimization.heuristic_method.setter
-    def heuristic_method(self, heuristic_method):
-        for island in self.islands:
-            island.heuristic_method = heuristic_method
-
-    @HeuristicOptimization.objective_function.setter
-    def objective_function(self, objective_function):
-        for island in self.islands:
-            island.objective_function = objective_function
-
 
 class MultiprocessKnockoutOptimization(MultiprocessHeuristicOptimization):
     def __init__(self, simulation_method=pfba, *args, **kwargs):
-        self.simulation_method = simulation_method
         super(MultiprocessKnockoutOptimization, self).__init__(*args, **kwargs)
-        self.observers = self._set_observers(**kwargs)
+        self.simulation_method = simulation_method
+        self.observers = self._set_observers()
 
-    def _set_observers(self, **kwargs):
+    def _init_kwargs(self):
+        init_kwargs = MultiprocessHeuristicOptimization._init_kwargs(self)
+        init_kwargs['simulation_method'] = self.simulation_method
+        return init_kwargs
+
+    def _set_observers(self):
         observers = []
         progress_observer = None
         plotting_observer = None
@@ -86,8 +101,7 @@ class MultiprocessKnockoutOptimization(MultiprocessHeuristicOptimization):
                                                                             color_map=self.color_map)
             if config.use_bokeh:
                 plotting_observer = IPythonNotebookBokehMultiprocessPlotObserver(number_of_islands=self.number_of_islands,
-                                                                                 color_map=self.color_map,
-                                                                                 n=kwargs.get('n', 20))
+                                                                                 color_map=self.color_map)
             elif config.use_matplotlib:
                 pass
         else:
@@ -104,10 +118,6 @@ class MultiprocessKnockoutOptimization(MultiprocessHeuristicOptimization):
         for observer in self.observers:
             observer.start()
 
-        for i in xrange(self.number_of_islands):
-            for observer in self.observers:
-                self.islands[i].observers = observer.clients[i]
-
         results = MultiprocessHeuristicOptimization.run(self, **kwargs)
 
         for observer in self.observers:
@@ -117,36 +127,46 @@ class MultiprocessKnockoutOptimization(MultiprocessHeuristicOptimization):
 
 
 class MultiprocessReactionKnockoutOptimization(MultiprocessKnockoutOptimization):
-    def __init__(self, reactions=None, essential_reactions=None, *args, **kwargs):
-        self.essential_reactions = essential_reactions
-        self.reactions = reactions
-        super(MultiprocessReactionKnockoutOptimization, self).__init__(*args, **kwargs)
 
-    def _build_islands(self, *args, **kwargs):
-        for i in xrange(self.number_of_islands):
-            self.islands.append(ReactionKnockoutOptimization(simulation_method=self.simulation_method,
-                                                             reactions=self.reactions,
-                                                             essential_reactions=self.essential_reactions,
-                                                             *args, **kwargs))
-            self.islands[i].migrator = self._migrator
-            if self.reactions is None:
-                self.reactions = self.islands[i].reactions
-                self.essential_reactions = self.islands[i].essential_reactions
+    _island_class = ReactionKnockoutOptimization
+
+    def __init__(self, reactions=None, essential_reactions=None, *args, **kwargs):
+        super(MultiprocessReactionKnockoutOptimization, self).__init__(*args, **kwargs)
+        if reactions is None:
+            self.reactions = set([r.id for r in self.model.reactions])
+        else:
+            self.reactions = reactions
+
+        if essential_reactions is None:
+            self.essential_reactions = set([r.id for r in self.model.essential_reactions()])
+        else:
+            self.essential_reactions = essential_reactions
+
+    def _init_kwargs(self):
+        init_kwargs = MultiprocessKnockoutOptimization._init_kwargs(self)
+        init_kwargs['essential_reactions'] = self.essential_reactions
+        init_kwargs['reactions'] = self.reactions
+        return init_kwargs
 
 
 class MultiprocessGeneKnockoutOptimization(MultiprocessKnockoutOptimization):
-    def __init__(self, genes=None, essential_genes=None, *args, **kwargs):
-        self.essential_genes = essential_genes
-        self.genes = genes
-        super(MultiprocessGeneKnockoutOptimization, self).__init__(*args, **kwargs)
 
-    def _build_islands(self, *args, **kwargs):
-        for i in xrange(self.number_of_islands):
-            self.islands.append(GeneKnockoutOptimization(simulation_method=self.simulation_method,
-                                                         genes=self.genes,
-                                                         essential_genes=self.essential_genes,
-                                                         *args, **kwargs))
-            self.islands[i].migrator = self._migrator
-            if self.genes is None:
-                self.genes = self.islands[i].genes
-                self.essential_genes = self.islands[i].essential_genes
+    _island_class = GeneKnockoutOptimization
+
+    def __init__(self, genes=None, essential_genes=None, *args, **kwargs):
+        super(MultiprocessGeneKnockoutOptimization, self).__init__(*args, **kwargs)
+        if genes is None:
+            self.genes = set([g.id for g in self.model.genes])
+        else:
+            self.genes = genes
+
+        if essential_genes is None:
+            self.essential_genes = set([g.id for g in self.model.essential_genes()])
+        else:
+            self.essential_genes = essential_genes
+
+    def _init_kwargs(self):
+        init_kwargs = MultiprocessKnockoutOptimization._init_kwargs(self)
+        init_kwargs['essential_genes'] = self.essential_genes
+        init_kwargs['genes'] = self.genes
+        return init_kwargs

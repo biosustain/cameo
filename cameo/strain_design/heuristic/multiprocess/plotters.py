@@ -22,10 +22,9 @@ if config.use_bokeh:
 
 
 class IPythonNotebookBokehMultiprocessPlotObserver(AbstractParallelObserver):
-    def __init__(self, url='default', color_map={}, n=1, *args, **kwargs):
+    def __init__(self, url='default', color_map={}, *args, **kwargs):
         super(IPythonNotebookBokehMultiprocessPlotObserver, self).__init__(*args, **kwargs)
         self.url = url
-        self.n = n
         self.plotted = False
         self.connections = {}
         self.color_map = color_map
@@ -64,7 +63,7 @@ class IPythonNotebookBokehMultiprocessPlotObserver(AbstractParallelObserver):
              'island': [index]
         })
         self.data_frame = self.data_frame.append(df, ignore_index=True)
-        if message['iteration'] % self.n == 0:
+        if message['iteration'] % message['n'] == 0:
             self._update_plot()
 
     def _update_plot(self):
@@ -91,7 +90,11 @@ class IPythonNotebookBokehMultiprocessPlotObserverClient(AbstractParallelObserve
         self.iteration += 1
         best = max(population)
         try:
-            self._queue.put_notwai({'fitness': best.fitness, 'iteration': self.iteration, 'index': self.index})
+            self._queue.put_notwai({
+                'fitness': best.fitness,
+                'iteration': self.iteration,
+                'index': self.index,
+                'n': args.get('n', 1)})
         except Exception:
             pass
 
