@@ -37,13 +37,13 @@ def pfba(model, objective=None):
         if reaction.reversibility:
             aux_variable = Variable(reaction.variable.id + '_aux', lb=0, ub=-1*reaction.lower_bound)
             tm(do=partial(setattr, reaction, 'lower_bound', 0), undo=partial(setattr, reaction, 'lower_bound', reaction.lower_bound))
-            terms.append(reaction.variable)
-            terms.append(aux_variable)
+            objective_terms.append(reaction.variable)
+            objective_terms.append(aux_variable)
             additional_constraints.append(Constraint)
         else:
-            terms.append(reaction.variable)
+            objective_terms.append(reaction.variable)
     abs_objective = Objective(sum(objective_terms), name='Minimize total flux', direction='min')
-    tm(do=partial(setattr, model, 'objective'))
+    tm(do=partial(setattr, model, 'objective', abs_objective))
 
 def moma(model, objective=None):
     pass

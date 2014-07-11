@@ -284,6 +284,11 @@ class KnockoutOptimization(HeuristicOptimization):
 
 
 class KnockoutOptimizationResult(object):
+
+    @staticmethod
+    def merge(a, b):
+        return a._merge(b)
+
     def __init__(self, model=None, heuristic_method=None, simulation_method=None, solutions=None,
                  objective_function=None, ko_type=None, decoder=None, product=None, *args, **kwargs):
         super(KnockoutOptimizationResult, self).__init__(*args, **kwargs)
@@ -302,10 +307,12 @@ class KnockoutOptimizationResult(object):
         self.solutions = self._build_solutions(solutions, model, simulation_method, decoder)
 
     def __getstate__(self):
+
+        import pickle
         return {
             'product': self.product,
             'model': self.model,
-            'simulation_method': self.simulation_method,
+            #'simulation_method': self.simulation_method,
             'heuristic_method.__class__': self.heuristic_method.__class__,
             'heuristic_method.maximize': self.heuristic_method.maximize,
             'heuristic_method.variator': self.heuristic_method.variator,
@@ -329,7 +336,7 @@ class KnockoutOptimizationResult(object):
     def __setstate__(self, d):
         self.product = d['product']
         self.model = d['model']
-        self.simulation_method = d['simulation_method']
+        #self.simulation_method = d['simulation_method']
         random = d['heuristic_method._random']
         self.heuristic_method = d['heuristic_method.__class__'](random)
         self.heuristic_method.maximize = d['heuristic_method.maximize']
@@ -412,17 +419,19 @@ class KnockoutOptimizationResult(object):
 
         return results
 
-    def merge(self, other_result):
+    def _merge(self, other_result):
         assert isinstance(other_result, self.__class__), "Cannot merge result with %s" % type(other_result)
-        assert self.model == other_result.model, "Cannot merge results from different models"
-        assert self.objective_functions == other_result.objective_functions, \
-            "Cannot merge results with different objective functions"
+        assert self.model.id == other_result.model.id, "Cannot merge results from different models"
+        #assert self.objective_functions == other_result.objective_functions, \
+        #    "Cannot merge results with different objective functions"
         assert self.ko_type == other_result.ko_type, "Cannot merge results with resulting from different strategies"
         assert self.heuristic_method.__class__.__name__ == other_result.heuristic_method.__class__.__name__, \
             "Cannot merge results from different heuristic methods"
 
         self.solutions = self.solutions.append(other_result.solutions, ignore_index=True)
         self.solutions.drop_duplicates(subset=KNOCKOUTS, take_last=True, inplace=False)
+
+        return self
 
     # TODO: find out how to plot an histogram (?) in bokeh
     def _plot_frequency(self):

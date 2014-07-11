@@ -26,11 +26,18 @@ from cameo.strain_design.heuristic.multiprocess.plotters import IPythonNotebookB
 from cameo.strain_design.heuristic.multiprocess.migrators import MultiprocessingMigrator
 
 
-def run_island(island_class, init_kwargs, clients, migrator, run_kwargs):
-    island = island_class(**init_kwargs)
-    island.migrator = migrator
-    island.observer = clients
-    return island.run(**run_kwargs)
+class MultiprocessRunner():
+    def __init__(self, island_class, init_kwargs, migrator, run_kwargs):
+        self.island_class = island_class
+        self.init_kwargs = init_kwargs
+        self.migrator = migrator
+        self.run_kwargs = run_kwargs
+
+    def __call__(self, clients):
+        island = self.island_class(**self.init_kwargs)
+        island.migrator = self.migrator
+        island.observer = clients
+        return island.run(**self.run_kwargs)
 
 
 class MultiprocessHeuristicOptimization(object):
@@ -58,26 +65,9 @@ class MultiprocessHeuristicOptimization(object):
 
     def run(self, **run_kwargs):
         run_kwargs['view'] = parallel.SequentialView()
-
-        results = []
-        try:
-            async_res = []
-            for i in xrange(self.number_of_islands):
-                clients = [o.clients[i] for o in self.observers]
-                res = self.view.apply_async(run_island,
-                                            self._island_class,
-                                            self._init_kwargs(),
-                                            clients,
-                                            self.migrator,
-                                            run_kwargs)
-                async_res.append(res)
-
-            results = [res.get() for res in async_res]
-
-        except KeyboardInterrupt as e:
-            self.view.shutdown()
-            raise e
-
+        runner = MultiprocessRunner(self._island_class, self._init_kwargs(), self.migrator, run_kwargs)
+        clients = [[o.clients[i] for o in self.observers] for i in xrange(self.number_of_islands)]
+        results = self.view.map(runner, clients)
         return results
 
 
@@ -123,7 +113,7 @@ class MultiprocessKnockoutOptimization(MultiprocessHeuristicOptimization):
         for observer in self.observers:
             observer.finish()
 
-        return map(KnockoutOptimizationResult.merge, results)
+        return reduce(KnockoutOptimizationResult.merge, results)
 
 
 class MultiprocessReactionKnockoutOptimization(MultiprocessKnockoutOptimization):
