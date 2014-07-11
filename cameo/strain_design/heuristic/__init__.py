@@ -17,6 +17,8 @@ from cameo.strain_design.heuristic import archivers
 from cameo.strain_design.heuristic import plotters
 from cameo.strain_design.heuristic import observers
 from cameo.strain_design.heuristic import mutators
+from cameo.strain_design.heuristic import generators
+from cameo.strain_design.heuristic import decoders
 from cameo import config
 from cameo.flux_analysis.simulation import pfba
 from cameo.strain_design.heuristic.plotters import GeneFrequencyPlotter
@@ -29,9 +31,11 @@ import logging
 from functools import partial
 from random import Random
 
-from cobra.manipulation.delete import find_gene_knockout_reactions
-
 from pandas.core.common import in_ipnb
+
+REACTION_KNOCKOUT_TYPE = "gene"
+GENE_KNOCKOUT_TYPE = "gene"
+
 
 SIZE = "Size"
 
@@ -104,6 +108,7 @@ class HeuristicOptimization(object):
         self._objective_function = objective_function
         self._heuristic_method = heuristic_method
         self.heuristic_method = heuristic_method
+        self._generator = None
 
     @property
     def objective_function(self):
@@ -139,9 +144,6 @@ class HeuristicOptimization(object):
     def _evaluator(self):
         raise NotImplementedError
 
-    def _generator(self):
-        raise NotImplementedError
-
     def run(self, view=config.default_view, **kwargs):
         return self.heuristic_method.evolve(
             generator=self._generator,
@@ -164,19 +166,15 @@ class _ChunkEvaluation(object):
 
 
 class KnockoutOptimization(HeuristicOptimization):
-    def __init__(self, simulation_method=pfba, *args, **kwargs):
+    def __init__(self, simulation_method=pfba, max_size=9, variable_size=True, *args, **kwargs):
         super(KnockoutOptimization, self).__init__(*args, **kwargs)
         self.simulation_method = simulation_method
+        self.max_size = max_size
+        self.variable_size = variable_size
         self.representation = None
-        self.ko_type = None
-
-    def _decoder(self, individual):
-        raise NotImplementedError
-
-    def _generate_individual(self, random, args):
-        max_size = args.get('max_size', 9)
-        individual = random.sample(xrange(len(self.representation)), random.randint(1, max_size))
-        return individual
+        self._ko_type = None
+        self._decoder = None
+        self._generator = generators.set_generator
 
     def evaluate_individual(self, individual, tm):
         decoded = self._decoder(individual)
@@ -219,11 +217,6 @@ class KnockoutOptimization(HeuristicOptimization):
         fitness = reduce(list.__add__, results)
 
         return fitness
-
-    def _generator(self, random, args):
-        max_size = args.get('max_size', 9)
-        individual = random.sample(xrange(len(self.representation)), random.randint(1, max_size))
-        return individual
 
     @HeuristicOptimization.heuristic_method.setter
     def heuristic_method(self, heuristic_method):
@@ -277,13 +270,15 @@ class KnockoutOptimization(HeuristicOptimization):
         super(KnockoutOptimization, self).run(
             distance_function=set_distance_function,
             representation=self.representation,
+            max_candidate_size=self.max_size,
+            variable_candidate_size=self.variable_size,
             **kwargs)
         return KnockoutOptimizationResult(model=self.model,
                                           heuristic_method=self.heuristic_method,
                                           simulation_method=self.simulation_method,
                                           solutions=self.heuristic_method.archive,
                                           objective_function=self.objective_function,
-                                          ko_type=self.ko_type,
+                                          ko_type=self._ko_type,
                                           decoder=self._decoder,
                                           product=kwargs.get('product', None))
 
@@ -305,11 +300,56 @@ class KnockoutOptimizationResult(object):
         self.ko_type = ko_type
         self.decoder = decoder
         self.solutions = self._build_solutions(solutions, model, simulation_method, decoder)
-        self.plotter = None
+
+    def __getstate__(self):
+        return {
+            'product': self.product,
+            'model': self.model,
+            'simulation_method': self.simulation_method,
+            'heuristic_method.__class__': self.heuristic_method.__class__,
+            'heuristic_method.maximize': self.heuristic_method.maximize,
+            'heuristic_method.variator': self.heuristic_method.variator,
+            'heuristic_method.terminator': self.heuristic_method.terminator,
+            'heuristic_method.archiver': self.heuristic_method.archiver,
+            'heuristic_method.termination_cause': self.heuristic_method.termination_cause,
+            'heuristic_method._random': self.heuristic_method._random,
+            'heuristic_method.generator': self.heuristic_method.generator,
+            'heuristic_method._kwargs.representation': self.heuristic_method._kwargs.get('representation'),
+            'heuristic_method._kwargs.max_candidate_size': self.heuristic_method._kwargs.get('max_candidate_size'),
+            'heuristic_method._kwargs.variable_candidate_size': self.heuristic_method._kwargs.get('variable_candidate_size'),
+            'heuristic_method._kwargs.pop_size': self.heuristic_method._kwargs.get('pop_size'),
+            'heuristic_method._kwargs.mutation_rate': self.heuristic_method._kwargs.get('mutation_rate'),
+            'heuristic_method._kwargs.crossover_rate': self.heuristic_method._kwargs.get('crossover_rate'),
+            'heuristic_method._kwargs.num_elites': self.heuristic_method._kwargs.get('num_elites'),
+            'objective_functions': self.objective_functions,
+            'ko_type': self.ko_type,
+            'solutions': self.solutions,
+        }
+
+    def __setstate__(self, d):
+        self.product = d['product']
+        self.model = d['model']
+        self.simulation_method = d['simulation_method']
+        random = d['heuristic_method._random']
+        self.heuristic_method = d['heuristic_method.__class__'](random)
+        self.heuristic_method.maximize = d['heuristic_method.maximize']
+        self.heuristic_method.terminator = d['heuristic_method.terminator']
+        self.heuristic_method.termination_cause = d['heuristic_method.termination_cause']
+        self.heuristic_method.archiver = d['heuristic_method.archiver']
+        self.heuristic_method._kwargs['representation'] = d['heuristic_method._kwargs.representation']
+        self.heuristic_method._kwargs['max_candidate_size'] = d['heuristic_method._kwargs.max_candidate_size']
+        self.heuristic_method._kwargs['variable_candidate_size'] = d['heuristic_method._kwargs.variable_candidate_size']
+        self.heuristic_method._kwargs['pop_size'] = d['heuristic_method._kwargs.pop_size']
+        self.heuristic_method._kwargs['mutation_rate'] = d['heuristic_method._kwargs.mutation_rate']
+        self.heuristic_method._kwargs['crossover_rate'] = d['heuristic_method._kwargs.crossover_rate']
+        self.heuristic_method._kwargs['num_elites'] = d['heuristic_method._kwargs.num_elites']
+        self.objective_functions = d['objective_functions']
+        self.ko_type = d['ko_type']
+        self.solutions = d['solutions']
 
     def _build_solutions(self, solutions, model, simulation_method, decoder):
         knockouts = []
-        biomasses = []
+        biomass = []
         fitness = []
         products = []
         sizes = []
@@ -318,7 +358,7 @@ class KnockoutOptimizationResult(object):
             simulation_result = self._simulate(decoded_solution[0], simulation_method, model)
             size = len(decoded_solution[1])
 
-            biomasses.append(simulation_result.f)
+            biomass.append(simulation_result.f)
             fitness.append(solution.fitness)
             knockouts.append(frozenset([v.id for v in decoded_solution[1]]))
             sizes.append(size)
@@ -329,16 +369,16 @@ class KnockoutOptimizationResult(object):
                 products.append(simulation_result.get_primal_by_id(self.product))
 
         if self.product is None:
-            data_frame = DataFrame({KNOCKOUTS: knockouts, BIOMASS: biomasses, FITNESS: fitness, SIZE: size})
+            data_frame = DataFrame({KNOCKOUTS: knockouts, BIOMASS: biomass, FITNESS: fitness, SIZE: size})
         elif isinstance(self.product, (list, tuple)):
-            data = {KNOCKOUTS: knockouts, BIOMASS: biomasses, FITNESS: fitness}
+            data = {KNOCKOUTS: knockouts, BIOMASS: biomass, FITNESS: fitness}
             for i in xrange(self.product):
                 data[self.product[i]] = products[i:]
             data_frame = DataFrame(data)
 
             data[SIZE] = size
         else:
-            data_frame = DataFrame({KNOCKOUTS: knockouts, BIOMASS: biomasses,
+            data_frame = DataFrame({KNOCKOUTS: knockouts, BIOMASS: biomass,
                                     FITNESS: fitness, self.product: products, SIZE: size})
 
         return data_frame
@@ -406,11 +446,8 @@ class ReactionKnockoutOptimization(KnockoutOptimization):
 
         exchange_reactions = set([r.id for r in self.model.exchanges])
         self.representation = list(self.reactions.difference(self.essential_reactions).difference(exchange_reactions))
-        self.ko_type = 'reaction'
-
-    def _decoder(self, individual):
-        reactions = [self.model.reactions.get_by_id(self.representation[index]) for index in individual]
-        return [reactions, reactions]
+        self.ko_type = REACTION_KNOCKOUT_TYPE
+        self._decoder = decoders.ReactionKnockoutDecoder(self.representation, self.model)
 
 
 class GeneKnockoutOptimization(KnockoutOptimization):
@@ -427,9 +464,5 @@ class GeneKnockoutOptimization(KnockoutOptimization):
             self.essential_genes = essential_genes
 
         self.representation = list(self.genes.difference(self.essential_genes))
-        self.ko_type = 'gene'
-
-    def _decoder(self, individual):
-        genes = [self.model.genes.get_by_id(self.representation[index]) for index in individual]
-        reactions = find_gene_knockout_reactions(self.model, genes)
-        return [reactions, genes]
+        self.ko_type = GENE_KNOCKOUT_TYPE
+        self._decoder = decoders.GeneKnockoutDecoder(self.representation, self.model)

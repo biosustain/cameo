@@ -14,7 +14,7 @@
 
 from functools import partial
 from cameo.util import TimeMachine
-from optlang import Variable, Constraint
+from optlang import Variable, Constraint, Objective
 
 
 def fba(model, objective=None):

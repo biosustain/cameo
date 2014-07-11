@@ -87,7 +87,7 @@ class CliMultiprocessProgressObserver(AbstractParallelObserver):
         i = message['index']
         if not i in self.progress:
             print ""
-            label = "Island %i" % i
+            label = "Island %i: " % (i+1)
             writer = self.TerminalWriter((self.terminal.height or 1) - 1, self.terminal)
             self.progress[i] = CLIProgressBar(fd=writer,
                                               maxval=message['max_evaluations'],
