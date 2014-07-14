@@ -39,7 +39,18 @@ from pandas import Series, DataFrame
 
 from functools import partial
 
-_SOLVER_INTERFACES = {'glpk': optlang.glpk_interface, 'cplex': optlang.cplex_interface}
+_SOLVER_INTERFACES = {}
+
+try:
+    from optlang import glpk_interface
+    _SOLVER_INTERFACES['glpk'] = optlang.glpk_interface
+except ImportError:
+    pass
+try:
+    from optlang import cplex_interface
+    _SOLVER_INTERFACES['cplex'] = optlang.cplex_interface
+except ImportError:
+    pass
 
 
 def to_solver_based_model(cobrapy_model, solver_interface=optlang, deepcopy_model=True):

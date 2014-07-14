@@ -12,16 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-common_setup = """
 import os
+
 BENCHMARKS_DIR = os.path.dirname(__file__)
 
 MODEL_DIR = os.path.join(BENCHMARKS_DIR, "../tests/data/iJO1366.xml")
 
-
+common_setup = "MODEL_DIR = '%s'" % MODEL_DIR
+common_setup = common_setup + """
 from cameo.solver_based_model import to_solver_based_model
 from cobra.io import read_sbml_model
-"""
+""".format(BENCHMARKS_DIR)
 
 #cobrapy model
 read_sbml_model = """
@@ -30,11 +31,11 @@ cobra_model = read_sbml_model(MODEL_DIR)
 
 #GLPK model
 glpk_model_setup = read_sbml_model + """
-model = to_solver_based_model(cobra_model, solve='glpk')
+model = to_solver_based_model(cobra_model, solver_interface='glpk')
 """
 
 #CPLEX model
 cplex_model_setup = read_sbml_model + """
-model = to_solver_based_model(cobra_model, solve='cplex')
+model = to_solver_based_model(cobra_model, solver_interface='cplex')
 """
 
