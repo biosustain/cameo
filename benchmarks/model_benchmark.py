@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import os
+from vbench.benchmark import Benchmark
 
 BENCHMARKS_DIR = os.path.dirname(__file__)
 
@@ -51,14 +52,52 @@ cplex_load_benchmark = Benchmark(cplex_load_statemment, common_setup + read_sbml
 # Simulate model #
 ##################
 
-#GLPK
-glpk_setup =  read_sbml_model + """
-cobra_model = read_sbml_model(MODEL_DIR)
-model = to_solver_based_model(cobra_model, solve='glpk')
-"""
-
-glpk_simulate_statement = """
+simulate_statement = """
 model.solve()
 """
 
-glpk_simulate_benchmark = Benchmark(glpk_simulate_statement, common_setup + glpk_setup)
+#GLPK
+glpk_model_setup =  read_sbml_model + """
+model = to_solver_based_model(cobra_model, solve='glpk')
+"""
+
+
+glpk_simulate_benchmark = Benchmark(simulate_statement, common_setup + glpk_model_setup)
+
+#CPLEX
+cplex_model_setup =  read_sbml_model + """
+model = to_solver_based_model(cobra_model, solve='cplex')
+"""
+
+
+cplex_simulate_benchmark = Benchmark(simulate_statement, common_setup + cplex_model_setup)
+
+######################
+# Critical reactions #
+######################
+
+critical_reactions_statement = """
+model.critical_reactions()
+"""
+
+#GLPK
+glpk_critical_reactions_benchmark = Benchmark(critical_reactions_statement, common_setup + glpk_model_setup)
+
+#CPLEX
+
+cplex_critical_reactions_benchmark = Benchmark(critical_reactions_statement, common_setup + cplex_model_setup)
+
+##################
+# Critical genes #
+##################
+
+critical_genes_statement = """
+model.critical_genes()
+"""
+
+#GLPK
+glpk_critical_genes_benchmark = Benchmark(critical_genes_statement, common_setup + glpk_model_setup)
+
+#CPLEX
+cplex_critical_reactions_benchmark = Benchmark(critical_genes_statement, common_setup + cplex_model_setup)
+
