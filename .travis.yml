@@ -18,7 +18,7 @@ install:
   - pip install python-libsbml-experimental scipy -f https://pypi.drosophi.la --no-index
   - pip install cython
   - pip install coveralls coverage
-  - pip install -r requirements.txt
+  - pip install -r requirements.txt --allow-external 
 # # command to run tests
 script: coverage run --omit=cameo/parallel.py --source=cameo setup.py nosetests
 after_success:
