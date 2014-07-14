@@ -17,6 +17,7 @@ from cameo.strain_design.heuristic.multiprocess import MultiprocessReactionKnock
 from cameo.strain_design.heuristic.objective_functions import biomass_product_coupled_yield
 from cameo.flux_analysis.simulation import fba
 from cameo.solver_based_model import to_solver_based_model
+from cameo.parallel import MultiprocessingView
 from cobra.io import read_sbml_model
 from optlang import glpk_interface
 import inspyred

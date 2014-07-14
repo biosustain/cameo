@@ -33,7 +33,7 @@ from random import Random
 
 from pandas.core.common import in_ipnb
 
-REACTION_KNOCKOUT_TYPE = "gene"
+REACTION_KNOCKOUT_TYPE = "reaction"
 GENE_KNOCKOUT_TYPE = "gene"
 
 
@@ -307,12 +307,10 @@ class KnockoutOptimizationResult(object):
         self.solutions = self._build_solutions(solutions, model, simulation_method, decoder)
 
     def __getstate__(self):
-
-        import pickle
         return {
             'product': self.product,
             'model': self.model,
-            #'simulation_method': self.simulation_method,
+            'simulation_method': self.simulation_method,
             'heuristic_method.__class__': self.heuristic_method.__class__,
             'heuristic_method.maximize': self.heuristic_method.maximize,
             'heuristic_method.variator': self.heuristic_method.variator,
@@ -336,7 +334,7 @@ class KnockoutOptimizationResult(object):
     def __setstate__(self, d):
         self.product = d['product']
         self.model = d['model']
-        #self.simulation_method = d['simulation_method']
+        self.simulation_method = d['simulation_method']
         random = d['heuristic_method._random']
         self.heuristic_method = d['heuristic_method.__class__'](random)
         self.heuristic_method.maximize = d['heuristic_method.maximize']

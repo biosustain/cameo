@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import Queue
 
 from uuid import uuid1
 from pandas import DataFrame
@@ -31,7 +32,7 @@ class IPythonNotebookBokehMultiprocessPlotObserver(AbstractParallelObserver):
         self.data_frame = DataFrame(columns=['iteration', 'island', 'color', 'fitness'])
 
     def _create_client(self, i):
-        self.clients[i] = self.IPythonNotebookBokehMultiprocessPlotObserverClient(queue=self.queue, index=i)
+        self.clients[i] = IPythonNotebookBokehMultiprocessPlotObserverClient(queue=self.queue, index=i)
 
     def start(self):
         AbstractParallelObserver.start(self)
@@ -78,6 +79,7 @@ class IPythonNotebookBokehMultiprocessPlotObserver(AbstractParallelObserver):
         self.data_frame = DataFrame(columns=['iteration', 'island', 'color', 'fitness'])
         self.plotted = False
 
+
 class IPythonNotebookBokehMultiprocessPlotObserverClient(AbstractParallelObserverClient):
 
     __name__ = "IPython Notebook Bokeh Multiprocess Plot Observer"
@@ -90,12 +92,12 @@ class IPythonNotebookBokehMultiprocessPlotObserverClient(AbstractParallelObserve
         self.iteration += 1
         best = max(population)
         try:
-            self._queue.put_notwai({
+            self._queue.put_nowait({
                 'fitness': best.fitness,
                 'iteration': self.iteration,
                 'index': self.index,
                 'n': args.get('n', 1)})
-        except Exception:
+        except Queue.Full:
             pass
 
     def reset(self):
