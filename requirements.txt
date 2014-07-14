@@ -2,8 +2,8 @@ blessings==1.5.1
 progressbar>=2.2
 bokeh==0.4.4
 cobra==0.3.0b3
--e git+https://github.com/biosustain/optlang.git@devel#egg=optlang
--e git+https://github.com/biosustain/ipython_notebook_utils.git@master#egg=ipython_notebook_utils
+optlang
+ipython_notebook_utils
 ipython>=2.1.0
 Jinja2==2.7.3
 pyzmq>=14.3.1

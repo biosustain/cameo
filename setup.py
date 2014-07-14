@@ -20,11 +20,18 @@ from optlang import __version__
 with open('requirements.txt') as fhandle:
     requirements = [line.strip() for line in fhandle]
 
+dependency_links = [
+    'https://github.com/biosustain/optlang.git@devel#egg=optlang',
+    'https://github.com/biosustain/ipython_notebook_utils.git@master#egg=ipython_notebook_utils'
+]
+
+
 setup(
     name='cameo',
     version=__version__,
     packages=find_packages(),
-    install_requires=requirements,  # from requirements.txt
+    install_requires=requirements,
+    dependency_links=dependency_links,
     author='Nikolaus Sonnenschein',
     author_email='niko.sonnenschein@gmail.com',
     description='cameo - computer assisted metabolic engineering & optimziation',

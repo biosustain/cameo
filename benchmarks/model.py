@@ -14,23 +14,16 @@
 
 import os
 from vbench.benchmark import Benchmark
+from common import *
 
 BENCHMARKS_DIR = os.path.dirname(__file__)
 
 MODEL_DIR = os.path.join(BENCHMARKS_DIR, "../examples/data/iJO1366.xml")
 
-common_setup = """
-from cameo.solver_base_model import to_solver_based_model
-from cobra.io import read_sbml_model
-"""
-
 #########################
 # Load model benchmarks #
 #########################
 
-read_sbml_model = """
-cobra_model = read_sbml_model(MODEL_DIR)
-"""
 
 #GLPK
 glpk_load_statemment = """
@@ -49,27 +42,16 @@ cplex_load_benchmark = Benchmark(cplex_load_statemment, common_setup + read_sbml
 
 
 ##################
-# Simulate model #
+# Solve model #
 ##################
 
 simulate_statement = """
 model.solve()
 """
-
 #GLPK
-glpk_model_setup =  read_sbml_model + """
-model = to_solver_based_model(cobra_model, solve='glpk')
-"""
-
-
 glpk_simulate_benchmark = Benchmark(simulate_statement, common_setup + glpk_model_setup)
 
 #CPLEX
-cplex_model_setup =  read_sbml_model + """
-model = to_solver_based_model(cobra_model, solve='cplex')
-"""
-
-
 cplex_simulate_benchmark = Benchmark(simulate_statement, common_setup + cplex_model_setup)
 
 ######################
@@ -84,7 +66,6 @@ model.critical_reactions()
 glpk_critical_reactions_benchmark = Benchmark(critical_reactions_statement, common_setup + glpk_model_setup)
 
 #CPLEX
-
 cplex_critical_reactions_benchmark = Benchmark(critical_reactions_statement, common_setup + cplex_model_setup)
 
 ##################
@@ -100,4 +81,3 @@ glpk_critical_genes_benchmark = Benchmark(critical_genes_statement, common_setup
 
 #CPLEX
 cplex_critical_reactions_benchmark = Benchmark(critical_genes_statement, common_setup + cplex_model_setup)
-
