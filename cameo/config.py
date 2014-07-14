@@ -19,13 +19,30 @@ import logging
 log = logging.getLogger(__name__)
 
 try:
+    import bokeh
+    use_bokeh = True
+except ImportError:
+    use_bokeh = False
+
+try:
+    import matplotlib
+    use_matplotlib = True
+except ImportError:
+    use_matplotlib = False
+
+try:
     from IPython import parallel
+    from IPython.kernel.zmq import serialize
     client = parallel.Client()
     client.block = True
     default_view = client.direct_view()
-except:
-    from .parallel import SequentialView
-    default_view = SequentialView()
+except Exception:
+    try:
+        from .parallel import MultiprocessingView
+        default_view = MultiprocessingView()
+    except ImportError:
+        from .parallel import SequentialView
+        default_view = SequentialView()
 # except:
 #     log.debug(
 #         'IPython parallel not available ... using std lib multiprocessing')

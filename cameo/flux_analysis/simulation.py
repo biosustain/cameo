@@ -14,6 +14,7 @@
 
 from functools import partial
 from cameo.util import TimeMachine
+from optlang import Variable, Constraint, Objective
 
 
 def fba(model, objective=None):
@@ -28,7 +29,21 @@ def fba(model, objective=None):
 
 
 def pfba(model, objective=None):
-    pass
+    solution = fba(model, objective=objective)
+    tm = TimeMachine()
+    objective_terms = list()
+    additional_constraints = list()
+    for reaction in model.reactions:
+        if reaction.reversibility:
+            aux_variable = Variable(reaction.variable.id + '_aux', lb=0, ub=-1*reaction.lower_bound)
+            tm(do=partial(setattr, reaction, 'lower_bound', 0), undo=partial(setattr, reaction, 'lower_bound', reaction.lower_bound))
+            objective_terms.append(reaction.variable)
+            objective_terms.append(aux_variable)
+            additional_constraints.append(Constraint)
+        else:
+            objective_terms.append(reaction.variable)
+    abs_objective = Objective(sum(objective_terms), name='Minimize total flux', direction='min')
+    tm(do=partial(setattr, model, 'objective', abs_objective))
 
 def moma(model, objective=None):
     pass

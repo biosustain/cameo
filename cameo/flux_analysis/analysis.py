@@ -43,6 +43,8 @@ from sympy.core.singleton import S
 
 from optlang import Objective
 
+from pandas import DataFrame
+
 
 def _ids_to_reactions(model, reactions):
     """translates reaction IDs into reactions (skips reactions)."""
@@ -178,47 +180,36 @@ def production_envelope(model, target, variables=[], points=20, view=None):
     return final_envelope
 
 
-def cycle_free_flux(model, fluxes, fix=[]):
+def phenotypic_phase_plane(model, target, variables=[], points=20, view=None):
+    """Calculate a production envelope ..."""
     tm = TimeMachine()
-    exchange_reactions = model.exchanges
-    exchange_ids = [exchange.id for exchange in exchange_reactions]
-    internal_reactions = [reaction for reaction in model.reactions if reaction.id not in exchange_ids]
-    for exchange in exchange_reactions:
-        exchange_flux = fluxes[exchange.id]
-        tm(do=partial(setattr, exchange, 'lower_bound', exchange_flux),
-           undo=partial(setattr, exchange, 'lower_bound', exchange.lower_bound))
-        tm(do=partial(setattr, exchange, 'upper_bound', exchange_flux),
-           undo=partial(setattr, exchange, 'upper_bound', exchange.upper_bound))
-    obj_terms = list()
-    for internal_reaction in internal_reactions:
-        internal_flux = fluxes[internal_reaction.id]
-        if internal_flux >= 0:
-            obj_terms.append(Mul._from_args([S.One, internal_reaction.variable]))
-            tm(do=partial(setattr, internal_reaction, 'lower_bound', 0),
-               undo=partial(setattr, internal_reaction, 'lower_bound', internal_reaction.lower_bound))
-            tm(do=partial(setattr, internal_reaction, 'upper_bound', internal_flux),
-               undo=partial(setattr, internal_reaction, 'upper_bound', internal_reaction.upper_bound))
-        elif internal_flux < 0:
-            obj_terms.append(Mul._from_args([S.NegativeOne, internal_reaction.variable]))
-            tm(do=partial(setattr, internal_reaction, 'lower_bound', internal_flux),
-               undo=partial(setattr, internal_reaction, 'lower_bound', internal_reaction.lower_bound))
-            tm(do=partial(setattr, internal_reaction, 'upper_bound', 0),
-               undo=partial(setattr, internal_reaction, 'upper_bound', internal_reaction.upper_bound))
-        else:
-            pass
-            # print internal_flux, internal_reaction
-    for reaction_id in fix:
-        reaction_to_fix = model.reactions.get_by_id(reaction_id)
-        tm(do=partial(setattr, reaction_to_fix, 'lower_bound', fluxes[reaction_id]),
-           undo=partial(setattr, reaction_to_fix, 'lower_bound', reaction_to_fix.lower_bound))
-        tm(do=partial(setattr, reaction_to_fix, 'upper_bound', fluxes[reaction_id]),
-           undo=partial(setattr, reaction_to_fix, 'upper_bound', reaction_to_fix.upper_bound))
-    tm(do=partial(setattr, model, 'objective',
-                  Objective(Add._from_args(obj_terms), name='Flux minimization', direction='min', sloppy=True)),
-       undo=partial(setattr, model, 'objective', model.objective))
-    solution = model.optimize()
-    tm.reset()
-    return solution.x_dict
+    original_objective = copy(model.objective)
+    init_bookmark = tm(do=partial(setattr, model, 'objective', target),
+                       undo=partial(setattr, model, 'objective', original_objective))
+    variable_reactions = _ids_to_reactions(model, variables)
+    variables_min_max = flux_variability_analysis(
+        model, reactions=variable_reactions)
+    grid = [numpy.linspace(val['minimum'], val['maximum'], points, endpoint=True)
+            for key, val in variables_min_max.iteritems()]
+    generator = itertools.product(*grid)
+    original_bounds = dict([(reaction, (reaction.lower_bound, reaction.upper_bound))
+                            for reaction in variable_reactions])
+    envelope = OrderedDict()
+    for point in generator:
+        envelope[point] = _production_envelope_inner(
+            model, point, variable_reactions)
+
+    for reaction, bounds in original_bounds.iteritems():
+        reaction.lower_bound = bounds[0]
+        reaction.upper_bound = bounds[1]
+    tm.undo(init_bookmark)
+    final_envelope = OrderedDict()
+    for i, reaction in enumerate(variable_reactions):
+        final_envelope[reaction.id] = [elem[i] for elem in envelope.keys()]
+    final_envelope[target] = envelope.values()
+    return final_envelope
+
+
 
 
 def cycle_free_fva(model, reactions=None, sloppy=False):
@@ -288,3 +279,46 @@ def cycle_free_fva(model, reactions=None, sloppy=False):
             fva_sol[reaction.id]['maximum'] = model.solution.status
     model.objective = original_objective
     return fva_sol
+
+
+def cycle_free_flux(model, fluxes, fix=[]):
+    tm = TimeMachine()
+    exchange_reactions = model.exchanges
+    exchange_ids = [exchange.id for exchange in exchange_reactions]
+    internal_reactions = [reaction for reaction in model.reactions if reaction.id not in exchange_ids]
+    for exchange in exchange_reactions:
+        exchange_flux = fluxes[exchange.id]
+        tm(do=partial(setattr, exchange, 'lower_bound', exchange_flux),
+           undo=partial(setattr, exchange, 'lower_bound', exchange.lower_bound))
+        tm(do=partial(setattr, exchange, 'upper_bound', exchange_flux),
+           undo=partial(setattr, exchange, 'upper_bound', exchange.upper_bound))
+    obj_terms = list()
+    for internal_reaction in internal_reactions:
+        internal_flux = fluxes[internal_reaction.id]
+        if internal_flux >= 0:
+            obj_terms.append(Mul._from_args([S.One, internal_reaction.variable]))
+            tm(do=partial(setattr, internal_reaction, 'lower_bound', 0),
+               undo=partial(setattr, internal_reaction, 'lower_bound', internal_reaction.lower_bound))
+            tm(do=partial(setattr, internal_reaction, 'upper_bound', internal_flux),
+               undo=partial(setattr, internal_reaction, 'upper_bound', internal_reaction.upper_bound))
+        elif internal_flux < 0:
+            obj_terms.append(Mul._from_args([S.NegativeOne, internal_reaction.variable]))
+            tm(do=partial(setattr, internal_reaction, 'lower_bound', internal_flux),
+               undo=partial(setattr, internal_reaction, 'lower_bound', internal_reaction.lower_bound))
+            tm(do=partial(setattr, internal_reaction, 'upper_bound', 0),
+               undo=partial(setattr, internal_reaction, 'upper_bound', internal_reaction.upper_bound))
+        else:
+            pass
+            # print internal_flux, internal_reaction
+    for reaction_id in fix:
+        reaction_to_fix = model.reactions.get_by_id(reaction_id)
+        tm(do=partial(setattr, reaction_to_fix, 'lower_bound', fluxes[reaction_id]),
+           undo=partial(setattr, reaction_to_fix, 'lower_bound', reaction_to_fix.lower_bound))
+        tm(do=partial(setattr, reaction_to_fix, 'upper_bound', fluxes[reaction_id]),
+           undo=partial(setattr, reaction_to_fix, 'upper_bound', reaction_to_fix.upper_bound))
+    tm(do=partial(setattr, model, 'objective',
+                  Objective(Add._from_args(obj_terms), name='Flux minimization', direction='min', sloppy=True)),
+       undo=partial(setattr, model, 'objective', model.objective))
+    solution = model.optimize()
+    tm.reset()
+    return solution.x_dict

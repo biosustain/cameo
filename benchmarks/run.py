@@ -12,13 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+#!/usr/bin/env python
+from vbench.api import BenchmarkRunner
+from suite import *
 
-class StrainDesignMethod(object):
-    def __init__(self, *args, **kwargs):
-        super(StrainDesignMethod, self).__init__(*args, **kwargs)
 
-    def __call__(self, *args, **kwargs):
-        self.run(*args, **kwargs)
+def run_process():
+    for benchmark in benchmarks:
+        print benchmark
 
-    def run(self, *args, **kwargs):
-        raise NotImplementedError
+    runner = BenchmarkRunner(benchmarks, REPO_PATH, REPO_URL,
+                             BUILD, DB_PATH, TMP_DIR, PREPARE,
+                             always_clean=True,
+                             run_option='eod', start_date=START_DATE,
+                             module_dependencies=dependencies)
+    runner.run()
+
+if __name__ == '__main__':
+    run_process()

@@ -12,13 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+common_setup = """
+from cameo.solver_base_model import to_solver_based_model
+from cobra.io import read_sbml_model
+"""
 
-class StrainDesignMethod(object):
-    def __init__(self, *args, **kwargs):
-        super(StrainDesignMethod, self).__init__(*args, **kwargs)
+#cobrapy model
+read_sbml_model = """
+cobra_model = read_sbml_model(MODEL_DIR)
+"""
 
-    def __call__(self, *args, **kwargs):
-        self.run(*args, **kwargs)
+#GLPK model
+glpk_model_setup = read_sbml_model + """
+model = to_solver_based_model(cobra_model, solve='glpk')
+"""
 
-    def run(self, *args, **kwargs):
-        raise NotImplementedError
+#CPLEX model
+cplex_model_setup = read_sbml_model + """
+model = to_solver_based_model(cobra_model, solve='cplex')
+"""
+
