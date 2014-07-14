@@ -13,7 +13,13 @@
 # limitations under the License.
 
 common_setup = """
-from cameo.solver_base_model import to_solver_based_model
+import os
+BENCHMARKS_DIR = os.path.dirname(__file__)
+
+MODEL_DIR = os.path.join(BENCHMARKS_DIR, "../tests/data/iJO1366.xml")
+
+
+from cameo.solver_based_model import to_solver_based_model
 from cobra.io import read_sbml_model
 """
 

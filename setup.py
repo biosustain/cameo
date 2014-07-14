@@ -15,14 +15,15 @@
 
 
 from setuptools import setup, find_packages
-from optlang import __version__
+from cameo import __version__
 
-with open('requirements.txt') as fhandle:
-    requirements = [line.strip() for line in fhandle]
+#with open('requirements.txt') as fhandle:
+#    requirements = [line.strip() for line in fhandle]
 
+requirements = []
 dependency_links = [
-    'https://github.com/biosustain/optlang.git@devel#egg=optlang',
-    'https://github.com/biosustain/ipython_notebook_utils.git@master#egg=ipython_notebook_utils'
+    'git+https://github.com/biosustain/optlang.git@devel#egg=optlang',
+    'git+https://github.com/biosustain/ipython_notebook_utils.git@master#egg=ipython_notebook_utils'
 ]
 
 
