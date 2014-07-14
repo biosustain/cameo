@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import os
+from datetime import datetime
 from vbench.benchmark import Benchmark
 from common import *
 
@@ -30,7 +31,9 @@ glpk_load_statemment = """
 model = to_solver_based_model(cobra_model, solve='glpk')
 """
 
-glpk_load_benchmark = Benchmark(glpk_load_statemment, common_setup + read_sbml_model)
+glpk_load_benchmark = Benchmark(glpk_load_statemment,
+                                common_setup + read_sbml_model,
+                                start_date=datetime(2014, 7, 15))
 
 
 #CPLEX
@@ -38,7 +41,9 @@ cplex_load_statemment = """
 model = to_solver_based_model(cobra_model, solve='cplex')
 """
 
-cplex_load_benchmark = Benchmark(cplex_load_statemment, common_setup + read_sbml_model)
+cplex_load_benchmark = Benchmark(cplex_load_statemment,
+                                 common_setup + read_sbml_model,
+                                 start_date=datetime(2014, 7, 15))
 
 
 ##################
@@ -49,10 +54,14 @@ simulate_statement = """
 model.solve()
 """
 #GLPK
-glpk_simulate_benchmark = Benchmark(simulate_statement, common_setup + glpk_model_setup)
+glpk_simulate_benchmark = Benchmark(simulate_statement,
+                                    common_setup + glpk_model_setup,
+                                    start_date=datetime(2014, 7, 15))
 
 #CPLEX
-cplex_simulate_benchmark = Benchmark(simulate_statement, common_setup + cplex_model_setup)
+cplex_simulate_benchmark = Benchmark(simulate_statement,
+                                     common_setup + cplex_model_setup,
+                                     start_date=datetime(2014, 7, 15))
 
 ######################
 # Critical reactions #
@@ -63,10 +72,14 @@ model.critical_reactions()
 """
 
 #GLPK
-glpk_critical_reactions_benchmark = Benchmark(critical_reactions_statement, common_setup + glpk_model_setup)
+glpk_critical_reactions_benchmark = Benchmark(critical_reactions_statement,
+                                              common_setup + glpk_model_setup,
+                                              start_date=datetime(2014, 7, 15))
 
 #CPLEX
-cplex_critical_reactions_benchmark = Benchmark(critical_reactions_statement, common_setup + cplex_model_setup)
+cplex_critical_reactions_benchmark = Benchmark(critical_reactions_statement,
+                                               common_setup + cplex_model_setup,
+                                               start_date=datetime(2014, 7, 15))
 
 ##################
 # Critical genes #
@@ -77,7 +90,11 @@ model.critical_genes()
 """
 
 #GLPK
-glpk_critical_genes_benchmark = Benchmark(critical_genes_statement, common_setup + glpk_model_setup)
+glpk_critical_genes_benchmark = Benchmark(critical_genes_statement,
+                                          common_setup + glpk_model_setup,
+                                          start_date=datetime(2014, 7, 15))
 
 #CPLEX
-cplex_critical_reactions_benchmark = Benchmark(critical_genes_statement, common_setup + cplex_model_setup)
+cplex_critical_reactions_benchmark = Benchmark(critical_genes_statement,
+                                               common_setup + cplex_model_setup,
+                                               start_date=datetime(2014, 7, 15))

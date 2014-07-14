@@ -16,6 +16,7 @@
 #############################
 # Flux Variability Analysis #
 #############################
+from datetime import datetime
 from vbench.benchmark import Benchmark
 from common import *
 
@@ -32,10 +33,14 @@ flux_variability_analysis(model)
 """
 
 #GLPK
-glpk_fva_benchmark = Benchmark(fva_statement, common_setup + fva_setup + glpk_model_setup)
+glpk_fva_benchmark = Benchmark(fva_statement,
+                               common_setup + fva_setup + glpk_model_setup,
+                               start_date=datetime(2014, 7, 15))
 
 #CPLEX
-cplex_fva_benchmark = Benchmark(fva_statement, common_setup + fva_setup + cplex_model_setup)
+cplex_fva_benchmark = Benchmark(fva_statement,
+                                common_setup + fva_setup + cplex_model_setup,
+                                start_date=datetime(2014, 7, 15))
 
 ######################
 # Simulation methods #
@@ -51,7 +56,11 @@ fba(model)
 """
 
 #GLPK
-glpk_fba_benchmark = Benchmark(fba_statement, common_setup + simulation_setup + glpk_model_setup)
+glpk_fba_benchmark = Benchmark(fba_statement,
+                               common_setup + simulation_setup + glpk_model_setup,
+                               start_date=datetime(2014, 7, 15))
 
 #CPLEX
-cplex_fba_benchmark = Benchmark(fba_statement, common_setup + simulation_setup + cplex_model_setup)
+cplex_fba_benchmark = Benchmark(fba_statement,
+                                common_setup + simulation_setup + cplex_model_setup,
+                                start_date=datetime(2014, 7, 15))
