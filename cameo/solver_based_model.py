@@ -90,7 +90,7 @@ class LazySolution(object):
 
     def _check_freshness(self):
         if self._time_stamp != self.model._timestamp_last_optimization:
-            raise Exception(
+            raise UndefinedSolution(
                 'The solution (capture around %s) has become invalid as the model has been re-optimized recently (%s).' % (
                     time.ctime(self._time_stamp), time.ctime(self.model._timestamp_last_optimization)))
 
@@ -153,10 +153,14 @@ class Reaction(OriginalReaction):
     """docstring for Reaction"""
 
     @classmethod
-    def clone(cls, reaction):
+    def clone(cls, reaction, model=None):
         new_reaction = cls(name=reaction.name)
         for attribute, value in reaction.__dict__.iteritems():
             setattr(new_reaction, attribute, value)
+        if not isinstance(reaction.get_model(), SolverBasedModel):
+            new_reaction._model = None
+        if model is not None:
+            new_reaction._model = model
         return new_reaction
 
     def __init__(self, name=None):
@@ -356,7 +360,7 @@ class SolverBasedModel(Model):
         cloned_reaction_list = list()
         for reaction in reaction_list:  # this is necessary for cobrapy compatibility
             if not isinstance(reaction, Reaction):
-                cloned_reaction_list.append(Reaction.clone(reaction))
+                cloned_reaction_list.append(Reaction.clone(reaction, model=self))
             else:
                 cloned_reaction_list.append(reaction)
         for reaction in cloned_reaction_list:

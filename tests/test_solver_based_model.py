@@ -7,6 +7,9 @@ import unittest
 import os
 from optlang import Objective
 from cameo import load_model
+from cameo.exceptions import UndefinedSolution
+from cameo.solver_based_model import Reaction
+from cobra.io import read_sbml_model
 
 
 TESTDIR = os.path.dirname(__file__)
@@ -29,10 +32,27 @@ class TestLazySolution(CommonGround):
         solution = self.model.optimize()
         self.assertAlmostEqual(solution.f, 0.873921506968431, delta=0.000001)
         self.model.optimize()
-        self.assertRaises(Exception, getattr, solution, 'f')
+        self.assertRaises(UndefinedSolution, getattr, solution, 'f')
 
 
-class TestOptlangBasedModel(CommonGround):
+class TestReaction(unittest.TestCase):
+    def setUp(self):
+        self.cobrapy_model = read_sbml_model(os.path.join(TESTDIR, 'data/EcoliCore.xml'))
+
+    def test_clone_cobrapy_reaction(self):
+        for reaction in self.cobrapy_model.reactions:
+            cloned_reaction = Reaction.clone(reaction)
+            self.assertEqual(cloned_reaction.objective_coefficient, reaction.objective_coefficient)
+            self.assertEqual(cloned_reaction.gene_reaction_rule, reaction.gene_reaction_rule)
+            self.assertEqual(cloned_reaction.genes, reaction.genes)
+            self.assertEqual(cloned_reaction.metabolites, reaction.metabolites)
+            self.assertEqual(cloned_reaction.get_products(), reaction.get_products())
+            self.assertEqual(cloned_reaction.get_reactants(), reaction.get_reactants())
+            self.assertEqual(cloned_reaction.get_model(), None)
+            self.assertEqual(cloned_reaction.variable, None)
+
+
+class TestSolverBasedModel(CommonGround):
     def test_reactions_and_variables_match(self):
         reactions = self.model.reactions
         for reaction in reactions:
