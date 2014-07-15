@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import Queue
-from multiprocessing import Pool
+from multiprocessing import Pool, cpu_count
 
 
 class MultiprocessingView(object):
@@ -21,20 +21,27 @@ class MultiprocessingView(object):
     """docstring for Parallel"""
 
     def __init__(self, *args, **kwargs):
-        # super(MultiprocessingView, self).__init__(*args, **kwargs)
-        self.pool = Pool(*args, **kwargs)
+        self._args = args
+        self._kwargs = kwargs
+        self.pool = None
 
     def map(self, *args, **kwargs):
+        if self.pool is None:
+            self.pool = Pool(*self._args, **self._kwargs)
         return self.pool.map(*args, **kwargs)
 
     def apply(self, func, *args, **kwargs):
-        self.pool.apply(func, args=args, **kwargs)
+        if self.pool is None:
+            self.pool = Pool(*self._args, **self._kwargs)
+        return self.pool.apply(func, args=args, **kwargs)
 
     def apply_async(self, func, *args, **kwargs):
+        if self.pool is None:
+            self.pool = Pool(*self._args, **self._kwargs)
         self.pool.apply_async(func, args=args, **kwargs)
 
     def __len__(self):
-        return self.pool._processes
+        return cpu_count()
 
     def shutdown(self):
         self.pool.terminate()
@@ -119,10 +126,10 @@ class SequentialView(object):
         return map(*args, **kwargs)
 
     def apply(self, func, *args, **kwargs):
-        return apply(func, args=args, **kwargs)
+        return func(*args, **kwargs)
 
     def apply_async(self, func, *args, **kwargs):
-        return apply(func, args=args, **kwargs)
+        return func(*args, **kwargs)
 
     def __len__(self):
         return 1

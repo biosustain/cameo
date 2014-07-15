@@ -11,23 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-#!/usr/bin/env python
-from vbench.api import BenchmarkRunner
-from suite import *
+from cameo.parallel import MultiprocessingView
+import sys
 
 
-def run_process():
-    for benchmark in benchmarks:
-        print benchmark
+def proc(i):
+    return sys.api_version
 
-    runner = BenchmarkRunner(benchmarks, REPO_PATH, REPO_URL,
-                             BUILD, DB_PATH, TMP_DIR, PREPARE,
-                             always_clean=True,
-                             run_option='eod', start_date=START_DATE,
-                             module_dependencies=dependencies)
-    runner.run()
+view = MultiprocessingView()
 
-if __name__ == '__main__':
-    run_process()
-    generate_rst_files(benchmarks)
+print view.map(proc, xrange(10))

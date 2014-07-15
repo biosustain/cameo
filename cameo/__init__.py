@@ -15,5 +15,9 @@
 
 __version__ = 'v0.0.0'
 
-from .io import load_model
+try:
+    from .io import load_model
+except ImportError:
+    pass
+
 import config

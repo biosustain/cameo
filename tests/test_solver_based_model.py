@@ -6,13 +6,15 @@ import unittest
 
 import os
 from optlang import Objective
-from optlang import glpk_interface, cplex_interface
-
 from cameo import load_model
 
 
 TESTDIR = os.path.dirname(__file__)
 TESTMODEL = load_model(os.path.join(TESTDIR, 'data/EcoliCore.xml'))
+ESSENTIAL_GENES = ['b2779', 'b1779', 'b0720', 'b0451', 'b2416', 'b2926', 'b1136', 'b2415']
+ESSENTIAL_REACTIONS = ['GLNS', 'Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2', 'PIt2r', 'GAPD', 'ACONTb',
+                       'EX_nh4_LPAREN_e_RPAREN_', 'ENO', 'EX_h_LPAREN_e_RPAREN_', 'EX_glc_LPAREN_e_RPAREN_', 'ICDHyr',
+                       'CS', 'NH4t', 'GLCpts', 'PGM', 'EX_pi_LPAREN_e_RPAREN_', 'PGK', 'RPI', 'ACONTa']
 
 
 class CommonGround(unittest.TestCase):
@@ -25,7 +27,7 @@ class CommonGround(unittest.TestCase):
 class TestLazySolution(CommonGround):
     def test_self_invalidation(self):
         solution = self.model.optimize()
-        self.assertAlmostEqual(solution.f, 0.873921506968431)
+        self.assertAlmostEqual(solution.f, 0.873921506968431, delta=0.000001)
         self.model.optimize()
         self.assertRaises(Exception, getattr, solution, 'f')
 
@@ -57,7 +59,6 @@ class TestOptlangBasedModel(CommonGround):
 
     def test_objective(self):
         obj = self.model.objective
-        print obj
         self.assertEqual(
             obj.__str__(), 'Maximize\n1.0*Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2')
 
@@ -76,9 +77,15 @@ class TestOptlangBasedModel(CommonGround):
         primals_copy = [variable.primal for variable in model_cp.solver.variables.values()]
         self.assertEqual(primals_copy, primals_original)
 
+    def test_essential_genes(self):
+        essential_genes = [g.id for g in self.model.essential_genes()]
+        self.assertItemsEqual(essential_genes, ESSENTIAL_GENES)
+
+    def test_essential_reactions(self):
+        essential_reactions = [r.id for r in self.model.essential_reactions()]
+        self.assertItemsEqual(essential_reactions, ESSENTIAL_REACTIONS)
+
 
 if __name__ == '__main__':
     import nose
-
     nose.runmodule()
-    

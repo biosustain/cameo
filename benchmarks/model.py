@@ -12,14 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 from datetime import datetime
 from vbench.benchmark import Benchmark
 from common import *
 
-BENCHMARKS_DIR = os.path.dirname(__file__)
-
-MODEL_DIR = os.path.join(BENCHMARKS_DIR, "../examples/data/iJO1366.xml")
 
 #########################
 # Load model benchmarks #

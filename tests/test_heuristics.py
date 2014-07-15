@@ -17,6 +17,7 @@ import os
 import unittest
 from cameo import load_model
 from cameo.strain_design.heuristic.archivers import SolutionTuple, BestSolutionArchiver
+from cameo.strain_design.heuristic.decoders import ReactionKnockoutDecoder, KnockoutDecoder, GeneKnockoutDecoder
 from cameo.strain_design.heuristic.objective_functions import biomass_product_coupled_yield, product_yield, \
     number_of_knockouts
 from cobra.manipulation.delete import find_gene_knockout_reactions
@@ -144,14 +145,18 @@ class TestBestSolutionArchiver(unittest.TestCase):
         pool.add(SOLUTIONS[9][0], SOLUTIONS[9][1], size)
         self.assertLessEqual(pool.length(), 4, msg="Pool must keep one solution (length=%s)" % pool.length())
 
+
 class TestObjectiveFunctions(unittest.TestCase):
     lvaline_sol = ["b0115", "b3236", "b3916"] #aceF, mdh, pfkA from Park et al. 2007 (PNAS)
 
+    def setUp(self):
+        self.model = load_model(iJO1366_PATH)
+
     def test_biomass_product_coupled_yield(self):
-        model = load_model(iJO1366_PATH)
+
         of = biomass_product_coupled_yield("Ec_biomass_iJO1366_core_53p95M", "EX_succ_LPAREN_e_RPAREN_",
                                            "EX_glc_LPAREN_e_RPAREN_")
-        reactions = find_gene_knockout_reactions(model, [model.genes.get_by_id(gene) for gene in self.lvaline_sol])
+        reactions = find_gene_knockout_reactions(self.model, [self.model.genes.get_by_id(gene) for gene in self.lvaline_sol])
         tm = TimeMachine()
         for reaction in reactions:
             tm(do=partial(setattr, reaction, 'lower_bound', 0),
@@ -159,14 +164,13 @@ class TestObjectiveFunctions(unittest.TestCase):
             tm(do=partial(setattr, reaction, 'upper_bound', 0),
                undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
 
-        solution = model.optimize()
+        solution = self.model.optimize()
+        fitness = of(self.model, solution, [reactions, self.lvaline_sol])
         tm.reset()
-        print of(model, solution, [reactions, self.lvaline_sol])
 
     def test_yield(self):
-        model = load_model(iJO1366_PATH)
         of = product_yield("EX_succ_LPAREN_e_RPAREN_", "EX_glc_LPAREN_e_RPAREN_")
-        reactions = find_gene_knockout_reactions(model, [model.genes.get_by_id(gene) for gene in self.lvaline_sol])
+        reactions = find_gene_knockout_reactions(self.model, [self.model.genes.get_by_id(gene) for gene in self.lvaline_sol])
         tm = TimeMachine()
         for reaction in reactions:
             tm(do=partial(setattr, reaction, 'lower_bound', 0),
@@ -174,14 +178,13 @@ class TestObjectiveFunctions(unittest.TestCase):
             tm(do=partial(setattr, reaction, 'upper_bound', 0),
                undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
 
-        solution = model.optimize()
+        solution = self.model.optimize()
+        fitness = of(self.model, solution, [reactions, self.lvaline_sol])
         tm.reset()
-        print of(model, solution, [reactions, self.lvaline_sol])
 
     def test_number_of_knockouts(self):
-        model = load_model(iJO1366_PATH)
         of = number_of_knockouts(sense='min')
-        reactions = find_gene_knockout_reactions(model, [model.genes.get_by_id(gene) for gene in self.lvaline_sol])
+        reactions = find_gene_knockout_reactions(self.model, [self.model.genes.get_by_id(gene) for gene in self.lvaline_sol])
         tm = TimeMachine()
         for reaction in reactions:
             tm(do=partial(setattr, reaction, 'lower_bound', 0),
@@ -189,6 +192,26 @@ class TestObjectiveFunctions(unittest.TestCase):
             tm(do=partial(setattr, reaction, 'upper_bound', 0),
                undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
 
-        solution = model.optimize()
+        solution = self.model.optimize()
+        fitness = of(self.model, solution, [reactions, self.lvaline_sol])
         tm.reset()
-        print of(model, solution, [reactions, self.lvaline_sol])
+
+
+class TestDecoders(unittest.TestCase):
+    def setUp(self):
+        self.model = load_model(iJO1366_PATH)
+
+    def test_abstract_decoder(self):
+        decoder = KnockoutDecoder(None, self.model)
+        self.assertRaises(NotImplementedError, decoder, [])
+
+    def test_reaction_knockout_decoder(self):
+        decoder = ReactionKnockoutDecoder([r.id for r in self.model.reactions], self.model)
+        reactions1, reactions2 = decoder([1, 2, 3, 4])
+        self.assertItemsEqual(reactions1, reactions2)
+
+    def test_gene_knockout_decoder(self):
+        decoder = GeneKnockoutDecoder([g.id for g in self.model.genes], self.model)
+        reactions1, genes = decoder([1, 2, 3, 4])
+        reactions2 = [r.id for r in find_gene_knockout_reactions(self.model, genes)]
+        self.assertItemsEqual(reactions1, reactions2)
