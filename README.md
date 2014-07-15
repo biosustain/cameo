@@ -20,4 +20,3 @@ This library dependes on
 - [optlang](https://github.com/biosustain/optlang) for heuristic optimization and mathematical programming
 
 Computationally heavy methods have been parallelized and can be run on a clusters using the IPython parallelization framework (see example and documetnation for more details). The default fallback is python's multiprocessing library.
-
