@@ -1,7 +1,7 @@
 ## cameo - computer assisted metabolic engineering & optimization
 
-[![Build Status](https://travis-ci.org/biosustain/cameo.svg?branch=master)](https://travis-ci.org/biosustain/cameo)
-[![Coverage Status](https://coveralls.io/repos/biosustain/cameo/badge.png?branch=master)](https://coveralls.io/r/biosustain/cameo?branch=joao)
+[![Build Status](https://travis-ci.org/biosustain/cameo.svg?branch=devel)](https://travis-ci.org/biosustain/cameo)
+[![Coverage Status](https://coveralls.io/repos/biosustain/cameo/badge.png?branch=devel)](https://coveralls.io/r/biosustain/cameo?branch=joao)
 
 ### Vision
 Provide a high-level python library to aid the strain design efforts of the CFB iLoop design group. The library provides a modular architecture that enables the efficient construction of custom analysis workflows.
