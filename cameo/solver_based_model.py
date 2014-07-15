@@ -54,6 +54,7 @@ def to_solver_based_model(cobrapy_model, solver_interface=optlang, deepcopy_mode
     for reaction in solver_based_model.reactions:
         new_reaction = Reaction(name=reaction.name)
         new_reaction.__dict__.update(reaction.__dict__)
+        new_reaction._objective_coefficient = reaction.objective_coefficient
         new_reactions.append(new_reaction)
     solver_based_model.reactions = new_reactions
     for metabolite in solver_based_model.metabolites:
