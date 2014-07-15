@@ -61,9 +61,7 @@ def _ids_to_reactions(model, reactions):
 
 def _flux_variability_analysis(model, reactions=None):
     """Flux-variability analysis."""
-    # tm = TimeMachine()
     original_objective = copy(model.objective)
-    # tm(do=, undo=partial(setattr, model, 'objective', original_objective))
     if reactions is None:
         reactions = model.reactions
     else:
@@ -71,7 +69,6 @@ def _flux_variability_analysis(model, reactions=None):
     fva_sol = OrderedDict()
     for reaction in reactions:
         fva_sol[reaction.id] = dict()
-        # tm(do=partial(setattr, model, 'objective', reaction), undo=partial(setattr, model, 'objective', original_objective))
         model.objective = reaction
         model.objective.direction = 'min'
         solution = model.optimize()
@@ -79,9 +76,7 @@ def _flux_variability_analysis(model, reactions=None):
             fva_sol[reaction.id]['minimum'] = model.solution.f
         else:
             fva_sol[reaction.id]['minimum'] = model.solution.status
-            # tm.reset()
     for reaction in reactions:
-        # tm(do=partial(setattr, model, 'objective', reaction), undo=partial(setattr, model, 'objective', original_objective))
         model.objective = reaction
         model.objective.direction = 'max'
         solution = model.optimize()
@@ -89,29 +84,27 @@ def _flux_variability_analysis(model, reactions=None):
             fva_sol[reaction.id]['maximum'] = model.solution.f
         else:
             fva_sol[reaction.id]['maximum'] = model.solution.status
-            # tm.reset()
     model.objective = original_objective
     return fva_sol
 
 
+class FvaFunctionObject(object):
+    """"""
+    def __init__(self, model, fva):
+        self.model = model
+        self.fva = fva
+
+    def __call__(self, reactions):
+        return self.fva(self.model, reactions)
+
+
 def flux_variability_analysis(model, reactions=None, view=config.default_view):
     """Flux-variability analysis."""
-
-    class _FvaFunctionObject(object):
-        """"""
-        def __init__(self, model):
-            self.model = model
-
-        def __call__(self, reactions):
-            return _flux_variability_analysis(self.model, reactions)
-
     if reactions is None:
         reactions = model.reactions
     reaction_chunks = (chunk for chunk in partition(reactions, len(view)))
-
-    func_obj = _FvaFunctionObject(model)
+    func_obj = FvaFunctionObject(model, _flux_variability_analysis)
     chunky_results = view.map(func_obj, reaction_chunks)
-    # chunky_results = view.map(lambda reactions, model=model:_flux_variability_analysis(model, reactions), reaction_chunks)
     solution = {}
     for dictionary in chunky_results:
         solution.update(dictionary)

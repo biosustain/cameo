@@ -25,7 +25,7 @@ class CommonGround(unittest.TestCase):
 class TestLazySolution(CommonGround):
     def test_self_invalidation(self):
         solution = self.model.optimize()
-        self.assertAlmostEqual(solution.f, 0.873921506968431)
+        self.assertAlmostEqual(solution.f, 0.873921506968431, delta=0.000001)
         self.model.optimize()
         self.assertRaises(Exception, getattr, solution, 'f')
 
@@ -57,7 +57,6 @@ class TestOptlangBasedModel(CommonGround):
 
     def test_objective(self):
         obj = self.model.objective
-        print obj
         self.assertEqual(
             obj.__str__(), 'Maximize\n1.0*Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2')
 

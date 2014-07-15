@@ -6,7 +6,7 @@ import unittest
 import os
 
 import cameo
-from cameo.parallel import SequentialView
+from cameo.parallel import SequentialView, MultiprocessingView
 
 
 cameo.config.default_view = SequentialView()
@@ -120,40 +120,27 @@ REFERENCE_FVA_SOLUTION_ECOLI_CORE = {'G6PDH2r': {'minimum': 4.959736180498324, '
                                      'ACt2r': {'minimum': -2.2122727921569663e-05, 'maximum': -0.0}}
 
 CORE_MODEL = load_model(os.path.join(TESTDIR, 'data/EcoliCore.xml'))
-# iJO1366_MODEL = load_model(os.path.join(TESTDIR, 'data/iJO1366.pickle'))
 
 
 class TestFluxVariabilityAnalysis(unittest.TestCase):
     def setUp(self):
         self.model = CORE_MODEL
-        # self.model_iJO133 = iJO1366_MODEL
-        # self.iJO1366_MODEL.Ec_biomass_iJO1366_core_53p95M.lower_bound = iJO1366_MODEL.optimize().f
-        self.model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = 0.873921
-        self.cobrapy_model = read_sbml_model(os.path.join(TESTDIR, 'data/EcoliCore.xml'))
-        # self.cobrapy_fva_result = original_fva(self.cobrapy_model)
+        self.biomass_flux = 0.873921
+        self.model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = self.biomass_flux
+        self.model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.upper_bound = self.biomass_flux
 
     def test_flux_variability_sequential(self):
-        fva_solution = _flux_variability_analysis(self.model)
-        # for key, val in fva_solution.iteritems():
-        #     print key
-        #     print val
-        #     print self.cobrapy_fva_result[key]
-        #     self.assertAlmostEqual(val['maximum'], self.cobrapy_fva_result[key]['maximum'], places=4)
-        #     self.assertAlmostEqual(val['minimum'], self.cobrapy_fva_result[key]['minimum'], places=4)
+        fva_solution = flux_variability_analysis(self.model, view=SequentialView())
         for key, val in fva_solution.iteritems():
             self.assertAlmostEqual(val['maximum'], REFERENCE_FVA_SOLUTION_ECOLI_CORE[key]['maximum'])
             self.assertAlmostEqual(val['minimum'], REFERENCE_FVA_SOLUTION_ECOLI_CORE[key]['minimum'])
 
     def test_flux_variability_parallel(self):
-        # self.assertTrue(isinstance(default_view, MultiprocessingView))
-        fva_solution = flux_variability_analysis(self.model)
+        fva_solution = flux_variability_analysis(self.model, view=MultiprocessingView())
         for key, val in fva_solution.iteritems():
             self.assertAlmostEqual(val['maximum'], REFERENCE_FVA_SOLUTION_ECOLI_CORE[key]['maximum'])
             self.assertAlmostEqual(val['minimum'], REFERENCE_FVA_SOLUTION_ECOLI_CORE[key]['minimum'])
-            # fva_solution = flux_variability_analysis(self.model_iJO133)
-            # for key, val in fva_solution.iteritems():
-            #     self.assertAlmostEqual(val['maximum'], REFERENCE_FVA_SOLUTION_iJO1366[key]['maximum'])
-            #     self.assertAlmostEqual(val['minimum'], REFERENCE_FVA_SOLUTION_iJO1366[key]['minimum']
+
 
 
 if __name__ == '__main__':

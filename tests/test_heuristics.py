@@ -144,6 +144,7 @@ class TestBestSolutionArchiver(unittest.TestCase):
         pool.add(SOLUTIONS[9][0], SOLUTIONS[9][1], size)
         self.assertLessEqual(pool.length(), 4, msg="Pool must keep one solution (length=%s)" % pool.length())
 
+
 class TestObjectiveFunctions(unittest.TestCase):
     lvaline_sol = ["b0115", "b3236", "b3916"] #aceF, mdh, pfkA from Park et al. 2007 (PNAS)
 
@@ -161,7 +162,6 @@ class TestObjectiveFunctions(unittest.TestCase):
 
         solution = model.optimize()
         tm.reset()
-        print of(model, solution, [reactions, self.lvaline_sol])
 
     def test_yield(self):
         model = load_model(iJO1366_PATH)
@@ -176,7 +176,6 @@ class TestObjectiveFunctions(unittest.TestCase):
 
         solution = model.optimize()
         tm.reset()
-        print of(model, solution, [reactions, self.lvaline_sol])
 
     def test_number_of_knockouts(self):
         model = load_model(iJO1366_PATH)
@@ -191,4 +190,3 @@ class TestObjectiveFunctions(unittest.TestCase):
 
         solution = model.optimize()
         tm.reset()
-        print of(model, solution, [reactions, self.lvaline_sol])

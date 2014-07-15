@@ -11,13 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from IPython.parallel.error import CompositeError
 
 from cameo.strain_design.heuristic.multiprocess import MultiprocessReactionKnockoutOptimization
 from cameo.strain_design.heuristic.objective_functions import biomass_product_coupled_yield
 from cameo.flux_analysis.simulation import fba
 from cameo.solver_based_model import to_solver_based_model
-from cameo.parallel import MultiprocessingView
 from cobra.io import read_sbml_model
 from optlang import glpk_interface
 import inspyred
@@ -31,9 +29,5 @@ mp = MultiprocessReactionKnockoutOptimization(model=model, heuristic_method=insp
                                               objective_function=of, simulation_method=fba)
 
 
-try:
-    mp.run(max_evaluations=300, n=2)
-except CompositeError as c:
-    for e in c.elist:
-        for v in e:
-            print v
+mp.run(max_evaluations=300, n=2)
+
