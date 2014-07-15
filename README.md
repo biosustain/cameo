@@ -1,3 +1,6 @@
+[![Build Status](https://travis-ci.org/biosustain/cameo.svg?branch=master)](https://travis-ci.org/biosustain/cameo)
+[![Coverage Status](https://coveralls.io/repos/biosustain/cameo/badge.png?branch=master)](https://coveralls.io/r/biosustain/cameo?branch=joao)
+
 cameo - computer assisted metabolic engineering & optimization
 =======
 
