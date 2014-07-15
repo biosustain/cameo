@@ -33,7 +33,7 @@ class MultiprocessingView(object):
     def apply(self, func, *args, **kwargs):
         if self.pool is None:
             self.pool = Pool(*self._args, **self._kwargs)
-        self.pool.apply(func, args=args, **kwargs)
+        return self.pool.apply(func, args=args, **kwargs)
 
     def apply_async(self, func, *args, **kwargs):
         if self.pool is None:
@@ -126,10 +126,10 @@ class SequentialView(object):
         return map(*args, **kwargs)
 
     def apply(self, func, *args, **kwargs):
-        return apply(func, args=args, **kwargs)
+        return func(*args, **kwargs)
 
     def apply_async(self, func, *args, **kwargs):
-        return apply(func, args=args, **kwargs)
+        return func(*args, **kwargs)
 
     def __len__(self):
         return 1

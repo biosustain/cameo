@@ -2,30 +2,50 @@
 # See LICENSE for details.
 
 import unittest
+from cameo.parallel import SequentialView
 import subprocess
 from time import sleep
 
 from IPython.parallel import Client, interactive
 
+SOLUTION = map(lambda x: x ** 2, range(100))
+
+
+@interactive
+def to_the_power_of_2_interactive(arg):
+    return arg ** 2
+
+
+def to_the_power_of_2(arg):
+    return arg ** 2
+
+
+class TestSequentialView(unittest.TestCase):
+
+    def setUp(self):
+        self.view = SequentialView()
+
+    def test_map(self):
+        self.assertEqual(self.view.map(to_the_power_of_2, range(100)), SOLUTION)
+
+    def test_apply(self):
+        for i in xrange(100):
+            self.assertEqual(self.view.apply(to_the_power_of_2, i), SOLUTION[i])
+
 try:
     from cameo.parallel import MultiprocessingView
-
-
-    @interactive
-    def to_the_power_of_2_interactive(arg):
-        return arg ** 2
-
-
-    def to_the_power_of_2(arg):
-        return arg ** 2
-
 
     class TestMultiprocessingView(unittest.TestCase):
         def setUp(self):
             self.view = MultiprocessingView()
 
         def test_map(self):
-            self.assertEqual(self.view.map(to_the_power_of_2, range(100)), map(lambda x: x ** 2, range(100)))
+            self.assertEqual(self.view.map(to_the_power_of_2, range(100)), SOLUTION)
+
+        def test_apply(self):
+            for i in xrange(100):
+                self.assertEqual(self.view.apply(to_the_power_of_2, i), SOLUTION[i])
+
 except ImportError:
     print "Skipping MultiprocessingView tests ..."
 

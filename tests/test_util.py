@@ -4,7 +4,7 @@
 import unittest
 from functools import partial
 
-from cameo.util import TimeMachine
+from cameo.util import TimeMachine, generate_colors
 
 
 class TimeMachineTestCase(unittest.TestCase):
@@ -25,3 +25,9 @@ class TimeMachineTestCase(unittest.TestCase):
         partial_function = partial(str, 1)
         self.tm(do=normal_function, undo=partial_function)
         self.assertEqual(self.tm.__str__().split('\n')[2:-1], ["undo: <type 'str'> (1,) None", 'redo: normal_function'])
+
+class TestUtils(unittest.TestCase):
+    def test_color_generation(self):
+        for i in xrange(1, 100):
+            color_map = generate_colors(i)
+            self.assertEqual(len(color_map), i)

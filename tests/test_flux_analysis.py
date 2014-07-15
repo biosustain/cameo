@@ -6,6 +6,7 @@ import unittest
 import os
 
 import cameo
+from cameo.flux_analysis.simulation import fba, pfba
 from cameo.parallel import SequentialView, MultiprocessingView
 
 
@@ -141,9 +142,31 @@ class TestFluxVariabilityAnalysis(unittest.TestCase):
             self.assertAlmostEqual(val['minimum'], REFERENCE_FVA_SOLUTION_ECOLI_CORE[key]['minimum'], delta=0.000001)
 
 
+class TestSimulationMethods(unittest.TestCase):
+    def setUp(self):
+        self.model = CORE_MODEL
+        self.biomass_flux = 0.873921
+        self.model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = self.biomass_flux
+
+    def test_fba(self):
+        model = self.model.copy()
+        solution = fba(model)
+        self.assertAlmostEqual(self.biomass_flux, solution.f, delta=0.000001)
+
+    def test_pfba(self):
+        pass
+        #model = self.model.copy()
+        #solution = pfba(model)
+        #self.assertAlmostEqual(self.biomass_flux, solution.f, delta=0.000001)
+        #assert net conversion
+
+    def test_moma(self):
+        pass
+
+    def test_lmoma(self):
+        pass
+
 
 if __name__ == '__main__':
     import nose
-
     nose.runmodule()
-    

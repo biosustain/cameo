@@ -203,8 +203,6 @@ def phenotypic_phase_plane(model, target, variables=[], points=20, view=None):
     return final_envelope
 
 
-
-
 def cycle_free_fva(model, reactions=None, sloppy=False):
     """Flux-variability analysis."""
     original_objective = copy(model.objective)
