@@ -213,5 +213,5 @@ class TestDecoders(unittest.TestCase):
     def test_gene_knockout_decoder(self):
         decoder = GeneKnockoutDecoder([g.id for g in self.model.genes], self.model)
         reactions1, genes = decoder([1, 2, 3, 4])
-        reactions2 = [r.id for r in find_gene_knockout_reactions(self.model, genes)]
+        reactions2 = find_gene_knockout_reactions(self.model, genes)
         self.assertItemsEqual(reactions1, reactions2)
