@@ -127,19 +127,18 @@ class TestFluxVariabilityAnalysis(unittest.TestCase):
         self.model = CORE_MODEL
         self.biomass_flux = 0.873921
         self.model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = self.biomass_flux
-        self.model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.upper_bound = self.biomass_flux
 
     def test_flux_variability_sequential(self):
         fva_solution = flux_variability_analysis(self.model, view=SequentialView())
         for key, val in fva_solution.iteritems():
-            self.assertAlmostEqual(val['maximum'], REFERENCE_FVA_SOLUTION_ECOLI_CORE[key]['maximum'])
-            self.assertAlmostEqual(val['minimum'], REFERENCE_FVA_SOLUTION_ECOLI_CORE[key]['minimum'])
+            self.assertAlmostEqual(val['maximum'], REFERENCE_FVA_SOLUTION_ECOLI_CORE[key]['maximum'], delta=0.000001)
+            self.assertAlmostEqual(val['minimum'], REFERENCE_FVA_SOLUTION_ECOLI_CORE[key]['minimum'], delta=0.000001)
 
     def test_flux_variability_parallel(self):
         fva_solution = flux_variability_analysis(self.model, view=MultiprocessingView())
         for key, val in fva_solution.iteritems():
-            self.assertAlmostEqual(val['maximum'], REFERENCE_FVA_SOLUTION_ECOLI_CORE[key]['maximum'])
-            self.assertAlmostEqual(val['minimum'], REFERENCE_FVA_SOLUTION_ECOLI_CORE[key]['minimum'])
+            self.assertAlmostEqual(val['maximum'], REFERENCE_FVA_SOLUTION_ECOLI_CORE[key]['maximum'], delta=0.000001)
+            self.assertAlmostEqual(val['minimum'], REFERENCE_FVA_SOLUTION_ECOLI_CORE[key]['minimum'], delta=0.000001)
 
 
 

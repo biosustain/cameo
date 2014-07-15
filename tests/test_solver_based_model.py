@@ -6,8 +6,6 @@ import unittest
 
 import os
 from optlang import Objective
-from optlang import glpk_interface, cplex_interface
-
 from cameo import load_model
 
 
@@ -66,8 +64,8 @@ class TestOptlangBasedModel(CommonGround):
         self.assertEqual(self.model.objective.__str__(),
                          'Maximize\n1.0*ENO + 1.0*PFK')
 
-    def test_change_solver_change(self):
-        self.model.solver = 'glpk'
+    # def test_change_solver_change(self):
+    #     self.model.solver = 'glpk'
 
     def test_copy_preserves_existing_solution(self):
         model_cp = copy.copy(self.model)
