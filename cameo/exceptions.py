@@ -15,27 +15,27 @@
 import optlang.interface
 
 
-class ModelSolveError(Exception):
+class SolveError(Exception):
     def __init__(self, message):
-        super(ModelSolveError, self).__init__(message)
+        super(SolveError, self).__init__(message)
 
 
-class ModelInfeasible(ModelSolveError):
+class Infeasible(SolveError):
     pass
 
 
-class ModelUnbounded(ModelSolveError):
+class Unbounded(SolveError):
     pass
 
 
-class ModelFeasibleButNotOptimal(ModelSolveError):
+class FeasibleButNotOptimal(SolveError):
     pass
 
 
-class ModelUndefinedSolution(ModelSolveError):
+class UndefinedSolution(SolveError):
     pass
 
 
 _OPTLANG_TO_EXCEPTIONS_DICT = dict((
-    (optlang.interface.INFEASIBLE, ModelInfeasible), (optlang.interface.UNBOUNDED, ModelUnbounded),
-    (optlang.interface.FEASIBLE, ModelFeasibleButNotOptimal), (optlang.interface.UNDEFINED, ModelUndefinedSolution)))
+    (optlang.interface.INFEASIBLE, Infeasible), (optlang.interface.UNBOUNDED, Unbounded),
+    (optlang.interface.FEASIBLE, FeasibleButNotOptimal), (optlang.interface.UNDEFINED, UndefinedSolution)))

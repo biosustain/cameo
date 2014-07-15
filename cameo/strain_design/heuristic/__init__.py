@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from cameo.exceptions import ModelSolveError
+from cameo.exceptions import SolveError
 from cameo.strain_design.heuristic import archivers
 from cameo.strain_design.heuristic import plotters
 from cameo.strain_design.heuristic import observers
@@ -35,7 +35,6 @@ from pandas.core.common import in_ipnb
 
 REACTION_KNOCKOUT_TYPE = "reaction"
 GENE_KNOCKOUT_TYPE = "gene"
-
 
 SIZE = "Size"
 
@@ -189,7 +188,7 @@ class KnockoutOptimization(HeuristicOptimization):
             try:
                 solution = self.simulation_method(self.model)
                 fitness = self._calculate_fitness(solution, decoded)
-            except ModelSolveError as e:
+            except SolveError as e:
                 logger.exception(e)
                 if isinstance(self.objective_function, list):
                     fitness = inspyred.ec.emo.Pareto(values=[0 for _ in self.objective_function])
@@ -284,7 +283,6 @@ class KnockoutOptimization(HeuristicOptimization):
 
 
 class KnockoutOptimizationResult(object):
-
     @staticmethod
     def merge(a, b):
         return a._merge(b)
@@ -321,7 +319,8 @@ class KnockoutOptimizationResult(object):
             'heuristic_method.generator': self.heuristic_method.generator,
             'heuristic_method._kwargs.representation': self.heuristic_method._kwargs.get('representation'),
             'heuristic_method._kwargs.max_candidate_size': self.heuristic_method._kwargs.get('max_candidate_size'),
-            'heuristic_method._kwargs.variable_candidate_size': self.heuristic_method._kwargs.get('variable_candidate_size'),
+            'heuristic_method._kwargs.variable_candidate_size': self.heuristic_method._kwargs.get(
+                'variable_candidate_size'),
             'heuristic_method._kwargs.pop_size': self.heuristic_method._kwargs.get('pop_size'),
             'heuristic_method._kwargs.mutation_rate': self.heuristic_method._kwargs.get('mutation_rate'),
             'heuristic_method._kwargs.crossover_rate': self.heuristic_method._kwargs.get('crossover_rate'),
@@ -409,18 +408,19 @@ class KnockoutOptimizationResult(object):
         results = "<h4>Result:</h4>" \
                   "<ul>" \
                   "    <li>model: " + self.model.id + "</li>" \
-                  "    <li>heuristic: " + self.heuristic_method.__class__.__name__ + "</li>" \
-                  "    <li>objective function: " + "|".join([o.name for o in self.objective_functions]) + "</li>" \
-                  "    <li>simulation method: " + self.simulation_method.__name__ + "</li>" \
-                  "    <li>type: " + self.ko_type + "</li>" \
-                  "</ul>"
+                                                      "    <li>heuristic: " + self.heuristic_method.__class__.__name__ + "</li>" \
+                                                                                                                         "    <li>objective function: " + "|".join(
+            [o.name for o in self.objective_functions]) + "</li>" \
+                                                          "    <li>simulation method: " + self.simulation_method.__name__ + "</li>" \
+                                                                                                                            "    <li>type: " + self.ko_type + "</li>" \
+                                                                                                                                                              "</ul>"
 
         return results
 
     def _merge(self, other_result):
         assert isinstance(other_result, self.__class__), "Cannot merge result with %s" % type(other_result)
         assert self.model.id == other_result.model.id, "Cannot merge results from different models"
-        #assert self.objective_functions == other_result.objective_functions, \
+        # assert self.objective_functions == other_result.objective_functions, \
         #    "Cannot merge results with different objective functions"
         assert self.ko_type == other_result.ko_type, "Cannot merge results with resulting from different strategies"
         assert self.heuristic_method.__class__.__name__ == other_result.heuristic_method.__class__.__name__, \

@@ -20,8 +20,8 @@ import optlang
 
 from cameo.util import TimeMachine
 from cameo import exceptions
-from cameo.exceptions import ModelSolveError, ModelInfeasible, ModelUnbounded, ModelFeasibleButNotOptimal, \
-    ModelUndefinedSolution
+from cameo.exceptions import SolveError, Infeasible, Unbounded, FeasibleButNotOptimal, \
+    UndefinedSolution
 from cameo.flux_analysis.analysis import _flux_variability_analysis
 
 from cobra.core.Reaction import Reaction as OriginalReaction
@@ -444,7 +444,7 @@ class SolverBasedModel(Model):
             solution = self.optimize(*args, **kwargs)
             self.solver.configuration.presolve = False
             if solution.status is not 'optimal':
-                raise exceptions._OPTLANG_TO_EXCEPTIONS_DICT.get(solution.status, ModelSolveError)(
+                raise exceptions._OPTLANG_TO_EXCEPTIONS_DICT.get(solution.status, SolveError)(
                     'Solving model %s did not return an optimal solution. The returned solution status is "%s"' % (
                         self, solution.status))
             return solution
@@ -462,7 +462,7 @@ class SolverBasedModel(Model):
         time_machine = TimeMachine()
         try:
             solution = self.solve()
-        except ModelSolveError as e:
+        except SolveError as e:
             print 'Cannot determine essential reactions for un-optimal model.'
             raise e
         for reaction_id, flux in solution.x_dict.iteritems():
@@ -474,7 +474,7 @@ class SolverBasedModel(Model):
                              undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
                 try:
                     sol = self.solve()
-                except (ModelInfeasible, ModelUndefinedSolution):
+                except (Infeasible, UndefinedSolution):
                     essential.append(reaction)
                 else:
                     if sol.f < threshold:
@@ -488,7 +488,7 @@ class SolverBasedModel(Model):
         time_machine = TimeMachine()
         try:
             solution = self.solve()
-        except ModelSolveError as e:
+        except SolveError as e:
             print 'Cannot determine essential genes for unoptimal model.'
             raise e
         genes_to_check = set()
@@ -504,7 +504,7 @@ class SolverBasedModel(Model):
                              undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
             try:
                 sol = self.solve()
-            except (ModelInfeasible, ModelUndefinedSolution):
+            except (Infeasible, UndefinedSolution):
                 essential.append(gene)
             else:
                 if sol.f < threshold:
