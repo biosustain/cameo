@@ -155,15 +155,12 @@ class TestFluxVariabilityAnalysis(unittest.TestCase):
         assert_dataframes_equal(fva_solution, REFERENCE_FVA_SOLUTION_ECOLI_CORE)
         # for key, val in fva_solution.iteritems():
         # self.assertAlmostEqual(val['upper_bound'], REFERENCE_FVA_SOLUTION_ECOLI_CORE[key]['upper_bound'], delta=0.000001)
-        #     self.assertAlmostEqual(val['lower_bound'], REFERENCE_FVA_SOLUTION_ECOLI_CORE[key]['lower_bound'], delta=0.000001)
+        # self.assertAlmostEqual(val['lower_bound'], REFERENCE_FVA_SOLUTION_ECOLI_CORE[key]['lower_bound'], delta=0.000001)
 
 
 class TestPhenotypicPhasePlane(unittest.TestCase):
     def setUp(self):
         self.model = CORE_MODEL
-
-    def test_1(self):
-        phenotypic_phase_plane(model, )
 
 
 class TestSimulationMethods(unittest.TestCase):
@@ -179,7 +176,7 @@ class TestSimulationMethods(unittest.TestCase):
 
     def test_pfba(self):
         pass
-        #model = self.model.copy()
+        # model = self.model.copy()
         #solution = pfba(model)
         #self.assertAlmostEqual(self.biomass_flux, solution.f, delta=0.000001)
         #assert net conversion
@@ -193,4 +190,5 @@ class TestSimulationMethods(unittest.TestCase):
 
 if __name__ == '__main__':
     import nose
+
     nose.runmodule()

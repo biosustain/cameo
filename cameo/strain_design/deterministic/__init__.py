@@ -14,7 +14,7 @@
 
 import logging
 from cameo.strain_design import StrainDesignMethod
-from cameo.flux_analysis.analysis import production_envelope
+from cameo.flux_analysis.analysis import phenotypic_phase_plane
 
 
 logging.basicConfig(level=logging.DEBUG)
@@ -50,12 +50,13 @@ class DifferentialFVA(StrainDesignMethod):
         # points2scan=Union[points2scan,Thread[envelope[[{1,2}]]],Thread[envelope[[{1,3}]]]];
 
         logger.info('Running DifferentialFVA initialization ...')
-        self.envelope = production_envelope(
-            self.design_space_model, self.target, self.variables, points=self.points)
+        self.envelope = phenotypic_phase_plane(
+            self.design_space_model, self.variables, objective=self.target, points=self.points)
         print self.envelope
         zipped_envelope = zip(*self.envelope.itervalues())
         print zipped_envelope
-        max_interval_in_envelope = sorted(zipped_envelope, key=lambda xy: abs(xy[0] - xy[1]), reverse=True)[0]
+        max_interval_in_envelope = sorted(zipped_envelope, key=lambda xy: abs(xy[1][0] - xy[1][1]), reverse=True)[0]
+        print max_interval_in_envelope
         step_size = (max_interval_in_envelope[1] - max_interval_in_envelope[0]) / (self.points - 1)
         self.grid = list()
         for lb, ub in zipped_envelope:
@@ -89,4 +90,4 @@ if __name__ == '__main__':
                               target='EX_succ_LPAREN_e_RPAREN_',
                               variables=['Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2']
     )
-    diffFVA.run()
+    print diffFVA.run()
