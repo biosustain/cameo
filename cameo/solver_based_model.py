@@ -43,11 +43,13 @@ _SOLVER_INTERFACES = {}
 
 try:
     from optlang import glpk_interface
+
     _SOLVER_INTERFACES['glpk'] = optlang.glpk_interface
 except ImportError:
     pass
 try:
     from optlang import cplex_interface
+
     _SOLVER_INTERFACES['cplex'] = optlang.cplex_interface
 except ImportError:
     pass
@@ -304,6 +306,9 @@ class SolverBasedModel(Model):
                 Mul._from_args([S.One, self.solver.variables[value.id]]), sloppy=True)
         elif isinstance(value, self.solver.interface.Objective):
             self.solver.objective = value
+        # TODO: maybe the following should be allowed
+        # elif isinstance(value, optlang.interface.Objective):
+        # self.solver.objective = self.solver.interface.Objective.clone(value)
         elif isinstance(value, sympy.Basic):
             self.solver.objective = self.solver.interface.Objective(value, sloppy=False)
         else:

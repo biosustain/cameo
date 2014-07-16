@@ -11,10 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import copy
 
 from functools import partial
+import sympy
 from cameo.util import TimeMachine
-from optlang import Variable, Constraint, Objective
+from cameo.exceptions import SolveError
+from cobra.manipulation.modify import revert_to_reversible, convert_to_irreversible
 
 
 def fba(model, objective=None):
@@ -23,39 +26,103 @@ def fba(model, objective=None):
     if objective is not None:
         tm(do=partial(setattr, model, 'objective', objective),
            undo=partial(setattr, model, 'objective', model.objective))
-    solution = model.solve()
-    tm.reset()
+    try:
+        solution = model.solve()
+    except SolveError:
+        pass
+    finally:
+        tm.reset()
     return solution
 
 
 def pfba(model, objective=None):
-    solution = fba(model, objective=objective)
     tm = TimeMachine()
-    objective_terms = list()
-    additional_constraints = list()
-    for reaction in model.reactions:
-        if reaction.reversibility:
-            aux_variable = Variable(reaction.variable.id + '_aux', lb=0, ub=-1*reaction.lower_bound)
-            tm(do=partial(setattr, reaction, 'lower_bound', 0), undo=partial(setattr, reaction, 'lower_bound', reaction.lower_bound))
-            objective_terms.append(reaction.variable)
-            objective_terms.append(aux_variable)
-            additional_constraints.append(Constraint)
+    try:
+        if objective is not None:
+            tm(do=partial(setattr, model, 'objective', objective),
+               undo=partial(setattr, model, 'objective', model.objective))
+        try:
+            obj_val = model.solve().f
+        except SolveError as e:
+            print "pfba could not determine maximum objective value for\n%s." % model.objective
+            raise e
+        if model.objective.direction == 'max':
+            fix_obj_constraint = model.solver.interface.Constraint(model.objective.expression, lb=obj_val)
         else:
-            objective_terms.append(reaction.variable)
-    abs_objective = Objective(sum(objective_terms), name='Minimize total flux', direction='min')
-    tm(do=partial(setattr, model, 'objective', abs_objective))
+            fix_obj_constraint = model.solver.interface.Constraint(model.objective.expression, ub=obj_val)
+        tm(do=partial(model.solver._add_constraint, fix_obj_constraint),
+           undo=partial(model.solver._remove_constraint, fix_obj_constraint))
+        obj_terms = list()
+        aux_constraint_terms = dict()
+        for reaction in model.reactions:
+            # obj_terms.append((threshold - expression_value)*reaction.variable)
+            if reaction.reversibility:
+                aux_variable = model.solver.interface.Variable(reaction.id + '_aux', lb=0, ub=-1 * reaction.lower_bound)
+                tm(do=partial(setattr, reaction, 'lower_bound', 0),
+                   undo=partial(setattr, reaction, 'lower_bound', reaction.lower_bound))
+                obj_terms.append(aux_variable)
+                tm(do=partial(model.solver._add_variable, aux_variable),
+                   undo=partial(model.solver._remove_variable, aux_variable))
+                for metabolite, coefficient in reaction.metabolites.iteritems():
+                    try:
+                        aux_constraint_terms[metabolite].append(-1 * coefficient * aux_variable)
+                    except KeyError:
+                        aux_constraint_terms[metabolite] = list()
+                        aux_constraint_terms[metabolite].append(-1 * coefficient * aux_variable)
+        pfba_obj = model.solver.interface.Objective(sympy.Add._from_args(obj_terms), direction='min')
+        tm(do=partial(setattr, model, 'objective', pfba_obj),
+           undo=partial(setattr, model, 'objective', model.objective))
+        for metabolite, terms in aux_constraint_terms.iteritems():
+            tm(do=partial(model.solver.constraints[metabolite.id].__iadd__, sympy.Add._from_args(terms)),
+               undo=partial(model.solver.constraints[metabolite.id].__isub__, sympy.Add._from_args(terms)))
+        try:
+            solution = model.solve()
+            result = dict()
+            result['flux_sum'] = solution.f
+            result['fluxes'] = solution.x_dict
+        except SolveError as e:
+            print "gimme could not determine an optimal solution for objective %s" % model.objective
+            print model.solver
+            raise e
+    finally:
+        # tic = time.time()
+        tm.reset()
+    # print time.time() - tic
+    return result
 
 def moma(model, objective=None):
     pass
+
 
 def lmoma(model, objective=None):
     pass
 
 
 if __name__ == '__main__':
+    import time
+    from cobra.io import read_sbml_model
+    from cobra.flux_analysis.parsimonious import optimize_minimal_flux
     from cameo import load_model
 
-    model = load_model('../../tests/data/EcoliCore.xml')
-    print fba(model)
-    print fba(model, 'TPI')
-    print model.objective
+    # sbml_path = '../../tests/data/EcoliCore.xml'
+    sbml_path = '../../tests/data/iJO1366.xml'
+
+    cb_model = read_sbml_model(sbml_path)
+    cb_model.optimize()
+    print sum([abs(val) for val in cb_model.solution.x_dict.values()])
+    model = load_model(sbml_path)
+
+    model.solver = 'glpk'
+
+    print "cobra pfba"
+    tic = time.time()
+    optimize_minimal_flux(cb_model)
+    print "flux sum:", sum([abs(val) for val in cb_model.solution.x_dict.values()])
+    print "cobra pfba runtime:", time.time() - tic
+
+    print "pfba"
+    tic = time.time()
+    solution = pfba(model)
+    print "flux sum:",
+    print sum([abs(val) for val in solution['fluxes'].values()])
+    print "cameo pfba runtime:", time.time() - tic
