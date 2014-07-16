@@ -324,14 +324,24 @@ def cycle_free_flux(model, fluxes, fix=[]):
     return solution.x_dict
 
 if __name__ == '__main__':
+    import time
     from cameo import load_model
     from cameo.parallel import MultiprocessingView
 
     model = load_model('../../tests/data/EcoliCore.xml')
     # model.solver = 'cplex'
     view = MultiprocessingView()
+    tic = time.time()
     ppp = phenotypic_phase_plane(model,
                                  ['EX_o2_LPAREN_e_RPAREN_', 'EX_glc_LPAREN_e_RPAREN_', 'EX_nh4_LPAREN_e_RPAREN_'],
-                                 view=view, points=40)
-    print ppp
-    print ppp.describe()
+                                 view=view, points=30)
+    # print ppp
+    # print ppp.describe()
+    print time.time() - tic
+
+    view = SequentialView()
+    tic = time.time()
+    ppp = phenotypic_phase_plane(model,
+                                 ['EX_o2_LPAREN_e_RPAREN_', 'EX_glc_LPAREN_e_RPAREN_', 'EX_nh4_LPAREN_e_RPAREN_'],
+                                 view=view, points=30)
+    print time.time() - tic
