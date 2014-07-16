@@ -73,7 +73,7 @@ class number_of_knockouts():
 
     def __init__(self, sense='min'):
         self.sense = sense
-        if sense == max:
+        if sense == 'max':
             self.name = "max #knockouts"
         else:
             self.name = "min #knockouts"

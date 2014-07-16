@@ -84,13 +84,4 @@ except ImportError:
 
 if __name__ == '__main__':
     import nose
-
     nose.runmodule()
-
-    # def func(arg):
-    #     return arg**2
-
-    # client = Client()
-    # view = client.direct_view()
-    # view.block = False
-    # print view.map_sync(to_the_power_of_2, range(100))

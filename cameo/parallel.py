@@ -14,9 +14,10 @@
 
 import Queue
 from multiprocessing import Pool, cpu_count
+from cameo.util import Singleton
 
 
-class MultiprocessingView(object):
+class MultiprocessingView(Singleton):
 
     """docstring for Parallel"""
 

@@ -105,7 +105,6 @@ class HeuristicOptimization(object):
         self.model = model
         self.termination = termination
         self._objective_function = objective_function
-        self._heuristic_method = heuristic_method
         self.heuristic_method = heuristic_method
         self._generator = None
 
@@ -115,7 +114,7 @@ class HeuristicOptimization(object):
 
     @objective_function.setter
     def objective_function(self, objective_function):
-        if self._heuristic_method.__module__ == inspyred.ec.__name__ and isinstance(objective_function, list):
+        if self._heuristic_method.__module__ == inspyred.ec.ec.__name__ and isinstance(objective_function, list):
             if len(objective_function) == 1:
                 self._objective_function = objective_function[0]
             else:
@@ -133,7 +132,7 @@ class HeuristicOptimization(object):
     def heuristic_method(self, heuristic_method):
         if heuristic_method.__module__ == inspyred.ec.emo.__name__ and not self.is_mo():
             self._objective_function = [self.objective_function]
-        elif heuristic_method.__module__ == inspyred.ec.__name__ and self.is_mo():
+        elif heuristic_method.__module__ == inspyred.ec.ec.__name__ and self.is_mo():
             if len(self.objective_function) == 1:
                 self._objective_function = self.objective_function[0]
             else:
@@ -269,7 +268,7 @@ class KnockoutOptimization(HeuristicOptimization):
         super(KnockoutOptimization, self).run(
             distance_function=set_distance_function,
             representation=self.representation,
-            max_candidate_size=self.max_size,
+            candidate_size=self.max_size,
             variable_candidate_size=self.variable_size,
             **kwargs)
         return KnockoutOptimizationResult(model=self.model,
