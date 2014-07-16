@@ -15,8 +15,23 @@ from inspyred.ec.generators import diversify
 
 
 def set_generator(random, args):
+    """
+    Generates a list containing non-repeated elements of a discrete or
+    continuous representation.
+
+    :param random: Random()
+    :param args: dict
+        representation: set containing the possible values
+        max_candidate_size: int, default: 9
+        variable_candidate_size: bool, default: True
+
+    :return: candidate
+        A list containing a sample of the elements. If variable_candidate_size is
+        True the list size is up to max_candidate_size, otherwise the candidate
+        size equals candidate_size
+    """
     representation = args.get('representation')
-    max_size = args.get('max_candidate_size', 9)
+    max_size = args.get('candidate_size', 9)
     variable_size = args.get('variable_candidate_size', True)
     if variable_size:
         size = random.randint(1, max_size)
@@ -28,8 +43,28 @@ def set_generator(random, args):
 
 @diversify
 def unique_set_generator(random, args):
+    """
+    Generates a list containing non-repeated elements of a discrete or
+    continuous representation. When this generator is used, the population
+    will contain unique individuals.
+
+    See Also
+    --------
+    inspyred.ec.generators.diversify
+
+    :param random: Random()
+    :param args: dict
+        representation: set containing the possible values
+        max_candidate_size: int, default: 9
+        variable_candidate_size: bool, default: True
+
+    :return: candidate
+        A list containing a sample of the elements. If variable_candidate_size is
+        True the list size is up to max_candidate_size, otherwise the candidate
+        size equals candidate_size
+    """
     representation = args.get('representation')
-    max_size = args.get('max_candidate_size', 9)
+    max_size = args.get('candidate_size', 9)
     variable_size = args.get('variable_candidate_size', True)
     if variable_size:
         size = random.randint(1, max_size)

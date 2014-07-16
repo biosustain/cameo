@@ -23,24 +23,38 @@ from common import *
 fva_setup = """
 from cameo.flux_analysis.analysis import flux_variability_analysis
 from cameo import config
-from cameo.parallel import SequentialView
-
-config.default_view = SequentialView()
+from cameo.parallel import SequentialView, MultiprocessingView
 """
 
-fva_statement = """
-flux_variability_analysis(model)
+sequential_fva_statement = """
+flux_variability_analysis(model, view=SequentialView())
 """
 
 #GLPK
-glpk_fva_benchmark = Benchmark(fva_statement,
+glpk_sequential_fva_benchmark = Benchmark(sequential_fva_statement,
                                common_setup + fva_setup + glpk_model_setup,
                                start_date=datetime(2014, 7, 15))
 
 #CPLEX
-cplex_fva_benchmark = Benchmark(fva_statement,
+cplex_sequential_fva_benchmark = Benchmark(sequential_fva_statement,
                                 common_setup + fva_setup + cplex_model_setup,
                                 start_date=datetime(2014, 7, 15))
+
+
+multiprocessing_fva_statement = """
+flux_variability_analysis(model, view=MultiprocessingView())
+"""
+
+#GLPK
+glpk_multiprocessing_fva_benchmark = Benchmark(multiprocessing_fva_statement,
+                               common_setup + fva_setup + glpk_model_setup,
+                               start_date=datetime(2014, 7, 15))
+
+#CPLEX
+cplex_multiprocessing_fva_benchmark = Benchmark(multiprocessing_fva_statement,
+                                common_setup + fva_setup + cplex_model_setup,
+                                start_date=datetime(2014, 7, 15))
+
 
 ######################
 # Simulation methods #

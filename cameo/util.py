@@ -19,6 +19,18 @@ from datetime import datetime
 import colorsys
 
 
+class Singleton(object):
+    """
+    Singleton class to be extended
+    """
+    _instance = None
+
+    def __new__(cls, *args, **kwargs):
+        if not cls._instance:
+            cls._instance = super(Singleton, cls).__new__(cls, *args, **kwargs)
+        return cls._instance
+
+
 class AutoVivification(dict):
 
     """Implementation of perl's autovivification feature. Checkout http://stackoverflow.com/a/652284/280182"""
