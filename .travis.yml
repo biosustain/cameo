@@ -5,7 +5,7 @@ python:
 virtualenv:
   system_site_packages: true
 before_install:
-  - sudo apt-get install libglpk-dev swig python-numpy glpk-utils python-scipy
+  - sudo apt-get install libglpk-dev swig glpk-utils
   - pip install ply
   - cd /home/travis
   - wget http://www.dcc.fc.up.pt/~jpp/code/python-glpk/python-glpk_0.4.45.orig.tar.gz
@@ -14,9 +14,7 @@ before_install:
   - sudo make install
   - cd $TRAVIS_BUILD_DIR
 install:
-  - ln -s /usr/lib/python2.7/dist-packages/scipy ~/virtualenv/python2.7/lib/python2.7/site-packages/
-  - pip install python-libsbml-experimental -f https://pypi.drosophi.la --no-index
-  - pip install cython
+  - pip install python-libsbml-experimental python-libsbml-experimental cython numpy scipy -f https://dl.dropboxusercontent.com/u/22461024/pypi.drosophi.la/index.html --no-index
   - pip install coveralls coverage
   - pip install -r requirements.txt
   - pip install rednose
