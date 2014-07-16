@@ -9,116 +9,127 @@ import cameo
 from cameo.flux_analysis.simulation import fba, pfba
 from cameo.parallel import SequentialView, MultiprocessingView
 
-
+# TODO: is the following maybe ruining the heuristics tests?
 cameo.config.default_view = SequentialView()
 from cameo.io import load_model
-from cameo.flux_analysis.analysis import flux_variability_analysis, _flux_variability_analysis
-from cobra.io import read_sbml_model
+from cameo.flux_analysis.analysis import flux_variability_analysis, phenotypic_phase_plane
+
+import pandas
+from pandas.util.testing import assert_frame_equal
+
+
+def assert_dataframes_equal(df, expected):
+    try:
+        assert_frame_equal(df, expected, check_names=False)
+        return True
+    except AssertionError:
+        return False
 
 
 TESTDIR = os.path.dirname(__file__)
-REFERENCE_FVA_SOLUTION_ECOLI_CORE = {'G6PDH2r': {'minimum': 4.959736180498324, 'maximum': 4.960214031421614},
-                                     'AKGDH': {'minimum': 5.063908797401745, 'maximum': 5.064466288000558},
-                                     'EX_succ_LPAREN_e_RPAREN_': {'minimum': 0.0, 'maximum': 9.712413884699345e-06},
-                                     'GLNS': {'minimum': 0.22346159969999999, 'maximum': 0.22356115230783047},
-                                     'ADK1': {'minimum': 0.0, 'maximum': 9.955227569169445e-05},
-                                     'Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2': {'minimum': 0.873921,
-                                                                                                'maximum': 0.8739215069685606},
-                                     'PYRt2r': {'minimum': -1.474847971749682e-05, 'maximum': -0.0},
-                                     'ATPM': {'minimum': 8.39, 'maximum': 8.39},
-                                     'SUCCt2_2': {'minimum': 0.0, 'maximum': 0.000132736367599288},
-                                     'PIt2r': {'minimum': 3.214893182699999, 'maximum': 3.2148950476852747},
-                                     'EX_glu_L_LPAREN_e_RPAREN_': {'minimum': 0.0, 'maximum': 7.3742397468379295e-06},
-                                     'EX_lac_D_LPAREN_e_RPAREN_': {'minimum': 0.0, 'maximum': 1.2444034462433251e-05},
-                                     'GAPD': {'minimum': 16.02345112836896, 'maximum': 16.023610412200544},
-                                     'ACALDt': {'minimum': -1.4748485284599155e-05, 'maximum': -0.0},
-                                     'TPI': {'minimum': 7.4773061039689654, 'maximum': 7.477465387800544},
-                                     'CO2t': {'minimum': -22.809854884864762, 'maximum': -22.80978851636553},
-                                     'SUCOAS': {'minimum': -5.064466287964024, 'maximum': -5.063908791674233},
-                                     'ACONTb': {'minimum': 6.007180371259459, 'maximum': 6.007339654900543},
-                                     'TKT2': {'minimum': 1.1814154455994548, 'maximum': 1.1815747293876484},
-                                     'TKT1': {'minimum': 1.4969009265994102, 'maximum': 1.4970602102405381},
-                                     'O2t': {'minimum': 21.799470570869744, 'maximum': 21.79951481637545},
-                                     'EX_etoh_LPAREN_e_RPAREN_': {'minimum': 0.0, 'maximum': 1.2845454928189781e-05},
-                                     'PYK': {'minimum': 1.7580783563546856, 'maximum': 1.7585031154729684},
-                                     'EX_nh4_LPAREN_e_RPAREN_': {'minimum': -4.765323803061619,
-                                                                 'maximum': -4.765316428849474},
-                                     'FORt2': {'minimum': 0.0, 'maximum': 0.0003982088343690293},
-                                     'SUCCt3': {'minimum': 0.0, 'maximum': 0.000132736367599288},
-                                     'GLUN': {'minimum': 0.0, 'maximum': 9.95522393998638e-05},
-                                     'FUMt2_2': {'minimum': 0.0, 'maximum': -0.0},
-                                     'FUM': {'minimum': 5.064307003747672, 'maximum': 5.064466288000558},
-                                     'ACALD': {'minimum': -1.4748540706932545e-05, 'maximum': -0.0},
-                                     'MALS': {'minimum': 0.0, 'maximum': 0.00039821327663957964},
-                                     'CYTBD': {'minimum': 43.5989411418559, 'maximum': 43.5990296327509},
-                                     'ENO': {'minimum': 14.716065311744945, 'maximum': 14.716224596200558},
-                                     'EX_h_LPAREN_e_RPAREN_': {'minimum': 17.53085525990589,
-                                                               'maximum': 17.530921628128894},
-                                     'FORti': {'minimum': 0.0, 'maximum': 0.00039820883439745103},
-                                     'EX_glc_LPAREN_e_RPAREN_': {'minimum': -10.0, 'maximum': -9.999994469318016},
-                                     'H2Ot': {'minimum': -29.17584501698604, 'maximum': -29.175778648663876},
-                                     'LDH_D': {'minimum': -1.2444034462433251e-05, 'maximum': -0.0},
-                                     'EX_pyr_LPAREN_e_RPAREN_': {'minimum': 0.0, 'maximum': 1.474847971749682e-05},
-                                     'FRD7': {'minimum': 0.0, 'maximum': 999993.9356929963},
-                                     'ME1': {'minimum': 0.0, 'maximum': 9.955227566883915e-05},
-                                     'ME2': {'minimum': 0.0, 'maximum': 0.00013273636762990902},
-                                     'FRUpts2': {'minimum': 0.0, 'maximum': -0.0},
-                                     'MDH': {'minimum': 5.064280456879112, 'maximum': 5.0647052159765735},
-                                     'GLUDy': {'minimum': -4.5418622033397495, 'maximum': -4.541755276848562},
-                                     'ETOHt2r': {'minimum': -1.2845454924637068e-05, 'maximum': -0.0},
-                                     'MALt2_2': {'minimum': 0.0, 'maximum': -0.0},
-                                     'PTAr': {'minimum': 0.0, 'maximum': 2.2122727937556874e-05},
-                                     'EX_fum_LPAREN_e_RPAREN_': {'minimum': 0.0, 'maximum': -0.0},
-                                     'TALA': {'minimum': 1.4969009265994413, 'maximum': 1.4970602102405381},
-                                     'THD2': {'minimum': 0.0, 'maximum': 0.00039820910280496946},
-                                     'ICDHyr': {'minimum': 6.006782158574233, 'maximum': 6.007339654900558},
-                                     'ALCD2x': {'minimum': -1.2845454928189781e-05, 'maximum': -0.0},
-                                     'PDH': {'minimum': 9.282461495041089, 'maximum': 9.28285970667297},
-                                     'CS': {'minimum': 6.007180371241089, 'maximum': 6.007339654900543},
-                                     'GLUt2r': {'minimum': -7.3742397468379295e-06, 'maximum': -0.0},
-                                     'GLNabc': {'minimum': 0.0, 'maximum': -0.0},
-                                     'EX_for_LPAREN_e_RPAREN_': {'minimum': 0.0, 'maximum': 6.636836750217867e-05},
-                                     'FBP': {'minimum': 0.0, 'maximum': 9.95522756710443e-05},
-                                     'ATPS4r': {'minimum': 45.513801109744236, 'maximum': 45.51411967708108},
-                                     'AKGt2r': {'minimum': -8.296018624065482e-06, 'maximum': -0.0},
-                                     'FBA': {'minimum': 7.47730610356237, 'maximum': 7.477465387800558},
-                                     'EX_h2o_LPAREN_e_RPAREN_': {'minimum': 29.17577864858322,
-                                                                 'maximum': 29.175845016850896},
-                                     'EX_fru_LPAREN_e_RPAREN_': {'minimum': 0.0, 'maximum': -0.0},
-                                     'NH4t': {'minimum': 4.7653164288, 'maximum': 4.765323803039749},
-                                     'D_LACt2': {'minimum': -1.2444034462433251e-05, 'maximum': -0.0},
-                                     'EX_mal_L_LPAREN_e_RPAREN_': {'minimum': 0.0, 'maximum': -0.0},
-                                     'GLCpts': {'minimum': 9.999994469318016, 'maximum': 10.0},
-                                     'GND': {'minimum': 4.959736180498324, 'maximum': 4.960214031993163},
-                                     'ACKr': {'minimum': -2.2122727937556874e-05, 'maximum': -0.0},
-                                     'NADH16': {'minimum': 38.53456334479944, 'maximum': 38.53472262844052},
-                                     'SUCDi': {'minimum': 5.064307004379993, 'maximum': 999999.0},
-                                     'PPC': {'minimum': 2.5039098042219976, 'maximum': 2.5044407542688543},
-                                     'GLUSy': {'minimum': 0.0, 'maximum': 9.955224896884829e-05},
-                                     'PGL': {'minimum': 4.959736180498364, 'maximum': 4.9602140303491264},
-                                     'PGM': {'minimum': -14.716224596200558, 'maximum': -14.716065312559458},
-                                     'EX_pi_LPAREN_e_RPAREN_': {'minimum': -3.2148950476852747,
-                                                                'maximum': -3.2148931827396154},
-                                     'PGK': {'minimum': -16.02361041220059, 'maximum': -16.023451128559458},
-                                     'PGI': {'minimum': 4.860632163523265, 'maximum': 4.8611100145016355},
-                                     'PPS': {'minimum': 0.0, 'maximum': 9.955227569169445e-05},
-                                     'RPE': {'minimum': 2.678316372198883, 'maximum': 2.6786349394810767},
-                                     'RPI': {'minimum': -2.2815790921310337, 'maximum': -2.2814198082994546},
-                                     'NADTRHD': {'minimum': 0.0, 'maximum': 0.0003982091027996404},
-                                     'EX_gln_L_LPAREN_e_RPAREN_': {'minimum': 0.0, 'maximum': -0.0},
-                                     'ICL': {'minimum': 0.0, 'maximum': 0.00039821327663957964},
-                                     'EX_acald_LPAREN_e_RPAREN_': {'minimum': 0.0, 'maximum': 1.4748485284599155e-05},
-                                     'EX_o2_LPAREN_e_RPAREN_': {'minimum': -21.799514816754773,
-                                                                'maximum': -21.79947057092795},
-                                     'ACONTa': {'minimum': 6.007180370546308, 'maximum': 6.007339654900558},
-                                     'PPCK': {'minimum': 0.0, 'maximum': 9.955227568836378e-05},
-                                     'EX_ac_LPAREN_e_RPAREN_': {'minimum': 0.0, 'maximum': 2.2122727937556874e-05},
-                                     'PFK': {'minimum': 7.477306103344945, 'maximum': 7.4774852982556705},
-                                     'PFL': {'minimum': 0.0, 'maximum': 6.636836750217867e-05},
-                                     'EX_co2_LPAREN_e_RPAREN_': {'minimum': 22.80978851628419,
-                                                                 'maximum': 22.809854884744922},
-                                     'EX_akg_LPAREN_e_RPAREN_': {'minimum': 0.0, 'maximum': 8.296018624065482e-06},
-                                     'ACt2r': {'minimum': -2.2122727921569663e-05, 'maximum': -0.0}}
+REFERENCE_FVA_SOLUTION_ECOLI_CORE = pandas.DataFrame.from_dict(
+    {'G6PDH2r': {'lower_bound': 4.959736180498324, 'upper_bound': 4.960214031421614},
+     'AKGDH': {'lower_bound': 5.063908797401745, 'upper_bound': 5.064466288000558},
+     'EX_succ_LPAREN_e_RPAREN_': {'lower_bound': 0.0, 'upper_bound': 9.712413884699345e-06},
+     'GLNS': {'lower_bound': 0.22346159969999999, 'upper_bound': 0.22356115230783047},
+     'ADK1': {'lower_bound': 0.0, 'upper_bound': 9.955227569169445e-05},
+     'Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2': {'lower_bound': 0.873921,
+                                                                'upper_bound': 0.8739215069685606},
+     'PYRt2r': {'lower_bound': -1.474847971749682e-05, 'upper_bound': -0.0},
+     'ATPM': {'lower_bound': 8.39, 'upper_bound': 8.39},
+     'SUCCt2_2': {'lower_bound': 0.0, 'upper_bound': 0.000132736367599288},
+     'PIt2r': {'lower_bound': 3.214893182699999, 'upper_bound': 3.2148950476852747},
+     'EX_glu_L_LPAREN_e_RPAREN_': {'lower_bound': 0.0, 'upper_bound': 7.3742397468379295e-06},
+     'EX_lac_D_LPAREN_e_RPAREN_': {'lower_bound': 0.0, 'upper_bound': 1.2444034462433251e-05},
+     'GAPD': {'lower_bound': 16.02345112836896, 'upper_bound': 16.023610412200544},
+     'ACALDt': {'lower_bound': -1.4748485284599155e-05, 'upper_bound': -0.0},
+     'TPI': {'lower_bound': 7.4773061039689654, 'upper_bound': 7.477465387800544},
+     'CO2t': {'lower_bound': -22.809854884864762, 'upper_bound': -22.80978851636553},
+     'SUCOAS': {'lower_bound': -5.064466287964024, 'upper_bound': -5.063908791674233},
+     'ACONTb': {'lower_bound': 6.007180371259459, 'upper_bound': 6.007339654900543},
+     'TKT2': {'lower_bound': 1.1814154455994548, 'upper_bound': 1.1815747293876484},
+     'TKT1': {'lower_bound': 1.4969009265994102, 'upper_bound': 1.4970602102405381},
+     'O2t': {'lower_bound': 21.799470570869744, 'upper_bound': 21.79951481637545},
+     'EX_etoh_LPAREN_e_RPAREN_': {'lower_bound': 0.0, 'upper_bound': 1.2845454928189781e-05},
+     'PYK': {'lower_bound': 1.7580783563546856, 'upper_bound': 1.7585031154729684},
+     'EX_nh4_LPAREN_e_RPAREN_': {'lower_bound': -4.765323803061619,
+                                 'upper_bound': -4.765316428849474},
+     'FORt2': {'lower_bound': 0.0, 'upper_bound': 0.0003982088343690293},
+     'SUCCt3': {'lower_bound': 0.0, 'upper_bound': 0.000132736367599288},
+     'GLUN': {'lower_bound': 0.0, 'upper_bound': 9.95522393998638e-05},
+     'FUMt2_2': {'lower_bound': 0.0, 'upper_bound': -0.0},
+     'FUM': {'lower_bound': 5.064307003747672, 'upper_bound': 5.064466288000558},
+     'ACALD': {'lower_bound': -1.4748540706932545e-05, 'upper_bound': -0.0},
+     'MALS': {'lower_bound': 0.0, 'upper_bound': 0.00039821327663957964},
+     'CYTBD': {'lower_bound': 43.5989411418559, 'upper_bound': 43.5990296327509},
+     'ENO': {'lower_bound': 14.716065311744945, 'upper_bound': 14.716224596200558},
+     'EX_h_LPAREN_e_RPAREN_': {'lower_bound': 17.53085525990589,
+                               'upper_bound': 17.530921628128894},
+     'FORti': {'lower_bound': 0.0, 'upper_bound': 0.00039820883439745103},
+     'EX_glc_LPAREN_e_RPAREN_': {'lower_bound': -10.0, 'upper_bound': -9.999994469318016},
+     'H2Ot': {'lower_bound': -29.17584501698604, 'upper_bound': -29.175778648663876},
+     'LDH_D': {'lower_bound': -1.2444034462433251e-05, 'upper_bound': -0.0},
+     'EX_pyr_LPAREN_e_RPAREN_': {'lower_bound': 0.0, 'upper_bound': 1.474847971749682e-05},
+     'FRD7': {'lower_bound': 0.0, 'upper_bound': 999993.9356929963},
+     'ME1': {'lower_bound': 0.0, 'upper_bound': 9.955227566883915e-05},
+     'ME2': {'lower_bound': 0.0, 'upper_bound': 0.00013273636762990902},
+     'FRUpts2': {'lower_bound': 0.0, 'upper_bound': -0.0},
+     'MDH': {'lower_bound': 5.064280456879112, 'upper_bound': 5.0647052159765735},
+     'GLUDy': {'lower_bound': -4.5418622033397495, 'upper_bound': -4.541755276848562},
+     'ETOHt2r': {'lower_bound': -1.2845454924637068e-05, 'upper_bound': -0.0},
+     'MALt2_2': {'lower_bound': 0.0, 'upper_bound': -0.0},
+     'PTAr': {'lower_bound': 0.0, 'upper_bound': 2.2122727937556874e-05},
+     'EX_fum_LPAREN_e_RPAREN_': {'lower_bound': 0.0, 'upper_bound': -0.0},
+     'TALA': {'lower_bound': 1.4969009265994413, 'upper_bound': 1.4970602102405381},
+     'THD2': {'lower_bound': 0.0, 'upper_bound': 0.00039820910280496946},
+     'ICDHyr': {'lower_bound': 6.006782158574233, 'upper_bound': 6.007339654900558},
+     'ALCD2x': {'lower_bound': -1.2845454928189781e-05, 'upper_bound': -0.0},
+     'PDH': {'lower_bound': 9.282461495041089, 'upper_bound': 9.28285970667297},
+     'CS': {'lower_bound': 6.007180371241089, 'upper_bound': 6.007339654900543},
+     'GLUt2r': {'lower_bound': -7.3742397468379295e-06, 'upper_bound': -0.0},
+     'GLNabc': {'lower_bound': 0.0, 'upper_bound': -0.0},
+     'EX_for_LPAREN_e_RPAREN_': {'lower_bound': 0.0, 'upper_bound': 6.636836750217867e-05},
+     'FBP': {'lower_bound': 0.0, 'upper_bound': 9.95522756710443e-05},
+     'ATPS4r': {'lower_bound': 45.513801109744236, 'upper_bound': 45.51411967708108},
+     'AKGt2r': {'lower_bound': -8.296018624065482e-06, 'upper_bound': -0.0},
+     'FBA': {'lower_bound': 7.47730610356237, 'upper_bound': 7.477465387800558},
+     'EX_h2o_LPAREN_e_RPAREN_': {'lower_bound': 29.17577864858322,
+                                 'upper_bound': 29.175845016850896},
+     'EX_fru_LPAREN_e_RPAREN_': {'lower_bound': 0.0, 'upper_bound': -0.0},
+     'NH4t': {'lower_bound': 4.7653164288, 'upper_bound': 4.765323803039749},
+     'D_LACt2': {'lower_bound': -1.2444034462433251e-05, 'upper_bound': -0.0},
+     'EX_mal_L_LPAREN_e_RPAREN_': {'lower_bound': 0.0, 'upper_bound': -0.0},
+     'GLCpts': {'lower_bound': 9.999994469318016, 'upper_bound': 10.0},
+     'GND': {'lower_bound': 4.959736180498324, 'upper_bound': 4.960214031993163},
+     'ACKr': {'lower_bound': -2.2122727937556874e-05, 'upper_bound': -0.0},
+     'NADH16': {'lower_bound': 38.53456334479944, 'upper_bound': 38.53472262844052},
+     'SUCDi': {'lower_bound': 5.064307004379993, 'upper_bound': 999999.0},
+     'PPC': {'lower_bound': 2.5039098042219976, 'upper_bound': 2.5044407542688543},
+     'GLUSy': {'lower_bound': 0.0, 'upper_bound': 9.955224896884829e-05},
+     'PGL': {'lower_bound': 4.959736180498364, 'upper_bound': 4.9602140303491264},
+     'PGM': {'lower_bound': -14.716224596200558, 'upper_bound': -14.716065312559458},
+     'EX_pi_LPAREN_e_RPAREN_': {'lower_bound': -3.2148950476852747,
+                                'upper_bound': -3.2148931827396154},
+     'PGK': {'lower_bound': -16.02361041220059, 'upper_bound': -16.023451128559458},
+     'PGI': {'lower_bound': 4.860632163523265, 'upper_bound': 4.8611100145016355},
+     'PPS': {'lower_bound': 0.0, 'upper_bound': 9.955227569169445e-05},
+     'RPE': {'lower_bound': 2.678316372198883, 'upper_bound': 2.6786349394810767},
+     'RPI': {'lower_bound': -2.2815790921310337, 'upper_bound': -2.2814198082994546},
+     'NADTRHD': {'lower_bound': 0.0, 'upper_bound': 0.0003982091027996404},
+     'EX_gln_L_LPAREN_e_RPAREN_': {'lower_bound': 0.0, 'upper_bound': -0.0},
+     'ICL': {'lower_bound': 0.0, 'upper_bound': 0.00039821327663957964},
+     'EX_acald_LPAREN_e_RPAREN_': {'lower_bound': 0.0, 'upper_bound': 1.4748485284599155e-05},
+     'EX_o2_LPAREN_e_RPAREN_': {'lower_bound': -21.799514816754773,
+                                'upper_bound': -21.79947057092795},
+     'ACONTa': {'lower_bound': 6.007180370546308, 'upper_bound': 6.007339654900558},
+     'PPCK': {'lower_bound': 0.0, 'upper_bound': 9.955227568836378e-05},
+     'EX_ac_LPAREN_e_RPAREN_': {'lower_bound': 0.0, 'upper_bound': 2.2122727937556874e-05},
+     'PFK': {'lower_bound': 7.477306103344945, 'upper_bound': 7.4774852982556705},
+     'PFL': {'lower_bound': 0.0, 'upper_bound': 6.636836750217867e-05},
+     'EX_co2_LPAREN_e_RPAREN_': {'lower_bound': 22.80978851628419,
+                                 'upper_bound': 22.809854884744922},
+     'EX_akg_LPAREN_e_RPAREN_': {'lower_bound': 0.0, 'upper_bound': 8.296018624065482e-06},
+     'ACt2r': {'lower_bound': -2.2122727921569663e-05, 'upper_bound': -0.0}}, orient='index')
 
 CORE_MODEL = load_model(os.path.join(TESTDIR, 'data/EcoliCore.xml'))
 
@@ -131,15 +142,28 @@ class TestFluxVariabilityAnalysis(unittest.TestCase):
 
     def test_flux_variability_sequential(self):
         fva_solution = flux_variability_analysis(self.model, view=SequentialView())
-        for key, val in fva_solution.iteritems():
-            self.assertAlmostEqual(val['maximum'], REFERENCE_FVA_SOLUTION_ECOLI_CORE[key]['maximum'], delta=0.000001)
-            self.assertAlmostEqual(val['minimum'], REFERENCE_FVA_SOLUTION_ECOLI_CORE[key]['minimum'], delta=0.000001)
+        assert_dataframes_equal(fva_solution, REFERENCE_FVA_SOLUTION_ECOLI_CORE)
+        for key in fva_solution.index:
+            self.assertAlmostEqual(fva_solution['lower_bound'][key],
+                                   REFERENCE_FVA_SOLUTION_ECOLI_CORE['lower_bound'][key], delta=0.000001)
+            self.assertAlmostEqual(fva_solution['upper_bound'][key],
+                                   REFERENCE_FVA_SOLUTION_ECOLI_CORE['upper_bound'][key], delta=0.000001)
+        assert_dataframes_equal(fva_solution, REFERENCE_FVA_SOLUTION_ECOLI_CORE)
 
     def test_flux_variability_parallel(self):
         fva_solution = flux_variability_analysis(self.model, view=MultiprocessingView())
-        for key, val in fva_solution.iteritems():
-            self.assertAlmostEqual(val['maximum'], REFERENCE_FVA_SOLUTION_ECOLI_CORE[key]['maximum'], delta=0.000001)
-            self.assertAlmostEqual(val['minimum'], REFERENCE_FVA_SOLUTION_ECOLI_CORE[key]['minimum'], delta=0.000001)
+        assert_dataframes_equal(fva_solution, REFERENCE_FVA_SOLUTION_ECOLI_CORE)
+        # for key, val in fva_solution.iteritems():
+        # self.assertAlmostEqual(val['upper_bound'], REFERENCE_FVA_SOLUTION_ECOLI_CORE[key]['upper_bound'], delta=0.000001)
+        #     self.assertAlmostEqual(val['lower_bound'], REFERENCE_FVA_SOLUTION_ECOLI_CORE[key]['lower_bound'], delta=0.000001)
+
+
+class TestPhenotypicPhasePlane(unittest.TestCase):
+    def setUp(self):
+        self.model = CORE_MODEL
+
+    def test_1(self):
+        phenotypic_phase_plane(model, )
 
 
 class TestSimulationMethods(unittest.TestCase):
