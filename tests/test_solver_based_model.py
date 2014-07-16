@@ -14,6 +14,7 @@ from cobra.io import read_sbml_model
 
 TESTDIR = os.path.dirname(__file__)
 TESTMODEL = load_model(os.path.join(TESTDIR, 'data/EcoliCore.xml'))
+COBRAPYTESTMODEL = read_sbml_model(os.path.join(TESTDIR, 'data/EcoliCore.xml'))
 ESSENTIAL_GENES = ['b2779', 'b1779', 'b0720', 'b0451', 'b2416', 'b2926', 'b1136', 'b2415']
 ESSENTIAL_REACTIONS = ['GLNS', 'Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2', 'PIt2r', 'GAPD', 'ACONTb',
                        'EX_nh4_LPAREN_e_RPAREN_', 'ENO', 'EX_h_LPAREN_e_RPAREN_', 'EX_glc_LPAREN_e_RPAREN_', 'ICDHyr',
@@ -37,7 +38,8 @@ class TestLazySolution(CommonGround):
 
 class TestReaction(unittest.TestCase):
     def setUp(self):
-        self.cobrapy_model = read_sbml_model(os.path.join(TESTDIR, 'data/EcoliCore.xml'))
+        self.cobrapy_model = COBRAPYTESTMODEL.copy()
+        self.model = TESTMODEL.copy()
 
     def test_clone_cobrapy_reaction(self):
         for reaction in self.cobrapy_model.reactions:
@@ -46,10 +48,30 @@ class TestReaction(unittest.TestCase):
             self.assertEqual(cloned_reaction.gene_reaction_rule, reaction.gene_reaction_rule)
             self.assertEqual(cloned_reaction.genes, reaction.genes)
             self.assertEqual(cloned_reaction.metabolites, reaction.metabolites)
-            self.assertEqual(cloned_reaction.get_products(), reaction.get_products())
-            self.assertEqual(cloned_reaction.get_reactants(), reaction.get_reactants())
+            self.assertEqual(cloned_reaction.products, reaction.products)
+            self.assertEqual(cloned_reaction.reactants, reaction.reactants)
             self.assertEqual(cloned_reaction.get_model(), None)
             self.assertEqual(cloned_reaction.variable, None)
+
+    def test_knockout(self):
+        for reaction in self.model.reactions:
+            reaction.knock_out()
+            self.assertEqual(reaction.lower_bound, 0)
+            self.assertEqual(reaction.upper_bound, 0)
+            self.assertEqual(self.model.solver.variables[reaction.id].lb, 0)
+            self.assertEqual(self.model.solver.variables[reaction.id].ub, 0)
+
+    def test_setting_lower_bound_higher_than_higher_bound_sets_higher_bound_to_new_lower_bound(self):
+        for reaction in self.model.reactions:
+            self.assertTrue(reaction.lower_bound <= reaction.upper_bound)
+            reaction.lower_bound = reaction.upper_bound + 100
+            self.assertEqual(reaction.lower_bound, reaction.upper_bound)
+
+    def test_setting_higher_bound_lower_than_lower_bound_sets_lower_bound_to_new_higher_bound(self):
+        for reaction in self.model.reactions:
+            self.assertTrue(reaction.lower_bound <= reaction.upper_bound)
+            reaction.upper_bound = reaction.lower_bound - 100
+            self.assertEqual(reaction.lower_bound, reaction.upper_bound)
 
 
 class TestSolverBasedModel(CommonGround):
@@ -85,11 +107,17 @@ class TestSolverBasedModel(CommonGround):
     def test_change_objective(self):
         self.model.objective = Objective(
             self.model.solver.variables['ENO'] + self.model.solver.variables['PFK'])
-        self.assertEqual(self.model.objective.__str__(),
-                         'Maximize\n1.0*ENO + 1.0*PFK')
 
-    def test_change_solver_change(self):
+    def test_solver_change(self):
+        solver_id = id(self.model.solver)
+        problem_id = id(self.model.solver.problem)
+        solution = self.model.solve().x_dict
         self.model.solver = 'glpk'
+        self.assertNotEqual(id(self.model.solver), solver_id)
+        self.assertNotEqual(id(self.model.solver.problem), problem_id)
+        new_solution = self.model.solve()
+        for key in solution.keys():
+            self.assertAlmostEqual(new_solution.x_dict[key], solution[key])
 
     def test_copy_preserves_existing_solution(self):
         model_cp = copy.copy(self.model)
@@ -108,4 +136,5 @@ class TestSolverBasedModel(CommonGround):
 
 if __name__ == '__main__':
     import nose
+
     nose.runmodule()
