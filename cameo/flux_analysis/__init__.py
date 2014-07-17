@@ -11,3 +11,33 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from functools import partial
+from cobra.manipulation.delete import find_gene_knockout_reactions
+from cameo.exceptions import SolveError
+from cameo.util import TimeMachine
+
+
+def normalized_gene_knockout_growth_rate(gene_id, model, threshold=10**-6):
+    biomass = model.solve().f
+    gene = model.genes.get_by_id(gene_id)
+    knockouts = find_gene_knockout_reactions(model, [gene])
+    tm = TimeMachine()
+    for reaction in knockouts:
+        tm(do=partial(setattr, reaction, 'lower_bound', 0),
+           undo=partial(setattr, reaction, 'lower_bound', reaction.lower_bound))
+        tm(do=partial(setattr, reaction, 'upper_bound', 0),
+           undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
+
+    try:
+        s = model.solve()
+        f = s.f
+        if f >= threshold:
+            f = f/biomass
+        else:
+            f = 0
+    except SolveError:
+        f = float('nan')
+    finally:
+        tm.reset()
+
+    return f

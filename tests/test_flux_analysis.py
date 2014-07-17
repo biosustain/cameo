@@ -175,11 +175,10 @@ class TestSimulationMethods(unittest.TestCase):
         self.assertAlmostEqual(self.biomass_flux, solution.f, delta=0.000001)
 
     def test_pfba(self):
-        pass
-        # model = self.model.copy()
-        #solution = pfba(model)
-        #self.assertAlmostEqual(self.biomass_flux, solution.f, delta=0.000001)
-        #assert net conversion
+        model = self.model.copy()
+        solution = pfba(model)
+        self.assertAlmostEqual(self.biomass_flux, solution.f, delta=0.000001)
+        
 
     def test_moma(self):
         pass
