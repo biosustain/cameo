@@ -166,13 +166,12 @@ class TestPhenotypicPhasePlane(unittest.TestCase):
 class TestSimulationMethods(unittest.TestCase):
     def setUp(self):
         self.model = CORE_MODEL
-        self.biomass_flux = 0.873921
-        self.model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = self.biomass_flux
 
     def test_fba(self):
+        print self.model.objective
         model = self.model.copy()
         solution = fba(model)
-        self.assertAlmostEqual(self.biomass_flux, solution.f, delta=0.000001)
+        self.assertAlmostEqual(0.873921, solution.f, delta=0.000001)
 
     def test_pfba(self):
         pass

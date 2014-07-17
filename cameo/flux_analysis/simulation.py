@@ -55,7 +55,6 @@ def pfba(model, objective=None):
         obj_terms = list()
         aux_constraint_terms = dict()
         for reaction in model.reactions:
-            # obj_terms.append((threshold - expression_value)*reaction.variable)
             if reaction.reversibility:
                 aux_variable = model.solver.interface.Variable(reaction.id + '_aux', lb=0, ub=-1 * reaction.lower_bound)
                 tm(do=partial(setattr, reaction, 'lower_bound', 0),
@@ -85,9 +84,9 @@ def pfba(model, objective=None):
             print model.solver
             raise e
     finally:
-        # tic = time.time()
+        tic = time.time()
         tm.reset()
-    # print time.time() - tic
+        print time.time() - tic
     return result
 
 def moma(model, objective=None):
@@ -126,3 +125,5 @@ if __name__ == '__main__':
     print "flux sum:",
     print sum([abs(val) for val in solution['fluxes'].values()])
     print "cameo pfba runtime:", time.time() - tic
+
+    # print model.solver
