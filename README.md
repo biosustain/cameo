@@ -2,6 +2,7 @@
 
 [![Build Status](https://travis-ci.org/biosustain/cameo.svg?branch=devel)](https://travis-ci.org/biosustain/cameo)
 [![Coverage Status](https://coveralls.io/repos/biosustain/cameo/badge.png?branch=devel)](https://coveralls.io/r/biosustain/cameo?branch=devel)
+[![Gitter chat](https://badges.gitter.im/biosustain/cameo.png)](https://gitter.im/biosustain/cameo)
 
 ### Vision
 Provide a high-level python library to aid the strain design efforts of the CFB iLoop design group. The library provides a modular architecture that enables the efficient construction of custom analysis workflows.
