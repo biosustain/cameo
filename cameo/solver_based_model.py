@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import csv
 
 import time
 from copy import deepcopy, copy
@@ -35,7 +36,7 @@ from sympy.core.mul import _unevaluated_Mul
 from sympy import Mul
 from sympy.core.singleton import S
 
-from pandas import Series, DataFrame
+from pandas import Series, DataFrame, pandas
 
 from functools import partial
 
@@ -524,6 +525,58 @@ class SolverBasedModel(Model):
                 time_machine.reset()
         return essential
 
+    #TODO: describe the formats in doc
+    def load_medium(self, medium, copy=False):
+        """
+        Loads a medium into the model. If copy is true it will return
+        a copy of the model. Otherwise it applies the medium to itself.
+        Supported formats
+        TODO
+
+        :param medium: can be a file, a pandas DataFrame or dictionary.
+        :param copy: boolean, optional
+        :return:
+        """
+
+        if copy:
+            model = self.copy()
+        else:
+            model = self
+        if isinstance(medium, dict):
+            self._load_medium_from_dict(model, medium)
+        elif isinstance(medium, pandas.DataFrame):
+            self._load_medium_from_dataframe(model, medium)
+        elif isinstance(medium, str):
+            self._load_medium_from_file(model, medium)
+        else:
+            raise AssertionError("input type (%s) is not valid" % type(medium))
+
+        return model
+
+
+    @staticmethod
+    def _load_medium_from_dict(model, medium):
+        for rid, values in medium.iteritens():
+            if model.reactions.has_id(rid):
+                model.reactions.get_by_id(rid).lower_bound = values[0]
+                model.reactions.get_by_id(rid).upper_bound = values[1]
+
+    @staticmethod
+    def _load_medium_from_file(model, file_path, delimiter="\t"):
+        with open(file_path, "rb") as csv_file:
+            reader = csv.reader(csv_file, delimiter=delimiter)
+            for row in reader:
+                if model.reactions.has_id(row[0]):
+                    model.reactions.get_by_id(row[0]).lower_bound = float(row[1])
+                    model.reactions.get_by_id(row[0]).upper_bound = float(row[2])
+
+    @staticmethod
+    def _load_medium_from_dataframe(model, medium):
+        for i in xrange(len(medium) -1):
+            rid = medium['reaction_id'][i]
+            if model.reactions.has_id(rid):
+                model.reactions.get_by_id(rid).lower_bound = medium['lower_bound'][i]
+                model.reactions.get_by_id(rid).upper_bound = medium['upper_bound'][i]
 
 if __name__ == '__main__':
     from cameo import load_model
