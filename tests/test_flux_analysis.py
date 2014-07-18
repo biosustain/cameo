@@ -5,14 +5,10 @@ import unittest
 
 import os
 
-import cameo
 from cameo.flux_analysis.simulation import fba, pfba
 from cameo.parallel import SequentialView, MultiprocessingView
-
-# TODO: is the following maybe ruining the heuristics tests?
-cameo.config.default_view = SequentialView()
 from cameo.io import load_model
-from cameo.flux_analysis.analysis import flux_variability_analysis, phenotypic_phase_plane
+from cameo.flux_analysis.analysis import flux_variability_analysis, phenotypic_phase_plane, _cycle_free_fva
 
 import pandas
 from pandas.util.testing import assert_frame_equal
@@ -140,8 +136,12 @@ class TestFluxVariabilityAnalysis(unittest.TestCase):
         self.biomass_flux = 0.873921
         self.model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = self.biomass_flux
 
+    def test_cycle_free_fva(self):
+        fva_solution = _cycle_free_fva(self.model)
+        assert_dataframes_equal(fva_solution, REFERENCE_FVA_SOLUTION_ECOLI_CORE)
+
     def test_flux_variability_sequential(self):
-        fva_solution = flux_variability_analysis(self.model, view=SequentialView())
+        fva_solution = flux_variability_analysis(self.model, remove_cycles=False, view=SequentialView())
         assert_dataframes_equal(fva_solution, REFERENCE_FVA_SOLUTION_ECOLI_CORE)
         for key in fva_solution.index:
             self.assertAlmostEqual(fva_solution['lower_bound'][key],
@@ -150,13 +150,30 @@ class TestFluxVariabilityAnalysis(unittest.TestCase):
                                    REFERENCE_FVA_SOLUTION_ECOLI_CORE['upper_bound'][key], delta=0.000001)
         assert_dataframes_equal(fva_solution, REFERENCE_FVA_SOLUTION_ECOLI_CORE)
 
-    def test_flux_variability_parallel(self):
-        fva_solution = flux_variability_analysis(self.model, view=MultiprocessingView())
-        assert_dataframes_equal(fva_solution, REFERENCE_FVA_SOLUTION_ECOLI_CORE)
-        # for key, val in fva_solution.iteritems():
-        # self.assertAlmostEqual(val['upper_bound'], REFERENCE_FVA_SOLUTION_ECOLI_CORE[key]['upper_bound'], delta=0.000001)
-        # self.assertAlmostEqual(val['lower_bound'], REFERENCE_FVA_SOLUTION_ECOLI_CORE[key]['lower_bound'], delta=0.000001)
+    def test_flux_variability_sequential_remove_cycles(self):
+        fva_solution = flux_variability_analysis(self.model, remove_cycles=True, view=SequentialView())
+        for key in fva_solution.index:
+            if abs(REFERENCE_FVA_SOLUTION_ECOLI_CORE['lower_bound'][key]) < 999993:
+                self.assertAlmostEqual(fva_solution['lower_bound'][key],
+                                       REFERENCE_FVA_SOLUTION_ECOLI_CORE['lower_bound'][key], delta=0.000001)
+            if abs(REFERENCE_FVA_SOLUTION_ECOLI_CORE['upper_bound'][key]) < 999993:
+                self.assertAlmostEqual(fva_solution['upper_bound'][key],
+                                       REFERENCE_FVA_SOLUTION_ECOLI_CORE['upper_bound'][key], delta=0.000001)
 
+    def test_flux_variability_parallel(self):
+        fva_solution = flux_variability_analysis(self.model, remove_cycles=False, view=MultiprocessingView())
+        assert_dataframes_equal(fva_solution, REFERENCE_FVA_SOLUTION_ECOLI_CORE)
+
+    @unittest.skip("multiprocessing doesn't work with cycle_free_fva yet")
+    def test_flux_variability_parallel_remove_cycles(self):
+        fva_solution = flux_variability_analysis(self.model, remove_cycles=True, view=MultiprocessingView())
+        for key in fva_solution.index:
+            if abs(REFERENCE_FVA_SOLUTION_ECOLI_CORE['lower_bound'][key]) < 999993:
+                self.assertAlmostEqual(fva_solution['lower_bound'][key],
+                                       REFERENCE_FVA_SOLUTION_ECOLI_CORE['lower_bound'][key], delta=0.000001)
+            if abs(REFERENCE_FVA_SOLUTION_ECOLI_CORE['upper_bound'][key]) < 999993:
+                self.assertAlmostEqual(fva_solution['upper_bound'][key],
+                                       REFERENCE_FVA_SOLUTION_ECOLI_CORE['upper_bound'][key], delta=0.000001)
 
 class TestPhenotypicPhasePlane(unittest.TestCase):
     def setUp(self):
@@ -168,17 +185,16 @@ class TestSimulationMethods(unittest.TestCase):
         self.model = CORE_MODEL
 
     def test_fba(self):
-        print self.model.objective
-        model = self.model.copy()
-        solution = fba(model)
+        solution = fba(self.model)
         self.assertAlmostEqual(0.873921, solution.f, delta=0.000001)
 
     def test_pfba(self):
+        # fba_solution = fba(self.model)
+        # fba_flux_sum = sum((abs(val) for val in fba_solution.x_dict.values()))
+        # solution = pfba(self.model)
+        # pfba_flux_sum = sum((abs(val) for val in solution['fluxes'].values()))
+        # self.assertTrue(pfba_flux_sum < fba_flux_sum)
         pass
-        # model = self.model.copy()
-        #solution = pfba(model)
-        #self.assertAlmostEqual(self.biomass_flux, solution.f, delta=0.000001)
-        #assert net conversion
 
     def test_moma(self):
         pass

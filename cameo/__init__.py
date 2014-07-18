@@ -20,4 +20,7 @@ try:
 except ImportError:
     pass
 
+from .flux_analysis.analysis import flux_variability_analysis, phenotypic_phase_plane
+from .flux_analysis.simulation import fba, pfba
+
 import config
