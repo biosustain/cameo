@@ -18,6 +18,7 @@ import sys
 def proc(i):
     return sys.api_version
 
+
 view = MultiprocessingView()
 
 print view.map(proc, xrange(10))

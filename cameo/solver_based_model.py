@@ -58,6 +58,7 @@ except ImportError:
 def to_solver_based_model(cobrapy_model, solver_interface=optlang, deepcopy_model=True):
     """Convert a core model into a solver-based model."""
 
+    solver_interface = _SOLVER_INTERFACES.get(solver_interface, solver_interface)
     solver_based_model = SolverBasedModel(
         solver_interface=solver_interface, description=cobrapy_model, deepcopy_model=deepcopy_model)
     for y in ['reactions', 'genes', 'metabolites']:

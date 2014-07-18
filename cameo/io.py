@@ -6,10 +6,12 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 import types
 import pickle
+import optlang
 from cobra.io import read_sbml_model
 from cameo.solver_based_model import SolverBasedModel, to_solver_based_model
 
-def load_model(path_or_handle):
+
+def load_model(path_or_handle, solver_interface=optlang.glpk_interface):
     """Read a model from a file.
 
     Arguments
@@ -44,7 +46,12 @@ def load_model(path_or_handle):
             raise ValueError('FIXME')
 
     if not isinstance(model, SolverBasedModel):
-        return to_solver_based_model(model)
+        if solver_interface is None:
+            return model
+        else:
+            return to_solver_based_model(model, solver_interface=solver_interface)
     else:
+        if model.interface is not solver_interface and solver_interface is not None:
+            model.solver = solver_interface
         return model
             
