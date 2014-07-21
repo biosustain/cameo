@@ -109,12 +109,15 @@ def phenotypic_phase_plane(model, variables=[], objective=None, points=20, view=
         Pandas DataFrame containing the phenotypic phase plane.
 
     """
+    if not hasattr(variables, '__iter__'):
+        variables = [variables]
     if view is None:
         view = SequentialView()
     tm = TimeMachine()
     original_objective = copy(model.objective)
     if objective is not None:
-        tm(do=partial(setattr, 'objective', objective), undo=partial(setattr, 'objective', model.objective))
+        tm(do=partial(setattr, model, 'objective', objective),
+           undo=partial(setattr, model, 'objective', model.objective))
 
     variable_reactions = _ids_to_reactions(model, variables)
     variables_min_max = flux_variability_analysis(model, reactions=variable_reactions)
