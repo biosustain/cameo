@@ -94,9 +94,42 @@ def moma(model, objective=None):
     pass
 
 
-def lmoma(model, objective=None):
-    pass
+def lmoma(model, objective=None, wt_reference=None):
+    if wt_reference is None:
+        wt_reference = pfba(model, objective=objective)
 
+    tm = TimeMachine()
+    try:
+        obj_terms = list()
+        aux_constraint_terms = dict()
+        for reaction in model.reactions:
+            obj_terms.append(reaction.variable)
+            for metabolite, coefficient in reaction.metabolites.iteritems():
+                try:
+                    aux_constraint_terms[metabolite].append(reaction - reaction.x_dict[reaction.id])
+                except KeyError:
+                    aux_constraint_terms[metabolite] = list()
+                    aux_constraint_terms[metabolite].append(reaction - reaction.x_dict[reaction.id])
+
+        lmoma_obj = model.solver.interface.Objective(sympy.Add._from_args(obj_terms), direction='min')
+
+        tm(do=partial(setattr, model, 'objective', lmoma_obj),
+           undo=partial(setattr, model, 'objective', model.objective))
+        for metabolite, terms in aux_constraint_terms.iteritems():
+            tm(do=partial(model.solver.constraints[metabolite.id].__iadd__, sympy.Add._from_args(terms)),
+               undo=partial(model.solver.constraints[metabolite.id].__isub__, sympy.Add._from_args(terms)))
+        try:
+            solution = model.solve()
+        except SolveError as e:
+            print "gimme could not determine an optimal solution for objective %s" % model.objective
+            print model.solver
+            raise e
+
+    finally:
+        # tic = time.time()
+        tm.reset()
+    # print time.time() - tic
+    return solution
 
 if __name__ == '__main__':
     import time
