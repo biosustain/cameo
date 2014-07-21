@@ -59,6 +59,7 @@ except ImportError:
 def to_solver_based_model(cobrapy_model, solver_interface=optlang, deepcopy_model=True):
     """Convert a core model into a solver-based model."""
 
+    solver_interface = _SOLVER_INTERFACES.get(solver_interface, solver_interface)
     solver_based_model = SolverBasedModel(
         solver_interface=solver_interface, description=cobrapy_model, deepcopy_model=deepcopy_model)
     for y in ['reactions', 'genes', 'metabolites']:
@@ -524,7 +525,7 @@ class SolverBasedModel(Model):
                 time_machine.reset()
         return essential
 
-    #TODO: describe the formats in doc
+    # TODO: describe the formats in doc
     def load_medium(self, medium, copy=False):
         """
         Loads a medium into the model. If copy is true it will return
@@ -571,7 +572,7 @@ class SolverBasedModel(Model):
 
     @staticmethod
     def _load_medium_from_dataframe(model, medium):
-        for i in xrange(len(medium) -1):
+        for i in xrange(len(medium) - 1):
             rid = medium['reaction_id'][i]
             if model.reactions.has_id(rid):
                 model.reactions.get_by_id(rid).lower_bound = medium['lower_bound'][i]

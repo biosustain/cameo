@@ -66,26 +66,29 @@ class TimeMachine(object):
 
     def __str__(self):
         info = '\n'
-        for uuid, entry in self.history.iteritems():
-            info += datetime.fromtimestamp(entry['unix_epoch']
-                                           ).strftime('%Y-%m-%d %H:%M:%S') + '\n'
-            undo_entry = entry['undo']
-            try:
-                elements = undo_entry.func, undo_entry.args, undo_entry.keywords  # partial
-                info += 'undo: ' + ' '.join([str(elem) for elem in elements]) + '\n'
-            except AttributeError:  # normal python function
-                info += 'undo: ' + undo_entry.func_name + '\n'
-
-            redo_entry = entry['redo']
-            try:
-                elements = redo_entry.func, redo_entry.args, redo_entry.keywords  # partial
-                info += 'redo: ' + ' '.join([str(elem) for elem in elements]) + '\n'
-            except AttributeError:
-                info += 'redo: ' + redo_entry.func_name + '\n'
+        for item in self.history.iteritems():
+            info += self._history_item_to_str(item)
         return info
 
-    def __repr__(self):
-        return self.__str__()
+    @staticmethod
+    def _history_item_to_str(item):
+        info = ''
+        uuid, entry = item
+        info += datetime.fromtimestamp(entry['unix_epoch']).strftime('%Y-%m-%d %H:%M:%S') + '\n'
+        undo_entry = entry['undo']
+        try:
+            elements = undo_entry.func, undo_entry.args, undo_entry.keywords  # partial
+            info += 'undo: ' + ' '.join([str(elem) for elem in elements]) + '\n'
+        except AttributeError:  # normal python function
+            info += 'undo: ' + undo_entry.func_name + '\n'
+
+        redo_entry = entry['redo']
+        try:
+            elements = redo_entry.func, redo_entry.args, redo_entry.keywords  # partial
+            info += 'redo: ' + ' '.join([str(elem) for elem in elements]) + '\n'
+        except AttributeError:
+            info += 'redo: ' + redo_entry.func_name + '\n'
+        return info
 
     def undo(self, bookmark=None):
         if bookmark is None:

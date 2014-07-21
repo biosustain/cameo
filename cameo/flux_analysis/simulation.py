@@ -11,13 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import copy
 
 from functools import partial
 import sympy
 from cameo.util import TimeMachine
 from cameo.exceptions import SolveError
-from cobra.manipulation.modify import revert_to_reversible, convert_to_irreversible
 
 
 def fba(model, objective=None):
@@ -55,7 +53,6 @@ def pfba(model, objective=None):
         obj_terms = list()
         aux_constraint_terms = dict()
         for reaction in model.reactions:
-            # obj_terms.append((threshold - expression_value)*reaction.variable)
             if reaction.reversibility:
                 aux_variable = model.solver.interface.Variable(reaction.id + '_aux', lb=0, ub=-1 * reaction.lower_bound)
                 tm(do=partial(setattr, reaction, 'lower_bound', 0),
@@ -82,13 +79,11 @@ def pfba(model, objective=None):
             result['fluxes'] = solution.x_dict
         except SolveError as e:
             print "gimme could not determine an optimal solution for objective %s" % model.objective
-            print model.solver
             raise e
     finally:
-        # tic = time.time()
         tm.reset()
-    # print time.time() - tic
     return result
+
 
 def moma(model, objective=None):
     pass
@@ -131,6 +126,50 @@ def lmoma(model, objective=None, wt_reference=None):
     # print time.time() - tic
     return solution
 
+def _cycle_free_flux(model, fluxes, fix=[]):
+    """Remove cycles from a flux-distribution (http://cran.r-project.org/web/packages/sybilcycleFreeFlux/index.html)."""
+    tm = TimeMachine()
+    exchange_reactions = model.exchanges
+    exchange_ids = [exchange.id for exchange in exchange_reactions]
+    internal_reactions = [reaction for reaction in model.reactions if reaction.id not in exchange_ids]
+    for exchange in exchange_reactions:
+        exchange_flux = fluxes[exchange.id]
+        tm(do=partial(setattr, exchange, 'lower_bound', exchange_flux),
+           undo=partial(setattr, exchange, 'lower_bound', exchange.lower_bound))
+        tm(do=partial(setattr, exchange, 'upper_bound', exchange_flux),
+           undo=partial(setattr, exchange, 'upper_bound', exchange.upper_bound))
+    obj_terms = list()
+    for internal_reaction in internal_reactions:
+        internal_flux = fluxes[internal_reaction.id]
+        if internal_flux >= 0:
+            obj_terms.append(sympy.Mul._from_args([sympy.S.One, internal_reaction.variable]))
+            tm(do=partial(setattr, internal_reaction, 'lower_bound', 0),
+               undo=partial(setattr, internal_reaction, 'lower_bound', internal_reaction.lower_bound))
+            tm(do=partial(setattr, internal_reaction, 'upper_bound', internal_flux),
+               undo=partial(setattr, internal_reaction, 'upper_bound', internal_reaction.upper_bound))
+        elif internal_flux < 0:
+            obj_terms.append(sympy.Mul._from_args([sympy.S.NegativeOne, internal_reaction.variable]))
+            tm(do=partial(setattr, internal_reaction, 'lower_bound', internal_flux),
+               undo=partial(setattr, internal_reaction, 'lower_bound', internal_reaction.lower_bound))
+            tm(do=partial(setattr, internal_reaction, 'upper_bound', 0),
+               undo=partial(setattr, internal_reaction, 'upper_bound', internal_reaction.upper_bound))
+        else:
+            pass
+    for reaction_id in fix:
+        reaction_to_fix = model.reactions.get_by_id(reaction_id)
+        tm(do=partial(setattr, reaction_to_fix, 'lower_bound', fluxes[reaction_id]),
+           undo=partial(setattr, reaction_to_fix, 'lower_bound', reaction_to_fix.lower_bound))
+        tm(do=partial(setattr, reaction_to_fix, 'upper_bound', fluxes[reaction_id]),
+           undo=partial(setattr, reaction_to_fix, 'upper_bound', reaction_to_fix.upper_bound))
+    tm(do=partial(setattr, model, 'objective',
+                  model.solver.interface.Objective(sympy.Add._from_args(obj_terms), name='Flux minimization',
+                                                   direction='min', sloppy=True)),
+       undo=partial(setattr, model, 'objective', model.objective))
+    solution = model.optimize()
+    tm.reset()
+    return solution.x_dict
+
+
 if __name__ == '__main__':
     import time
     from cobra.io import read_sbml_model
@@ -159,3 +198,5 @@ if __name__ == '__main__':
     print "flux sum:",
     print sum([abs(val) for val in solution['fluxes'].values()])
     print "cameo pfba runtime:", time.time() - tic
+
+    # print model.solver

@@ -27,78 +27,21 @@
 # limitations under the License.
 
 
-from copy import copy
 import itertools
+from copy import copy
 from collections import OrderedDict
-
+from functools import partial
 import numpy
 from cobra.core import Reaction
-
 from cameo import config
 from cameo.exceptions import UndefinedSolution, Infeasible
 from cameo.util import TimeMachine, partition
 from cameo.parallel import SequentialView
-from functools import partial
-
-from sympy import Add, Mul
-from sympy.core.singleton import S
-
-from optlang import Objective
-
+from cameo.flux_analysis.simulation import _cycle_free_flux
 import pandas
 
 
-def _ids_to_reactions(model, reactions):
-    """Translate reaction IDs into reactions (skips reactions)."""
-    clean_reactions = list()
-    for reaction in reactions:
-        if isinstance(reaction, str):
-            clean_reactions.append(model.reactions.get_by_id(reaction))
-        elif isinstance(reaction, Reaction):
-            clean_reactions.append(reaction)
-        else:
-            raise Exception('%s is not a reaction or reaction ID.' % reaction)
-    return clean_reactions
-
-
-class FvaFunctionObject(object):
-    def __init__(self, model, fva):
-        self.model = model
-        self.fva = fva
-
-    def __call__(self, reactions):
-        return self.fva(self.model, reactions)
-
-
-def _flux_variability_analysis(model, reactions=None):
-    original_objective = copy(model.objective)
-    if reactions is None:
-        reactions = model.reactions
-    else:
-        reactions = _ids_to_reactions(model, reactions)
-    fva_sol = OrderedDict()
-    for reaction in reactions:
-        fva_sol[reaction.id] = dict()
-        model.objective = reaction
-        model.objective.direction = 'min'
-        solution = model.optimize()
-        if solution.status == 'optimal':
-            fva_sol[reaction.id]['lower_bound'] = model.solution.f
-        else:
-            fva_sol[reaction.id]['lower_bound'] = model.solution.status
-    for reaction in reactions:
-        model.objective = reaction
-        model.objective.direction = 'max'
-        solution = model.optimize()
-        if solution.status == 'optimal':
-            fva_sol[reaction.id]['upper_bound'] = model.solution.f
-        else:
-            fva_sol[reaction.id]['upper_bound'] = model.solution.status
-    model.objective = original_objective
-    return fva_sol
-
-
-def flux_variability_analysis(model, reactions=None, view=config.default_view):
+def flux_variability_analysis(model, reactions=None, fraction_of_optimum=0., remove_cycles=True, view=None):
     """Flux variability analysis.
 
     Parameters
@@ -116,44 +59,31 @@ def flux_variability_analysis(model, reactions=None, view=config.default_view):
         Pandas DataFrame containing the results of the flux variability analysis.
 
     """
+    tm = TimeMachine()
+    if view is None:
+        view = config.default_view
     if reactions is None:
         reactions = model.reactions
-    reaction_chunks = (chunk for chunk in partition(reactions, len(view)))
-    func_obj = FvaFunctionObject(model, _flux_variability_analysis)
-    chunky_results = view.map(func_obj, reaction_chunks)
-    solution = {}
-    for dictionary in chunky_results:
-        solution.update(dictionary)
-    solution = pandas.DataFrame.from_dict(solution, orient='index')
+    try:
+        if fraction_of_optimum > 0.:
+            if model.objective.direction == 'max':
+                fix_obj_constraint = model.solver.interface.Constraint(model.objective.expression,
+                                                                       lb=fraction_of_optimum * obj_val)
+            else:
+                fix_obj_constraint = model.solver.interface.Constraint(model.objective.expression,
+                                                                       ub=fraction_of_optimum * obj_val)
+            tm(do=partial(model.solver._add_constraint, fix_obj_constraint),
+               undo=partial(model.solver._remove_constraint, fix_obj_constraint))
+        reaction_chunks = (chunk for chunk in partition(reactions, len(view)))
+        if remove_cycles == True:
+            func_obj = _FvaFunctionObject(model, _cycle_free_fva)
+        else:
+            func_obj = _FvaFunctionObject(model, _flux_variability_analysis)
+        chunky_results = view.map(func_obj, reaction_chunks)
+        solution = pandas.concat(chunky_results)
+    finally:
+        tm.reset()
     return solution
-
-
-class _PhenotypicPhasePlaneChunkEvaluator(object):
-    def __init__(self, model, variable_reactions):
-        self.model = model
-        self.variable_reactions = variable_reactions
-
-    def __call__(self, points):
-        return [self._production_envelope_inner(point) for point in points]
-
-    def _production_envelope_inner(self, point):
-        for (reaction, coordinate) in zip(self.variable_reactions, point):
-            reaction.lower_bound, reaction.upper_bound = coordinate, coordinate
-        interval = []
-        self.model.objective.direction = 'min'
-        try:
-            solution = self.model.solve().f
-        except (Infeasible,
-                UndefinedSolution):  # TODO: should really just be Infeasible (see http://lists.gnu.org/archive/html/help-glpk/2013-09/msg00015.html)
-            solution = 0
-        interval.append(solution)
-        self.model.objective.direction = 'max'
-        try:
-            solution = self.model.optimize().f
-        except (Infeasible, UndefinedSolution):
-            solution = 0
-        interval.append(solution)
-        return point + tuple(interval)
 
 
 def phenotypic_phase_plane(model, variables=[], objective=None, points=20, view=None):
@@ -211,8 +141,68 @@ def phenotypic_phase_plane(model, variables=[], objective=None, points=20, view=
                             columns=(variable_reactions_ids + ['objective_lower_bound', 'objective_upper_bound']))
 
 
-def cycle_free_fva(model, reactions=None, sloppy=False):
-    """Flux-variability analysis."""
+def _ids_to_reactions(model, reactions):
+    """Translate reaction IDs into reactions (skips reactions)."""
+    clean_reactions = list()
+    for reaction in reactions:
+        if isinstance(reaction, str):
+            clean_reactions.append(model.reactions.get_by_id(reaction))
+        elif isinstance(reaction, Reaction):
+            clean_reactions.append(reaction)
+        else:
+            raise Exception('%s is not a reaction or reaction ID.' % reaction)
+    return clean_reactions
+
+
+class _FvaFunctionObject(object):
+    def __init__(self, model, fva):
+        self.model = model
+        self.fva = fva
+
+    def __call__(self, reactions):
+        return self.fva(self.model, reactions)
+
+def _flux_variability_analysis(model, reactions=None):
+    original_objective = copy(model.objective)
+    if reactions is None:
+        reactions = model.reactions
+    else:
+        reactions = _ids_to_reactions(model, reactions)
+    fva_sol = OrderedDict()
+    for reaction in reactions:
+        fva_sol[reaction.id] = dict()
+        model.objective = reaction
+        model.objective.direction = 'min'
+        solution = model.optimize()
+        if solution.status == 'optimal':
+            fva_sol[reaction.id]['lower_bound'] = model.solution.f
+        else:
+            fva_sol[reaction.id]['lower_bound'] = model.solution.status
+    for reaction in reactions:
+        model.objective = reaction
+        model.objective.direction = 'max'
+        solution = model.optimize()
+        if solution.status == 'optimal':
+            fva_sol[reaction.id]['upper_bound'] = model.solution.f
+        else:
+            fva_sol[reaction.id]['upper_bound'] = model.solution.status
+    model.objective = original_objective
+    return pandas.DataFrame.from_dict(fva_sol, orient='index')
+
+
+def _cycle_free_fva(model, reactions=None, sloppy=True):
+    """Cycle free flux-variability analysis. (http://cran.r-project.org/web/packages/sybilcycleFreeFlux/index.html)
+
+    Parameters
+    ----------
+    model: SolverBasedModel
+    reactions: list
+        List of reactions whose flux-ranges should be determined.
+    sloppy: boolean
+        If true, only abs(v) > 100 are checked to be futile cycles.
+
+    Rer
+    """
     original_objective = copy(model.objective)
     if reactions is None:
         reactions = model.reactions
@@ -230,11 +220,11 @@ def cycle_free_fva(model, reactions=None, sloppy=False):
                 fva_sol[reaction.id]['lower_bound'] = bound
             else:
                 v0_fluxes = solution.x_dict
-                v1_cycle_free_fluxes = cycle_free_flux(model, v0_fluxes)
+                v1_cycle_free_fluxes = _cycle_free_flux(model, v0_fluxes)
                 if abs(v1_cycle_free_fluxes[reaction.id] - bound) < 10 ** -6:
                     fva_sol[reaction.id]['lower_bound'] = bound
                 else:
-                    v2_one_cycle_fluxes = cycle_free_flux(model, v0_fluxes, fix=[reaction.id])
+                    v2_one_cycle_fluxes = _cycle_free_flux(model, v0_fluxes, fix=[reaction.id])
                     zero_in_v1_but_not_in_v2 = list()
                     model_broken_cyle = copy(model)
                     for key, v1_flux in v1_cycle_free_fluxes.iteritems():
@@ -258,12 +248,12 @@ def cycle_free_fva(model, reactions=None, sloppy=False):
                 fva_sol[reaction.id]['upper_bound'] = bound
             else:
                 v0_fluxes = solution.x_dict
-                v1_cycle_free_fluxes = cycle_free_flux(model, v0_fluxes)
+                v1_cycle_free_fluxes = _cycle_free_flux(model, v0_fluxes)
 
                 if abs(v1_cycle_free_fluxes[reaction.id] - bound) < 10 ** -6:
                     fva_sol[reaction.id]['upper_bound'] = v0_fluxes[reaction.id]
                 else:
-                    v2_one_cycle_fluxes = cycle_free_flux(model, v0_fluxes, fix=[reaction.id])
+                    v2_one_cycle_fluxes = _cycle_free_flux(model, v0_fluxes, fix=[reaction.id])
                     model_broken_cyle = copy(model)
                     for key, v1_flux in v1_cycle_free_fluxes.iteritems():
                         if v1_flux == 0 and v2_one_cycle_fluxes[key] != 0:
@@ -281,47 +271,33 @@ def cycle_free_fva(model, reactions=None, sloppy=False):
     return fva_sol
 
 
-def cycle_free_flux(model, fluxes, fix=[]):
-    tm = TimeMachine()
-    exchange_reactions = model.exchanges
-    exchange_ids = [exchange.id for exchange in exchange_reactions]
-    internal_reactions = [reaction for reaction in model.reactions if reaction.id not in exchange_ids]
-    for exchange in exchange_reactions:
-        exchange_flux = fluxes[exchange.id]
-        tm(do=partial(setattr, exchange, 'lower_bound', exchange_flux),
-           undo=partial(setattr, exchange, 'lower_bound', exchange.lower_bound))
-        tm(do=partial(setattr, exchange, 'upper_bound', exchange_flux),
-           undo=partial(setattr, exchange, 'upper_bound', exchange.upper_bound))
-    obj_terms = list()
-    for internal_reaction in internal_reactions:
-        internal_flux = fluxes[internal_reaction.id]
-        if internal_flux >= 0:
-            obj_terms.append(Mul._from_args([S.One, internal_reaction.variable]))
-            tm(do=partial(setattr, internal_reaction, 'lower_bound', 0),
-               undo=partial(setattr, internal_reaction, 'lower_bound', internal_reaction.lower_bound))
-            tm(do=partial(setattr, internal_reaction, 'upper_bound', internal_flux),
-               undo=partial(setattr, internal_reaction, 'upper_bound', internal_reaction.upper_bound))
-        elif internal_flux < 0:
-            obj_terms.append(Mul._from_args([S.NegativeOne, internal_reaction.variable]))
-            tm(do=partial(setattr, internal_reaction, 'lower_bound', internal_flux),
-               undo=partial(setattr, internal_reaction, 'lower_bound', internal_reaction.lower_bound))
-            tm(do=partial(setattr, internal_reaction, 'upper_bound', 0),
-               undo=partial(setattr, internal_reaction, 'upper_bound', internal_reaction.upper_bound))
-        else:
-            pass
-            # print internal_flux, internal_reaction
-    for reaction_id in fix:
-        reaction_to_fix = model.reactions.get_by_id(reaction_id)
-        tm(do=partial(setattr, reaction_to_fix, 'lower_bound', fluxes[reaction_id]),
-           undo=partial(setattr, reaction_to_fix, 'lower_bound', reaction_to_fix.lower_bound))
-        tm(do=partial(setattr, reaction_to_fix, 'upper_bound', fluxes[reaction_id]),
-           undo=partial(setattr, reaction_to_fix, 'upper_bound', reaction_to_fix.upper_bound))
-    tm(do=partial(setattr, model, 'objective',
-                  Objective(Add._from_args(obj_terms), name='Flux minimization', direction='min', sloppy=True)),
-       undo=partial(setattr, model, 'objective', model.objective))
-    solution = model.optimize()
-    tm.reset()
-    return solution.x_dict
+class _PhenotypicPhasePlaneChunkEvaluator(object):
+    def __init__(self, model, variable_reactions):
+        self.model = model
+        self.variable_reactions = variable_reactions
+
+    def __call__(self, points):
+        return [self._production_envelope_inner(point) for point in points]
+
+    def _production_envelope_inner(self, point):
+        for (reaction, coordinate) in zip(self.variable_reactions, point):
+            reaction.lower_bound, reaction.upper_bound = coordinate, coordinate
+        interval = []
+        self.model.objective.direction = 'min'
+        try:
+            solution = self.model.solve().f
+        except (Infeasible,
+                UndefinedSolution):  # TODO: should really just be Infeasible (see http://lists.gnu.org/archive/html/help-glpk/2013-09/msg00015.html)
+            solution = 0
+        interval.append(solution)
+        self.model.objective.direction = 'max'
+        try:
+            solution = self.model.optimize().f
+        except (Infeasible, UndefinedSolution):
+            solution = 0
+        interval.append(solution)
+        return point + tuple(interval)
+
 
 if __name__ == '__main__':
     import time

@@ -17,7 +17,7 @@ from cameo.exceptions import SolveError
 from cameo.util import TimeMachine
 
 
-def normalized_gene_knockout_growth_rate(gene_id, model, threshold=10**-6):
+def normalized_gene_knockout_growth_rate(gene_id, model, threshold=10 ** -6):
     biomass = model.solve().f
     gene = model.genes.get_by_id(gene_id)
     knockouts = find_gene_knockout_reactions(model, [gene])
@@ -32,7 +32,7 @@ def normalized_gene_knockout_growth_rate(gene_id, model, threshold=10**-6):
         s = model.solve()
         f = s.f
         if f >= threshold:
-            f = f/biomass
+            f = f / biomass
         else:
             f = 0
     except SolveError:
