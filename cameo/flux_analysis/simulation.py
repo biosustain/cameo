@@ -32,6 +32,7 @@ def fba(model, objective=None):
         tm.reset()
     return solution
 
+
 def pfba(model, objective=None):
     tm = TimeMachine()
     try:
@@ -79,58 +80,6 @@ def pfba(model, objective=None):
         tm.reset()
         print "reset: ", time.time() - tic
     return result
-
-
-# def pfba(model, objective=None):
-# tm = TimeMachine()
-#     try:
-#         if objective is not None:
-#             tm(do=partial(setattr, model, 'objective', objective),
-#                undo=partial(setattr, model, 'objective', model.objective))
-#         try:
-#             obj_val = model.solve().f
-#         except SolveError as e:
-#             print "pfba could not determine maximum objective value for\n%s." % model.objective
-#             raise e
-#         if model.objective.direction == 'max':
-#             fix_obj_constraint = model.solver.interface.Constraint(model.objective.expression, lb=obj_val)
-#         else:
-#             fix_obj_constraint = model.solver.interface.Constraint(model.objective.expression, ub=obj_val)
-#         tm(do=partial(model.solver._add_constraint, fix_obj_constraint),
-#            undo=partial(model.solver._remove_constraint, fix_obj_constraint))
-#         obj_terms = list()
-#         aux_constraint_terms = dict()
-#         for reaction in model.reactions:
-#             if reaction.reversibility:
-#                 aux_variable = model.solver.interface.Variable(reaction.id + '_aux', lb=0, ub=-1 * reaction.lower_bound)
-#                 tm(do=partial(setattr, reaction, 'lower_bound', 0),
-#                    undo=partial(setattr, reaction, 'lower_bound', reaction.lower_bound))
-#                 obj_terms.append(aux_variable)
-#                 tm(do=partial(model.solver._add_variable, aux_variable),
-#                    undo=partial(model.solver._remove_variable, aux_variable))
-#                 for metabolite, coefficient in reaction.metabolites.iteritems():
-#                     try:
-#                         aux_constraint_terms[metabolite].append(-1 * coefficient * aux_variable)
-#                     except KeyError:
-#                         aux_constraint_terms[metabolite] = list()
-#                         aux_constraint_terms[metabolite].append(-1 * coefficient * aux_variable)
-#         pfba_obj = model.solver.interface.Objective(sympy.Add._from_args(obj_terms), direction='min')
-#         tm(do=partial(setattr, model, 'objective', pfba_obj),
-#            undo=partial(setattr, model, 'objective', model.objective))
-#         for metabolite, terms in aux_constraint_terms.iteritems():
-#             tm(do=partial(model.solver.constraints[metabolite.id].__iadd__, sympy.Add._from_args(terms)),
-#                undo=partial(model.solver.constraints[metabolite.id].__isub__, sympy.Add._from_args(terms)))
-#         try:
-#             solution = model.solve()
-#             result = dict()
-#             result['flux_sum'] = solution.f
-#             result['fluxes'] = solution.x_dict
-#         except SolveError as e:
-#             print "gimme could not determine an optimal solution for objective %s" % model.objective
-#             raise e
-#     finally:
-#         tm.reset()
-#     return result
 
 
 def moma(model, objective=None):
