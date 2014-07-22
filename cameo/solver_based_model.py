@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import csv
+import hashlib
 
 import time
 from copy import deepcopy, copy
@@ -62,22 +63,6 @@ def to_solver_based_model(cobrapy_model, solver_interface=optlang, deepcopy_mode
     solver_interface = _SOLVER_INTERFACES.get(solver_interface, solver_interface)
     solver_based_model = SolverBasedModel(
         solver_interface=solver_interface, description=cobrapy_model, deepcopy_model=deepcopy_model)
-    for y in ['reactions', 'genes', 'metabolites']:
-        for x in solver_based_model.__dict__[y]:
-            setattr(x, '_model', solver_based_model)
-    new_reactions = DictList()
-    for reaction in solver_based_model.reactions:
-        new_reaction = Reaction(name=reaction.name)
-        new_reaction.__dict__.update(reaction.__dict__)
-        new_reaction._objective_coefficient = reaction.objective_coefficient
-        new_reactions.append(new_reaction)
-    solver_based_model.reactions = new_reactions
-    for metabolite in solver_based_model.metabolites:
-        metabolite._reaction = set([solver_based_model.reactions.get_by_id(reaction.id)
-                                    for reaction in metabolite._reaction])
-    for gene in solver_based_model.genes:
-        gene._reaction = set([solver_based_model.reactions.get_by_id(reaction.id)
-                              for reaction in gene._reaction])
     return solver_based_model
 
 
@@ -184,6 +169,21 @@ class Reaction(OriginalReaction):
         else:
             return None
 
+    def _get_reverse_id(self):
+        return '_'.join((self.id, 'reverse', hashlib.md5(self.id).hexdigest()))
+
+    @property
+    def reverse_variable(self):
+        if self.reversibility:
+            model = self.get_model()
+            if model is not None:
+                aux_id = self._get_reverse_id()
+                return model.solver.variables[aux_id]
+            else:
+                return None
+        else:
+            return None
+
     @property
     def lower_bound(self):
         model = self.get_model()
@@ -194,6 +194,9 @@ class Reaction(OriginalReaction):
 
     @lower_bound.setter
     def lower_bound(self, value):
+        model = self.get_model()
+        # if value < 0:
+        # model.solver._remove_variable(model.solver.variables[self.__get_reverse_id()])
         if self.get_model() is not None:
             try:
                 self.get_model().solver.variables[self.id].lb = value
@@ -257,7 +260,16 @@ class SolverBasedModel(Model):
             description = description.copy()
         super(SolverBasedModel, self).__init__(description, **kwargs)
         self._solver = solver_interface.Model()
+        cleaned_reactions = DictList()
+        for reaction in self.reactions:
+            if isinstance(reaction, Reaction):
+                cleaned_reactions.append(reaction)
+            else:
+                cleaned_reactions.append(Reaction.clone(reaction))
+        self.reactions = cleaned_reactions
         self._populate_solver_from_scratch()
+        for reaction in self.reactions:
+            reaction._model = self
 
     def __copy__(self):
         return self.__deepcopy__()
@@ -334,29 +346,34 @@ class SolverBasedModel(Model):
         return [reaction for reaction in self.reactions if len(reaction.reactants) == 0 or len(reaction.products) == 0]
 
     def _populate_solver_from_scratch(self):
-        objective = self.solver.interface.Objective(0)
+        objective_terms = list()
         constr_terms = dict()
         for rxn in self.reactions:
             var = self.solver._add_variable(
                 self.solver.interface.Variable(rxn.id, lb=rxn.lower_bound, ub=rxn.upper_bound))
+            if rxn.reversibility:
+                aux_var = self.solver._add_variable(self.solver.interface.Variable(rxn._get_reverse_id(), lb=0, ub=0))
             if rxn.objective_coefficient != 0.:
-                objective.expression += rxn.objective_coefficient * var
+                objective_terms.append(sympy.Mul._from_args((sympy.RealNumber(rxn.objective_coefficient), var)))
             for met, coeff in rxn._metabolites.iteritems():
                 if constr_terms.has_key(met.id):
                     constr_terms[met.id] += [(sympy.RealNumber(coeff), var)]
                 else:
                     constr_terms[met.id] = [(sympy.RealNumber(coeff), var)]
+                if rxn.reversibility:
+                    constr_terms[met.id] += [(-1 * sympy.RealNumber(coeff), aux_var)]
 
         for met_id, terms in constr_terms.iteritems():
-            expr = _unevaluated_Add(*[_unevaluated_Mul(coeff, var)
-                                      for coeff, var in terms])
+            expr = sympy.Add._from_args([sympy.Mul._from_args((coeff, var))
+                                         for coeff, var in terms])
             constr = self.solver.interface.Constraint(expr, lb=0, ub=0, name=met_id)
             try:
                 self.solver._add_constraint(constr, sloppy=True)
             except Exception, e:
                 print e
                 raise
-        self.solver.objective = objective
+        objective_expression = sympy.Add._from_args(objective_terms)
+        self.solver.objective = self.solver.interface.Objective(objective_expression, direction='max')
 
     def add_metabolites(self, metabolite_list):
         super(SolverBasedModel, self).add_metabolites(metabolite_list)
@@ -577,6 +594,7 @@ class SolverBasedModel(Model):
             if model.reactions.has_id(rid):
                 model.reactions.get_by_id(rid).lower_bound = medium['lower_bound'][i]
                 model.reactions.get_by_id(rid).upper_bound = medium['upper_bound'][i]
+
 
 if __name__ == '__main__':
     from cameo import load_model
