@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from collections import OrderedDict
 import csv
 import hashlib
 
@@ -103,22 +104,34 @@ class LazySolution(object):
     @property
     def x(self):
         self._check_freshness()
-        return [variable.primal for variable in self.model.solver.variables.values()]
+        return self.x_dict.values()
 
     @property
     def x_dict(self):
         self._check_freshness()
-        return dict([(variable.name, variable.primal) for variable in self.model.solver.variables.values()])
+        primals = OrderedDict()
+        for reaction in self.model.reactions:
+            primal = reaction.variable.primal
+            if reaction.reversibility:
+                primal -= reaction.reverse_variable.primal
+            primals[reaction.id] = primal
+        return primals
 
     @property
     def y(self):
         self._check_freshness()
-        return [variable.dual for variable in self.model.solver.variables.values()]
+        return self.y_dict.values()
 
     @property
     def y_dict(self):
         self._check_freshness()
-        return dict([(variable.name, variable.dual) for variable in self.model.solver.variables.values()])
+        duals = OrderedDict()
+        for reaction in self.model.reactions:
+            dual = reaction.variable.dual
+            if reaction.reversibility:
+                dual -= reaction.reverse_variable.dual
+            duals[reaction.id] = dual
+        return duals
 
     @property
     def status(self):

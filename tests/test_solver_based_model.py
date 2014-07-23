@@ -29,12 +29,21 @@ class CommonGround(unittest.TestCase):
 
 
 class TestLazySolution(CommonGround):
+    def setUp(self):
+        super(TestLazySolution, self).setUp()
+        self.solution = self.model.optimize()
+
     def test_self_invalidation(self):
         solution = self.model.optimize()
         self.assertAlmostEqual(solution.f, 0.873921506968431, delta=0.000001)
         self.model.optimize()
         self.assertRaises(UndefinedSolution, getattr, solution, 'f')
 
+    def test_solution_contains_only_reaction_specific_values(self):
+        reaction_IDs = set([reaction.id for reaction in self.model.reactions])
+        for attr in ('x_dict', 'y_dict'):
+            self.assertEqual(set(getattr(self.solution, attr).keys()).intersection(reaction_IDs), reaction_IDs)
+            self.assertEqual(set(getattr(self.solution, attr).keys()).difference(reaction_IDs), set())
 
 class TestReaction(unittest.TestCase):
     def setUp(self):
