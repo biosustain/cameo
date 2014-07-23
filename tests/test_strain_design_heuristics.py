@@ -16,8 +16,8 @@ from random import Random
 import unittest
 import inspyred
 
-from cameo import load_model
-from cameo.strain_design.heuristic import HeuristicOptimization
+from cameo import load_model, fba
+from cameo.strain_design.heuristic import HeuristicOptimization, ReactionKnockoutOptimization
 from cameo.strain_design.heuristic.archivers import SolutionTuple, BestSolutionArchiver
 from cameo.strain_design.heuristic.decoders import ReactionKnockoutDecoder, KnockoutDecoder, GeneKnockoutDecoder
 from cameo.strain_design.heuristic.generators import set_generator, unique_set_generator
@@ -274,7 +274,7 @@ class TestGeneratos(unittest.TestCase):
             candidate = unique_set_generator(self.random, self.args)
             self.assertEqual(len(candidate), 10)
 
-        self.args['candidate_size'] =  20
+        self.args['candidate_size'] = 20
         for _ in xrange(10000):
             candidate = set_generator(self.random, self.args)
             self.assertEqual(len(candidate), 20)
@@ -417,3 +417,17 @@ class TestHeuristicOptimization(unittest.TestCase):
         )
 
         self.assertRaises(TypeError, multiobjective_heuristic.heuristic_method, inspyred.ec.GA)
+
+
+class TestReactionKnockoutOptimization(unittest.TestCase):
+    def setUp(self):
+        self.model = TEST_MODEL
+        self.essential_reactions = set([r.id for r in self.model.essential_reactions()])
+
+    def test_initialize(self):
+        rko = ReactionKnockoutOptimization(model=self.model,
+                                           simulation_method=fba)
+
+        self.assertItemsEqual(self.essential_reactions, rko.essential_reactions)
+        self.assertEqual(rko.ko_type, "reaction")
+        self.assertTrue(isinstance(rko._decoder, ReactionKnockoutDecoder))

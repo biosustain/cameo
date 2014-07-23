@@ -13,15 +13,20 @@
 # limitations under the License.
 from functools import partial
 from cobra.manipulation.delete import find_gene_knockout_reactions
+from cameo.flux_analysis.simulation import fba
 from cameo.exceptions import SolveError
 from cameo.util import TimeMachine
 
 
-def normalized_gene_knockout_growth_rate(gene_id, model, threshold=10 ** -6):
-    biomass = model.solve().f
+def normalized_gene_knockout_growth_rate(gene_id, model, threshold=10 ** -6, simulation_method=fba, wt_reference=None):
+    s = model.solve()
+    biomass = s.f
+    if wt_reference is None:
+        wt_reference = s.x_dict
     gene = model.genes.get_by_id(gene_id)
     knockouts = find_gene_knockout_reactions(model, [gene])
     tm = TimeMachine()
+
     for reaction in knockouts:
         tm(do=partial(setattr, reaction, 'lower_bound', 0),
            undo=partial(setattr, reaction, 'lower_bound', reaction.lower_bound))
@@ -29,7 +34,7 @@ def normalized_gene_knockout_growth_rate(gene_id, model, threshold=10 ** -6):
            undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
 
     try:
-        s = model.solve()
+        s = simulation_method(model, wt_reference)
         f = s.f
         if f >= threshold:
             f = f / biomass

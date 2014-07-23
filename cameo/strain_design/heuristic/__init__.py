@@ -404,17 +404,24 @@ class KnockoutOptimizationResult(object):
 
     def _repr_html_(self):
 
-        results = "<h4>Result:</h4>" \
-                  "<ul>" \
-                  "    <li>model: " + self.model.id + "</li>" \
-                                                      "    <li>heuristic: " + self.heuristic_method.__class__.__name__ + "</li>" \
-                                                                                                                         "    <li>objective function: " + "|".join(
-            [o.name for o in self.objective_functions]) + "</li>" \
-                                                          "    <li>simulation method: " + self.simulation_method.__name__ + "</li>" \
-                                                                                                                            "    <li>type: " + self.ko_type + "</li>" \
-                                                                                                                                                              "</ul>"
+        template = """
+        <h4>Result:</h4>
+        <ul>
+            <li>model: %s</li>
+            <li>heuristic: %s</li>
+            <li>objective function: %s</li>
+            <li>simulation method: %s</li>
+            <li>type: %s</li>
+        <ul>
+        """
+        model_id = self.model.id
+        heuristic = self.heuristic_method.__class__.__name__
+        of_string = "| ".join([o.name for o in self.objective_functions])
+        simulation = of_string, self.simulation_method.__name__
+        solutions = self.solutions._repr_html_()
 
-        return results
+        results = template % (model_id, heuristic, of_string, simulation, self.ko_type)
+        return results + solutions
 
     def _merge(self, other_result):
         assert isinstance(other_result, self.__class__), "Cannot merge result with %s" % type(other_result)
