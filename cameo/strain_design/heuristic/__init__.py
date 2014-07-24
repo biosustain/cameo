@@ -154,28 +154,19 @@ class HeuristicOptimization(object):
         return isinstance(self.objective_function, list)
 
 
-class _ChunkEvaluation(object):
-    def __init__(self, optimization):
-        self.optimization = optimization
-        self.time_machine = TimeMachine()
+class KnockoutEvaluator(object):
+    def __init__(self, model, decoder, objective_function, simulation_method):
+        self.model = model
+        self.decoder = decoder
+        self.objective_function = objective_function
+        self.simulation_method = simulation_method
 
     def __call__(self, population):
-        return [self.optimization.evaluate_individual(i, self.time_machine) for i in population]
-
-
-class KnockoutOptimization(HeuristicOptimization):
-    def __init__(self, simulation_method=pfba, max_size=9, variable_size=True, *args, **kwargs):
-        super(KnockoutOptimization, self).__init__(*args, **kwargs)
-        self.simulation_method = simulation_method
-        self.max_size = max_size
-        self.variable_size = variable_size
-        self.representation = None
-        self._ko_type = None
-        self._decoder = None
-        self._generator = generators.set_generator
+        time_machine = TimeMachine()
+        return [self.evaluate_individual(i, time_machine) for i in population]
 
     def evaluate_individual(self, individual, tm):
-        decoded = self._decoder(individual)
+        decoded = self.decoder(individual)
         reactions = decoded[0]
         try:
             for reaction in reactions:
@@ -200,17 +191,29 @@ class KnockoutOptimization(HeuristicOptimization):
         return fitness
 
     def _calculate_fitness(self, solution, decoded):
-        if self.is_mo():
+        if isinstance(self.objective_function, list):
             logger.debug("evaluate multi objective")
             return inspyred.ec.emo.Pareto(values=[of(self.model, solution, decoded) for of in self.objective_function])
         else:
             logger.debug("evaluate single objective")
             return self.objective_function(self.model, solution, decoded)
 
+
+class KnockoutOptimization(HeuristicOptimization):
+    def __init__(self, simulation_method=pfba, max_size=9, variable_size=True, *args, **kwargs):
+        super(KnockoutOptimization, self).__init__(*args, **kwargs)
+        self.simulation_method = simulation_method
+        self.max_size = max_size
+        self.variable_size = variable_size
+        self.representation = None
+        self._ko_type = None
+        self._decoder = None
+        self._generator = generators.set_generator
+
     def _evaluator(self, candidates, args):
         view = args.get('view')
         population_chunks = (chunk for chunk in partition(candidates, len(view)))
-        func_obj = _ChunkEvaluation(self)
+        func_obj = KnockoutEvaluator(self.model, self._decoder, self.objective_function, self.simulation_method)
         results = view.map(func_obj, population_chunks)
         fitness = reduce(list.__add__, results)
 

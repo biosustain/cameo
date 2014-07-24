@@ -109,14 +109,20 @@ try:
                 item = self._db.lpop(self._key)
 
             if item:
-                item = item[1]
+                if isinstance(item, str):
+                    return pickle.loads(item)
+                else:
+                    return pickle.loads(item[1])
             else:
                 raise Queue.Empty
-            return pickle.loads(item)
 
         def get_nowait(self):
             """Equivalent to get(False)."""
             return self.get(False)
+
+        def __del__(self):
+            self._db.delete(self._key)
+            self._db.connection_pool.disconnect()
 
 except ImportError:
     pass

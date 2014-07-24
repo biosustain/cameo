@@ -18,7 +18,7 @@ from cameo.util import TimeMachine
 from cameo.exceptions import SolveError
 
 
-def fba(model, objective=None):
+def fba(model, objective=None, *args, **kwargs):
     """Perform flux balance analysis."""
     tm = TimeMachine()
     if objective is not None:
@@ -26,14 +26,14 @@ def fba(model, objective=None):
            undo=partial(setattr, model, 'objective', model.objective))
     try:
         solution = model.solve()
-    except SolveError:
-        pass
-    finally:
         tm.reset()
-    return solution
+        return solution
+    except SolveError as e:
+        tm.reset()
+        raise e
 
 
-def pfba(model, objective=None):
+def pfba(model, objective=None, *args, **kwargs):
     tm = TimeMachine()
     try:
         if objective is not None:
@@ -85,7 +85,7 @@ def pfba(model, objective=None):
     return result
 
 
-def moma(model, objective=None):
+def moma(model, objective=None, *args, **kwargs):
     pass
 
 

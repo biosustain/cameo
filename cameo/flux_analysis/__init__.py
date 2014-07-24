@@ -34,7 +34,7 @@ def normalized_gene_knockout_growth_rate(gene_id, model, threshold=10 ** -6, sim
            undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
 
     try:
-        s = simulation_method(model, wt_reference)
+        s = simulation_method(model, wt_reference=wt_reference)
         f = s.f
         if f >= threshold:
             f = f / biomass

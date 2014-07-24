@@ -17,13 +17,14 @@ import unittest
 import inspyred
 
 from cameo import load_model, fba
-from cameo.strain_design.heuristic import HeuristicOptimization, ReactionKnockoutOptimization
+from cameo.strain_design.heuristic import HeuristicOptimization, ReactionKnockoutOptimization, set_distance_function
 from cameo.strain_design.heuristic.archivers import SolutionTuple, BestSolutionArchiver
 from cameo.strain_design.heuristic.decoders import ReactionKnockoutDecoder, KnockoutDecoder, GeneKnockoutDecoder
 from cameo.strain_design.heuristic.generators import set_generator, unique_set_generator
 from cameo.strain_design.heuristic.objective_functions import biomass_product_coupled_yield, product_yield, \
     number_of_knockouts
 from cobra.manipulation.delete import find_gene_knockout_reactions
+from cameo.parallel import SequentialView
 
 MODEL_PATH = os.path.join(os.path.dirname(__file__), "data/EcoliCore.xml")
 
@@ -301,7 +302,7 @@ class TestGeneratos(unittest.TestCase):
 
 class TestHeuristicOptimization(unittest.TestCase):
     def setUp(self):
-        self.model = TEST_MODEL
+        self.model = TEST_MODEL.copy()
         self.single_objective_function = product_yield('product', 'substrate')
         self.multiobjective_function = [
             product_yield('product', 'substrate'),
@@ -388,6 +389,7 @@ class TestHeuristicOptimization(unittest.TestCase):
         single_objective_heuristic.objective_function = [nok]
         self.assertEqual(nok, single_objective_heuristic.objective_function)
         self.assertFalse(single_objective_heuristic.is_mo())
+        self.assertRaises(TypeError, single_objective_heuristic.objective_function, self.multiobjective_function)
 
         multiobjective_heuristic = HeuristicOptimization(
             model=self.model,
@@ -417,6 +419,20 @@ class TestHeuristicOptimization(unittest.TestCase):
         )
 
         self.assertRaises(TypeError, multiobjective_heuristic.heuristic_method, inspyred.ec.GA)
+        multiobjective_heuristic.objective_function = self.single_objective_function
+        multiobjective_heuristic.heuristic_method = inspyred.ec.GA
+        self.assertFalse(multiobjective_heuristic.is_mo())
+
+    def test_set_distance_function(self):
+        s1 = set([1, 2, 3])
+        s2 = set([1, 2, 3, 4])
+        d = set_distance_function(s1, s2)
+        self.assertEqual(d, 1)
+        s3 = set([2, 3, 4])
+        d = set_distance_function(s1, s3)
+        self.assertEqual(d, 2)
+        d = set_distance_function(s3, s2)
+        self.assertEqual(d, 1)
 
 
 class TestReactionKnockoutOptimization(unittest.TestCase):
@@ -431,3 +447,33 @@ class TestReactionKnockoutOptimization(unittest.TestCase):
         self.assertItemsEqual(self.essential_reactions, rko.essential_reactions)
         self.assertEqual(rko.ko_type, "reaction")
         self.assertTrue(isinstance(rko._decoder, ReactionKnockoutDecoder))
+
+    def test_run_single_objective(self):
+        objective = biomass_product_coupled_yield(
+            "Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2",
+            "EX_ac_LPAREN_e_RPAREN_",
+            "EX_glc_LPAREN_e_RPAREN_")
+
+        rko = ReactionKnockoutOptimization(model=self.model,
+                                           simulation_method=fba,
+                                           objective_function=objective)
+
+        rko.run(max_evaluations=3000, pop_size=10, view=SequentialView())
+
+    def test_run_multiobjective(self):
+        objective1 = biomass_product_coupled_yield(
+            "Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2",
+            "EX_ac_LPAREN_e_RPAREN_",
+            "EX_glc_LPAREN_e_RPAREN_")
+        objective2 = number_of_knockouts()
+        objective = [objective1, objective2]
+
+        rko = ReactionKnockoutOptimization(model=self.model,
+                                           simulation_method=fba,
+                                           objective_function=objective,
+                                           heuristic_method=inspyred.ec.emo.NSGA2)
+
+        rko.run(max_evaluations=3000, pop_size=10, view=SequentialView())
+
+    def test_evaluator(self):
+        pass

@@ -79,7 +79,7 @@ class TestFluxVariabilityAnalysis(unittest.TestCase):
 
 class TestPhenotypicPhasePlane(unittest.TestCase):
     def setUp(self):
-        self.model = CORE_MODEL
+        self.model = CORE_MODEL.copy()
 
     def test_one_variable(self):
         ppp = phenotypic_phase_plane(self.model, ['EX_o2_LPAREN_e_RPAREN_'])
@@ -94,7 +94,7 @@ class TestPhenotypicPhasePlane(unittest.TestCase):
 
 class TestSimulationMethods(unittest.TestCase):
     def setUp(self):
-        self.model = CORE_MODEL
+        self.model = CORE_MODEL.copy()
 
     def test_fba(self):
         solution = fba(self.model)
