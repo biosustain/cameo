@@ -302,6 +302,56 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
         return point + tuple(interval)
 
 
+def fbip(model, knockouts, view=config.default_view, method="fva"):
+    """
+    Flux balance impact degree by Zhao et al 2013
+
+    :param model: wild-type model
+    :param knockouts: list of reaction knockouts
+    :param method: the method to compute the perturbation. default is "fva" - Flux Variability Analysis.
+        It can also be computed with "em" - Elementary modes
+    :return: perturbation
+    """
+
+    if method == "fva":
+        _fbip_fva(model, knockouts, view)
+    elif method == "em":
+        raise NotImplementedError("Elementary modes approach is not implemented")
+    else:
+        raise ValueError("%s method is not valid to compute FBIP" % method)
+
+
+def _fbip_fva(model, knockouts, view):
+    tm = TimeMachine()
+    for reaction in model.reactions:
+        if reaction.reversibility:
+            tm(do=partial(setattr, reaction, 'upper_bound', 1),
+               undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
+            tm(do=partial(setattr, reaction, 'lower_bound', -1),
+               undo=partial(setattr, reaction, 'lower_bound', reaction.upper_bound))
+        else:
+            tm(do=partial(setattr, reaction, 'upper_bound', 1),
+               undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
+            tm(do=partial(setattr, reaction, 'lower_bound', 0),
+               undo=partial(setattr, reaction, 'lower_bound', reaction.upper_bound))
+
+    wt_fva = flux_variability_analysis(model, view)
+    for reaction in knockouts:
+        tm(do=partial(setattr, reaction, 'upper_bound', 0),
+           undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
+        tm(do=partial(setattr, reaction, 'lower_bound', 0),
+           undo=partial(setattr, reaction, 'lower_bound', reaction.upper_bound))
+
+    mt_fva = flux_variability_analysis(model, view)
+
+    perturbation = 0
+    for reaction in model.reactions:
+        if wt_fva[reaction.id] != 0 and mt_fva[reaction.id] == 0:
+            perturbation += 1
+
+    tm.reset()
+    return perturbation
+
 if __name__ == '__main__':
     import time
     from cameo import load_model

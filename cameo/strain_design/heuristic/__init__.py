@@ -19,6 +19,7 @@ from cameo.strain_design.heuristic import observers
 from cameo.strain_design.heuristic import mutators
 from cameo.strain_design.heuristic import generators
 from cameo.strain_design.heuristic import decoders
+from cameo.strain_design.heuristic import stats
 from cameo import config
 from cameo.flux_analysis.simulation import pfba
 from cameo.strain_design.heuristic.plotters import GeneFrequencyPlotter
@@ -360,32 +361,39 @@ class KnockoutOptimizationResult(object):
         products = []
         sizes = []
         for solution in solutions:
-            decoded_solution = decoder(solution.candidate)
-            simulation_result = self._simulate(decoded_solution[0], simulation_method, model)
-            size = len(decoded_solution[1])
+            mo = isinstance(solution.fitness, list)
+            if mo:
+                proceed = True
+            else:
+                proceed = solution.fitness > 0
+                
+            if proceed:
+                decoded_solution = decoder(solution.candidate)
+                simulation_result = self._simulate(decoded_solution[0], simulation_method, model)
+                size = len(decoded_solution[1])
 
-            biomass.append(simulation_result.f)
-            fitness.append(solution.fitness)
-            knockouts.append(frozenset([v.id for v in decoded_solution[1]]))
-            sizes.append(size)
+                biomass.append(simulation_result.f)
+                fitness.append(solution.fitness)
+                knockouts.append(frozenset([v.id for v in decoded_solution[1]]))
+                sizes.append(size)
 
-            if isinstance(self.product, (list, tuple)):
-                products.append([simulation_result.get_primal_by_id(p) for p in self.product])
-            elif not self.product is None:
-                products.append(simulation_result.get_primal_by_id(self.product))
+                if isinstance(self.product, (list, tuple)):
+                    products.append([simulation_result.get_primal_by_id(p) for p in self.product])
+                elif not self.product is None:
+                    products.append(simulation_result.get_primal_by_id(self.product))
 
         if self.product is None:
-            data_frame = DataFrame({KNOCKOUTS: knockouts, BIOMASS: biomass, FITNESS: fitness, SIZE: size})
+            data_frame = DataFrame({KNOCKOUTS: knockouts, BIOMASS: biomass, FITNESS: fitness, SIZE: sizes})
         elif isinstance(self.product, (list, tuple)):
             data = {KNOCKOUTS: knockouts, BIOMASS: biomass, FITNESS: fitness}
             for i in xrange(self.product):
                 data[self.product[i]] = products[i:]
             data_frame = DataFrame(data)
 
-            data[SIZE] = size
+            data[SIZE] = sizes
         else:
             data_frame = DataFrame({KNOCKOUTS: knockouts, BIOMASS: biomass,
-                                    FITNESS: fitness, self.product: products, SIZE: size})
+                                    FITNESS: fitness, self.product: products, SIZE: sizes})
 
         return data_frame
 
@@ -399,7 +407,7 @@ class KnockoutOptimizationResult(object):
 
         try:
             solution = method(model)
-        except Exception, e:
+        except Exception as e:
             logger.exception(e)
 
         tm.reset()
@@ -441,10 +449,19 @@ class KnockoutOptimizationResult(object):
         return self
 
     # TODO: find out how to plot an histogram (?) in bokeh
-    def _plot_frequency(self):
-        if self.plotter is None:
-            self.plotter = GeneFrequencyPlotter(self.solutions)
-        self.plotter.plot()
+    def stats(self):
+        stats_data = None
+        if in_ipnb():
+            if config.use_bokeh:
+                stats_data = stats.BokehStatsData(self)
+            elif config.use_matplotlib:
+                pass
+        else:
+            stats_data = stats.CLIStatsData(self)
+
+        stats_data.display()
+
+
 
 
 class ReactionKnockoutOptimization(KnockoutOptimization):
