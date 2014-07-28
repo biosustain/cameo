@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from inspyred.ec.emo import Pareto
 
 from cameo.exceptions import SolveError
 from cameo.strain_design.heuristic import archivers
@@ -361,7 +362,7 @@ class KnockoutOptimizationResult(object):
         products = []
         sizes = []
         for solution in solutions:
-            mo = isinstance(solution.fitness, list)
+            mo = isinstance(solution.fitness, Pareto)
             if mo:
                 proceed = True
             else:
