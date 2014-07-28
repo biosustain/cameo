@@ -29,6 +29,9 @@ REFERENCE_PPP_o2_EcoliCore = pandas.read_csv(os.path.join(TESTDIR, 'data/REFEREN
 REFERENCE_PPP_o2_glc_EcoliCore = pandas.read_csv(os.path.join(TESTDIR, 'data/REFERENCE_PPP_o2_glc_EcoliCore.csv'))
 
 CORE_MODEL = load_model(os.path.join(TESTDIR, 'data/EcoliCore.xml'))
+iJO_MODEL = load_model(os.path.join(TESTDIR, 'data/iJO1366.xml'))
+
+# iJO_MODEL_COBRAPY = load_model(os.path.join(TESTDIR, 'data/iJO1366.xml'), solver_interface=None)
 
 
 class TestFluxVariabilityAnalysis(unittest.TestCase):
@@ -100,13 +103,15 @@ class TestSimulationMethods(unittest.TestCase):
         solution = fba(self.model)
         self.assertAlmostEqual(0.873921, solution.f, delta=0.000001)
 
-    def test_pfba(self):
-        # fba_solution = fba(self.model)
-        # fba_flux_sum = sum((abs(val) for val in fba_solution.x_dict.values()))
-        # solution = pfba(self.model)
-        # pfba_flux_sum = sum((abs(val) for val in solution['fluxes'].values()))
-        # self.assertTrue(pfba_flux_sum < fba_flux_sum)
-        pass
+    # def test_pfba(self):
+    # fba_solution = iJO_MODEL_COBRAPY.optimize()
+    #     print fba_solution.x_dict
+    #     fba_flux_sum = sum((abs(val) for val in fba_solution.x_dict.values()))
+    #     print fba_flux_sum
+    #     solution = pfba(iJO_MODEL)
+    #     pfba_flux_sum = sum((abs(val) for val in solution['fluxes'].values()))
+    #     print pfba_flux_sum
+    #     self.assertTrue(pfba_flux_sum < fba_flux_sum)
 
     def test_moma(self):
         pass

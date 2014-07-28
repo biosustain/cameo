@@ -34,7 +34,7 @@ from functools import partial
 import numpy
 from cobra.core import Reaction
 from cameo import config
-from cameo.exceptions import UndefinedSolution, Infeasible
+from cameo.exceptions import UndefinedSolution, Infeasible, Unbounded
 from cameo.util import TimeMachine, partition
 from cameo.parallel import SequentialView
 from cameo.flux_analysis.simulation import _cycle_free_flux
@@ -64,25 +64,30 @@ def flux_variability_analysis(model, reactions=None, fraction_of_optimum=0., rem
         view = config.default_view
     if reactions is None:
         reactions = model.reactions
-    try:
-        if fraction_of_optimum > 0.:
-            if model.objective.direction == 'max':
-                fix_obj_constraint = model.solver.interface.Constraint(model.objective.expression,
-                                                                       lb=fraction_of_optimum * obj_val)
-            else:
-                fix_obj_constraint = model.solver.interface.Constraint(model.objective.expression,
-                                                                       ub=fraction_of_optimum * obj_val)
-            tm(do=partial(model.solver._add_constraint, fix_obj_constraint),
-               undo=partial(model.solver._remove_constraint, fix_obj_constraint))
-        reaction_chunks = (chunk for chunk in partition(reactions, len(view)))
-        if remove_cycles == True:
-            func_obj = _FvaFunctionObject(model, _cycle_free_fva)
+    # try:
+    if model.reversible_encoding == 'split':
+        tm(do=partial(setattr, model, 'reversible_encoding', 'unsplit'),
+           undo=partial(setattr, model, 'reversible_encoding', 'split'))
+    if fraction_of_optimum > 0.:
+        if model.objective.direction == 'max':
+            fix_obj_constraint = model.solver.interface.Constraint(model.objective.expression,
+                                                                   lb=fraction_of_optimum * obj_val)
         else:
-            func_obj = _FvaFunctionObject(model, _flux_variability_analysis)
-        chunky_results = view.map(func_obj, reaction_chunks)
-        solution = pandas.concat(chunky_results)
-    finally:
-        tm.reset()
+            fix_obj_constraint = model.solver.interface.Constraint(model.objective.expression,
+                                                                   ub=fraction_of_optimum * obj_val)
+        tm(do=partial(model.solver._add_constraint, fix_obj_constraint),
+           undo=partial(model.solver._remove_constraint, fix_obj_constraint))
+    reaction_chunks = (chunk for chunk in partition(reactions, len(view)))
+    if remove_cycles == True:
+        func_obj = _FvaFunctionObject(model, _cycle_free_fva)
+    else:
+        func_obj = _FvaFunctionObject(model, _flux_variability_analysis)
+    chunky_results = view.map(func_obj, reaction_chunks)
+    solution = pandas.concat(chunky_results)
+    # except Exception as e:
+    # print e
+    # finally:
+    #     tm.reset()
     return solution
 
 
@@ -176,19 +181,19 @@ def _flux_variability_analysis(model, reactions=None):
         fva_sol[reaction.id] = dict()
         model.objective = reaction
         model.objective.direction = 'min'
-        solution = model.optimize()
-        if solution.status == 'optimal':
-            fva_sol[reaction.id]['lower_bound'] = model.solution.f
-        else:
-            fva_sol[reaction.id]['lower_bound'] = model.solution.status
+        try:
+            solution = model.solve()
+            fva_sol[reaction.id]['lower_bound'] = solution.f
+        except Unbounded:
+            fva_sol[reaction.id]['lower_bound'] = -numpy.inf
     for reaction in reactions:
         model.objective = reaction
         model.objective.direction = 'max'
-        solution = model.optimize()
-        if solution.status == 'optimal':
-            fva_sol[reaction.id]['upper_bound'] = model.solution.f
-        else:
-            fva_sol[reaction.id]['upper_bound'] = model.solution.status
+        try:
+            solution = model.solve()
+            fva_sol[reaction.id]['upper_bound'] = solution.f
+        except Unbounded:
+            fva_sol[reaction.id]['upper_bound'] = numpy.inf
     model.objective = original_objective
     return pandas.DataFrame.from_dict(fva_sol, orient='index')
 
@@ -214,10 +219,13 @@ def _cycle_free_fva(model, reactions=None, sloppy=True):
     fva_sol = OrderedDict()
     for reaction in reactions:
         fva_sol[reaction.id] = dict()
-        model.objective = reaction
+        try:
+            model.objective = reaction
+        except:
+            pass
         model.objective.direction = 'min'
-        solution = model.optimize()
-        if solution.status == 'optimal':
+        try:
+            solution = model.solve()
             bound = solution.f
             if sloppy and bound > -100:
                 fva_sol[reaction.id]['lower_bound'] = bound
@@ -236,16 +244,20 @@ def _cycle_free_fva(model, reactions=None, sloppy=True):
                             knockout_reaction.lower_bound = 0.
                             knockout_reaction.upper_bound = 0.
                     model_broken_cyle.objective.direction = 'min'
-                    solution = model_broken_cyle.optimize()
-                    if solution.status == 'optimal':
-                        fva_sol[reaction.id]['lower_bound'] = solution.f
-        else:
-            fva_sol[reaction.id]['lower_bound'] = model.solution.status
+                    try:
+                        solution = model_broken_cyle.optimize()
+                    except Unbounded:
+                        fva_sol[reaction.id]['lower_bound'] = -numpy.inf
+        except Unbounded:
+            fva_sol[reaction.id]['lower_bound'] = -numpy.inf
+        except Exception as e:
+            print reaction.id
+            raise e
     for reaction in reactions:
         model.objective = reaction
         model.objective.direction = 'max'
-        solution = model.optimize()
-        if solution.status == 'optimal':
+        try:
+            solution = model.solve()
             bound = solution.f
             if sloppy and bound < 100:
                 fva_sol[reaction.id]['upper_bound'] = bound
@@ -264,11 +276,18 @@ def _cycle_free_fva(model, reactions=None, sloppy=True):
                             knockout_reaction.lower_bound = 0.
                             knockout_reaction.upper_bound = 0.
                     model_broken_cyle.objective.direction = 'max'
-                    solution = model_broken_cyle.optimize()
-                    if solution.status == 'optimal':
+                    try:
+                        solution = model_broken_cyle.solve()
                         fva_sol[reaction.id]['upper_bound'] = solution.f
-        else:
-            fva_sol[reaction.id]['upper_bound'] = model.solution.status
+                    except Unbounded:
+                        fva_sol[reaction.id]['upper_bound'] = numpy.inf
+        except Unbounded:
+            print 'Problem unbounded'
+            fva_sol[reaction.id]['upper_bound'] = numpy.inf
+        except Exception as e:
+            print reaction.id
+            raise e
+            # print model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound
     model.objective = original_objective
     fva_sol = pandas.DataFrame.from_dict(fva_sol, orient='index')
     return fva_sol

@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import time
 from functools import partial
 import sympy
 from cameo.util import TimeMachine
@@ -35,6 +36,8 @@ def fba(model, objective=None):
 
 def pfba(model, objective=None):
     tm = TimeMachine()
+    tm(do=partial(setattr, model, 'reversible_encoding', 'split'),
+       undo=partial(setattr, model, 'reversible_encoding', model.reversible_encoding))
     try:
         if objective is not None:
             tm(do=partial(setattr, model, 'objective', objective),
@@ -50,22 +53,14 @@ def pfba(model, objective=None):
             fix_obj_constraint = model.solver.interface.Constraint(model.objective.expression, ub=obj_val)
         tm(do=partial(model.solver._add_constraint, fix_obj_constraint),
            undo=partial(model.solver._remove_constraint, fix_obj_constraint))
-        obj_terms = list()
-        for reaction in model.reactions:
-            variable = reaction.variable
-            obj_terms.append(sympy.Mul._from_args((sympy.singleton.S.One, variable)))
-            if reaction.reversibility:
-                reverse_variable = reaction.reverse_variable
-                tm(do=partial(setattr, reverse_variable, 'ub', -1 * variable.lb),
-                   undo=partial(setattr, reverse_variable, 'lb', variable.lb))
-                tm(do=partial(setattr, variable, 'lb', 0), undo=partial(setattr, variable, 'lb', variable.lb))
-                obj_terms.append(sympy.Mul._from_args((sympy.singleton.S.One, reverse_variable)))
 
-        pfba_obj = model.solver.interface.Objective(sympy.Add._from_args(obj_terms), direction='min', sloppy=True)
-        tic = time.time()
+        pfba_obj = model.solver.interface.Objective(sympy.Add._from_args(
+            [sympy.Mul._from_args((sympy.singleton.S.One, variable)) for variable in model.solver.variables.values()]),
+                                                    direction='min', sloppy=True)
+        # tic = time.time()
         tm(do=partial(setattr, model, 'objective', pfba_obj),
            undo=partial(setattr, model, 'objective', model.objective))
-        print "obj: ", time.time() - tic
+        # print "obj: ", time.time() - tic
         try:
             solution = model.solve()
             result = dict()
@@ -73,12 +68,11 @@ def pfba(model, objective=None):
             result['fluxes'] = solution.x_dict
         except SolveError as e:
             print "gimme could not determine an optimal solution for objective %s" % model.objective
-            print model.solver
             raise e
     finally:
-        tic = time.time()
+        # tic = time.time()
         tm.reset()
-        print "reset: ", time.time() - tic
+        # print "reset: ", time.time() - tic
     return result
 
 

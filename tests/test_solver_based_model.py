@@ -85,6 +85,7 @@ class TestReaction(unittest.TestCase):
 
 class TestSolverBasedModel(CommonGround):
     def test_reactions_and_variables_match(self):
+        self.model.reversible_encoding = 'unsplit'
         reactions = self.model.reactions
         for reaction in reactions:
             self.assertIn(reaction.id, self.model.solver.variables.keys())
@@ -135,6 +136,7 @@ class TestSolverBasedModel(CommonGround):
         self.assertEqual(primals_copy, primals_original)
 
     def test_essential_genes(self):
+        self.model.reversible_encoding = 'split'
         essential_genes = [g.id for g in self.model.essential_genes()]
         self.assertItemsEqual(essential_genes, ESSENTIAL_GENES)
 
