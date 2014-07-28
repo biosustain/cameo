@@ -17,7 +17,7 @@ from cameo.exceptions import SolveError
 from cameo.strain_design.heuristic import archivers
 from cameo.strain_design.heuristic import plotters
 from cameo.strain_design.heuristic import observers
-from cameo.strain_design.heuristic import mutators
+from cameo.strain_design.heuristic import variators
 from cameo.strain_design.heuristic import generators
 from cameo.strain_design.heuristic import decoders
 from cameo.strain_design.heuristic import stats
@@ -53,8 +53,8 @@ PRE_CONFIGURED = {
     inspyred.ec.GA: [
         [
             inspyred.ec.variators.crossovers.n_point_crossover,
-            mutators.set_mutation,
-            mutators.set_indel
+            variators.set_mutation,
+            variators.set_indel
         ],
         inspyred.ec.selectors.tournament_selection,
         inspyred.ec.replacers.generational_replacement,
@@ -63,8 +63,8 @@ PRE_CONFIGURED = {
     inspyred.ec.SA: [
 
         [
-            mutators.set_mutation,
-            mutators.set_indel
+            variators.set_mutation,
+            variators.set_indel
         ],
         inspyred.ec.selectors.default_selection,
         inspyred.ec.replacers.simulated_annealing_replacement,
@@ -72,8 +72,8 @@ PRE_CONFIGURED = {
     ],
     inspyred.ec.emo.NSGA2: [
         [
-            mutators.set_mutation,
-            mutators.set_indel,
+            variators.set_mutation,
+            variators.set_indel,
             inspyred.ec.variators.crossovers.n_point_crossover
         ],
         inspyred.ec.selectors.tournament_selection,
@@ -82,8 +82,8 @@ PRE_CONFIGURED = {
     ],
     inspyred.ec.emo.PAES: [
         [
-            mutators.set_mutation,
-            mutators.set_indel,
+            variators.set_mutation,
+            variators.set_indel,
             inspyred.ec.variators.crossovers.n_point_crossover
         ],
         inspyred.ec.selectors.default_selection,
@@ -463,8 +463,6 @@ class KnockoutOptimizationResult(object):
         stats_data.display()
 
 
-
-
 class ReactionKnockoutOptimization(KnockoutOptimization):
     def __init__(self, reactions=None, essential_reactions=None, *args, **kwargs):
         super(ReactionKnockoutOptimization, self).__init__(*args, **kwargs)
@@ -500,3 +498,57 @@ class GeneKnockoutOptimization(KnockoutOptimization):
         self.representation = list(self.genes.difference(self.essential_genes))
         self.ko_type = GENE_KNOCKOUT_TYPE
         self._decoder = decoders.GeneKnockoutDecoder(self.representation, self.model)
+
+
+class KnockinKnockoutEvaluator(KnockoutEvaluator):
+
+    def __call__(self, *args, **kwargs):
+        pass
+
+
+class KnockoutKnockoutOptimizationResult():
+    pass
+
+
+class KnockinKnockoutOptimization(KnockoutOptimization):
+    def __init__(self, *args, **kwargs):
+        super(KnockinKnockoutOptimization, self).__init__(*args, **kwargs)
+
+    def _evaluator(self, candidates, args):
+        view = args.get('view')
+        population_chunks = (chunk for chunk in partition(candidates, len(view)))
+        func_obj = KnockinKnockoutEvaluator(self.model, self._decoder, self.objective_function, self.simulation_method)
+        results = view.map(func_obj, population_chunks)
+        fitness = reduce(list.__add__, results)
+
+        return fitness
+
+    def run(self, **kwargs):
+        for observer in self.observer:
+            observer.reset()
+        self.heuristic_method.observer = self.observer
+        super(KnockoutOptimization, self).run(
+            keys=['knockout', 'knockin'],
+            knockout_representation=self.representation,
+            knockin_representation=self.knockin_representaion,
+            candidate_size=self.max_size,
+            variable_candidate_size=self.variable_size,
+            **kwargs)
+        return KnockoutKnockoutOptimizationResult(model=self.model,
+                                                  heuristic_method=self.heuristic_method,
+                                                  simulation_method=self.simulation_method,
+                                                  solutions=self.heuristic_method.archive,
+                                                  objective_function=self.objective_function,
+                                                  ko_type=self._ko_type,
+                                                  decoder=self._decoder,
+                                                  product=kwargs.get('product', None))
+
+
+class ReactionKnockinKnockoutOptimization(ReactionKnockoutOptimization, KnockinKnockoutOptimization):
+    def __init__(self, reaction_db=None, *args, **kwargs):
+        ReactionKnockoutOptimization.__init__(self, *args, **kwargs)
+        KnockinKnockoutOptimization.__init__(self, *args, **kwargs)
+
+
+    def run(self, **kwargs):
+        KnockinKnockoutOptimization.run(self, **kwargs)
