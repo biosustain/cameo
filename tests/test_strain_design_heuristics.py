@@ -16,7 +16,7 @@ from random import Random
 import unittest
 import inspyred
 
-from cameo import load_model, fba
+from cameo import load_model, fba, config
 from cameo.strain_design.heuristic import HeuristicOptimization, ReactionKnockoutOptimization, set_distance_function
 from cameo.strain_design.heuristic.archivers import SolutionTuple, BestSolutionArchiver
 from cameo.strain_design.heuristic.decoders import ReactionKnockoutDecoder, KnockoutDecoder, GeneKnockoutDecoder
@@ -24,7 +24,9 @@ from cameo.strain_design.heuristic.generators import set_generator, unique_set_g
 from cameo.strain_design.heuristic.objective_functions import biomass_product_coupled_yield, product_yield, \
     number_of_knockouts
 from cobra.manipulation.delete import find_gene_knockout_reactions
-from cameo.parallel import SequentialView
+from cameo.parallel import SequentialView, MultiprocessingView
+
+config.default_view = MultiprocessingView(processes=2)
 
 MODEL_PATH = os.path.join(os.path.dirname(__file__), "data/EcoliCore.xml")
 
