@@ -12,21 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Copyright 2013 Novo Nordisk Foundation Center for Biosustainability, DTU.
-
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-
-# http://www.apache.org/licenses/LICENSE-2.0
-
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-
 import itertools
 from copy import copy
 from collections import OrderedDict
@@ -34,7 +19,7 @@ from functools import partial
 import numpy
 from cobra.core import Reaction
 from cameo import config
-from cameo.exceptions import UndefinedSolution, Infeasible
+from cameo.exceptions import UndefinedSolution, Infeasible, Unbounded, SolveError
 from cameo.util import TimeMachine, partition
 from cameo.parallel import SequentialView
 from cameo.flux_analysis.simulation import _cycle_free_flux
@@ -65,7 +50,15 @@ def flux_variability_analysis(model, reactions=None, fraction_of_optimum=0., rem
     if reactions is None:
         reactions = model.reactions
     try:
+        if model.reversible_encoding == 'split':
+            tm(do=partial(setattr, model, 'reversible_encoding', 'unsplit'),
+               undo=partial(setattr, model, 'reversible_encoding', 'split'))
         if fraction_of_optimum > 0.:
+            try:
+                obj_val = model.solve()
+            except SolveError as e:
+                print "flux_variability_analyis was not able to determine an optimal solution for objective %s" % model.objective
+                raise e
             if model.objective.direction == 'max':
                 fix_obj_constraint = model.solver.interface.Constraint(model.objective.expression,
                                                                        lb=fraction_of_optimum * obj_val)
@@ -114,7 +107,9 @@ def phenotypic_phase_plane(model, variables=[], objective=None, points=20, view=
     if view is None:
         view = SequentialView()
     tm = TimeMachine()
-    original_objective = copy(model.objective)
+    if model.reversible_encoding == 'split':
+        tm(do=partial(setattr, model, 'reversible_encoding', 'unsplit'),
+           undo=partial(setattr, model, 'reversible_encoding', 'split'))
     if objective is not None:
         tm(do=partial(setattr, model, 'objective', objective),
            undo=partial(setattr, model, 'objective', original_objective))
@@ -131,9 +126,6 @@ def phenotypic_phase_plane(model, variables=[], objective=None, points=20, view=
     evaluator = _PhenotypicPhasePlaneChunkEvaluator(model, variable_reactions)
     chunk_results = view.map(evaluator, chunks_of_points)
     envelope = reduce(list.__add__, chunk_results)
-
-    # for point in grid_generator:
-    # envelope.append(point + _production_envelope_inner(model, point, variable_reactions))
 
     for reaction, bounds in original_bounds.iteritems():
         reaction.lower_bound = bounds[0]
@@ -165,6 +157,7 @@ class _FvaFunctionObject(object):
     def __call__(self, reactions):
         return self.fva(self.model, reactions)
 
+
 def _flux_variability_analysis(model, reactions=None):
     original_objective = copy(model.objective)
     if reactions is None:
@@ -176,19 +169,19 @@ def _flux_variability_analysis(model, reactions=None):
         fva_sol[reaction.id] = dict()
         model.objective = reaction
         model.objective.direction = 'min'
-        solution = model.optimize()
-        if solution.status == 'optimal':
-            fva_sol[reaction.id]['lower_bound'] = model.solution.f
-        else:
-            fva_sol[reaction.id]['lower_bound'] = model.solution.status
+        try:
+            solution = model.solve()
+            fva_sol[reaction.id]['lower_bound'] = solution.f
+        except Unbounded:
+            fva_sol[reaction.id]['lower_bound'] = -numpy.inf
     for reaction in reactions:
         model.objective = reaction
         model.objective.direction = 'max'
-        solution = model.optimize()
-        if solution.status == 'optimal':
-            fva_sol[reaction.id]['upper_bound'] = model.solution.f
-        else:
-            fva_sol[reaction.id]['upper_bound'] = model.solution.status
+        try:
+            solution = model.solve()
+            fva_sol[reaction.id]['upper_bound'] = solution.f
+        except Unbounded:
+            fva_sol[reaction.id]['upper_bound'] = numpy.inf
     model.objective = original_objective
     return pandas.DataFrame.from_dict(fva_sol, orient='index')
 
@@ -214,10 +207,13 @@ def _cycle_free_fva(model, reactions=None, sloppy=True):
     fva_sol = OrderedDict()
     for reaction in reactions:
         fva_sol[reaction.id] = dict()
-        model.objective = reaction
+        try:
+            model.objective = reaction
+        except:
+            pass
         model.objective.direction = 'min'
-        solution = model.optimize()
-        if solution.status == 'optimal':
+        try:
+            solution = model.solve()
             bound = solution.f
             if sloppy and bound > -100:
                 fva_sol[reaction.id]['lower_bound'] = bound
@@ -236,16 +232,20 @@ def _cycle_free_fva(model, reactions=None, sloppy=True):
                             knockout_reaction.lower_bound = 0.
                             knockout_reaction.upper_bound = 0.
                     model_broken_cyle.objective.direction = 'min'
-                    solution = model_broken_cyle.optimize()
-                    if solution.status == 'optimal':
-                        fva_sol[reaction.id]['lower_bound'] = solution.f
-        else:
-            fva_sol[reaction.id]['lower_bound'] = model.solution.status
+                    try:
+                        solution = model_broken_cyle.optimize()
+                    except Unbounded:
+                        fva_sol[reaction.id]['lower_bound'] = -numpy.inf
+        except Unbounded:
+            fva_sol[reaction.id]['lower_bound'] = -numpy.inf
+        except Exception as e:
+            print reaction.id
+            raise e
     for reaction in reactions:
         model.objective = reaction
         model.objective.direction = 'max'
-        solution = model.optimize()
-        if solution.status == 'optimal':
+        try:
+            solution = model.solve()
             bound = solution.f
             if sloppy and bound < 100:
                 fva_sol[reaction.id]['upper_bound'] = bound
@@ -264,11 +264,18 @@ def _cycle_free_fva(model, reactions=None, sloppy=True):
                             knockout_reaction.lower_bound = 0.
                             knockout_reaction.upper_bound = 0.
                     model_broken_cyle.objective.direction = 'max'
-                    solution = model_broken_cyle.optimize()
-                    if solution.status == 'optimal':
+                    try:
+                        solution = model_broken_cyle.solve()
                         fva_sol[reaction.id]['upper_bound'] = solution.f
-        else:
-            fva_sol[reaction.id]['upper_bound'] = model.solution.status
+                    except Unbounded:
+                        fva_sol[reaction.id]['upper_bound'] = numpy.inf
+        except Unbounded:
+            print 'Problem unbounded'
+            fva_sol[reaction.id]['upper_bound'] = numpy.inf
+        except Exception as e:
+            print reaction.id
+            raise e
+            # print model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound
     model.objective = original_objective
     fva_sol = pandas.DataFrame.from_dict(fva_sol, orient='index')
     return fva_sol
@@ -283,22 +290,29 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
         return [self._production_envelope_inner(point) for point in points]
 
     def _production_envelope_inner(self, point):
-        for (reaction, coordinate) in zip(self.variable_reactions, point):
-            reaction.lower_bound, reaction.upper_bound = coordinate, coordinate
-        interval = []
-        self.model.objective.direction = 'min'
+        tm = TimeMachine()
         try:
-            solution = self.model.solve().f
-        except (Infeasible,
-                UndefinedSolution):  # TODO: should really just be Infeasible (see http://lists.gnu.org/archive/html/help-glpk/2013-09/msg00015.html)
-            solution = 0
-        interval.append(solution)
-        self.model.objective.direction = 'max'
-        try:
-            solution = self.model.optimize().f
-        except (Infeasible, UndefinedSolution):
-            solution = 0
-        interval.append(solution)
+            for (reaction, coordinate) in zip(self.variable_reactions, point):
+                tm(do=partial(setattr, reaction, 'lower_bound', coordinate),
+                   undo=partial(setattr, reaction, 'lower_bound', reaction.lower_bound))
+                tm(do=partial(setattr, reaction, 'upper_bound', coordinate),
+                   undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
+            interval = []
+            tm(do=int, undo=partial(setattr, self.model.objective, 'direction', self.model.objective.direction))
+            self.model.objective.direction = 'min'
+            try:
+                solution = self.model.solve().f
+            except UndefinedSolution:
+                solution = 0
+            interval.append(solution)
+            self.model.objective.direction = 'max'
+            try:
+                solution = self.model.optimize().f
+            except Infeasible:
+                solution = 0
+            interval.append(solution)
+        finally:
+            tm.reset()
         return point + tuple(interval)
 
 

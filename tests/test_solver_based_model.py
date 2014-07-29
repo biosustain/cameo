@@ -29,12 +29,21 @@ class CommonGround(unittest.TestCase):
 
 
 class TestLazySolution(CommonGround):
+    def setUp(self):
+        super(TestLazySolution, self).setUp()
+        self.solution = self.model.optimize()
+
     def test_self_invalidation(self):
         solution = self.model.optimize()
         self.assertAlmostEqual(solution.f, 0.873921506968431, delta=0.000001)
         self.model.optimize()
         self.assertRaises(UndefinedSolution, getattr, solution, 'f')
 
+    def test_solution_contains_only_reaction_specific_values(self):
+        reaction_IDs = set([reaction.id for reaction in self.model.reactions])
+        for attr in ('x_dict', 'y_dict'):
+            self.assertEqual(set(getattr(self.solution, attr).keys()).intersection(reaction_IDs), reaction_IDs)
+            self.assertEqual(set(getattr(self.solution, attr).keys()).difference(reaction_IDs), set())
 
 class TestReaction(unittest.TestCase):
     def setUp(self):
@@ -76,6 +85,7 @@ class TestReaction(unittest.TestCase):
 
 class TestSolverBasedModel(CommonGround):
     def test_reactions_and_variables_match(self):
+        self.model.reversible_encoding = 'unsplit'
         reactions = self.model.reactions
         for reaction in reactions:
             self.assertIn(reaction.id, self.model.solver.variables.keys())
@@ -126,6 +136,7 @@ class TestSolverBasedModel(CommonGround):
         self.assertEqual(primals_copy, primals_original)
 
     def test_essential_genes(self):
+        self.model.reversible_encoding = 'split'
         essential_genes = [g.id for g in self.model.essential_genes()]
         self.assertItemsEqual(essential_genes, ESSENTIAL_GENES)
 
