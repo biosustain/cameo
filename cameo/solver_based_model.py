@@ -560,6 +560,7 @@ class SolverBasedModel(Model):
                 raise exceptions._OPTLANG_TO_EXCEPTIONS_DICT.get(solution.status, SolveError)(
                     'Solving model %s did not return an optimal solution. The returned solution status is "%s"' % (
                         self, solution.status))
+            return solution
         else:
             return solution
 
