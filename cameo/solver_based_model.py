@@ -409,9 +409,6 @@ class SolverBasedModel(Model):
         for rxn in self.reactions:
             lower_bound, upper_bound = rxn.lower_bound, rxn.upper_bound
             if rxn.reversibility:  # i.e. lower_bound < 0 and upper_bound > 0
-                if rxn.id == 'ACALD':
-                    var = self.solver.interface.Variable(rxn.id, lb=0, ub=upper_bound)
-                    print 1
                 var = self.solver._add_variable(self.solver.interface.Variable(rxn.id, lb=0, ub=upper_bound))
                 aux_var = self.solver._add_variable(
                     self.solver.interface.Variable(rxn._get_reverse_id(), lb=0, ub=-1 * lower_bound))

@@ -19,7 +19,7 @@ from functools import partial
 import numpy
 from cobra.core import Reaction
 from cameo import config
-from cameo.exceptions import UndefinedSolution, Infeasible, Unbounded
+from cameo.exceptions import UndefinedSolution, Infeasible, Unbounded, SolveError
 from cameo.util import TimeMachine, partition
 from cameo.parallel import SequentialView
 from cameo.flux_analysis.simulation import _cycle_free_flux
@@ -49,30 +49,33 @@ def flux_variability_analysis(model, reactions=None, fraction_of_optimum=0., rem
         view = config.default_view
     if reactions is None:
         reactions = model.reactions
-    # try:
-    if model.reversible_encoding == 'split':
-        tm(do=partial(setattr, model, 'reversible_encoding', 'unsplit'),
-           undo=partial(setattr, model, 'reversible_encoding', 'split'))
-    if fraction_of_optimum > 0.:
-        if model.objective.direction == 'max':
-            fix_obj_constraint = model.solver.interface.Constraint(model.objective.expression,
-                                                                   lb=fraction_of_optimum * obj_val)
+    try:
+        if model.reversible_encoding == 'split':
+            tm(do=partial(setattr, model, 'reversible_encoding', 'unsplit'),
+               undo=partial(setattr, model, 'reversible_encoding', 'split'))
+        if fraction_of_optimum > 0.:
+            try:
+                obj_val = model.solve()
+            except SolveError as e:
+                print "flux_variability_analyis was not able to determine an optimal solution for objective %s" % model.objective
+                raise e
+            if model.objective.direction == 'max':
+                fix_obj_constraint = model.solver.interface.Constraint(model.objective.expression,
+                                                                       lb=fraction_of_optimum * obj_val)
+            else:
+                fix_obj_constraint = model.solver.interface.Constraint(model.objective.expression,
+                                                                       ub=fraction_of_optimum * obj_val)
+            tm(do=partial(model.solver._add_constraint, fix_obj_constraint),
+               undo=partial(model.solver._remove_constraint, fix_obj_constraint))
+        reaction_chunks = (chunk for chunk in partition(reactions, len(view)))
+        if remove_cycles == True:
+            func_obj = _FvaFunctionObject(model, _cycle_free_fva)
         else:
-            fix_obj_constraint = model.solver.interface.Constraint(model.objective.expression,
-                                                                   ub=fraction_of_optimum * obj_val)
-        tm(do=partial(model.solver._add_constraint, fix_obj_constraint),
-           undo=partial(model.solver._remove_constraint, fix_obj_constraint))
-    reaction_chunks = (chunk for chunk in partition(reactions, len(view)))
-    if remove_cycles == True:
-        func_obj = _FvaFunctionObject(model, _cycle_free_fva)
-    else:
-        func_obj = _FvaFunctionObject(model, _flux_variability_analysis)
-    chunky_results = view.map(func_obj, reaction_chunks)
-    solution = pandas.concat(chunky_results)
-    # except Exception as e:
-    # print e
-    # finally:
-    # tm.reset()
+            func_obj = _FvaFunctionObject(model, _flux_variability_analysis)
+        chunky_results = view.map(func_obj, reaction_chunks)
+        solution = pandas.concat(chunky_results)
+    finally:
+        tm.reset()
     return solution
 
 
@@ -104,7 +107,9 @@ def phenotypic_phase_plane(model, variables=[], objective=None, points=20, view=
     if view is None:
         view = SequentialView()
     tm = TimeMachine()
-    original_objective = copy(model.objective)
+    if model.reversible_encoding == 'split':
+        tm(do=partial(setattr, model, 'reversible_encoding', 'unsplit'),
+           undo=partial(setattr, model, 'reversible_encoding', 'split'))
     if objective is not None:
         tm(do=partial(setattr, model, 'objective', objective),
            undo=partial(setattr, model, 'objective', model.objective))
@@ -121,9 +126,6 @@ def phenotypic_phase_plane(model, variables=[], objective=None, points=20, view=
     evaluator = _PhenotypicPhasePlaneChunkEvaluator(model, variable_reactions)
     chunk_results = view.map(evaluator, chunks_of_points)
     envelope = reduce(list.__add__, chunk_results)
-
-    # for point in grid_generator:
-    # envelope.append(point + _production_envelope_inner(model, point, variable_reactions))
 
     for reaction, bounds in original_bounds.iteritems():
         reaction.lower_bound = bounds[0]
@@ -288,22 +290,29 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
         return [self._production_envelope_inner(point) for point in points]
 
     def _production_envelope_inner(self, point):
-        for (reaction, coordinate) in zip(self.variable_reactions, point):
-            reaction.lower_bound, reaction.upper_bound = coordinate, coordinate
-        interval = []
-        self.model.objective.direction = 'min'
+        tm = TimeMachine()
         try:
-            solution = self.model.solve().f
-        except (Infeasible,
-                UndefinedSolution):  # TODO: should really just be Infeasible (see http://lists.gnu.org/archive/html/help-glpk/2013-09/msg00015.html)
-            solution = 0
-        interval.append(solution)
-        self.model.objective.direction = 'max'
-        try:
-            solution = self.model.optimize().f
-        except (Infeasible, UndefinedSolution):
-            solution = 0
-        interval.append(solution)
+            for (reaction, coordinate) in zip(self.variable_reactions, point):
+                tm(do=partial(setattr, reaction, 'lower_bound', coordinate),
+                   undo=partial(setattr, reaction, 'lower_bound', reaction.lower_bound))
+                tm(do=partial(setattr, reaction, 'upper_bound', coordinate),
+                   undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
+            interval = []
+            tm(do=int, undo=partial(setattr, self.model.objective, 'direction', self.model.objective.direction))
+            self.model.objective.direction = 'min'
+            try:
+                solution = self.model.solve().f
+            except UndefinedSolution:
+                solution = 0
+            interval.append(solution)
+            self.model.objective.direction = 'max'
+            try:
+                solution = self.model.optimize().f
+            except Infeasible:
+                solution = 0
+            interval.append(solution)
+        finally:
+            tm.reset()
         return point + tuple(interval)
 
 
