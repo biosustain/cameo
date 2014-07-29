@@ -41,6 +41,10 @@ class biomass_product_coupled_yield():
         except ZeroDivisionError:
             return 0
 
+    def _repr_latex_(self):
+        return "$$bpcy = \\frac{(%s * %s)}{%s}$$" % (self.biomass, self.product, self.substrate)
+
+
 class product_yield():
     """
     Product Yield Objective function: v[product]/v[substrate]
@@ -60,6 +64,9 @@ class product_yield():
             return round(product_flux / substrate_flux, config.ndecimals)
         except ZeroDivisionError:
             return 0
+
+    def _repr_latex_(self):
+        return "$$yield = \\frac{%s}{%s}$$" % (self.product, self.substrate)
 
 
 class number_of_knockouts():
@@ -83,3 +90,6 @@ class number_of_knockouts():
             return len(decoded_representation[1])
         else:
             return round(1.0 / len(decoded_representation[1]), config.ndecimals)
+
+    def _repr_latex_(self):
+        return "$$ %s\\:\\#knockouts $$" % self.sense
