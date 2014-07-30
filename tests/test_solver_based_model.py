@@ -29,12 +29,21 @@ class CommonGround(unittest.TestCase):
 
 
 class TestLazySolution(CommonGround):
+    def setUp(self):
+        super(TestLazySolution, self).setUp()
+        self.solution = self.model.optimize()
+
     def test_self_invalidation(self):
         solution = self.model.optimize()
         self.assertAlmostEqual(solution.f, 0.873921506968431, delta=0.000001)
         self.model.optimize()
         self.assertRaises(UndefinedSolution, getattr, solution, 'f')
 
+    def test_solution_contains_only_reaction_specific_values(self):
+        reaction_IDs = set([reaction.id for reaction in self.model.reactions])
+        for attr in ('x_dict', 'y_dict'):
+            self.assertEqual(set(getattr(self.solution, attr).keys()).intersection(reaction_IDs), reaction_IDs)
+            self.assertEqual(set(getattr(self.solution, attr).keys()).difference(reaction_IDs), set())
 
 class TestReaction(unittest.TestCase):
     def setUp(self):
@@ -76,11 +85,50 @@ class TestReaction(unittest.TestCase):
 
 class TestSolverBasedModel(CommonGround):
     def test_reactions_and_variables_match(self):
+        self.model.reversible_encoding = 'unsplit'
         reactions = self.model.reactions
         for reaction in reactions:
             self.assertIn(reaction.id, self.model.solver.variables.keys())
             self.assertEqual(reaction.lower_bound, self.model.solver.variables[reaction.id].lb)
             self.assertEqual(reaction.upper_bound, self.model.solver.variables[reaction.id].ub)
+
+    def test_all_objects_point_to_all_other_correct_objects(self):
+        model = load_model(os.path.join(TESTDIR, 'data/EcoliCore.xml'))
+        for reaction in model.reactions:
+            self.assertEqual(reaction.get_model(), model)
+            for gene in reaction.genes:
+                self.assertEqual(gene, model.genes.get_by_id(gene.id))
+                self.assertEqual(gene.model, model)
+                for reaction2 in gene.reactions:
+                    self.assertEqual(reaction2.get_model(), model)
+                    self.assertEqual(reaction2, model.reactions.get_by_id(reaction2.id))
+
+            for metabolite in reaction.metabolites:
+                self.assertEqual(metabolite.model, model)
+                self.assertEqual(metabolite, model.metabolites.get_by_id(metabolite.id))
+                for reaction2 in metabolite.reactions:
+                    self.assertEqual(reaction2.get_model(), model)
+                    self.assertEqual(reaction2, model.reactions.get_by_id(reaction2.id))
+
+    def test_all_objects_point_to_all_other_correct_objects_after_copy(self):
+        model = load_model(os.path.join(TESTDIR, 'data/EcoliCore.xml'))
+        model = model.copy()
+        for reaction in model.reactions:
+            self.assertEqual(reaction.get_model(), model)
+            for gene in reaction.genes:
+                self.assertEqual(gene, model.genes.get_by_id(gene.id))
+                self.assertEqual(gene.model, model)
+                for reaction2 in gene.reactions:
+                    self.assertEqual(reaction2.get_model(), model)
+                    self.assertEqual(reaction2, model.reactions.get_by_id(reaction2.id))
+
+            for metabolite in reaction.metabolites:
+                self.assertEqual(metabolite.model, model)
+                self.assertEqual(metabolite, model.metabolites.get_by_id(metabolite.id))
+                for reaction2 in metabolite.reactions:
+                    self.assertEqual(reaction2.get_model(), model)
+                    self.assertEqual(reaction2, model.reactions.get_by_id(reaction2.id))
+
 
     def test_remove_reactions(self):
         reactions_to_remove = self.model.reactions[10:30]
@@ -126,6 +174,7 @@ class TestSolverBasedModel(CommonGround):
         self.assertEqual(primals_copy, primals_original)
 
     def test_essential_genes(self):
+        self.model.reversible_encoding = 'split'
         essential_genes = [g.id for g in self.model.essential_genes()]
         self.assertItemsEqual(essential_genes, ESSENTIAL_GENES)
 

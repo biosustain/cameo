@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from inspyred.ec.generators import diversify
+from cameo.strain_design.heuristic.genomes import MultipleChromosomeGenome
 
 
 def set_generator(random, args):
@@ -74,3 +75,25 @@ def unique_set_generator(random, args):
     return candidate
 
 
+def multiple_chromosome_set_generator(random, args):
+    """
+    Generates a candidate in with a genome containing multiple chromosomes.
+
+    :param random: Random()
+    :param args: dict
+        this dictionary contains an extra key: "keys", which will be the names of the chromosomes.
+        for each argument on <unique_set>, this dictionary must contain the same fields, starting with
+        the values in "keys".
+    :return:
+    """
+    keys = args.get('keys')
+    candidate = MultipleChromosomeGenome(keys=keys)
+    for key in keys:
+        key_args = {
+            'representation': args.get("%s_representation"),
+            'candidate_size': args.get("%s_candidate_size"),
+            'variable_candidate_size': args.get('variable_candidate_size')
+        }
+        candidate[key] = unique_set_generator(random, key_args)
+
+    return candidate

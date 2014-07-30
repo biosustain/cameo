@@ -29,6 +29,9 @@ REFERENCE_PPP_o2_EcoliCore = pandas.read_csv(os.path.join(TESTDIR, 'data/REFEREN
 REFERENCE_PPP_o2_glc_EcoliCore = pandas.read_csv(os.path.join(TESTDIR, 'data/REFERENCE_PPP_o2_glc_EcoliCore.csv'))
 
 CORE_MODEL = load_model(os.path.join(TESTDIR, 'data/EcoliCore.xml'))
+iJO_MODEL = load_model(os.path.join(TESTDIR, 'data/iJO1366.xml'))
+
+iJO_MODEL_COBRAPY = load_model(os.path.join(TESTDIR, 'data/iJO1366.xml'), solver_interface=None)
 
 
 class TestFluxVariabilityAnalysis(unittest.TestCase):
@@ -36,10 +39,6 @@ class TestFluxVariabilityAnalysis(unittest.TestCase):
         self.model = CORE_MODEL
         self.biomass_flux = 0.873921
         self.model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = self.biomass_flux
-
-    def test_cycle_free_fva(self):
-        fva_solution = _cycle_free_fva(self.model)
-        assert_dataframes_equal(fva_solution, REFERENCE_FVA_SOLUTION_ECOLI_CORE)
 
     def test_flux_variability_sequential(self):
         fva_solution = flux_variability_analysis(self.model, remove_cycles=False, view=SequentialView())
@@ -79,7 +78,7 @@ class TestFluxVariabilityAnalysis(unittest.TestCase):
 
 class TestPhenotypicPhasePlane(unittest.TestCase):
     def setUp(self):
-        self.model = CORE_MODEL
+        self.model = CORE_MODEL.copy()
 
     def test_one_variable(self):
         ppp = phenotypic_phase_plane(self.model, ['EX_o2_LPAREN_e_RPAREN_'])
@@ -88,25 +87,30 @@ class TestPhenotypicPhasePlane(unittest.TestCase):
         assert_dataframes_equal(ppp, REFERENCE_PPP_o2_EcoliCore)
 
     def test_two_variables(self):
-        ppp2d = phenotypic_phase_plane(self.model, ['EX_o2_LPAREN_e_RPAREN_', 'EX_glc_LPAREN_e_RPAREN_'])
+        ppp2d = phenotypic_phase_plane(self.model, ['EX_o2_LPAREN_e_RPAREN_', 'EX_glc_LPAREN_e_RPAREN_'],
+                                       view=SequentialView())
         assert_dataframes_equal(ppp2d, REFERENCE_PPP_o2_glc_EcoliCore)
 
 
 class TestSimulationMethods(unittest.TestCase):
     def setUp(self):
-        self.model = CORE_MODEL
+        self.model = CORE_MODEL.copy()
 
     def test_fba(self):
         solution = fba(self.model)
-        self.assertAlmostEqual(0.873921, solution.f, delta=0.000001)
+        print self.model.objective
+        print self.model.solver
+        self.assertAlmostEqual(solution.f, 0.873921, delta=0.000001)
 
     def test_pfba(self):
-        # fba_solution = fba(self.model)
-        # fba_flux_sum = sum((abs(val) for val in fba_solution.x_dict.values()))
-        # solution = pfba(self.model)
-        # pfba_flux_sum = sum((abs(val) for val in solution['fluxes'].values()))
-        # self.assertTrue(pfba_flux_sum < fba_flux_sum)
-        pass
+        fba_solution = iJO_MODEL_COBRAPY.optimize()
+        print fba_solution.x_dict
+        fba_flux_sum = sum((abs(val) for val in fba_solution.x_dict.values()))
+        print fba_flux_sum
+        solution = pfba(iJO_MODEL)
+        pfba_flux_sum = sum((abs(val) for val in solution['fluxes'].values()))
+        print pfba_flux_sum
+        self.assertTrue(pfba_flux_sum < fba_flux_sum)
 
     def test_moma(self):
         pass

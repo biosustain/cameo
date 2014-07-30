@@ -11,16 +11,19 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from ordered_set import OrderedSet
 
 
-__version__ = 'v0.0.0'
+class MultipleChromosomeGenome(object):
+    def __init__(self, keys=[], *args, **kwargs):
+        super(MultipleChromosomeGenome, self).__init__(*args, **kwargs)
+        self.chromosomes = {}
+        self.keys = keys
+        for key in keys:
+            self.sets[key] = OrderedSet()
 
-try:
-    from .io import load_model
-except ImportError:
-    pass
+    def __getitem__(self, key):
+        return self.sets[key]
 
-from .flux_analysis.analysis import flux_variability_analysis, phenotypic_phase_plane
-from .flux_analysis.simulation import fba, pfba
-
-import config
+    def __delitem__(self, key):
+        del self.sets[key]

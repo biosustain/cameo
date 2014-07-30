@@ -28,6 +28,7 @@ class CLIProgressObserver():
     def __call__(self, population, num_generations, num_evaluations, args):
         if self.progress is None:
             self.progress = CLIProgressBar(args.get('max_evaluations', 50000))
+            self.progress.start()
 
         if num_evaluations % args.get('n', 1) == 0:
             self.progress.update(num_evaluations)

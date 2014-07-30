@@ -60,13 +60,23 @@ try:
 
         MAX_REDIS_LIST_SIZE = 4294967295L
 
+        default_host = "localhost"
+        default_port = "6379"
+        default_db = 0
+
         def __init__(self, name, maxsize=0, namespace='queue', **connection_args):
             """The default connection parameters are: host='localhost', port=6379, db=0"""
             if maxsize <= 0:
                 maxsize = self.MAX_REDIS_LIST_SIZE
             self._maxsize = maxsize
-            self._connection_args = connection_args
-            self._db = redis.Redis(**connection_args)
+            self._connection_args = {
+                'host': self.default_host,
+                'port': self.default_port,
+                'db': self.default_db
+            }
+            for key, val in connection_args.iteritems():
+                self._connection_args[key] = val
+            self._db = redis.Redis(**self._connection_args)
             self._key = '%s:%s' % (namespace, name)
 
         def __getstate__(self):
@@ -76,10 +86,10 @@ try:
                 '_key': self._key
             }
 
-        def __setstate__(self, dict):
-            self._maxsize = dict['_maxsize']
-            self._connection_args = dict['_connection_args']
-            self._key = dict['_key']
+        def __setstate__(self, d):
+            self._maxsize = d['_maxsize']
+            self._connection_args = d['_connection_args']
+            self._key = d['_key']
             self._db = redis.Redis(**self._connection_args)
 
         def __len__(self):
@@ -109,14 +119,20 @@ try:
                 item = self._db.lpop(self._key)
 
             if item:
-                item = item[1]
+                if isinstance(item, str):
+                    return pickle.loads(item)
+                else:
+                    return pickle.loads(item[1])
             else:
                 raise Queue.Empty
-            return pickle.loads(item)
 
         def get_nowait(self):
             """Equivalent to get(False)."""
             return self.get(False)
+
+        def __del__(self):
+            self._db.delete(self._key)
+            self._db.connection_pool.disconnect()
 
 except ImportError:
     pass

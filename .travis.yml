@@ -5,17 +5,11 @@ python:
 virtualenv:
   system_site_packages: true
 before_install:
-  - sudo apt-get install libglpk-dev swig glpk-utils
-  - pip install ply
-  - cd /home/travis
-  - wget http://www.dcc.fc.up.pt/~jpp/code/python-glpk/python-glpk_0.4.45.orig.tar.gz
-  - tar xzf python-glpk_0.4.45.orig.tar.gz
-  - cd python-glpk-0.4.45/src/
-  - sudo make install
-  - cd $TRAVIS_BUILD_DIR
+  - sudo apt-get install libglpk-dev swig glpk-utils redis-server
 install:
   - pip install python-libsbml-experimental cython numpy scipy -f https://dl.dropboxusercontent.com/u/22461024/pypi.drosophi.la/index.html --no-index
   - pip install coveralls coverage
+  - pip install redis
   - pip install -r requirements.txt
   - pip install rednose
 # command to run tests
