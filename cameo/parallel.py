@@ -42,7 +42,7 @@ class MultiprocessingView(Singleton):
         self.pool.apply_async(func, args=args, **kwargs)
 
     def __len__(self):
-        return cpu_count()
+        return self._kwargs.get("processes", cpu_count())
 
     def shutdown(self):
         self.pool.terminate()

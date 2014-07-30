@@ -112,7 +112,7 @@ def phenotypic_phase_plane(model, variables=[], objective=None, points=20, view=
            undo=partial(setattr, model, 'reversible_encoding', 'split'))
     if objective is not None:
         tm(do=partial(setattr, model, 'objective', objective),
-           undo=partial(setattr, model, 'objective', original_objective))
+           undo=partial(setattr, model, 'objective', model.objective))
 
     variable_reactions = _ids_to_reactions(model, variables)
     variables_min_max = flux_variability_analysis(model, reactions=variable_reactions)
@@ -349,18 +349,20 @@ def _fbip_fva(model, knockouts, view):
             tm(do=partial(setattr, reaction, 'lower_bound', 0),
                undo=partial(setattr, reaction, 'lower_bound', reaction.upper_bound))
 
-    wt_fva = flux_variability_analysis(model, view)
+    wt_fva = flux_variability_analysis(model, view=view)
     for reaction in knockouts:
         tm(do=partial(setattr, reaction, 'upper_bound', 0),
            undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
         tm(do=partial(setattr, reaction, 'lower_bound', 0),
            undo=partial(setattr, reaction, 'lower_bound', reaction.upper_bound))
 
-    mt_fva = flux_variability_analysis(model, view)
+    mt_fva = flux_variability_analysis(model, view=view)
 
     perturbation = 0
     for reaction in model.reactions:
-        if wt_fva[reaction.id] != 0 and mt_fva[reaction.id] == 0:
+        if wt_fva['upper_bound'][reaction.id] > 0 and mt_fva['upper_bound'][reaction.id] == 0:
+            perturbation += 1
+        elif wt_fva['lower_bound'][reaction.id] < 0 and mt_fva['lower_bound'][reaction.id] == 0:
             perturbation += 1
 
     tm.reset()

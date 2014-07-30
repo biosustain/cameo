@@ -28,6 +28,8 @@ from cameo.parallel import SequentialView, MultiprocessingView
 
 config.default_view = MultiprocessingView(processes=2)
 
+SEED = 1234
+
 MODEL_PATH = os.path.join(os.path.dirname(__file__), "data/EcoliCore.xml")
 
 TEST_MODEL = load_model(MODEL_PATH)
@@ -441,6 +443,7 @@ class TestReactionKnockoutOptimization(unittest.TestCase):
     def setUp(self):
         self.model = TEST_MODEL
         self.essential_reactions = set([r.id for r in self.model.essential_reactions()])
+        self.random = Random(SEED)
 
     def test_initialize(self):
         rko = ReactionKnockoutOptimization(model=self.model,
@@ -456,9 +459,11 @@ class TestReactionKnockoutOptimization(unittest.TestCase):
             "EX_ac_LPAREN_e_RPAREN_",
             "EX_glc_LPAREN_e_RPAREN_")
 
+
         rko = ReactionKnockoutOptimization(model=self.model,
                                            simulation_method=fba,
-                                           objective_function=objective)
+                                           objective_function=objective,
+                                           random=self.random)
 
         rko.run(max_evaluations=3000, pop_size=10, view=SequentialView())
 
@@ -473,7 +478,8 @@ class TestReactionKnockoutOptimization(unittest.TestCase):
         rko = ReactionKnockoutOptimization(model=self.model,
                                            simulation_method=fba,
                                            objective_function=objective,
-                                           heuristic_method=inspyred.ec.emo.NSGA2)
+                                           heuristic_method=inspyred.ec.emo.NSGA2,
+                                           random=self.random)
 
         rko.run(max_evaluations=3000, pop_size=10, view=SequentialView())
 
