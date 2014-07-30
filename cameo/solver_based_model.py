@@ -16,15 +16,14 @@ import csv
 import hashlib
 
 import time
-from copy import deepcopy, copy
+from copy import deepcopy
 from cobra.core import Solution
 
 import optlang
 
 from cameo.util import TimeMachine
 from cameo import exceptions
-from cameo.exceptions import SolveError, Infeasible, Unbounded, FeasibleButNotOptimal, \
-    UndefinedSolution
+from cameo.exceptions import SolveError, Infeasible, UndefinedSolution
 from cameo.flux_analysis.analysis import _flux_variability_analysis
 
 from cobra.core.Reaction import Reaction as OriginalReaction
@@ -56,12 +55,12 @@ except ImportError:
     pass
 
 
-def to_solver_based_model(cobrapy_model, solver_interface=optlang, deepcopy_model=True):
+def to_solver_based_model(cobrapy_model, solver_interface=optlang):
     """Convert a core model into a solver-based model."""
 
     solver_interface = _SOLVER_INTERFACES.get(solver_interface, solver_interface)
     solver_based_model = SolverBasedModel(
-        solver_interface=solver_interface, description=cobrapy_model, deepcopy_model=deepcopy_model)
+        solver_interface=solver_interface, description=cobrapy_model)
     return solver_based_model
 
 
@@ -312,22 +311,32 @@ class SolverBasedModel(Model):
     Every model manipulation is immediately reflected in the solver instance.
     """
 
-    def __init__(self, solver_interface=optlang, description=None, deepcopy_model=False, **kwargs):
-        if deepcopy_model and isinstance(description, Model):
-            description = description.copy()
+    def __init__(self, solver_interface=optlang, description=None, **kwargs):
         super(SolverBasedModel, self).__init__(description, **kwargs)
-        self._solver = solver_interface.Model()
         cleaned_reactions = DictList()
         for reaction in self.reactions:
             if isinstance(reaction, Reaction):
                 cleaned_reactions.append(reaction)
             else:
-                cleaned_reactions.append(Reaction.clone(reaction))
+                cleaned_reactions.append(Reaction.clone(reaction, model=self))
         self.reactions = cleaned_reactions
+        for gene in self.genes:
+            gene._model = self
+            gene_reactions = list()
+            for reaction in gene.reactions:
+                model_reaction = self.reactions.get_by_id(reaction.id)
+                gene_reactions.append(model_reaction)
+            gene._reaction = frozenset(gene_reactions)
+        for metabolite in self.metabolites:
+            metabolite._model = self
+            metabolite_reactions = list()
+            for reaction in metabolite.reactions:
+                model_reaction = self.reactions.get_by_id(reaction.id)
+                metabolite_reactions.append(model_reaction)
+            metabolite._reaction = frozenset(metabolite_reactions)
+        self._solver = solver_interface.Model()
         self._populate_solver_from_scratch()
         self._reversible_encoding = 'split'
-        for reaction in self.reactions:
-            reaction._model = self
 
     def __copy__(self):
         return self.__deepcopy__()
@@ -407,8 +416,8 @@ class SolverBasedModel(Model):
         objective_terms = list()
         constr_terms = dict()
         for rxn in self.reactions:
-            lower_bound, upper_bound = rxn.lower_bound, rxn.upper_bound
-            if rxn.reversibility:  # i.e. lower_bound < 0 and upper_bound > 0
+            lower_bound, upper_bound = rxn._lower_bound, rxn._upper_bound
+            if lower_bound < 0 and upper_bound > 0:  # i.e. lower_bound < 0 and upper_bound > 0
                 var = self.solver._add_variable(self.solver.interface.Variable(rxn.id, lb=0, ub=upper_bound))
                 aux_var = self.solver._add_variable(
                     self.solver.interface.Variable(rxn._get_reverse_id(), lb=0, ub=-1 * lower_bound))
@@ -422,7 +431,7 @@ class SolverBasedModel(Model):
                     constr_terms[met.id] += [(sympy.RealNumber(coeff), var)]
                 else:
                     constr_terms[met.id] = [(sympy.RealNumber(coeff), var)]
-                if rxn.reversibility:
+                if lower_bound < 0 and upper_bound > 0:
                     constr_terms[met.id] += [(-1 * sympy.RealNumber(coeff), aux_var)]
 
         for met_id, terms in constr_terms.iteritems():
