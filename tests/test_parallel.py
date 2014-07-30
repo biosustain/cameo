@@ -1,5 +1,6 @@
 # Copyright (c) 2014 Novo Nordisk Foundation Center for Biosustainability, DTU.
 # See LICENSE for details.
+import Queue
 
 import unittest
 from cameo.parallel import SequentialView
@@ -45,6 +46,43 @@ try:
         def test_apply(self):
             for i in xrange(100):
                 self.assertEqual(self.view.apply(to_the_power_of_2, i), SOLUTION[i])
+
+except ImportError:
+    print "Skipping MultiprocessingView tests ..."
+
+
+try:
+    from cameo.parallel import RedisQueue
+
+    class TestRedisQueue(unittest.TestCase):
+        def test_queue_size(self):
+            queue = RedisQueue("test-queue-size-1", maxsize=1)
+            queue.put(1)
+            self.assertRaises(Queue.Full, queue.put, 1)
+
+            queue = RedisQueue("test-queue-size-2", maxsize=2)
+            queue.put(1)
+            queue.put(1)
+            self.assertRaises(Queue.Full, queue.put, 1)
+            queue.get()
+            queue.get()
+            self.assertRaises(Queue.Empty, queue.get_nowait)
+
+        def test_queue_len(self):
+            queue = RedisQueue("test-queue-len", maxsize=100)
+            self.assertEqual(queue.lenght(), 0)
+            queue.put(1)
+            self.assertEqual(queue.lenght(), 1)
+            queue.put(1)
+            self.assertEqual(queue.lenght(), 2)
+            queue.put(1)
+            self.assertEqual(queue.lenght(), 3)
+            queue.get_nowait()
+            self.assertEqual(queue.lenght(), 2)
+            queue.get_nowait()
+            self.assertEqual(queue.lenght(), 1)
+            queue.get_nowait()
+            self.assertEqual(queue.lenght(), 0)
 
 except ImportError:
     print "Skipping MultiprocessingView tests ..."

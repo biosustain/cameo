@@ -11,14 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from inspyred.ec.emo import Pareto
 
 from cameo.exceptions import SolveError
 from cameo.strain_design.heuristic import archivers
 from cameo.strain_design.heuristic import plotters
 from cameo.strain_design.heuristic import observers
-from cameo.strain_design.heuristic import mutators
+from cameo.strain_design.heuristic import variators
 from cameo.strain_design.heuristic import generators
 from cameo.strain_design.heuristic import decoders
+from cameo.strain_design.heuristic import stats
 from cameo import config
 from cameo.flux_analysis.simulation import pfba
 from cameo.strain_design.heuristic.plotters import GeneFrequencyPlotter
@@ -51,8 +53,8 @@ PRE_CONFIGURED = {
     inspyred.ec.GA: [
         [
             inspyred.ec.variators.crossovers.n_point_crossover,
-            mutators.set_mutation,
-            mutators.set_indel
+            variators.set_mutation,
+            variators.set_indel
         ],
         inspyred.ec.selectors.tournament_selection,
         inspyred.ec.replacers.generational_replacement,
@@ -61,8 +63,8 @@ PRE_CONFIGURED = {
     inspyred.ec.SA: [
 
         [
-            mutators.set_mutation,
-            mutators.set_indel
+            variators.set_mutation,
+            variators.set_indel
         ],
         inspyred.ec.selectors.default_selection,
         inspyred.ec.replacers.simulated_annealing_replacement,
@@ -70,8 +72,8 @@ PRE_CONFIGURED = {
     ],
     inspyred.ec.emo.NSGA2: [
         [
-            mutators.set_mutation,
-            mutators.set_indel,
+            variators.set_mutation,
+            variators.set_indel,
             inspyred.ec.variators.crossovers.n_point_crossover
         ],
         inspyred.ec.selectors.tournament_selection,
@@ -80,8 +82,8 @@ PRE_CONFIGURED = {
     ],
     inspyred.ec.emo.PAES: [
         [
-            mutators.set_mutation,
-            mutators.set_indel,
+            variators.set_mutation,
+            variators.set_indel,
             inspyred.ec.variators.crossovers.n_point_crossover
         ],
         inspyred.ec.selectors.default_selection,
@@ -154,28 +156,19 @@ class HeuristicOptimization(object):
         return isinstance(self.objective_function, list)
 
 
-class _ChunkEvaluation(object):
-    def __init__(self, optimization):
-        self.optimization = optimization
-        self.time_machine = TimeMachine()
+class KnockoutEvaluator(object):
+    def __init__(self, model, decoder, objective_function, simulation_method):
+        self.model = model
+        self.decoder = decoder
+        self.objective_function = objective_function
+        self.simulation_method = simulation_method
 
     def __call__(self, population):
-        return [self.optimization.evaluate_individual(i, self.time_machine) for i in population]
-
-
-class KnockoutOptimization(HeuristicOptimization):
-    def __init__(self, simulation_method=pfba, max_size=9, variable_size=True, *args, **kwargs):
-        super(KnockoutOptimization, self).__init__(*args, **kwargs)
-        self.simulation_method = simulation_method
-        self.max_size = max_size
-        self.variable_size = variable_size
-        self.representation = None
-        self._ko_type = None
-        self._decoder = None
-        self._generator = generators.set_generator
+        time_machine = TimeMachine()
+        return [self.evaluate_individual(i, time_machine) for i in population]
 
     def evaluate_individual(self, individual, tm):
-        decoded = self._decoder(individual)
+        decoded = self.decoder(individual)
         reactions = decoded[0]
         try:
             for reaction in reactions:
@@ -200,17 +193,29 @@ class KnockoutOptimization(HeuristicOptimization):
         return fitness
 
     def _calculate_fitness(self, solution, decoded):
-        if self.is_mo():
+        if isinstance(self.objective_function, list):
             logger.debug("evaluate multi objective")
             return inspyred.ec.emo.Pareto(values=[of(self.model, solution, decoded) for of in self.objective_function])
         else:
             logger.debug("evaluate single objective")
             return self.objective_function(self.model, solution, decoded)
 
+
+class KnockoutOptimization(HeuristicOptimization):
+    def __init__(self, simulation_method=pfba, max_size=9, variable_size=True, *args, **kwargs):
+        super(KnockoutOptimization, self).__init__(*args, **kwargs)
+        self.simulation_method = simulation_method
+        self.max_size = max_size
+        self.variable_size = variable_size
+        self.representation = None
+        self._ko_type = None
+        self._decoder = None
+        self._generator = generators.set_generator
+
     def _evaluator(self, candidates, args):
         view = args.get('view')
         population_chunks = (chunk for chunk in partition(candidates, len(view)))
-        func_obj = _ChunkEvaluation(self)
+        func_obj = KnockoutEvaluator(self.model, self._decoder, self.objective_function, self.simulation_method)
         results = view.map(func_obj, population_chunks)
         fitness = reduce(list.__add__, results)
 
@@ -357,32 +362,39 @@ class KnockoutOptimizationResult(object):
         products = []
         sizes = []
         for solution in solutions:
-            decoded_solution = decoder(solution.candidate)
-            simulation_result = self._simulate(decoded_solution[0], simulation_method, model)
-            size = len(decoded_solution[1])
+            mo = isinstance(solution.fitness, Pareto)
+            if mo:
+                proceed = True
+            else:
+                proceed = solution.fitness > 0
+                
+            if proceed:
+                decoded_solution = decoder(solution.candidate)
+                simulation_result = self._simulate(decoded_solution[0], simulation_method, model)
+                size = len(decoded_solution[1])
 
-            biomass.append(simulation_result.f)
-            fitness.append(solution.fitness)
-            knockouts.append(frozenset([v.id for v in decoded_solution[1]]))
-            sizes.append(size)
+                biomass.append(simulation_result.f)
+                fitness.append(solution.fitness)
+                knockouts.append(frozenset([v.id for v in decoded_solution[1]]))
+                sizes.append(size)
 
-            if isinstance(self.product, (list, tuple)):
-                products.append([simulation_result.get_primal_by_id(p) for p in self.product])
-            elif not self.product is None:
-                products.append(simulation_result.get_primal_by_id(self.product))
+                if isinstance(self.product, (list, tuple)):
+                    products.append([simulation_result.get_primal_by_id(p) for p in self.product])
+                elif not self.product is None:
+                    products.append(simulation_result.get_primal_by_id(self.product))
 
         if self.product is None:
-            data_frame = DataFrame({KNOCKOUTS: knockouts, BIOMASS: biomass, FITNESS: fitness, SIZE: size})
+            data_frame = DataFrame({KNOCKOUTS: knockouts, BIOMASS: biomass, FITNESS: fitness, SIZE: sizes})
         elif isinstance(self.product, (list, tuple)):
             data = {KNOCKOUTS: knockouts, BIOMASS: biomass, FITNESS: fitness}
             for i in xrange(self.product):
                 data[self.product[i]] = products[i:]
             data_frame = DataFrame(data)
 
-            data[SIZE] = size
+            data[SIZE] = sizes
         else:
             data_frame = DataFrame({KNOCKOUTS: knockouts, BIOMASS: biomass,
-                                    FITNESS: fitness, self.product: products, SIZE: size})
+                                    FITNESS: fitness, self.product: products, SIZE: sizes})
 
         return data_frame
 
@@ -396,7 +408,7 @@ class KnockoutOptimizationResult(object):
 
         try:
             solution = method(model)
-        except Exception, e:
+        except Exception as e:
             logger.exception(e)
 
         tm.reset()
@@ -404,17 +416,24 @@ class KnockoutOptimizationResult(object):
 
     def _repr_html_(self):
 
-        results = "<h4>Result:</h4>" \
-                  "<ul>" \
-                  "    <li>model: " + self.model.id + "</li>" \
-                                                      "    <li>heuristic: " + self.heuristic_method.__class__.__name__ + "</li>" \
-                                                                                                                         "    <li>objective function: " + "|".join(
-            [o.name for o in self.objective_functions]) + "</li>" \
-                                                          "    <li>simulation method: " + self.simulation_method.__name__ + "</li>" \
-                                                                                                                            "    <li>type: " + self.ko_type + "</li>" \
-                                                                                                                                                              "</ul>"
+        template = """
+        <h4>Result:</h4>
+        <ul>
+            <li>model: %s</li>
+            <li>heuristic: %s</li>
+            <li>objective function: %s</li>
+            <li>simulation method: %s</li>
+            <li>type: %s</li>
+        <ul>
+        """
+        model_id = self.model.id
+        heuristic = self.heuristic_method.__class__.__name__
+        of_string = "| ".join([o.name for o in self.objective_functions])
+        simulation = of_string, self.simulation_method.__name__
+        solutions = self.solutions._repr_html_()
 
-        return results
+        results = template % (model_id, heuristic, of_string, simulation, self.ko_type)
+        return results + solutions
 
     def _merge(self, other_result):
         assert isinstance(other_result, self.__class__), "Cannot merge result with %s" % type(other_result)
@@ -431,10 +450,17 @@ class KnockoutOptimizationResult(object):
         return self
 
     # TODO: find out how to plot an histogram (?) in bokeh
-    def _plot_frequency(self):
-        if self.plotter is None:
-            self.plotter = GeneFrequencyPlotter(self.solutions)
-        self.plotter.plot()
+    def stats(self):
+        stats_data = None
+        if in_ipnb():
+            if config.use_bokeh:
+                stats_data = stats.BokehStatsData(self)
+            elif config.use_matplotlib:
+                pass
+        else:
+            stats_data = stats.CLIStatsData(self)
+
+        stats_data.display()
 
 
 class ReactionKnockoutOptimization(KnockoutOptimization):
@@ -472,3 +498,57 @@ class GeneKnockoutOptimization(KnockoutOptimization):
         self.representation = list(self.genes.difference(self.essential_genes))
         self.ko_type = GENE_KNOCKOUT_TYPE
         self._decoder = decoders.GeneKnockoutDecoder(self.representation, self.model)
+
+
+class KnockinKnockoutEvaluator(KnockoutEvaluator):
+
+    def __call__(self, *args, **kwargs):
+        pass
+
+
+class KnockoutKnockoutOptimizationResult():
+    pass
+
+
+class KnockinKnockoutOptimization(KnockoutOptimization):
+    def __init__(self, *args, **kwargs):
+        super(KnockinKnockoutOptimization, self).__init__(*args, **kwargs)
+
+    def _evaluator(self, candidates, args):
+        view = args.get('view')
+        population_chunks = (chunk for chunk in partition(candidates, len(view)))
+        func_obj = KnockinKnockoutEvaluator(self.model, self._decoder, self.objective_function, self.simulation_method)
+        results = view.map(func_obj, population_chunks)
+        fitness = reduce(list.__add__, results)
+
+        return fitness
+
+    def run(self, **kwargs):
+        for observer in self.observer:
+            observer.reset()
+        self.heuristic_method.observer = self.observer
+        super(KnockoutOptimization, self).run(
+            keys=['knockout', 'knockin'],
+            knockout_representation=self.representation,
+            knockin_representation=self.knockin_representaion,
+            candidate_size=self.max_size,
+            variable_candidate_size=self.variable_size,
+            **kwargs)
+        return KnockoutKnockoutOptimizationResult(model=self.model,
+                                                  heuristic_method=self.heuristic_method,
+                                                  simulation_method=self.simulation_method,
+                                                  solutions=self.heuristic_method.archive,
+                                                  objective_function=self.objective_function,
+                                                  ko_type=self._ko_type,
+                                                  decoder=self._decoder,
+                                                  product=kwargs.get('product', None))
+
+
+class ReactionKnockinKnockoutOptimization(ReactionKnockoutOptimization, KnockinKnockoutOptimization):
+    def __init__(self, reaction_db=None, *args, **kwargs):
+        ReactionKnockoutOptimization.__init__(self, *args, **kwargs)
+        KnockinKnockoutOptimization.__init__(self, *args, **kwargs)
+
+
+    def run(self, **kwargs):
+        KnockinKnockoutOptimization.run(self, **kwargs)

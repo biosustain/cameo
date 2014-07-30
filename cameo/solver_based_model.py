@@ -11,7 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from collections import OrderedDict
 import csv
+import hashlib
 
 import time
 from copy import deepcopy, copy
@@ -31,8 +33,6 @@ from cobra.core.DictList import DictList
 from cobra.manipulation.delete import find_gene_knockout_reactions
 
 import sympy
-from sympy.core.add import _unevaluated_Add
-from sympy.core.mul import _unevaluated_Mul
 from sympy import Mul
 from sympy.core.singleton import S
 
@@ -62,22 +62,6 @@ def to_solver_based_model(cobrapy_model, solver_interface=optlang, deepcopy_mode
     solver_interface = _SOLVER_INTERFACES.get(solver_interface, solver_interface)
     solver_based_model = SolverBasedModel(
         solver_interface=solver_interface, description=cobrapy_model, deepcopy_model=deepcopy_model)
-    for y in ['reactions', 'genes', 'metabolites']:
-        for x in solver_based_model.__dict__[y]:
-            setattr(x, '_model', solver_based_model)
-    new_reactions = DictList()
-    for reaction in solver_based_model.reactions:
-        new_reaction = Reaction(name=reaction.name)
-        new_reaction.__dict__.update(reaction.__dict__)
-        new_reaction._objective_coefficient = reaction.objective_coefficient
-        new_reactions.append(new_reaction)
-    solver_based_model.reactions = new_reactions
-    for metabolite in solver_based_model.metabolites:
-        metabolite._reaction = set([solver_based_model.reactions.get_by_id(reaction.id)
-                                    for reaction in metabolite._reaction])
-    for gene in solver_based_model.genes:
-        gene._reaction = set([solver_based_model.reactions.get_by_id(reaction.id)
-                              for reaction in gene._reaction])
     return solver_based_model
 
 
@@ -118,22 +102,34 @@ class LazySolution(object):
     @property
     def x(self):
         self._check_freshness()
-        return [variable.primal for variable in self.model.solver.variables.values()]
+        return self.x_dict.values()
 
     @property
     def x_dict(self):
         self._check_freshness()
-        return dict([(variable.name, variable.primal) for variable in self.model.solver.variables.values()])
+        primals = OrderedDict()
+        for reaction in self.model.reactions:
+            primal = reaction.variable.primal
+            if reaction.reversibility:
+                primal -= reaction.reverse_variable.primal
+            primals[reaction.id] = primal
+        return primals
 
     @property
     def y(self):
         self._check_freshness()
-        return [variable.dual for variable in self.model.solver.variables.values()]
+        return self.y_dict.values()
 
     @property
     def y_dict(self):
         self._check_freshness()
-        return dict([(variable.name, variable.dual) for variable in self.model.solver.variables.values()])
+        duals = OrderedDict()
+        for reaction in self.model.reactions:
+            dual = reaction.variable.dual
+            if reaction.reversibility:
+                dual -= reaction.reverse_variable.dual
+            duals[reaction.id] = dual
+        return duals
 
     @property
     def status(self):
@@ -184,41 +180,103 @@ class Reaction(OriginalReaction):
         else:
             return None
 
+    def _get_reverse_id(self):
+        return '_'.join((self.id, 'reverse', hashlib.md5(self.id).hexdigest()))
+
+    @property
+    def reverse_variable(self):
+        model = self.get_model()
+        if model is not None:
+            aux_id = self._get_reverse_id()
+            try:
+                return model.solver.variables[aux_id]
+            except KeyError:
+                return None
+        else:
+            return None
+
     @property
     def lower_bound(self):
         model = self.get_model()
         if model is not None:
-            return model.solver.variables[self.id].lb
+            if model.reversible_encoding == 'split' and self.reverse_variable is not None:
+                return -1 * self.reverse_variable.ub
+            else:
+                return self.variable.lb
         else:
             return self._lower_bound
 
     @lower_bound.setter
     def lower_bound(self, value):
-        if self.get_model() is not None:
-            try:
-                self.get_model().solver.variables[self.id].lb = value
-            except ValueError:
-                self.get_model().solver.variables[self.id].ub = value
-                self.get_model().solver.variables[self.id].lb = value
+        model = self.get_model()
+
+        if model is not None:
+            # Remove auxiliary variable if not needed anymore
+            if value >= 0 and self._lower_bound < 0 and self._upper_bound > 0:
+                model.solver._remove_variable(self.reverse_variable)
+
+            # Add auxiliary variable if needed
+            elif value < 0 and self._lower_bound >= 0:  # self._lower_bound >= 0 implies self._upper_bound >= 0
+                try:
+                    aux_var = model.solver._add_variable(
+                        model.solver.interface.Variable(self._get_reverse_id(), lb=0, ub=0))
+                except:
+                    pass
+                for met, coeff in self._metabolites.iteritems():
+                    model.solver.constraints[met.id] += sympy.Mul._from_args((-1 * sympy.RealNumber(coeff), aux_var))
+
+            # model.reversible_encoding == 'split' the lower_bound will be encoded by the auxiliary variable's upper bound
+            if model.reversible_encoding == 'split' and self.reverse_variable is not None:
+                try:
+                    self.reverse_variable.ub = -1 * value
+                except ValueError:
+                    self.reverse_variable.lb = -1 * value
+                    self.reverse_variable.ub = -1 * value
+            else:
+                try:
+                    self.variable.lb = value
+                except ValueError:
+                    self.variable.ub = value
+                    self.variable.lb = value
+
             self._lower_bound = value
+
         else:
             self._lower_bound = value
 
     @property
     def upper_bound(self):
         if self.get_model() is not None:
-            return self.get_model().solver.variables[self.id].ub
+            return self.variable.ub
         else:
             return self._upper_bound
 
     @upper_bound.setter
     def upper_bound(self, value):
-        if self.get_model() is not None:
+        model = self.get_model()
+        if model is not None:
+            # Remove auxiliary variable if not needed anymore
+            if value < 0 and self._upper_bound > 0 and self._lower_bound < 0:
+                model.solver._remove_variable(self.reverse_variable)
+
+            # Add auxiliary variable if needed
+            elif value > 0 and self._upper_bound < 0:  # self._upper_bound < 0 implies self._lower_bound < 0
+                if model.reversible_encoding == 'split':
+                    aux_var_ub = -1 * self._lower_bound
+                else:
+                    aux_var_ub = 0
+                aux_var = model.solver._add_variable(
+                    model.solver.interface.Variable(self._get_reverse_id(), lb=0, ub=aux_var_ub))
+                for met, coeff in self._metabolites.iteritems():
+                    model.solver.constraints[met.id] += sympy.Mul._from_args((-1 * sympy.RealNumber(coeff), aux_var))
+
             try:
-                self.get_model().solver.variables[self.id].ub = value
+                self.variable.ub = value
             except ValueError:
-                self.get_model().solver.variables[self.id].lb = value
-                self.get_model().solver.variables[self.id].ub = value
+                # print 'value error.'
+                self.variable.lb = value
+                self.variable.ub = value
+
             self._upper_bound = value
         else:
             self._upper_bound = value
@@ -235,11 +293,13 @@ class Reaction(OriginalReaction):
 
         self._objective_coefficient = value
 
+    # FIXME: _flux_variability_analysis returns a pandas dataframe now
     @property
     def effective_lower_bound(self):
         model = self.get_model()
         return _flux_variability_analysis(model, reactions=[self])[self.id]['minimum']
 
+    # FIXME: _flux_variability_analysis returns a pandas dataframe now
     @property
     def effective_upper_bound(self):
         model = self.get_model()
@@ -257,7 +317,17 @@ class SolverBasedModel(Model):
             description = description.copy()
         super(SolverBasedModel, self).__init__(description, **kwargs)
         self._solver = solver_interface.Model()
+        cleaned_reactions = DictList()
+        for reaction in self.reactions:
+            if isinstance(reaction, Reaction):
+                cleaned_reactions.append(reaction)
+            else:
+                cleaned_reactions.append(Reaction.clone(reaction))
+        self.reactions = cleaned_reactions
         self._populate_solver_from_scratch()
+        self._reversible_encoding = 'split'
+        for reaction in self.reactions:
+            reaction._model = self
 
     def __copy__(self):
         return self.__deepcopy__()
@@ -334,29 +404,61 @@ class SolverBasedModel(Model):
         return [reaction for reaction in self.reactions if len(reaction.reactants) == 0 or len(reaction.products) == 0]
 
     def _populate_solver_from_scratch(self):
-        objective = self.solver.interface.Objective(0)
+        objective_terms = list()
         constr_terms = dict()
         for rxn in self.reactions:
-            var = self.solver._add_variable(
-                self.solver.interface.Variable(rxn.id, lb=rxn.lower_bound, ub=rxn.upper_bound))
+            lower_bound, upper_bound = rxn.lower_bound, rxn.upper_bound
+            if rxn.reversibility:  # i.e. lower_bound < 0 and upper_bound > 0
+                var = self.solver._add_variable(self.solver.interface.Variable(rxn.id, lb=0, ub=upper_bound))
+                aux_var = self.solver._add_variable(
+                    self.solver.interface.Variable(rxn._get_reverse_id(), lb=0, ub=-1 * lower_bound))
+            else:
+                var = self.solver._add_variable(
+                    self.solver.interface.Variable(rxn.id, lb=lower_bound, ub=upper_bound))
             if rxn.objective_coefficient != 0.:
-                objective.expression += rxn.objective_coefficient * var
+                objective_terms.append(sympy.Mul._from_args((sympy.RealNumber(rxn.objective_coefficient), var)))
             for met, coeff in rxn._metabolites.iteritems():
                 if constr_terms.has_key(met.id):
                     constr_terms[met.id] += [(sympy.RealNumber(coeff), var)]
                 else:
                     constr_terms[met.id] = [(sympy.RealNumber(coeff), var)]
+                if rxn.reversibility:
+                    constr_terms[met.id] += [(-1 * sympy.RealNumber(coeff), aux_var)]
 
         for met_id, terms in constr_terms.iteritems():
-            expr = _unevaluated_Add(*[_unevaluated_Mul(coeff, var)
-                                      for coeff, var in terms])
+            expr = sympy.Add._from_args([sympy.Mul._from_args((coeff, var))
+                                         for coeff, var in terms])
             constr = self.solver.interface.Constraint(expr, lb=0, ub=0, name=met_id)
             try:
-                self.solver._add_constraint(constr, sloppy=True)
+                self.solver._add_constraint(constr, sloppy=False)  # TODO: should be True
             except Exception, e:
                 print e
                 raise
-        self.solver.objective = objective
+        objective_expression = sympy.Add._from_args(objective_terms)
+        self.solver.objective = self.solver.interface.Objective(objective_expression, direction='max')
+
+    @property
+    def reversible_encoding(self):
+        return self._reversible_encoding
+
+    @reversible_encoding.setter
+    def reversible_encoding(self, value):
+        if self._reversible_encoding == value:
+            pass
+        else:
+            if value == 'unsplit':
+                for reaction in self.reactions:
+                    if reaction.reversibility:
+                        reaction.variable.lb = -1 * reaction.reverse_variable.ub
+                        reaction.reverse_variable.ub = 0
+            elif value == 'split':
+                for reaction in self.reactions:
+                    if reaction.reversibility:
+                        reaction.reverse_variable.ub = -1 * reaction.variable.lb
+                        reaction.variable.lb = 0
+            else:
+                raise ValueError('%s is not a valid encoding. Tyr one of %s instead.' % (value, ('unsplit', 'split')))
+            self._reversible_encoding = value
 
     def add_metabolites(self, metabolite_list):
         super(SolverBasedModel, self).add_metabolites(metabolite_list)
@@ -577,6 +679,7 @@ class SolverBasedModel(Model):
             if model.reactions.has_id(rid):
                 model.reactions.get_by_id(rid).lower_bound = medium['lower_bound'][i]
                 model.reactions.get_by_id(rid).upper_bound = medium['upper_bound'][i]
+
 
 if __name__ == '__main__':
     from cameo import load_model

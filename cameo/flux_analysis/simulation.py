@@ -12,13 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import time
 from functools import partial
 import sympy
 from cameo.util import TimeMachine
 from cameo.exceptions import SolveError
 
 
-def fba(model, objective=None):
+def fba(model, objective=None, *args, **kwargs):
     """Perform flux balance analysis."""
     tm = TimeMachine()
     if objective is not None:
@@ -26,15 +27,17 @@ def fba(model, objective=None):
            undo=partial(setattr, model, 'objective', model.objective))
     try:
         solution = model.solve()
-    except SolveError:
-        pass
-    finally:
         tm.reset()
-    return solution
+        return solution
+    except SolveError as e:
+        tm.reset()
+        raise e
 
 
-def pfba(model, objective=None):
+def pfba(model, objective=None, *args, **kwargs):
     tm = TimeMachine()
+    tm(do=partial(setattr, model, 'reversible_encoding', 'split'),
+       undo=partial(setattr, model, 'reversible_encoding', model.reversible_encoding))
     try:
         if objective is not None:
             tm(do=partial(setattr, model, 'objective', objective),
@@ -50,28 +53,14 @@ def pfba(model, objective=None):
             fix_obj_constraint = model.solver.interface.Constraint(model.objective.expression, ub=obj_val)
         tm(do=partial(model.solver._add_constraint, fix_obj_constraint),
            undo=partial(model.solver._remove_constraint, fix_obj_constraint))
-        obj_terms = list()
-        aux_constraint_terms = dict()
-        for reaction in model.reactions:
-            if reaction.reversibility:
-                aux_variable = model.solver.interface.Variable(reaction.id + '_aux', lb=0, ub=-1 * reaction.lower_bound)
-                tm(do=partial(setattr, reaction, 'lower_bound', 0),
-                   undo=partial(setattr, reaction, 'lower_bound', reaction.lower_bound))
-                obj_terms.append(aux_variable)
-                tm(do=partial(model.solver._add_variable, aux_variable),
-                   undo=partial(model.solver._remove_variable, aux_variable))
-                for metabolite, coefficient in reaction.metabolites.iteritems():
-                    try:
-                        aux_constraint_terms[metabolite].append(-1 * coefficient * aux_variable)
-                    except KeyError:
-                        aux_constraint_terms[metabolite] = list()
-                        aux_constraint_terms[metabolite].append(-1 * coefficient * aux_variable)
-        pfba_obj = model.solver.interface.Objective(sympy.Add._from_args(obj_terms), direction='min')
+
+        pfba_obj = model.solver.interface.Objective(sympy.Add._from_args(
+            [sympy.Mul._from_args((sympy.singleton.S.One, variable)) for variable in model.solver.variables.values()]),
+                                                    direction='min', sloppy=True)
+        # tic = time.time()
         tm(do=partial(setattr, model, 'objective', pfba_obj),
            undo=partial(setattr, model, 'objective', model.objective))
-        for metabolite, terms in aux_constraint_terms.iteritems():
-            tm(do=partial(model.solver.constraints[metabolite.id].__iadd__, sympy.Add._from_args(terms)),
-               undo=partial(model.solver.constraints[metabolite.id].__isub__, sympy.Add._from_args(terms)))
+        # print "obj: ", time.time() - tic
         try:
             solution = model.solve()
             result = dict()
@@ -81,17 +70,52 @@ def pfba(model, objective=None):
             print "gimme could not determine an optimal solution for objective %s" % model.objective
             raise e
     finally:
+        # tic = time.time()
         tm.reset()
+        # print "reset: ", time.time() - tic
     return result
 
 
-def moma(model, objective=None):
+def moma(model, objective=None, *args, **kwargs):
     pass
 
 
-def lmoma(model, objective=None):
-    pass
+def lmoma(model, objective=None, wt_reference=None):
+    if wt_reference is None:
+        wt_reference = pfba(model, objective=objective)
 
+    tm = TimeMachine()
+    try:
+        obj_terms = list()
+        aux_constraint_terms = dict()
+        for reaction in model.reactions:
+            obj_terms.append(reaction.variable)
+            for metabolite, coefficient in reaction.metabolites.iteritems():
+                try:
+                    aux_constraint_terms[metabolite].append(reaction - reaction.x_dict[reaction.id])
+                except KeyError:
+                    aux_constraint_terms[metabolite] = list()
+                    aux_constraint_terms[metabolite].append(reaction - reaction.x_dict[reaction.id])
+
+        lmoma_obj = model.solver.interface.Objective(sympy.Add._from_args(obj_terms), direction='min')
+
+        tm(do=partial(setattr, model, 'objective', lmoma_obj),
+           undo=partial(setattr, model, 'objective', model.objective))
+        for metabolite, terms in aux_constraint_terms.iteritems():
+            tm(do=partial(model.solver.constraints[metabolite.id].__iadd__, sympy.Add._from_args(terms)),
+               undo=partial(model.solver.constraints[metabolite.id].__isub__, sympy.Add._from_args(terms)))
+        try:
+            solution = model.solve()
+        except SolveError as e:
+            print "gimme could not determine an optimal solution for objective %s" % model.objective
+            print model.solver
+            raise e
+
+    finally:
+        # tic = time.time()
+        tm.reset()
+    # print time.time() - tic
+    return solution
 
 def _cycle_free_flux(model, fluxes, fix=[]):
     """Remove cycles from a flux-distribution (http://cran.r-project.org/web/packages/sybilcycleFreeFlux/index.html)."""
@@ -147,15 +171,19 @@ if __name__ == '__main__':
     sbml_path = '../../tests/data/iJO1366.xml'
 
     cb_model = read_sbml_model(sbml_path)
-    cb_model.optimize()
-    print sum([abs(val) for val in cb_model.solution.x_dict.values()])
     model = load_model(sbml_path)
 
-    model.solver = 'glpk'
+    # model.solver = 'glpk'
+
+    print "cobra fba"
+    tic = time.time()
+    cb_model.optimize(solver='cglpk')
+    print "flux sum:", sum([abs(val) for val in cb_model.solution.x_dict.values()])
+    print "cobra fba runtime:", time.time() - tic
 
     print "cobra pfba"
     tic = time.time()
-    optimize_minimal_flux(cb_model)
+    optimize_minimal_flux(cb_model, solver='cglpk')
     print "flux sum:", sum([abs(val) for val in cb_model.solution.x_dict.values()])
     print "cobra pfba runtime:", time.time() - tic
 
