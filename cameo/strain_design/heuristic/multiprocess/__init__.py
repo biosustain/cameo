@@ -106,20 +106,21 @@ class MultiprocessKnockoutOptimization(MultiprocessHeuristicOptimization):
                         color_map=color_map)
             elif config.use_matplotlib:
                 pass
+
         else:
             progress_observer = CliMultiprocessProgressObserver(number_of_islands=number_of_islands)
 
         if not progress_observer is None:
+            progress_observer.start()
             observers.append(progress_observer)
         if not plotting_observer is None:
+            plotting_observer.start()
             observers.append(plotting_observer)
 
         return observers
 
     def run(self, view=config.default_view, **kwargs):
         self.observers = self._generate_observers(len(view))
-        for observer in self.observers:
-            observer.start()
 
         results = MultiprocessHeuristicOptimization.run(self, view=view, **kwargs)
 

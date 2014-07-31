@@ -33,10 +33,13 @@ class AbstractParallelObserver(object):
 
     def _listen(self):
         while self.run:
+            print "Reading message for %s" % self.__name__
             try:
                 message = self.queue.get(block=True, timeout=5)
+                print message
                 self._process_message(message)
             except Empty:
+                print "Empty message"
                 pass
             except Exception as e:
                 print e
@@ -46,6 +49,7 @@ class AbstractParallelObserver(object):
         raise NotImplementedError
 
     def start(self):
+        print "Starting observer %s" % self.__name__
         self.run = True
         self.t = Thread(target=self._listen)
         self.t.start()
@@ -170,10 +174,7 @@ class IPythonNotebookMultiprocessProgressObserverClient(AbstractParallelObserver
 
     def __call__(self, population, num_generations, num_evaluations, args):
         p = (float(num_evaluations) / float(args.get('max_evaluations', 50000))) * 100.0
-        try:
-            self._queue.put_nowait({'progress': p, 'index': self.index})
-        except Exception:
-            pass
+        self._queue.put_nowait({'progress': p, 'index': self.index})
 
     def reset(self):
         pass
