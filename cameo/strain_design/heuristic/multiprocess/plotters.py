@@ -141,8 +141,10 @@ class IPythonNotebookBokehMultiprocessParetoPlotObserver(IPythonNotebookBokehMul
         show()
 
     def _update_plot(self):
-        self.ds.data['x'] = [f[self.x] for f in self.data_frame['fitness']]
-        self.ds.data['y'] = [f[self.y] for f in self.data_frame['fitness']]
+        x = [f[self.x] for f in self.data_frame['fitness'][0]]
+        y = [f[self.y] for f in self.data_frame['fitness'][0]]
+        self.ds.data['x'] = x
+        self.ds.data['y'] = y
         self.ds.data['fill_color'] = self.data_frame['color']
         self.ds.data['line_color'] = self.data_frame['color']
         self.ds._dirty = True

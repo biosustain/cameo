@@ -35,7 +35,6 @@ class AbstractParallelObserver(object):
         while self.run:
             try:
                 message = self.queue.get(block=True, timeout=5)
-                print message
                 self._process_message(message)
             except Empty:
                 pass
