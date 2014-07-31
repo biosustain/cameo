@@ -60,9 +60,10 @@ try:
 
         MAX_REDIS_LIST_SIZE = 4294967295L
 
-        default_host = "localhost"
-        default_port = "6379"
-        default_db = 0
+        default_host = None
+        default_port = None
+        default_db = None
+        default_password = None
 
         def __init__(self, name, maxsize=0, namespace='queue', **connection_args):
             """The default connection parameters are: host='localhost', port=6379, db=0"""
@@ -72,7 +73,8 @@ try:
             self._connection_args = {
                 'host': self.default_host,
                 'port': self.default_port,
-                'db': self.default_db
+                'db': self.default_db,
+                'password': self.default_password
             }
             for key, val in connection_args.iteritems():
                 self._connection_args[key] = val

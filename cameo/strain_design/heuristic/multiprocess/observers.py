@@ -20,10 +20,11 @@ from cameo.parallel import RedisQueue
 class AbstractParallelObserver(object):
     def __init__(self, number_of_islands=None, *args, **kwargs):
         assert isinstance(number_of_islands, int)
-        super(AbstractParallelObserver, self).__init__(*args, **kwargs)
-        self.queue = RedisQueue(name=uuid4(), namespace=self.__class__)
+        super(AbstractParallelObserver, self).__init__()
+        self.queue = RedisQueue(name=uuid4(), namespace=self.__name__)
         self.clients = {}
         self.run = True
+        self.t = None
         for i in xrange(number_of_islands):
             self._create_client(i)
 
@@ -34,6 +35,7 @@ class AbstractParallelObserver(object):
         while self.run:
             try:
                 message = self.queue.get(block=True, timeout=5)
+                print message
                 self._process_message(message)
             except Empty:
                 pass
@@ -45,11 +47,13 @@ class AbstractParallelObserver(object):
         raise NotImplementedError
 
     def start(self):
-        t = Thread(target=self._listen)
-        t.start()
+        self.run = True
+        self.t = Thread(target=self._listen)
+        self.t.start()
 
     def finish(self):
         self.run = False
+        self.t.join()
 
 
 class AbstractParallelObserverClient(object):
@@ -75,6 +79,9 @@ class CliMultiprocessProgressObserver(AbstractParallelObserver):
     """
     Command line progress display for multiprocess run
     """
+
+    __name__ = "CLIMultiprocessProgress"
+
     def __init__(self, *args, **kwargs):
         self.progress = {}
         self.terminal = Terminal()
@@ -110,7 +117,7 @@ class CliMultiprocessProgressObserver(AbstractParallelObserver):
             self.term = term
 
         def write(self, string):
-            with self.term.location(0, self.pos):
+            with self.term.location(0, self.pos-1):
                 print(string)
 
 
@@ -136,6 +143,8 @@ class IPythonNotebookMultiprocessProgressObserver(AbstractParallelObserver):
     """
     IPython Notebook Progress Observer for multiprocess run
     """
+
+    __name__ = "IPythonNotebookMultiprocessProgress"
 
     def __init__(self, color_map=None, *args, **kwargs):
         self.progress = {}

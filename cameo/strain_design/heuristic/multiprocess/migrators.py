@@ -52,7 +52,7 @@ class MultiprocessingMigrator(object):
 
     def __init__(self, max_migrants=1):
         self.max_migrants = max_migrants
-        self.migrants = RedisQueue(uuid4())
+        self.migrants = RedisQueue(uuid4(), maxsize=1)
         self.__name__ = self.__class__.__name__
 
     def __call__(self, random, population, args):
