@@ -60,7 +60,7 @@ class MultiprocessingMigrator(object):
         migrant_index = random.randint(0, len(population) - 1)
         old_migrant = population[migrant_index]
         try:
-            migrant = self.migrants.get(block=False)
+            migrant = self.migrants.get()
             if evaluate_migrant:
                 fit = args["_ec"].evaluator([migrant.candidate], args)
                 migrant.fitness = fit[0]
@@ -69,7 +69,7 @@ class MultiprocessingMigrator(object):
         except Queue.Empty:
             pass
         try:
-            self.migrants.put(old_migrant, block=False)
+            self.migrants.put(old_migrant)
         except Queue.Full:
             pass
         return population

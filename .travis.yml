@@ -6,6 +6,7 @@ virtualenv:
   system_site_packages: true
 before_install:
   - sudo apt-get install libglpk-dev swig glpk-utils redis-server
+  - sudo service redis-server start
 install:
   - pip install python-libsbml-experimental cython numpy scipy -f https://dl.dropboxusercontent.com/u/22461024/pypi.drosophi.la/index.html --no-index
   - pip install coveralls coverage
