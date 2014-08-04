@@ -7,6 +7,17 @@ sudo apt-get update
 sudo apt-get install -y make git libglpk-dev swig glpk-utils swig python-dev python-numpy python-scipy redis-server
 sudo apt-get install -y python-pip
 sudo pip install python-libsbml-experimental cython numpy scipy -f https://dl.dropboxusercontent.com/u/22461024/pypi.drosophi.la/index.html --no-index
+sudo apt-get install curl
+
+mkdir tmp
+cd tmp
+curl -O ftp://ftp.gnu.org/gnu/glpk/glpk-4.45.tar.gz
+tar xzfv glpk-4.45.tar.gz
+cd glpk-4.45/
+./configure
+make
+sudo make install
+
 cd /vagrant
 sudo pip install -r requirements.txt
 # get rid of the stupid openpyxl error message
