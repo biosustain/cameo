@@ -105,7 +105,7 @@ def phenotypic_phase_plane(model, variables=[], objective=None, points=20, view=
     if not hasattr(variables, '__iter__'):
         variables = [variables]
     if view is None:
-        view = SequentialView()
+        view = config.default_view
     tm = TimeMachine()
     if model.reversible_encoding == 'split':
         tm(do=partial(setattr, model, 'reversible_encoding', 'unsplit'),
