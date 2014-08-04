@@ -21,7 +21,7 @@ class AbstractParallelObserver(object):
     def __init__(self, number_of_islands=None, *args, **kwargs):
         assert isinstance(number_of_islands, int)
         super(AbstractParallelObserver, self).__init__()
-        self.queue = RedisQueue(name=uuid4(), namespace=self.__name__)
+        self.queue = RedisQueue(name=str(uuid4()), namespace=self.__name__)
         self.clients = {}
         self.run = True
         self.t = None
@@ -32,24 +32,22 @@ class AbstractParallelObserver(object):
         raise NotImplementedError
 
     def _listen(self):
+        print "Start %s" % self.__name__
         while self.run:
-            print "Reading message for %s" % self.__name__
             try:
-                message = self.queue.get(block=True, timeout=5)
-                print message
+                message = self.queue.get_nowait()
                 self._process_message(message)
             except Empty:
-                print "Empty message"
                 pass
             except Exception as e:
                 print e
-                print traceback.format_exc()
+
+        print "Exit %s" % self.__name__
 
     def _process_message(self, message):
         raise NotImplementedError
 
     def start(self):
-        print "Starting observer %s" % self.__name__
         self.run = True
         self.t = Thread(target=self._listen)
         self.t.start()

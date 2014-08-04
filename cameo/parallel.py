@@ -95,16 +95,16 @@ try:
             self._db = redis.Redis(**self._connection_args)
 
         def __len__(self):
-            return self.lenght()
+            return self.length()
 
-        def lenght(self):
+        def length(self):
             return self._db.llen(self._key)
 
         def empty(self):
-            return self.lenght() == 0
+            return self.length() == 0
 
         def put(self, item):
-            if self.lenght() >= self._maxsize:
+            if self.length() >= self._maxsize:
                 raise Queue.Full
 
             item = pickle.dumps(item)
@@ -112,6 +112,16 @@ try:
             self._db.rpush(self._key, item)
 
         def put_nowait(self, item):
+            """
+            Same as put, for backward compatibility with Python Queue.
+
+            See also
+            --------
+            put
+
+            :param item: object to put in the queue
+
+            """
             self.put(item)
 
         def get(self, block=True, timeout=None):

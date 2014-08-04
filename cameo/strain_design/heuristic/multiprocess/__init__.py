@@ -28,6 +28,11 @@ from cameo.strain_design.heuristic.multiprocess.migrators import Multiprocessing
 
 
 class MultiprocessRunner():
+    """
+    Runner for multiprocessing model. It generates the non-pickable
+    objects on the beginning of the process.
+
+    """
     def __init__(self, island_class, init_kwargs, migrator, run_kwargs):
         self.island_class = island_class
         self.init_kwargs = init_kwargs
@@ -66,7 +71,11 @@ class MultiprocessHeuristicOptimization(object):
         run_kwargs['view'] = parallel.SequentialView()
         runner = MultiprocessRunner(self._island_class, self._init_kwargs(), self.migrator, run_kwargs)
         clients = [[o.clients[i] for o in self.observers] for i in xrange(len(view))]
-        results = view.map(runner, clients)
+        try:
+            results = view.map(runner, clients)
+        except KeyboardInterrupt as e:
+            view.termitate()
+            raise e
         return results
 
     def is_mo(self):

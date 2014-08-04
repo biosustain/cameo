@@ -81,41 +81,40 @@ def moma(model, objective=None, *args, **kwargs):
 
 
 def lmoma(model, objective=None, wt_reference=None):
-    if wt_reference is None:
-        wt_reference = pfba(model, objective=objective)
-
     tm = TimeMachine()
+    if wt_reference is None:
+        wt_reference = pfba(model, objective=objective)['fluxes']
+
+    tm(do=partial(setattr, model, 'reversible_encoding', 'split'),
+       undo=partial(setattr, model, 'reversible_encoding', model.reversible_encoding))
     try:
-        obj_terms = list()
-        aux_constraint_terms = dict()
-        for reaction in model.reactions:
-            obj_terms.append(reaction.variable)
-            for metabolite, coefficient in reaction.metabolites.iteritems():
-                try:
-                    aux_constraint_terms[metabolite].append(reaction - reaction.x_dict[reaction.id])
-                except KeyError:
-                    aux_constraint_terms[metabolite] = list()
-                    aux_constraint_terms[metabolite].append(reaction - reaction.x_dict[reaction.id])
+        if objective is not None:
+            tm(do=partial(setattr, model, 'objective', objective),
+               undo=partial(setattr, model, 'objective', model.objective))
 
-        lmoma_obj = model.solver.interface.Objective(sympy.Add._from_args(obj_terms), direction='min')
+        variables = []
+        for variable in model.solver.variables.values():
+            variables.append(variable - wt_reference[variable.name])
 
-        tm(do=partial(setattr, model, 'objective', lmoma_obj),
+        obj = model.solver.interface.Objective(variables, direction='min', sloppy=True)
+        # tic = time.time()
+        tm(do=partial(setattr, model, 'objective', obj),
            undo=partial(setattr, model, 'objective', model.objective))
-        for metabolite, terms in aux_constraint_terms.iteritems():
-            tm(do=partial(model.solver.constraints[metabolite.id].__iadd__, sympy.Add._from_args(terms)),
-               undo=partial(model.solver.constraints[metabolite.id].__isub__, sympy.Add._from_args(terms)))
+        # print "obj: ", time.time() - tic
         try:
             solution = model.solve()
+            result = dict()
+            result['flux_sum'] = solution.f
+            result['fluxes'] = solution.x_dict
         except SolveError as e:
             print "gimme could not determine an optimal solution for objective %s" % model.objective
-            print model.solver
             raise e
-
     finally:
         # tic = time.time()
         tm.reset()
-    # print time.time() - tic
-    return solution
+        # print "reset: ", time.time() - tic
+    return result
+
 
 def _cycle_free_flux(model, fluxes, fix=[]):
     """Remove cycles from a flux-distribution (http://cran.r-project.org/web/packages/sybilcycleFreeFlux/index.html)."""
@@ -193,5 +192,12 @@ if __name__ == '__main__':
     print "flux sum:",
     print sum([abs(val) for val in solution['fluxes'].values()])
     print "cameo pfba runtime:", time.time() - tic
+
+    print "lmoma"
+    tic = time.time()
+    solution = lmoma(model)
+    print "flux sum:",
+    print sum([abs(val) for val in solution['fluxes'].values()])
+    print "cameo lmoma runtime:", time.time() - tic
 
     # print model.solver

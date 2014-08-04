@@ -38,8 +38,8 @@ class IPythonNotebookBokehMultiprocessPlotObserver(AbstractParallelObserver):
         self.clients[i] = IPythonNotebookBokehMultiprocessPlotObserverClient(queue=self.queue, index=i)
 
     def start(self):
-        AbstractParallelObserver.start(self)
         self._plot()
+        AbstractParallelObserver.start(self)
 
     def _plot(self):
         self.plotted = True
