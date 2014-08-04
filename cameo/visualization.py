@@ -20,6 +20,7 @@ from escher import Builder
 
 import os
 from IPython.display import HTML, SVG
+from cameo.flux_analysis.analysis import _ids_to_reactions
 from cameo.util import TimeMachine
 
 
@@ -120,12 +121,12 @@ cdf.embed("%s", 942, 678);
     return HTML(html_template2 % os.path.basename(tmp_html))
 
 
-def draw_knockout_result(model, map, simulation_method, knockouts, *args, **kwargs):
+def draw_knockout_result(model, map_name, simulation_method, knockouts, *args, **kwargs):
     tm = TimeMachine()
 
     try:
-        for rid in knockouts:
-            reaction = model.reactions.get_by_id(rid)
+        for reaction in _ids_to_reactions(model, knockouts):
+
             tm(do=partial(setattr, reaction, 'lower_bound', 0),
                undo=partial(setattr, reaction, 'lower_bound', reaction.lower_bound))
             tm(do=partial(setattr, reaction, 'upper_bound', 0),
@@ -134,7 +135,7 @@ def draw_knockout_result(model, map, simulation_method, knockouts, *args, **kwar
         solution = simulation_method(model, *args, **kwargs).x_dict
         tm.reset()
 
-        return Builder(map, reaction_data=solution)
+        return Builder(map_name, reaction_data=solution)
 
     except Exception as e:
         tm.reset()
