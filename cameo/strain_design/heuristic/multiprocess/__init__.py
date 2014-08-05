@@ -22,8 +22,7 @@ from cameo.strain_design.heuristic import ReactionKnockoutOptimization, GeneKnoc
     KnockoutOptimizationResult
 from cameo.strain_design.heuristic.multiprocess.observers import IPythonNotebookMultiprocessProgressObserver, \
     CliMultiprocessProgressObserver
-from cameo.strain_design.heuristic.multiprocess.plotters import IPythonNotebookBokehMultiprocessPlotObserver, \
-    IPythonNotebookBokehMultiprocessParetoPlotObserver
+from cameo.strain_design.heuristic.multiprocess.plotters import IPythonNotebookBokehMultiprocessPlotObserver
 from cameo.strain_design.heuristic.multiprocess.migrators import MultiprocessingMigrator
 
 
@@ -36,7 +35,7 @@ class MultiprocessRunner():
 
     def __call__(self, clients):
         island = self.island_class(**self.init_kwargs)
-        island.heuristic_method.migrator = self.migrator
+        island.migrator = self.migrator
         island.observer = clients
         return island.run(**self.run_kwargs)
 
@@ -46,12 +45,14 @@ class MultiprocessHeuristicOptimization(object):
     _island_class = None
 
     def __init__(self, model=None, objective_function=None, heuristic_method=inspyred.ec.GA,
-                 number_of_islands=4, max_migrants=1, *args, **kwargs):
+                 view=config.default_view, number_of_islands=4, max_migrants=1, *args, **kwargs):
         super(MultiprocessHeuristicOptimization, self).__init__(*args, **kwargs)
         self.model = model
         self.objective_function = objective_function
         self.heuristic_method = heuristic_method
         self.number_of_islands = number_of_islands
+        self.view = view
+        self.color_map = util.generate_colors(number_of_islands)
         self.migrator = MultiprocessingMigrator(max_migrants)
         self.observers = []
 
@@ -62,67 +63,52 @@ class MultiprocessHeuristicOptimization(object):
             'heuristic_method': self.heuristic_method
         }
 
-    def run(self, view=config.default_view, **run_kwargs):
+    def run(self, **run_kwargs):
         run_kwargs['view'] = parallel.SequentialView()
         runner = MultiprocessRunner(self._island_class, self._init_kwargs(), self.migrator, run_kwargs)
-        clients = [[o.clients[i] for o in self.observers] for i in xrange(len(view))]
-        results = view.map(runner, clients)
+        clients = [[o.clients[i] for o in self.observers] for i in xrange(self.number_of_islands)]
+        results = self.view.map(runner, clients)
         return results
-
-    def is_mo(self):
-        if isinstance(self.objective_function, list):
-            return len(self.objective_function) > 0
-        else:
-            return False
 
 
 class MultiprocessKnockoutOptimization(MultiprocessHeuristicOptimization):
     def __init__(self, simulation_method=pfba, *args, **kwargs):
         super(MultiprocessKnockoutOptimization, self).__init__(*args, **kwargs)
         self.simulation_method = simulation_method
+        self.observers = self._set_observers()
 
     def _init_kwargs(self):
         init_kwargs = MultiprocessHeuristicOptimization._init_kwargs(self)
         init_kwargs['simulation_method'] = self.simulation_method
         return init_kwargs
 
-    def _generate_observers(self, number_of_islands):
-        color_map = util.generate_colors(number_of_islands)
+    def _set_observers(self):
         observers = []
         progress_observer = None
         plotting_observer = None
         if in_ipnb():
-            progress_observer = IPythonNotebookMultiprocessProgressObserver(number_of_islands=number_of_islands,
-                                                                            color_map=color_map)
+            progress_observer = IPythonNotebookMultiprocessProgressObserver(number_of_islands=self.number_of_islands,
+                                                                            color_map=self.color_map)
             if config.use_bokeh:
-                if self.is_mo():
-                    plotting_observer = IPythonNotebookBokehMultiprocessParetoPlotObserver(
-                        objective_functions=self.objective_function,
-                        number_of_islands=number_of_islands,
-                        color_map=color_map)
-                else:
-                    plotting_observer = IPythonNotebookBokehMultiprocessPlotObserver(
-                        number_of_islands=number_of_islands,
-                        color_map=color_map)
+                plotting_observer = IPythonNotebookBokehMultiprocessPlotObserver(number_of_islands=self.number_of_islands,
+                                                                                 color_map=self.color_map)
             elif config.use_matplotlib:
                 pass
-
         else:
-            progress_observer = CliMultiprocessProgressObserver(number_of_islands=number_of_islands)
+            progress_observer = CliMultiprocessProgressObserver(number_of_islands=self.number_of_islands)
 
         if not progress_observer is None:
-            progress_observer.start()
             observers.append(progress_observer)
         if not plotting_observer is None:
-            plotting_observer.start()
             observers.append(plotting_observer)
 
         return observers
 
-    def run(self, view=config.default_view, **kwargs):
-        self.observers = self._generate_observers(len(view))
+    def run(self,  **kwargs):
+        for observer in self.observers:
+            observer.start()
 
-        results = MultiprocessHeuristicOptimization.run(self, view=view, **kwargs)
+        results = MultiprocessHeuristicOptimization.run(self, **kwargs)
 
         for observer in self.observers:
             observer.finish()

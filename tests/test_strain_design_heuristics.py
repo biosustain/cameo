@@ -36,6 +36,7 @@ SEED = 1234
 CURRENT_PATH = os.path.dirname(__file__)
 MODEL_PATH = os.path.join(CURRENT_PATH, "data/EcoliCore.xml")
 
+
 TEST_MODEL = load_model(MODEL_PATH)
 
 SOLUTIONS = [
@@ -463,7 +464,6 @@ class TestReactionKnockoutOptimization(unittest.TestCase):
             "EX_ac_LPAREN_e_RPAREN_",
             "EX_glc_LPAREN_e_RPAREN_")
 
-
         rko = ReactionKnockoutOptimization(model=self.model,
                                            simulation_method=fba,
                                            objective_function=objective,
@@ -492,7 +492,7 @@ class TestReactionKnockoutOptimization(unittest.TestCase):
                                            heuristic_method=inspyred.ec.emo.NSGA2,
                                            seed=SEED)
 
-        results = rko.run(max_evaluations=3000, pop_size=10, view=SequentialView())
+        results = rko.run(max_evaluations=3000, pop_size=10)
 
         with open(result_file, 'r') as file:
             expected_results = pickle.load(file)

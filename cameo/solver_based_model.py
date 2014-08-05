@@ -626,52 +626,27 @@ class SolverBasedModel(Model):
                              undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
             try:
                 sol = self.solve()
-                if abs(sol.f) < threshold:
-                    essential.append(gene)
             except (Infeasible, UndefinedSolution):
                 essential.append(gene)
+            else:
+                if sol.f < threshold:
+                    essential.append(gene)
+                time_machine.reset()
             finally:
                 time_machine.reset()
         return essential
 
-
-    def medium(self):
-        reaction_ids = []
-        lower_bounds = []
-        upper_bounds = []
-        for ex in self.exchanges:
-            metabolite = ex.metabolites.keys()[0]
-            coeff = ex.metabolites[metabolite]
-            if coeff * ex.lower_bound > 0:
-                reaction_ids.append(ex.id)
-                lower_bounds.append(ex.lower_bound)
-                upper_bounds.append(ex.upper_bound)
-
-        return DataFrame({'reaction_id': reaction_ids, 'lower_bound': lower_bounds, 'upper_bound': upper_bounds},
-                         index=None, columns=['reaction_id', 'lower_bound', 'upper_bound'])
-
-
     # TODO: describe the formats in doc
-    def load_medium(self, medium, copy=False, **kwargs):
+    def load_medium(self, medium, copy=False):
         """
         Loads a medium into the model. If copy is true it will return
         a copy of the model. Otherwise it applies the medium to itself.
-        Supported formats:
-            pandas.DataFrame - medium can be described in a DataFrame.
-            It must contain the following fields: reaction_id, lower_bound
-            and upper_bound.
-
-            dict - a dictionary containing the reaction id as key and the
-            lower and upper bound as value [lower, upper].
-
-            tsv - a plain text file with a Tab Separated Values format.
-            The column delimiter can be changed with the keyword <delimiter>.
-            The file must be in the format reaction_id, lower_bound, upper_bound.
+        Supported formats
+        TODO
 
         :param medium: can be a file, a pandas DataFrame or dictionary.
         :param copy: boolean, optional
-        :return: If copy is True, returns a copy of the model with the new
-        bounds. Otherwise it returns the same model with new bounds.
+        :return:
         """
 
         if copy:
@@ -683,7 +658,7 @@ class SolverBasedModel(Model):
         elif isinstance(medium, pandas.DataFrame):
             self._load_medium_from_dataframe(model, medium)
         elif isinstance(medium, str):
-            self._load_medium_from_file(model, medium, **kwargs)
+            self._load_medium_from_file(model, medium)
         else:
             raise AssertionError("input type (%s) is not valid" % type(medium))
 

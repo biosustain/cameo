@@ -52,7 +52,7 @@ class MultiprocessingMigrator(object):
 
     def __init__(self, max_migrants=1):
         self.max_migrants = max_migrants
-        self.migrants = RedisQueue(uuid4(), maxsize=1)
+        self.migrants = RedisQueue(uuid4())
         self.__name__ = self.__class__.__name__
 
     def __call__(self, random, population, args):
@@ -60,7 +60,7 @@ class MultiprocessingMigrator(object):
         migrant_index = random.randint(0, len(population) - 1)
         old_migrant = population[migrant_index]
         try:
-            migrant = self.migrants.get()
+            migrant = self.migrants.get(block=False)
             if evaluate_migrant:
                 fit = args["_ec"].evaluator([migrant.candidate], args)
                 migrant.fitness = fit[0]
@@ -69,7 +69,7 @@ class MultiprocessingMigrator(object):
         except Queue.Empty:
             pass
         try:
-            self.migrants.put(old_migrant)
+            self.migrants.put(old_migrant, block=False)
         except Queue.Full:
             pass
         return population

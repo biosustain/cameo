@@ -23,9 +23,6 @@ if config.use_bokeh:
 
 
 class IPythonNotebookBokehMultiprocessPlotObserver(AbstractParallelObserver):
-
-    __name__ = "IPythonNotebookBokehMultiprocessPlot"
-
     def __init__(self, url='default', color_map={}, *args, **kwargs):
         super(IPythonNotebookBokehMultiprocessPlotObserver, self).__init__(*args, **kwargs)
         self.url = url
@@ -42,15 +39,13 @@ class IPythonNotebookBokehMultiprocessPlotObserver(AbstractParallelObserver):
         self._plot()
 
     def _plot(self):
+        print "Open plot!"
         self.plotted = True
         self.uuid = uuid1()
         output_notebook(url=self.url, docname=str(self.uuid))
         figure()
-        scatter([], [], title="Best solution convergence plot", tools='',
-                color=self.color_map, fill_alpha=0.2, size=7)
-
-        xaxis()[0].axis_label = "Iteration"
-        yaxis()[0].axis_label = "Fitness"
+        scatter([], [], title="Best solution convergence plot", tools='', x_axis_label="Iteration",
+                y_axis_label="Fitness", color=self.color_map, fill_alpha=0.2, size=7)
 
         self.plot = curplot()
         renderer = [r for r in self.plot.renderers if isinstance(r, Glyph)][0]
@@ -63,10 +58,10 @@ class IPythonNotebookBokehMultiprocessPlotObserver(AbstractParallelObserver):
 
         index = message['index']
         df = DataFrame({
-            'iteration': [message['iteration']],
-            'fitness': [message['fitness']],
-            'color': [self.color_map[index]],
-            'island': [index]
+             'iteration': [message['iteration']],
+             'fitness': [message['fitness']],
+             'color': [self.color_map[index]],
+             'island': [index]
         })
         self.data_frame = self.data_frame.append(df, ignore_index=True)
         if message['iteration'] % message['n'] == 0:
@@ -110,69 +105,3 @@ class IPythonNotebookBokehMultiprocessPlotObserverClient(AbstractParallelObserve
 
     def close(self):
         self.connection.close()
-
-
-class IPythonNotebookBokehMultiprocessParetoPlotObserver(IPythonNotebookBokehMultiprocessPlotObserver):
-
-    __name__ = "IPythonNotebookBokehMultiprocessParetoPlot"
-
-    def __init__(self, objective_functions=None, x=1, y=1, *args, **kwargs):
-        super(IPythonNotebookBokehMultiprocessParetoPlotObserver, self).__init__(*args, **kwargs)
-        self.x = x
-        self.y = y
-        self.ofs = objective_functions
-
-    def _create_client(self, i):
-        self.clients[i] = IPythonNotebookBokehMultiprocessParetoPlotObserverClient(queue=self.queue, index=i)
-
-    def _plot(self):
-        self.plotted = True
-        self.uuid = uuid1()
-        output_notebook(url=self.url, docname=str(self.uuid))
-        figure()
-        scatter([], [], title="Pareto plot", tools='',
-                color=self.color_map, fill_alpha=0.2, size=7)
-        xaxis()[0].axis_label = self.ofs[self.x].name
-        yaxis()[0].axis_label = self.ofs[self.y].name
-
-        self.plot = curplot()
-        renderer = [r for r in self.plot.renderers if isinstance(r, Glyph)][0]
-        self.ds = renderer.data_source
-        show()
-
-    def _update_plot(self):
-        x = [f[self.x] for f in self.data_frame['fitness'][0]]
-        y = [f[self.y] for f in self.data_frame['fitness'][0]]
-        self.ds.data['x'] = x
-        self.ds.data['y'] = y
-        self.ds.data['fill_color'] = self.data_frame['color']
-        self.ds.data['line_color'] = self.data_frame['color']
-        self.ds._dirty = True
-        session().store_obj(self.ds)
-
-
-class IPythonNotebookBokehMultiprocessParetoPlotObserverClient(AbstractParallelObserverClient):
-
-    __name__ = "IPython Notebook Bokeh Multiprocess Pareto Plot Observer"
-
-    def __init__(self, *args, **kwargs):
-        super(IPythonNotebookBokehMultiprocessParetoPlotObserverClient, self).__init__(*args, **kwargs)
-        self.iteration = 0
-
-    def __call__(self, population, num_generations, num_evaluations, args):
-        self.iteration += 1
-        try:
-            self._queue.put_nowait({
-                'fitness': [i.fitness for i in population],
-                'iteration': self.iteration,
-                'index': self.index,
-                'n': args.get('n', 1)})
-        except Queue.Full:
-            pass
-
-    def reset(self):
-        self.iteration = 0
-
-    def close(self):
-        self.connection.close()
-
