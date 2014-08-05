@@ -111,8 +111,8 @@ class TestSimulationMethods(unittest.TestCase):
         print fba_solution.x_dict
         fba_flux_sum = sum((abs(val) for val in fba_solution.x_dict.values()))
         print fba_flux_sum
-        solution = pfba(iJO_MODEL)
-        pfba_flux_sum = sum((abs(val) for val in solution['fluxes'].values()))
+        pfba_solution = pfba(iJO_MODEL)
+        pfba_flux_sum = sum((abs(val) for val in pfba_solution.x_dict.values()))
         print pfba_flux_sum
         self.assertTrue(pfba_flux_sum < fba_flux_sum)
 

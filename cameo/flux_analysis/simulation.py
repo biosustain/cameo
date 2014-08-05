@@ -67,7 +67,7 @@ def pfba(model, objective=None, *args, **kwargs):
             return solution
         except SolveError as e:
             tm.reset()
-            print "gimme could not determine an optimal solution for objective %s" % model.objective
+            print "pfba could not determine an optimal solution for objective %s" % model.objective
             raise e
     except Exception as e:
         tm.reset()
@@ -82,14 +82,21 @@ def lmoma(model, wt_reference=None):
     tm = TimeMachine()
 
     obj_terms = list()
-    obj_constrains = list()
     for rid, flux_value in wt_reference.iteritems():
-        obj_terms.append(model.reactions.get_by_id(rid).variable)
-        obj_constrains.append(model.solver.interface.Constraint(model.reactions.get_by_id(rid).variable, lb=flux_value))
+        of_term = model.solver.interface.Variable("u_%s" % rid)
+        tm(do=partial(model.solver._add_variable, of_term),
+           undo=partial(model.solver._remove_variable, of_term))
+        obj_terms.append(of_term)
+        constraint1 = (model.solver.interface.Constraint(model.solver.variables[of_term.name] - model.reactions.get_by_id(rid).variable,
+                                                         lb=-flux_value))
+        constraint2 = (model.solver.interface.Constraint(model.solver.variables[of_term.name] - model.reactions.get_by_id(rid).variable,
+                                                         lb=flux_value))
 
-    for constraint in obj_constrains:
-        tm(do=partial(model.solver._add_constraint, constraint),
-           undo=partial(model.solver._remove_constraint, constraint))
+        tm(do=partial(model.solver._add_constraint, constraint1),
+           undo=partial(model.solver._remove_constraint, constraint1))
+
+        tm(do=partial(model.solver._add_constraint, constraint2),
+           undo=partial(model.solver._remove_constraint, constraint2))
 
     lmoma_obj = model.solver.interface.Objective(sympy.Add._from_args(obj_terms), direction='min')
 
@@ -102,7 +109,8 @@ def lmoma(model, wt_reference=None):
         tm.reset()
         return solution
     except SolveError as e:
-        print "gimme could not determine an optimal solution for objective %s" % model.objective
+        tm.reset()
+        print "lmoma could not determine an optimal solution for objective %s" % model.objective
         print model.solver
         raise e
 
@@ -157,8 +165,8 @@ if __name__ == '__main__':
     from cobra.flux_analysis.parsimonious import optimize_minimal_flux
     from cameo import load_model
 
-    # sbml_path = '../../tests/data/EcoliCore.xml'
-    sbml_path = '../../tests/data/iJO1366.xml'
+    sbml_path = '../../tests/data/EcoliCore.xml'
+    #sbml_path = '../../tests/data/iJO1366.xml'
 
     cb_model = read_sbml_model(sbml_path)
     model = load_model(sbml_path)
@@ -187,6 +195,16 @@ if __name__ == '__main__':
     print "lmoma"
     tic = time.time()
     solution = pfba(model)
+    solution = lmoma(model, wt_reference=solution.x_dict)
+    print "flux sum:",
+    print sum([abs(val) for val in solution.x_dict.values()])
+    print "cameo lmoma runtime:", time.time() - tic
+
+    print "lmoma w/ ko"
+    tic = time.time()
+    solution = pfba(model)
+    model.reactions.FBA.lower_bound = 0
+    model.reactions.FBA.upper_bound = 0
     solution = lmoma(model, wt_reference=solution.x_dict)
     print "flux sum:",
     print sum([abs(val) for val in solution.x_dict.values()])
