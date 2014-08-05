@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from inspyred.ec.emo import Pareto
+import time
+import sys
 
 from cameo.exceptions import SolveError
 from cameo.strain_design.heuristic import archivers
@@ -98,12 +100,13 @@ def set_distance_function(candidate1, candidate2):
 
 
 class HeuristicOptimization(object):
-    def __init__(self, model=None, heuristic_method=inspyred.ec.GA, objective_function=None, random=None,
+    def __init__(self, model=None, heuristic_method=inspyred.ec.GA, objective_function=None, seed=None,
                  termination=inspyred.ec.terminators.evaluation_termination, *args, **kwargs):
         super(HeuristicOptimization, self).__init__(*args, **kwargs)
-        if random is None:
-            random = Random()
-        self.random = random
+        if seed is None:
+            seed = int(round(time.time() * 1000))
+        self.seed = seed
+        self.random = Random(seed)
         self.model = model
         self.termination = termination
         self._objective_function = objective_function
@@ -283,7 +286,8 @@ class KnockoutOptimization(HeuristicOptimization):
                                           objective_function=self.objective_function,
                                           ko_type=self._ko_type,
                                           decoder=self._decoder,
-                                          product=kwargs.get('product', None))
+                                          product=kwargs.get('product', None),
+                                          seed=self.seed)
 
 
 class KnockoutOptimizationResult(object):
@@ -292,9 +296,10 @@ class KnockoutOptimizationResult(object):
         return a._merge(b)
 
     def __init__(self, model=None, heuristic_method=None, simulation_method=None, solutions=None,
-                 objective_function=None, ko_type=None, decoder=None, product=None, *args, **kwargs):
+                 objective_function=None, ko_type=None, decoder=None, product=None, seed=None, *args, **kwargs):
         super(KnockoutOptimizationResult, self).__init__(*args, **kwargs)
         self.product = None
+        self.seed = seed
         if not product is None:
             self.product = product
         self.model = model
@@ -320,6 +325,7 @@ class KnockoutOptimizationResult(object):
             'heuristic_method.archiver': self.heuristic_method.archiver,
             'heuristic_method.termination_cause': self.heuristic_method.termination_cause,
             'heuristic_method._random': self.heuristic_method._random,
+            'seed': self.seed,
             'heuristic_method.generator': self.heuristic_method.generator,
             'heuristic_method._kwargs.representation': self.heuristic_method._kwargs.get('representation'),
             'heuristic_method._kwargs.max_candidate_size': self.heuristic_method._kwargs.get('max_candidate_size'),
@@ -338,6 +344,7 @@ class KnockoutOptimizationResult(object):
         self.product = d['product']
         self.model = d['model']
         self.simulation_method = d['simulation_method']
+        self.seed = d['seed']
         random = d['heuristic_method._random']
         self.heuristic_method = d['heuristic_method.__class__'](random)
         self.heuristic_method.maximize = d['heuristic_method.maximize']
