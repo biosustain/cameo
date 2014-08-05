@@ -492,7 +492,7 @@ class TestReactionKnockoutOptimization(unittest.TestCase):
                                            heuristic_method=inspyred.ec.emo.NSGA2,
                                            seed=SEED)
 
-        results = rko.run(max_evaluations=3000, pop_size=10)
+        results = rko.run(max_evaluations=3000, pop_size=10, view=SequentialView())
 
         with open(result_file, 'r') as file:
             expected_results = pickle.load(file)
