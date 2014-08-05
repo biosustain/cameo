@@ -63,59 +63,49 @@ def pfba(model, objective=None, *args, **kwargs):
         # print "obj: ", time.time() - tic
         try:
             solution = model.solve()
-            result = dict()
-            result['flux_sum'] = solution.f
-            result['fluxes'] = solution.x_dict
+            tm.reset()
+            return solution
         except SolveError as e:
+            tm.reset()
             print "gimme could not determine an optimal solution for objective %s" % model.objective
             raise e
-    finally:
-        # tic = time.time()
+    except Exception as e:
         tm.reset()
-        # print "reset: ", time.time() - tic
-    return result
+        raise e
 
 
 def moma(model, objective=None, *args, **kwargs):
     pass
 
 
-def lmoma(model, objective=None, wt_reference=None):
-    if wt_reference is None:
-        wt_reference = pfba(model, objective=objective)
-
+def lmoma(model, wt_reference=None):
     tm = TimeMachine()
+
+    obj_terms = list()
+    obj_constrains = list()
+    for rid, flux_value in wt_reference.iteritems():
+        obj_terms.append(model.reactions.get_by_id(rid).variable)
+        obj_constrains.append(model.solver.interface.Constraint(model.reactions.get_by_id(rid).variable, lb=flux_value))
+
+    for constraint in obj_constrains:
+        tm(do=partial(model.solver._add_constraint, constraint),
+           undo=partial(model.solver._remove_constraint, constraint))
+
+    lmoma_obj = model.solver.interface.Objective(sympy.Add._from_args(obj_terms), direction='min')
+
+    tm(do=partial(setattr, model, 'objective', lmoma_obj),
+       undo=partial(setattr, model, 'objective', model.objective))
+
     try:
-        obj_terms = list()
-        aux_constraint_terms = dict()
-        for reaction in model.reactions:
-            obj_terms.append(reaction.variable)
-            for metabolite, coefficient in reaction.metabolites.iteritems():
-                try:
-                    aux_constraint_terms[metabolite].append(reaction - reaction.x_dict[reaction.id])
-                except KeyError:
-                    aux_constraint_terms[metabolite] = list()
-                    aux_constraint_terms[metabolite].append(reaction - reaction.x_dict[reaction.id])
+        solution = model.solve()
 
-        lmoma_obj = model.solver.interface.Objective(sympy.Add._from_args(obj_terms), direction='min')
-
-        tm(do=partial(setattr, model, 'objective', lmoma_obj),
-           undo=partial(setattr, model, 'objective', model.objective))
-        for metabolite, terms in aux_constraint_terms.iteritems():
-            tm(do=partial(model.solver.constraints[metabolite.id].__iadd__, sympy.Add._from_args(terms)),
-               undo=partial(model.solver.constraints[metabolite.id].__isub__, sympy.Add._from_args(terms)))
-        try:
-            solution = model.solve()
-        except SolveError as e:
-            print "gimme could not determine an optimal solution for objective %s" % model.objective
-            print model.solver
-            raise e
-
-    finally:
-        # tic = time.time()
         tm.reset()
-    # print time.time() - tic
-    return solution
+        return solution
+    except SolveError as e:
+        print "gimme could not determine an optimal solution for objective %s" % model.objective
+        print model.solver
+        raise e
+
 
 def _cycle_free_flux(model, fluxes, fix=[]):
     """Remove cycles from a flux-distribution (http://cran.r-project.org/web/packages/sybilcycleFreeFlux/index.html)."""
@@ -191,7 +181,15 @@ if __name__ == '__main__':
     tic = time.time()
     solution = pfba(model)
     print "flux sum:",
-    print sum([abs(val) for val in solution['fluxes'].values()])
+    print sum([abs(val) for val in solution.x_dict.values()])
     print "cameo pfba runtime:", time.time() - tic
+
+    print "lmoma"
+    tic = time.time()
+    solution = pfba(model)
+    solution = lmoma(model, wt_reference=solution.x_dict)
+    print "flux sum:",
+    print sum([abs(val) for val in solution.x_dict.values()])
+    print "cameo lmoma runtime:", time.time() - tic
 
     # print model.solver
