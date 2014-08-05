@@ -15,6 +15,9 @@ import os
 from random import Random
 import unittest
 import inspyred
+import pickle
+
+from pandas.util.testing import assert_frame_equal
 
 from cameo import load_model, fba, config
 from cameo.strain_design.heuristic import HeuristicOptimization, ReactionKnockoutOptimization, set_distance_function
@@ -30,7 +33,8 @@ config.default_view = MultiprocessingView(processes=2)
 
 SEED = 1234
 
-MODEL_PATH = os.path.join(os.path.dirname(__file__), "data/EcoliCore.xml")
+CURRENT_PATH = os.path.dirname(__file__)
+MODEL_PATH = os.path.join(CURRENT_PATH, "data/EcoliCore.xml")
 
 TEST_MODEL = load_model(MODEL_PATH)
 
@@ -453,6 +457,7 @@ class TestReactionKnockoutOptimization(unittest.TestCase):
         self.assertTrue(isinstance(rko._decoder, ReactionKnockoutDecoder))
 
     def test_run_single_objective(self):
+        result_file = os.path.join(CURRENT_PATH, "data", "reaction_knockout_single_objective.pkl")
         objective = biomass_product_coupled_yield(
             "Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2",
             "EX_ac_LPAREN_e_RPAREN_",
@@ -465,9 +470,14 @@ class TestReactionKnockoutOptimization(unittest.TestCase):
                                            seed=SEED)
 
         results = rko.run(max_evaluations=3000, pop_size=10, view=SequentialView())
-        # self.assertEqual(results, expected_results)
+
+        with open(result_file, 'r') as file:
+            expected_results = pickle.load(file)
+
+        assert_frame_equal(results.solutions, expected_results.solutions)
 
     def test_run_multiobjective(self):
+        result_file = os.path.join(CURRENT_PATH, "data", "reaction_knockout_multi_objective.pkl")
         objective1 = biomass_product_coupled_yield(
             "Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2",
             "EX_ac_LPAREN_e_RPAREN_",
@@ -483,7 +493,11 @@ class TestReactionKnockoutOptimization(unittest.TestCase):
                                            seed=SEED)
 
         results = rko.run(max_evaluations=3000, pop_size=10, view=SequentialView())
-        # self.assertEqual(results, expected_results)
+
+        with open(result_file, 'r') as file:
+            expected_results = pickle.load(file)
+        
+        assert_frame_equal(results.solutions, expected_results.solutions)
 
     def test_evaluator(self):
         pass
