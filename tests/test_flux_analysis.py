@@ -12,6 +12,7 @@ from cameo.flux_analysis.analysis import flux_variability_analysis, phenotypic_p
 
 import pandas
 from pandas.util.testing import assert_frame_equal
+TRAVIS = os.getenv('TRAVIS', False)
 
 
 def assert_dataframes_equal(df, expected):
@@ -81,12 +82,14 @@ class TestPhenotypicPhasePlane(unittest.TestCase):
     def setUp(self):
         self.model = CORE_MODEL.copy()
 
+    @unittest.skipIf(TRAVIS, 'Running in Travis')
     def test_one_variable(self):
         ppp = phenotypic_phase_plane(self.model, ['EX_o2_LPAREN_e_RPAREN_'])
         assert_dataframes_equal(ppp, REFERENCE_PPP_o2_EcoliCore)
         ppp = phenotypic_phase_plane(self.model, 'EX_o2_LPAREN_e_RPAREN_')
         assert_dataframes_equal(ppp, REFERENCE_PPP_o2_EcoliCore)
 
+    @unittest.skipIf(TRAVIS, 'Running in Travis')
     def test_two_variables(self):
         ppp2d = phenotypic_phase_plane(self.model, ['EX_o2_LPAREN_e_RPAREN_', 'EX_glc_LPAREN_e_RPAREN_'],
                                        view=SequentialView())
