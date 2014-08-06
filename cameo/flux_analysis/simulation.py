@@ -74,41 +74,108 @@ def pfba(model, objective=None, *args, **kwargs):
         raise e
 
 
-def moma(model, objective=None, *args, **kwargs):
+def moma(model, reference=None, *args, **kwargs):
     pass
 
 
-def lmoma(model, wt_reference=None):
+def lmoma(model, reference=None, *args, **kwargs):
     tm = TimeMachine()
 
+    try:
+        obj_terms = list()
+        for rid, flux_value in reference.iteritems():
+            reaction = model.reactions.get_by_id(rid)
+
+            pos_var = model.solver.interface.Variable("u_%s_pos" % rid, lb=0)
+            neg_var = model.solver.interface.Variable("u_%s_neg" % rid, lb=0)
+
+            tm(do=partial(model.solver._add_variable, pos_var), undo=partial(model.solver._remove_variable, pos_var))
+            tm(do=partial(model.solver._add_variable, neg_var), undo=partial(model.solver._remove_variable, neg_var))
+
+            obj_terms.append(pos_var)
+            obj_terms.append(neg_var)
+
+            #ui = vi - wt
+            expression = sympy.Add._from_args([
+                pos_var,
+                sympy.Mul._from_args([sympy.singleton.S.NegativeOne, reaction.variable])
+            ])
+            constraint_a = (model.solver.interface.Constraint(expression, lb=-flux_value))
+            tm(do=partial(model.solver._add_constraint, constraint_a, sloppy=True),
+               undo=partial(model.solver._remove_constraint, constraint_a))
+
+            expression = sympy.Add._from_args([neg_var, reaction.variable])
+            constraint_b = (model.solver.interface.Constraint(expression, lb=flux_value))
+            tm(do=partial(model.solver._add_constraint, constraint_b, sloppy=True),
+               undo=partial(model.solver._remove_constraint, constraint_b))
+
+
+        lmoma_obj = model.solver.interface.Objective(sympy.Add._from_args(obj_terms), direction='min')
+
+        tm(do=partial(setattr, model, 'objective', lmoma_obj),
+           undo=partial(setattr, model, 'objective', model.objective))
+
+    except Exception as e:
+        tm.reset()
+        raise e
+
+    try:
+        solution = model.solve()
+
+        tm.reset()
+        return solution
+    except SolveError as e:
+        print "lmoma could not determine an optimal solution for objective %s" % model.objective
+        tm.reset()
+        raise e
+
+
+def room(model, reference=None, delta=0.03, epsilon=0.001, *args, **kwargs):
+    tm = TimeMachine()
     obj_terms = list()
-    for rid, flux_value in wt_reference.iteritems():
-        reaction = model.reactions.get_by_id(rid)
-        #var = model.solver.interface.Variable("u_%s" % rid)
 
-        pos_var = model.solver.interface.Variable("u_%s_pos" % rid, lb=0)
-        neg_var = model.solver.interface.Variable("u_%s_neg" % rid, lb=0)
+    #upper and lower relax
+    U = 1e6
+    L = -1e6
 
-        tm(do=partial(model.solver._add_variable, pos_var), undo=partial(model.solver._remove_variable, pos_var))
-        tm(do=partial(model.solver._add_variable, neg_var), undo=partial(model.solver._remove_variable, neg_var))
+    try:
+        for rid, flux_value in reference.iteritems():
+            reaction = model.reactions.get_by_id(rid)
 
-        obj_terms.append(pos_var)
-        obj_terms.append(neg_var)
-
-        #ui = vi - wt
-        constraint_a = (model.solver.interface.Constraint(pos_var - reaction.variable, lb=-flux_value))
-        tm(do=partial(model.solver._add_constraint, constraint_a),
-           undo=partial(model.solver._remove_constraint, constraint_a))
-
-        constraint_b = (model.solver.interface.Constraint(neg_var + reaction.variable, lb=flux_value))
-        tm(do=partial(model.solver._add_constraint, constraint_b),
-           undo=partial(model.solver._remove_constraint, constraint_b))
+            var = model.solver.interface.Variable("y_%s" % rid, type="binary")
+            tm(do=partial(model.solver._add_variable, var), undo=partial(model.solver._remove_variable, var))
+            obj_terms.append(var)
 
 
-    lmoma_obj = model.solver.interface.Objective(sympy.Add._from_args(obj_terms), direction='min')
 
-    tm(do=partial(setattr, model, 'objective', lmoma_obj),
-       undo=partial(setattr, model, 'objective', model.objective))
+            w_u = flux_value + delta * abs(flux_value) + epsilon
+            expression = sympy.Add._from_args([
+                reaction.variable,
+                sympy.Mul._from_args([var, (w_u - U)])
+            ])
+
+            constraint_a = (model.solver.interface.Constraint(expression, ub=w_u))
+            tm(do=partial(model.solver._add_constraint, constraint_a),
+               undo=partial(model.solver._remove_constraint, constraint_a))
+
+            w_l = flux_value - delta * abs(flux_value) - epsilon
+            expression = sympy.Add._from_args([
+                reaction.variable,
+                sympy.Mul._from_args([var, (w_l - L)])
+            ])
+
+            constraint_b = (model.solver.interface.Constraint(expression, lb=w_l))
+            tm(do=partial(model.solver._add_constraint, constraint_b),
+               undo=partial(model.solver._remove_constraint, constraint_b))
+
+        room_obj = model.solver.interface.Objective(sympy.Add._from_args(obj_terms), direction='min')
+
+        tm(do=partial(setattr, model, 'objective', room_obj),
+           undo=partial(setattr, model, 'objective', model.objective))
+
+    except Exception as e:
+        tm.reset()
+        raise e
 
     try:
         solution = model.solve()

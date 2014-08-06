@@ -24,7 +24,7 @@ from cameo.strain_design.heuristic import generators
 from cameo.strain_design.heuristic import decoders
 from cameo.strain_design.heuristic import stats
 from cameo import config
-from cameo.flux_analysis.simulation import pfba
+from cameo.flux_analysis.simulation import pfba, lmoma, moma, room
 from cameo.strain_design.heuristic.plotters import GeneFrequencyPlotter
 from cameo.util import partition, TimeMachine
 from pandas import DataFrame
@@ -160,11 +160,12 @@ class HeuristicOptimization(object):
 
 
 class KnockoutEvaluator(object):
-    def __init__(self, model, decoder, objective_function, simulation_method):
+    def __init__(self, model, decoder, objective_function, simulation_method, simulation_kwargs):
         self.model = model
         self.decoder = decoder
         self.objective_function = objective_function
         self.simulation_method = simulation_method
+        self.simulation_kwargs = simulation_kwargs
 
     def __call__(self, population):
         time_machine = TimeMachine()
@@ -181,7 +182,7 @@ class KnockoutEvaluator(object):
                    undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
 
             try:
-                solution = self.simulation_method(self.model)
+                solution = self.simulation_method(self.model, **self.simulation_kwargs)
                 fitness = self._calculate_fitness(solution, decoded)
             except SolveError as e:
                 logger.exception(e)
@@ -205,8 +206,10 @@ class KnockoutEvaluator(object):
 
 
 class KnockoutOptimization(HeuristicOptimization):
-    def __init__(self, simulation_method=pfba, max_size=9, variable_size=True, *args, **kwargs):
+    def __init__(self, simulation_method=pfba, max_size=9, variable_size=True, wt_reference=None, *args, **kwargs):
         super(KnockoutOptimization, self).__init__(*args, **kwargs)
+        self.wt_reference = wt_reference
+        self._simulation_method = None
         self.simulation_method = simulation_method
         self.max_size = max_size
         self.variable_size = variable_size
@@ -215,10 +218,22 @@ class KnockoutOptimization(HeuristicOptimization):
         self._decoder = None
         self._generator = generators.set_generator
 
+    @property
+    def simulation_method(self):
+        return self._simulation_method
+
+    @simulation_method.setter
+    def simulation_method(self, simulation_method):
+        if simulation_method in [lmoma, moma, room] and self.wt_reference is None:
+            logger.info("No WT reference found, computing using PFBA.")
+            self.wt_reference = pfba(self.model)
+
     def _evaluator(self, candidates, args):
         view = args.get('view')
         population_chunks = (chunk for chunk in partition(candidates, len(view)))
-        func_obj = KnockoutEvaluator(self.model, self._decoder, self.objective_function, self.simulation_method)
+        kwargs = {'reference': self.wt_reference}
+
+        func_obj = KnockoutEvaluator(self.model, self._decoder, self.objective_function, self.simulation_method, kwargs)
         results = view.map(func_obj, population_chunks)
         fitness = reduce(list.__add__, results)
 
