@@ -20,13 +20,8 @@ from cameo.parallel import RedisQueue
 class AbstractParallelObserver(object):
     def __init__(self, number_of_islands=None, *args, **kwargs):
         assert isinstance(number_of_islands, int)
-<<<<<<< HEAD
         super(AbstractParallelObserver, self).__init__()
         self.queue = RedisQueue(name=str(uuid4()), namespace=self.__name__)
-=======
-        super(AbstractParallelObserver, self).__init__(*args, **kwargs)
-        self.queue = RedisQueue(name=uuid4(), namespace=self.__class__)
->>>>>>> devel
         self.clients = {}
         self.run = True
         for i in xrange(number_of_islands):
@@ -39,11 +34,7 @@ class AbstractParallelObserver(object):
         print "Start %s" % self.__name__
         while self.run:
             try:
-<<<<<<< HEAD
                 message = self.queue.get_nowait()
-=======
-                message = self.queue.get(block=True, timeout=5)
->>>>>>> devel
                 self._process_message(message)
             except Empty:
                 pass
@@ -56,14 +47,9 @@ class AbstractParallelObserver(object):
         raise NotImplementedError
 
     def start(self):
-<<<<<<< HEAD
         self.run = True
         self.t = Thread(target=self._listen)
         self.t.start()
-=======
-        t = Thread(target=self._listen)
-        t.start()
->>>>>>> devel
 
     def finish(self):
         self.run = False
@@ -105,7 +91,8 @@ class CliMultiprocessProgressObserver(AbstractParallelObserver):
         if not i in self.progress:
             print ""
             label = "Island %i: " % (i+1)
-            writer = self.TerminalWriter((self.terminal.height or 1) - 1, self.terminal)
+            pos = abs(len(self.clients)-i)
+            writer = self.TerminalWriter((self.terminal.height or 1) - pos, self.terminal)
             self.progress[i] = CLIProgressBar(fd=writer,
                                               maxval=message['max_evaluations'],
                                               widgets=[label, Percentage(), Bar(marker=RotatingMarker())])
