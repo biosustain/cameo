@@ -83,20 +83,27 @@ def lmoma(model, wt_reference=None):
 
     obj_terms = list()
     for rid, flux_value in wt_reference.iteritems():
-        of_term = model.solver.interface.Variable("u_%s" % rid)
-        tm(do=partial(model.solver._add_variable, of_term),
-           undo=partial(model.solver._remove_variable, of_term))
-        obj_terms.append(of_term)
-        constraint1 = (model.solver.interface.Constraint(model.solver.variables[of_term.name] - model.reactions.get_by_id(rid).variable,
-                                                         lb=-flux_value))
-        constraint2 = (model.solver.interface.Constraint(model.solver.variables[of_term.name] - model.reactions.get_by_id(rid).variable,
-                                                         lb=flux_value))
+        reaction = model.reactions.get_by_id(rid)
+        #var = model.solver.interface.Variable("u_%s" % rid)
 
-        tm(do=partial(model.solver._add_constraint, constraint1),
-           undo=partial(model.solver._remove_constraint, constraint1))
+        pos_var = model.solver.interface.Variable("u_%s_pos" % rid, lb=0)
+        neg_var = model.solver.interface.Variable("u_%s_neg" % rid, lb=0)
 
-        tm(do=partial(model.solver._add_constraint, constraint2),
-           undo=partial(model.solver._remove_constraint, constraint2))
+        tm(do=partial(model.solver._add_variable, pos_var), undo=partial(model.solver._remove_variable, pos_var))
+        tm(do=partial(model.solver._add_variable, neg_var), undo=partial(model.solver._remove_variable, neg_var))
+
+        obj_terms.append(pos_var)
+        obj_terms.append(neg_var)
+
+        #ui = vi - wt
+        constraint_a = (model.solver.interface.Constraint(pos_var - reaction.variable, lb=-flux_value))
+        tm(do=partial(model.solver._add_constraint, constraint_a),
+           undo=partial(model.solver._remove_constraint, constraint_a))
+
+        constraint_b = (model.solver.interface.Constraint(neg_var + reaction.variable, lb=flux_value))
+        tm(do=partial(model.solver._add_constraint, constraint_b),
+           undo=partial(model.solver._remove_constraint, constraint_b))
+
 
     lmoma_obj = model.solver.interface.Objective(sympy.Add._from_args(obj_terms), direction='min')
 
@@ -109,9 +116,8 @@ def lmoma(model, wt_reference=None):
         tm.reset()
         return solution
     except SolveError as e:
-        tm.reset()
         print "lmoma could not determine an optimal solution for objective %s" % model.objective
-        print model.solver
+        tm.reset()
         raise e
 
 
@@ -165,8 +171,8 @@ if __name__ == '__main__':
     from cobra.flux_analysis.parsimonious import optimize_minimal_flux
     from cameo import load_model
 
-    sbml_path = '../../tests/data/EcoliCore.xml'
-    #sbml_path = '../../tests/data/iJO1366.xml'
+    #sbml_path = '../../tests/data/EcoliCore.xml'
+    sbml_path = '../../tests/data/iJO1366.xml'
 
     cb_model = read_sbml_model(sbml_path)
     model = load_model(sbml_path)
@@ -193,21 +199,22 @@ if __name__ == '__main__':
     print "cameo pfba runtime:", time.time() - tic
 
     print "lmoma"
+    ref = solution.x_dict
     tic = time.time()
-    solution = pfba(model)
-    solution = lmoma(model, wt_reference=solution.x_dict)
-    print "flux sum:",
-    print sum([abs(val) for val in solution.x_dict.values()])
+    solution = lmoma(model, wt_reference=ref)
+    res = solution.x_dict
+    print "flux distance:",
+    print sum([abs(res[v] - ref[v]) for v in res.keys()])
     print "cameo lmoma runtime:", time.time() - tic
 
     print "lmoma w/ ko"
     tic = time.time()
-    solution = pfba(model)
-    model.reactions.FBA.lower_bound = 0
-    model.reactions.FBA.upper_bound = 0
-    solution = lmoma(model, wt_reference=solution.x_dict)
-    print "flux sum:",
-    print sum([abs(val) for val in solution.x_dict.values()])
+    model.reactions.PGI.lower_bound = 0
+    model.reactions.PGI.upper_bound = 0
+    solution = lmoma(model, wt_reference=ref)
+    res = solution.x_dict
+    print "flux distance:",
+    print sum([abs(res[v] - ref[v]) for v in res.keys()])
     print "cameo lmoma runtime:", time.time() - tic
 
     # print model.solver
