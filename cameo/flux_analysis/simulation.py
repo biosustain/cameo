@@ -100,12 +100,12 @@ def lmoma(model, reference=None, *args, **kwargs):
                 sympy.Mul._from_args([sympy.singleton.S.NegativeOne, reaction.variable])
             ])
             constraint_a = (model.solver.interface.Constraint(expression, lb=-flux_value))
-            tm(do=partial(model.solver._add_constraint, constraint_a, sloppy=True),
+            tm(do=partial(model.solver._add_constraint, constraint_a),
                undo=partial(model.solver._remove_constraint, constraint_a))
 
             expression = sympy.Add._from_args([neg_var, reaction.variable])
             constraint_b = (model.solver.interface.Constraint(expression, lb=flux_value))
-            tm(do=partial(model.solver._add_constraint, constraint_b, sloppy=True),
+            tm(do=partial(model.solver._add_constraint, constraint_b),
                undo=partial(model.solver._remove_constraint, constraint_b))
 
 

@@ -49,13 +49,11 @@ class MultiprocessHeuristicOptimization(object):
 
     _island_class = None
 
-    def __init__(self, model=None, objective_function=None, heuristic_method=inspyred.ec.GA,
-                 view=config.default_view, max_migrants=1, *args, **kwargs):
+    def __init__(self, model=None, objective_function=None, heuristic_method=inspyred.ec.GA, max_migrants=1, *args, **kwargs):
         super(MultiprocessHeuristicOptimization, self).__init__(*args, **kwargs)
         self.model = model
         self.objective_function = objective_function
         self.heuristic_method = heuristic_method
-        self.view = view
         self.migrator = MultiprocessingMigrator(max_migrants)
         self.observers = []
 
@@ -66,10 +64,12 @@ class MultiprocessHeuristicOptimization(object):
             'heuristic_method': self.heuristic_method
         }
 
-    def run(self, view=config.default_view, **run_kwargs):
+    def run(self, view=config.default_view, number_of_islands=None, **run_kwargs):
+        if number_of_islands is None:
+            number_of_islands = len(view)
         run_kwargs['view'] = parallel.SequentialView()
         runner = MultiprocessRunner(self._island_class, self._init_kwargs(), self.migrator, run_kwargs)
-        clients = [[o.clients[i] for o in self.observers] for i in xrange(len(view))]
+        clients = [[o.clients[i] for o in self.observers] for i in xrange(number_of_islands)]
         try:
             results = view.map(runner, clients)
         except KeyboardInterrupt as e:
@@ -111,12 +111,14 @@ class MultiprocessKnockoutOptimization(MultiprocessHeuristicOptimization):
 
         return observers
 
-    def run(self, view=config.default_view, **kwargs):
-        self.observers = self._set_observers(len(view))
+    def run(self, view=config.default_view, number_of_islands=None, **kwargs):
+        if number_of_islands is None:
+            number_of_islands = len(view)
+        self.observers = self._set_observers(number_of_islands)
         for observer in self.observers:
             observer.start()
 
-        results = MultiprocessHeuristicOptimization.run(self, view=view, **kwargs)
+        results = MultiprocessHeuristicOptimization.run(self, view=view, number_of_islands=number_of_islands, **kwargs)
 
         for observer in self.observers:
             observer.finish()

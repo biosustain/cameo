@@ -226,7 +226,8 @@ class KnockoutOptimization(HeuristicOptimization):
     def simulation_method(self, simulation_method):
         if simulation_method in [lmoma, moma, room] and self.wt_reference is None:
             logger.info("No WT reference found, computing using PFBA.")
-            self.wt_reference = pfba(self.model)
+            self.wt_reference = pfba(self.model).x_dict
+        self._simulation_method = simulation_method
 
     def _evaluator(self, candidates, args):
         view = args.get('view')
@@ -302,7 +303,8 @@ class KnockoutOptimization(HeuristicOptimization):
                                           ko_type=self._ko_type,
                                           decoder=self._decoder,
                                           product=kwargs.get('product', None),
-                                          seed=self.seed)
+                                          seed=self.seed,
+                                          reference=self.wt_reference)
 
 
 class KnockoutOptimizationResult(object):
@@ -311,10 +313,12 @@ class KnockoutOptimizationResult(object):
         return a._merge(b)
 
     def __init__(self, model=None, heuristic_method=None, simulation_method=None, solutions=None,
-                 objective_function=None, ko_type=None, decoder=None, product=None, seed=None, *args, **kwargs):
+                 objective_function=None, ko_type=None, decoder=None, product=None, seed=None,
+                 reference=None, *args, **kwargs):
         super(KnockoutOptimizationResult, self).__init__(*args, **kwargs)
         self.product = None
         self.seed = seed
+        self.reference = reference
         if not product is None:
             self.product = product
         self.model = model
@@ -326,12 +330,13 @@ class KnockoutOptimizationResult(object):
             self.objective_functions = [objective_function]
         self.ko_type = ko_type
         self.decoder = decoder
-        self.solutions = self._build_solutions(solutions, model, simulation_method, decoder)
+        self.solutions = self._build_solutions(solutions)
 
     def __getstate__(self):
         return {
             'product': self.product,
             'model': self.model,
+            'reference': self.reference,
             'simulation_method': self.simulation_method,
             'heuristic_method.__class__': self.heuristic_method.__class__,
             'heuristic_method.maximize': self.heuristic_method.maximize,
@@ -360,6 +365,7 @@ class KnockoutOptimizationResult(object):
         self.model = d['model']
         self.simulation_method = d['simulation_method']
         self.seed = d['seed']
+        self.reference = d['reference']
         random = d['heuristic_method._random']
         self.heuristic_method = d['heuristic_method.__class__'](random)
         self.heuristic_method.maximize = d['heuristic_method.maximize']
@@ -377,7 +383,7 @@ class KnockoutOptimizationResult(object):
         self.ko_type = d['ko_type']
         self.solutions = d['solutions']
 
-    def _build_solutions(self, solutions, model, simulation_method, decoder):
+    def _build_solutions(self, solutions):
         knockouts = []
         biomass = []
         fitness = []
@@ -391,8 +397,8 @@ class KnockoutOptimizationResult(object):
                 proceed = solution.fitness > 0
                 
             if proceed:
-                decoded_solution = decoder(solution.candidate)
-                simulation_result = self._simulate(decoded_solution[0], simulation_method, model)
+                decoded_solution = self.decoder(solution.candidate)
+                simulation_result = self._simulate(decoded_solution[0])
                 size = len(decoded_solution[1])
 
                 biomass.append(simulation_result.f)
@@ -420,7 +426,7 @@ class KnockoutOptimizationResult(object):
 
         return data_frame
 
-    def _simulate(self, reactions, method, model):
+    def _simulate(self, reactions):
         tm = TimeMachine()
         for reaction in reactions:
             tm(do=partial(setattr, reaction, 'lower_bound', 0),
@@ -429,7 +435,7 @@ class KnockoutOptimizationResult(object):
                undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
 
         try:
-            solution = method(model)
+            solution = self.simulation_method(self.model, reference=self.reference)
         except Exception as e:
             logger.exception(e)
 
