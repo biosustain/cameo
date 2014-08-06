@@ -306,7 +306,7 @@ class KnockoutOptimization(HeuristicOptimization):
                                           seed=self.seed,
                                           reference=self.wt_reference)
 
-
+#TODO: Figure out a way to provide generic parameters for different simulation methods
 class KnockoutOptimizationResult(object):
     @staticmethod
     def merge(a, b):
