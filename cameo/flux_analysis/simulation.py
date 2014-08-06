@@ -63,58 +63,128 @@ def pfba(model, objective=None, *args, **kwargs):
         # print "obj: ", time.time() - tic
         try:
             solution = model.solve()
-            result = dict()
-            result['flux_sum'] = solution.f
-            result['fluxes'] = solution.x_dict
+            tm.reset()
+            return solution
         except SolveError as e:
-            print "gimme could not determine an optimal solution for objective %s" % model.objective
+            tm.reset()
+            print "pfba could not determine an optimal solution for objective %s" % model.objective
             raise e
-    finally:
-        # tic = time.time()
+    except Exception as e:
         tm.reset()
-        # print "reset: ", time.time() - tic
-    return result
+        raise e
 
 
-def moma(model, objective=None, *args, **kwargs):
+def moma(model, reference=None, *args, **kwargs):
     pass
 
-
-def lmoma(model, objective=None, wt_reference=None):
+def lmoma(model, reference=None, *args, **kwargs):
     tm = TimeMachine()
-    if wt_reference is None:
-        wt_reference = pfba(model, objective=objective)['fluxes']
 
-    tm(do=partial(setattr, model, 'reversible_encoding', 'split'),
-       undo=partial(setattr, model, 'reversible_encoding', model.reversible_encoding))
     try:
-        if objective is not None:
-            tm(do=partial(setattr, model, 'objective', objective),
-               undo=partial(setattr, model, 'objective', model.objective))
+        obj_terms = list()
+        for rid, flux_value in reference.iteritems():
+            reaction = model.reactions.get_by_id(rid)
 
-        variables = []
-        for variable in model.solver.variables.values():
-            variables.append(variable - wt_reference[variable.name])
+            pos_var = model.solver.interface.Variable("u_%s_pos" % rid, lb=0)
+            neg_var = model.solver.interface.Variable("u_%s_neg" % rid, lb=0)
 
-        obj = model.solver.interface.Objective(variables, direction='min', sloppy=True)
-        # tic = time.time()
-        tm(do=partial(setattr, model, 'objective', obj),
+            tm(do=partial(model.solver._add_variable, pos_var), undo=partial(model.solver._remove_variable, pos_var))
+            tm(do=partial(model.solver._add_variable, neg_var), undo=partial(model.solver._remove_variable, neg_var))
+
+            obj_terms.append(pos_var)
+            obj_terms.append(neg_var)
+
+            #ui = vi - wt
+            expression = sympy.Add._from_args([
+                pos_var,
+                sympy.Mul._from_args([sympy.singleton.S.NegativeOne, reaction.variable])
+            ])
+            constraint_a = (model.solver.interface.Constraint(expression, lb=-flux_value))
+            tm(do=partial(model.solver._add_constraint, constraint_a, sloppy=True),
+               undo=partial(model.solver._remove_constraint, constraint_a))
+
+            expression = sympy.Add._from_args([neg_var, reaction.variable])
+            constraint_b = (model.solver.interface.Constraint(expression, lb=flux_value))
+            tm(do=partial(model.solver._add_constraint, constraint_b, sloppy=True),
+               undo=partial(model.solver._remove_constraint, constraint_b))
+
+
+        lmoma_obj = model.solver.interface.Objective(sympy.Add._from_args(obj_terms), direction='min')
+
+        tm(do=partial(setattr, model, 'objective', lmoma_obj),
            undo=partial(setattr, model, 'objective', model.objective))
-        # print "obj: ", time.time() - tic
-        try:
-            solution = model.solve()
-            result = dict()
-            result['flux_sum'] = solution.f
-            result['fluxes'] = solution.x_dict
-        except SolveError as e:
-            print "gimme could not determine an optimal solution for objective %s" % model.objective
-            raise e
-    finally:
-        # tic = time.time()
-        tm.reset()
-        # print "reset: ", time.time() - tic
-    return result
 
+    except Exception as e:
+        tm.reset()
+        raise e
+
+    try:
+        solution = model.solve()
+
+        tm.reset()
+        return solution
+    except SolveError as e:
+        print "lmoma could not determine an optimal solution for objective %s" % model.objective
+        tm.reset()
+        raise e
+
+
+def room(model, reference=None, delta=0.03, epsilon=0.001, *args, **kwargs):
+    tm = TimeMachine()
+    obj_terms = list()
+
+    #upper and lower relax
+    U = 1e6
+    L = -1e6
+
+    try:
+        for rid, flux_value in reference.iteritems():
+            reaction = model.reactions.get_by_id(rid)
+
+            var = model.solver.interface.Variable("y_%s" % rid, type="binary")
+            tm(do=partial(model.solver._add_variable, var), undo=partial(model.solver._remove_variable, var))
+            obj_terms.append(var)
+
+
+
+            w_u = flux_value + delta * abs(flux_value) + epsilon
+            expression = sympy.Add._from_args([
+                reaction.variable,
+                sympy.Mul._from_args([var, (w_u - U)])
+            ])
+
+            constraint_a = (model.solver.interface.Constraint(expression, ub=w_u))
+            tm(do=partial(model.solver._add_constraint, constraint_a),
+               undo=partial(model.solver._remove_constraint, constraint_a))
+
+            w_l = flux_value - delta * abs(flux_value) - epsilon
+            expression = sympy.Add._from_args([
+                reaction.variable,
+                sympy.Mul._from_args([var, (w_l - L)])
+            ])
+
+            constraint_b = (model.solver.interface.Constraint(expression, lb=w_l))
+            tm(do=partial(model.solver._add_constraint, constraint_b),
+               undo=partial(model.solver._remove_constraint, constraint_b))
+
+        room_obj = model.solver.interface.Objective(sympy.Add._from_args(obj_terms), direction='min')
+
+        tm(do=partial(setattr, model, 'objective', room_obj),
+           undo=partial(setattr, model, 'objective', model.objective))
+
+    except Exception as e:
+        tm.reset()
+        raise e
+
+    try:
+        solution = model.solve()
+
+        tm.reset()
+        return solution
+    except SolveError as e:
+        print "lmoma could not determine an optimal solution for objective %s" % model.objective
+        tm.reset()
+        raise e
 
 def _cycle_free_flux(model, fluxes, fix=[]):
     """Remove cycles from a flux-distribution (http://cran.r-project.org/web/packages/sybilcycleFreeFlux/index.html)."""
@@ -166,7 +236,7 @@ if __name__ == '__main__':
     from cobra.flux_analysis.parsimonious import optimize_minimal_flux
     from cameo import load_model
 
-    # sbml_path = '../../tests/data/EcoliCore.xml'
+    #sbml_path = '../../tests/data/EcoliCore.xml'
     sbml_path = '../../tests/data/iJO1366.xml'
 
     cb_model = read_sbml_model(sbml_path)
@@ -190,14 +260,26 @@ if __name__ == '__main__':
     tic = time.time()
     solution = pfba(model)
     print "flux sum:",
-    print sum([abs(val) for val in solution['fluxes'].values()])
+    print sum([abs(val) for val in solution.x_dict.values()])
     print "cameo pfba runtime:", time.time() - tic
 
     print "lmoma"
+    ref = solution.x_dict
     tic = time.time()
-    solution = lmoma(model)
-    print "flux sum:",
-    print sum([abs(val) for val in solution['fluxes'].values()])
+    solution = lmoma(model, wt_reference=ref)
+    res = solution.x_dict
+    print "flux distance:",
+    print sum([abs(res[v] - ref[v]) for v in res.keys()])
+    print "cameo lmoma runtime:", time.time() - tic
+
+    print "lmoma w/ ko"
+    tic = time.time()
+    model.reactions.PGI.lower_bound = 0
+    model.reactions.PGI.upper_bound = 0
+    solution = lmoma(model, wt_reference=ref)
+    res = solution.x_dict
+    print "flux distance:",
+    print sum([abs(res[v] - ref[v]) for v in res.keys()])
     print "cameo lmoma runtime:", time.time() - tic
 
     # print model.solver

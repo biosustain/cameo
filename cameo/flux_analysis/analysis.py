@@ -105,7 +105,7 @@ def phenotypic_phase_plane(model, variables=[], objective=None, points=20, view=
     if not hasattr(variables, '__iter__'):
         variables = [variables]
     if view is None:
-        view = SequentialView()
+        view = config.default_view
     tm = TimeMachine()
     if model.reversible_encoding == 'split':
         tm(do=partial(setattr, model, 'reversible_encoding', 'unsplit'),
@@ -349,20 +349,18 @@ def _fbip_fva(model, knockouts, view):
             tm(do=partial(setattr, reaction, 'lower_bound', 0),
                undo=partial(setattr, reaction, 'lower_bound', reaction.upper_bound))
 
-    wt_fva = flux_variability_analysis(model, view=view)
+    wt_fva = flux_variability_analysis(model, view)
     for reaction in knockouts:
         tm(do=partial(setattr, reaction, 'upper_bound', 0),
            undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
         tm(do=partial(setattr, reaction, 'lower_bound', 0),
            undo=partial(setattr, reaction, 'lower_bound', reaction.upper_bound))
 
-    mt_fva = flux_variability_analysis(model, view=view)
+    mt_fva = flux_variability_analysis(model, view)
 
     perturbation = 0
     for reaction in model.reactions:
-        if wt_fva['upper_bound'][reaction.id] > 0 and mt_fva['upper_bound'][reaction.id] == 0:
-            perturbation += 1
-        elif wt_fva['lower_bound'][reaction.id] < 0 and mt_fva['lower_bound'][reaction.id] == 0:
+        if wt_fva[reaction.id] != 0 and mt_fva[reaction.id] == 0:
             perturbation += 1
 
     tm.reset()

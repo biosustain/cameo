@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from inspyred.ec.emo import Pareto
+import time
+import sys
 
 from cameo.exceptions import SolveError
 from cameo.strain_design.heuristic import archivers
@@ -22,7 +24,7 @@ from cameo.strain_design.heuristic import generators
 from cameo.strain_design.heuristic import decoders
 from cameo.strain_design.heuristic import stats
 from cameo import config
-from cameo.flux_analysis.simulation import pfba
+from cameo.flux_analysis.simulation import pfba, lmoma, moma, room
 from cameo.strain_design.heuristic.plotters import GeneFrequencyPlotter
 from cameo.util import partition, TimeMachine
 from pandas import DataFrame
@@ -98,12 +100,13 @@ def set_distance_function(candidate1, candidate2):
 
 
 class HeuristicOptimization(object):
-    def __init__(self, model=None, heuristic_method=inspyred.ec.GA, objective_function=None, random=None,
+    def __init__(self, model=None, heuristic_method=inspyred.ec.GA, objective_function=None, seed=None,
                  termination=inspyred.ec.terminators.evaluation_termination, *args, **kwargs):
         super(HeuristicOptimization, self).__init__(*args, **kwargs)
-        if random is None:
-            random = Random()
-        self.random = random
+        if seed is None:
+            seed = int(round(time.time() * 1000))
+        self.seed = seed
+        self.random = Random(seed)
         self.model = model
         self.termination = termination
         self._objective_function = objective_function
@@ -157,11 +160,12 @@ class HeuristicOptimization(object):
 
 
 class KnockoutEvaluator(object):
-    def __init__(self, model, decoder, objective_function, simulation_method):
+    def __init__(self, model, decoder, objective_function, simulation_method, simulation_kwargs):
         self.model = model
         self.decoder = decoder
         self.objective_function = objective_function
         self.simulation_method = simulation_method
+        self.simulation_kwargs = simulation_kwargs
 
     def __call__(self, population):
         time_machine = TimeMachine()
@@ -178,7 +182,7 @@ class KnockoutEvaluator(object):
                    undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
 
             try:
-                solution = self.simulation_method(self.model)
+                solution = self.simulation_method(self.model, **self.simulation_kwargs)
                 fitness = self._calculate_fitness(solution, decoded)
             except SolveError as e:
                 logger.exception(e)
@@ -202,8 +206,10 @@ class KnockoutEvaluator(object):
 
 
 class KnockoutOptimization(HeuristicOptimization):
-    def __init__(self, simulation_method=pfba, max_size=9, variable_size=True, *args, **kwargs):
+    def __init__(self, simulation_method=pfba, max_size=9, variable_size=True, wt_reference=None, *args, **kwargs):
         super(KnockoutOptimization, self).__init__(*args, **kwargs)
+        self.wt_reference = wt_reference
+        self._simulation_method = None
         self.simulation_method = simulation_method
         self.max_size = max_size
         self.variable_size = variable_size
@@ -212,10 +218,22 @@ class KnockoutOptimization(HeuristicOptimization):
         self._decoder = None
         self._generator = generators.set_generator
 
+    @property
+    def simulation_method(self):
+        return self._simulation_method
+
+    @simulation_method.setter
+    def simulation_method(self, simulation_method):
+        if simulation_method in [lmoma, moma, room] and self.wt_reference is None:
+            logger.info("No WT reference found, computing using PFBA.")
+            self.wt_reference = pfba(self.model)
+
     def _evaluator(self, candidates, args):
         view = args.get('view')
         population_chunks = (chunk for chunk in partition(candidates, len(view)))
-        func_obj = KnockoutEvaluator(self.model, self._decoder, self.objective_function, self.simulation_method)
+        kwargs = {'reference': self.wt_reference}
+
+        func_obj = KnockoutEvaluator(self.model, self._decoder, self.objective_function, self.simulation_method, kwargs)
         results = view.map(func_obj, population_chunks)
         fitness = reduce(list.__add__, results)
 
@@ -283,7 +301,8 @@ class KnockoutOptimization(HeuristicOptimization):
                                           objective_function=self.objective_function,
                                           ko_type=self._ko_type,
                                           decoder=self._decoder,
-                                          product=kwargs.get('product', None))
+                                          product=kwargs.get('product', None),
+                                          seed=self.seed)
 
 
 class KnockoutOptimizationResult(object):
@@ -292,9 +311,10 @@ class KnockoutOptimizationResult(object):
         return a._merge(b)
 
     def __init__(self, model=None, heuristic_method=None, simulation_method=None, solutions=None,
-                 objective_function=None, ko_type=None, decoder=None, product=None, *args, **kwargs):
+                 objective_function=None, ko_type=None, decoder=None, product=None, seed=None, *args, **kwargs):
         super(KnockoutOptimizationResult, self).__init__(*args, **kwargs)
         self.product = None
+        self.seed = seed
         if not product is None:
             self.product = product
         self.model = model
@@ -320,6 +340,7 @@ class KnockoutOptimizationResult(object):
             'heuristic_method.archiver': self.heuristic_method.archiver,
             'heuristic_method.termination_cause': self.heuristic_method.termination_cause,
             'heuristic_method._random': self.heuristic_method._random,
+            'seed': self.seed,
             'heuristic_method.generator': self.heuristic_method.generator,
             'heuristic_method._kwargs.representation': self.heuristic_method._kwargs.get('representation'),
             'heuristic_method._kwargs.max_candidate_size': self.heuristic_method._kwargs.get('max_candidate_size'),
@@ -338,6 +359,7 @@ class KnockoutOptimizationResult(object):
         self.product = d['product']
         self.model = d['model']
         self.simulation_method = d['simulation_method']
+        self.seed = d['seed']
         random = d['heuristic_method._random']
         self.heuristic_method = d['heuristic_method.__class__'](random)
         self.heuristic_method.maximize = d['heuristic_method.maximize']
@@ -429,7 +451,7 @@ class KnockoutOptimizationResult(object):
         model_id = self.model.id
         heuristic = self.heuristic_method.__class__.__name__
         of_string = "| ".join([o.name for o in self.objective_functions])
-        simulation = self.simulation_method.__name__
+        simulation = of_string, self.simulation_method.__name__
         solutions = self.solutions._repr_html_()
 
         results = template % (model_id, heuristic, of_string, simulation, self.ko_type)

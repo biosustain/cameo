@@ -12,6 +12,7 @@ from cameo.flux_analysis.analysis import flux_variability_analysis, phenotypic_p
 
 import pandas
 from pandas.util.testing import assert_frame_equal
+TRAVIS = os.getenv('TRAVIS', False)
 
 
 def assert_dataframes_equal(df, expected):
@@ -76,16 +77,19 @@ class TestFluxVariabilityAnalysis(unittest.TestCase):
                 self.assertAlmostEqual(fva_solution['upper_bound'][key],
                                        REFERENCE_FVA_SOLUTION_ECOLI_CORE['upper_bound'][key], delta=0.000001)
 
+
 class TestPhenotypicPhasePlane(unittest.TestCase):
     def setUp(self):
         self.model = CORE_MODEL.copy()
 
+    @unittest.skipIf(TRAVIS, 'Running in Travis')
     def test_one_variable(self):
         ppp = phenotypic_phase_plane(self.model, ['EX_o2_LPAREN_e_RPAREN_'])
         assert_dataframes_equal(ppp, REFERENCE_PPP_o2_EcoliCore)
         ppp = phenotypic_phase_plane(self.model, 'EX_o2_LPAREN_e_RPAREN_')
         assert_dataframes_equal(ppp, REFERENCE_PPP_o2_EcoliCore)
 
+    @unittest.skipIf(TRAVIS, 'Running in Travis')
     def test_two_variables(self):
         ppp2d = phenotypic_phase_plane(self.model, ['EX_o2_LPAREN_e_RPAREN_', 'EX_glc_LPAREN_e_RPAREN_'],
                                        view=SequentialView())
@@ -107,8 +111,8 @@ class TestSimulationMethods(unittest.TestCase):
         print fba_solution.x_dict
         fba_flux_sum = sum((abs(val) for val in fba_solution.x_dict.values()))
         print fba_flux_sum
-        solution = pfba(iJO_MODEL)
-        pfba_flux_sum = sum((abs(val) for val in solution['fluxes'].values()))
+        pfba_solution = pfba(iJO_MODEL)
+        pfba_flux_sum = sum((abs(val) for val in pfba_solution.x_dict.values()))
         print pfba_flux_sum
         self.assertTrue(pfba_flux_sum < fba_flux_sum)
 

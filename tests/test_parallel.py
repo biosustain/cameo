@@ -35,7 +35,7 @@ class TestSequentialView(unittest.TestCase):
 
 try:
     from cameo.parallel import MultiprocessingView
-
+    
     class TestMultiprocessingView(unittest.TestCase):
         def setUp(self):
             self.view = MultiprocessingView()

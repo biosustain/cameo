@@ -5,10 +5,12 @@ python:
 virtualenv:
   system_site_packages: true
 before_install:
-  - sudo apt-get install libglpk-dev swig glpk-utils redis-server
+  - sudo apt-get install libglpk-dev swig glpk-utils redis-server libzmq3-dev
   - sudo service redis-server start
+  - sudo rm -rf /dev/shm
+  - sudo ln -s /run/shm /dev/shm
 install:
-  - pip install python-libsbml-experimental cython numpy scipy -f https://dl.dropboxusercontent.com/u/22461024/pypi.drosophi.la/index.html --no-index
+  - pip install python-libsbml-experimental cython numpy scipy pyzmq pandas bokeh -f https://dl.dropboxusercontent.com/u/22461024/pypi.drosophi.la/index.html --no-index
   - pip install coveralls coverage
   - pip install redis
   - pip install -r requirements.txt

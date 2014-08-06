@@ -15,6 +15,9 @@ import os
 from random import Random
 import unittest
 import inspyred
+import pickle
+
+from pandas.util.testing import assert_frame_equal
 
 from cameo import load_model, fba, config
 from cameo.strain_design.heuristic import HeuristicOptimization, ReactionKnockoutOptimization, set_distance_function
@@ -30,7 +33,9 @@ config.default_view = MultiprocessingView(processes=2)
 
 SEED = 1234
 
-MODEL_PATH = os.path.join(os.path.dirname(__file__), "data/EcoliCore.xml")
+CURRENT_PATH = os.path.dirname(__file__)
+MODEL_PATH = os.path.join(CURRENT_PATH, "data/EcoliCore.xml")
+
 
 TEST_MODEL = load_model(MODEL_PATH)
 
@@ -312,7 +317,6 @@ class TestHeuristicOptimization(unittest.TestCase):
             product_yield('product', 'substrate'),
             number_of_knockouts()
         ]
-        self.random = Random()
 
     def test_default_initializer(self):
         heuristic_optimization = HeuristicOptimization(
@@ -321,18 +325,18 @@ class TestHeuristicOptimization(unittest.TestCase):
         )
 
         self.assertIsNone(heuristic_optimization._generator)
-        self.assertIsNot(heuristic_optimization.random, self.random)
+        self.assertIsNot(heuristic_optimization.seed, SEED)
         self.assertEqual(heuristic_optimization.model, self.model)
         self.assertEqual(heuristic_optimization.objective_function, self.single_objective_function)
 
         heuristic_optimization = HeuristicOptimization(
             model=self.model,
             objective_function=self.single_objective_function,
-            random=self.random
+            seed=SEED
         )
 
         self.assertIsNone(heuristic_optimization._generator)
-        self.assertEqual(heuristic_optimization.random, self.random)
+        self.assertEqual(heuristic_optimization.seed, SEED)
         self.assertEqual(heuristic_optimization.model, self.model)
         self.assertEqual(heuristic_optimization.objective_function, self.single_objective_function)
 
@@ -344,7 +348,7 @@ class TestHeuristicOptimization(unittest.TestCase):
         )
 
         self.assertIsNone(heuristic_optimization._generator)
-        self.assertIsNot(heuristic_optimization.random, self.random)
+        self.assertIsNot(heuristic_optimization.seed, SEED)
         self.assertEqual(heuristic_optimization.model, self.model)
         self.assertEqual(len(heuristic_optimization.objective_function), 2)
 
@@ -352,11 +356,11 @@ class TestHeuristicOptimization(unittest.TestCase):
             model=self.model,
             objective_function=self.multiobjective_function,
             heuristic_method=inspyred.ec.emo.NSGA2,
-            random=self.random
+            seed=SEED
         )
 
         self.assertIsNone(heuristic_optimization._generator)
-        self.assertEqual(heuristic_optimization.random, self.random)
+        self.assertEqual(heuristic_optimization.seed, SEED)
         self.assertEqual(heuristic_optimization.model, self.model)
         self.assertEqual(len(heuristic_optimization.objective_function), 2)
 
@@ -443,35 +447,42 @@ class TestReactionKnockoutOptimization(unittest.TestCase):
     def setUp(self):
         self.model = TEST_MODEL
         self.essential_reactions = set([r.id for r in self.model.essential_reactions()])
-        self.random = Random(SEED)
 
     def test_initialize(self):
         rko = ReactionKnockoutOptimization(model=self.model,
-                                           simulation_method=fba)
+                                           simulation_method=fba,
+                                           seed=SEED)
 
         self.assertItemsEqual(self.essential_reactions, rko.essential_reactions)
         self.assertEqual(rko.ko_type, "reaction")
         self.assertTrue(isinstance(rko._decoder, ReactionKnockoutDecoder))
 
     def test_run_single_objective(self):
+        result_file = os.path.join(CURRENT_PATH, "data", "reaction_knockout_single_objective.pkl")
         objective = biomass_product_coupled_yield(
             "Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2",
             "EX_ac_LPAREN_e_RPAREN_",
             "EX_glc_LPAREN_e_RPAREN_")
 
-
         rko = ReactionKnockoutOptimization(model=self.model,
                                            simulation_method=fba,
                                            objective_function=objective,
-                                           random=self.random)
+                                           seed=SEED)
 
-        rko.run(max_evaluations=3000, pop_size=10, view=SequentialView())
+        results = rko.run(max_evaluations=3000, pop_size=10, view=SequentialView())
+
+        with open(result_file, 'r') as file:
+            expected_results = pickle.load(file)
+
+        assert_frame_equal(results.solutions, expected_results.solutions)
 
     def test_run_multiobjective(self):
+        result_file = os.path.join(CURRENT_PATH, "data", "reaction_knockout_multi_objective.pkl")
         objective1 = biomass_product_coupled_yield(
             "Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2",
             "EX_ac_LPAREN_e_RPAREN_",
             "EX_glc_LPAREN_e_RPAREN_")
+
         objective2 = number_of_knockouts()
         objective = [objective1, objective2]
 
@@ -479,9 +490,14 @@ class TestReactionKnockoutOptimization(unittest.TestCase):
                                            simulation_method=fba,
                                            objective_function=objective,
                                            heuristic_method=inspyred.ec.emo.NSGA2,
-                                           random=self.random)
+                                           seed=SEED)
 
-        rko.run(max_evaluations=3000, pop_size=10, view=SequentialView())
+        results = rko.run(max_evaluations=3000, pop_size=10, view=SequentialView())
+
+        with open(result_file, 'r') as file:
+            expected_results = pickle.load(file)
+        
+        assert_frame_equal(results.solutions, expected_results.solutions)
 
     def test_evaluator(self):
         pass
