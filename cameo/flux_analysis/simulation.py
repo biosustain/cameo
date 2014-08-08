@@ -11,13 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import copy
 
 import time
 from functools import partial
 import sympy
 from cameo.util import TimeMachine
 from cameo.exceptions import SolveError
+from sympy import Add
+from sympy import Mul
 
+add = Add._from_args
+mul = Mul._from_args
 
 def fba(model, objective=None, *args, **kwargs):
     """Perform flux balance analysis."""
@@ -54,8 +59,8 @@ def pfba(model, objective=None, *args, **kwargs):
         tm(do=partial(model.solver._add_constraint, fix_obj_constraint),
            undo=partial(model.solver._remove_constraint, fix_obj_constraint))
 
-        pfba_obj = model.solver.interface.Objective(sympy.Add._from_args(
-            [sympy.Mul._from_args((sympy.singleton.S.One, variable)) for variable in model.solver.variables.values()]),
+        pfba_obj = model.solver.interface.Objective(add(
+            [mul((sympy.singleton.S.One, variable)) for variable in model.solver.variables.values()]),
                                                     direction='min', sloppy=True)
         # tic = time.time()
         tm(do=partial(setattr, model, 'objective', pfba_obj),
@@ -80,45 +85,52 @@ def moma(model, objective=None, *args, **kwargs):
 
 def lmoma(model, wt_reference=None):
     tm = TimeMachine()
-
-    obj_terms = list()
-    for rid, flux_value in wt_reference.iteritems():
-        reaction = model.reactions.get_by_id(rid)
-        #var = model.solver.interface.Variable("u_%s" % rid)
-
-        pos_var = model.solver.interface.Variable("u_%s_pos" % rid, lb=0)
-        neg_var = model.solver.interface.Variable("u_%s_neg" % rid, lb=0)
-
-        tm(do=partial(model.solver._add_variable, pos_var), undo=partial(model.solver._remove_variable, pos_var))
-        tm(do=partial(model.solver._add_variable, neg_var), undo=partial(model.solver._remove_variable, neg_var))
-
-        obj_terms.append(pos_var)
-        obj_terms.append(neg_var)
-
-        #ui = vi - wt
-        constraint_a = (model.solver.interface.Constraint(pos_var - reaction.variable, lb=-flux_value))
-        tm(do=partial(model.solver._add_constraint, constraint_a),
-           undo=partial(model.solver._remove_constraint, constraint_a))
-
-        constraint_b = (model.solver.interface.Constraint(neg_var + reaction.variable, lb=flux_value))
-        tm(do=partial(model.solver._add_constraint, constraint_b),
-           undo=partial(model.solver._remove_constraint, constraint_b))
-
-
-    lmoma_obj = model.solver.interface.Objective(sympy.Add._from_args(obj_terms), direction='min')
-
-    tm(do=partial(setattr, model, 'objective', lmoma_obj),
-       undo=partial(setattr, model, 'objective', model.objective))
-
+    original_objective = copy.copy(model.objective)
     try:
-        solution = model.solve()
+        obj_terms = list()
+        constraints = list()
+        variables = list()
+        for rid, flux_value in wt_reference.iteritems():
+            reaction = model.reactions.get_by_id(rid)
+            pos_var = model.solver.interface.Variable("u_%s_pos" % rid, lb=0)
+            neg_var = model.solver.interface.Variable("u_%s_neg" % rid, lb=0)
 
+            model.solver._add_variable(pos_var)
+            model.solver._add_variable(neg_var)
+            variables.extend([pos_var, neg_var])
+
+            obj_terms.append(pos_var)
+            obj_terms.append(neg_var)
+
+            # ui = vi - wt
+            reaction_variable = reaction.variable
+            constraint_a = model.solver.interface.Constraint(
+                add([pos_var, mul([sympy.singleton.S.NegativeOne, reaction_variable])]), lb=-flux_value, sloppy=True)
+
+            constraint_b = model.solver.interface.Constraint(add([neg_var, reaction.variable]), lb=flux_value,
+                                                             sloppy=True)
+            constraints.extend([constraint_a, constraint_b])
+
+        for constraint in constraints:
+            model.solver._add_constraint(constraint, sloppy=True)
+
+        for term in obj_terms:
+            model.solver._set_linear_objective_term(term, 1.)
+        model.solver.objective.direction = 'min'
+
+        try:
+            solution = model.solve()
+            return solution
+        except SolveError as e:
+            print "lmoma could not determine an optimal solution for objective %s" % model.objective
+            raise e
+    finally:
+        tic = time.time()
+        model.solver._remove_variables(variables)
+        model.objective = original_objective
+        model.solver._remove_constraints(constraints)
         tm.reset()
-        return solution
-    except SolveError as e:
-        print "lmoma could not determine an optimal solution for objective %s" % model.objective
-        tm.reset()
-        raise e
+        print 'lmoma reset:', time.time() - tic
 
 
 def _cycle_free_flux(model, fluxes, fix=[]):
@@ -137,13 +149,13 @@ def _cycle_free_flux(model, fluxes, fix=[]):
     for internal_reaction in internal_reactions:
         internal_flux = fluxes[internal_reaction.id]
         if internal_flux >= 0:
-            obj_terms.append(sympy.Mul._from_args([sympy.S.One, internal_reaction.variable]))
+            obj_terms.append(mul([sympy.S.One, internal_reaction.variable]))
             tm(do=partial(setattr, internal_reaction, 'lower_bound', 0),
                undo=partial(setattr, internal_reaction, 'lower_bound', internal_reaction.lower_bound))
             tm(do=partial(setattr, internal_reaction, 'upper_bound', internal_flux),
                undo=partial(setattr, internal_reaction, 'upper_bound', internal_reaction.upper_bound))
         elif internal_flux < 0:
-            obj_terms.append(sympy.Mul._from_args([sympy.S.NegativeOne, internal_reaction.variable]))
+            obj_terms.append(mul([sympy.S.NegativeOne, internal_reaction.variable]))
             tm(do=partial(setattr, internal_reaction, 'lower_bound', internal_flux),
                undo=partial(setattr, internal_reaction, 'lower_bound', internal_reaction.lower_bound))
             tm(do=partial(setattr, internal_reaction, 'upper_bound', 0),
@@ -157,7 +169,7 @@ def _cycle_free_flux(model, fluxes, fix=[]):
         tm(do=partial(setattr, reaction_to_fix, 'upper_bound', fluxes[reaction_id]),
            undo=partial(setattr, reaction_to_fix, 'upper_bound', reaction_to_fix.upper_bound))
     tm(do=partial(setattr, model, 'objective',
-                  model.solver.interface.Objective(sympy.Add._from_args(obj_terms), name='Flux minimization',
+                  model.solver.interface.Objective(add(obj_terms), name='Flux minimization',
                                                    direction='min', sloppy=True)),
        undo=partial(setattr, model, 'objective', model.objective))
     solution = model.optimize()
@@ -170,8 +182,9 @@ if __name__ == '__main__':
     from cobra.io import read_sbml_model
     from cobra.flux_analysis.parsimonious import optimize_minimal_flux
     from cameo import load_model
+    from cameo.solver_based_model import to_solver_based_model
 
-    #sbml_path = '../../tests/data/EcoliCore.xml'
+    # sbml_path = '../../tests/data/EcoliCore.xml'
     sbml_path = '../../tests/data/iJO1366.xml'
 
     cb_model = read_sbml_model(sbml_path)
