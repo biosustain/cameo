@@ -33,23 +33,29 @@ class IPythonBokehFitnessPlotter(object):
         self.fitness = []
         self.uuid = None
         self.plotted = False
+        self.can_plot = True
 
     def _set_plot(self):
         self.uuid = uuid1()
-        output_notebook(url=self.url, docname=str(self.uuid))
-        hold()
-        figure()
-        scatter([], [], tools='', title="Best solution fitness plot")
-        xaxis()[0].axis_label = "Iteration"
-        yaxis()[0].axis_label = "Fitness"
-        self.plot = curplot()
-        renderer = [r for r in self.plot.renderers if isinstance(r, Glyph)][0]
-        self.ds = renderer.data_source
-        show()
-        self.plotted = True
+        try:
+            output_notebook(url=self.url, docname=str(self.uuid))
+            hold()
+            figure()
+            scatter([], [], tools='', title="Best solution fitness plot")
+            xaxis()[0].axis_label = "Iteration"
+            yaxis()[0].axis_label = "Fitness"
+            self.plot = curplot()
+            renderer = [r for r in self.plot.renderers if isinstance(r, Glyph)][0]
+            self.ds = renderer.data_source
+            show()
+            self.plotted = True
+        except SystemExit as e:
+            logger.info("Bokeh-server is not running. Skipping plotting.")
+            logger.error(e)
+            self.can_plot = False
 
     def __call__(self, population, num_generations, num_evaluations, args):
-        if not self.plotted:
+        if not self.plotted and self.can_plot:
             self._set_plot()
 
         self.iteration += 1
@@ -64,10 +70,10 @@ class IPythonBokehFitnessPlotter(object):
             self._update_plot()
 
     def _update_plot(self):
-        self.ds.data['x'] = self.iterations[-self.window_size:]
-        self.ds.data['y'] = self.fitness[-self.window_size:]
-
-        session().store_obj(self.ds)
+        if self.can_plot:
+            self.ds.data['x'] = self.iterations[-self.window_size:]
+            self.ds.data['y'] = self.fitness[-self.window_size:]
+            session().store_obj(self.ds)
 
     def reset(self):
         self.iteration = 0
@@ -88,23 +94,29 @@ class IPythonBokehParetoPlotter(object):
         self.fitness = []
         self.uuid = None
         self.plotted = False
+        self.can_plot = True
 
     def _set_plot(self):
-        self.uuid = uuid1()
-        output_notebook(url=self.url, docname=str(self.uuid))
-        hold()
-        figure()
-        scatter([], [], tools='', title="Multi-objective Pareto Fitness Plot")
-        xaxis()[0].axis_label = self.ofs[self.x].name
-        yaxis()[0].axis_label = self.ofs[self.y].name
-        self.plot = curplot()
-        renderer = [r for r in self.plot.renderers if isinstance(r, Glyph)][0]
-        self.ds = renderer.data_source
-        show()
-        self.plotted = True
+        try:
+            self.uuid = uuid1()
+            output_notebook(url=self.url, docname=str(self.uuid))
+            hold()
+            figure()
+            scatter([], [], tools='', title="Multi-objective Pareto Fitness Plot")
+            xaxis()[0].axis_label = self.ofs[self.x].name
+            yaxis()[0].axis_label = self.ofs[self.y].name
+            self.plot = curplot()
+            renderer = [r for r in self.plot.renderers if isinstance(r, Glyph)][0]
+            self.ds = renderer.data_source
+            show()
+            self.plotted = True
+        except SystemExit as e:
+            logger.info("Bokeh-server is not running. Skipping plotting.")
+            logger.error(e)
+            self.can_plot = False
 
     def __call__(self, population, num_generations, num_evaluations, args):
-        if not self.plotted:
+        if not self.plotted and self.can_plot:
             self._set_plot()
 
         self.fitness = [i.fitness for i in population]
@@ -112,9 +124,10 @@ class IPythonBokehParetoPlotter(object):
             self._update()
 
     def _update(self):
-        self.ds.data['x'] = [e[self.x] for e in self.fitness]
-        self.ds.data['y'] = [e[self.y] for e in self.fitness]
-        session().store_obj(self.ds)
+        if self.can_plot:
+            self.ds.data['x'] = [e[self.x] for e in self.fitness]
+            self.ds.data['y'] = [e[self.y] for e in self.fitness]
+            session().store_obj(self.ds)
 
     def reset(self):
         self.fitness = []

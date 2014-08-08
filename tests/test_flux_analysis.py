@@ -62,6 +62,7 @@ class TestFluxVariabilityAnalysis(unittest.TestCase):
                 self.assertAlmostEqual(fva_solution['upper_bound'][key],
                                        REFERENCE_FVA_SOLUTION_ECOLI_CORE['upper_bound'][key], delta=0.000001)
 
+    @unittest.skipIf(TRAVIS, 'Running multiprocess in Travis breaks')
     def test_flux_variability_parallel(self):
         fva_solution = flux_variability_analysis(self.model, remove_cycles=False, view=MultiprocessingView())
         assert_dataframes_equal(fva_solution, REFERENCE_FVA_SOLUTION_ECOLI_CORE)
@@ -83,14 +84,25 @@ class TestPhenotypicPhasePlane(unittest.TestCase):
         self.model = CORE_MODEL.copy()
 
     @unittest.skipIf(TRAVIS, 'Running in Travis')
-    def test_one_variable(self):
-        ppp = phenotypic_phase_plane(self.model, ['EX_o2_LPAREN_e_RPAREN_'])
+    def test_one_variable_parallel(self):
+        ppp = phenotypic_phase_plane(self.model, ['EX_o2_LPAREN_e_RPAREN_'], view=MultiprocessingView())
         assert_dataframes_equal(ppp, REFERENCE_PPP_o2_EcoliCore)
-        ppp = phenotypic_phase_plane(self.model, 'EX_o2_LPAREN_e_RPAREN_')
+        ppp = phenotypic_phase_plane(self.model, 'EX_o2_LPAREN_e_RPAREN_', view=MultiprocessingView())
+        assert_dataframes_equal(ppp, REFERENCE_PPP_o2_EcoliCore)
+
+    def test_one_variable_sequential(self):
+        ppp = phenotypic_phase_plane(self.model, ['EX_o2_LPAREN_e_RPAREN_'], view=SequentialView())
+        assert_dataframes_equal(ppp, REFERENCE_PPP_o2_EcoliCore)
+        ppp = phenotypic_phase_plane(self.model, 'EX_o2_LPAREN_e_RPAREN_', view=SequentialView())
         assert_dataframes_equal(ppp, REFERENCE_PPP_o2_EcoliCore)
 
     @unittest.skipIf(TRAVIS, 'Running in Travis')
-    def test_two_variables(self):
+    def test_two_variables_parallel(self):
+        ppp2d = phenotypic_phase_plane(self.model, ['EX_o2_LPAREN_e_RPAREN_', 'EX_glc_LPAREN_e_RPAREN_'],
+                                       view=MultiprocessingView())
+        assert_dataframes_equal(ppp2d, REFERENCE_PPP_o2_glc_EcoliCore)
+
+    def test_two_variables_sequential(self):
         ppp2d = phenotypic_phase_plane(self.model, ['EX_o2_LPAREN_e_RPAREN_', 'EX_glc_LPAREN_e_RPAREN_'],
                                        view=SequentialView())
         assert_dataframes_equal(ppp2d, REFERENCE_PPP_o2_glc_EcoliCore)
@@ -125,7 +137,7 @@ class TestSimulationMethods(unittest.TestCase):
         lmoma_solution = lmoma(self.model, reference=ref)
         res = lmoma_solution.x_dict
         distance = sum([abs(res[v] - ref[v]) for v in res.keys()])
-        self.assertAlmostEqual(0, distance, delta=0.0000001, msg="moma distance without knockouts must be 0")
+        self.assertAlmostEqual(0, distance, delta=0.000001, msg="moma distance without knockouts must be 0")
 
 if __name__ == '__main__':
     import nose

@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from bokeh.objects import Range1d, Plot
+from inspyred.ec.emo import Pareto
 import numpy as np
 from cameo import config
 
@@ -38,7 +40,9 @@ class CLIStatsData(GenericStatsData):
 
 class BokehStatsData(GenericStatsData):
     def __init__(self, *args, **kwargs):
-        super(CLIStatsData, self).__init__(*args, **kwargs)
+        super(BokehStatsData, self).__init__(*args, **kwargs)
+        self.xdr = Range1d(start=-0.5, end=20.5)
+        self.ydr = Range1d(start=-0.5, end=20.5)
 
     def display(self):
         output_notebook()
@@ -51,6 +55,11 @@ class BokehStatsData(GenericStatsData):
         yaxis()[0].axis_label = "Number of solutions"
 
         figure(title="Correlation between number of knockouts and fitness")
-        scatter(self.solution.solutions['Size'], self.solution.solutions['Fitness'])
-        xaxis()[0].axis_label = "Number of knockouts"
-        yaxis()[0].axis_label = "Fitness"
+        fitness = self.solution.solutions['Fitness']
+        if isinstance(fitness[0], Pareto):
+            pass
+        else:
+            scatter(self.solution.solutions['Size'], self.solution.solutions['Fitness'])
+            xaxis()[0].axis_label = "Number of knockouts"
+            yaxis()[0].axis_label = "Fitness"
+        show()
