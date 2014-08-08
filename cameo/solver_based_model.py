@@ -481,24 +481,32 @@ class SolverBasedModel(Model):
                 cloned_reaction_list.append(Reaction.clone(reaction, model=self))
             else:
                 cloned_reaction_list.append(reaction)
+        constr_terms = dict()
         for reaction in cloned_reaction_list:
             try:
                 reaction_variable = self.solver.variables[reaction.id]
             except KeyError:
-                self.solver.add(
-                    self.solver.interface.Variable(reaction.id, lb=reaction._lower_bound, ub=reaction._upper_bound))
-                reaction_variable = self.solver.variables[reaction.id]
+                reaction_variable = self.solver.interface.Variable(reaction.id, lb=reaction._lower_bound,
+                                                                   ub=reaction._upper_bound)
+                self.solver.add(reaction_variable)
 
             metabolite_coeff_dict = reaction.metabolites
             for metabolite, coeff in metabolite_coeff_dict.iteritems():
-                try:
-                    metabolite_constraint = self.solver.constraints[metabolite.id]
-                except KeyError:  # cannot override add_metabolites here as it is not used by cobrapy in add_reactions
-                    self.solver.add(self.solver.interface.Constraint(S.Zero, lb=0, ub=0,
-                                                                     name=metabolite.id))  # TODO: 1 will not work ...
-                    metabolite_constraint = self.solver.constraints[metabolite.id]
-                metabolite_constraint += coeff * reaction_variable
+                # if self.solver.constraints.has_key(metabolite.id):
+                if constr_terms.has_key(metabolite.id):
+                    constr_terms[metabolite.id].append(
+                        sympy.Mul._from_args([sympy.RealNumber(coeff), reaction_variable]))
+                else:
+                    constr_terms[metabolite.id] = list()
 
+        for met_id, terms in constr_terms.iteritems():
+            try:
+                metabolite_constraint = self.solver.constraints[met_id]
+                metabolite_constraint += sympy.Add._from_args(terms)
+            except KeyError:  # cannot override add_metabolites here as it is not used by cobrapy in add_reactions
+                self.solver._add_constraint(
+                    self.solver.interface.Constraint(S.Zero, lb=0, ub=0, name=met_id, sloppy=True),
+                    sloppy=True)  # TODO: 1 will not work ...
         super(SolverBasedModel, self).add_reactions(cloned_reaction_list)
 
     def remove_reactions(self, the_reactions):
