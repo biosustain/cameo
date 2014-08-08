@@ -68,6 +68,7 @@ class AbstractParallelObserverClient(object):
     def reset(self):
         pass
 
+
 from threading import Thread
 from ipython_notebook_utils import ProgressBar as IPythonProgressBar
 from blessings import Terminal
@@ -78,6 +79,7 @@ class CliMultiprocessProgressObserver(AbstractParallelObserver):
     """
     Command line progress display for multiprocess run
     """
+
     def __init__(self, *args, **kwargs):
         self.progress = {}
         self.terminal = Terminal()
@@ -90,8 +92,8 @@ class CliMultiprocessProgressObserver(AbstractParallelObserver):
         i = message['index']
         if not i in self.progress:
             print ""
-            label = "Island %i: " % (i+1)
-            pos = abs(len(self.clients)-i)
+            label = "Island %i: " % (i + 1)
+            pos = abs(len(self.clients) - i)
             writer = self.TerminalWriter((self.terminal.height or 1) - pos, self.terminal)
             self.progress[i] = CLIProgressBar(fd=writer,
                                               maxval=message['max_evaluations'],
@@ -109,6 +111,7 @@ class CliMultiprocessProgressObserver(AbstractParallelObserver):
         """
         Writer wrapper to write the progress in a specific terminal position
         """
+
         def __init__(self, pos, term):
             self.pos = pos
             self.term = term
@@ -119,7 +122,6 @@ class CliMultiprocessProgressObserver(AbstractParallelObserver):
 
 
 class CliMultiprocessProgressObserverClient(AbstractParallelObserverClient):
-
     __name__ = "CLI Multiprocess Progress Observer"
 
     def __init__(self, *args, **kwargs):
@@ -148,7 +150,7 @@ class IPythonNotebookMultiprocessProgressObserver(AbstractParallelObserver):
 
     def _create_client(self, i):
         self.clients[i] = IPythonNotebookMultiprocessProgressObserverClient(queue=self.queue, index=i)
-        label = "<span style='color:%s;'>Island %i </span>" % (self.color_map[i], i+1)
+        label = "<span style='color:%s;'>Island %i </span>" % (self.color_map[i], i + 1)
         self.progress[i] = IPythonProgressBar(label=label)
 
     def _process_message(self, message):
@@ -158,7 +160,6 @@ class IPythonNotebookMultiprocessProgressObserver(AbstractParallelObserver):
 
 
 class IPythonNotebookMultiprocessProgressObserverClient(AbstractParallelObserverClient):
-
     __name__ = "IPython Notebook Multiprocess Progress Observer"
 
     def __init__(self, *args, **kwargs):

@@ -306,7 +306,8 @@ class KnockoutOptimization(HeuristicOptimization):
                                           seed=self.seed,
                                           reference=self.wt_reference)
 
-#TODO: Figure out a way to provide generic parameters for different simulation methods
+
+# TODO: Figure out a way to provide generic parameters for different simulation methods
 class KnockoutOptimizationResult(object):
     @staticmethod
     def merge(a, b):
@@ -395,7 +396,7 @@ class KnockoutOptimizationResult(object):
                 proceed = True
             else:
                 proceed = solution.fitness > 0
-                
+
             if proceed:
                 decoded_solution = self.decoder(solution.candidate)
                 simulation_result = self._simulate(decoded_solution[0])
@@ -467,7 +468,7 @@ class KnockoutOptimizationResult(object):
         assert isinstance(other_result, self.__class__), "Cannot merge result with %s" % type(other_result)
         assert self.model.id == other_result.model.id, "Cannot merge results from different models"
         # assert self.objective_functions == other_result.objective_functions, \
-        #    "Cannot merge results with different objective functions"
+        # "Cannot merge results with different objective functions"
         assert self.ko_type == other_result.ko_type, "Cannot merge results with resulting from different strategies"
         assert self.heuristic_method.__class__.__name__ == other_result.heuristic_method.__class__.__name__, \
             "Cannot merge results from different heuristic methods"
@@ -529,7 +530,6 @@ class GeneKnockoutOptimization(KnockoutOptimization):
 
 
 class KnockinKnockoutEvaluator(KnockoutEvaluator):
-
     def __call__(self, *args, **kwargs):
         pass
 

@@ -82,6 +82,7 @@ def pfba(model, objective=None, *args, **kwargs):
 def moma(model, reference=None, *args, **kwargs):
     pass
 
+
 def lmoma(model, reference=None, *args, **kwargs):
     tm = TimeMachine()
     original_objective = copy.copy(model.objective)
@@ -128,11 +129,12 @@ def lmoma(model, reference=None, *args, **kwargs):
         model.objective = original_objective
         model.solver._remove_constraints(constraints)
 
+
 def room(model, reference=None, delta=0.03, epsilon=0.001, *args, **kwargs):
     tm = TimeMachine()
     obj_terms = list()
 
-    #upper and lower relax
+    # upper and lower relax
     U = 1e6
     L = -1e6
 
@@ -143,8 +145,6 @@ def room(model, reference=None, delta=0.03, epsilon=0.001, *args, **kwargs):
             var = model.solver.interface.Variable("y_%s" % rid, type="binary")
             tm(do=partial(model.solver._add_variable, var), undo=partial(model.solver._remove_variable, var))
             obj_terms.append(var)
-
-
 
             w_u = flux_value + delta * abs(flux_value) + epsilon
             expression = sympy.Add._from_args([
@@ -184,6 +184,7 @@ def room(model, reference=None, delta=0.03, epsilon=0.001, *args, **kwargs):
         print "lmoma could not determine an optimal solution for objective %s" % model.objective
         tm.reset()
         raise e
+
 
 def _cycle_free_flux(model, fluxes, fix=[]):
     """Remove cycles from a flux-distribution (http://cran.r-project.org/web/packages/sybilcycleFreeFlux/index.html)."""

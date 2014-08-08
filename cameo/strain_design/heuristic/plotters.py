@@ -1,4 +1,3 @@
-
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -22,7 +21,6 @@ if config.use_bokeh:
 
 
 class IPythonBokehFitnessPlotter(object):
-
     __name__ = "IPython Bokeh Fitness Plot"
 
     def __init__(self, window_size=1000, url='default'):
@@ -83,7 +81,6 @@ class IPythonBokehFitnessPlotter(object):
 
 
 class IPythonBokehParetoPlotter(object):
-
     __name__ = "IPython Bokeh Pareto Plotter"
 
     def __init__(self, ofs=None, x=0, y=1, url='default'):
@@ -155,5 +152,5 @@ class GeneFrequencyPlotter():
 
         quad(top=self.freqs[:, 1], left=self.freqs[:, 1], bottom=np.zeros(len(self.freqs[:, 1])),
              right=self.freqs[:, 1], x_range=list(self.freqs[:, 0]))
-        xaxis().major_label_orientation = np.pi/3
+        xaxis().major_label_orientation = np.pi / 3
         show()
