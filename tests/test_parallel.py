@@ -22,7 +22,6 @@ def to_the_power_of_2(arg):
 
 
 class TestSequentialView(unittest.TestCase):
-
     def setUp(self):
         self.view = SequentialView()
 
@@ -33,9 +32,10 @@ class TestSequentialView(unittest.TestCase):
         for i in xrange(100):
             self.assertEqual(self.view.apply(to_the_power_of_2, i), SOLUTION[i])
 
+
 try:
     from cameo.parallel import MultiprocessingView
-    
+
     class TestMultiprocessingView(unittest.TestCase):
         def setUp(self):
             self.view = MultiprocessingView()
@@ -49,7 +49,6 @@ try:
 
 except ImportError:
     print "Skipping MultiprocessingView tests ..."
-
 
 try:
     from cameo.parallel import RedisQueue
@@ -89,8 +88,8 @@ except ImportError:
 
 
 # class TestIPythonParallelView(unittest.TestCase):
-#     def setUp(self):
-#         try:
+# def setUp(self):
+# try:
 #             subprocess.check_output(["ipcluster", "start", "--daemonize"])
 #             sleep(6)
 #         except subprocess.CalledProcessError:
@@ -122,4 +121,5 @@ except ImportError:
 
 if __name__ == '__main__':
     import nose
+
     nose.runmodule()

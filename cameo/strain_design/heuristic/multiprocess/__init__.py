@@ -32,6 +32,7 @@ class MultiprocessRunner():
     objects on the beginning of the process.
 
     """
+
     def __init__(self, island_class, init_kwargs, migrator, run_kwargs):
         self.island_class = island_class
         self.init_kwargs = init_kwargs
@@ -46,10 +47,10 @@ class MultiprocessRunner():
 
 
 class MultiprocessHeuristicOptimization(object):
-
     _island_class = None
 
-    def __init__(self, model=None, objective_function=None, heuristic_method=inspyred.ec.GA, max_migrants=1, *args, **kwargs):
+    def __init__(self, model=None, objective_function=None, heuristic_method=inspyred.ec.GA, max_migrants=1, *args,
+                 **kwargs):
         super(MultiprocessHeuristicOptimization, self).__init__(*args, **kwargs)
         self.model = model
         self.objective_function = objective_function
@@ -127,7 +128,6 @@ class MultiprocessKnockoutOptimization(MultiprocessHeuristicOptimization):
 
 
 class MultiprocessReactionKnockoutOptimization(MultiprocessKnockoutOptimization):
-
     _island_class = ReactionKnockoutOptimization
 
     def __init__(self, reactions=None, essential_reactions=None, *args, **kwargs):
@@ -150,7 +150,6 @@ class MultiprocessReactionKnockoutOptimization(MultiprocessKnockoutOptimization)
 
 
 class MultiprocessGeneKnockoutOptimization(MultiprocessKnockoutOptimization):
-
     _island_class = GeneKnockoutOptimization
 
     def __init__(self, genes=None, essential_genes=None, *args, **kwargs):
