@@ -70,19 +70,19 @@ try:
 
         def test_queue_len(self):
             queue = RedisQueue("test-queue-len", maxsize=100)
-            self.assertEqual(queue.lenght(), 0)
+            self.assertEqual(queue.length(), 0)
             queue.put(1)
-            self.assertEqual(queue.lenght(), 1)
+            self.assertEqual(queue.length(), 1)
             queue.put(1)
-            self.assertEqual(queue.lenght(), 2)
+            self.assertEqual(queue.length(), 2)
             queue.put(1)
-            self.assertEqual(queue.lenght(), 3)
+            self.assertEqual(queue.length(), 3)
             queue.get_nowait()
-            self.assertEqual(queue.lenght(), 2)
+            self.assertEqual(queue.length(), 2)
             queue.get_nowait()
-            self.assertEqual(queue.lenght(), 1)
+            self.assertEqual(queue.length(), 1)
             queue.get_nowait()
-            self.assertEqual(queue.lenght(), 0)
+            self.assertEqual(queue.length(), 0)
 
 except ImportError:
     print "Skipping MultiprocessingView tests ..."

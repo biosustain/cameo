@@ -636,6 +636,27 @@ class SolverBasedModel(Model):
                 time_machine.reset()
         return essential
 
+    def medium(self):
+        reaction_ids = []
+        reaction_names = []
+        lower_bounds = []
+        upper_bounds = []
+        for ex in self.exchanges:
+            metabolite = ex.metabolites.keys()[0]
+            coeff = ex.metabolites[metabolite]
+            if coeff * ex.lower_bound > 0:
+                reaction_ids.append(ex.id)
+                reaction_names.append(ex.name)
+                lower_bounds.append(ex.lower_bound)
+                upper_bounds.append(ex.upper_bound)
+
+        return DataFrame({'reaction_id': reaction_ids,
+                          'reaction_name': reaction_names,
+                          'lower_bound': lower_bounds,
+                          'upper_bound': upper_bounds},
+                         index=None, columns=['reaction_id', 'reaction_name', 'lower_bound', 'upper_bound'])
+
+
     # TODO: describe the formats in doc
     def load_medium(self, medium, copy=False):
         """

@@ -37,8 +37,8 @@ class IPythonBokehFitnessPlotter(object):
     def _set_plot(self):
         self.uuid = uuid1()
         output_notebook(url=self.url, docname=str(self.uuid))
-        figure()
         hold()
+        figure()
         scatter([], [], tools='', title="Best solution fitness plot")
         xaxis()[0].axis_label = "Iteration"
         yaxis()[0].axis_label = "Fitness"
@@ -92,6 +92,8 @@ class IPythonBokehParetoPlotter(object):
     def _set_plot(self):
         self.uuid = uuid1()
         output_notebook(url=self.url, docname=str(self.uuid))
+        hold()
+        figure()
         scatter([], [], tools='', title="Multi-objective Pareto Fitness Plot")
         xaxis()[0].axis_label = self.ofs[self.x].name
         yaxis()[0].axis_label = self.ofs[self.y].name

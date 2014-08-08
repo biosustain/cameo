@@ -79,11 +79,10 @@ def pfba(model, objective=None, *args, **kwargs):
         raise e
 
 
-def moma(model, objective=None, *args, **kwargs):
+def moma(model, reference=None, *args, **kwargs):
     pass
 
-
-def lmoma(model, wt_reference=None):
+def lmoma(model, reference=None, *args, **kwargs):
     tm = TimeMachine()
     original_objective = copy.copy(model.objective)
     try:
@@ -125,13 +124,66 @@ def lmoma(model, wt_reference=None):
             print "lmoma could not determine an optimal solution for objective %s" % model.objective
             raise e
     finally:
-        tic = time.time()
         model.solver._remove_variables(variables)
         model.objective = original_objective
         model.solver._remove_constraints(constraints)
-        tm.reset()
-        print 'lmoma reset:', time.time() - tic
 
+def room(model, reference=None, delta=0.03, epsilon=0.001, *args, **kwargs):
+    tm = TimeMachine()
+    obj_terms = list()
+
+    #upper and lower relax
+    U = 1e6
+    L = -1e6
+
+    try:
+        for rid, flux_value in reference.iteritems():
+            reaction = model.reactions.get_by_id(rid)
+
+            var = model.solver.interface.Variable("y_%s" % rid, type="binary")
+            tm(do=partial(model.solver._add_variable, var), undo=partial(model.solver._remove_variable, var))
+            obj_terms.append(var)
+
+
+
+            w_u = flux_value + delta * abs(flux_value) + epsilon
+            expression = sympy.Add._from_args([
+                reaction.variable,
+                sympy.Mul._from_args([var, (w_u - U)])
+            ])
+
+            constraint_a = (model.solver.interface.Constraint(expression, ub=w_u))
+            tm(do=partial(model.solver._add_constraint, constraint_a),
+               undo=partial(model.solver._remove_constraint, constraint_a))
+
+            w_l = flux_value - delta * abs(flux_value) - epsilon
+            expression = sympy.Add._from_args([
+                reaction.variable,
+                sympy.Mul._from_args([var, (w_l - L)])
+            ])
+
+            constraint_b = (model.solver.interface.Constraint(expression, lb=w_l))
+            tm(do=partial(model.solver._add_constraint, constraint_b),
+               undo=partial(model.solver._remove_constraint, constraint_b))
+
+        room_obj = model.solver.interface.Objective(sympy.Add._from_args(obj_terms), direction='min')
+
+        tm(do=partial(setattr, model, 'objective', room_obj),
+           undo=partial(setattr, model, 'objective', model.objective))
+
+    except Exception as e:
+        tm.reset()
+        raise e
+
+    try:
+        solution = model.solve()
+
+        tm.reset()
+        return solution
+    except SolveError as e:
+        print "lmoma could not determine an optimal solution for objective %s" % model.objective
+        tm.reset()
+        raise e
 
 def _cycle_free_flux(model, fluxes, fix=[]):
     """Remove cycles from a flux-distribution (http://cran.r-project.org/web/packages/sybilcycleFreeFlux/index.html)."""
@@ -182,7 +234,6 @@ if __name__ == '__main__':
     from cobra.io import read_sbml_model
     from cobra.flux_analysis.parsimonious import optimize_minimal_flux
     from cameo import load_model
-    from cameo.solver_based_model import to_solver_based_model
 
     # sbml_path = '../../tests/data/EcoliCore.xml'
     sbml_path = '../../tests/data/iJO1366.xml'
