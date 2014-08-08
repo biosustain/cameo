@@ -23,6 +23,7 @@ from sympy import Mul
 
 add = Add._from_args
 mul = Mul._from_args
+NegativeOne = sympy.singleton.S.NegativeOne
 
 def fba(model, objective=None, *args, **kwargs):
     """Perform flux balance analysis."""
@@ -84,13 +85,12 @@ def moma(model, reference=None, *args, **kwargs):
 
 
 def lmoma(model, reference=None, *args, **kwargs):
-    tm = TimeMachine()
     original_objective = copy.copy(model.objective)
     try:
         obj_terms = list()
         constraints = list()
         variables = list()
-        for rid, flux_value in wt_reference.iteritems():
+        for rid, flux_value in reference.iteritems():
             reaction = model.reactions.get_by_id(rid)
             pos_var = model.solver.interface.Variable("u_%s_pos" % rid, lb=0)
             neg_var = model.solver.interface.Variable("u_%s_neg" % rid, lb=0)
@@ -104,11 +104,14 @@ def lmoma(model, reference=None, *args, **kwargs):
 
             # ui = vi - wt
             reaction_variable = reaction.variable
-            constraint_a = model.solver.interface.Constraint(
-                add([pos_var, mul([sympy.singleton.S.NegativeOne, reaction_variable])]), lb=-flux_value, sloppy=True)
-
-            constraint_b = model.solver.interface.Constraint(add([neg_var, reaction.variable]), lb=flux_value,
+            constraint_a = model.solver.interface.Constraint(add([pos_var, mul([NegativeOne, reaction_variable])]),
+                                                             lb=-flux_value,
                                                              sloppy=True)
+
+            constraint_b = model.solver.interface.Constraint(add([neg_var, reaction.variable]),
+                                                             lb=flux_value,
+                                                             sloppy=True)
+
             constraints.extend([constraint_a, constraint_b])
 
         for constraint in constraints:
@@ -131,59 +134,55 @@ def lmoma(model, reference=None, *args, **kwargs):
 
 
 def room(model, reference=None, delta=0.03, epsilon=0.001, *args, **kwargs):
-    tm = TimeMachine()
-    obj_terms = list()
+    original_objective = copy.copy(model.objective)
 
     # upper and lower relax
     U = 1e6
     L = -1e6
 
+    obj_terms = list()
+    constraints = list()
+    variables = list()
     try:
         for rid, flux_value in reference.iteritems():
             reaction = model.reactions.get_by_id(rid)
 
             var = model.solver.interface.Variable("y_%s" % rid, type="binary")
-            tm(do=partial(model.solver._add_variable, var), undo=partial(model.solver._remove_variable, var))
+            model.solver._add_variable(var)
+
+            variables.append(var)
             obj_terms.append(var)
 
             w_u = flux_value + delta * abs(flux_value) + epsilon
-            expression = sympy.Add._from_args([
-                reaction.variable,
-                sympy.Mul._from_args([var, (w_u - U)])
-            ])
+            expression = add([reaction.variable, mul([var, (w_u - U)])])
 
             constraint_a = (model.solver.interface.Constraint(expression, ub=w_u))
-            tm(do=partial(model.solver._add_constraint, constraint_a),
-               undo=partial(model.solver._remove_constraint, constraint_a))
 
             w_l = flux_value - delta * abs(flux_value) - epsilon
-            expression = sympy.Add._from_args([
-                reaction.variable,
-                sympy.Mul._from_args([var, (w_l - L)])
-            ])
+            expression = add([reaction.variable, mul([var, (w_l - L)])])
 
             constraint_b = (model.solver.interface.Constraint(expression, lb=w_l))
-            tm(do=partial(model.solver._add_constraint, constraint_b),
-               undo=partial(model.solver._remove_constraint, constraint_b))
 
-        room_obj = model.solver.interface.Objective(sympy.Add._from_args(obj_terms), direction='min')
+            constraints.extend([constraint_a, constraint_b])
 
-        tm(do=partial(setattr, model, 'objective', room_obj),
-           undo=partial(setattr, model, 'objective', model.objective))
+        for term in obj_terms:
+            model.solver._set_linear_objective_term(term, 1.)
+        model.solver.objective.direction = 'min'
 
-    except Exception as e:
-        tm.reset()
-        raise e
+        for constraint in constraints:
+            model.solver._add_constraint(constraint, sloppy=True)
 
-    try:
-        solution = model.solve()
+        try:
+            solution = model.solve()
+            return solution
+        except SolveError as e:
+            print "room could not determine an optimal solution for objective %s" % model.objective
+            raise e
 
-        tm.reset()
-        return solution
-    except SolveError as e:
-        print "lmoma could not determine an optimal solution for objective %s" % model.objective
-        tm.reset()
-        raise e
+    finally:
+        model.solver._remove_variables(variables)
+        model.objective = original_objective
+        model.solver._remove_constraints(constraints)
 
 
 def _cycle_free_flux(model, fluxes, fix=[]):

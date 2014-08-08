@@ -366,6 +366,23 @@ def _fbip_fva(model, knockouts, view):
     tm.reset()
     return perturbation
 
+
+def test_biomass_component_production(model, biomass_reaction):
+    tm = TimeMachine()
+    for metabolite in biomass_reaction.metabolites:
+        reaction = Reaction("EX_%s_temp" % metabolite.id)
+        reaction._metabolites[metabolite] = -1
+        tm(do=partial(model._add_reaction, reaction), undo=partial(model._remove_reaction, reaction))
+        tm(do=partial(model.objective, reaction), undo=partial(model.objective, model.objective))
+        try:
+            print metabolite.id, "= ", model.solve().f
+        except SolveError:
+            print metabolite, " cannot be produced"
+        finally:
+            tm.reset()
+
+
+
 if __name__ == '__main__':
     import time
     from cameo import load_model
