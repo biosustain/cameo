@@ -265,7 +265,7 @@ if __name__ == '__main__':
     print "lmoma"
     ref = solution.x_dict
     tic = time.time()
-    solution = lmoma(model, wt_reference=ref)
+    solution = lmoma(model, reference=ref)
     res = solution.x_dict
     print "flux distance:",
     print sum([abs(res[v] - ref[v]) for v in res.keys()])
@@ -275,7 +275,7 @@ if __name__ == '__main__':
     tic = time.time()
     model.reactions.PGI.lower_bound = 0
     model.reactions.PGI.upper_bound = 0
-    solution = lmoma(model, wt_reference=ref)
+    solution = lmoma(model, reference=ref)
     res = solution.x_dict
     print "flux distance:",
     print sum([abs(res[v] - ref[v]) for v in res.keys()])
