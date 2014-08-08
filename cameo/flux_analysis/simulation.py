@@ -83,14 +83,13 @@ def moma(model, reference=None, *args, **kwargs):
     pass
 
 
-def lmoma(model, reference=None, *args, **kwargs):
-    tm = TimeMachine()
+def lmoma(model, reference=dict(), *args, **kwargs):
     original_objective = copy.copy(model.objective)
     try:
         obj_terms = list()
         constraints = list()
         variables = list()
-        for rid, flux_value in wt_reference.iteritems():
+        for rid, flux_value in reference.iteritems():
             reaction = model.reactions.get_by_id(rid)
             pos_var = model.solver.interface.Variable("u_%s_pos" % rid, lb=0)
             neg_var = model.solver.interface.Variable("u_%s_neg" % rid, lb=0)
@@ -128,7 +127,6 @@ def lmoma(model, reference=None, *args, **kwargs):
         model.solver._remove_variables(variables)
         model.objective = original_objective
         model.solver._remove_constraints(constraints)
-
 
 def room(model, reference=None, delta=0.03, epsilon=0.001, *args, **kwargs):
     tm = TimeMachine()
@@ -266,7 +264,7 @@ if __name__ == '__main__':
     print "lmoma"
     ref = solution.x_dict
     tic = time.time()
-    solution = lmoma(model, wt_reference=ref)
+    solution = lmoma(model, reference=ref)
     res = solution.x_dict
     print "flux distance:",
     print sum([abs(res[v] - ref[v]) for v in res.keys()])
