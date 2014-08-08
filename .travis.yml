@@ -9,7 +9,7 @@ before_install:
   - sudo service redis-server start
   - sudo rm -rf /dev/shm
   - wget https://ftp.gnu.org/gnu/glpk/glpk-4.45.tar.gz
-  - tar xvf glpk-4.45
+  - tar xvf glpk-4.45.tar.gz
   - cd glpk-4.45
   - config --prefix=/usr/local
   - make && make install
