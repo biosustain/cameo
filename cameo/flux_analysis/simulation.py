@@ -13,7 +13,6 @@
 # limitations under the License.
 import copy
 
-import time
 from functools import partial
 import sympy
 from cameo.util import TimeMachine
@@ -139,7 +138,7 @@ def room(model, reference=None, delta=0.03, epsilon=0.001, *args, **kwargs):
     # upper and lower relax
     U = 1e6
     L = -1e6
-
+    variables_mapping = {}
     obj_terms = list()
     constraints = list()
     variables = list()
@@ -152,6 +151,7 @@ def room(model, reference=None, delta=0.03, epsilon=0.001, *args, **kwargs):
 
             variables.append(var)
             obj_terms.append(var)
+            variables_mapping[var.id] = reaction
 
             w_u = flux_value + delta * abs(flux_value) + epsilon
             expression = add([reaction.variable, mul([var, (w_u - U)])])
@@ -174,6 +174,7 @@ def room(model, reference=None, delta=0.03, epsilon=0.001, *args, **kwargs):
 
         try:
             solution = model.solve()
+
             return solution
         except SolveError as e:
             print "room could not determine an optimal solution for objective %s" % model.objective
@@ -235,8 +236,8 @@ if __name__ == '__main__':
     from cobra.flux_analysis.parsimonious import optimize_minimal_flux
     from cameo import load_model
 
-    # sbml_path = '../../tests/data/EcoliCore.xml'
-    sbml_path = '../../tests/data/iJO1366.xml'
+    sbml_path = '../../tests/data/EcoliCore.xml'
+    # sbml_path = '../../tests/data/iJO1366.xml'
 
     cb_model = read_sbml_model(sbml_path)
     model = load_model(sbml_path)

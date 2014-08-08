@@ -367,17 +367,19 @@ def _fbip_fva(model, knockouts, view):
     return perturbation
 
 
-def test_biomass_component_production(model, biomass_reaction):
+def reaction_component_production(model, reaction):
     tm = TimeMachine()
-    for metabolite in biomass_reaction.metabolites:
-        reaction = Reaction("EX_%s_temp" % metabolite.id)
-        reaction._metabolites[metabolite] = -1
-        tm(do=partial(model._add_reaction, reaction), undo=partial(model._remove_reaction, reaction))
-        tm(do=partial(model.objective, reaction), undo=partial(model.objective, model.objective))
+    for metabolite in reaction.metabolites:
+        test = Reaction("EX_%s_temp" % metabolite.id)
+        test._metabolites[metabolite] = -1
+        #hack frozen set from cobrapy to be able to add a reaction
+        metabolite._reaction = set(metabolite._reaction)
+        tm(do=partial(model.add_reactions, [test]), undo=partial(model.remove_reactions, [test]))
+        tm(do=partial(setattr, model, 'objective', test.id), undo=partial(setattr, model, 'objective', model.objective))
         try:
             print metabolite.id, "= ", model.solve().f
         except SolveError:
-            print metabolite, " cannot be produced"
+            print metabolite, " cannot be produced (reactions: %s)" % metabolite.reactions
         finally:
             tm.reset()
 
