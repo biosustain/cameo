@@ -5,9 +5,15 @@ python:
 virtualenv:
   system_site_packages: true
 before_install:
-  - sudo apt-get install libglpk-dev swig glpk-utils redis-server libzmq3-dev
+  - sudo apt-get install swig redis-server libzmq3-dev
   - sudo service redis-server start
   - sudo rm -rf /dev/shm
+  - wget https://ftp.gnu.org/gnu/glpk/glpk-4.45.tar.gz
+  - tar xvf glpk-4.45
+  - cd glpk-4.45
+  - config --prefix=/usr/local
+  - make && make install
+  - cd ..
   - sudo ln -s /run/shm /dev/shm
 install:
   - pip install python-libsbml-experimental cython numpy scipy pyzmq pandas bokeh -f https://dl.dropboxusercontent.com/u/22461024/pypi.drosophi.la/index.html --no-index
