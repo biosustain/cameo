@@ -11,13 +11,14 @@ before_install:
   - wget https://ftp.gnu.org/gnu/glpk/glpk-4.45.tar.gz
   - tar xvf glpk-4.45.tar.gz
   - mkdir glpk
+  - export GLPK_DIR="$HOME/glpk"
   - cd glpk-4.45
-  - ./configure --prefix=../glpk
+  - ./configure --prefix=$GLPK_DIR
   - make 
   - sudo make install
   - cd ..
-  - export PATH="$PATH:glpk/bin"
-  - export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:glpk/include"
+  - export PATH="$PATH:$GLPK_DIR/bin"
+  - export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$GLPK_DIR/include"
   - sudo ldconfig
   - sudo ln -s /run/shm /dev/shm
 install:
