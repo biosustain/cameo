@@ -18,7 +18,7 @@ before_install:
   - sudo make install
   - cd ..
   - export PATH="$PATH:$GLPK_DIR/bin"
-  - export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$GLPK_DIR/include"
+  - export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$GLPK_DIR/lib"
   - sudo ldconfig
   - sudo ln -s /run/shm /dev/shm
 install:
