@@ -11,7 +11,7 @@ before_install:
   - wget https://ftp.gnu.org/gnu/glpk/glpk-4.45.tar.gz
   - tar xvf glpk-4.45.tar.gz
   - cd glpk-4.45
-  - ./config --prefix=/usr/local
+  - ./configure --prefix=/usr/local
   - make && make install
   - cd ..
   - sudo ln -s /run/shm /dev/shm
