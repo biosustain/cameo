@@ -24,7 +24,7 @@ from cameo.strain_design.heuristic import generators
 from cameo.strain_design.heuristic import decoders
 from cameo.strain_design.heuristic import stats
 from cameo import config
-from cameo.flux_analysis.simulation import pfba, lmoma, moma, room
+from cameo.flux_analysis.simulation import pfba, lmoma, moma, room, redo
 from cameo.strain_design.heuristic.plotters import GeneFrequencyPlotter
 from cameo.util import partition, TimeMachine
 from pandas import DataFrame
@@ -169,9 +169,16 @@ class KnockoutEvaluator(object):
 
     def __call__(self, population):
         time_machine = TimeMachine()
-        return [self.evaluate_individual(i, time_machine) for i in population]
+        cache = {
+            'first_run': True,
+            'variables': {},
+            'constrains': {}
+        }
+        res = [self.evaluate_individual(i, time_machine, cache) for i in population]
+        redo(self.model, cache)
+        return res
 
-    def evaluate_individual(self, individual, tm):
+    def evaluate_individual(self, individual, tm, cache):
         decoded = self.decoder(individual)
         reactions = decoded[0]
         try:
@@ -182,7 +189,7 @@ class KnockoutEvaluator(object):
                    undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
 
             try:
-                solution = self.simulation_method(self.model, **self.simulation_kwargs)
+                solution = self.simulation_method(self.model, cache=cache, volatile=False, **self.simulation_kwargs)
                 fitness = self._calculate_fitness(solution, decoded)
             except SolveError as e:
                 logger.exception(e)
@@ -235,7 +242,12 @@ class KnockoutOptimization(HeuristicOptimization):
         kwargs = {'reference': self.wt_reference}
 
         func_obj = KnockoutEvaluator(self.model, self._decoder, self.objective_function, self.simulation_method, kwargs)
-        results = view.map(func_obj, population_chunks)
+        try:
+            results = view.map(func_obj, population_chunks)
+        except KeyboardInterrupt as e:
+            view.shutdown()
+            raise e
+
         fitness = reduce(list.__add__, results)
 
         return fitness

@@ -74,7 +74,7 @@ class MultiprocessHeuristicOptimization(object):
         try:
             results = view.map(runner, clients)
         except KeyboardInterrupt as e:
-            view.termitate()
+            view.shutdown()
             raise e
         return results
 

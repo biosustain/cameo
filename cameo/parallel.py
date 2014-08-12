@@ -45,7 +45,8 @@ class MultiprocessingView(Singleton):
         return cpu_count()
 
     def shutdown(self):
-        self.pool.terminate()
+        if not self.pool is None:
+            self.pool.terminate()
 
 
 try:

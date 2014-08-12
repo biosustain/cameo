@@ -15,7 +15,7 @@ before_install:
   - cd glpk-4.45
   - ./configure --prefix=$GLPK_DIR
   - make 
-  - sudo make install
+  - make install
   - cd ..
   - export PATH="$PATH:$GLPK_DIR/bin"
   - export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$GLPK_DIR/lib"

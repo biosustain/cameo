@@ -83,19 +83,34 @@ def moma(model, reference=None, *args, **kwargs):
     pass
 
 
-def lmoma(model, reference=None, *args, **kwargs):
+def lmoma(model, reference=None, cache={}, volatile=True, *args, **kwargs):
     original_objective = copy.copy(model.objective)
+    if not volatile:
+        cache['original_objective'] = original_objective
     try:
         obj_terms = list()
         constraints = list()
         variables = list()
         for rid, flux_value in reference.iteritems():
             reaction = model.reactions.get_by_id(rid)
-            pos_var = model.solver.interface.Variable("u_%s_pos" % rid, lb=0)
-            neg_var = model.solver.interface.Variable("u_%s_neg" % rid, lb=0)
+            pos_var_id = "u_%s_pos" % rid
+            if not volatile and pos_var_id in cache['variables']:
+                pos_var = cache['variables'][pos_var_id]
+            else:
+                pos_var = model.solver.interface.Variable(pos_var_id, lb=0)
+                model.solver._add_variable(pos_var)
+                if not volatile:
+                    cache['variables'][pos_var_id] = pos_var
 
-            model.solver._add_variable(pos_var)
-            model.solver._add_variable(neg_var)
+            neg_var_id = "u_%s_neg" % rid
+            if not volatile and neg_var_id in cache['variables']:
+                neg_var = cache['variables'][neg_var_id]
+            else:
+                neg_var = model.solver.interface.Variable(neg_var_id, lb=0)
+                model.solver._add_variable(neg_var)
+                if not volatile:
+                    cache['variables'][neg_var_id] = neg_var
+
             variables.extend([pos_var, neg_var])
 
             obj_terms.append(pos_var)
@@ -103,22 +118,41 @@ def lmoma(model, reference=None, *args, **kwargs):
 
             # ui = vi - wt
             reaction_variable = reaction.variable
-            constraint_a = model.solver.interface.Constraint(add([pos_var, mul([NegativeOne, reaction_variable])]),
-                                                             lb=-flux_value,
-                                                             sloppy=True)
 
-            constraint_b = model.solver.interface.Constraint(add([neg_var, reaction.variable]),
-                                                             lb=flux_value,
-                                                             sloppy=True)
+            constraint_a_id = "c_%s_a" % rid
+            if not volatile and constraint_a_id in cache['constrains']:
+                constraint_a = cache['constrains'][constraint_a_id]
+                constraint_a.lb = -flux_value
+
+            else:
+                constraint_a = model.solver.interface.Constraint(add([pos_var, mul([NegativeOne, reaction_variable])]),
+                                                                 lb=-flux_value,
+                                                                 sloppy=True)
+                if not volatile:
+                    cache['constrains'][constraint_a_id] = constraint_a
+
+
+            constraint_b_id = "c_%s_b" % rid
+            if not volatile and constraint_b_id in cache['constrains']:
+                constraint_b = cache['constrains'][constraint_b_id]
+                constraint_b.lb = flux_value
+            else:
+                constraint_b = model.solver.interface.Constraint(add([neg_var, reaction.variable]),
+                                                                 lb=flux_value,
+                                                                 sloppy=True)
+                if not volatile:
+                    cache['constrains'][constraint_b_id] = constraint_b
 
             constraints.extend([constraint_a, constraint_b])
 
-        for constraint in constraints:
-            model.solver._add_constraint(constraint, sloppy=True)
+        if volatile or cache['first_run']:
+            for constraint in constraints:
+                model.solver._add_constraint(constraint, sloppy=True)
 
-        for term in obj_terms:
-            model.solver._set_linear_objective_term(term, 1.)
-        model.solver.objective.direction = 'min'
+            for term in obj_terms:
+                model.solver._set_linear_objective_term(term, 1.)
+            model.solver.objective.direction = 'min'
+            cache['first_run'] = False
 
         try:
             solution = model.solve()
@@ -127,14 +161,16 @@ def lmoma(model, reference=None, *args, **kwargs):
             print "lmoma could not determine an optimal solution for objective %s" % model.objective
             raise e
     finally:
-        model.solver._remove_variables(variables)
-        model.objective = original_objective
-        model.solver._remove_constraints(constraints)
+        if volatile:
+            model.solver._remove_variables(variables)
+            model.solver._remove_constraints(constraints)
+            model.objective = original_objective
 
 
-def room(model, reference=None, delta=0.03, epsilon=0.001, *args, **kwargs):
+def room(model, reference=None, cache={}, volatile=True, delta=0.03, epsilon=0.001, *args, **kwargs):
     original_objective = copy.copy(model.objective)
-
+    if not volatile:
+        cache['original_objective'] = original_objective
     # upper and lower relax
     U = 1e6
     L = -1e6
@@ -145,15 +181,24 @@ def room(model, reference=None, delta=0.03, epsilon=0.001, *args, **kwargs):
     try:
         for rid, flux_value in reference.iteritems():
             reaction = model.reactions.get_by_id(rid)
-
-            var = model.solver.interface.Variable("y_%s" % rid, type="binary")
-            model.solver._add_variable(var)
+            var_id = "y_%s" % rid
+            if not volatile and var_id in cache['variables']:
+                var = cache['variables'][var_id]
+            else:
+                var = model.solver.interface.Variable(var_id, type="binary")
+                model.solver._add_variable(var)
+                if not volatile:
+                    cache['variables'][var_id] = var
 
             variables.append(var)
             obj_terms.append(var)
-            variables_mapping[var.id] = reaction
+            variables_mapping[var_id] = reaction
 
+            constraint_a_id = "c_%r_a" % rid
             w_u = flux_value + delta * abs(flux_value) + epsilon
+            if not volatile and constraint_a_id in cache['constrains']:
+                constraint_a = cache['constrains'][constraint_a_id]
+
             expression = add([reaction.variable, mul([var, (w_u - U)])])
 
             constraint_a = (model.solver.interface.Constraint(expression, ub=w_u))
@@ -228,6 +273,12 @@ def _cycle_free_flux(model, fluxes, fix=[]):
     solution = model.optimize()
     tm.reset()
     return solution.x_dict
+
+
+def redo(model, cache):
+    model.solver._remove_variables(cache['variables'].values())
+    model.objective = cache['original_objective']
+    model.solver._remove_constraints(cache['constrains'].values())
 
 
 if __name__ == '__main__':
