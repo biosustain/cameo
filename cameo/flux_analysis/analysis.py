@@ -115,7 +115,7 @@ def phenotypic_phase_plane(model, variables=[], objective=None, points=20, view=
            undo=partial(setattr, model, 'objective', model.objective))
 
     variable_reactions = _ids_to_reactions(model, variables)
-    variables_min_max = flux_variability_analysis(model, reactions=variable_reactions)
+    variables_min_max = flux_variability_analysis(model, reactions=variable_reactions, view=view)
     grid = [numpy.linspace(lower_bound, upper_bound, points, endpoint=True) for reaction_id, lower_bound, upper_bound in
             variables_min_max.itertuples()]
     grid_generator = itertools.product(*grid)
@@ -307,7 +307,7 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
             interval.append(solution)
             self.model.objective.direction = 'max'
             try:
-                solution = self.model.optimize().f
+                solution = self.model.solve().f
             except Infeasible:
                 solution = 0
             interval.append(solution)
