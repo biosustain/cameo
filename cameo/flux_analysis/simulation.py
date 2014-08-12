@@ -14,6 +14,8 @@
 import copy
 
 from functools import partial
+import traceback
+from jinja2.nodes import Neg
 import sympy
 from cameo.util import TimeMachine
 from cameo.exceptions import SolveError
@@ -23,6 +25,7 @@ from sympy import Mul
 add = Add._from_args
 mul = Mul._from_args
 NegativeOne = sympy.singleton.S.NegativeOne
+RealNumber = sympy.RealNumber
 
 def fba(model, objective=None, *args, **kwargs):
     """Perform flux balance analysis."""
@@ -85,7 +88,7 @@ def moma(model, reference=None, *args, **kwargs):
 
 def lmoma(model, reference=None, cache={}, volatile=True, *args, **kwargs):
     original_objective = copy.copy(model.objective)
-    if not volatile:
+    if not volatile and not 'original_objective' in cache:
         cache['original_objective'] = original_objective
     try:
         obj_terms = list()
@@ -120,8 +123,8 @@ def lmoma(model, reference=None, cache={}, volatile=True, *args, **kwargs):
             reaction_variable = reaction.variable
 
             constraint_a_id = "c_%s_a" % rid
-            if not volatile and constraint_a_id in cache['constrains']:
-                constraint_a = cache['constrains'][constraint_a_id]
+            if not volatile and constraint_a_id in cache['constraints']:
+                constraint_a = cache['constraints'][constraint_a_id]
                 constraint_a.lb = -flux_value
 
             else:
@@ -129,19 +132,19 @@ def lmoma(model, reference=None, cache={}, volatile=True, *args, **kwargs):
                                                                  lb=-flux_value,
                                                                  sloppy=True)
                 if not volatile:
-                    cache['constrains'][constraint_a_id] = constraint_a
+                    cache['constraints'][constraint_a_id] = constraint_a
 
 
             constraint_b_id = "c_%s_b" % rid
-            if not volatile and constraint_b_id in cache['constrains']:
-                constraint_b = cache['constrains'][constraint_b_id]
+            if not volatile and constraint_b_id in cache['constraints']:
+                constraint_b = cache['constraints'][constraint_b_id]
                 constraint_b.lb = flux_value
             else:
                 constraint_b = model.solver.interface.Constraint(add([neg_var, reaction.variable]),
                                                                  lb=flux_value,
                                                                  sloppy=True)
                 if not volatile:
-                    cache['constrains'][constraint_b_id] = constraint_b
+                    cache['constraints'][constraint_b_id] = constraint_b
 
             constraints.extend([constraint_a, constraint_b])
 
@@ -169,12 +172,10 @@ def lmoma(model, reference=None, cache={}, volatile=True, *args, **kwargs):
 
 def room(model, reference=None, cache={}, volatile=True, delta=0.03, epsilon=0.001, *args, **kwargs):
     original_objective = copy.copy(model.objective)
-    if not volatile:
+    if not volatile and not 'original_objective' in cache:
         cache['original_objective'] = original_objective
     # upper and lower relax
-    U = 1e6
-    L = -1e6
-    variables_mapping = {}
+
     obj_terms = list()
     constraints = list()
     variables = list()
@@ -192,40 +193,58 @@ def room(model, reference=None, cache={}, volatile=True, delta=0.03, epsilon=0.0
 
             variables.append(var)
             obj_terms.append(var)
-            variables_mapping[var_id] = reaction
+
+            constraint_a_id = "c_%s_a" % rid
 
             w_u = flux_value + delta * abs(flux_value) + epsilon
-            expression = add([reaction.variable, mul([var, (w_u - U)])])
 
-            constraint_a = (model.solver.interface.Constraint(expression, ub=w_u, sloppy=True))
+            if not volatile and constraint_a_id in cache['constraints']:
+                constraint_a = cache['constraints'][constraint_a_id]
+                constraint_a._set_coefficients_low_level({var: -reaction.upper_bound + w_u})
+                constraint_a.ub = w_u
+            else:
+                expression = add([mul([RealNumber(-reaction.upper_bound + w_u), var]), reaction.variable])
+                constraint_a = (model.solver.interface.Constraint(expression, lb=w_u, sloppy=True))
+                if not volatile:
+                    cache['constrains'][constraint_a_id] = constraint_a
 
             w_l = flux_value - delta * abs(flux_value) - epsilon
-            expression = add([reaction.variable, mul([var, (w_l - L)])])
 
-            constraint_b = (model.solver.interface.Constraint(expression, lb=w_l, sloppy=True))
+            constraint_b_id = "c_%s_b" % rid
+
+            if not volatile and constraint_b_id in cache['constraints']:
+                constraint_b = cache['constraints'][constraint_b_id]
+                constraint_b._set_coefficients_low_level({var: -reaction.lower_bound + w_l})
+                constraint_b.lb = w_l
+            else:
+                expression = add([mul([RealNumber(-reaction.lower_bound + w_l), var]), reaction.variable])
+                constraint_b = (model.solver.interface.Constraint(expression, ub=w_l, sloppy=True))
+                if not volatile:
+                    cache['constraints'][constraint_b_id] = constraint_b
+
             constraints.extend([constraint_a, constraint_b])
 
         if volatile or cache['first_run']:
             for term in obj_terms:
                 model.solver._set_linear_objective_term(term, 1.)
             model.solver.objective.direction = 'min'
-            cache['first_run'] = False
 
-        for constraint in constraints:
-            model.solver._add_constraint(constraint, sloppy=True)
+            for constraint in constraints:
+                model.solver._add_constraint(constraint, sloppy=True)
+
+            cache['first_run'] = False
 
         try:
             solution = model.solve()
-
             return solution
         except SolveError as e:
             print "room could not determine an optimal solution for objective %s" % model.objective
             raise e
 
     finally:
-        model.solver._remove_constraints(constraints)
         if volatile:
             model.solver._remove_variables(variables)
+            model.solver._remove_constraints(constraints)
             model.objective = original_objective
 
 
@@ -274,7 +293,7 @@ def _cycle_free_flux(model, fluxes, fix=[]):
     return solution.x_dict
 
 
-def redo(model, cache):
+def reset_model(model, cache):
     model.solver._remove_variables(cache['variables'].values())
     model.objective = cache['original_objective']
     model.solver._remove_constraints(cache['constrains'].values())
@@ -287,7 +306,7 @@ if __name__ == '__main__':
     from cameo import load_model
 
     sbml_path = '../../tests/data/EcoliCore.xml'
-    # sbml_path = '../../tests/data/iJO1366.xml'
+    #sbml_path = '../../tests/data/iJO1366.xml'
 
     cb_model = read_sbml_model(sbml_path)
     model = load_model(sbml_path)
@@ -322,6 +341,21 @@ if __name__ == '__main__':
     print sum([abs(res[v] - ref[v]) for v in res.keys()])
     print "cameo lmoma runtime:", time.time() - tic
 
+    print "room"
+    tic = time.time()
+    solution = room(model, reference=ref)
+    res = solution.x_dict
+    i = 0
+    for rid, flux in res.iteritems():
+        if abs(flux) > 0:
+            i+=1
+    print i
+
+    print "flux distance:",
+    print sum([abs(res[v] - ref[v]) for v in res.keys()])
+    print "sum yi:", solution.f
+    print "cameo room runtime:", time.time() - tic
+
     print "lmoma w/ ko"
     tic = time.time()
     model.reactions.PGI.lower_bound = 0
@@ -331,5 +365,8 @@ if __name__ == '__main__':
     print "flux distance:",
     print sum([abs(res[v] - ref[v]) for v in res.keys()])
     print "cameo lmoma runtime:", time.time() - tic
+
+
+
 
     # print model.solver
