@@ -119,10 +119,8 @@ class TestSimulationMethods(unittest.TestCase):
         self.assertAlmostEqual(solution.f, 0.873921, delta=0.000001)
 
     def test_pfba(self):
-        fba_solution = iJO_MODEL_COBRAPY.optimize()
-        print fba_solution.x_dict
+        fba_solution = fba(iJO_MODEL)
         fba_flux_sum = sum((abs(val) for val in fba_solution.x_dict.values()))
-        print fba_flux_sum
         pfba_solution = pfba(iJO_MODEL)
         pfba_flux_sum = sum((abs(val) for val in pfba_solution.x_dict.values()))
         print pfba_flux_sum

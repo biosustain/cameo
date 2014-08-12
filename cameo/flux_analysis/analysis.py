@@ -302,13 +302,13 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
             self.model.objective.direction = 'min'
             try:
                 solution = self.model.solve().f
-            except UndefinedSolution:
+            except (Infeasible, UndefinedSolution):
                 solution = 0
             interval.append(solution)
             self.model.objective.direction = 'max'
             try:
                 solution = self.model.solve().f
-            except Infeasible:
+            except (Infeasible, UndefinedSolution):
                 solution = 0
             interval.append(solution)
         finally:
