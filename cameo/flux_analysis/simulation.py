@@ -194,25 +194,22 @@ def room(model, reference=None, cache={}, volatile=True, delta=0.03, epsilon=0.0
             obj_terms.append(var)
             variables_mapping[var_id] = reaction
 
-            constraint_a_id = "c_%r_a" % rid
             w_u = flux_value + delta * abs(flux_value) + epsilon
-            if not volatile and constraint_a_id in cache['constrains']:
-                constraint_a = cache['constrains'][constraint_a_id]
-
             expression = add([reaction.variable, mul([var, (w_u - U)])])
 
-            constraint_a = (model.solver.interface.Constraint(expression, ub=w_u))
+            constraint_a = (model.solver.interface.Constraint(expression, ub=w_u, sloppy=True))
 
             w_l = flux_value - delta * abs(flux_value) - epsilon
             expression = add([reaction.variable, mul([var, (w_l - L)])])
 
-            constraint_b = (model.solver.interface.Constraint(expression, lb=w_l))
-
+            constraint_b = (model.solver.interface.Constraint(expression, lb=w_l, sloppy=True))
             constraints.extend([constraint_a, constraint_b])
 
-        for term in obj_terms:
-            model.solver._set_linear_objective_term(term, 1.)
-        model.solver.objective.direction = 'min'
+        if volatile or cache['first_run']:
+            for term in obj_terms:
+                model.solver._set_linear_objective_term(term, 1.)
+            model.solver.objective.direction = 'min'
+            cache['first_run'] = False
 
         for constraint in constraints:
             model.solver._add_constraint(constraint, sloppy=True)
@@ -226,9 +223,11 @@ def room(model, reference=None, cache={}, volatile=True, delta=0.03, epsilon=0.0
             raise e
 
     finally:
-        model.solver._remove_variables(variables)
-        model.objective = original_objective
         model.solver._remove_constraints(constraints)
+        if volatile:
+            model.solver._remove_variables(variables)
+            model.objective = original_objective
+
 
 
 def _cycle_free_flux(model, fluxes, fix=[]):

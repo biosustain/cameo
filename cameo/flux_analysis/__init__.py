@@ -19,9 +19,11 @@ from cameo.util import TimeMachine
 
 
 def gene_knockout_growth(gene_id, model, threshold=10 ** -6, simulation_method=fba,
-                         normalize=True, *args, **kwargs):
-    s = model.solve()
-    biomass = s.f
+                         normalize=True, biomass=None, biomass_flux=None, *args, **kwargs):
+
+    if biomass_flux is None:
+        s = model.solve()
+        biomass_flux = s.solve
     if not 'reference' in kwargs:
         kwargs['reference'] = s.x_dict
     gene = model.genes.get_by_id(gene_id)
@@ -36,10 +38,10 @@ def gene_knockout_growth(gene_id, model, threshold=10 ** -6, simulation_method=f
 
     try:
         s = simulation_method(model, *args, **kwargs)
-        f = s.f
+        f = s.get_primal_by_id(biomass)
         if f >= threshold:
             if normalize:
-                f = f / biomass
+                f = f / biomass_flux
         else:
             f = 0
     except SolveError:

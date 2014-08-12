@@ -315,6 +315,7 @@ class KnockoutOptimization(HeuristicOptimization):
                                           ko_type=self._ko_type,
                                           decoder=self._decoder,
                                           product=kwargs.get('product', None),
+                                          biomass=kwargs.get('biomass', None),
                                           seed=self.seed,
                                           reference=self.wt_reference)
 
@@ -326,8 +327,8 @@ class KnockoutOptimizationResult(object):
         return a._merge(b)
 
     def __init__(self, model=None, heuristic_method=None, simulation_method=None, solutions=None,
-                 objective_function=None, ko_type=None, decoder=None, product=None, seed=None,
-                 reference=None, *args, **kwargs):
+                 objective_function=None, ko_type=None, decoder=None, product=None, biomass=None,
+                 seed=None, reference=None, *args, **kwargs):
         super(KnockoutOptimizationResult, self).__init__(*args, **kwargs)
         self.product = None
         self.seed = seed
@@ -349,6 +350,7 @@ class KnockoutOptimizationResult(object):
         return {
             'product': self.product,
             'model': self.model,
+            'biomass': self.biomass,
             'reference': self.reference,
             'simulation_method': self.simulation_method,
             'heuristic_method.__class__': self.heuristic_method.__class__,
@@ -376,6 +378,7 @@ class KnockoutOptimizationResult(object):
     def __setstate__(self, d):
         self.product = d['product']
         self.model = d['model']
+        self.biomass = d['biomass']
         self.simulation_method = d['simulation_method']
         self.seed = d['seed']
         self.reference = d['reference']
@@ -414,7 +417,8 @@ class KnockoutOptimizationResult(object):
                 simulation_result = self._simulate(decoded_solution[0])
                 size = len(decoded_solution[1])
 
-                biomass.append(simulation_result.f)
+                if self.biomass:
+                    biomass.append(simulation_result.get_primal_by_id(biomass))
                 fitness.append(solution.fitness)
                 knockouts.append(frozenset([v.id for v in decoded_solution[1]]))
                 sizes.append(size)
@@ -424,18 +428,14 @@ class KnockoutOptimizationResult(object):
                 elif not self.product is None:
                     products.append(simulation_result.get_primal_by_id(self.product))
 
-        if self.product is None:
-            data_frame = DataFrame({KNOCKOUTS: knockouts, BIOMASS: biomass, FITNESS: fitness, SIZE: sizes})
+        data_frame = DataFrame({KNOCKOUTS: knockouts, FITNESS: fitness, SIZE: sizes})
+        if not self.biomass is None:
+            data_frame[BIOMASS] = biomass
+        if isinstance(self.product, str):
+            data_frame[self.product] = products
         elif isinstance(self.product, (list, tuple)):
-            data = {KNOCKOUTS: knockouts, BIOMASS: biomass, FITNESS: fitness}
             for i in xrange(self.product):
-                data[self.product[i]] = products[i:]
-            data_frame = DataFrame(data)
-
-            data[SIZE] = sizes
-        else:
-            data_frame = DataFrame({KNOCKOUTS: knockouts, BIOMASS: biomass,
-                                    FITNESS: fitness, self.product: products, SIZE: sizes})
+                data_frame[self.product[i]] = products[i:]
 
         return data_frame
 
