@@ -574,9 +574,13 @@ class SolverBasedModel(Model):
             solution = self.optimize(*args, **kwargs)
             self.solver.configuration.presolve = False
             if solution.status is not 'optimal':
-                raise exceptions._OPTLANG_TO_EXCEPTIONS_DICT.get(solution.status, SolveError)(
+                status = solution.status
+                # GLPK 4.45 hack http://lists.gnu.org/archive/html/help-glpk/2013-09/msg00015.html
+                if status == 'undefined' and self.solver.interface.__name__ == 'optlang.glpk_interface' and self.solver.interface.glp_version() == '4.45':
+                    status = 'infeasible'
+                raise exceptions._OPTLANG_TO_EXCEPTIONS_DICT.get(status, SolveError)(
                     'Solving model %s did not return an optimal solution. The returned solution status is "%s"' % (
-                        self, solution.status))
+                        self, status))
             return solution
         else:
             return solution

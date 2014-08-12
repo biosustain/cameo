@@ -174,6 +174,8 @@ def _flux_variability_analysis(model, reactions=None):
             fva_sol[reaction.id]['lower_bound'] = solution.f
         except Unbounded:
             fva_sol[reaction.id]['lower_bound'] = -numpy.inf
+        except Infeasible:
+            fva_sol[reaction.id]['lower_bound'] = 0
     for reaction in reactions:
         model.objective = reaction
         model.objective.direction = 'max'
@@ -182,6 +184,8 @@ def _flux_variability_analysis(model, reactions=None):
             fva_sol[reaction.id]['upper_bound'] = solution.f
         except Unbounded:
             fva_sol[reaction.id]['upper_bound'] = numpy.inf
+        except Infeasible:
+            fva_sol[reaction.id]['lower_bound'] = 0
     model.objective = original_objective
     return pandas.DataFrame.from_dict(fva_sol, orient='index')
 
@@ -238,6 +242,8 @@ def _cycle_free_fva(model, reactions=None, sloppy=True):
                         fva_sol[reaction.id]['lower_bound'] = -numpy.inf
         except Unbounded:
             fva_sol[reaction.id]['lower_bound'] = -numpy.inf
+        except Infeasible:
+            fva_sol[reaction.id]['lower_bound'] = 0
         except Exception as e:
             print reaction.id
             raise e
@@ -270,10 +276,10 @@ def _cycle_free_fva(model, reactions=None, sloppy=True):
                     except Unbounded:
                         fva_sol[reaction.id]['upper_bound'] = numpy.inf
         except Unbounded:
-            print 'Problem unbounded'
             fva_sol[reaction.id]['upper_bound'] = numpy.inf
+        except Infeasible:
+            fva_sol[reaction.id]['upper_bound'] = 0
         except Exception as e:
-            print reaction.id
             raise e
             # print model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound
     model.objective = original_objective
@@ -302,13 +308,13 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
             self.model.objective.direction = 'min'
             try:
                 solution = self.model.solve().f
-            except (Infeasible, UndefinedSolution):
+            except Infeasible:
                 solution = 0
             interval.append(solution)
             self.model.objective.direction = 'max'
             try:
                 solution = self.model.solve().f
-            except (Infeasible, UndefinedSolution):
+            except Infeasible:
                 solution = 0
             interval.append(solution)
         finally:
