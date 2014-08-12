@@ -206,7 +206,7 @@ def room(model, reference=None, cache={}, volatile=True, delta=0.03, epsilon=0.0
                 expression = add([mul([RealNumber(-reaction.upper_bound + w_u), var]), reaction.variable])
                 constraint_a = (model.solver.interface.Constraint(expression, lb=w_u, sloppy=True))
                 if not volatile:
-                    cache['constrains'][constraint_a_id] = constraint_a
+                    cache['constraints'][constraint_a_id] = constraint_a
 
             w_l = flux_value - delta * abs(flux_value) - epsilon
 
@@ -296,7 +296,7 @@ def _cycle_free_flux(model, fluxes, fix=[]):
 def reset_model(model, cache):
     model.solver._remove_variables(cache['variables'].values())
     model.objective = cache['original_objective']
-    model.solver._remove_constraints(cache['constrains'].values())
+    model.solver._remove_constraints(cache['constraints'].values())
 
 
 if __name__ == '__main__':

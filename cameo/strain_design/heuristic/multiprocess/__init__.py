@@ -18,6 +18,7 @@ from cameo import util
 from cameo import config
 from cameo import parallel
 from cameo.flux_analysis.simulation import pfba
+from cameo.strain_design import StrainDesignMethod
 from cameo.strain_design.heuristic import ReactionKnockoutOptimization, GeneKnockoutOptimization, \
     KnockoutOptimizationResult
 from cameo.strain_design.heuristic.multiprocess.observers import IPythonNotebookMultiprocessProgressObserver, \
@@ -46,7 +47,7 @@ class MultiprocessRunner():
         return island.run(**self.run_kwargs)
 
 
-class MultiprocessHeuristicOptimization(object):
+class MultiprocessHeuristicOptimization(StrainDesignMethod):
     _island_class = None
 
     def __init__(self, model=None, objective_function=None, heuristic_method=inspyred.ec.GA, max_migrants=1, *args,

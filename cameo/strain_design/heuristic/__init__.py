@@ -176,6 +176,7 @@ class KnockoutEvaluator(object):
         time_machine = TimeMachine()
         cache = {
             'first_run': True,
+            'original_objective': self.model.objective,
             'variables': {},
             'constraints': {}
         }
