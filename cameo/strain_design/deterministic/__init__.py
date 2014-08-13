@@ -17,7 +17,7 @@ import logging
 from pandas import DataFrame
 from progressbar import ProgressBar
 from cameo import config, flux_variability_analysis
-from cameo.parallel import SequentialView
+from cameo.parallel import SequentialView, MultiprocessingView
 from cameo.strain_design import StrainDesignMethod
 from cameo.flux_analysis.analysis import phenotypic_phase_plane
 
@@ -64,8 +64,6 @@ class DifferentialFVA(StrainDesignMethod):
         self.normalize_fluxes_by = normalize_fluxes_by
 
     def _init_search_grid(self):
-
-        logger.info('Running DifferentialFVA initialization ...')
         self.envelope = phenotypic_phase_plane(
             self.design_space_model, self.variables, objective=self.target, points=self.points)
         intervals = self.envelope[['objective_lower_bound', 'objective_upper_bound']]
@@ -154,7 +152,8 @@ if __name__ == '__main__':
                               variables=['Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2',
                                          'EX_o2_LPAREN_e_RPAREN_'],
                               normalize_fluxes_by='Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2',
-                              points=2
+                              points=10
     )
-    result = diffFVA.run(view=SequentialView())
+    # result = diffFVA.run(view=SequentialView())
+    result = diffFVA.run(view=MultiprocessingView())
 
