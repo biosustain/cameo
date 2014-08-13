@@ -24,7 +24,7 @@ from cameo.strain_design.heuristic import generators
 from cameo.strain_design.heuristic import decoders
 from cameo.strain_design.heuristic import stats
 from cameo import config
-from cameo.flux_analysis.simulation import pfba, lmoma, moma, room, redo
+from cameo.flux_analysis.simulation import pfba, lmoma, moma, room, reset_model
 from cameo.strain_design.heuristic.plotters import GeneFrequencyPlotter
 from cameo.util import partition, TimeMachine
 from pandas import DataFrame
@@ -148,12 +148,17 @@ class HeuristicOptimization(object):
         raise NotImplementedError
 
     def run(self, view=config.default_view, **kwargs):
-        return self.heuristic_method.evolve(
-            generator=self._generator,
-            maximize=True,
-            view=view,
-            evaluator=self._evaluator,
-            **kwargs)
+        t = time.time()
+        print time.strftime("Starting optimization at %a, %d %b %Y %H:%M:%S", time.localtime(t))
+        res = self.heuristic_method.evolve(generator=self._generator,
+                                           maximize=True,
+                                           view=view,
+                                           evaluator=self._evaluator,
+                                           **kwargs)
+        runtime = time.time() - t
+        print time.strftime("Finished after %H:%M:%S", time.localtime(runtime))
+
+        return res
 
     def is_mo(self):
         return isinstance(self.objective_function, list)
@@ -171,11 +176,12 @@ class KnockoutEvaluator(object):
         time_machine = TimeMachine()
         cache = {
             'first_run': True,
+            'original_objective': self.model.objective,
             'variables': {},
-            'constrains': {}
+            'constraints': {}
         }
         res = [self.evaluate_individual(i, time_machine, cache) for i in population]
-        redo(self.model, cache)
+        reset_model(self.model, cache)
         return res
 
     def evaluate_individual(self, individual, tm, cache):
@@ -331,6 +337,7 @@ class KnockoutOptimizationResult(object):
                  seed=None, reference=None, *args, **kwargs):
         super(KnockoutOptimizationResult, self).__init__(*args, **kwargs)
         self.product = None
+        self.biomass = biomass
         self.seed = seed
         self.reference = reference
         if not product is None:
