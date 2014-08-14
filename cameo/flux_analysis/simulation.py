@@ -25,6 +25,7 @@ from sympy import Mul
 add = Add._from_args
 mul = Mul._from_args
 NegativeOne = sympy.singleton.S.NegativeOne
+One = sympy.singleton.S.One
 RealNumber = sympy.RealNumber
 
 def fba(model, objective=None, *args, **kwargs):
@@ -44,12 +45,13 @@ def fba(model, objective=None, *args, **kwargs):
 
 def pfba(model, objective=None, *args, **kwargs):
     tm = TimeMachine()
+    original_objective = model.objective.expression
     tm(do=partial(setattr, model, 'reversible_encoding', 'split'),
        undo=partial(setattr, model, 'reversible_encoding', model.reversible_encoding))
     try:
         if objective is not None:
             tm(do=partial(setattr, model, 'objective', objective),
-               undo=partial(setattr, model, 'objective', model.objective))
+               undo=partial(setattr, model, 'objective', original_objective))
         try:
             obj_val = model.solve().f
         except SolveError as e:
@@ -67,7 +69,7 @@ def pfba(model, objective=None, *args, **kwargs):
                                                     direction='min', sloppy=True)
         # tic = time.time()
         tm(do=partial(setattr, model, 'objective', pfba_obj),
-           undo=partial(setattr, model, 'objective', model.objective))
+           undo=partial(setattr, model, 'objective', original_objective))
         # print "obj: ", time.time() - tic
         try:
             solution = model.solve()
@@ -152,10 +154,7 @@ def lmoma(model, reference=None, cache={}, volatile=True, *args, **kwargs):
             for constraint in constraints:
                 model.solver._add_constraint(constraint, sloppy=True)
 
-            for variable in model.objective.variables:
-                model.solver._set_linear_objective_term(variable, 0.)
-            for term in obj_terms:
-                model.solver._set_linear_objective_term(term, 1.)
+            model.objective = model.solver.interface.Objective(add([mul([One, term]) for term in obj_terms]))
             model.solver.objective.direction = 'min'
             cache['first_run'] = False
 
@@ -165,6 +164,7 @@ def lmoma(model, reference=None, cache={}, volatile=True, *args, **kwargs):
         except SolveError as e:
             print "lmoma could not determine an optimal solution for objective %s" % model.objective
             raise e
+
     finally:
         if volatile:
             model.solver._remove_variables(variables)
@@ -173,12 +173,11 @@ def lmoma(model, reference=None, cache={}, volatile=True, *args, **kwargs):
 
 
 def room(model, reference=None, cache={}, volatile=True, delta=0.03, epsilon=0.001, *args, **kwargs):
-    original_objective = copy.copy(model.objective)
+    original_objective = model.objective.expression
     if not volatile and not 'original_objective' in cache:
         cache['original_objective'] = original_objective
     # upper and lower relax
 
-    obj_terms = list()
     constraints = list()
     variables = list()
     try:
@@ -194,7 +193,6 @@ def room(model, reference=None, cache={}, volatile=True, delta=0.03, epsilon=0.0
                     cache['variables'][var_id] = var
 
             variables.append(var)
-            obj_terms.append(var)
 
             constraint_a_id = "c_%s_a" % rid
 
@@ -205,8 +203,13 @@ def room(model, reference=None, cache={}, volatile=True, delta=0.03, epsilon=0.0
                 constraint_a._set_coefficients_low_level({var: -reaction.upper_bound + w_u})
                 constraint_a.ub = w_u
             else:
-                expression = add([mul([RealNumber(-reaction.upper_bound + w_u), var]), reaction.variable])
-                constraint_a = (model.solver.interface.Constraint(expression, lb=w_u, sloppy=True))
+
+                #vi - yi(vmaxi + w_ui) >= w_ui
+                expression = add([
+                    reaction.variable,
+                    mul([RealNumber(-reaction.upper_bound + w_u), var])])
+
+                constraint_a = (model.solver.interface.Constraint(expression, ub=w_u, sloppy=True))
                 if not volatile:
                     cache['constraints'][constraint_a_id] = constraint_a
 
@@ -219,16 +222,19 @@ def room(model, reference=None, cache={}, volatile=True, delta=0.03, epsilon=0.0
                 constraint_b._set_coefficients_low_level({var: -reaction.lower_bound + w_l})
                 constraint_b.lb = w_l
             else:
-                expression = add([mul([RealNumber(-reaction.lower_bound + w_l), var]), reaction.variable])
-                constraint_b = (model.solver.interface.Constraint(expression, ub=w_l, sloppy=True))
+                #vi - yi(vmini - w_li) <= w_li
+                expression = add([
+                    reaction.variable,
+                    mul([RealNumber(-reaction.lower_bound + w_l), var])])
+
+                constraint_b = (model.solver.interface.Constraint(expression, lb=w_l, sloppy=True))
                 if not volatile:
                     cache['constraints'][constraint_b_id] = constraint_b
 
             constraints.extend([constraint_a, constraint_b])
 
         if volatile or cache['first_run']:
-            for term in obj_terms:
-                model.solver._set_linear_objective_term(term, 1.)
+            model.objective = model.solver.interface.Objective(add([mul([One, term]) for term in variables]))
             model.solver.objective.direction = 'min'
 
             for constraint in constraints:
@@ -307,8 +313,8 @@ if __name__ == '__main__':
     from cobra.flux_analysis.parsimonious import optimize_minimal_flux
     from cameo import load_model
 
-    sbml_path = '../../tests/data/EcoliCore.xml'
-    #sbml_path = '../../tests/data/iJO1366.xml'
+    #sbml_path = '../../tests/data/EcoliCore.xml'
+    sbml_path = '../../tests/data/iJO1366.xml'
 
     cb_model = read_sbml_model(sbml_path)
     model = load_model(sbml_path)
@@ -347,11 +353,8 @@ if __name__ == '__main__':
     tic = time.time()
     solution = room(model, reference=ref)
     res = solution.x_dict
-    i = 0
-    for rid, flux in res.iteritems():
-        if abs(flux) > 0:
-            i+=1
-    print i
+    print sum([abs(res[v] - ref[v]) for v in res.keys()])
+    print "cameo room runtime:", time.time() - tic
 
     print "flux distance:",
     print sum([abs(res[v] - ref[v]) for v in res.keys()])

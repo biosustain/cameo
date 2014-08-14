@@ -474,6 +474,9 @@ class TestReactionKnockoutOptimization(unittest.TestCase):
         with open(result_file, 'r') as file:
             expected_results = pickle.load(file)
 
+        # with open(result_file, 'w') as file:
+        #     pickle.dump(results, file)
+
         assert_frame_equal(results.solutions, expected_results.solutions)
 
     def test_run_multiobjective(self):
@@ -496,7 +499,10 @@ class TestReactionKnockoutOptimization(unittest.TestCase):
 
         with open(result_file, 'r') as file:
             expected_results = pickle.load(file)
-        
+
+        # with open(result_file, 'w') as file:
+        #     pickle.dump(results, file)
+
         assert_frame_equal(results.solutions, expected_results.solutions)
 
     def test_evaluator(self):
