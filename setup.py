@@ -5,7 +5,7 @@
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+# http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,7 +15,6 @@
 
 
 from setuptools import setup, find_packages
-from cameo import __version__
 
 #with open('requirements.txt') as fhandle:
 #    requirements = [line.strip() for line in fhandle]
@@ -36,7 +35,7 @@ except (IOError, ImportError):
 
 setup(
     name='cameo',
-    version=__version__,
+    version='0.1.0',
     packages=find_packages(),
     install_requires=requirements,
     dependency_links=dependency_links,
