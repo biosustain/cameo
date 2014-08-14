@@ -87,7 +87,7 @@ def moma(model, reference=None, *args, **kwargs):
 
 
 def lmoma(model, reference=None, cache={}, volatile=True, *args, **kwargs):
-    original_objective = copy.copy(model.objective)
+    original_objective = model.objective.expression
     if not volatile and not 'original_objective' in cache:
         cache['original_objective'] = original_objective
     try:
@@ -152,6 +152,8 @@ def lmoma(model, reference=None, cache={}, volatile=True, *args, **kwargs):
             for constraint in constraints:
                 model.solver._add_constraint(constraint, sloppy=True)
 
+            for variable in model.objective.variables:
+                model.solver._set_linear_objective_term(variable, 0.)
             for term in obj_terms:
                 model.solver._set_linear_objective_term(term, 1.)
             model.solver.objective.direction = 'min'
