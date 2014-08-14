@@ -13,7 +13,7 @@
 # limitations under the License.
 
 
-__version__ = 'v0.0.0'
+__version__ = 'v0.1.0'
 
 try:
     from .io import load_model
