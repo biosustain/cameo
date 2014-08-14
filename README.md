@@ -5,16 +5,7 @@
 [![Gitter chat](https://badges.gitter.im/biosustain/cameo.png)](https://gitter.im/biosustain/cameo)
 
 ### Vision
-Provide a high-level python library to aid the strain design efforts of the CFB iLoop design group. The library provides a modular architecture that enables the efficient construction of custom analysis workflows.
-
-### Design
-
-**No more copying** making copies of models is expensive, stick to the [_command pattern_](http://en.wikipedia.org/wiki/Command_pattern) using TimeMachine (util.py)
-**Database**: no more flatfiles ...
-**Caching**: optimization results are cached
-**Parallelization**: parallelize algorithms
-**Long-running jobs**: hide paralellization
-**Wrap third party tools**: for example [fast-tFVA](http://bioinformatics.oxfordjournals.org/content/29/7/903)
+Provide a high-level python library to aid _in silico_ strain design process in metabolic engineering projects. The library provides a modular architecture that enables the efficient construction of custom analysis workflows.
 
 ### Dependencies
 This library dependes on

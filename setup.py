@@ -26,6 +26,13 @@ dependency_links = [
     'git+https://github.com/biosustain/ipython_notebook_utils.git@master#egg=ipython_notebook_utils'
 ]
 
+# from https://coderwall.com/p/qawuyq
+try:
+    import pypandoc
+
+    description = pypandoc.convert('README.md', 'rst')
+except (IOError, ImportError):
+    description = ''
 
 setup(
     name='cameo',
@@ -39,7 +46,7 @@ setup(
     license='Apache License Version 2.0',
     keywords='biology metabolism bioinformatics',
     url='TBD',
-    long_description=open('README.md').read(),
+    long_description=description,
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Topic :: Utilities',
