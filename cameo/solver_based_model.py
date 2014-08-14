@@ -219,8 +219,9 @@ class Reaction(OriginalReaction):
                 try:
                     aux_var = model.solver._add_variable(
                         model.solver.interface.Variable(self._get_reverse_id(), lb=0, ub=0))
-                except:
-                    pass
+                except Exception as e:
+                    print self
+                    print e
                 for met, coeff in self._metabolites.iteritems():
                     model.solver.constraints[met.id] += sympy.Mul._from_args((-1 * sympy.RealNumber(coeff), aux_var))
 
