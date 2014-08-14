@@ -425,7 +425,7 @@ class KnockoutOptimizationResult(object):
                 size = len(decoded_solution[1])
 
                 if self.biomass:
-                    biomass.append(simulation_result.get_primal_by_id(biomass))
+                    biomass.append(simulation_result.get_primal_by_id(self.biomass))
                 fitness.append(solution.fitness)
                 knockouts.append(frozenset([v.id for v in decoded_solution[1]]))
                 sizes.append(size)
@@ -477,7 +477,7 @@ class KnockoutOptimizationResult(object):
         model_id = self.model.id
         heuristic = self.heuristic_method.__class__.__name__
         of_string = "| ".join([o.name for o in self.objective_functions])
-        simulation = of_string, self.simulation_method.__name__
+        simulation = self.simulation_method.__name__
         solutions = self.solutions._repr_html_()
 
         results = template % (model_id, heuristic, of_string, simulation, self.ko_type)
