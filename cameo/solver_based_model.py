@@ -180,7 +180,7 @@ class Reaction(OriginalReaction):
             return None
 
     def _get_reverse_id(self):
-        return '_'.join((self.id, 'reverse', hashlib.md5(self.id).hexdigest()))
+        return '_'.join((self.id, 'reverse', hashlib.md5(self.id).hexdigest()[0:5]))
 
     @property
     def reverse_variable(self):
@@ -208,14 +208,10 @@ class Reaction(OriginalReaction):
     @lower_bound.setter
     def lower_bound(self, value):
         model = self.get_model()
-
         if model is not None:
-            # Remove auxiliary variable if not needed anymore
             if value >= 0 and self._lower_bound < 0 and self._upper_bound > 0:
-                model.solver._remove_variable(self.reverse_variable)
-
-            # Add auxiliary variable if needed
-            elif value < 0 and self._lower_bound >= 0:  # self._lower_bound >= 0 implies self._upper_bound >= 0
+                self.reverse_variable.lb, self.reverse_variable.ub = 0, 0
+            elif value < 0 and self._lower_bound >= 0 and self.reverse_variable is None:  # self._lower_bound >= 0 implies self._upper_bound >= 0
                 try:
                     aux_var = model.solver._add_variable(
                         model.solver.interface.Variable(self._get_reverse_id(), lb=0, ub=0))
@@ -224,9 +220,7 @@ class Reaction(OriginalReaction):
                     print e
                 for met, coeff in self._metabolites.iteritems():
                     model.solver.constraints[met.id] += sympy.Mul._from_args((-1 * sympy.RealNumber(coeff), aux_var))
-
-            # model.reversible_encoding == 'split' the lower_bound will be encoded by the auxiliary variable's upper bound
-            if model.reversible_encoding == 'split' and self.reverse_variable is not None:
+            if model.reversible_encoding == 'split' and value < 0:
                 try:
                     self.reverse_variable.ub = -1 * value
                 except ValueError:
@@ -238,11 +232,7 @@ class Reaction(OriginalReaction):
                 except ValueError:
                     self.variable.ub = value
                     self.variable.lb = value
-
-            self._lower_bound = value
-
-        else:
-            self._lower_bound = value
+        self._lower_bound = value
 
     @property
     def upper_bound(self):
@@ -257,10 +247,10 @@ class Reaction(OriginalReaction):
         if model is not None:
             # Remove auxiliary variable if not needed anymore
             if value < 0 and self._upper_bound > 0 and self._lower_bound < 0:
-                model.solver._remove_variable(self.reverse_variable)
+                self.reverse_variable.lb, self.reverse_variable.ub = 0, 0
 
             # Add auxiliary variable if needed
-            elif value > 0 and self._upper_bound < 0:  # self._upper_bound < 0 implies self._lower_bound < 0
+            elif value > 0 and self._upper_bound < 0 and self.reverse_variable is None:  # self._upper_bound < 0 implies self._lower_bound < 0
                 if model.reversible_encoding == 'split':
                     aux_var_ub = -1 * self._lower_bound
                 else:

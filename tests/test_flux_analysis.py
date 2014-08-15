@@ -37,7 +37,7 @@ iJO_MODEL_COBRAPY = load_model(os.path.join(TESTDIR, 'data/iJO1366.xml'), solver
 
 class TestFluxVariabilityAnalysis(unittest.TestCase):
     def setUp(self):
-        self.model = CORE_MODEL
+        self.model = CORE_MODEL.copy()
         self.biomass_flux = 0.873921
         self.model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = self.biomass_flux
 
@@ -59,6 +59,7 @@ class TestFluxVariabilityAnalysis(unittest.TestCase):
                 self.assertAlmostEqual(fva_solution['lower_bound'][key],
                                        REFERENCE_FVA_SOLUTION_ECOLI_CORE['lower_bound'][key], delta=0.000001)
             if abs(REFERENCE_FVA_SOLUTION_ECOLI_CORE['upper_bound'][key]) < 999993:
+                print key
                 self.assertAlmostEqual(fva_solution['upper_bound'][key],
                                        REFERENCE_FVA_SOLUTION_ECOLI_CORE['upper_bound'][key], delta=0.000001)
 
