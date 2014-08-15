@@ -17,7 +17,7 @@
 from setuptools import setup, find_packages
 
 # with open('requirements.txt') as fhandle:
-#    requirements = [line.strip() for line in fhandle]
+# requirements = [line.strip() for line in fhandle]
 
 requirements = ['numpy>=1.8.1',
                 'pyzmq>=14.3.1',
@@ -67,7 +67,6 @@ setup(
         'Programming Language :: Python :: 2.5',
         'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 2.8',
         'License :: OSI Approved :: Apache Software License'
     ],
 )
