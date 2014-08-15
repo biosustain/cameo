@@ -22,3 +22,9 @@ Furthermore, the following dependencies are needed:
 - [inspyred](https://pypi.python.org/pypi/inspyred) for evolutionary computations.
 
 Computationally heavy methods have been parallelized and can be run on a clusters using the IPython parallelization framework (see example and documentation for more details). The default fallback is python's multiprocessing library.
+
+### Installation
+Run
+    python setup.py install
+to install cameo. Installation is still a little bit shaky, so if it fails due to version mismatches, try to install the appropriate version manually and then retry `python setup.py install`. For example:
+pip install pytz==2013b --upgrade
