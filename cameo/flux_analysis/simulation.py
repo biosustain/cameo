@@ -296,7 +296,11 @@ def _cycle_free_flux(model, fluxes, fix=[]):
                   model.solver.interface.Objective(add(obj_terms), name='Flux minimization',
                                                    direction='min', sloppy=True)),
        undo=partial(setattr, model, 'objective', model.objective))
-    solution = model.optimize()
+    try:
+        solution = model.solve()
+    except SolveError as e:
+        print "Couldn't remove cycles from %s" % fluxes
+        raise e
     tm.reset()
     return solution.x_dict
 

@@ -55,7 +55,7 @@ def flux_variability_analysis(model, reactions=None, fraction_of_optimum=0., rem
                undo=partial(setattr, model, 'reversible_encoding', 'split'))
         if fraction_of_optimum > 0.:
             try:
-                obj_val = model.solve()
+                obj_val = model.solve().f
             except SolveError as e:
                 print "flux_variability_analyis was not able to determine an optimal solution for objective %s" % model.objective
                 raise e
@@ -203,21 +203,29 @@ def _cycle_free_fva(model, reactions=None, sloppy=True):
 
     Rer
     """
-    original_objective = copy(model.objective)
-    if reactions is None:
-        reactions = model.reactions
-    else:
-        reactions = _ids_to_reactions(model, reactions)
-    fva_sol = OrderedDict()
-    for reaction in reactions:
-        fva_sol[reaction.id] = dict()
-        try:
-            model.objective = reaction
-        except:
-            pass
-        model.objective.direction = 'min'
-        try:
-            solution = model.solve()
+    try:
+        original_objective = copy(model.objective)
+        if reactions is None:
+            reactions = model.reactions
+        else:
+            reactions = _ids_to_reactions(model, reactions)
+        fva_sol = OrderedDict()
+        for reaction in reactions:
+            fva_sol[reaction.id] = dict()
+            try:
+                model.objective = reaction
+            except:
+                pass
+            model.objective.direction = 'min'
+            try:
+                solution = model.solve()
+            except Unbounded:
+                fva_sol[reaction.id]['lower_bound'] = -numpy.inf
+            except Infeasible:
+                fva_sol[reaction.id]['lower_bound'] = 0
+            except Exception as e:
+                print reaction.id
+                raise e
             bound = solution.f
             if sloppy and bound > -100:
                 fva_sol[reaction.id]['lower_bound'] = bound
@@ -228,30 +236,32 @@ def _cycle_free_fva(model, reactions=None, sloppy=True):
                     fva_sol[reaction.id]['lower_bound'] = bound
                 else:
                     v2_one_cycle_fluxes = _cycle_free_flux(model, v0_fluxes, fix=[reaction.id])
-                    zero_in_v1_but_not_in_v2 = list()
-                    model_broken_cyle = copy(model)
+                    tm = TimeMachine()
                     for key, v1_flux in v1_cycle_free_fluxes.iteritems():
                         if v1_flux == 0 and v2_one_cycle_fluxes[key] != 0:
-                            knockout_reaction = model_broken_cyle.reactions.get_by_id(key)
-                            knockout_reaction.lower_bound = 0.
-                            knockout_reaction.upper_bound = 0.
-                    model_broken_cyle.objective.direction = 'min'
+                            knockout_reaction = model.reactions.get_by_id(key)
+                            tm(do=partial(setattr, knockout_reaction, 'lower_bound', 0.),
+                               undo=partial(setattr, knockout_reaction, 'lower_bound', knockout_reaction.lower_bound))
+                            tm(do=partial(setattr, knockout_reaction, 'upper_bound', 0.),
+                               undo=partial(setattr, knockout_reaction, 'upper_bound', knockout_reaction.lower_bound))
+                    model.objective.direction = 'min'
                     try:
-                        solution = model_broken_cyle.optimize()
+                        solution = model.optimize()
                     except Unbounded:
                         fva_sol[reaction.id]['lower_bound'] = -numpy.inf
-        except Unbounded:
-            fva_sol[reaction.id]['lower_bound'] = -numpy.inf
-        except Infeasible:
-            fva_sol[reaction.id]['lower_bound'] = 0
-        except Exception as e:
-            print reaction.id
-            raise e
-    for reaction in reactions:
-        model.objective = reaction
-        model.objective.direction = 'max'
-        try:
-            solution = model.solve()
+                    finally:
+                        tm.reset()
+        for reaction in reactions:
+            model.objective = reaction
+            model.objective.direction = 'max'
+            try:
+                solution = model.solve()
+            except Unbounded:
+                fva_sol[reaction.id]['upper_bound'] = numpy.inf
+            except Infeasible:
+                fva_sol[reaction.id]['upper_bound'] = 0
+            except Exception as e:
+                raise e
             bound = solution.f
             if sloppy and bound < 100:
                 fva_sol[reaction.id]['upper_bound'] = bound
@@ -263,27 +273,24 @@ def _cycle_free_fva(model, reactions=None, sloppy=True):
                     fva_sol[reaction.id]['upper_bound'] = v0_fluxes[reaction.id]
                 else:
                     v2_one_cycle_fluxes = _cycle_free_flux(model, v0_fluxes, fix=[reaction.id])
-                    model_broken_cyle = copy(model)
+                    tm = TimeMachine()
                     for key, v1_flux in v1_cycle_free_fluxes.iteritems():
                         if v1_flux == 0 and v2_one_cycle_fluxes[key] != 0:
-                            knockout_reaction = model_broken_cyle.reactions.get_by_id(key)
-                            knockout_reaction.lower_bound = 0.
-                            knockout_reaction.upper_bound = 0.
-                    model_broken_cyle.objective.direction = 'max'
+                            knockout_reaction = model.reactions.get_by_id(key)
+                            tm(do=partial(setattr, knockout_reaction, 'lower_bound', 0.),
+                               undo=partial(setattr, knockout_reaction, 'lower_bound', knockout_reaction.lower_bound))
+                            tm(do=partial(setattr, knockout_reaction, 'upper_bound', 0.),
+                               undo=partial(setattr, knockout_reaction, 'upper_bound', knockout_reaction.lower_bound))
+                    model.objective.direction = 'max'
                     try:
-                        solution = model_broken_cyle.solve()
-                        fva_sol[reaction.id]['upper_bound'] = solution.f
+                        solution = model.optimize()
                     except Unbounded:
                         fva_sol[reaction.id]['upper_bound'] = numpy.inf
-        except Unbounded:
-            fva_sol[reaction.id]['upper_bound'] = numpy.inf
-        except Infeasible:
-            fva_sol[reaction.id]['upper_bound'] = 0
-        except Exception as e:
-            raise e
-            # print model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound
-    model.objective = original_objective
-    fva_sol = pandas.DataFrame.from_dict(fva_sol, orient='index')
+                    finally:
+                        tm.reset()
+        fva_sol = pandas.DataFrame.from_dict(fva_sol, orient='index')
+    finally:
+        model.objective = original_objective
     return fva_sol
 
 
