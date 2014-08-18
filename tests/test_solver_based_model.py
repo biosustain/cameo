@@ -79,7 +79,9 @@ class TestReaction(unittest.TestCase):
     def test_setting_higher_bound_lower_than_lower_bound_sets_lower_bound_to_new_higher_bound(self):
         for reaction in self.model.reactions:
             self.assertTrue(reaction.lower_bound <= reaction.upper_bound)
+            print reaction.id, reaction.lower_bound, reaction.upper_bound
             reaction.upper_bound = reaction.lower_bound - 100
+            print reaction.id, reaction.lower_bound, reaction.upper_bound
             self.assertEqual(reaction.lower_bound, reaction.upper_bound)
 
 

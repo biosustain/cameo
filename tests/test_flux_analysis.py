@@ -111,7 +111,7 @@ class TestPhenotypicPhasePlane(unittest.TestCase):
 
 class TestSimulationMethods(unittest.TestCase):
     def setUp(self):
-        self.model = CORE_MODEL.copy()
+        self.model = CORE_MODEL
 
     def test_fba(self):
         solution = fba(self.model)
@@ -136,6 +136,7 @@ class TestSimulationMethods(unittest.TestCase):
         lmoma_solution = lmoma(self.model, reference=ref)
         res = lmoma_solution.x_dict
         distance = sum([abs(res[v] - ref[v]) for v in res.keys()])
+        print distance
         self.assertAlmostEqual(0, distance, delta=0.000001, msg="moma distance without knockouts must be 0")
 
 if __name__ == '__main__':

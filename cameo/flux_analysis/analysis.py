@@ -203,6 +203,7 @@ def _cycle_free_fva(model, reactions=None, sloppy=True):
 
     Rer
     """
+    cycle_count = 0
     try:
         original_objective = copy(model.objective)
         if reactions is None:
@@ -212,10 +213,7 @@ def _cycle_free_fva(model, reactions=None, sloppy=True):
         fva_sol = OrderedDict()
         for reaction in reactions:
             fva_sol[reaction.id] = dict()
-            try:
-                model.objective = reaction
-            except:
-                pass
+            model.objective = reaction
             model.objective.direction = 'min'
             try:
                 solution = model.solve()
@@ -235,6 +233,8 @@ def _cycle_free_fva(model, reactions=None, sloppy=True):
                 if abs(v1_cycle_free_fluxes[reaction.id] - bound) < 10 ** -6:
                     fva_sol[reaction.id]['lower_bound'] = bound
                 else:
+                    cycle_count += 1
+                    # print reaction.id
                     v2_one_cycle_fluxes = _cycle_free_flux(model, v0_fluxes, fix=[reaction.id])
                     tm = TimeMachine()
                     for key, v1_flux in v1_cycle_free_fluxes.iteritems():
@@ -246,9 +246,13 @@ def _cycle_free_fva(model, reactions=None, sloppy=True):
                                undo=partial(setattr, knockout_reaction, 'upper_bound', knockout_reaction.lower_bound))
                     model.objective.direction = 'min'
                     try:
-                        solution = model.optimize()
+                        solution = model.solve()
                     except Unbounded:
                         fva_sol[reaction.id]['lower_bound'] = -numpy.inf
+                    except Infeasible:
+                        fva_sol[reaction.id]['lower_bound'] = 0
+                    else:
+                        fva_sol[reaction.id]['lower_bound'] = solution.f
                     finally:
                         tm.reset()
         for reaction in reactions:
@@ -272,6 +276,8 @@ def _cycle_free_fva(model, reactions=None, sloppy=True):
                 if abs(v1_cycle_free_fluxes[reaction.id] - bound) < 10 ** -6:
                     fva_sol[reaction.id]['upper_bound'] = v0_fluxes[reaction.id]
                 else:
+                    cycle_count += 1
+                    # print 'a', reaction.id, cycle_count
                     v2_one_cycle_fluxes = _cycle_free_flux(model, v0_fluxes, fix=[reaction.id])
                     tm = TimeMachine()
                     for key, v1_flux in v1_cycle_free_fluxes.iteritems():
@@ -283,9 +289,13 @@ def _cycle_free_fva(model, reactions=None, sloppy=True):
                                undo=partial(setattr, knockout_reaction, 'upper_bound', knockout_reaction.lower_bound))
                     model.objective.direction = 'max'
                     try:
-                        solution = model.optimize()
+                        solution = model.solve()
                     except Unbounded:
                         fva_sol[reaction.id]['upper_bound'] = numpy.inf
+                    except Infeasible:
+                        fva_sol[reaction.id]['upper_bound'] = 0
+                    else:
+                        fva_sol[reaction.id]['upper_bound'] = solution.f
                     finally:
                         tm.reset()
         fva_sol = pandas.DataFrame.from_dict(fva_sol, orient='index')

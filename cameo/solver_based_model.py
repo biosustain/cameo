@@ -63,7 +63,6 @@ def to_solver_based_model(cobrapy_model, solver_interface=optlang):
         solver_interface=solver_interface, description=cobrapy_model)
     return solver_based_model
 
-
 class LazySolution(object):
     """This class implements a lazy evaluating version of the original cobrapy Solution class."""
 
@@ -179,6 +178,16 @@ class Reaction(OriginalReaction):
         else:
             return None
 
+    @property
+    def reversibility(self):
+        """This property removes the independence of the reversibility attribute and the reaction's
+        current upper and lower bounds.
+
+        reversibility is defined in the context of the current instantiation.
+
+        """
+        return self._lower_bound < 0 and self._upper_bound > 0
+
     def _get_reverse_id(self):
         return '_'.join((self.id, 'reverse', hashlib.md5(self.id).hexdigest()[0:5]))
 
@@ -198,7 +207,7 @@ class Reaction(OriginalReaction):
     def lower_bound(self):
         model = self.get_model()
         if model is not None:
-            if model.reversible_encoding == 'split' and self.reverse_variable is not None:
+            if model.reversible_encoding == 'split' and self.reversibility:
                 return -1 * self.reverse_variable.ub
             else:
                 return self.variable.lb
@@ -209,9 +218,10 @@ class Reaction(OriginalReaction):
     def lower_bound(self, value):
         model = self.get_model()
         if model is not None:
+            reverse_variable = self.reverse_variable
             if value >= 0 and self._lower_bound < 0 and self._upper_bound > 0:
-                self.reverse_variable.lb, self.reverse_variable.ub = 0, 0
-            elif value < 0 and self._lower_bound >= 0 and self.reverse_variable is None:  # self._lower_bound >= 0 implies self._upper_bound >= 0
+                reverse_variable.lb, reverse_variable.ub = 0, 0
+            elif value < 0 and self._lower_bound >= 0 and reverse_variable is None:  # self._lower_bound >= 0 implies self._upper_bound >= 0
                 try:
                     aux_var = model.solver._add_variable(
                         model.solver.interface.Variable(self._get_reverse_id(), lb=0, ub=0))
@@ -222,16 +232,17 @@ class Reaction(OriginalReaction):
                     model.solver.constraints[met.id] += sympy.Mul._from_args((-1 * sympy.RealNumber(coeff), aux_var))
             if model.reversible_encoding == 'split' and value < 0:
                 try:
-                    self.reverse_variable.ub = -1 * value
+                    reverse_variable.ub = -1 * value
                 except ValueError:
-                    self.reverse_variable.lb = -1 * value
-                    self.reverse_variable.ub = -1 * value
+                    reverse_variable.lb = -1 * value
+                    reverse_variable.ub = -1 * value
             else:
+                variable = self.variable
                 try:
-                    self.variable.lb = value
+                    variable.lb = value
                 except ValueError:
-                    self.variable.ub = value
-                    self.variable.lb = value
+                    variable.ub = value
+                    variable.lb = value
         self._lower_bound = value
 
     @property
@@ -246,11 +257,12 @@ class Reaction(OriginalReaction):
         model = self.get_model()
         if model is not None:
             # Remove auxiliary variable if not needed anymore
+            reverse_variable = self.reverse_variable
             if value < 0 and self._upper_bound > 0 and self._lower_bound < 0:
-                self.reverse_variable.lb, self.reverse_variable.ub = 0, 0
+                reverse_variable.lb, reverse_variable.ub = 0, 0
 
             # Add auxiliary variable if needed
-            elif value > 0 and self._upper_bound < 0 and self.reverse_variable is None:  # self._upper_bound < 0 implies self._lower_bound < 0
+            elif value > 0 and self._upper_bound < 0 and reverse_variable is None:  # self._upper_bound < 0 implies self._lower_bound < 0
                 if model.reversible_encoding == 'split':
                     aux_var_ub = -1 * self._lower_bound
                 else:
@@ -260,12 +272,13 @@ class Reaction(OriginalReaction):
                 for met, coeff in self._metabolites.iteritems():
                     model.solver.constraints[met.id] += sympy.Mul._from_args((-1 * sympy.RealNumber(coeff), aux_var))
 
+            variable = self.variable
             try:
-                self.variable.ub = value
+                variable.ub = value
             except ValueError:
                 # print 'value error.'
-                self.variable.lb = value
-                self.variable.ub = value
+                variable.lb = value
+                variable.ub = value
 
             self._upper_bound = value
         else:
