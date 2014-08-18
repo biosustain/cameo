@@ -180,12 +180,6 @@ class Reaction(OriginalReaction):
 
     @property
     def reversibility(self):
-        """This property removes the independence of the reversibility attribute and the reaction's
-        current upper and lower bounds.
-
-        reversibility is defined in the context of the current instantiation.
-
-        """
         return self._lower_bound < 0 and self._upper_bound > 0
 
     def _get_reverse_id(self):
@@ -217,27 +211,26 @@ class Reaction(OriginalReaction):
     @lower_bound.setter
     def lower_bound(self, value):
         model = self.get_model()
+
         if model is not None:
             reverse_variable = self.reverse_variable
+            variable = self.variable
             if value >= 0 and self._lower_bound < 0 and self._upper_bound > 0:
                 reverse_variable.lb, reverse_variable.ub = 0, 0
-            elif value < 0 and self._lower_bound >= 0 and reverse_variable is None:  # self._lower_bound >= 0 implies self._upper_bound >= 0
-                try:
-                    aux_var = model.solver._add_variable(
-                        model.solver.interface.Variable(self._get_reverse_id(), lb=0, ub=0))
-                except Exception as e:
-                    print self
-                    print e
+            elif value < 0 and self._lower_bound >= 0 and self._get_reverse_id() not in model.solver.variables:  # self._lower_bound >= 0 implies self._upper_bound >= 0
+                aux_var = model.solver._add_variable(
+                    model.solver.interface.Variable(self._get_reverse_id(), lb=0, ub=0))
                 for met, coeff in self._metabolites.iteritems():
                     model.solver.constraints[met.id] += sympy.Mul._from_args((-1 * sympy.RealNumber(coeff), aux_var))
-            if model.reversible_encoding == 'split' and value < 0:
+            if model.reversible_encoding == 'split' and value < 0 and self._upper_bound > 0:
+                if self._lower_bound > 0:
+                    variable.lb = 0
                 try:
                     reverse_variable.ub = -1 * value
                 except ValueError:
                     reverse_variable.lb = -1 * value
                     reverse_variable.ub = -1 * value
             else:
-                variable = self.variable
                 try:
                     variable.lb = value
                 except ValueError:
@@ -258,31 +251,31 @@ class Reaction(OriginalReaction):
         if model is not None:
             # Remove auxiliary variable if not needed anymore
             reverse_variable = self.reverse_variable
+            variable = self.variable
             if value < 0 and self._upper_bound > 0 and self._lower_bound < 0:
+                print 'yeah'
                 reverse_variable.lb, reverse_variable.ub = 0, 0
 
             # Add auxiliary variable if needed
-            elif value > 0 and self._upper_bound < 0 and reverse_variable is None:  # self._upper_bound < 0 implies self._lower_bound < 0
-                if model.reversible_encoding == 'split':
-                    aux_var_ub = -1 * self._lower_bound
-                else:
-                    aux_var_ub = 0
+            elif value > 0 and self._upper_bound < 0 and self._get_reverse_id() not in model.solver.variables:  # self._upper_bound < 0 implies self._lower_bound < 0
                 aux_var = model.solver._add_variable(
-                    model.solver.interface.Variable(self._get_reverse_id(), lb=0, ub=aux_var_ub))
+                    model.solver.interface.Variable(self._get_reverse_id(), lb=0, ub=0))
                 for met, coeff in self._metabolites.iteritems():
                     model.solver.constraints[met.id] += sympy.Mul._from_args((-1 * sympy.RealNumber(coeff), aux_var))
 
-            variable = self.variable
-            try:
+            if model.reversible_encoding == 'split' and value > 0 and self._lower_bound < 0:
                 variable.ub = value
-            except ValueError:
-                # print 'value error.'
-                variable.lb = value
-                variable.ub = value
+                if self._upper_bound < 0:
+                    reverse_variable.ub = -1 * variable.lb
+                    variable.lb = 0
+            else:
+                try:
+                    variable.ub = value
+                except ValueError:
+                    variable.lb = value
+                    variable.ub = value
 
-            self._upper_bound = value
-        else:
-            self._upper_bound = value
+        self._upper_bound = value
 
     @property
     def objective_coefficient(self):

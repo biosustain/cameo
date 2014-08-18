@@ -70,8 +70,57 @@ class TestReaction(unittest.TestCase):
             self.assertEqual(self.model.solver.variables[reaction.id].lb, 0)
             self.assertEqual(self.model.solver.variables[reaction.id].ub, 0)
 
+    def test_set_bounds_scenario_1(self):
+        model = self.model
+        acald_reaction = model.reactions.ACALD
+        self.assertEqual(acald_reaction.lower_bound, -999999.)
+        self.assertEqual(acald_reaction.upper_bound, 999999.)
+        self.assertEqual(acald_reaction.variable.lb, 0.)
+        self.assertEqual(acald_reaction.variable.ub, 999999.)
+        self.assertEqual(acald_reaction.reverse_variable.lb, 0)
+        self.assertEqual(acald_reaction.reverse_variable.ub, 999999.)
+        acald_reaction.upper_bound = acald_reaction.lower_bound - 100
+        self.assertEqual(acald_reaction.lower_bound, -1000099.0)
+        self.assertEqual(acald_reaction.upper_bound, -1000099.0)
+        self.assertEqual(acald_reaction.variable.lb, -1000099.0)
+        self.assertEqual(acald_reaction.variable.ub, -1000099.0)
+        self.assertEqual(acald_reaction.reverse_variable.lb, 0)
+        self.assertEqual(acald_reaction.reverse_variable.ub, 0)
+        acald_reaction.upper_bound = 100
+        self.assertEqual(acald_reaction.lower_bound, -1000099.0)
+        self.assertEqual(acald_reaction.upper_bound, 100)
+        self.assertEqual(acald_reaction.variable.lb, 0)
+        self.assertEqual(acald_reaction.variable.ub, 100)
+        self.assertEqual(acald_reaction.reverse_variable.lb, 0)
+        self.assertEqual(acald_reaction.reverse_variable.ub, 1000099.0)
+
+    def test_set_bounds_scenario_2(self):
+        model = self.model
+        acald_reaction = model.reactions.ACALD
+        self.assertEqual(acald_reaction.lower_bound, -999999.)
+        self.assertEqual(acald_reaction.upper_bound, 999999.)
+        self.assertEqual(acald_reaction.variable.lb, 0.)
+        self.assertEqual(acald_reaction.variable.ub, 999999.)
+        self.assertEqual(acald_reaction.reverse_variable.lb, 0)
+        self.assertEqual(acald_reaction.reverse_variable.ub, 999999.)
+        acald_reaction.lower_bound = acald_reaction.upper_bound + 100
+        self.assertEqual(acald_reaction.lower_bound, 1000099.0)
+        self.assertEqual(acald_reaction.upper_bound, 1000099.0)
+        self.assertEqual(acald_reaction.variable.lb, 1000099.0)
+        self.assertEqual(acald_reaction.variable.ub, 1000099.0)
+        self.assertEqual(acald_reaction.reverse_variable.lb, 0)
+        self.assertEqual(acald_reaction.reverse_variable.ub, 0)
+        acald_reaction.lower_bound = -100
+        self.assertEqual(acald_reaction.lower_bound, -100.)
+        self.assertEqual(acald_reaction.upper_bound, 1000099.)
+        self.assertEqual(acald_reaction.variable.lb, 0)
+        self.assertEqual(acald_reaction.variable.ub, 1000099.)
+        self.assertEqual(acald_reaction.reverse_variable.lb, 0)
+        self.assertEqual(acald_reaction.reverse_variable.ub, 100)
+
     def test_setting_lower_bound_higher_than_higher_bound_sets_higher_bound_to_new_lower_bound(self):
         for reaction in self.model.reactions:
+            print reaction.id
             self.assertTrue(reaction.lower_bound <= reaction.upper_bound)
             reaction.lower_bound = reaction.upper_bound + 100
             self.assertEqual(reaction.lower_bound, reaction.upper_bound)
