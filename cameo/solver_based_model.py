@@ -18,6 +18,7 @@ import hashlib
 import time
 from copy import deepcopy
 from cobra.core import Solution
+import datetime
 
 import optlang
 
@@ -77,9 +78,13 @@ class LazySolution(object):
 
     def _check_freshness(self):
         if self._time_stamp != self.model._timestamp_last_optimization:
+            timestamp_formatter = lambda timestamp: datetime.datetime.fromtimestamp(timestamp).strftime(
+                "%Y-%m-%d %H:%M:%S:%f")
             raise UndefinedSolution(
-                'The solution (capture around %s) has become invalid as the model has been re-optimized recently (%s).' % (
-                    time.ctime(self._time_stamp), time.ctime(self.model._timestamp_last_optimization)))
+                'The solution (captured around %s) has become invalid as the model has been re-optimized recently (%s).' % (
+                    timestamp_formatter(self._time_stamp),
+                    timestamp_formatter(self.model._timestamp_last_optimization))
+            )
 
     def as_cobrapy_solution(self):
         return Solution(self.f, x=self.x,
