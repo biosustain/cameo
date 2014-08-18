@@ -63,6 +63,7 @@ def to_solver_based_model(cobrapy_model, solver_interface=optlang):
         solver_interface=solver_interface, description=cobrapy_model)
     return solver_based_model
 
+
 class LazySolution(object):
     """This class implements a lazy evaluating version of the original cobrapy Solution class."""
 
@@ -253,7 +254,6 @@ class Reaction(OriginalReaction):
             reverse_variable = self.reverse_variable
             variable = self.variable
             if value < 0 and self._upper_bound > 0 and self._lower_bound < 0:
-                print 'yeah'
                 reverse_variable.lb, reverse_variable.ub = 0, 0
 
             # Add auxiliary variable if needed
