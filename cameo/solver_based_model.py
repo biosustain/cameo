@@ -328,7 +328,7 @@ class SolverBasedModel(Model):
             for reaction in gene.reactions:
                 model_reaction = self.reactions.get_by_id(reaction.id)
                 gene_reactions.append(model_reaction)
-            gene._reaction = frozenset(gene_reactions)
+            gene._reaction = set(gene_reactions)
         for metabolite in self.metabolites:
             metabolite._model = self
             metabolite_reactions = list()
