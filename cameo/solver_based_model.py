@@ -16,7 +16,7 @@ import csv
 import hashlib
 
 import time
-from copy import deepcopy
+from copy import copy, deepcopy
 from cobra.core import Solution
 import datetime
 
@@ -335,7 +335,7 @@ class SolverBasedModel(Model):
             for reaction in metabolite.reactions:
                 model_reaction = self.reactions.get_by_id(reaction.id)
                 metabolite_reactions.append(model_reaction)
-            metabolite._reaction = frozenset(metabolite_reactions)
+            metabolite._reaction = set(metabolite_reactions)
         self._solver = solver_interface.Model()
         self._populate_solver_from_scratch()
         self._reversible_encoding = 'split'
@@ -349,7 +349,10 @@ class SolverBasedModel(Model):
     def copy(self):
         """Needed for compatibility with cobrapy."""
         model_copy = super(SolverBasedModel, self).copy()
-        model_copy._solver = deepcopy(model_copy.solver)
+        try:
+            model_copy._solver = deepcopy(self.solver)
+        except:  # Cplex has an issue with deep copies
+            model_copy._solver = copy(self.solver)
         return model_copy
 
     def _repr_html_(self):
@@ -562,9 +565,13 @@ class SolverBasedModel(Model):
             if objective_formula != 0:
                 self.solver.objective = self.solver.interface.Objective(
                     objective_formula, direction={'minimize': 'min', 'maximize': 'max'}[objective_sense])
+        timestamp_formatter = lambda timestamp: datetime.datetime.fromtimestamp(timestamp).strftime(
+            "%Y-%m-%d %H:%M:%S:%f")
         self._timestamp_last_optimization = time.time()
+        print 'self._timestamp_last_optimization', timestamp_formatter(self._timestamp_last_optimization)
         self.solver.optimize()
         solution = solution_type(self)
+        print 'solution = solution_type(self)', timestamp_formatter(solution._time_stamp)
         self.solution = solution
         return solution
 
