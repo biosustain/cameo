@@ -221,6 +221,7 @@ class Reaction(OriginalReaction):
         if model is not None:
 
             if value >= 0 and self._lower_bound < 0 and self._upper_bound > 0:
+                reverse_variable = self.reverse_variable
                 reverse_variable.lb, reverse_variable.ub = 0, 0
             elif value < 0 and self._lower_bound >= 0 and self._get_reverse_id() not in model.solver.variables:  # self._lower_bound >= 0 implies self._upper_bound >= 0
                 aux_var = model.solver._add_variable(
