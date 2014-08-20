@@ -54,6 +54,8 @@ class TestFluxVariabilityAnalysis(unittest.TestCase):
 
     def test_flux_variability_sequential_remove_cycles(self):
         fva_solution = flux_variability_analysis(self.model, remove_cycles=True, view=SequentialView())
+        print fva_solution.min()
+        print fva_solution.max()
         for key in fva_solution.index:
             if abs(REFERENCE_FVA_SOLUTION_ECOLI_CORE['lower_bound'][key]) < 999993:
                 self.assertAlmostEqual(fva_solution['lower_bound'][key],

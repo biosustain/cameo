@@ -259,45 +259,55 @@ def _cycle_free_fva(model, reactions=None, sloppy=True):
             model.objective = reaction
             model.objective.direction = 'max'
             try:
+                print 'blorg'
                 solution = model.solve()
+                print solution._time_stamp, model._timestamp_last_optimization
             except Unbounded:
+                print 'Unbounded'
                 fva_sol[reaction.id]['upper_bound'] = numpy.inf
             except Infeasible:
+                print 'Infeasible'
                 fva_sol[reaction.id]['upper_bound'] = 0
             except Exception as e:
                 raise e
-            bound = solution.f
-            if sloppy and bound < 100:
-                fva_sol[reaction.id]['upper_bound'] = bound
             else:
-                v0_fluxes = solution.x_dict
-                v1_cycle_free_fluxes = _cycle_free_flux(model, v0_fluxes)
-
-                if abs(v1_cycle_free_fluxes[reaction.id] - bound) < 10 ** -6:
-                    fva_sol[reaction.id]['upper_bound'] = v0_fluxes[reaction.id]
+                bound = solution.f
+                if sloppy and bound < 100:
+                    fva_sol[reaction.id]['upper_bound'] = bound
                 else:
-                    cycle_count += 1
-                    # print 'a', reaction.id, cycle_count
-                    v2_one_cycle_fluxes = _cycle_free_flux(model, v0_fluxes, fix=[reaction.id])
-                    tm = TimeMachine()
-                    for key, v1_flux in v1_cycle_free_fluxes.iteritems():
-                        if v1_flux == 0 and v2_one_cycle_fluxes[key] != 0:
-                            knockout_reaction = model.reactions.get_by_id(key)
-                            tm(do=partial(setattr, knockout_reaction, 'lower_bound', 0.),
-                               undo=partial(setattr, knockout_reaction, 'lower_bound', knockout_reaction.lower_bound))
-                            tm(do=partial(setattr, knockout_reaction, 'upper_bound', 0.),
-                               undo=partial(setattr, knockout_reaction, 'upper_bound', knockout_reaction.lower_bound))
-                    model.objective.direction = 'max'
-                    try:
-                        solution = model.solve()
-                    except Unbounded:
-                        fva_sol[reaction.id]['upper_bound'] = numpy.inf
-                    except Infeasible:
-                        fva_sol[reaction.id]['upper_bound'] = 0
+                    print reaction.id
+                    v0_fluxes = solution.x_dict
+                    print 'v1_cycle_free_fluxes'
+                    v1_cycle_free_fluxes = _cycle_free_flux(model, v0_fluxes)
+
+                    if abs(v1_cycle_free_fluxes[reaction.id] - bound) < 10 ** -6:
+                        fva_sol[reaction.id]['upper_bound'] = v0_fluxes[reaction.id]
                     else:
-                        fva_sol[reaction.id]['upper_bound'] = solution.f
-                    finally:
-                        tm.reset()
+                        cycle_count += 1
+                        # print 'a', reaction.id, cycle_count
+                        v2_one_cycle_fluxes = _cycle_free_flux(model, v0_fluxes, fix=[reaction.id])
+                        print 'v2_one_cycle_fluxes'
+                        tm = TimeMachine()
+                        for key, v1_flux in v1_cycle_free_fluxes.iteritems():
+                            if v1_flux == 0 and v2_one_cycle_fluxes[key] != 0:
+                                knockout_reaction = model.reactions.get_by_id(key)
+                                tm(do=partial(setattr, knockout_reaction, 'lower_bound', 0.),
+                                   undo=partial(setattr, knockout_reaction, 'lower_bound',
+                                                knockout_reaction.lower_bound))
+                                tm(do=partial(setattr, knockout_reaction, 'upper_bound', 0.),
+                                   undo=partial(setattr, knockout_reaction, 'upper_bound',
+                                                knockout_reaction.lower_bound))
+                        model.objective.direction = 'max'
+                        try:
+                            solution = model.solve()
+                        except Unbounded:
+                            fva_sol[reaction.id]['upper_bound'] = numpy.inf
+                        except Infeasible:
+                            fva_sol[reaction.id]['upper_bound'] = 0
+                        else:
+                            fva_sol[reaction.id]['upper_bound'] = solution.f
+                        finally:
+                            tm.reset()
         fva_sol = pandas.DataFrame.from_dict(fva_sol, orient='index')
     finally:
         model.objective = original_objective
@@ -414,6 +424,8 @@ if __name__ == '__main__':
     from cameo.parallel import MultiprocessingView
 
     model = load_model('../../tests/data/EcoliCore.xml')
+    flux_variability_analysis(model, reactions=model.reactions, fraction_of_optimum=1., remove_cycles=True,
+                              view=SequentialView())
     # model.solver = 'cplex'
     view = MultiprocessingView()
     tic = time.time()

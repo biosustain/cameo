@@ -449,7 +449,7 @@ class SolverBasedModel(Model):
                 print e
                 raise
         objective_expression = sympy.Add._from_args(objective_terms)
-        self.solver.objective = self.solver.interface.Objective(objective_expression, direction='max')
+        self.solver.objective = self.solver.interface.Objective(objective_expression, name='obj', direction='max')
 
     @property
     def reversible_encoding(self):

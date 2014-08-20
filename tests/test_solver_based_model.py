@@ -8,7 +8,7 @@ import os
 from optlang import Objective
 from cameo import load_model
 from cameo.exceptions import UndefinedSolution
-from cameo.solver_based_model import Reaction
+from cameo.solver_based_model import Reaction, _SOLVER_INTERFACES
 from cobra.io import read_sbml_model
 
 
@@ -218,10 +218,23 @@ class TestSolverBasedModel(CommonGround):
         for key in solution.keys():
             self.assertAlmostEqual(new_solution.x_dict[key], solution[key])
 
+    @unittest.skipIf(not _SOLVER_INTERFACES.has_key('cplex'), "No cplex interface available")
+    def test_change_solver_to_cplex_and_check_copy_works(self):
+        # First, load model from scratch
+        model = load_model(os.path.join(TESTDIR, 'data/EcoliCore.xml'), solver_interface='cplex')
+        self.assertAlmostEqual(model.optimize().f, 0.8739215069684306)
+        model_copy = model.copy()
+        self.assertAlmostEqual(model_copy.optimize().f, 0.8739215069684306)
+        # Second, change existing glpk based model to cplex
+        self.model.solver = 'cplex'
+        self.assertAlmostEqual(self.model.optimize().f, 0.8739215069684306)
+        model_copy = copy.copy(self.model)
+        self.assertAlmostEqual(model_copy.optimize().f, 0.8739215069684306)
+
     def test_copy_preserves_existing_solution(self):
         model_cp = copy.copy(self.model)
-        primals_original = [variable.primal for variable in self.model.solver.variables.values()]
-        primals_copy = [variable.primal for variable in model_cp.solver.variables.values()]
+        primals_original = [variable.primal for variable in self.model.solver.variables]
+        primals_copy = [variable.primal for variable in model_cp.solver.variables]
         self.assertEqual(primals_copy, primals_original)
 
     def test_essential_genes(self):

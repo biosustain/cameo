@@ -28,6 +28,7 @@ NegativeOne = sympy.singleton.S.NegativeOne
 One = sympy.singleton.S.One
 RealNumber = sympy.RealNumber
 
+
 def fba(model, objective=None, *args, **kwargs):
     """Perform flux balance analysis."""
     tm = TimeMachine()
@@ -136,7 +137,6 @@ def lmoma(model, reference=None, cache={}, volatile=True, *args, **kwargs):
                 if not volatile:
                     cache['constraints'][constraint_a_id] = constraint_a
 
-
             constraint_b_id = "c_%s_b" % rid
             if not volatile and constraint_b_id in cache['constraints']:
                 constraint_b = cache['constraints'][constraint_b_id]
@@ -204,7 +204,7 @@ def room(model, reference=None, cache={}, volatile=True, delta=0.03, epsilon=0.0
                 constraint_a.ub = w_u
             else:
 
-                #vi - yi(vmaxi + w_ui) >= w_ui
+                # vi - yi(vmaxi + w_ui) >= w_ui
                 expression = add([
                     reaction.variable,
                     mul([RealNumber(-reaction.upper_bound + w_u), var])])
@@ -222,7 +222,7 @@ def room(model, reference=None, cache={}, volatile=True, delta=0.03, epsilon=0.0
                 constraint_b._set_coefficients_low_level({var: -reaction.lower_bound + w_l})
                 constraint_b.lb = w_l
             else:
-                #vi - yi(vmini - w_li) <= w_li
+                # vi - yi(vmini - w_li) <= w_li
                 expression = add([
                     reaction.variable,
                     mul([RealNumber(-reaction.lower_bound + w_l), var])])
@@ -254,7 +254,6 @@ def room(model, reference=None, cache={}, volatile=True, delta=0.03, epsilon=0.0
             model.solver._remove_variables(variables)
             model.solver._remove_constraints(constraints)
             model.objective = original_objective
-
 
 
 def _cycle_free_flux(model, fluxes, fix=[]):
@@ -305,15 +304,19 @@ def _cycle_free_flux(model, fluxes, fix=[]):
            undo=partial(setattr, model, 'objective', model.objective))
         # print 'blub', time.time() - tic
         try:
+            model.solver.configuration.verbosity = 3
             solution = model.solve()
+            model.solver.configuration.verbosity = 0
         except SolveError as e:
             print "Couldn't remove cycles from reference flux distribution."
             raise e
+        print 'returning'
+        return solution.x_dict
     finally:
         # tic = time.time()
+        print 'resetting'
         tm.reset()
         # print 'reset', time.time() - tic
-    return solution.x_dict
 
 
 def reset_model(model, cache):
@@ -328,7 +331,7 @@ if __name__ == '__main__':
     from cobra.flux_analysis.parsimonious import optimize_minimal_flux
     from cameo import load_model
 
-    #sbml_path = '../../tests/data/EcoliCore.xml'
+    # sbml_path = '../../tests/data/EcoliCore.xml'
     sbml_path = '../../tests/data/iJO1366.xml'
 
     cb_model = read_sbml_model(sbml_path)
