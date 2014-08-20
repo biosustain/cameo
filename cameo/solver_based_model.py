@@ -219,8 +219,7 @@ class Reaction(OriginalReaction):
         model = self.get_model()
 
         if model is not None:
-            reverse_variable = self.reverse_variable
-            variable = self.variable
+
             if value >= 0 and self._lower_bound < 0 and self._upper_bound > 0:
                 reverse_variable.lb, reverse_variable.ub = 0, 0
             elif value < 0 and self._lower_bound >= 0 and self._get_reverse_id() not in model.solver.variables:  # self._lower_bound >= 0 implies self._upper_bound >= 0
@@ -228,6 +227,10 @@ class Reaction(OriginalReaction):
                     model.solver.interface.Variable(self._get_reverse_id(), lb=0, ub=0))
                 for met, coeff in self._metabolites.iteritems():
                     model.solver.constraints[met.id] += sympy.Mul._from_args((-1 * sympy.RealNumber(coeff), aux_var))
+
+            variable = self.variable
+            reverse_variable = self.reverse_variable
+
             if model.reversible_encoding == 'split' and value < 0 and self._upper_bound > 0:
                 if self._lower_bound > 0:
                     variable.lb = 0
