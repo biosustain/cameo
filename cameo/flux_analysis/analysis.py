@@ -234,7 +234,6 @@ def _cycle_free_fva(model, reactions=None, sloppy=True):
                     fva_sol[reaction.id]['lower_bound'] = bound
                 else:
                     cycle_count += 1
-                    # print reaction.id
                     v2_one_cycle_fluxes = _cycle_free_flux(model, v0_fluxes, fix=[reaction.id])
                     tm = TimeMachine()
                     for key, v1_flux in v1_cycle_free_fluxes.iteritems():
@@ -259,14 +258,10 @@ def _cycle_free_fva(model, reactions=None, sloppy=True):
             model.objective = reaction
             model.objective.direction = 'max'
             try:
-                print 'blorg'
                 solution = model.solve()
-                print solution._time_stamp, model._timestamp_last_optimization
             except Unbounded:
-                print 'Unbounded'
                 fva_sol[reaction.id]['upper_bound'] = numpy.inf
             except Infeasible:
-                print 'Infeasible'
                 fva_sol[reaction.id]['upper_bound'] = 0
             except Exception as e:
                 raise e
@@ -275,18 +270,14 @@ def _cycle_free_fva(model, reactions=None, sloppy=True):
                 if sloppy and bound < 100:
                     fva_sol[reaction.id]['upper_bound'] = bound
                 else:
-                    print reaction.id
                     v0_fluxes = solution.x_dict
-                    print 'v1_cycle_free_fluxes'
                     v1_cycle_free_fluxes = _cycle_free_flux(model, v0_fluxes)
 
                     if abs(v1_cycle_free_fluxes[reaction.id] - bound) < 10 ** -6:
                         fva_sol[reaction.id]['upper_bound'] = v0_fluxes[reaction.id]
                     else:
                         cycle_count += 1
-                        # print 'a', reaction.id, cycle_count
                         v2_one_cycle_fluxes = _cycle_free_flux(model, v0_fluxes, fix=[reaction.id])
-                        print 'v2_one_cycle_fluxes'
                         tm = TimeMachine()
                         for key, v1_flux in v1_cycle_free_fluxes.iteritems():
                             if v1_flux == 0 and v2_one_cycle_fluxes[key] != 0:
@@ -405,7 +396,7 @@ def reaction_component_production(model, reaction):
     for metabolite in reaction.metabolites:
         test = Reaction("EX_%s_temp" % metabolite.id)
         test._metabolites[metabolite] = -1
-        #hack frozen set from cobrapy to be able to add a reaction
+        # hack frozen set from cobrapy to be able to add a reaction
         metabolite._reaction = set(metabolite._reaction)
         tm(do=partial(model.add_reactions, [test]), undo=partial(model.remove_reactions, [test]))
         tm(do=partial(setattr, model, 'objective', test.id), undo=partial(setattr, model, 'objective', model.objective))
@@ -415,7 +406,6 @@ def reaction_component_production(model, reaction):
             print metabolite, " cannot be produced (reactions: %s)" % metabolite.reactions
         finally:
             tm.reset()
-
 
 
 if __name__ == '__main__':

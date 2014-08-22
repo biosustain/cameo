@@ -310,11 +310,11 @@ def _cycle_free_flux(model, fluxes, fix=[]):
         except SolveError as e:
             print "Couldn't remove cycles from reference flux distribution."
             raise e
-        print 'returning'
+        # print 'returning'
         return solution.x_dict
     finally:
         # tic = time.time()
-        print 'resetting'
+        # print 'resetting'
         tm.reset()
         # print 'reset', time.time() - tic
 
