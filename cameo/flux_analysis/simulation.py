@@ -304,9 +304,9 @@ def _cycle_free_flux(model, fluxes, fix=[]):
            undo=partial(setattr, model, 'objective', model.objective))
         # print 'blub', time.time() - tic
         try:
-            model.solver.configuration.verbosity = 3
+            # model.solver.configuration.verbosity = 3
             solution = model.solve()
-            model.solver.configuration.verbosity = 0
+            # model.solver.configuration.verbosity = 0
         except SolveError as e:
             print "Couldn't remove cycles from reference flux distribution."
             raise e
