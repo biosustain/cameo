@@ -37,7 +37,7 @@ iJO_MODEL_COBRAPY = load_model(os.path.join(TESTDIR, 'data/iJO1366.xml'), solver
 
 class TestFluxVariabilityAnalysis(unittest.TestCase):
     def setUp(self):
-        self.model = CORE_MODEL
+        self.model = CORE_MODEL.copy()
         self.biomass_flux = 0.873921
         self.model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = self.biomass_flux
 
@@ -54,11 +54,14 @@ class TestFluxVariabilityAnalysis(unittest.TestCase):
 
     def test_flux_variability_sequential_remove_cycles(self):
         fva_solution = flux_variability_analysis(self.model, remove_cycles=True, view=SequentialView())
+        print fva_solution.min()
+        print fva_solution.max()
         for key in fva_solution.index:
             if abs(REFERENCE_FVA_SOLUTION_ECOLI_CORE['lower_bound'][key]) < 999993:
                 self.assertAlmostEqual(fva_solution['lower_bound'][key],
                                        REFERENCE_FVA_SOLUTION_ECOLI_CORE['lower_bound'][key], delta=0.000001)
             if abs(REFERENCE_FVA_SOLUTION_ECOLI_CORE['upper_bound'][key]) < 999993:
+                print key
                 self.assertAlmostEqual(fva_solution['upper_bound'][key],
                                        REFERENCE_FVA_SOLUTION_ECOLI_CORE['upper_bound'][key], delta=0.000001)
 
@@ -110,7 +113,7 @@ class TestPhenotypicPhasePlane(unittest.TestCase):
 
 class TestSimulationMethods(unittest.TestCase):
     def setUp(self):
-        self.model = CORE_MODEL.copy()
+        self.model = CORE_MODEL
 
     def test_fba(self):
         solution = fba(self.model)
@@ -135,6 +138,7 @@ class TestSimulationMethods(unittest.TestCase):
         lmoma_solution = lmoma(self.model, reference=ref)
         res = lmoma_solution.x_dict
         distance = sum([abs(res[v] - ref[v]) for v in res.keys()])
+        print distance
         self.assertAlmostEqual(0, distance, delta=0.000001, msg="moma distance without knockouts must be 0")
 
 if __name__ == '__main__':
