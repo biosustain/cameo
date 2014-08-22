@@ -197,6 +197,9 @@ class TestSolverBasedModel(CommonGround):
             demand_reaction = self.model.add_demand(metabolite, prefix="DemandReaction_")
             self.assertEqual(self.model.reactions.get_by_id(demand_reaction.id), demand_reaction)
             self.assertEqual(demand_reaction.reactants, [metabolite])
+            self.assertTrue(
+                self.model.solver.variables["DemandReaction_" + metabolite.id] in self.model.solver.constraints[
+                    metabolite.id].expression)
 
     def test_objective(self):
         obj = self.model.objective

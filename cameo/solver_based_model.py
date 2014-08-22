@@ -40,6 +40,11 @@ from pandas import Series, DataFrame, pandas
 
 from functools import partial
 
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 _SOLVER_INTERFACES = {}
 
 try:
@@ -501,12 +506,11 @@ class SolverBasedModel(Model):
 
             metabolite_coeff_dict = reaction.metabolites
             for metabolite, coeff in metabolite_coeff_dict.iteritems():
-                # if self.solver.constraints.has_key(metabolite.id):
                 if constr_terms.has_key(metabolite.id):
                     constr_terms[metabolite.id].append(
                         sympy.Mul._from_args([sympy.RealNumber(coeff), reaction_variable]))
                 else:
-                    constr_terms[metabolite.id] = list()
+                    constr_terms[metabolite.id] = [sympy.Mul._from_args([sympy.RealNumber(coeff), reaction_variable])]
 
         for met_id, terms in constr_terms.iteritems():
             try:
@@ -514,8 +518,9 @@ class SolverBasedModel(Model):
                 metabolite_constraint += sympy.Add._from_args(terms)
             except KeyError:  # cannot override add_metabolites here as it is not used by cobrapy in add_reactions
                 self.solver._add_constraint(
-                    self.solver.interface.Constraint(S.Zero, lb=0, ub=0, name=met_id, sloppy=True),
-                    sloppy=True)  # TODO: 1 will not work ...
+                    self.solver.interface.Constraint(sympy.Add._from_args(terms), lb=0, ub=0, name=met_id, sloppy=True),
+                    sloppy=True)
+
         super(SolverBasedModel, self).add_reactions(cloned_reaction_list)
 
     def remove_reactions(self, the_reactions):
@@ -572,10 +577,10 @@ class SolverBasedModel(Model):
         timestamp_formatter = lambda timestamp: datetime.datetime.fromtimestamp(timestamp).strftime(
             "%Y-%m-%d %H:%M:%S:%f")
         self._timestamp_last_optimization = time.time()
-        print 'self._timestamp_last_optimization', timestamp_formatter(self._timestamp_last_optimization)
+        logger.debug('self._timestamp_last_optimization ' + timestamp_formatter(self._timestamp_last_optimization))
         self.solver.optimize()
         solution = solution_type(self)
-        print 'solution = solution_type(self)', timestamp_formatter(solution._time_stamp)
+        logger.debug('solution = solution_type(self) ' + timestamp_formatter(solution._time_stamp))
         self.solution = solution
         return solution
 
