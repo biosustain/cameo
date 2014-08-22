@@ -155,8 +155,7 @@ class LazySolution(object):
         return self.y_dict
 
     def get_primal_by_id(self, reaction_id):
-        self._check_freshness()
-        return self.model.reactions.get_by_id(reaction_id).variable.primal
+        return self.x_dict[reaction_id]
 
 
 class Reaction(OriginalReaction):
