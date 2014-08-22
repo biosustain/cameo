@@ -303,21 +303,21 @@ class Reaction(OriginalReaction):
 
         self._objective_coefficient = value
 
-    # FIXME: _flux_variability_analysis returns a pandas dataframe now
     @property
     def effective_lower_bound(self):
         model = self.get_model()
         return \
-        flux_variability_analysis(model, reactions=[self], view=SequentialView(), remove_cycles=False)['lower_bound'][
-            self.id]
+            flux_variability_analysis(model, reactions=[self], view=SequentialView(), remove_cycles=False)[
+                'lower_bound'][
+                self.id]
 
-    # FIXME: _flux_variability_analysis returns a pandas dataframe now
     @property
     def effective_upper_bound(self):
         model = self.get_model()
         return \
-        flux_variability_analysis(model, reactions=[self], view=SequentialView(), remove_cycles=False)['upper_bound'][
-            self.id]
+            flux_variability_analysis(model, reactions=[self], view=SequentialView(), remove_cycles=False)[
+                'upper_bound'][
+                self.id]
 
 
 class SolverBasedModel(Model):
