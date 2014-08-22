@@ -495,6 +495,8 @@ class SolverBasedModel(Model):
             else:
                 cloned_reaction_list.append(reaction)
         constr_terms = dict()
+        metabolites_to_add = set()
+
         super(SolverBasedModel, self).add_reactions(cloned_reaction_list)
         for reaction in cloned_reaction_list:
 
@@ -508,22 +510,21 @@ class SolverBasedModel(Model):
             self.solver._add_variable(reaction_variable)
 
             for metabolite, coeff in reaction.metabolites.iteritems():
-                if not constr_terms.has_key(metabolite.id):
+                if not metabolite.id in constr_terms:
                     constr_terms[metabolite.id] = list()
+                if not metabolite.id in self.solver.constraints:
+                    metabolites_to_add.add(metabolite)
+
                 constr_terms[metabolite.id].append(sympy.Mul._from_args([sympy.RealNumber(coeff), reaction_variable]))
                 if reaction.lower_bound < 0 and reaction.upper_bound > 0 and self._reversible_encoding == "split":
                     constr_terms[metabolite.id].append(
                         sympy.Mul._from_args([sympy.RealNumber(-coeff), aux_var]))
 
-        for met_id, terms in constr_terms.iteritems():
-            try:
-                metabolite_constraint = self.solver.constraints[met_id]
-                metabolite_constraint += sympy.Add._from_args(terms)
+        self.add_metabolites(metabolites_to_add)
 
-            except KeyError:  # cannot override add_metabolites here as it is not used by cobrapy in add_reactions
-                self.solver._add_constraint(
-                    self.solver.interface.Constraint(S.Zero, lb=0, ub=0, name=met_id, sloppy=True),
-                    sloppy=True) # TODO: 1 will not work ...
+        for met_id, terms in constr_terms.iteritems():
+            metabolite_constraint = self.solver.constraints[met_id]
+            metabolite_constraint += sympy.Add._from_args(terms)
 
     def remove_reactions(self, the_reactions):
         for reaction in the_reactions:

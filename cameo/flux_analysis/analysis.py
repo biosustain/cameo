@@ -404,9 +404,7 @@ def reaction_component_production(model, reaction):
     tm = TimeMachine()
     for metabolite in reaction.metabolites:
         test = Reaction("EX_%s_temp" % metabolite.id)
-        test._metabolites[metabolite] = -1
-        #hack frozen set from cobrapy to be able to add a reaction
-        metabolite._reaction = set(metabolite._reaction)
+        test.add_metabolites({metabolite: -1}, add_to_container_model=False)
         tm(do=partial(model.add_reactions, [test]), undo=partial(model.remove_reactions, [test]))
         tm(do=partial(setattr, model, 'objective', test.id), undo=partial(setattr, model, 'objective', model.objective))
         try:
