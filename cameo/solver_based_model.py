@@ -25,7 +25,8 @@ import optlang
 from cameo.util import TimeMachine
 from cameo import exceptions
 from cameo.exceptions import SolveError, Infeasible, UndefinedSolution
-from cameo.flux_analysis.analysis import _flux_variability_analysis
+from cameo.parallel import SequentialView
+from cameo.flux_analysis.analysis import flux_variability_analysis
 
 from cobra.core.Reaction import Reaction as OriginalReaction
 from cobra.core.Model import Model
@@ -307,13 +308,17 @@ class Reaction(OriginalReaction):
     @property
     def effective_lower_bound(self):
         model = self.get_model()
-        return _flux_variability_analysis(model, reactions=[self])[self.id]['minimum']
+        return \
+        flux_variability_analysis(model, reactions=[self], view=SequentialView(), remove_cycles=False)['lower_bound'][
+            self.id]
 
     # FIXME: _flux_variability_analysis returns a pandas dataframe now
     @property
     def effective_upper_bound(self):
         model = self.get_model()
-        return _flux_variability_analysis(model, reactions=[self])[self.id]['maximum']
+        return \
+        flux_variability_analysis(model, reactions=[self], view=SequentialView(), remove_cycles=False)['upper_bound'][
+            self.id]
 
 
 class SolverBasedModel(Model):

@@ -10,9 +10,11 @@ from cameo import load_model
 from cameo.exceptions import UndefinedSolution
 from cameo.solver_based_model import Reaction, _SOLVER_INTERFACES
 from cobra.io import read_sbml_model
-
+import pandas
 
 TESTDIR = os.path.dirname(__file__)
+REFERENCE_FVA_SOLUTION_ECOLI_CORE = pandas.read_csv(os.path.join(TESTDIR, 'data/REFERENCE_flux_ranges_EcoliCore.csv'),
+                                                    index_col=0)
 TESTMODEL = load_model(os.path.join(TESTDIR, 'data/EcoliCore.xml'))
 COBRAPYTESTMODEL = read_sbml_model(os.path.join(TESTDIR, 'data/EcoliCore.xml'))
 ESSENTIAL_GENES = ['b2779', 'b1779', 'b0720', 'b0451', 'b2416', 'b2926', 'b1136', 'b2415']
@@ -248,6 +250,14 @@ class TestSolverBasedModel(CommonGround):
     def test_essential_reactions(self):
         essential_reactions = [r.id for r in self.model.essential_reactions()]
         self.assertItemsEqual(essential_reactions, ESSENTIAL_REACTIONS)
+
+    def test_effective_bounds(self):
+        self.model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = 0.873921
+        for reaction in self.model.reactions:
+            self.assertAlmostEqual(reaction.effective_lower_bound,
+                                   REFERENCE_FVA_SOLUTION_ECOLI_CORE['lower_bound'][reaction.id], delta=0.000001)
+            self.assertAlmostEqual(reaction.effective_upper_bound,
+                                   REFERENCE_FVA_SOLUTION_ECOLI_CORE['upper_bound'][reaction.id], delta=0.000001)
 
 
 if __name__ == '__main__':
