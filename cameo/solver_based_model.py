@@ -328,6 +328,7 @@ class SolverBasedModel(Model):
 
     def __init__(self, solver_interface=optlang, description=None, **kwargs):
         super(SolverBasedModel, self).__init__(description, **kwargs)
+        self._reversible_encoding = 'split'
         cleaned_reactions = DictList()
         for reaction in self.reactions:
             if isinstance(reaction, Reaction):
@@ -351,7 +352,6 @@ class SolverBasedModel(Model):
             metabolite._reaction = set(metabolite_reactions)
         self._solver = solver_interface.Model()
         self._populate_solver_from_scratch()
-        self._reversible_encoding = 'split'
 
     def __copy__(self):
         return self.__deepcopy__()
@@ -499,18 +499,23 @@ class SolverBasedModel(Model):
                 cloned_reaction_list.append(Reaction.clone(reaction, model=self))
             else:
                 cloned_reaction_list.append(reaction)
+
+        # cobrapy will raise an exceptions if one of the reactions already exists in the model (before adding any reactions)
+        super(SolverBasedModel, self).add_reactions(cloned_reaction_list)
+
         constr_terms = dict()
         for reaction in cloned_reaction_list:
-            try:
-                reaction_variable = self.solver.variables[reaction.id]
-            except KeyError:
+            if reaction.reversibility and self._reversible_encoding == "split":
+                reaction_variable = self.solver.interface.Variable(reaction.id, lb=0, ub=reaction._upper_bound)
+                aux_var = self.solver.interface.Variable(reaction._get_reverse_id(), lb=0, ub=-reaction._lower_bound)
+                self.solver._add_variable(aux_var)
+            else:
                 reaction_variable = self.solver.interface.Variable(reaction.id, lb=reaction._lower_bound,
                                                                    ub=reaction._upper_bound)
-                self.solver.add(reaction_variable)
+            self.solver._add_variable(reaction_variable)
 
-            metabolite_coeff_dict = reaction.metabolites
-            for metabolite, coeff in metabolite_coeff_dict.iteritems():
-                if constr_terms.has_key(metabolite.id):
+            for metabolite, coeff in reaction.metabolites.iteritems():
+                if metabolite.id in constr_terms:
                     constr_terms[metabolite.id].append(
                         sympy.Mul._from_args([sympy.RealNumber(coeff), reaction_variable]))
                 else:
@@ -524,8 +529,6 @@ class SolverBasedModel(Model):
                 self.solver._add_constraint(
                     self.solver.interface.Constraint(sympy.Add._from_args(terms), lb=0, ub=0, name=met_id, sloppy=True),
                     sloppy=True)
-
-        super(SolverBasedModel, self).add_reactions(cloned_reaction_list)
 
     def remove_reactions(self, the_reactions):
         for reaction in the_reactions:
