@@ -198,7 +198,7 @@ class KnockoutEvaluator(object):
                 solution = self.simulation_method(self.model, cache=cache, volatile=False, **self.simulation_kwargs)
                 fitness = self._calculate_fitness(solution, decoded)
             except SolveError as e:
-                logger.exception(e)
+                logger.debug(e)
                 if isinstance(self.objective_function, list):
                     fitness = inspyred.ec.emo.Pareto(values=[0 for _ in self.objective_function])
                 else:

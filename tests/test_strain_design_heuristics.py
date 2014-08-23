@@ -496,7 +496,7 @@ class TestReactionKnockoutOptimization(unittest.TestCase):
                                            seed=SEED)
 
         results = rko.run(max_evaluations=3000, pop_size=10, view=SequentialView())
-
+        print results.solutions
         with open(result_file, 'r') as file:
             expected_results = pickle.load(file)
 
