@@ -457,7 +457,7 @@ class TestReactionKnockoutOptimization(unittest.TestCase):
         self.assertEqual(rko.ko_type, "reaction")
         self.assertTrue(isinstance(rko._decoder, ReactionKnockoutDecoder))
 
-    # @unittest.skip('Not deterministic when seeded')
+    @unittest.skip('Not deterministic when seeded')
     def test_run_single_objective(self):
         model = load_model(MODEL_PATH)
         result_file = os.path.join(CURRENT_PATH, "data", "reaction_knockout_single_objective.pkl")
@@ -481,7 +481,7 @@ class TestReactionKnockoutOptimization(unittest.TestCase):
 
         assert_frame_equal(results.solutions, expected_results.solutions)
 
-    #@unittest.skip('Not deterministic when seeded')
+    @unittest.skip('Not deterministic when seeded')
     def test_run_multiobjective(self):
         model = load_model(MODEL_PATH)
         result_file = os.path.join(CURRENT_PATH, "data", "reaction_knockout_multi_objective.pkl")
