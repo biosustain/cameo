@@ -538,7 +538,7 @@ class ReactionKnockoutOptimization(KnockoutOptimization):
 
         exchange_reactions = set([r.id for r in self.model.exchanges])
         self.representation = list(self.reactions.difference(self.essential_reactions).difference(exchange_reactions))
-        self.ko_type = REACTION_KNOCKOUT_TYPE
+        self._ko_type = REACTION_KNOCKOUT_TYPE
         self._decoder = decoders.ReactionKnockoutDecoder(self.representation, self.model)
 
 
@@ -556,7 +556,7 @@ class GeneKnockoutOptimization(KnockoutOptimization):
             self.essential_genes = essential_genes
 
         self.representation = list(self.genes.difference(self.essential_genes))
-        self.ko_type = GENE_KNOCKOUT_TYPE
+        self._ko_type = GENE_KNOCKOUT_TYPE
         self._decoder = decoders.GeneKnockoutDecoder(self.representation, self.model)
 
 
