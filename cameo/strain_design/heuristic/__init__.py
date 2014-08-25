@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from cobra.manipulation.delete import find_gene_knockout_reactions
 from inspyred.ec.emo import Pareto
 import time
 import sys
@@ -36,6 +37,7 @@ from functools import partial
 from random import Random
 
 from pandas.core.common import in_ipnb
+from cameo.visualization import draw_knockout_result
 
 REACTION_KNOCKOUT_TYPE = "reaction"
 GENE_KNOCKOUT_TYPE = "gene"
@@ -106,7 +108,7 @@ class HeuristicOptimization(object):
         if seed is None:
             seed = int(round(time.time() * 1000))
         self.seed = seed
-        self.random = Random(seed)
+        self.random = Random(x=seed)
         self.model = model
         self.termination = termination
         self._objective_function = objective_function
@@ -510,6 +512,16 @@ class KnockoutOptimizationResult(object):
 
         stats_data.display()
 
+    def visualize(self, index, map_name):
+        if type == REACTION_KNOCKOUT_TYPE:
+            knockouts = self.solutions[KNOCKOUTS][index]
+        else:
+            genes = [self.model.genes.get_by_id(g) for g in self.solutions[KNOCKOUTS][index]]
+            knockouts = find_gene_knockout_reactions(self.model, genes)
+
+        builder = draw_knockout_result(self.model, map_name, self.simulation_method, knockouts)
+        return builder.display_in_notebook()
+
 
 class ReactionKnockoutOptimization(KnockoutOptimization):
     def __init__(self, reactions=None, essential_reactions=None, *args, **kwargs):
@@ -553,7 +565,7 @@ class KnockinKnockoutEvaluator(KnockoutEvaluator):
         pass
 
 
-class KnockoutKnockoutOptimizationResult():
+class KnockinKnockoutOptimizationResult():
     pass
 
 
