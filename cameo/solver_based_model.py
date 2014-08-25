@@ -584,10 +584,10 @@ class SolverBasedModel(Model):
         timestamp_formatter = lambda timestamp: datetime.datetime.fromtimestamp(timestamp).strftime(
             "%Y-%m-%d %H:%M:%S:%f")
         self._timestamp_last_optimization = time.time()
-        logger.debug('self._timestamp_last_optimization ' + timestamp_formatter(self._timestamp_last_optimization))
+        # logger.debug('self._timestamp_last_optimization ' + timestamp_formatter(self._timestamp_last_optimization))
         self.solver.optimize()
         solution = solution_type(self)
-        logger.debug('solution = solution_type(self) ' + timestamp_formatter(solution._time_stamp))
+        # logger.debug('solution = solution_type(self) ' + timestamp_formatter(solution._time_stamp))
         self.solution = solution
         return solution
 
