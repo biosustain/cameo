@@ -203,6 +203,7 @@ def _cycle_free_fva(model, reactions=None, sloppy=True):
 
     Rer
     """
+    cycle_count = 0
     try:
         original_objective = copy(model.objective)
         if reactions is None:
@@ -212,10 +213,7 @@ def _cycle_free_fva(model, reactions=None, sloppy=True):
         fva_sol = OrderedDict()
         for reaction in reactions:
             fva_sol[reaction.id] = dict()
-            try:
-                model.objective = reaction
-            except:
-                pass
+            model.objective = reaction
             model.objective.direction = 'min'
             try:
                 solution = model.solve()
@@ -235,6 +233,7 @@ def _cycle_free_fva(model, reactions=None, sloppy=True):
                 if abs(v1_cycle_free_fluxes[reaction.id] - bound) < 10 ** -6:
                     fva_sol[reaction.id]['lower_bound'] = bound
                 else:
+                    cycle_count += 1
                     v2_one_cycle_fluxes = _cycle_free_flux(model, v0_fluxes, fix=[reaction.id])
                     tm = TimeMachine()
                     for key, v1_flux in v1_cycle_free_fluxes.iteritems():
@@ -246,9 +245,13 @@ def _cycle_free_fva(model, reactions=None, sloppy=True):
                                undo=partial(setattr, knockout_reaction, 'upper_bound', knockout_reaction.lower_bound))
                     model.objective.direction = 'min'
                     try:
-                        solution = model.optimize()
+                        solution = model.solve()
                     except Unbounded:
                         fva_sol[reaction.id]['lower_bound'] = -numpy.inf
+                    except Infeasible:
+                        fva_sol[reaction.id]['lower_bound'] = 0
+                    else:
+                        fva_sol[reaction.id]['lower_bound'] = solution.f
                     finally:
                         tm.reset()
         for reaction in reactions:
@@ -262,32 +265,40 @@ def _cycle_free_fva(model, reactions=None, sloppy=True):
                 fva_sol[reaction.id]['upper_bound'] = 0
             except Exception as e:
                 raise e
-            bound = solution.f
-            if sloppy and bound < 100:
-                fva_sol[reaction.id]['upper_bound'] = bound
             else:
-                v0_fluxes = solution.x_dict
-                v1_cycle_free_fluxes = _cycle_free_flux(model, v0_fluxes)
-
-                if abs(v1_cycle_free_fluxes[reaction.id] - bound) < 10 ** -6:
-                    fva_sol[reaction.id]['upper_bound'] = v0_fluxes[reaction.id]
+                bound = solution.f
+                if sloppy and bound < 100:
+                    fva_sol[reaction.id]['upper_bound'] = bound
                 else:
-                    v2_one_cycle_fluxes = _cycle_free_flux(model, v0_fluxes, fix=[reaction.id])
-                    tm = TimeMachine()
-                    for key, v1_flux in v1_cycle_free_fluxes.iteritems():
-                        if v1_flux == 0 and v2_one_cycle_fluxes[key] != 0:
-                            knockout_reaction = model.reactions.get_by_id(key)
-                            tm(do=partial(setattr, knockout_reaction, 'lower_bound', 0.),
-                               undo=partial(setattr, knockout_reaction, 'lower_bound', knockout_reaction.lower_bound))
-                            tm(do=partial(setattr, knockout_reaction, 'upper_bound', 0.),
-                               undo=partial(setattr, knockout_reaction, 'upper_bound', knockout_reaction.lower_bound))
-                    model.objective.direction = 'max'
-                    try:
-                        solution = model.optimize()
-                    except Unbounded:
-                        fva_sol[reaction.id]['upper_bound'] = numpy.inf
-                    finally:
-                        tm.reset()
+                    v0_fluxes = solution.x_dict
+                    v1_cycle_free_fluxes = _cycle_free_flux(model, v0_fluxes)
+
+                    if abs(v1_cycle_free_fluxes[reaction.id] - bound) < 10 ** -6:
+                        fva_sol[reaction.id]['upper_bound'] = v0_fluxes[reaction.id]
+                    else:
+                        cycle_count += 1
+                        v2_one_cycle_fluxes = _cycle_free_flux(model, v0_fluxes, fix=[reaction.id])
+                        tm = TimeMachine()
+                        for key, v1_flux in v1_cycle_free_fluxes.iteritems():
+                            if v1_flux == 0 and v2_one_cycle_fluxes[key] != 0:
+                                knockout_reaction = model.reactions.get_by_id(key)
+                                tm(do=partial(setattr, knockout_reaction, 'lower_bound', 0.),
+                                   undo=partial(setattr, knockout_reaction, 'lower_bound',
+                                                knockout_reaction.lower_bound))
+                                tm(do=partial(setattr, knockout_reaction, 'upper_bound', 0.),
+                                   undo=partial(setattr, knockout_reaction, 'upper_bound',
+                                                knockout_reaction.lower_bound))
+                        model.objective.direction = 'max'
+                        try:
+                            solution = model.solve()
+                        except Unbounded:
+                            fva_sol[reaction.id]['upper_bound'] = numpy.inf
+                        except Infeasible:
+                            fva_sol[reaction.id]['upper_bound'] = 0
+                        else:
+                            fva_sol[reaction.id]['upper_bound'] = solution.f
+                        finally:
+                            tm.reset()
         fva_sol = pandas.DataFrame.from_dict(fva_sol, orient='index')
     finally:
         model.objective = original_objective
@@ -385,7 +396,7 @@ def reaction_component_production(model, reaction):
     for metabolite in reaction.metabolites:
         test = Reaction("EX_%s_temp" % metabolite.id)
         test._metabolites[metabolite] = -1
-        #hack frozen set from cobrapy to be able to add a reaction
+        # hack frozen set from cobrapy to be able to add a reaction
         metabolite._reaction = set(metabolite._reaction)
         tm(do=partial(model.add_reactions, [test]), undo=partial(model.remove_reactions, [test]))
         tm(do=partial(setattr, model, 'objective', test.id), undo=partial(setattr, model, 'objective', model.objective))
@@ -397,13 +408,14 @@ def reaction_component_production(model, reaction):
             tm.reset()
 
 
-
 if __name__ == '__main__':
     import time
     from cameo import load_model
     from cameo.parallel import MultiprocessingView
 
     model = load_model('../../tests/data/EcoliCore.xml')
+    flux_variability_analysis(model, reactions=model.reactions, fraction_of_optimum=1., remove_cycles=True,
+                              view=SequentialView())
     # model.solver = 'cplex'
     view = MultiprocessingView()
     tic = time.time()

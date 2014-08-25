@@ -10,5 +10,5 @@ pandas>=0.14.0
 ordered-set==1.2
 inspyred==1.0
 cobra==0.3.0b3
--e git+https://github.com/biosustain/optlang.git@058bbd8d50ed43cdf0fce99470a73a1fb7ce55cc#egg=optlang
+-e git+https://github.com/biosustain/optlang.git@541273d0fcbe59f8922943ce9b8c2ad7d94c18dc#egg=optlang
 -e git+https://github.com/biosustain/ipython_notebook_utils.git@b9e68cc2fdbae30d3482306ffcbecbf358530267#egg=ipython_notebook_utils
