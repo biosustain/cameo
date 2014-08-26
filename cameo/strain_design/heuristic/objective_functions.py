@@ -42,7 +42,7 @@ class biomass_product_coupled_yield():
             return 0
 
     def _repr_latex_(self):
-        return "$$bpcy = \\frac{(%s * %s)}{%s}$$" % (self.biomass, self.product, self.substrate)
+        return "$$bpcy = \\frac{(%s * %s)}{%s}$$" % (self.biomass.replace("_", "\\_"), self.product.replace("_", "\\_"), self.substrate.replace("_", "\\_"))
 
 
 class product_yield():
