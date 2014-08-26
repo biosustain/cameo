@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from cobra.manipulation.delete import find_gene_knockout_reactions
 from inspyred.ec.emo import Pareto
 import time
 import sys
@@ -36,6 +37,7 @@ from functools import partial
 from random import Random
 
 from pandas.core.common import in_ipnb
+from cameo.visualization import draw_knockout_result
 
 REACTION_KNOCKOUT_TYPE = "reaction"
 GENE_KNOCKOUT_TYPE = "gene"
@@ -106,7 +108,7 @@ class HeuristicOptimization(object):
         if seed is None:
             seed = int(round(time.time() * 1000))
         self.seed = seed
-        self.random = Random(seed)
+        self.random = Random(x=seed)
         self.model = model
         self.termination = termination
         self._objective_function = objective_function
@@ -476,7 +478,7 @@ class KnockoutOptimizationResult(object):
         """
         model_id = self.model.id
         heuristic = self.heuristic_method.__class__.__name__
-        of_string = "| ".join([o.name for o in self.objective_functions])
+        of_string = "<br/>".join([o._repr_latex_() for o in self.objective_functions])
         simulation = self.simulation_method.__name__
         solutions = self.solutions._repr_html_()
 
@@ -510,6 +512,16 @@ class KnockoutOptimizationResult(object):
 
         stats_data.display()
 
+    def visualize(self, index, map_name):
+        if type == REACTION_KNOCKOUT_TYPE:
+            knockouts = self.solutions[KNOCKOUTS][index]
+        else:
+            genes = [self.model.genes.get_by_id(g) for g in self.solutions[KNOCKOUTS][index]]
+            knockouts = find_gene_knockout_reactions(self.model, genes)
+
+        builder = draw_knockout_result(self.model, map_name, self.simulation_method, knockouts)
+        return builder.display_in_notebook()
+
 
 class ReactionKnockoutOptimization(KnockoutOptimization):
     def __init__(self, reactions=None, essential_reactions=None, *args, **kwargs):
@@ -526,7 +538,7 @@ class ReactionKnockoutOptimization(KnockoutOptimization):
 
         exchange_reactions = set([r.id for r in self.model.exchanges])
         self.representation = list(self.reactions.difference(self.essential_reactions).difference(exchange_reactions))
-        self.ko_type = REACTION_KNOCKOUT_TYPE
+        self._ko_type = REACTION_KNOCKOUT_TYPE
         self._decoder = decoders.ReactionKnockoutDecoder(self.representation, self.model)
 
 
@@ -544,7 +556,7 @@ class GeneKnockoutOptimization(KnockoutOptimization):
             self.essential_genes = essential_genes
 
         self.representation = list(self.genes.difference(self.essential_genes))
-        self.ko_type = GENE_KNOCKOUT_TYPE
+        self._ko_type = GENE_KNOCKOUT_TYPE
         self._decoder = decoders.GeneKnockoutDecoder(self.representation, self.model)
 
 
@@ -553,7 +565,7 @@ class KnockinKnockoutEvaluator(KnockoutEvaluator):
         pass
 
 
-class KnockoutKnockoutOptimizationResult():
+class KnockinKnockoutOptimizationResult():
     pass
 
 
@@ -581,7 +593,7 @@ class KnockinKnockoutOptimization(KnockoutOptimization):
             candidate_size=self.max_size,
             variable_candidate_size=self.variable_size,
             **kwargs)
-        return KnockoutKnockoutOptimizationResult(model=self.model,
+        return KnockinKnockoutOptimizationResult(model=self.model,
                                                   heuristic_method=self.heuristic_method,
                                                   simulation_method=self.simulation_method,
                                                   solutions=self.heuristic_method.archive,
