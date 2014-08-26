@@ -478,7 +478,7 @@ class KnockoutOptimizationResult(object):
         """
         model_id = self.model.id
         heuristic = self.heuristic_method.__class__.__name__
-        of_string = "| ".join([o.name for o in self.objective_functions])
+        of_string = "<br/>".join([o._repr_latex_() for o in self.objective_functions])
         simulation = self.simulation_method.__name__
         solutions = self.solutions._repr_html_()
 
@@ -593,7 +593,7 @@ class KnockinKnockoutOptimization(KnockoutOptimization):
             candidate_size=self.max_size,
             variable_candidate_size=self.variable_size,
             **kwargs)
-        return KnockoutKnockoutOptimizationResult(model=self.model,
+        return KnockinKnockoutOptimizationResult(model=self.model,
                                                   heuristic_method=self.heuristic_method,
                                                   simulation_method=self.simulation_method,
                                                   solutions=self.heuristic_method.archive,
