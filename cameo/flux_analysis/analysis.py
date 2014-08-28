@@ -185,7 +185,7 @@ def _flux_variability_analysis(model, reactions=None):
         except Unbounded:
             fva_sol[reaction.id]['upper_bound'] = numpy.inf
         except Infeasible:
-            fva_sol[reaction.id]['lower_bound'] = 0
+            fva_sol[reaction.id]['upper_bound'] = 0
     model.objective = original_objective
     return pandas.DataFrame.from_dict(fva_sol, orient='index')
 
@@ -219,8 +219,10 @@ def _cycle_free_fva(model, reactions=None, sloppy=True):
                 solution = model.solve()
             except Unbounded:
                 fva_sol[reaction.id]['lower_bound'] = -numpy.inf
+                continue
             except Infeasible:
                 fva_sol[reaction.id]['lower_bound'] = 0
+                continue
             except Exception as e:
                 print reaction.id
                 raise e
@@ -261,8 +263,10 @@ def _cycle_free_fva(model, reactions=None, sloppy=True):
                 solution = model.solve()
             except Unbounded:
                 fva_sol[reaction.id]['upper_bound'] = numpy.inf
+                continue
             except Infeasible:
                 fva_sol[reaction.id]['upper_bound'] = 0
+                continue
             except Exception as e:
                 raise e
             else:
