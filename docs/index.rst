@@ -1,22 +1,38 @@
-.. cameo documentation master file, created by
-sphinx-quickstart on Mon Aug 25 11:16:27 2014.
-You can adapt this file completely to your liking, but it should at least
-contain the root `toctree` directive.
+cameo
+=====
 
-Welcome to cameo's documentation!
-=================================
+|Build Status| |Coverage Status| |Gitter chat|
 
-Contents:
+
+cameo provides a high-level python library to aid the *in silico* strain design
+process in metabolic engineering projects. The library provides a
+modular architecture that enables the efficient construction of custom
+analysis workflows.
+
+Table of Contents
+-----------------
 
 .. toctree::
 :maxdepth: 2
 
+       installation
+       quickstart
+       iPython
+       parallelization
+       API
 
 
 Indices and tables
-==================
+------------------
 
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
 
+
+.. |Build Status| image:: https://travis-ci.org/biosustain/cameo.svg?branch=devel
+:target: https://travis-ci.org/biosustain/cameo
+.. |Coverage Status| image:: https://coveralls.io/repos/biosustain/cameo/badge.png?branch=devel
+:target: https://coveralls.io/r/biosustain/cameo?branch=devel
+.. |Gitter chat| image:: https://badges.gitter.im/biosustain/cameo.png
+:target: https://gitter.im/biosustain/cameo
