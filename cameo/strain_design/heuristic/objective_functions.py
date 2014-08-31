@@ -16,12 +16,27 @@ from cameo import config
 
 class biomass_product_coupled_yield():
     """
-    Biomass-Product Coupled Yield: (v[biomass] * v[product]) / v[substrate]
+    Biomass-Product Coupled Yield: (v[biomass] * v[product]) / v[substrate] [1]
 
-    :param biomass: biomass reaction identifier
-    :param product: product reaction identifier
-    :param substrate: substrate reaction identifier
-    :return: fitness value
+    Parameters
+    ----------
+    biomass: str
+        biomass reaction identifier
+    product: str
+        product reaction identifier
+    substrate: str
+        substrate reaction identifier
+
+    Returns
+    -------
+    float
+        fitness value
+
+    References
+    ----------
+    [1] Patil, K. R., Rocha, I., Förster, J., & Nielsen, J. (2005). "Evolutionary programming as a
+    platform for in silico metabolic engineering". BMC Bioinformatics, 6, 308.
+    doi:10.1186/1471-2105-6-308
     """
 
     def __init__(self, biomass, product, substrate):
@@ -39,7 +54,7 @@ class biomass_product_coupled_yield():
             return round((biomass_flux * product_flux) / substrate_flux, config.ndecimals)
 
         except ZeroDivisionError:
-            return 0
+            return 0.0
 
     def _repr_latex_(self):
         return "$$bpcy = \\frac{(%s * %s)}{%s}$$" % (self.biomass.replace("_", "\\_"), self.product.replace("_", "\\_"), self.substrate.replace("_", "\\_"))
@@ -48,9 +63,18 @@ class biomass_product_coupled_yield():
 class product_yield():
     """
     Product Yield Objective function: v[product]/v[substrate]
-    :param product: product reaction identifier
-    :param substrate: substrate reaction identifier
-    :return: fitness value
+
+    Parameters
+    ----------
+    product: str
+        product reaction identifier
+    substrate: str
+        substrate reaction identifier
+
+    Returns
+    -------
+    float
+        fitness value
     """
     def __init__(self, product, substrate):
         self.product = product
@@ -63,7 +87,7 @@ class product_yield():
             substrate_flux = round(abs(solution.get_primal_by_id(self.substrate)), config.ndecimals)
             return round(product_flux / substrate_flux, config.ndecimals)
         except ZeroDivisionError:
-            return 0
+            return 0.0
 
     def _repr_latex_(self):
         return "$$yield = \\frac{%s}{%s}$$" % (self.product, self.substrate)
@@ -74,8 +98,15 @@ class number_of_knockouts():
     Number of Knockouts objective function.
     If sense is maximize then fitness is the number of knockouts, otherwise 1/#knockouts
 
-    :param sense: 'max' or 'min'
-    :return: fitness value
+    Parameters
+    ----------
+    sense: str
+        'max' or 'min'
+
+    Returns
+    -------
+    float
+        fitness value
     """
 
     def __init__(self, sense='min'):

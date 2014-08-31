@@ -13,6 +13,14 @@
 # limitations under the License.
 
 
+#TODO: describe cameo with some examples
+"""
+CAMEO: Computer Assisted Metabolic Engineering & Optimization
+
+
+"""
+
+
 __version__ = '0.1.0'
 
 try:

@@ -28,7 +28,6 @@ def load_model(path_or_handle, solver_interface=optlang.glpk_interface):
 
     Arguments
     ---------
-
     path_or_handle: either a file path or a file handle
 
     Supported filetypes

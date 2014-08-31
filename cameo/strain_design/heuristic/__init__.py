@@ -102,8 +102,23 @@ def set_distance_function(candidate1, candidate2):
 
 
 class HeuristicOptimization(object):
+    """
+    Blueprint for any model optimization based on heuristic methods.
+    """
     def __init__(self, model=None, heuristic_method=inspyred.ec.GA, objective_function=None, seed=None,
                  termination=inspyred.ec.terminators.evaluation_termination, *args, **kwargs):
+        """
+        Constructor
+
+        Parameters
+        ----------
+            model: SolverBasedModel
+            heuristic_method: inspyred.ec.EvolutionaryComputation
+            objective_function: see objective functions
+            seed: ramdom seed
+            termination: inspyred.ec.terminators
+
+        """
         super(HeuristicOptimization, self).__init__(*args, **kwargs)
         if seed is None:
             seed = int(round(time.time() * 1000))
@@ -167,7 +182,20 @@ class HeuristicOptimization(object):
 
 
 class KnockoutEvaluator(object):
+    """
+    Evaluator for knockouts. It gets a representation, decodes into knockouts and simulates
+    the model with a given method.
+    """
     def __init__(self, model, decoder, objective_function, simulation_method, simulation_kwargs):
+        """
+        Parameters
+        ----------
+        model: SolverBasedModel
+        decoder: KnockoutDecoder
+        objective_function: see objective_functions
+        simulation_method: see flux_analysis.simulation
+        simulation_kwargs: see also flux_analysis.simulation
+        """
         self.model = model
         self.decoder = decoder
         self.objective_function = objective_function
@@ -175,6 +203,13 @@ class KnockoutEvaluator(object):
         self.simulation_kwargs = simulation_kwargs
 
     def __call__(self, population):
+        """
+        Parameters
+        ----------
+        population: list
+            A list of the individuals
+
+        """
         time_machine = TimeMachine()
         cache = {
             'first_run': True,
@@ -221,7 +256,19 @@ class KnockoutEvaluator(object):
 
 
 class KnockoutOptimization(HeuristicOptimization):
+    """
+    Abstract class for knockout optimization.
+    """
     def __init__(self, simulation_method=pfba, max_size=9, variable_size=True, wt_reference=None, *args, **kwargs):
+        """
+        Parameters
+        ----------
+        same as HeuristicOptimization
+        simulation_method: see flux_analysis.simulation
+        max_size: int
+        variable_size: boolean
+        wt_reference: dict
+        """
         super(KnockoutOptimization, self).__init__(*args, **kwargs)
         self.wt_reference = wt_reference
         self._simulation_method = None
@@ -240,7 +287,7 @@ class KnockoutOptimization(HeuristicOptimization):
     @simulation_method.setter
     def simulation_method(self, simulation_method):
         if simulation_method in [lmoma, moma, room] and self.wt_reference is None:
-            logger.info("No WT reference found, computing using PFBA.")
+            logger.info("No WT reference found, generating using pfba.")
             self.wt_reference = pfba(self.model).x_dict
         self._simulation_method = simulation_method
 
@@ -594,20 +641,19 @@ class KnockinKnockoutOptimization(KnockoutOptimization):
             variable_candidate_size=self.variable_size,
             **kwargs)
         return KnockinKnockoutOptimizationResult(model=self.model,
-                                                  heuristic_method=self.heuristic_method,
-                                                  simulation_method=self.simulation_method,
-                                                  solutions=self.heuristic_method.archive,
-                                                  objective_function=self.objective_function,
-                                                  ko_type=self._ko_type,
-                                                  decoder=self._decoder,
-                                                  product=kwargs.get('product', None))
+                                                 heuristic_method=self.heuristic_method,
+                                                 simulation_method=self.simulation_method,
+                                                 solutions=self.heuristic_method.archive,
+                                                 objective_function=self.objective_function,
+                                                 ko_type=self._ko_type,
+                                                 decoder=self._decoder,
+                                                 product=kwargs.get('product', None))
 
 
 class ReactionKnockinKnockoutOptimization(ReactionKnockoutOptimization, KnockinKnockoutOptimization):
     def __init__(self, reaction_db=None, *args, **kwargs):
-        ReactionKnockoutOptimization.__init__(self, *args, **kwargs)
         KnockinKnockoutOptimization.__init__(self, *args, **kwargs)
-
+        ReactionKnockoutOptimization.__init__(self, *args, **kwargs)
 
     def run(self, **kwargs):
         KnockinKnockoutOptimization.run(self, **kwargs)
