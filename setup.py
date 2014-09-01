@@ -14,26 +14,28 @@
 # limitations under the License.
 
 
+import os
 from setuptools import setup, find_packages
 
-# with open('requirements.txt') as fhandle:
-# requirements = [line.strip() for line in fhandle]
-
-requirements = ['numpy>=1.8.1',
-                'pyzmq>=14.3.1',
-                'ipython>=2.1.0',
-                'scipy>=0.9.0',
-                'bokeh>=0.4.4',
-                'blessings>=1.5.1',
-                'progressbar>=2.2',
-                'Jinja2>=2.7.3',
-                'pandas>=0.14.0',
-                'ordered-set>=1.2',
-                'inspyred>=1.0',
-                'cobra>=0.3.0b3',
-                'optlang>=0.0.3',
-                'ipython_notebook_utils'
-]
+on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
+if on_rtd:
+    requirements = []
+else:
+    requirements = ['numpy>=1.8.1',
+                    'pyzmq>=14.3.1',
+                    'ipython>=2.1.0',
+                    'scipy>=0.9.0',
+                    'bokeh>=0.4.4',
+                    'blessings>=1.5.1',
+                    'progressbar>=2.2',
+                    'Jinja2>=2.7.3',
+                    'pandas>=0.14.0',
+                    'ordered-set>=1.2',
+                    'inspyred>=1.0',
+                    'cobra>=0.3.0b3',
+                    'optlang>=0.0.3',
+                    'ipython_notebook_utils'
+    ]
 
 dependency_links = [
     'https://github.com/biosustain/optlang/tarball/devel#egg=optlang-0.0.3',
