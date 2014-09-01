@@ -14,7 +14,7 @@
 from itertools import izip
 
 import logging
-from pandas import DataFrame
+from pandas import DataFrame, pandas
 from progressbar import ProgressBar
 from cameo import config, flux_variability_analysis
 from cameo.parallel import SequentialView, MultiprocessingView
@@ -106,30 +106,31 @@ class DifferentialFVA(StrainDesignMethod):
         reference_flux_ranges = flux_variability_analysis(self.reference_model, view=view)
         self.reference_flux_ranges = reference_flux_ranges
         self._init_search_grid()
-        fva_solutions = list()
+        solutions = dict()
         progress = ProgressBar(len(self.grid))
         progress.start()
         for i, point in self.grid.iterrows():
             progress.update(i + 1)
             # print "Processing point:", point
             self._set_bounds(point)
-            fva_sol = flux_variability_analysis(self.design_space_model, view=view)
-            fva_solutions.append(fva_sol)
+            fva_sol = flux_variability_analysis(self.design_space_model, remove_cycles=True,
+                                                view=SequentialView())  # TODO: let it remove cycles in the future
+            solutions[str(point)] = fva_sol
         reference_intervals = reference_flux_ranges[['lower_bound', 'upper_bound']].values
-        for sol in fva_solutions:
+        for sol in solutions.itervalues():
             intervals = sol[['lower_bound', 'upper_bound']].values
             gaps = [self._interval_gap(interval1, interval2) for interval1, interval2 in
                     izip(reference_intervals, intervals)]
             sol['gaps'] = gaps
         if self.normalize_fluxes_by is not None:
-            for sol in fva_solutions:
+            for sol in solutions.itervalues():
                 normalized_intervals = sol[['lower_bound', 'upper_bound']].values / sol.lower_bound[
                     self.normalize_fluxes_by]
                 normalized_gaps = [self._interval_gap(interval1, interval2) for interval1, interval2 in
                                    izip(reference_intervals, normalized_intervals)]
                 sol['normalized_gaps'] = normalized_gaps
 
-        return fva_solutions
+        return pandas.Panel(solutions)
 
 
 if __name__ == '__main__':
@@ -152,7 +153,7 @@ if __name__ == '__main__':
                               variables=['Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2',
                                          'EX_o2_LPAREN_e_RPAREN_'],
                               normalize_fluxes_by='Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2',
-                              points=10
+                              points=2
     )
     # result = diffFVA.run(view=SequentialView())
     result = diffFVA.run(view=MultiprocessingView())
