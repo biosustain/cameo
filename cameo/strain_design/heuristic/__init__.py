@@ -14,7 +14,6 @@
 from cobra.manipulation.delete import find_gene_knockout_reactions
 from inspyred.ec.emo import Pareto
 import time
-import sys
 
 from cameo.exceptions import SolveError
 from cameo.strain_design.heuristic import archivers
@@ -401,6 +400,9 @@ class KnockoutOptimizationResult(object):
         self.ko_type = ko_type
         self.decoder = decoder
         self.solutions = self._build_solutions(solutions)
+
+    def apply(self, column, function, *args, **kwargs):
+        self.solutions[column].apply(function, *args, **kwargs)
 
     def __getstate__(self):
         return {
