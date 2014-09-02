@@ -522,13 +522,7 @@ class SolverBasedModel(Model):
                     constr_terms[metabolite.id] = [sympy.Mul._from_args([sympy.RealNumber(coeff), reaction_variable])]
 
         for met_id, terms in constr_terms.iteritems():
-            try:
-                metabolite_constraint = self.solver.constraints[met_id]
-                metabolite_constraint += sympy.Add._from_args(terms)
-            except KeyError:  # cannot override add_metabolites here as it is not used by cobrapy in add_reactions
-                self.solver._add_constraint(
-                    self.solver.interface.Constraint(sympy.Add._from_args(terms), lb=0, ub=0, name=met_id, sloppy=True),
-                    sloppy=True)
+            self.solver.constraints[met_id] += sympy.Add._from_args(terms)
 
     def remove_reactions(self, the_reactions):
         for reaction in the_reactions:
