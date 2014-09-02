@@ -504,15 +504,16 @@ class SolverBasedModel(Model):
         super(SolverBasedModel, self).add_reactions(cloned_reaction_list)
 
         constr_terms = dict()
+        metabolites = {}
         for reaction in cloned_reaction_list:
             if reaction.reversibility and self._reversible_encoding == "split":
                 reaction_variable = self.solver.interface.Variable(reaction.id, lb=0, ub=reaction._upper_bound)
                 aux_var = self.solver.interface.Variable(reaction._get_reverse_id(), lb=0, ub=-reaction._lower_bound)
-                self.solver._add_variable(aux_var)
+                self.solver.add(aux_var)
             else:
                 reaction_variable = self.solver.interface.Variable(reaction.id, lb=reaction._lower_bound,
                                                                    ub=reaction._upper_bound)
-            self.solver._add_variable(reaction_variable)
+            self.solver.add(reaction_variable)
 
             for metabolite, coeff in reaction.metabolites.iteritems():
                 if metabolite.id in constr_terms:
@@ -520,9 +521,15 @@ class SolverBasedModel(Model):
                         sympy.Mul._from_args([sympy.RealNumber(coeff), reaction_variable]))
                 else:
                     constr_terms[metabolite.id] = [sympy.Mul._from_args([sympy.RealNumber(coeff), reaction_variable])]
+                    metabolites[metabolite.id] = metabolite
 
         for met_id, terms in constr_terms.iteritems():
-            self.solver.constraints[met_id] += sympy.Add._from_args(terms)
+            expr = sympy.Add._from_args(terms)
+            try:
+                self.solver.constraints[met_id] += expr
+            except KeyError:
+                super(SolverBasedModel, self).add_metabolites([metabolites[met_id]])
+                self.solver.add(self.solver.interface.Constraint(expr, name=met_id, lb=0, ub=0))
 
     def remove_reactions(self, the_reactions):
         for reaction in the_reactions:
