@@ -1,7 +1,7 @@
 cameo
 =====
 
-|Build Status| |Coverage Status| |Gitter chat|
+|BuildStatus| |CoverageStatus| |Gitterchat|
 
 
 cameo provides a high-level python library to aid the *in silico* strain design
@@ -15,12 +15,11 @@ Table of Contents
 .. toctree::
 :maxdepth: 2
 
-       installation
-       quickstart
-       iPython
-       parallelization
-       API
-
+        installation
+        quickstart
+        iPython
+        parallelization
+        API
 
 Indices and tables
 ------------------
@@ -30,9 +29,9 @@ Indices and tables
 * :ref:`search`
 
 
-.. |Build Status| image:: https://travis-ci.org/biosustain/cameo.svg?branch=devel
+.. |BuildStatus| image:: https://travis-ci.org/biosustain/cameo.svg?branch=devel
 :target: https://travis-ci.org/biosustain/cameo
-.. |Coverage Status| image:: https://coveralls.io/repos/biosustain/cameo/badge.png?branch=devel
+.. |CoverageStatus| image:: https://coveralls.io/repos/biosustain/cameo/badge.png?branch=devel
 :target: https://coveralls.io/r/biosustain/cameo?branch=devel
-.. |Gitter chat| image:: https://badges.gitter.im/biosustain/cameo.png
+.. |Gitterchat| image:: https://badges.gitter.im/biosustain/cameo.png
 :target: https://gitter.im/biosustain/cameo
