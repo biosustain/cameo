@@ -20,13 +20,19 @@ def set_generator(random, args):
     Generates a list containing non-repeated elements of a discrete or
     continuous representation.
 
-    :param random: Random()
-    :param args: dict
+    Parameters
+    ----------
+
+    random: Random
+    args: dict
         representation: set containing the possible values
         max_candidate_size: int, default: 9
         variable_candidate_size: bool, default: True
 
-    :return: candidate
+
+    Returns
+    -------
+    list
         A list containing a sample of the elements. If variable_candidate_size is
         True the list size is up to max_candidate_size, otherwise the candidate
         size equals candidate_size
@@ -53,13 +59,17 @@ def unique_set_generator(random, args):
     --------
     inspyred.ec.generators.diversify
 
-    :param random: Random()
-    :param args: dict
+    Parameters
+    ----------
+    random: Random
+    args: dict
         representation: set containing the possible values
         max_candidate_size: int, default: 9
         variable_candidate_size: bool, default: True
 
-    :return: candidate
+    Returns
+    -------
+    list
         A list containing a sample of the elements. If variable_candidate_size is
         True the list size is up to max_candidate_size, otherwise the candidate
         size equals candidate_size
@@ -79,12 +89,18 @@ def multiple_chromosome_set_generator(random, args):
     """
     Generates a candidate in with a genome containing multiple chromosomes.
 
-    :param random: Random()
-    :param args: dict
+    Parameters
+    ----------
+    random: Random
+    args: dict
         this dictionary contains an extra key: "keys", which will be the names of the chromosomes.
         for each argument on <unique_set>, this dictionary must contain the same fields, starting with
         the values in "keys".
-    :return:
+
+    Returns
+    -------
+    MultipleChromosomeGenome
+
     """
     keys = args.get('keys')
     candidate = MultipleChromosomeGenome(keys=keys)

@@ -11,12 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import copy
+import sympy
 
 from functools import partial
-import traceback
-from jinja2.nodes import Neg
-import sympy
 from cameo.util import TimeMachine
 from cameo.exceptions import SolveError
 from sympy import Add
@@ -30,7 +27,19 @@ RealNumber = sympy.RealNumber
 
 
 def fba(model, objective=None, *args, **kwargs):
-    """Perform flux balance analysis."""
+    """Flux Balance Analysis.
+
+    Parameters
+    ----------
+    model: SolverBasedModel
+    objective: a valid objective - see SolverBaseModel.objective (optional)
+
+    Returns
+    -------
+    LazySolution
+        Contains the result of the linear solver.
+
+    """
     tm = TimeMachine()
     if objective is not None:
         tm(do=partial(setattr, model, 'objective', objective),
@@ -45,6 +54,20 @@ def fba(model, objective=None, *args, **kwargs):
 
 
 def pfba(model, objective=None, *args, **kwargs):
+    """Parsimonious Flux Balance Analysis.
+
+    Parameters
+    ----------
+    model: SolverBasedModel
+    objective: str or reaction or optlang.Objective
+        An objective to be minimized/maximized for
+
+    Returns
+    -------
+    LazySolution
+        Contains the result of the linear solver.
+
+    """
     tm = TimeMachine()
     original_objective = model.objective.expression
     tm(do=partial(setattr, model, 'reversible_encoding', 'split'),
@@ -90,6 +113,23 @@ def moma(model, reference=None, *args, **kwargs):
 
 
 def lmoma(model, reference=None, cache={}, volatile=True, *args, **kwargs):
+    """Linear Minimization Of Metabolic Adjustment.
+
+    Parameters
+    ----------
+    model: SolverBasedModel
+    reference: dict
+    objective: str or reaction or optlang.Objective
+        An objective to be minimized/maximized for
+    volatile: boolean
+    cache: dict
+
+    Returns
+    -------
+    LazySolution
+        Contains the result of the linear solver.
+
+    """
     original_objective = model.objective.expression
     if not volatile and not 'original_objective' in cache:
         cache['original_objective'] = original_objective
@@ -173,6 +213,23 @@ def lmoma(model, reference=None, cache={}, volatile=True, *args, **kwargs):
 
 
 def room(model, reference=None, cache={}, volatile=True, delta=0.03, epsilon=0.001, *args, **kwargs):
+    """Regulation On/Off Minimization.
+
+    Parameters
+    ----------
+    model: SolverBasedModel
+    reference: dict
+    objective: str or reaction or optlang.Objective
+        An objective to be minimized/maximized for
+    volatile: boolean
+    cache: dict
+
+    Returns
+    -------
+    LazySolution
+        Contains the result of the linear solver.
+
+    """
     original_objective = model.objective.expression
     if not volatile and not 'original_objective' in cache:
         cache['original_objective'] = original_objective
@@ -320,6 +377,18 @@ def _cycle_free_flux(model, fluxes, fix=[]):
 
 
 def reset_model(model, cache):
+    """
+    When the simulation was not volatile, uses the cache to
+    revert the model to it's original state.
+
+    Parameters
+    ----------
+    model: SolverBasedModel
+    cache: dict
+        The cache must contain the added variables, constrains and
+        the original objective
+
+    """
     model.solver._remove_variables(cache['variables'].values())
     model.objective = cache['original_objective']
     model.solver._remove_constraints(cache['constraints'].values())
@@ -388,8 +457,5 @@ if __name__ == '__main__':
     print "flux distance:",
     print sum([abs(res[v] - ref[v]) for v in res.keys()])
     print "cameo lmoma runtime:", time.time() - tic
-
-
-
 
     # print model.solver

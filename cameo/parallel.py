@@ -66,7 +66,16 @@ try:
         default_db = 0
 
         def __init__(self, name, maxsize=0, namespace='queue', **connection_args):
-            """The default connection parameters are: host='localhost', port=6379, db=0"""
+            """The default connection parameters are: host='localhost', port=6379, db=0
+
+            Parameters
+            ----------
+            name: str
+            maxsize: int
+            namespace: str
+            connection_args: *kwargs
+
+            """
             if maxsize <= 0:
                 maxsize = self.MAX_REDIS_LIST_SIZE
             self._maxsize = maxsize

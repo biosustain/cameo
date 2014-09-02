@@ -18,6 +18,24 @@ from cameo.strain_design.heuristic.genomes import MultipleChromosomeGenome
 
 @mutator
 def set_mutation(random, individual, args):
+    """
+    Mutates a given set based on the entries available on the representation.
+
+    Parameters
+    ----------
+
+    random: Random
+    individual: list
+        with unique integers
+    args: dict
+        must contain the representation
+
+    Returns
+    -------
+    list
+        created based on an ordered set
+
+    """
     representation = args.get('representation')
     new_individual = []
     for index in individual:
@@ -31,6 +49,24 @@ def set_mutation(random, individual, args):
 
 @mutator
 def set_indel(random, individual, args):
+    """
+    Creates a random insertion or deletion in the individual.
+
+    Parameters
+    ----------
+
+    random: Random
+    individual: list
+        with unique integers
+    args: dict
+        must contain the representation
+
+    Returns
+    -------
+    list
+        created based on an ordered set
+
+    """
     representation = args.get('representation')
     new_individual = list(individual)
     if random.random() < args.get('indel_rate', .1):

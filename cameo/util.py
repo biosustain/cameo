@@ -17,6 +17,9 @@ from uuid import uuid1
 from time import time
 from datetime import datetime
 import colorsys
+from pandas.core.common import in_ipnb
+import progressbar
+import ipython_notebook_utils
 
 
 class Singleton(object):
@@ -69,6 +72,12 @@ class TimeMachine(object):
         for item in self.history.iteritems():
             info += self._history_item_to_str(item)
         return info
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self.reset()
 
     @staticmethod
     def _history_item_to_str(item):
@@ -128,3 +137,20 @@ def generate_colors(n):
         color = tuple([rgb[0]*256, rgb[1]*256, rgb[2]*256])
         color_map[i] = '#%02x%02x%02x' % color
     return color_map
+
+
+class ProgressBar(object):
+    def __init__(self, size):
+        if in_ipnb():
+            self.progress_bar = ipython_notebook_utils.ProgressBar(size)
+        else:
+            self.progress_bar = progressbar.ProgressBar(size)
+
+    def start(self):
+        self.progress_bar.start()
+
+    def update(self, value):
+        if isinstance(self.progress_bar, ipython_notebook_utils.ProgressBar):
+            self.progress_bar.set(value)
+        else:
+            self.progress_bar.update(value)

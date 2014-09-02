@@ -12,23 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+def distance(knockouts, model, simulation_method, **simulation_args):
+    wt = simulation_args.get("reference", None)
+    if wt is None:
+        wt = model.solve().x_dict
 
-#TODO: describe cameo with some examples
-"""
-CAMEO: Computer Assisted Metabolic Engineering & Optimization
-
-
-"""
-
-
-__version__ = '0.1.0'
-
-try:
-    from .io import load_model
-except ImportError:
-    pass
-
-from .flux_analysis.analysis import flux_variability_analysis, phenotypic_phase_plane
-from .flux_analysis.simulation import fba, pfba
-
-import config
+    

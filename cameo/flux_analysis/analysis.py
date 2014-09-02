@@ -106,34 +106,35 @@ def phenotypic_phase_plane(model, variables=[], objective=None, points=20, view=
         variables = [variables]
     if view is None:
         view = config.default_view
-    tm = TimeMachine()
-    if model.reversible_encoding == 'split':
-        tm(do=partial(setattr, model, 'reversible_encoding', 'unsplit'),
-           undo=partial(setattr, model, 'reversible_encoding', 'split'))
-    if objective is not None:
-        tm(do=partial(setattr, model, 'objective', objective),
-           undo=partial(setattr, model, 'objective', model.objective))
+    with TimeMachine() as tm:
+        if model.reversible_encoding == 'split':
+            tm(do=partial(setattr, model, 'reversible_encoding', 'unsplit'),
+               undo=partial(setattr, model, 'reversible_encoding', 'split'))
+        if objective is not None:
+            tm(do=partial(setattr, model, 'objective', objective),
+               undo=partial(setattr, model, 'objective', model.objective))
 
-    variable_reactions = _ids_to_reactions(model, variables)
-    variables_min_max = flux_variability_analysis(model, reactions=variable_reactions, view=view)
-    grid = [numpy.linspace(lower_bound, upper_bound, points, endpoint=True) for reaction_id, lower_bound, upper_bound in
-            variables_min_max.itertuples()]
-    grid_generator = itertools.product(*grid)
-    original_bounds = dict([(reaction, (reaction.lower_bound, reaction.upper_bound))
-                            for reaction in variable_reactions])
+        variable_reactions = _ids_to_reactions(model, variables)
+        variables_min_max = flux_variability_analysis(model, reactions=variable_reactions, view=SequentialView())
+        grid = [numpy.linspace(lower_bound, upper_bound, points, endpoint=True) for
+                reaction_id, lower_bound, upper_bound in
+                variables_min_max.itertuples()]
+        grid_generator = itertools.product(*grid)
+        original_bounds = dict([(reaction, (reaction.lower_bound, reaction.upper_bound))
+                                for reaction in variable_reactions])
 
-    chunks_of_points = partition(list(grid_generator), len(view))
-    evaluator = _PhenotypicPhasePlaneChunkEvaluator(model, variable_reactions)
-    chunk_results = view.map(evaluator, chunks_of_points)
-    envelope = reduce(list.__add__, chunk_results)
+        chunks_of_points = partition(list(grid_generator), len(view))
+        evaluator = _PhenotypicPhasePlaneChunkEvaluator(model, variable_reactions)
+        chunk_results = view.map(evaluator, chunks_of_points)
+        envelope = reduce(list.__add__, chunk_results)
 
-    for reaction, bounds in original_bounds.iteritems():
-        reaction.lower_bound = bounds[0]
-        reaction.upper_bound = bounds[1]
+        for reaction, bounds in original_bounds.iteritems():
+            reaction.lower_bound = bounds[0]
+            reaction.upper_bound = bounds[1]
 
-    variable_reactions_ids = [reaction.id for reaction in variable_reactions]
-    return pandas.DataFrame(envelope,
-                            columns=(variable_reactions_ids + ['objective_lower_bound', 'objective_upper_bound']))
+        variable_reactions_ids = [reaction.id for reaction in variable_reactions]
+        return pandas.DataFrame(envelope,
+                                columns=(variable_reactions_ids + ['objective_lower_bound', 'objective_upper_bound']))
 
 
 def _ids_to_reactions(model, reactions):
