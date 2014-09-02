@@ -70,6 +70,12 @@ class TimeMachine(object):
             info += self._history_item_to_str(item)
         return info
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self.reset()
+
     @staticmethod
     def _history_item_to_str(item):
         info = ''
