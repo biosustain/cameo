@@ -490,7 +490,7 @@ class SolverBasedModel(Model):
     def add_metabolites(self, metabolite_list):
         super(SolverBasedModel, self).add_metabolites(metabolite_list)
         for met in metabolite_list:
-            self.solver.add(self.solver.interface.Constraint(S.Zero, name=met.name, lb=0, ub=0))
+            self.solver.add(self.solver.interface.Constraint(S.Zero, name=met.id, lb=0, ub=0))
 
     def add_reactions(self, reaction_list):
         cloned_reaction_list = list()
