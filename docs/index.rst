@@ -15,11 +15,11 @@ Table of Contents
 .. toctree::
 
     :maxdepth: 2
-        installation
-        quickstart
-        iPython
-        parallelization
-        API
+    installation
+    quickstart
+    iPython
+    parallelization
+    API
 
 Indices and tables
 ------------------
@@ -30,8 +30,8 @@ Indices and tables
 
 
 .. |BuildStatus| image:: https://travis-ci.org/biosustain/cameo.svg?branch=devel
-:target: https://travis-ci.org/biosustain/cameo
+    :target: https://travis-ci.org/biosustain/cameo
 .. |CoverageStatus| image:: https://coveralls.io/repos/biosustain/cameo/badge.png?branch=devel
-:target: https://coveralls.io/r/biosustain/cameo?branch=devel
+    :target: https://coveralls.io/r/biosustain/cameo?branch=devel
 .. |Gitterchat| image:: https://badges.gitter.im/biosustain/cameo.png
-:target: https://gitter.im/biosustain/cameo
+    :target: https://gitter.im/biosustain/cameo
