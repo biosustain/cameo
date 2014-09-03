@@ -140,11 +140,11 @@ def generate_colors(n):
 
 
 class ProgressBar(object):
-    def __init__(self, size):
+    def __init__(self, *args, **kwargs):
         if in_ipnb():
-            self.progress_bar = ipython_notebook_utils.ProgressBar(size)
+            self.progress_bar = ipython_notebook_utils.ProgressBar(*args, **kwargs)
         else:
-            self.progress_bar = progressbar.ProgressBar(size)
+            self.progress_bar = progressbar.ProgressBar(*args, **kwargs)
 
     def start(self):
         self.progress_bar.start()
@@ -154,3 +154,34 @@ class ProgressBar(object):
             self.progress_bar.set(value)
         else:
             self.progress_bar.update(value)
+
+    def __call__(self, iterable):
+        if isinstance(self.progress_bar, ipython_notebook_utils.ProgressBar):
+            self.progress_bar.size = len(iterable)
+
+            def _(iterable):
+                count = 0
+                self.progress_bar.set(0)
+                for item in iterable:
+                    count += 1
+                    self.progress_bar.set(count)
+                    yield item
+
+
+        else:
+            return self.progress_bar(iterable)
+
+
+class Timer(object):
+    """Taken from http://stackoverflow.com/a/5849861/280182"""
+
+    def __init__(self, name=None):
+        self.name = name
+
+    def __enter__(self):
+        self.tstart = time()
+
+    def __exit__(self, type, value, traceback):
+        if self.name:
+            print '[%s]' % self.name,
+        print 'Elapsed: %s' % (time() - self.tstart)
