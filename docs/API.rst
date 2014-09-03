@@ -2,11 +2,11 @@ API
 ===
 
 .. toctree::
-:maxdepth: 2
+    :maxdepth: 2
 
-       config
-       io
-       solver_based_model
-       strain_design
-       exceptions
-       parallel
+    config
+    io
+    solver_based_model
+    strain_design
+    exceptions
+    parallel
