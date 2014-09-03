@@ -5,10 +5,10 @@ Deterministic methods
 ---------------------
 
 .. automodule:: cameo.strain_design.deterministic
-:members:
+    :members:
 
 Heuristic methods
 -----------------
 
 .. automodule:: cameo.strain_design.heuristic
-:members:
+    :members:

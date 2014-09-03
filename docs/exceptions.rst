@@ -2,4 +2,4 @@ Exceptions
 ==========
 
 .. automodule:: cameo.exceptions
-:members:
+    :members:
