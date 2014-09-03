@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/biosustain/cameo.svg?branch=devel)](https://travis-ci.org/biosustain/cameo)
 [![Coverage Status](https://coveralls.io/repos/biosustain/cameo/badge.png?branch=devel)](https://coveralls.io/r/biosustain/cameo?branch=devel)
-[![Gitter chat](https://badges.gitter.im/biosustain/cameo.png)](https://gitter.im/biosustain/cameo)
+[![Documentation Status](https://readthedocs.org/projects/cameo/badge/?version=latest)](https://readthedocs.org/projects/cameo/?badge=latest)
 
 ### Vision
 Provide a high-level python library to aid _in silico_ strain design process in metabolic engineering projects. The library provides a modular architecture that enables the efficient construction of custom analysis workflows.
