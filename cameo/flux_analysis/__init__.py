@@ -50,3 +50,28 @@ def gene_knockout_growth(gene_id, model, threshold=10 ** -6, simulation_method=f
         tm.reset()
 
     return f
+
+
+def extend_reference(model, reference, objective=None, relax=0.95):
+    tm = TimeMachine()
+
+    try:
+        for rid, flux in reference.iteritems():
+            r = model.reactions.get_by_id(rid)
+            if flux == 0.0:
+                tm(do=partial(setattr, r, 'lower_bound', 0), undo=partial(setattr, r, 'lower_bound', r.lower_bound))
+                tm(do=partial(setattr, r, 'upper_bound', 0), undo=partial(setattr, r, 'upper_bound', r.upper_bound))
+            elif flux > 0:
+                tm(do=partial(setattr, r, 'lower_bound', flux*relax),
+                   undo=partial(setattr, r, 'lower_bound', r.lower_bound))
+            else:
+                tm(do=partial(setattr, r, 'upper_bound', flux*relax),
+                   undo=partial(setattr, r, 'upper_bound', r.lower_bound))
+
+        if not objective is None:
+            tm(do=partial(setattr, model, 'objective', objective),
+               undo=partial(setattr, model, objective, model.objective))
+
+        return model.solve().x_dict
+    finally:
+        tm.reset()

@@ -24,3 +24,8 @@ from .flux_analysis.analysis import flux_variability_analysis, phenotypic_phase_
 from .flux_analysis.simulation import fba, pfba
 
 import config
+
+
+def optimize_product(model_id, target):
+    pass
+

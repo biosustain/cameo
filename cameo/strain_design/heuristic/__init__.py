@@ -314,6 +314,7 @@ class KnockoutOptimization(HeuristicOptimization):
             representation=self.representation,
             candidate_size=self.max_size,
             variable_candidate_size=self.variable_size,
+            decoder=self._decoder,
             **kwargs)
         return KnockoutOptimizationResult(model=self.model,
                                           heuristic_method=self.heuristic_method,
@@ -519,7 +520,8 @@ class KnockoutOptimizationResult(object):
             genes = [self.model.genes.get_by_id(g) for g in self.solutions[KNOCKOUTS][index]]
             knockouts = find_gene_knockout_reactions(self.model, genes)
 
-        builder = draw_knockout_result(self.model, map_name, self.simulation_method, knockouts)
+        builder = draw_knockout_result(self.model, map_name, self.simulation_method, knockouts,
+                                       reference=self.reference)
         return builder.display_in_notebook()
 
 

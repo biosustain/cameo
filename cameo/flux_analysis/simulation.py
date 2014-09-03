@@ -11,16 +11,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import copy
+
+import logging
 
 from functools import partial
-import traceback
-from jinja2.nodes import Neg
 import sympy
 from cameo.util import TimeMachine
 from cameo.exceptions import SolveError
 from sympy import Add
 from sympy import Mul
+
+logger = logging.getLogger(__name__)
 
 add = Add._from_args
 mul = Mul._from_args
@@ -78,7 +79,7 @@ def pfba(model, objective=None, *args, **kwargs):
             return solution
         except SolveError as e:
             tm.reset()
-            print "pfba could not determine an optimal solution for objective %s" % model.objective
+            logger.debug("pfba could not determine an optimal solution for objective %s" % model.objective)
             raise e
     except Exception as e:
         tm.reset()
@@ -162,7 +163,7 @@ def lmoma(model, reference=None, cache={}, volatile=True, *args, **kwargs):
             solution = model.solve()
             return solution
         except SolveError as e:
-            print "lmoma could not determine an optimal solution for objective %s" % model.objective
+            logger.debug("lmoma could not determine an optimal solution for objective %s" % model.objective)
             raise e
 
     finally:
@@ -337,7 +338,7 @@ if __name__ == '__main__':
     cb_model = read_sbml_model(sbml_path)
     model = load_model(sbml_path)
 
-    # model.solver = 'glpk'
+    model.solver = 'cplex'
 
     print "cobra fba"
     tic = time.time()

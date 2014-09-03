@@ -9,6 +9,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from collections import OrderedDict
+from bokeh.objects import HoverTool
 
 import scipy
 import numpy as np
@@ -39,11 +41,17 @@ class IPythonBokehFitnessPlotter(object):
             output_notebook(url=self.url, docname=str(self.uuid))
             hold()
             figure()
-            scatter([], [], tools='', title="Best solution fitness plot")
+            self.plot = scatter([], [], tools='', title="Best solution fitness plot")
             xaxis()[0].axis_label = "Iteration"
             yaxis()[0].axis_label = "Fitness"
-            self.plot = curplot()
             renderer = [r for r in self.plot.renderers if isinstance(r, Glyph)][0]
+            # hover = [t for t in self.plot.tools if isinstance(t, HoverTool)][0]
+            # hover.tooltips = OrderedDict([
+            #     ("iteration", "@x"),
+            #     ("fitness", "@y"),
+            #     ("knockouts", "@knockouts"),
+            # ])
+
             self.ds = renderer.data_source
             show()
             self.plotted = True
@@ -56,13 +64,14 @@ class IPythonBokehFitnessPlotter(object):
         if not self.plotted and self.can_plot:
             self._set_plot()
 
+        decoder = args.get('decoder')
+
         self.iteration += 1
         self.iterations.append(self.iteration)
         if len(population) > 0:
             best = max(population)
+            self.knockouts = [g.id for g in decoder(best.candidate)[1]]
             self.fitness.append(best.fitness)
-        else:
-            self.fitness.append(None)
 
         if self.iteration % args.get('n', 20) == 0:
             self._update_plot()
@@ -71,6 +80,7 @@ class IPythonBokehFitnessPlotter(object):
         if self.can_plot:
             self.ds.data['x'] = self.iterations[-self.window_size:]
             self.ds.data['y'] = self.fitness[-self.window_size:]
+            self.ds.data['knockouts'] = self.knockouts[-self.window_size:]
             session().store_obj(self.ds)
 
     def reset(self):

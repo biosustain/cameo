@@ -30,6 +30,7 @@ class biomass_product_coupled_yield():
         self.substrate = substrate
         self.name = "bpcy = (%s * %s) / %s" % (biomass, product, substrate)
         self.__name__ = self.__class__.__name__
+        self.short_name = "bpcy"
 
     def __call__(self, model, solution, decoded_representation):
         try:
@@ -56,6 +57,8 @@ class product_yield():
         self.product = product
         self.substrate = substrate
         self.name = "yield = (%s / %s)" % (product, substrate)
+        self.__name__ = self.__class__.__name__
+        self.short_name = "yield"
 
     def __call__(self, model, solution, decoded_representation):
         try:
@@ -84,6 +87,8 @@ class number_of_knockouts():
             self.name = "max #knockouts"
         else:
             self.name = "min #knockouts"
+        self.__name__ = self.__class__.__name__
+        self.short_name = "bpcy"
 
     def __call__(self, model, solution, decoded_representation):
         if self.sense == 'max':
