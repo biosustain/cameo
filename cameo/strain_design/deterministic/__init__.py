@@ -99,7 +99,6 @@ class DifferentialFVA(StrainDesignMethod):
         self.exclude += [reaction.id for reaction in design_space_model.exchanges]
         self.exclude += [reaction.id for reaction in reference_model.exchanges]
         self.exclude = set(self.exclude).difference(set([self.objective] + self.variables))
-        print self.exclude
 
         self.points = points
         self.envelope = None
