@@ -114,7 +114,7 @@ def phenotypic_phase_plane(model, variables=[], objective=None, points=20, view=
             tm(do=partial(setattr, model, 'objective', objective),
                undo=partial(setattr, model, 'objective', model.objective))
 
-        variable_reactions = _ids_to_reactions(model, variables)
+        variable_reactions = model._ids_to_reactions(variables)
         variables_min_max = flux_variability_analysis(model, reactions=variable_reactions, view=SequentialView())
         grid = [numpy.linspace(lower_bound, upper_bound, points, endpoint=True) for
                 reaction_id, lower_bound, upper_bound in
@@ -137,19 +137,6 @@ def phenotypic_phase_plane(model, variables=[], objective=None, points=20, view=
                                 columns=(variable_reactions_ids + ['objective_lower_bound', 'objective_upper_bound']))
 
 
-def _ids_to_reactions(model, reactions):
-    """Translate reaction IDs into reactions (skips reactions)."""
-    clean_reactions = list()
-    for reaction in reactions:
-        if isinstance(reaction, str):
-            clean_reactions.append(model.reactions.get_by_id(reaction))
-        elif isinstance(reaction, Reaction):
-            clean_reactions.append(reaction)
-        else:
-            raise Exception('%s is not a reaction or reaction ID.' % reaction)
-    return clean_reactions
-
-
 class _FvaFunctionObject(object):
     def __init__(self, model, fva):
         self.model = model
@@ -164,7 +151,7 @@ def _flux_variability_analysis(model, reactions=None):
     if reactions is None:
         reactions = model.reactions
     else:
-        reactions = _ids_to_reactions(model, reactions)
+        reactions = model._ids_to_reactions(reactions)
     fva_sol = OrderedDict()
     for reaction in reactions:
         fva_sol[reaction.id] = dict()
@@ -210,7 +197,7 @@ def _cycle_free_fva(model, reactions=None, sloppy=True):
         if reactions is None:
             reactions = model.reactions
         else:
-            reactions = _ids_to_reactions(model, reactions)
+            reactions = model._ids_to_reactions(reactions)
         fva_sol = OrderedDict()
         for reaction in reactions:
             fva_sol[reaction.id] = dict()
