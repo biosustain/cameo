@@ -5,6 +5,7 @@ import copy
 import unittest
 
 import os
+from cobra import Metabolite
 from optlang import Objective
 from cameo import load_model
 from cameo.exceptions import UndefinedSolution
@@ -258,6 +259,12 @@ class TestSolverBasedModel(CommonGround):
                                    REFERENCE_FVA_SOLUTION_ECOLI_CORE['lower_bound'][reaction.id], delta=0.000001)
             self.assertAlmostEqual(reaction.effective_upper_bound,
                                    REFERENCE_FVA_SOLUTION_ECOLI_CORE['upper_bound'][reaction.id], delta=0.000001)
+
+    def test_add_demand_for_non_existing_metabolite(self):
+        metabolite = Metabolite(id="a_metabolite")
+        self.model.add_demand(metabolite)
+        self.assertTrue(self.model.solver.variables["DM_" + metabolite.id]
+                        in self.model.solver.constraints[metabolite.id].expression)
 
 
 if __name__ == '__main__':
