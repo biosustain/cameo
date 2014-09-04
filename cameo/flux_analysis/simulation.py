@@ -40,17 +40,16 @@ def fba(model, objective=None, *args, **kwargs):
         Contains the result of the linear solver.
 
     """
-    tm = TimeMachine()
-    if objective is not None:
-        tm(do=partial(setattr, model, 'objective', objective),
-           undo=partial(setattr, model, 'objective', model.objective))
-    try:
-        solution = model.solve()
-        tm.reset()
-        return solution
-    except SolveError as e:
-        tm.reset()
-        raise e
+    with TimeMachine() as tm:
+        if objective is not None:
+            tm(do=partial(setattr, model, 'objective', objective),
+               undo=partial(setattr, model, 'objective', model.objective))
+        try:
+            solution = model.solve()
+            tm.reset()
+            return solution
+        except SolveError as e:
+            raise e
 
 
 def pfba(model, objective=None, *args, **kwargs):
@@ -68,44 +67,42 @@ def pfba(model, objective=None, *args, **kwargs):
         Contains the result of the linear solver.
 
     """
-    tm = TimeMachine()
-    original_objective = model.objective.expression
-    tm(do=partial(setattr, model, 'reversible_encoding', 'split'),
-       undo=partial(setattr, model, 'reversible_encoding', model.reversible_encoding))
-    try:
-        if objective is not None:
-            tm(do=partial(setattr, model, 'objective', objective),
-               undo=partial(setattr, model, 'objective', original_objective))
+    with TimeMachine() as tm:
+        original_objective = model.objective.expression
+        tm(do=partial(setattr, model, 'reversible_encoding', 'split'),
+           undo=partial(setattr, model, 'reversible_encoding', model.reversible_encoding))
         try:
-            obj_val = model.solve().f
-        except SolveError as e:
-            print "pfba could not determine maximum objective value for\n%s." % model.objective
-            raise e
-        if model.objective.direction == 'max':
-            fix_obj_constraint = model.solver.interface.Constraint(model.objective.expression, lb=obj_val)
-        else:
-            fix_obj_constraint = model.solver.interface.Constraint(model.objective.expression, ub=obj_val)
-        tm(do=partial(model.solver._add_constraint, fix_obj_constraint),
-           undo=partial(model.solver._remove_constraint, fix_obj_constraint))
+            if objective is not None:
+                tm(do=partial(setattr, model, 'objective', objective),
+                   undo=partial(setattr, model, 'objective', original_objective))
+            try:
+                obj_val = model.solve().f
+            except SolveError as e:
+                print "pfba could not determine maximum objective value for\n%s." % model.objective
+                raise e
+            if model.objective.direction == 'max':
+                fix_obj_constraint = model.solver.interface.Constraint(model.objective.expression, lb=obj_val)
+            else:
+                fix_obj_constraint = model.solver.interface.Constraint(model.objective.expression, ub=obj_val)
+            tm(do=partial(model.solver._add_constraint, fix_obj_constraint),
+               undo=partial(model.solver._remove_constraint, fix_obj_constraint))
 
-        pfba_obj = model.solver.interface.Objective(add(
-            [mul((sympy.singleton.S.One, variable)) for variable in model.solver.variables.values()]),
-                                                    direction='min', sloppy=True)
-        # tic = time.time()
-        tm(do=partial(setattr, model, 'objective', pfba_obj),
-           undo=partial(setattr, model, 'objective', original_objective))
-        # print "obj: ", time.time() - tic
-        try:
-            solution = model.solve()
-            tm.reset()
-            return solution
-        except SolveError as e:
-            tm.reset()
-            print "pfba could not determine an optimal solution for objective %s" % model.objective
+            pfba_obj = model.solver.interface.Objective(add(
+                [mul((sympy.singleton.S.One, variable)) for variable in model.solver.variables.values()]),
+                direction='min', sloppy=True)
+            # tic = time.time()
+            tm(do=partial(setattr, model, 'objective', pfba_obj),
+               undo=partial(setattr, model, 'objective', original_objective))
+            # print "obj: ", time.time() - tic
+            try:
+                solution = model.solve()
+                tm.reset()
+                return solution
+            except SolveError as e:
+                print "pfba could not determine an optimal solution for objective %s" % model.objective
+                raise e
+        except Exception as e:
             raise e
-    except Exception as e:
-        tm.reset()
-        raise e
 
 
 def moma(model, reference=None, *args, **kwargs):

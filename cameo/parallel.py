@@ -112,6 +112,15 @@ try:
             return self.length() == 0
 
         def put(self, item):
+            """
+            Inserts an object in the queue.
+
+            Parameters
+            ----------
+            item : object
+                An object to put in the queue
+
+            """
             if self.length() >= self._maxsize:
                 raise Queue.Full
 
@@ -127,12 +136,31 @@ try:
             --------
             put
 
-            :param item: object to put in the queue
+            Parameters
+            ----------
+            item: object
+                An object to put in the queue.
 
             """
             self.put(item)
 
         def get(self, block=True, timeout=None):
+            """
+            Retrieves the next item in the queue.
+
+            Parameters
+            ----------
+            block: bool, default is True
+                If true, the queue is blocked until it an object is retrieved reaches the timeout.
+            timeout: long
+                The timeout (in seconds) that the method should wait for the queue to return an item. If block is False,
+                time wil ignored.
+
+            Returns
+            -------
+            item: object
+
+            """
             if block:
                 item = self._db.blpop(self._key, timeout=timeout)
             else:
