@@ -51,7 +51,7 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.ifconfig',
     'sphinx.ext.viewcode',
-    'numpydoc'
+    'numpydoc',
     'sphinxcontrib.napoleon'
 ]
 
