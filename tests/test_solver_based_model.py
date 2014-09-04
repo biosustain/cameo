@@ -5,6 +5,7 @@ import copy
 import unittest
 
 import os
+from cobra import Metabolite
 from optlang import Objective
 from cameo import load_model
 from cameo.exceptions import UndefinedSolution
@@ -182,7 +183,6 @@ class TestSolverBasedModel(CommonGround):
                     self.assertEqual(reaction2.get_model(), model)
                     self.assertEqual(reaction2, model.reactions.get_by_id(reaction2.id))
 
-
     def test_remove_reactions(self):
         reactions_to_remove = self.model.reactions[10:30]
         self.assertTrue(all([reaction.get_model() is self.model for reaction in reactions_to_remove]))
@@ -202,6 +202,12 @@ class TestSolverBasedModel(CommonGround):
             self.assertTrue(
                 self.model.solver.variables["DemandReaction_" + metabolite.id] in self.model.solver.constraints[
                     metabolite.id].expression)
+
+    def test_add_demand_for_non_existing_metabolite(self):
+        metabolite = Metabolite(id="a_metabolite")
+        self.model.add_demand(metabolite)
+        self.assertTrue(self.model.solver.variables["DM_" + metabolite.id]
+                        in self.model.solver.constraints[metabolite.id].expression)
 
     def test_objective(self):
         obj = self.model.objective

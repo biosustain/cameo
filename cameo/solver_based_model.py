@@ -509,11 +509,11 @@ class SolverBasedModel(Model):
             if reaction.reversibility and self._reversible_encoding == "split":
                 reaction_variable = self.solver.interface.Variable(reaction.id, lb=0, ub=reaction._upper_bound)
                 aux_var = self.solver.interface.Variable(reaction._get_reverse_id(), lb=0, ub=-reaction._lower_bound)
-                self.solver.add(aux_var)
+                self.solver._add_variable(aux_var)
             else:
                 reaction_variable = self.solver.interface.Variable(reaction.id, lb=reaction._lower_bound,
                                                                    ub=reaction._upper_bound)
-            self.solver.add(reaction_variable)
+            self.solver._add_variable(reaction_variable)
 
             for metabolite, coeff in reaction.metabolites.iteritems():
                 if metabolite.id in constr_terms:
@@ -528,8 +528,7 @@ class SolverBasedModel(Model):
             try:
                 self.solver.constraints[met_id] += expr
             except KeyError:
-                super(SolverBasedModel, self).add_metabolites([metabolites[met_id]])
-                self.solver.add(self.solver.interface.Constraint(expr, name=met_id, lb=0, ub=0))
+                self.solver._add_constraint(self.solver.interface.Constraint(expr, name=met_id, lb=0, ub=0))
 
     def remove_reactions(self, the_reactions):
         for reaction in the_reactions:

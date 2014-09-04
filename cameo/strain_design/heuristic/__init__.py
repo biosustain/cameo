@@ -163,11 +163,11 @@ class HeuristicOptimization(object):
     def _evaluator(self):
         raise NotImplementedError
 
-    def run(self, view=config.default_view, **kwargs):
+    def run(self, view=config.default_view, maximize=True, **kwargs):
         t = time.time()
         print time.strftime("Starting optimization at %a, %d %b %Y %H:%M:%S", time.localtime(t))
         res = self.heuristic_method.evolve(generator=self._generator,
-                                           maximize=True,
+                                           maximize=maximize,
                                            view=view,
                                            evaluator=self._evaluator,
                                            **kwargs)
