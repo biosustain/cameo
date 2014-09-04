@@ -103,21 +103,31 @@ def set_distance_function(candidate1, candidate2):
 class HeuristicOptimization(object):
     """
     Blueprint for any model optimization based on heuristic methods.
+
+
+    Attributes
+    ----------
+    model : SolverBasedModel
+        A constraint-based model.
+    heuristic_method : inspyred.ec.EvolutionaryComputation
+        An evolutionary algorithm.
+    objective_function : objective function or list(objective function)
+        The objectives for the algorithm to maximize.
+    seed : int
+        A seed for random. It is auto-generated if None is given.
+    termination : inspyred.ec.terminators
+        A termination criteria for the algorithm. The default is inspyred.ec.terminators.evaluation_termination
+
+
+    Methods
+    -------
+    run(view=config.default_view, maximize=True, **kwargs)
+
+
     """
     def __init__(self, model=None, heuristic_method=inspyred.ec.GA, objective_function=None, seed=None,
                  termination=inspyred.ec.terminators.evaluation_termination, *args, **kwargs):
-        """
-        Constructor
 
-        Parameters
-        ----------
-            model: SolverBasedModel
-            heuristic_method: inspyred.ec.EvolutionaryComputation
-            objective_function: see objective functions
-            seed: ramdom seed
-            termination: inspyred.ec.terminators
-
-        """
         super(HeuristicOptimization, self).__init__(*args, **kwargs)
         if seed is None:
             seed = int(round(time.time() * 1000))
@@ -184,17 +194,32 @@ class KnockoutEvaluator(object):
     """
     Evaluator for knockouts. It gets a representation, decodes into knockouts and simulates
     the model with a given method.
+
+    Attributes
+    ----------
+    model : SolverBasedModel
+        A constraint-based model
+    decoder : KnockoutDecoder
+        A decoder to convert the representation into knockouts
+    objective_function : objective_function or list(objective_function)
+        The objectives of the algorithm
+    simulation_method : see flux_analysis.simulation
+        The method use to simulate the knockouts
+    simulation_kwargs : dict
+        The extra parameters used by the simulation method
+
+    See Also
+    --------
+    cameo.strain_design.heuristic.objective_function
+
+    Methods
+    -------
+    __call__(population)
+        calling the object will evaluate a population (see inspyred)
+
     """
     def __init__(self, model, decoder, objective_function, simulation_method, simulation_kwargs):
-        """
-        Parameters
-        ----------
-        model: SolverBasedModel
-        decoder: KnockoutDecoder
-        objective_function: see objective_functions
-        simulation_method: see flux_analysis.simulation
-        simulation_kwargs: see also flux_analysis.simulation
-        """
+
         self.model = model
         self.decoder = decoder
         self.objective_function = objective_function
@@ -202,13 +227,7 @@ class KnockoutEvaluator(object):
         self.simulation_kwargs = simulation_kwargs
 
     def __call__(self, population):
-        """
-        Parameters
-        ----------
-        population: list
-            A list of the individuals
 
-        """
         time_machine = TimeMachine()
         cache = {
             'first_run': True,
