@@ -228,21 +228,20 @@ class KnockoutEvaluator(object):
 
     def __call__(self, population):
 
-        time_machine = TimeMachine()
         cache = {
             'first_run': True,
             'original_objective': self.model.objective,
             'variables': {},
             'constraints': {}
         }
-        res = [self.evaluate_individual(i, time_machine, cache) for i in population]
+        res = [self.evaluate_individual(i, cache) for i in population]
         reset_model(self.model, cache)
         return res
 
-    def evaluate_individual(self, individual, tm, cache):
+    def evaluate_individual(self, individual, cache):
         decoded = self.decoder(individual)
         reactions = decoded[0]
-        try:
+        with TimeMachine() as tm:
             for reaction in reactions:
                 tm(do=partial(setattr, reaction, 'lower_bound', 0),
                    undo=partial(setattr, reaction, 'lower_bound', reaction.lower_bound))
@@ -259,10 +258,7 @@ class KnockoutEvaluator(object):
                 else:
                     fitness = 0
 
-        finally:
-            tm.reset()
-
-        return fitness
+            return fitness
 
     def _calculate_fitness(self, solution, decoded):
         if isinstance(self.objective_function, list):
@@ -671,6 +667,7 @@ class KnockinKnockoutOptimization(KnockoutOptimization):
                                                  product=kwargs.get('product', None))
 
 
+#TODO: implement a knockout knockin approach using a reaction db
 class ReactionKnockinKnockoutOptimization(ReactionKnockoutOptimization, KnockinKnockoutOptimization):
     def __init__(self, reaction_db=None, *args, **kwargs):
         KnockinKnockoutOptimization.__init__(self, *args, **kwargs)
