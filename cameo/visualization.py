@@ -20,7 +20,6 @@ from escher import Builder
 
 import os
 from IPython.display import HTML, SVG
-from cameo.flux_analysis.analysis import _ids_to_reactions
 from cameo.util import TimeMachine
 
 
@@ -125,7 +124,7 @@ def draw_knockout_result(model, map_name, simulation_method, knockouts, *args, *
     tm = TimeMachine()
 
     try:
-        for reaction in _ids_to_reactions(model, knockouts):
+        for reaction in model._ids_to_reactions(knockouts):
             tm(do=partial(setattr, reaction, 'lower_bound', 0),
                undo=partial(setattr, reaction, 'lower_bound', reaction.lower_bound))
             tm(do=partial(setattr, reaction, 'upper_bound', 0),

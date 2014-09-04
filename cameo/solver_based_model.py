@@ -722,6 +722,17 @@ class SolverBasedModel(Model):
 
         return model
 
+    def _ids_to_reactions(self, reactions):
+        """Translate reaction IDs into reactions (skips reactions)."""
+        clean_reactions = list()
+        for reaction in reactions:
+            if isinstance(reaction, str):
+                clean_reactions.append(self.reactions.get_by_id(reaction))
+            elif isinstance(reaction, Reaction):
+                clean_reactions.append(reaction)
+            else:
+                raise Exception('%s is not a reaction or reaction ID.' % reaction)
+        return clean_reactions
 
     @staticmethod
     def _load_medium_from_dict(model, medium):
