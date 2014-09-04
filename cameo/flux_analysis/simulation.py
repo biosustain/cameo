@@ -202,7 +202,7 @@ def lmoma(model, reference=None, cache={}, volatile=True, *args, **kwargs):
             solution = model.solve()
             return solution
         except SolveError as e:
-            print "lmoma could not determine an optimal solution for objective %s" % model.objective
+            #print "lmoma could not determine an optimal solution for objective %s" % model.objective
             raise e
 
     finally:

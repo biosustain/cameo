@@ -504,6 +504,7 @@ class SolverBasedModel(Model):
         super(SolverBasedModel, self).add_reactions(cloned_reaction_list)
 
         constr_terms = dict()
+        metabolites = {}
         for reaction in cloned_reaction_list:
             if reaction.reversibility and self._reversible_encoding == "split":
                 reaction_variable = self.solver.interface.Variable(reaction.id, lb=0, ub=reaction._upper_bound)
@@ -520,15 +521,14 @@ class SolverBasedModel(Model):
                         sympy.Mul._from_args([sympy.RealNumber(coeff), reaction_variable]))
                 else:
                     constr_terms[metabolite.id] = [sympy.Mul._from_args([sympy.RealNumber(coeff), reaction_variable])]
+                    metabolites[metabolite.id] = metabolite
 
         for met_id, terms in constr_terms.iteritems():
+            expr = sympy.Add._from_args(terms)
             try:
-                metabolite_constraint = self.solver.constraints[met_id]
-                metabolite_constraint += sympy.Add._from_args(terms)
-            except KeyError:  # cannot override add_metabolites here as it is not used by cobrapy in add_reactions
-                self.solver._add_constraint(
-                    self.solver.interface.Constraint(sympy.Add._from_args(terms), lb=0, ub=0, name=met_id, sloppy=True),
-                    sloppy=True)
+                self.solver.constraints[met_id] += expr
+            except KeyError:
+                self.solver._add_constraint(self.solver.interface.Constraint(expr, name=met_id, lb=0, ub=0))
 
     def remove_reactions(self, the_reactions):
         for reaction in the_reactions:
