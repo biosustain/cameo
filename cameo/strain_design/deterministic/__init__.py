@@ -11,30 +11,104 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from itertools import izip
 
+from functools import partial
+from itertools import izip
 import logging
 from pandas import DataFrame, pandas
 from progressbar import ProgressBar
+from progressbar.widgets import ETA, Bar
 from cameo import config, flux_variability_analysis
 from cameo.parallel import SequentialView, MultiprocessingView
+from cameo.solver_based_model import Reaction
 from cameo.strain_design import StrainDesignMethod
 from cameo.flux_analysis.analysis import phenotypic_phase_plane
-
+from cameo.util import TimeMachine
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 
 class DifferentialFVA(StrainDesignMethod):
-    """Differential flux variability analysis.__init__.py
+    """Differential flux variability analysis.
 
-    Compare flux ranges of a reference model to and a set of models that
-    are parameterized to lie on a grid of evenly space points in the
-    production envelope of a model.
+    Compares flux ranges of a reference model to a set of models that
+    have been parameterized to lie on a grid of evenly spaced points in the
+    n-dimensional production envelope (n being the number of reaction bounds
+    to be varied).
+    ::
+        production
+        ^
+        |---------.          * reference_model
+        | . . . . .\         . design_space_model
+        | . . . . . \\
+        | . . . . . .\\
+        | . . . . . . \\
+        o--------------*- >
+                     growth
 
-    ...
+    Overexpression, downregulation, knockout, flux-reversal and other
+    strain engineering targets can be inferred from the resulting comparison.
+
+    Parameters
+    ----------
+    design_space_model : SolverBasedModel
+        A model whose flux ranges will be scanned.
+    reference_model : SolverBasedModel
+        A model whose flux ranges represent the reference state and all calculates
+        flux ranges will be compared to.
+    objective : str or Reaction
+        The reaction to be maximized.
+    variables : iterable
+        A iterable of n reactions (or IDs) to be scanned.
+    exclude : iterable
+        An iterable of reactions (or IDs) to be excluded in the analysis (exchange
+        reactions will not be analyzed automatically).
+    normalize_ranges_by : str or Reaction, optional
+        A reaction ID that specifies a flux by whom all calculated flux ranges
+        will be normalized by.
+    points : int, optional
+        Number of points to lay on the surface of the n-dimensional production envelope.
     """
+
+    def __init__(self, design_space_model, reference_model, objective, variables=[],
+                 exclude=[], normalize_ranges_by=None, points=20):
+        super(DifferentialFVA, self).__init__()
+
+        self.design_space_model = design_space_model
+        self.reference_model = reference_model
+
+        if isinstance(objective, Reaction):
+            self.objective = objective.id
+        else:
+            self.objective = objective
+
+        self.variables = list()
+        for variable in variables:
+            if isinstance(variable, Reaction):
+                self.variables.append(variable.id)
+            else:
+                self.variables.append(variable)
+
+        self.exclude = list()
+        for elem in exclude:
+            if isinstance(elem, Reaction):
+                self.exclude.append(elem.id)
+            else:
+                self.exclude.append(elem)
+        self.exclude += [reaction.id for reaction in design_space_model.exchanges]
+        self.exclude += [reaction.id for reaction in reference_model.exchanges]
+        self.exclude = set(self.exclude).difference(set([self.objective] + self.variables))
+        print self.exclude
+
+        self.points = points
+        self.envelope = None
+        self.grid = None
+
+        if isinstance(normalize_ranges_by, Reaction):
+            self.normalize_ranges_by = normalize_ranges_by.id
+        else:
+            self.normalize_ranges_by = normalize_ranges_by
 
     @staticmethod
     def _interval_overlap(interval1, interval2):
@@ -51,21 +125,10 @@ class DifferentialFVA(StrainDesignMethod):
             else:
                 return -1 * overlap
 
-    def __init__(self, design_space_model=None, reference_model=None, target=None, variables=[],
-                 normalize_fluxes_by=None, points=20):
-        super(DifferentialFVA, self).__init__()
-        self.design_space_model = design_space_model
-        self.reference_model = reference_model
-        self.target = target
-        self.variables = variables
-        self.points = points
-        self.envelope = None
-        self.grid = None
-        self.normalize_fluxes_by = normalize_fluxes_by
-
-    def _init_search_grid(self):
+    def _init_search_grid(self, surface_only=False, improvements_only=True):
+        """Initialize the grid of points to be scanned within the production envelope."""
         self.envelope = phenotypic_phase_plane(
-            self.design_space_model, self.variables, objective=self.target, points=self.points)
+            self.design_space_model, self.variables, objective=self.objective, points=self.points)
         intervals = self.envelope[['objective_lower_bound', 'objective_upper_bound']]
         max_distance = 0.
         max_interval = None
@@ -75,66 +138,112 @@ class DifferentialFVA(StrainDesignMethod):
                 max_distance = distance
                 max_interval = (lb, ub)
         step_size = (max_interval[1] - max_interval[0]) / (self.points - 1)
-        print step_size
         grid = list()
+        minimal_reference_production = self.reference_flux_ranges['lower_bound'][self.objective]
         for i, row in self.envelope.iterrows():
             variables = row[self.variables]
             lb = row.objective_lower_bound
+            if improvements_only:
+                lb = max(lb, minimal_reference_production) + step_size
             ub = row.objective_upper_bound
-            coordinate = lb
-            while coordinate < ub:
-                grid.append(list(variables.values) + [coordinate])
-                coordinate += step_size
-            grid.append(list(variables.values) + [ub])
-        columns = self.variables + [self.target]
+            if not surface_only:
+                coordinate = lb
+                while coordinate < ub:
+                    grid.append(list(variables.values) + [coordinate])
+                    coordinate += step_size
+            if improvements_only and ub <= minimal_reference_production:
+                continue
+            else:
+                grid.append(list(variables.values) + [ub])
+        columns = self.variables + [self.objective]
         self.grid = DataFrame(grid, columns=columns)
+
+    def run(self, surface_only=False, improvements_only=True, view=None):
+        """Run the differential flux variability analysis.
+
+        Parameters
+        ----------
+        surface_only : bool, optional
+            If only the optimal surface should be scanned.
+        view : SequentialView or MultiprocessingView or ipython.cluster.DirectView, optional
+            A parallelization view.
+        surface_only : bool, optional
+            If only the surface of the n-dimensional production envelope should be scanned.
+        improvements_only : bool, optional
+            If only grid points should should be scanned that constitute and improvement in production
+            over the reference state.
+
+        Returns
+        -------
+        pandas.Panel
+            A pandas Panel containing a results DataFrame for every grid point scanned.
+        """
+        with TimeMachine() as tm:
+            # Make sure that the design_space_model is initialized to its original state later
+            for variable in self.variables:
+                reaction = self.design_space_model.reactions.get_by_id(variable)
+                tm(do=int, undo=partial(setattr, reaction, 'lower_bound', reaction.lower_bound))
+                tm(do=int, undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
+            target_reaction = self.design_space_model.reactions.get_by_id(self.objective)
+            tm(do=int, undo=partial(setattr, target_reaction, 'lower_bound', reaction.lower_bound))
+            tm(do=int, undo=partial(setattr, target_reaction, 'upper_bound', reaction.upper_bound))
+
+            if view is None:
+                view = config.default_view
+            else:
+                view = view
+
+            included_reactions = [reaction.id for reaction in self.reference_model.reactions if not reaction.id in self.exclude]
+            self.reference_flux_ranges = flux_variability_analysis(self.reference_model, reactions=included_reactions, view=view, remove_cycles=False)
+            self._init_search_grid(surface_only=surface_only, improvements_only=improvements_only)
+
+            progress = ProgressBar(len(self.grid), widgets=['Scanning grid points ', Bar(),' ', ETA()])
+            func_obj = _DifferentialFvaEvaluator(self.design_space_model, self.variables, self.objective, included_reactions)
+            iterator = progress(self.grid.iterrows())
+            results = view.map(func_obj, iterator)
+            solutions = dict((tuple(point.to_dict().items()), fva_result) for (point, fva_result) in results)
+
+            reference_intervals = self.reference_flux_ranges[['lower_bound', 'upper_bound']].values
+            for sol in solutions.itervalues():
+                intervals = sol[['lower_bound', 'upper_bound']].values
+                gaps = [self._interval_gap(interval1, interval2) for interval1, interval2 in
+                        izip(reference_intervals, intervals)]
+                sol['gaps'] = gaps
+            if self.normalize_ranges_by is not None:
+                for sol in solutions.itervalues():
+                    normalized_intervals = sol[['lower_bound', 'upper_bound']].values / sol.lower_bound[
+                        self.normalize_ranges_by]
+                    normalized_gaps = [self._interval_gap(interval1, interval2) for interval1, interval2 in
+                                       izip(reference_intervals, normalized_intervals)]
+                    sol['normalized_gaps'] = normalized_gaps
+
+            return pandas.Panel(solutions)
+
+
+class _DifferentialFvaEvaluator(object):
+    def __init__(self, model, variables, objective, included_reactions):
+        self.model = model
+        self.variables = variables
+        self.objective = objective
+        self.included_reactions = included_reactions
+
+    def __call__(self, point):
+        self._set_bounds(point[1])
+        return (point[1], flux_variability_analysis(self.model, reactions=self.included_reactions, remove_cycles=False, view=SequentialView()))
 
     def _set_bounds(self, point):
         for variable in self.variables:
-            reaction = self.design_space_model.reactions.get_by_id(variable)
+            reaction = self.model.reactions.get_by_id(variable)
             bound = point[variable]
             reaction.lower_bound, reaction.upper_bound = bound, bound
-        target_reaction = self.design_space_model.reactions.get_by_id(self.target)
-        target_bound = point[self.target]
+        target_reaction = self.model.reactions.get_by_id(self.objective)
+        target_bound = point[self.objective]
         target_reaction.lower_bound, target_reaction.upper_bound = target_bound, target_bound
-
-    def run(self, view=None):
-        if view is None:
-            view = config.default_view
-        else:
-            view = view
-        reference_flux_ranges = flux_variability_analysis(self.reference_model, view=view)
-        self.reference_flux_ranges = reference_flux_ranges
-        self._init_search_grid()
-        solutions = dict()
-        progress = ProgressBar(len(self.grid))
-        progress.start()
-        for i, point in self.grid.iterrows():
-            progress.update(i + 1)
-            # print "Processing point:", point
-            self._set_bounds(point)
-            fva_sol = flux_variability_analysis(self.design_space_model, remove_cycles=True,
-                                                view=SequentialView())  # TODO: let it remove cycles in the future
-            solutions[str(point)] = fva_sol
-        reference_intervals = reference_flux_ranges[['lower_bound', 'upper_bound']].values
-        for sol in solutions.itervalues():
-            intervals = sol[['lower_bound', 'upper_bound']].values
-            gaps = [self._interval_gap(interval1, interval2) for interval1, interval2 in
-                    izip(reference_intervals, intervals)]
-            sol['gaps'] = gaps
-        if self.normalize_fluxes_by is not None:
-            for sol in solutions.itervalues():
-                normalized_intervals = sol[['lower_bound', 'upper_bound']].values / sol.lower_bound[
-                    self.normalize_fluxes_by]
-                normalized_gaps = [self._interval_gap(interval1, interval2) for interval1, interval2 in
-                                   izip(reference_intervals, normalized_intervals)]
-                sol['normalized_gaps'] = normalized_gaps
-
-        return pandas.Panel(solutions)
 
 
 if __name__ == '__main__':
     from cameo.io import load_model
+    from cameo.util import Timer
 
     model = load_model(
         '/Users/niko/Arbejder/Dev/cameo/tests/data/EcoliCore.xml')
@@ -149,12 +258,14 @@ if __name__ == '__main__':
 
     diffFVA = DifferentialFVA(design_space_model=model,
                               reference_model=reference_model,
-                              target='EX_succ_LPAREN_e_RPAREN_',
+                              objective='EX_succ_LPAREN_e_RPAREN_',
                               variables=['Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2',
                                          'EX_o2_LPAREN_e_RPAREN_'],
-                              normalize_fluxes_by='Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2',
-                              points=2
+                              normalize_ranges_by='Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2',
+                              points=4
     )
-    # result = diffFVA.run(view=SequentialView())
-    result = diffFVA.run(view=MultiprocessingView())
+    with Timer('Sequential'):
+        result = diffFVA.run(surface_only=True, improvements_only=True, view=SequentialView())
+    # with Timer('Multiprocessing'):
+    #     result = diffFVA.run(surface_only=True, view=MultiprocessingView())
 
