@@ -198,8 +198,7 @@ class DifferentialFVA(StrainDesignMethod):
 
             progress = ProgressBar(len(self.grid), widgets=['Scanning grid points ', Bar(),' ', ETA()])
             func_obj = _DifferentialFvaEvaluator(self.design_space_model, self.variables, self.objective, included_reactions)
-            iterator = progress(self.grid.iterrows())
-            results = view.map(func_obj, iterator)
+            results = list(progress(view.imap(func_obj, self.grid.iterrows())))
             solutions = dict((tuple(point.to_dict().items()), fva_result) for (point, fva_result) in results)
 
             reference_intervals = self.reference_flux_ranges[['lower_bound', 'upper_bound']].values
@@ -261,10 +260,43 @@ if __name__ == '__main__':
                               variables=['Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2',
                                          'EX_o2_LPAREN_e_RPAREN_'],
                               normalize_ranges_by='Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2',
-                              points=4
+                              points=10
     )
     with Timer('Sequential'):
-        result = diffFVA.run(surface_only=True, improvements_only=True, view=SequentialView())
+        result = diffFVA.run(surface_only=True, view=SequentialView())
+    with Timer('Multiprocessing'):
+        result = diffFVA.run(surface_only=True, view=MultiprocessingView())
+    # try:
+    #     from IPython.parallel import Client
+    #     client = Client()
+    #     view = client.load_balanced_view()
+    #     view.block = True
+    # except:
+    #     pass
+    # else:
+    #     with Timer('IPython'):
+    #         result = diffFVA.run(surface_only=False, view=view)
+
+    # model = load_model(
+    #     '/Users/niko/Arbejder/Dev/cameo/tests/data/iJO1366.xml')
+    #
+    # reference_model = model.copy()
+    # biomass_rxn = reference_model.reactions.get_by_id('Ec_biomass_iJO1366_core_53p95M')
+    # biomass_rxn.lower_bound = .9 * reference_model.solve().f
+    #
+    #
+    # diffFVA = DifferentialFVA(model, reference_model, 'EX_trp_DASH_L_LPAREN_e_RPAREN_', ['Ec_biomass_iJO1366_core_53p95M'],
+    #                       normalize_ranges_by='Ec_biomass_iJO1366_core_53p95M', points=10)
+    # with Timer('Sequential'):
+    #     result = diffFVA.run(surface_only=True, view=SequentialView())
     # with Timer('Multiprocessing'):
     #     result = diffFVA.run(surface_only=True, view=MultiprocessingView())
+    # try:
+    #     from IPython.parallel import Client
+    #     client = Client()
+    #     view = client.load_balanced_view()
+    #     with Timer('IPython'):
+    #         result = diffFVA.run(surface_only=True, view=())
+    # except:
+    #     pass
 

@@ -14,6 +14,7 @@
 
 import Queue
 from multiprocessing import Pool, cpu_count
+import itertools
 from cameo.util import Singleton
 
 
@@ -40,6 +41,11 @@ class MultiprocessingView(Singleton):
         if self.pool is None:
             self.pool = Pool(*self._args, **self._kwargs)
         self.pool.apply_async(func, args=args, **kwargs)
+
+    def imap(self, func, *args, **kwargs):
+        if self.pool is None:
+            self.pool = Pool(*self._args, **self._kwargs)
+        return self.pool.imap(func, *args, **kwargs)
 
     def __len__(self):
         return cpu_count()
@@ -195,6 +201,9 @@ class SequentialView(object):
 
     def apply_async(self, func, *args, **kwargs):
         return func(*args, **kwargs)
+
+    def imap(self, func, *args, **kwargs):
+        return itertools.imap(func, *args, **kwargs)
 
     def __len__(self):
         return 1
