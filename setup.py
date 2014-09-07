@@ -16,6 +16,12 @@
 
 import os
 from setuptools import setup, find_packages
+import versioneer
+versioneer.VCS = 'git'
+versioneer.versionfile_source = 'cameo/_version.py'
+versioneer.versionfile_build = 'cameo/_version.py'
+versioneer.tag_prefix = '' # tags are like 1.2.0
+versioneer.parentdir_prefix = 'myproject-' # dirname like 'myproject-1.2.0'
 
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 if on_rtd:
@@ -52,7 +58,8 @@ except (IOError, ImportError):
 
 setup(
     name='cameo',
-    version='0.1.0',
+    version=versioneer.get_version(),
+    cmdclass=versioneer.get_cmdclass(),
     packages=find_packages(),
     install_requires=requirements,
     dependency_links=dependency_links,
