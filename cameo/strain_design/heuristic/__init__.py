@@ -137,6 +137,7 @@ class HeuristicOptimization(object):
         self.termination = termination
         self._objective_function = objective_function
         self.heuristic_method = heuristic_method
+        self.heuristic_method.terminator = termination
         self._generator = None
 
     @property
