@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import os
-from random import Random
+from cameo.util import RandomGenerator as Random
 import unittest
 import inspyred
 import pickle
@@ -457,8 +457,9 @@ class TestReactionKnockoutOptimization(unittest.TestCase):
         self.assertEqual(rko._ko_type, "reaction")
         self.assertTrue(isinstance(rko._decoder, ReactionKnockoutDecoder))
 
-    @unittest.skip('Not deterministic when seeded')
+    # @unittest.skip('Not deterministic when seeded')
     def test_run_single_objective(self):
+
         model = load_model(MODEL_PATH)
         result_file = os.path.join(CURRENT_PATH, "data", "reaction_knockout_single_objective.pkl")
         objective = biomass_product_coupled_yield(
@@ -471,13 +472,17 @@ class TestReactionKnockoutOptimization(unittest.TestCase):
                                            objective_function=objective,
                                            seed=SEED)
 
+        print rko.random.random()
+
         results = rko.run(max_evaluations=3000, pop_size=10, view=SequentialView())
 
-        with open(result_file, 'r') as file:
-            expected_results = pickle.load(file)
+        print rko.random.random()
 
-        # with open(result_file, 'w') as file:
-        #     pickle.dump(results, file)
+        with open(result_file, 'r') as f:
+            expected_results = pickle.load(f)
+
+        # with open(result_file, 'w') as f:
+        #     pickle.dump(results, f)
 
         assert_frame_equal(results.solutions, expected_results.solutions)
 

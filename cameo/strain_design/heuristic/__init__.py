@@ -26,15 +26,14 @@ from cameo.strain_design.heuristic import stats
 from cameo import config
 from cameo.flux_analysis.simulation import pfba, lmoma, moma, room, reset_model
 from cameo.strain_design.heuristic.plotters import GeneFrequencyPlotter
-from cameo.util import partition, TimeMachine
+from cameo.util import partition, TimeMachine, memoize
 from pandas import DataFrame
 
 import inspyred
 import logging
 
 from functools import partial
-from random import Random
-
+from cameo.util import RandomGenerator as Random
 from pandas.core.common import in_ipnb
 from cameo.visualization import draw_knockout_result
 
@@ -50,7 +49,7 @@ BIOMASS = "Biomass"
 KNOCKOUTS = 'Knockouts'
 
 logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('cameo')
 
 PRE_CONFIGURED = {
     inspyred.ec.GA: [
@@ -124,15 +123,21 @@ class HeuristicOptimization(object):
     run(view=config.default_view, maximize=True, **kwargs)
 
 
+    See Also
+    --------
+    *inspyred.ec
+    *cameo.config.default_view
+
     """
     def __init__(self, model=None, heuristic_method=inspyred.ec.GA, objective_function=None, seed=None,
                  termination=inspyred.ec.terminators.evaluation_termination, *args, **kwargs):
 
         super(HeuristicOptimization, self).__init__(*args, **kwargs)
+        logger.debug("Seed: %s" % seed)
         if seed is None:
             seed = int(round(time.time() * 1000))
         self.seed = seed
-        self.random = Random(x=seed)
+        self.random = Random(seed=seed)
         self.model = model
         self.termination = termination
         self._objective_function = objective_function
@@ -226,20 +231,20 @@ class KnockoutEvaluator(object):
         self.objective_function = objective_function
         self.simulation_method = simulation_method
         self.simulation_kwargs = simulation_kwargs
-
-    def __call__(self, population):
-
-        cache = {
+        self.cache = {
             'first_run': True,
             'original_objective': self.model.objective,
             'variables': {},
             'constraints': {}
         }
-        res = [self.evaluate_individual(i, cache) for i in population]
-        reset_model(self.model, cache)
+
+    def __call__(self, population):
+        res = [self.evaluate_individual(frozenset(i)) for i in population]
+        reset_model(self.model, self.cache)
         return res
 
-    def evaluate_individual(self, individual, cache):
+    @memoize
+    def evaluate_individual(self, individual):
         decoded = self.decoder(individual)
         reactions = decoded[0]
         with TimeMachine() as tm:
@@ -250,7 +255,7 @@ class KnockoutEvaluator(object):
                    undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
 
             try:
-                solution = self.simulation_method(self.model, cache=cache, volatile=False, **self.simulation_kwargs)
+                solution = self.simulation_method(self.model, cache=self.cache, volatile=False, **self.simulation_kwargs)
                 fitness = self._calculate_fitness(solution, decoded)
             except SolveError as e:
                 logger.debug(e)

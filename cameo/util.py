@@ -20,6 +20,38 @@ import colorsys
 from pandas.core.common import in_ipnb
 import progressbar
 import ipython_notebook_utils
+import logging
+from numpy.random import RandomState
+
+logger = logging.getLogger('cameo')
+
+
+class RandomGenerator():
+    def __init__(self, seed=None):
+        self._random = RandomState(seed=seed)
+
+    def random(self):
+        return self._random.rand()
+
+    def randint(self, a, b=None):
+        if b is None:
+            b = a
+            a = 0
+        return self._random.randint(a, b)
+
+    def sample(self, population, k):
+        if k == 0:
+            return []
+        return self._random.choice(population, size=k, replace=True)
+
+    def __getattr__(self, attr):
+        return getattr(self._random, attr)
+
+    def __getstate__(self):
+        return {'_random': self._random}
+
+    def __setstate__(self, d):
+        self._random = d['_random']
 
 
 class Singleton(object):
@@ -185,3 +217,17 @@ class Timer(object):
         if self.name:
             print '[%s]' % self.name,
         print 'Elapsed: %s' % (time() - self.tstart)
+
+
+def memoize(function, memo={}):
+    def wrapper(*args):
+        logger.debug("key = %s" % str(args))
+        if args in memo:
+            logger.debug("Key found")
+            return memo[args]
+        else:
+            logger.debug("Key not found")
+            rv = function(*args)
+            memo[args] = rv
+            return rv
+    return wrapper
