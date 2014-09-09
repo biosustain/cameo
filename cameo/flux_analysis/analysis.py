@@ -175,7 +175,11 @@ def _flux_variability_analysis(model, reactions=None):
         except Infeasible:
             fva_sol[reaction.id]['upper_bound'] = 0
     model.objective = original_objective
-    return pandas.DataFrame.from_dict(fva_sol, orient='index')
+    df = pandas.DataFrame.from_dict(fva_sol, orient='index')
+    lb_higher_ub = df[df.lower_bound > df.upper_bound]
+    assert ((lb_higher_ub.lower_bound - lb_higher_ub.upper_bound) < 1e-6).all()  # Assert that these cases really only numerical artifacts
+    df.lower_bound[lb_higher_ub.index] = df.upper_bound[lb_higher_ub.index]
+    return df
 
 
 def _cycle_free_fva(model, reactions=None, sloppy=True):
@@ -291,10 +295,13 @@ def _cycle_free_fva(model, reactions=None, sloppy=True):
                             fva_sol[reaction.id]['upper_bound'] = solution.f
                         finally:
                             tm.reset()
-        fva_sol = pandas.DataFrame.from_dict(fva_sol, orient='index')
+        df = pandas.DataFrame.from_dict(fva_sol, orient='index')
+        lb_higher_ub = df[df.lower_bound > df.upper_bound]
+        assert ((lb_higher_ub.lower_bound - lb_higher_ub.upper_bound) < 1e-6).all()  # Assert that these cases really only numerical artifacts
+        df.lower_bound[lb_higher_ub.index] = df.upper_bound[lb_higher_ub.index]
     finally:
         model.objective = original_objective
-    return fva_sol
+    return df
 
 
 class _PhenotypicPhasePlaneChunkEvaluator(object):
