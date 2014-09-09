@@ -31,7 +31,6 @@ else:
                     'pyzmq>=14.3.1',
                     'ipython>=2.1.0',
                     'scipy>=0.9.0',
-                    'bokeh>=0.4.4',
                     'blessings>=1.5.1',
                     'progressbar>=2.2',
                     'Jinja2>=2.7.3',
@@ -39,13 +38,11 @@ else:
                     'ordered-set>=1.2',
                     'inspyred>=1.0',
                     'cobra>=0.3.0b3',
-                    'optlang>=0.0.3',
-                    'ipython_notebook_utils'
+                    'optlang>=0.0.3'
     ]
 
 dependency_links = [
-    'https://github.com/biosustain/optlang/tarball/devel#egg=optlang-0.0.3',
-    'https://github.com/biosustain/ipython_notebook_utils/tarball/master#egg=ipython_notebook_utils'
+    'https://github.com/biosustain/optlang/tarball/devel#egg=optlang-0.0.3'
 ]
 
 # from https://coderwall.com/p/qawuyq
