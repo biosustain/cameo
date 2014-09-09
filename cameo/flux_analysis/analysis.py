@@ -154,6 +154,7 @@ def _flux_variability_analysis(model, reactions=None):
         reactions = model._ids_to_reactions(reactions)
     fva_sol = OrderedDict()
     for reaction in reactions:
+        [lb_flag, ub_flag] = [0, 0]
         fva_sol[reaction.id] = dict()
         model.objective = reaction
         model.objective.direction = 'min'
@@ -163,9 +164,8 @@ def _flux_variability_analysis(model, reactions=None):
         except Unbounded:
             fva_sol[reaction.id]['lower_bound'] = -numpy.inf
         except Infeasible:
-            fva_sol[reaction.id]['lower_bound'] = 0
-    for reaction in reactions:
-        model.objective = reaction
+            lb_flag = 1
+
         model.objective.direction = 'max'
         try:
             solution = model.solve()
@@ -173,7 +173,17 @@ def _flux_variability_analysis(model, reactions=None):
         except Unbounded:
             fva_sol[reaction.id]['upper_bound'] = numpy.inf
         except Infeasible:
+            ub_flag = 1
+
+        if lb_flag== 1 and ub_flag == 1:
+            fva_sol[reaction.id]['lower_bound'] = 0
             fva_sol[reaction.id]['upper_bound'] = 0
+        elif lb_flag == 1 and ub_flag == 0:
+            fva_sol[reaction.id]['lower_bound'] = fva_sol[reaction.id]['upper_bound']
+        elif lb_flag == 0 and ub_flag == 1:
+            fva_sol[reaction.id]['upper_bound'] = fva_sol[reaction.id]['lower_bound']
+
+
     model.objective = original_objective
     df = pandas.DataFrame.from_dict(fva_sol, orient='index')
     lb_higher_ub = df[df.lower_bound > df.upper_bound]

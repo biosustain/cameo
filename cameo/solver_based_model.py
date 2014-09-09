@@ -543,6 +543,14 @@ class SolverBasedModel(Model):
         self.add_reactions([demand_reaction])
         return demand_reaction
 
+    def add_supply(self, metabolite, prefix="SP_"):
+        supply_reaction = Reaction(prefix + metabolite.id)
+        supply_reaction.add_metabolites({metabolite: 1})
+        supply_reaction.lower_bound = 0
+        supply_reaction.upper_bound = 1000
+        self.add_reactions([supply_reaction])
+        return supply_reaction
+
     def optimize(self, new_objective=None, objective_sense='maximize', solution_type=LazySolution, **kwargs):
         """OptlangBasedModel implementation of optimize. Returns lazy solution object. Exists for compatibility reasons. Uses model.solve() instead."""
         if new_objective is None or new_objective == 0:
