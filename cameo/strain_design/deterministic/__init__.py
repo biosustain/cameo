@@ -192,30 +192,52 @@ class DifferentialFVA(StrainDesignMethod):
             else:
                 view = view
 
-            included_reactions = [reaction.id for reaction in self.reference_model.reactions if not reaction.id in self.exclude]
-            self.reference_flux_ranges = flux_variability_analysis(self.reference_model, reactions=included_reactions, view=view, remove_cycles=False)
+            included_reactions = [reaction.id for reaction in self.reference_model.reactions if
+                                  not reaction.id in self.exclude]
+            self.reference_flux_ranges = flux_variability_analysis(self.reference_model, reactions=included_reactions,
+                                                                   view=view, remove_cycles=False)
             self._init_search_grid(surface_only=surface_only, improvements_only=improvements_only)
 
-            progress = ProgressBar(len(self.grid), widgets=['Scanning grid points ', Bar(),' ', ETA()])
-            func_obj = _DifferentialFvaEvaluator(self.design_space_model, self.variables, self.objective, included_reactions)
+            progress = ProgressBar(len(self.grid), widgets=['Scanning grid points ', Bar(), ' ', ETA()])
+            func_obj = _DifferentialFvaEvaluator(self.design_space_model, self.variables, self.objective,
+                                                 included_reactions)
             results = list(progress(view.imap(func_obj, self.grid.iterrows())))
-            solutions = dict((tuple(point.to_dict().items()), fva_result) for (point, fva_result) in results)
 
-            reference_intervals = self.reference_flux_ranges[['lower_bound', 'upper_bound']].values
+        solutions = dict((tuple(point.to_dict().items()), fva_result) for (point, fva_result) in results)
+        reference_intervals = self.reference_flux_ranges[['lower_bound', 'upper_bound']].values
+        for sol in solutions.itervalues():
+            intervals = sol[['lower_bound', 'upper_bound']].values
+            gaps = [self._interval_gap(interval1, interval2) for interval1, interval2 in
+                    izip(reference_intervals, intervals)]
+            sol['gaps'] = gaps
+        if self.normalize_ranges_by is not None:
             for sol in solutions.itervalues():
-                intervals = sol[['lower_bound', 'upper_bound']].values
-                gaps = [self._interval_gap(interval1, interval2) for interval1, interval2 in
-                        izip(reference_intervals, intervals)]
-                sol['gaps'] = gaps
-            if self.normalize_ranges_by is not None:
-                for sol in solutions.itervalues():
-                    normalized_intervals = sol[['lower_bound', 'upper_bound']].values / sol.lower_bound[
-                        self.normalize_ranges_by]
-                    normalized_gaps = [self._interval_gap(interval1, interval2) for interval1, interval2 in
-                                       izip(reference_intervals, normalized_intervals)]
-                    sol['normalized_gaps'] = normalized_gaps
+                normalized_intervals = sol[['lower_bound', 'upper_bound']].values / sol.lower_bound[
+                    self.normalize_ranges_by]
+                normalized_gaps = [self._interval_gap(interval1, interval2) for interval1, interval2 in
+                                   izip(reference_intervals, normalized_intervals)]
+                sol['normalized_gaps'] = normalized_gaps
+        for df in solutions.itervalues():
+            ko_selection = df[(df.lower_bound == 0) &
+                              (df.upper_bound == 0) &
+                              (self.reference_flux_ranges.lower_bound != 0) &
+                              self.reference_flux_ranges.upper_bound != 0]
+            df['KO'] = False
+            df['KO'][ko_selection.index] = True
 
-            return pandas.Panel(solutions)
+        for df in solutions.itervalues():
+            flux_reversal_selection = df[((self.reference_flux_ranges.upper_bound < 0) & (df.lower_bound > 0) |
+                                          ((self.reference_flux_ranges.lower_bound > 0) & (df.upper_bound < 0)))]
+            df['flux_reversal'] = False
+            df['flux_reversal'][flux_reversal_selection.index] = True
+
+        for df in solutions.itervalues():
+            flux_reversal_selection = df[((self.reference_flux_ranges.lower_bound <= 0) & (df.lower_bound > 0)) | ((self.reference_flux_ranges.upper_bound >= 0) & (df.upper_bound <= 0))]
+            df['suddenly_essential'] = False
+            df['suddenly_essential'][flux_reversal_selection.index] = True
+
+        # solutions['reference_flux_ranges'] = self.reference_flux_ranges
+        return pandas.Panel(solutions)
 
 
 class _DifferentialFvaEvaluator(object):
@@ -227,7 +249,8 @@ class _DifferentialFvaEvaluator(object):
 
     def __call__(self, point):
         self._set_bounds(point[1])
-        return (point[1], flux_variability_analysis(self.model, reactions=self.included_reactions, remove_cycles=False, view=SequentialView()))
+        return (point[1], flux_variability_analysis(self.model, reactions=self.included_reactions, remove_cycles=False,
+                                                    view=SequentialView()))
 
     def _set_bounds(self, point):
         for variable in self.variables:
@@ -262,41 +285,44 @@ if __name__ == '__main__':
                               normalize_ranges_by='Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2',
                               points=10
     )
+    result = diffFVA.run(surface_only=True, view=SequentialView())
+    print result.to_json()
+
     with Timer('Sequential'):
         result = diffFVA.run(surface_only=True, view=SequentialView())
     with Timer('Multiprocessing'):
         result = diffFVA.run(surface_only=True, view=MultiprocessingView())
-    # try:
-    #     from IPython.parallel import Client
-    #     client = Client()
-    #     view = client.load_balanced_view()
-    #     view.block = True
-    # except:
-    #     pass
-    # else:
-    #     with Timer('IPython'):
-    #         result = diffFVA.run(surface_only=False, view=view)
+        # try:
+        # from IPython.parallel import Client
+        #     client = Client()
+        #     view = client.load_balanced_view()
+        #     view.block = True
+        # except:
+        #     pass
+        # else:
+        #     with Timer('IPython'):
+        #         result = diffFVA.run(surface_only=False, view=view)
 
-    # model = load_model(
-    #     '/Users/niko/Arbejder/Dev/cameo/tests/data/iJO1366.xml')
-    #
-    # reference_model = model.copy()
-    # biomass_rxn = reference_model.reactions.get_by_id('Ec_biomass_iJO1366_core_53p95M')
-    # biomass_rxn.lower_bound = .9 * reference_model.solve().f
-    #
-    #
-    # diffFVA = DifferentialFVA(model, reference_model, 'EX_trp_DASH_L_LPAREN_e_RPAREN_', ['Ec_biomass_iJO1366_core_53p95M'],
-    #                       normalize_ranges_by='Ec_biomass_iJO1366_core_53p95M', points=10)
-    # with Timer('Sequential'):
-    #     result = diffFVA.run(surface_only=True, view=SequentialView())
-    # with Timer('Multiprocessing'):
-    #     result = diffFVA.run(surface_only=True, view=MultiprocessingView())
-    # try:
-    #     from IPython.parallel import Client
-    #     client = Client()
-    #     view = client.load_balanced_view()
-    #     with Timer('IPython'):
-    #         result = diffFVA.run(surface_only=True, view=())
-    # except:
-    #     pass
+        # model = load_model(
+        #     '/Users/niko/Arbejder/Dev/cameo/tests/data/iJO1366.xml')
+        #
+        # reference_model = model.copy()
+        # biomass_rxn = reference_model.reactions.get_by_id('Ec_biomass_iJO1366_core_53p95M')
+        # biomass_rxn.lower_bound = .9 * reference_model.solve().f
+        #
+        #
+        # diffFVA = DifferentialFVA(model, reference_model, 'EX_trp_DASH_L_LPAREN_e_RPAREN_', ['Ec_biomass_iJO1366_core_53p95M'],
+        #                       normalize_ranges_by='Ec_biomass_iJO1366_core_53p95M', points=10)
+        # with Timer('Sequential'):
+        #     result = diffFVA.run(surface_only=True, view=SequentialView())
+        # with Timer('Multiprocessing'):
+        #     result = diffFVA.run(surface_only=True, view=MultiprocessingView())
+        # try:
+        #     from IPython.parallel import Client
+        #     client = Client()
+        #     view = client.load_balanced_view()
+        #     with Timer('IPython'):
+        #         result = diffFVA.run(surface_only=True, view=())
+        # except:
+        #     pass
 
