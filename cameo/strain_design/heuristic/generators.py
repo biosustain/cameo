@@ -45,7 +45,7 @@ def set_generator(random, args):
     else:
         size = max_size
     candidate = random.sample(xrange(len(representation)), size)
-    return candidate
+    return list(candidate)
 
 
 @diversify
