@@ -17,7 +17,7 @@ from ordered_set import OrderedSet
 N = "-"
 
 
-def motif_finder(model, matrix=None, top_ranked=20, min_combination=3, max_combination=5):
+def identify_currency_metabolites_by_pattern(model, matrix=None, top_ranked=20, min_combination=3, max_combination=5):
     if matrix is None:
         matrix = model.stoichiometric_matrix()
 
@@ -58,9 +58,14 @@ def motif_finder(model, matrix=None, top_ranked=20, min_combination=3, max_combi
 
         for motif_a in sequence_motifs:
             for motif_b in sequence_motifs:
-                if motif_a != motif_b and motif_a.issubset(motif_b):
-                    if motif_a in sequence_motifs:
-                        sequence_motifs.remove(motif_a)
+                if motif_a != motif_b:
+                    if motif_a.issubset(motif_b):
+                        if motif_a in sequence_motifs:
+                            sequence_motifs.remove(motif_a)
+                    if motif_b.issubset(motif_a):
+                        if motif_b in sequence_motifs:
+                            sequence_motifs.remove(motif_b)
+
         print "seq motifs: ", sequence_motifs
         for motif in sequence_motifs:
             possible_motifs[motif] += 1
