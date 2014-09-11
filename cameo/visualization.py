@@ -4,7 +4,7 @@
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 
-#     http://www.apache.org/licenses/LICENSE-2.0
+# http://www.apache.org/licenses/LICENSE-2.0
 
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,9 +15,12 @@ import json
 import logging
 import subprocess
 import tempfile
+from functools import partial
+from escher import Builder
 
 import os
 from IPython.display import HTML, SVG
+from cameo.util import TimeMachine
 
 
 log = logging.getLogger(__name__)
@@ -27,30 +30,35 @@ import functools
 
 from IPython.display import HTML, SVG
 
+
 class memoized(object):
-   '''Decorator. Caches a function's return value each time it is called.
-   If called later with the same arguments, the cached value is returned
-   (not reevaluated).
-   '''
-   def __init__(self, func):
-      self.func = func
-      self.cache = {}
-   def __call__(self, *args):
-      if not isinstance(args, collections.Hashable):
-         # uncachen blow up.
-         return self.func(*args)
-      if args in self.cache:
-         return self.cache[args]
-      else:
-         value = self.func(*args)
-         self.cache[args] = value
-         return value
-   def __repr__(self):
-      '''Return the function's docstring.'''
-      return self.func.__doc__
-   def __get__(self, obj, objtype):
-      '''Support instance methods.'''
-      return functools.partial(self.__call__, obj)
+    '''Decorator. Caches a function's return value each time it is called.
+    If called later with the same arguments, the cached value is returned
+    (not reevaluated).
+    '''
+
+    def __init__(self, func):
+        self.func = func
+        self.cache = {}
+
+    def __call__(self, *args):
+        if not isinstance(args, collections.Hashable):
+            # uncachen blow up.
+            return self.func(*args)
+        if args in self.cache:
+            return self.cache[args]
+        else:
+            value = self.func(*args)
+            self.cache[args] = value
+            return value
+
+    def __repr__(self):
+        '''Return the function's docstring.'''
+        return self.func.__doc__
+
+    def __get__(self, obj, objtype):
+        '''Support instance methods.'''
+        return functools.partial(self.__call__, obj)
 
 
 def pathviz_maps():
@@ -64,11 +72,9 @@ def pathviz_svg(map_id='EcoliCore_coreMap', **kwargs):
     for key, value in kwargs.iteritems():
         config[key] = value
     fd, tmp_pathviz_input = tempfile.mkstemp(prefix='pathviz_svg_', suffix='.json')
-    print tmp_pathviz_input
     with open(tmp_pathviz_input, 'w') as fhandle:
         json.dump(config, fhandle)
     fd, tmp_pathviz_output = tempfile.mkstemp(prefix='pathviz_svg_', suffix='.svg')
-    print tmp_pathviz_output
     output = subprocess.check_output(['pathviz.m', '-o', tmp_pathviz_output, '-i', tmp_pathviz_input])
     with open(tmp_pathviz_output, 'r') as fhandle:
         svg_map = fhandle.read()
@@ -112,3 +118,23 @@ cdf.embed("%s", 942, 678);
     with open(tmp_html, 'w') as fhandle:
         fhandle.write(html_template % os.path.basename(tmp_pathviz_output))
     return HTML(html_template2 % os.path.basename(tmp_html))
+
+
+def draw_knockout_result(model, map_name, simulation_method, knockouts, *args, **kwargs):
+    tm = TimeMachine()
+
+    try:
+        for reaction in model._ids_to_reactions(knockouts):
+            tm(do=partial(setattr, reaction, 'lower_bound', 0),
+               undo=partial(setattr, reaction, 'lower_bound', reaction.lower_bound))
+            tm(do=partial(setattr, reaction, 'upper_bound', 0),
+               undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
+
+        solution = simulation_method(model, *args, **kwargs).x_dict
+        tm.reset()
+
+        return Builder(map_name, reaction_data=solution)
+
+    except Exception as e:
+        tm.reset()
+        raise e

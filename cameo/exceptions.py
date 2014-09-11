@@ -1,27 +1,41 @@
+# Copyright 2014 Novo Nordisk Foundation Center for Biosustainability, DTU.
+
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+
+# http://www.apache.org/licenses/LICENSE-2.0
+
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import optlang.interface
 
 
-class ModelSolveError(Exception):
+class SolveError(Exception):
     def __init__(self, message):
-        super(ModelSolveError, self).__init__(message)
+        super(SolveError, self).__init__(message)
 
 
-class ModelInfeasible(ModelSolveError):
+class Infeasible(SolveError):
     pass
 
 
-class ModelUnbounded(ModelSolveError):
+class Unbounded(SolveError):
     pass
 
 
-class ModelFeasibleButNotOptimal(ModelSolveError):
+class FeasibleButNotOptimal(SolveError):
     pass
 
 
-class ModelUndefinedSolution(ModelSolveError):
+class UndefinedSolution(SolveError):
     pass
 
 
 _OPTLANG_TO_EXCEPTIONS_DICT = dict((
-    (optlang.interface.INFEASIBLE, ModelInfeasible), (optlang.interface.UNBOUNDED, ModelUnbounded),
-    (optlang.interface.FEASIBLE, ModelFeasibleButNotOptimal), (optlang.interface.UNDEFINED, ModelUndefinedSolution)))
+    (optlang.interface.INFEASIBLE, Infeasible), (optlang.interface.UNBOUNDED, Unbounded),
+    (optlang.interface.FEASIBLE, FeasibleButNotOptimal), (optlang.interface.UNDEFINED, UndefinedSolution)))

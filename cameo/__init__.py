@@ -1,10 +1,10 @@
-# Copyright 2013 Novo Nordisk Foundation Center for Biosustainability, DTU.
+# Copyright 2014 Novo Nordisk Foundation Center for Biosustainability, DTU.
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 
-#     http://www.apache.org/licenses/LICENSE-2.0
+# http://www.apache.org/licenses/LICENSE-2.0
 
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,7 +13,23 @@
 # limitations under the License.
 
 
-__version__ = 'v0.0.0'
+#TODO: describe cameo with some examples
+"""
+CAMEO: Computer Assisted Metabolic Engineering & Optimization
 
-from .io import load_model
+
+"""
+
+from ._version import get_versions
+__version__ = get_versions()['version']
+del get_versions
+
+try:
+    from .io import load_model
+except ImportError:
+    pass
+
+from .flux_analysis.analysis import flux_variability_analysis, phenotypic_phase_plane
+from .flux_analysis.simulation import fba, pfba
+
 import config

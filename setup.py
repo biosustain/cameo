@@ -5,7 +5,7 @@
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+# http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,33 +14,65 @@
 # limitations under the License.
 
 
+import os
 from setuptools import setup, find_packages
-from optlang import __version__
+import versioneer
+versioneer.VCS = 'git'
+versioneer.versionfile_source = 'cameo/_version.py'
+versioneer.versionfile_build = 'cameo/_version.py'
+versioneer.tag_prefix = '' # tags are like 1.2.0
+versioneer.parentdir_prefix = 'myproject-' # dirname like 'myproject-1.2.0'
 
-with open('requirements.txt') as fhandle:
-    requirements = [line.strip() for line in fhandle]
+on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
+if on_rtd:
+    requirements = []
+else:
+    requirements = ['numpy>=1.8.1',
+                    'pyzmq>=14.3.1',
+                    'ipython>=2.1.0',
+                    'scipy>=0.9.0',
+                    'blessings>=1.5.1',
+                    'progressbar>=2.2',
+                    'Jinja2>=2.7.3',
+                    'pandas>=0.14.0',
+                    'ordered-set>=1.2',
+                    'inspyred>=1.0',
+                    'cobra>=0.3.0b3',
+                    'optlang>=0.0.3'
+    ]
 
-print requirements
-print find_packages()
+dependency_links = [
+    'https://github.com/biosustain/optlang/tarball/devel#egg=optlang-0.0.3'
+]
+
+# from https://coderwall.com/p/qawuyq
+try:
+    import pypandoc
+
+    description = pypandoc.convert('README.md', 'rst')
+except (IOError, ImportError):
+    description = ''
 
 setup(
     name='cameo',
-    version=__version__,
+    version=versioneer.get_version(),
+    cmdclass=versioneer.get_cmdclass(),
     packages=find_packages(),
-    install_requires=requirements,  # from requirements.txt
+    install_requires=requirements,
+    dependency_links=dependency_links,
     author='Nikolaus Sonnenschein',
     author_email='niko.sonnenschein@gmail.com',
     description='cameo - computer assisted metabolic engineering & optimziation',
     license='Apache License Version 2.0',
     keywords='biology metabolism bioinformatics',
     url='TBD',
-    long_description=open('README.md').read(),
+    long_description=description,
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Topic :: Utilities',
         'Programming Language :: Python :: 2.5',
         'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
-        'License :: OSI Approved :: Apache Software License',
+        'License :: OSI Approved :: Apache Software License'
     ],
 )

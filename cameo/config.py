@@ -1,10 +1,10 @@
-# Copyright 2013 Novo Nordisk Foundation Center for Biosustainability, DTU.
+# Copyright 2014 Novo Nordisk Foundation Center for Biosustainability, DTU.
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 
-#     http://www.apache.org/licenses/LICENSE-2.0
+# http://www.apache.org/licenses/LICENSE-2.0
 
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,13 +19,30 @@ import logging
 log = logging.getLogger(__name__)
 
 try:
+    import bokeh
+    use_bokeh = True
+except ImportError:
+    use_bokeh = False
+
+try:
+    import matplotlib
+    use_matplotlib = True
+except ImportError:
+    use_matplotlib = False
+
+try:
     from IPython import parallel
+    from IPython.kernel.zmq import serialize
     client = parallel.Client()
     client.block = True
     default_view = client.direct_view()
-except:
-    from .parallel import SequentialView
-    default_view = SequentialView()
+except Exception:
+    try:
+        from .parallel import MultiprocessingView
+        default_view = MultiprocessingView()
+    except ImportError:
+        from .parallel import SequentialView
+        default_view = SequentialView()
 # except:
 #     log.debug(
 #         'IPython parallel not available ... using std lib multiprocessing')
