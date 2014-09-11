@@ -1,49 +1,18 @@
-from cobra.solvers import solver_dict
+import types
+import nose
 from cobra.test import create_test_model
 from cobra.test.unit_tests import CobraTestCase, TestReactions
-import types
-import unittest
-import nose
 from cobra.test.flux_analysis import TestCobraFluxAnalysis
-from optlang import Objective
-from optlang.glpk_interface import Model as GlpkModel
 from cameo import load_model
-from cameo.solver_based_model import to_solver_based_model
+from cameo.solver_based_model import to_solver_based_model, SolverBasedModel
 
 
 ecoli_core_sbmodel = load_model('data/EcoliCore.xml')
 
-
-class SolverBasedModelTestCase(unittest.TestCase):
-
-    """Test features that are unique to SolverBasedModel,
-    e.g.,objective specification and handling
-    """
-
-    def setUp(self):
-        self.model = ecoli_core_sbmodel.copy()
-
-    def test_objective(self):
-        obj = self.model.objective
-        self.assertEqual(
-            obj.__str__(), 'Maximize\n1.0*Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2')
-
-    def test_change_objective(self):
-        self.model.objective = Objective(
-            self.model.solver.variables['ENO'] + self.model.solver.variables['PFK'])
-        self.assertEqual(self.model.objective.__str__(),
-                         'Maximize\n1.0*ENO + 1.0*PFK')
-
-
-# Test SolverBasedModel with cobrapy test suite
-
-# solver_dict.pop('cplex')
-# solver_dict.pop('gurobi')
-
-
 def setUp(self):
     # Make Model pickable and then load a solver based version of test_pickle
     self.model = to_solver_based_model(create_test_model())
+    self.model_class = SolverBasedModel
 
 for cls in (CobraTestCase, TestReactions, TestCobraFluxAnalysis):
     cls.setUp = types.MethodType(setUp, cls)
