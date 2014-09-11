@@ -63,13 +63,13 @@ class biomass_product_coupled_yield(objective_function):
     """
 
     def __init__(self, biomass, product, substrate):
-        if issubclass(biomass, Reaction):
+        if isinstance(biomass, Reaction):
             biomass = biomass.id
         self.biomass = biomass
-        if issubclass(product, Reaction):
+        if isinstance(product, Reaction):
             product = product.id
         self.product = product
-        if issubclass(substrate, Reaction):
+        if isinstance(substrate, Reaction):
             substrate = substrate.id
         self.substrate = substrate
         self.name = "bpcy = (%s * %s) / %s" % (biomass, product, substrate)
