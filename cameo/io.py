@@ -21,6 +21,7 @@ import pickle
 import optlang
 from cobra.io import read_sbml_model
 from cameo.solver_based_model import SolverBasedModel, to_solver_based_model
+from cameo import webmodels
 
 
 def load_model(path_or_handle, solver_interface=optlang.glpk_interface):
@@ -40,7 +41,16 @@ def load_model(path_or_handle, solver_interface=optlang.glpk_interface):
 
     if isinstance(path_or_handle, types.StringType):
         path = path_or_handle
-        handle = open(path_or_handle)
+        try:
+            handle = open(path_or_handle)
+        except IOError:
+            try:
+                df = webmodels.index_models()
+                index = df.query('name == "%s"' % path_or_handle).index[0]
+                handle = webmodels.get_sbml_file(index)
+                path = handle.name
+            except:
+                raise ValueError("%s is neither a file nor a model ID." % path)
     elif hasattr(path_or_handle, 'read'):
         path = path_or_handle.name
         handle = path_or_handle
