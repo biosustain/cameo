@@ -231,3 +231,54 @@ def memoize(function, memo={}):
             memo[args] = rv
             return rv
     return wrapper
+
+ID_SANITIZE_RULES_SIMPHENY = [('_DASH_', '__'), ('_FSLASH_', '/'),('_BSLASH_', "\\"), ('_LPAREN_', '('), ('_LSQBKT_', '['),
+                     ('_RSQBKT_', ']'), ('_RPAREN_', ')'), ('_COMMA_', ','), ('_PERIOD_', '.'), ('_APOS_', "'"),
+                     ('&amp;', '&'), ('&lt;', '<'), ('&gt;', '>'), ('&quot;', '"'), ('__', '-')]
+
+ID_SANITIZE_RULES_TAB_COMPLETION = [('_DASH_', '_dsh_'), ('_FSLASH_', '_fsh_'),('_BSLASH_', "_bsh_"), ('_LPAREN_', '_lp_'), ('_LSQBKT_', '_lb_'),
+                     ('_RSQBKT_', '_rb_'), ('_RPAREN_', '_rp_'), ('_COMMA_', '_cm_'), ('_PERIOD_', '_prd_'), ('_APOS_', "_apo_"),
+                     ('&amp;', '_amp_'), ('&lt;', '_lt_'), ('&gt;', '_gt_'), ('&quot;', '_qot_'), ('__', '_dsh_')]
+
+def sanitize_ids(model):
+    """Makes IDs crippled by the XML specification less annoying.
+
+    For example, 'EX_glc_LPAREN_e_RPAREN_' will be converted to 'EX_glc_lp_e_rp_'.
+    Furthermore, reactions and metabolites will be equipped with a `nice_id` attribute
+    that provides the original ID, i.e., 'EX_glc(d)'.
+
+    Parameters
+    ----------
+    model : model
+
+    Notes
+    -----
+
+    Will add a nice_id attribute
+
+    """
+
+    def _apply_sanitize_rules(id, rules):
+        for rule in rules:
+            id = id.replace(*rule)
+        return id
+
+    for metabolite in model.metabolites:
+        met_id = metabolite.id
+        metabolite.id = _apply_sanitize_rules(met_id, ID_SANITIZE_RULES_TAB_COMPLETION)
+        metabolite.nice_id = _apply_sanitize_rules(met_id, ID_SANITIZE_RULES_SIMPHENY)
+        metabolite.name = _apply_sanitize_rules(metabolite.name, ID_SANITIZE_RULES_SIMPHENY)
+
+    for reaction in model.reactions:
+        rxn_id = reaction.id
+        reaction.id = _apply_sanitize_rules(rxn_id, ID_SANITIZE_RULES_TAB_COMPLETION)
+        reaction.nice_id = _apply_sanitize_rules(rxn_id, ID_SANITIZE_RULES_SIMPHENY)
+        reaction.name = _apply_sanitize_rules(reaction.name, ID_SANITIZE_RULES_SIMPHENY)
+
+    for variable in model.solver.variables:
+        variable.name = _apply_sanitize_rules(variable.name, ID_SANITIZE_RULES_TAB_COMPLETION)
+
+    for constraint in model.solver.constraints:
+        constraint.name = _apply_sanitize_rules(constraint.name, ID_SANITIZE_RULES_TAB_COMPLETION)
+
+    model.repair()
