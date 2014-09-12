@@ -19,7 +19,7 @@ N = "-"
 
 def identify_currency_metabolites_by_pattern(model, matrix=None, top_ranked=20, min_combination=3, max_combination=5):
     if matrix is None:
-        matrix = model.stoichiometric_matrix()
+        matrix = model.S
 
     metabolites_degree = dict([[m.id, len(m.reactions)] for m in model.metabolites])
     metabolites = metabolites_degree.keys()
@@ -34,12 +34,12 @@ def identify_currency_metabolites_by_pattern(model, matrix=None, top_ranked=20, 
             key = frozenset(OrderedSet(motif))
             possible_motifs[key] = 0
 
-    for i, reaction in enumerate(matrix.columns):
+    for i, reaction in enumerate(model.reactions):
         print reaction
         seq = list(top_hits)
         count = 0
-        for j, met in enumerate(matrix.rows):
-            coeff = matrix.get(j, i)
+        for j, met in enumerate(reaction.metabolites.keys()):
+            coeff = matrix.get(i, j)
             try:
                 index = seq.index(met)
 
@@ -52,19 +52,18 @@ def identify_currency_metabolites_by_pattern(model, matrix=None, top_ranked=20, 
                 pass
         sequence_motifs = []
         seq = set(seq)
+
         for motif in possible_motifs.keys():
             if motif.issubset(seq):
-                sequence_motifs.append(motif)
+                add = True
+                for other_motif in sequence_motifs:
+                    if motif.issubset(other_motif):
+                        add = False
+                    if other_motif.issubset(motif):
+                        sequence_motifs.remove(other_motif)
 
-        for motif_a in sequence_motifs:
-            for motif_b in sequence_motifs:
-                if motif_a != motif_b:
-                    if motif_a.issubset(motif_b):
-                        if motif_a in sequence_motifs:
-                            sequence_motifs.remove(motif_a)
-                    if motif_b.issubset(motif_a):
-                        if motif_b in sequence_motifs:
-                            sequence_motifs.remove(motif_b)
+                if add:
+                    sequence_motifs.append(motif)
 
         print "seq motifs: ", sequence_motifs
         for motif in sequence_motifs:

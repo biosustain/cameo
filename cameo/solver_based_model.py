@@ -72,33 +72,6 @@ def to_solver_based_model(cobrapy_model, solver_interface=optlang):
     return solver_based_model
 
 
-class StoichiometricMatrix(object):
-    def __init__(self, rows, columns):
-        self.rows = list()
-        self.columns = list()
-        self.matrix = sp.sparse.csr_matrix((rows, columns), dtype=np.int8)
-
-    def add_reaction(self, reaction):
-        if not reaction.id in self.columns:
-            self.columns.append(reaction.id)
-
-        rindex = self.columns.index(reaction.id)
-        for metabolite, coeff in reaction.metabolites.iteritems():
-            if not metabolite.id in self.rows:
-                self.rows.append(metabolite.id)
-
-            mindex = self.rows.index(metabolite.id)
-            self.matrix[mindex, rindex] = coeff
-
-    def get(self, i, j):
-        if isinstance(i, str):
-            i = self.rows.index(i)
-        if isinstance(j, str):
-            j = self.columns.index(j)
-
-        return self.matrix[j, i]
-
-
 class LazySolution(object):
     """This class implements a lazy evaluating version of the original cobrapy Solution class."""
 
@@ -571,11 +544,9 @@ class SolverBasedModel(Model):
         self.add_reactions([demand_reaction])
         return demand_reaction
 
-    def stoichiometric_matrix(self):
-        matrix = StoichiometricMatrix(len(self.metabolites), len(self.reactions))
-        for reaction in self.reactions:
-            matrix.add_reaction(reaction)
-        return matrix
+    @property
+    def S(self):
+        return self.to_array_based_model().S
 
     def optimize(self, new_objective=None, objective_sense='maximize', solution_type=LazySolution, **kwargs):
         """OptlangBasedModel implementation of optimize. Returns lazy solution object. Exists for compatibility reasons. Uses model.solve() instead."""
