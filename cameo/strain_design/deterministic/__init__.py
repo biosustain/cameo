@@ -286,7 +286,6 @@ if __name__ == '__main__':
                               points=10
     )
     result = diffFVA.run(surface_only=True, view=SequentialView())
-    print result.to_json()
 
     with Timer('Sequential'):
         result = diffFVA.run(surface_only=True, view=SequentialView())
