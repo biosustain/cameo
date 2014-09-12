@@ -13,6 +13,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from cobra import Reaction
 from cameo import config
 
 
@@ -62,8 +63,14 @@ class biomass_product_coupled_yield(objective_function):
     """
 
     def __init__(self, biomass, product, substrate):
+        if isinstance(biomass, Reaction):
+            biomass = biomass.id
         self.biomass = biomass
+        if isinstance(product, Reaction):
+            product = product.id
         self.product = product
+        if isinstance(substrate, Reaction):
+            substrate = substrate.id
         self.substrate = substrate
         self.name = "bpcy = (%s * %s) / %s" % (biomass, product, substrate)
         self.__name__ = self.__class__.__name__
