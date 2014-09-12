@@ -11,68 +11,67 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from itertools import combinations
+from itertools import combinations, chain
 from ordered_set import OrderedSet
+import pprint
 
 N = "-"
 
 
-def identify_currency_metabolites_by_pattern(model, matrix=None, top_ranked=20, min_combination=3, max_combination=5):
-    if matrix is None:
-        matrix = model.S
+def identify_currency_metabolites_by_pattern(model, top=20, min_combination=3, max_combination=5):
+    """
+    Identify currency metabolites and their patterns in reactions.
+
+    Parameters
+    ---------
+    model : cobra.Model
+    top : int
+        Top max connected metabolites in the network, default: 20
+    min_combination : int
+        Size of the smallest pattern, default: 3
+    max_combination : int
+        Size of the longest pattern, default: 5
+
+    Returns
+    -------
+    possible_motifs : dict
+        The identified motifs and their rank
+    currency_metabolites : list
+        The ids of the most connected metabolites
+    """
+
 
     metabolites_degree = dict([[m.id, len(m.reactions)] for m in model.metabolites])
-    metabolites = metabolites_degree.keys()
-    metabolites = sorted(metabolites, key=metabolites_degree.get)
-    metabolites.reverse()
-    top_hits = metabolites[:top_ranked]
+    metabolite_ids = metabolites_degree.keys()
+    metabolite_ids = sorted(metabolite_ids, key=metabolites_degree.get)
+    metabolite_ids.reverse()
+    currency_metabolites = metabolite_ids[:top]
 
     possible_motifs = {}
 
-    for i in xrange(min_combination, max_combination):
-        for motif in combinations(top_hits, i):
-            key = frozenset(OrderedSet(motif))
-            possible_motifs[key] = 0
-
-    for i, reaction in enumerate(model.reactions):
-        print reaction
-        seq = list(top_hits)
-        count = 0
-        for j, met in enumerate(reaction.metabolites.keys()):
-            coeff = matrix.get(i, j)
-            try:
-                index = seq.index(met)
-
-                if met in top_hits and coeff != 0:
-                    seq[index] = met
-                    count += 1
-                else:
-                    seq[index] = N
-            except ValueError:
-                pass
-        sequence_motifs = []
-        seq = set(seq)
-
-        for motif in possible_motifs.keys():
-            if motif.issubset(seq):
+    for reaction in model.reactions:
+        metabolites = [m.id for m in reaction.metabolites.keys() if m.id in currency_metabolites]
+        r = xrange(min_combination, min(len(metabolites), max_combination))
+        motifs = set(chain(*[[frozenset(OrderedSet(c)) for c in combinations(metabolites, n)] for n in r]))
+        if len(motifs) > 0:
+            while len(motifs) > 0:
+                motif = motifs.pop()
                 add = True
-                for other_motif in sequence_motifs:
+                for other_motif in motifs:
                     if motif.issubset(other_motif):
                         add = False
-                    if other_motif.issubset(motif):
-                        sequence_motifs.remove(other_motif)
 
                 if add:
-                    sequence_motifs.append(motif)
+                    if motif in possible_motifs:
+                        possible_motifs[motif] += 1
+                    else:
+                        possible_motifs[motif] = 1
 
-        print "seq motifs: ", sequence_motifs
-        for motif in sequence_motifs:
-            possible_motifs[motif] += 1
+    motifs = possible_motifs.keys()
+    motifs = sorted(motifs, key=possible_motifs.get)
+    motifs.reverse()
 
-        motifs = possible_motifs.keys()
-        motifs = sorted(motifs, key=possible_motifs.get)
-        motifs.reverse()
-        for m in motifs[:5]:
-            print m, ": ", possible_motifs[m]
+    for m in motifs[:10]:
+        print m, ": ", possible_motifs[m]
 
-    return possible_motifs
+    return possible_motifs, currency_metabolites
