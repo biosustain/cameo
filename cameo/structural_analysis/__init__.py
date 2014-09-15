@@ -51,8 +51,8 @@ def identify_currency_metabolites_by_pattern(model, top=20, min_combination=3, m
 
     for reaction in model.reactions:
         metabolites = [m.id for m in reaction.metabolites.keys() if m.id in currency_metabolites]
-        r = xrange(min_combination, min(len(metabolites), max_combination))
-        motifs = set(chain(*[[frozenset(OrderedSet(c)) for c in combinations(metabolites, n)] for n in r]))
+        r = xrange(min_combination, min(len(metabolites), max_combination)+1)
+        motifs = list(set(chain(*[[frozenset(OrderedSet(c)) for c in combinations(metabolites, n)] for n in r])))
         if len(motifs) > 0:
             while len(motifs) > 0:
                 motif = motifs.pop()
@@ -60,6 +60,8 @@ def identify_currency_metabolites_by_pattern(model, top=20, min_combination=3, m
                 for other_motif in motifs:
                     if motif.issubset(other_motif):
                         add = False
+                    if other_motif.issubset(motif):
+                        motifs.remove(other_motif)
 
                 if add:
                     if motif in possible_motifs:
