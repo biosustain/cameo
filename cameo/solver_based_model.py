@@ -14,7 +14,9 @@
 from collections import OrderedDict
 import csv
 import hashlib
-
+import numpy as np
+from numpy.linalg import svd
+import scipy as sp
 import time
 from copy import copy, deepcopy
 from cobra.core import Solution
@@ -542,6 +544,37 @@ class SolverBasedModel(Model):
         demand_reaction.upper_bound = 1000
         self.add_reactions([demand_reaction])
         return demand_reaction
+
+    @property
+    def S(self):
+        return self.to_array_based_model().S
+
+    def nullspace(self, atol=1e-13, rtol=0):
+        """
+        Adopted from: http://wiki.scipy.org/Cookbook/RankNullspace
+
+        Parameters
+        ----------
+        A : ndarray
+            A should be at most 2-D.  A 1-D array with length k will be treated
+            as a 2-D with shape (1, k)
+        atol : float
+            The absolute tolerance for a zero singular value.  Singular values
+            smaller than `atol` are considered to be zero.
+        rtol : float
+            The relative tolerance.  Singular values less than rtol*smax are
+            considered to be zero, where smax is the largest singular value.
+
+        Returns
+        -------
+        The nullspace matrix
+        """
+
+        u, s, vh = svd(self.S)
+        tol = max(atol, rtol * s[0])
+        nnz = (s >= tol).sum()
+        ns = vh[nnz:].conj().T
+        return ns
 
     def optimize(self, new_objective=None, objective_sense='maximize', solution_type=LazySolution, **kwargs):
         """OptlangBasedModel implementation of optimize. Returns lazy solution object. Exists for compatibility reasons. Uses model.solve() instead."""

@@ -338,26 +338,37 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
         return point + tuple(interval)
 
 
-def fbip(model, knockouts, view=config.default_view, method="fva"):
+def fbid(model, knockouts, view=config.default_view, method="fva"):
     """
     Flux balance impact degree by Zhao et al 2013
 
-    :param model: wild-type model
-    :param knockouts: list of reaction knockouts
-    :param method: the method to compute the perturbation. default is "fva" - Flux Variability Analysis.
+
+    Parameters
+    ----------
+    model : wild-type model
+    knockouts : list of reaction knockouts
+    method : the method to compute the perturbation. default is "fva" - Flux Variability Analysis.
         It can also be computed with "em" - Elementary modes
-    :return: perturbation
+
+
+    Returns
+    -------
+    int : perturbation
     """
 
     if method == "fva":
-        _fbip_fva(model, knockouts, view)
+        _fbid_fva(model, knockouts, view)
     elif method == "em":
-        raise NotImplementedError("Elementary modes approach is not implemented")
+        _fbid_em(model, knockouts, view)
     else:
         raise ValueError("%s method is not valid to compute FBIP" % method)
 
 
-def _fbip_fva(model, knockouts, view):
+def _fbid_em(model, knockouts, view):
+    raise NotImplementedError("Elementary modes approach is not implemented")
+
+
+def _fbid_fva(model, knockouts, view):
     tm = TimeMachine()
     for reaction in model.reactions:
         if reaction.reversibility:
