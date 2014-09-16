@@ -549,6 +549,19 @@ class SolverBasedModel(Model):
     def S(self):
         return self.to_array_based_model().S
 
+    @property
+    def integerS(self):
+        matrix = self.S
+        for j, reaction in enumerate(self.reactions):
+            col = matrix.getcol(j)
+            if not all([int(coeff) == coeff for coeff in col[0].toarray()]):
+                col *= 10
+
+            for i in xrange(len(self.metabolites)):
+                matrix[i, j] = col[i, 0]
+
+        return matrix
+
     def nullspace(self, atol=1e-13, rtol=0):
         """
         Adopted from: http://wiki.scipy.org/Cookbook/RankNullspace

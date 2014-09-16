@@ -85,9 +85,113 @@ def identify_currency_metabolites_by_pattern(model, top=20, min_combination=3, m
     return possible_motifs, currency_metabolites
 
 
-def shortest_elementary_flux_modes(model=None, k=5, M=100000):
+class EFMModel(object):
     """
-    Computing the shortest elementary flux modes in genome-scale metabolic networks.[1]
+    Implementation of optimization model used in Figueiredo et al 2009[1] and Kamp et al 2014 [2].
+
+    .. [1] Luis F. de Figueiredo, Adam Podhorski, Angel Rubio, Christoph Kaleta, John E. Beasley,
+       Stefan Schuster and Francisco J. Planes "Computing the shortest elementary flux modes in
+       genome-scale metabolic networks" Bioinformatics, vol 25, issue 23, pp. 3158-3165, 2009.
+    .. [2] Axel von Kamp, Steffen Klamt "Enumeration of Smallest Intervention Strategies in Genome-Scale
+       Metabolic Networks" PLOS Computational Biology, vol 10, issue 01, pp. e1003378, 2014.
+    """
+    def __init__(self, model, M=100000, matrix=None, include_exchanges=False):
+        self.z_map = dict()
+        self.t_map = dict()
+        self.M = M
+        if matrix is None:
+            matrix = model.S
+        self.matrix = matrix
+        self.model = model.solver.interface.Model()
+        self._populate_model(model, include_exchanges)
+
+    def add(self, obj):
+        self.model.add(obj)
+
+    def remove(self, obj):
+        self.model.remove(obj)
+
+    def z_vars(self):
+        return self.z_map.values()
+
+    def z_var(self, reaction_id):
+        return self.z_map[reaction_id]
+
+    def t_vars(self):
+        return self.t_map.values()
+
+    def t_var(self, reaction_id):
+        return self.t_map[reaction_id]
+
+    def _populate_model(self, model, include_exchanges):
+        constraints = list()
+        exchanges = model.exchanges
+        for reaction in model.reactions:
+            if not reaction in exchanges or include_exchanges:
+                z, t = self.add_reaction(reaction.id, model, constraints)
+                if reaction.reversibility:
+                    z_rev, t_rev = self.add_reaction(reaction._get_reverse_id(), model, constraints)
+                    exp = add([z, z_rev])
+                    rev_constraint = model.solver.interface.Constraint(exp, ub=1, name="rev_%s" % reaction.id)
+                    constraints.append(rev_constraint)
+
+        for met in model.metabolites:
+            aux = list()
+            for r in met.reactions:
+                if not r in exchanges or include_exchanges:
+                    i = model.metabolites.index(met.id)
+                    j = model.reactions.index(r.id)
+                    coeff = self.matrix[i, j]
+
+                    aux.append(mul([RealNumber(coeff), self.t_map[r.id]]))
+                    if r.reversibility:
+                        aux.append(mul([RealNumber(-coeff), self.t_map[r._get_reverse_id()]]))
+
+            steady_state_expression = add(aux)
+            steady_state_constraint = model.solver.interface.Constraint(steady_state_expression,
+                                                                        name="ss_%s" % met.id,
+                                                                        lb=0,
+                                                                        ub=0)
+            constraints.append(steady_state_constraint)
+
+        trivial_solutions_expression = add(self.z_map.values())
+        trivial_solutions_constraint = model.solver.interface.Constraint(trivial_solutions_expression, lb=1)
+        constraints.append(trivial_solutions_constraint)
+
+        objective = model.solver.interface.Objective(add(self.z_map.values()), direction='min')
+        self.model.add(self.z_map.values())
+        self.model.add(self.t_map.values())
+        self.model.add(constraints)
+        self.model.objective = objective
+
+    def add_reaction(self, r_id, model, constraints):
+        z = model.solver.interface.Variable("z_%s" % r_id, type='binary')
+        self.z_map[r_id] = z
+        t = model.solver.interface.Variable("t_%s" % r_id, lb=0, type='integer')
+        self.t_map[r_id] = t
+
+        expression_1 = add([mul([RealNumber(-self.M), z]), t])
+        constraint_1 = model.solver.interface.Constraint(expression_1, name="c1_%s" % r_id, ub=0)
+        constraints.append(constraint_1)
+
+        expression_2 = add([z, mul([NegativeOne, t])])
+        constraint_2 = model.solver.interface.Constraint(expression_2, name="c2_%s" % r_id, ub=0)
+        constraints.append(constraint_2)
+
+        return z, t
+
+    def optimize(self):
+        return self.model.optimize()
+
+
+#FIXME: the matrix must be converted into integer values to work!!!!
+def shortest_elementary_flux_modes(model=None, k=5, M=100000, efm_model=None, matrix=None):
+    """
+    Calculates the shortest elementary flux modes using MILP.[1]
+    This requires that the stoichiometric matrix is converted into a integer matrix.
+
+    If you the efm model is provided, it will not be rebuild.
+    If the matrix is provided, it will not be recomputed.
 
     Parameters
     ----------
@@ -98,90 +202,69 @@ def shortest_elementary_flux_modes(model=None, k=5, M=100000):
         The number of iterations
     M : int
         A large number, default: 100000
+    efm_model : EFMModel
+        A previous built model, optional
+    matrix : numpy.Array
+        A numpy.Array like object that represents the integer version of the stoichiometric matrix, optional
 
+    .. [1] Luis F. de Figueiredo, Adam Podhorski, Angel Rubio, Christoph Kaleta, John E. Beasley,
+       Stefan Schuster and Francisco J. Planes, "Computing the shortest elementary flux modes in
+       genome-scale metabolic networks" Bioinformatics, vol 25, issue 23, pp. 3158-3165, 2009.
     """
-    efm_model = model.solver.interface.Model()
+    if matrix is None:
+        matrix = model.integerS
 
-    z_map = dict()
-    t_map = dict()
-    constraints = list()
-    exchanges = model.exchanges
-    for reaction in model.reactions:
-        if not reaction in exchanges:
-            z = model.solver.interface.Variable("z_%s" % reaction.id, type='binary')
-            z_map[reaction.id] = z
-            t = model.solver.interface.Variable("t_%s" % reaction.id, lb=0, type='integer')
-            t_map[reaction.id] = t
+    if efm_model is None:
+        efm_model = EFMModel(model, M=M, matrix=matrix, include_exchanges=False)
+    else:
+        assert isinstance(efm_model, EFMModel)
 
-            expression_1 = add([t, mul([RealNumber(-M), z])])
-            constraint_1 = model.solver.interface.Constraint(expression_1, name="c1_%s" % reaction.id, ub=0)
-            constraints.append(constraint_1)
-
-            expression_2 = add([z, mul([NegativeOne, t])])
-            constraint_2 = model.solver.interface.Constraint(expression_2, name="c2_%s" % reaction.id, ub=0)
-            constraints.append(constraint_2)
-
-
-            if reaction.reversibility:
-                z_rev = model.solver.interface.Variable("z_%s" % reaction._get_reverse_id(), type='binary')
-                z_map[reaction._get_reverse_id()] = z_rev
-                t_rev = model.solver.interface.Variable("t_%s" % reaction._get_reverse_id(), lb=0, type='integer')
-                t_map[reaction._get_reverse_id()] = t_rev
-                exp = add([z, z_rev])
-                rev_constraint = model.solver.interface.Constraint(exp, ub=1)
-                constraints.append(rev_constraint)
-
-                expression_1_rev = add([t_rev, mul([RealNumber(-M), z_rev])])
-                constraint_1_rev = model.solver.interface.Constraint(expression_1_rev,
-                                                                     name="c1_%s_rev" % reaction.id,
-                                                                     ub=0)
-                constraints.append(constraint_1_rev)
-
-                expression_2_rev = add([z_rev, mul([NegativeOne, t_rev])])
-                constraint_2_rev = model.solver.interface.Constraint(expression_2_rev,
-                                                                     name="c2_%s_rev" % reaction.id,
-                                                                     ub=0)
-                constraints.append(constraint_2_rev)
-
-    for met in model.metabolites:
-        steady_state_expression = sum([mul([RealNumber(r.metabolites[met]), t_map[r.id]]) for r in met.reactions if not r in exchanges])
-        steady_state_constraint = model.solver.interface.Constraint(steady_state_expression,
-                                                                    name="ss_%s" % met.id,
-                                                                    lb=0,
-                                                                    ub=0)
-        constraints.append(steady_state_constraint)
-
-    trivial_solutions_expression = sum(z_map.values())
-    trivial_solutions_constraint = model.solver.interface.Constraint(trivial_solutions_expression, lb=1)
-    constraints.append(trivial_solutions_constraint)
-
-    objective = model.solver.interface.Objective(add(z_map.values()), direction='min')
-    efm_model.add(z_map.values())
-    efm_model.add(t_map.values())
-    efm_model.add(constraints)
-    efm_model.objective = objective
     #iteration 1
+    logger.debug("Iteration 1:")
     status = efm_model.optimize()
     logger.debug("Iteration 1: %s" % status)
-    [logger.debug("%s: %f" % (z, z.primal)) for z in z_map.values() if z.primal > 0]
-    for i in xrange(k):
+    [logger.debug("%s: %f" % (z, z.primal)) for z in efm_model.z_vars() if z.primal > 0]
+    [logger.debug("%s: %f" % (t, t.primal)) for t in efm_model.t_vars() if t.primal > 0]
+    for i in xrange(k-1):
         previous_solution_part = list()
         sum_part = 0
         for reaction in model.reactions:
-            if not reaction in exchanges:
-                z = z_map[reaction.id]
+            z = efm_model.z_var(reaction.id)
+            previous_solution_part.append(mul([RealNumber(z.primal), z]))
+            sum_part += z.primal
+            if reaction.reversibility:
+                z = efm_model.z_var(reaction._get_reverse_id())
                 previous_solution_part.append(mul([RealNumber(z.primal), z]))
                 sum_part += z.primal
-                if reaction.reversibility:
-                    z = z_map[reaction._get_reverse_id()]
-                    previous_solution_part.append(mul([RealNumber(z.primal), z]))
-                    sum_part += z.primal
         iteration_expression = add(previous_solution_part)
-        iteration_constraint = model.solver.interface.Constraint(iteration_expression, ub=sum_part-1)
+        iteration_constraint = model.solver.interface.Constraint(iteration_expression, ub=sum_part-1, name="iter")
+
         efm_model.add(iteration_constraint)
 
         #interation n
+        logger.debug("Iteration %i:" % i+2)
         status = efm_model.optimize()
         logger.debug("Iteration %i: %s" % (i+2, status))
-        [logger.debug("%s: %f" % (z, z.primal)) for z in z_map.values() if z.primal > 0]
+        [logger.debug("%s: %f" % (z, z.primal)) for z in efm_model.z_vars() if z.primal > 0]
         efm_model.remove(iteration_constraint)
+
+    return efm_model
+
+
+def elementary_modes_with_fixed_size(model=None, c=1, efm_model=None):
+    """
+    Calculates the shortest elementary flux modes using MILP with explicit indicator variables.[1]
+
+    Parameters
+    model : SolverBasedModel
+        A COBRA model.
+    c : int
+        Threshold to determine if the variable is greater than zero, default is 1.
+    em_model : EFMModel
+        A prebuilt efm optimization model.
+    """
+
+    if efm_model is None:
+        efm_model = EFMModel(model, M=c, include_exchanges=True)
+
+    efm_model.optimize()
