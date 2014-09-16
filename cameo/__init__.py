@@ -13,11 +13,14 @@
 # limitations under the License.
 
 
-#TODO: describe cameo with some examples
 """
 CAMEO: Computer Assisted Metabolic Engineering & Optimization
 
+from cameo import load_model
 
+model = load_model('../tests/data/EcoliCore.xml')
+solution = model.solve()
+print 'Objective value:', solution.f
 """
 
 from ._version import get_versions

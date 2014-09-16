@@ -10,7 +10,7 @@ pandas>=0.14.0
 ordered-set==1.2
 inspyred==1.0
 cobra==0.3.0b3
--e git+https://github.com/biosustain/optlang.git@541273d0fcbe59f8922943ce9b8c2ad7d94c18dc#egg=optlang
+-e git+https://github.com/biosustain/optlang.git@8f8a33263fbe83af4cb5f71f56980b86d41d8ea0#egg=optlang
 -e git+https://github.com/biosustain/ipython_notebook_utils.git@b9e68cc2fdbae30d3482306ffcbecbf358530267#egg=ipython_notebook_utils
 sphinx>=1.2.2
 sphinx-rtd-theme>=0.1.6

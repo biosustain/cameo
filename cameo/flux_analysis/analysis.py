@@ -216,7 +216,6 @@ def _cycle_free_fva(model, reactions=None, sloppy=True):
                 fva_sol[reaction.id]['lower_bound'] = 0
                 continue
             except Exception as e:
-                print reaction.id
                 raise e
             bound = solution.f
             if sloppy and bound > -100:
