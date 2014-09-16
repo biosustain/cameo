@@ -136,6 +136,23 @@ class TestReaction(unittest.TestCase):
             print reaction.id, reaction.lower_bound, reaction.upper_bound
             self.assertEqual(reaction.lower_bound, reaction.upper_bound)
 
+    def test_add_metabolites(self):
+        for reaction in self.model.reactions:
+            reaction.add_metabolites({Metabolite('test'):-66})
+            self.assertIn("66 test", str(reaction))
+            self.assertIn(-66.*reaction.variable, self.model.solver.constraints['test'].expression)
+            already_included_metabolite = reaction.metabolites.keys()[0]
+            previous_coefficient = reaction.get_coefficient(already_included_metabolite.id)
+            reaction.add_metabolites({already_included_metabolite: 10})
+            new_coefficient = previous_coefficient + 10
+            new_coefficient2 = new_coefficient
+            if new_coefficient < 0:
+                new_coefficient *= -1
+            if new_coefficient % 1 == 0:
+                new_coefficient = int(new_coefficient)
+            self.assertIn(str(new_coefficient)+" "+already_included_metabolite.id, str(reaction))
+            self.assertIn(new_coefficient2*reaction.variable, self.model.solver.constraints[already_included_metabolite.id].expression)
+
 
 class TestSolverBasedModel(CommonGround):
     def test_reactions_and_variables_match(self):

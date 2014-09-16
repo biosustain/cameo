@@ -319,6 +319,12 @@ class Reaction(OriginalReaction):
                 'upper_bound'][
                 self.id]
 
+    def add_metabolites(self, metabolites, **kwargs):
+        super(Reaction, self).add_metabolites(metabolites, **kwargs)
+        model = self.get_model()
+        if model is not None:
+            for metabolite, coefficient in metabolites.iteritems():
+                model.solver.constraints[metabolite.id] += coefficient*self.variable
 
 class SolverBasedModel(Model):
     """Implements a model with an attached optlang solver instance.
