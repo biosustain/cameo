@@ -13,8 +13,8 @@ Table of Contents
 -----------------
 
 .. toctree::
+    :maxdepth: 3
 
-    :titlesonly:
     installation
     quickstart
     iPython
