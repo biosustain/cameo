@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Copyright 2013 Novo Nordisk Foundation Center for Biosustainability, DTU.
 
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -11,23 +12,21 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from collections import OrderedDict
+
+"""A solver-based model class and other extensions of cobrapy objects.
+"""
+
+
+import time
+import datetime
 import csv
 import hashlib
 
-import time
 from copy import copy, deepcopy
+from collections import OrderedDict
+from functools import partial
+
 from cobra.core import Solution
-import datetime
-
-import optlang
-
-from cameo.util import TimeMachine
-from cameo import exceptions
-from cameo.exceptions import SolveError, Infeasible, UndefinedSolution
-from cameo.parallel import SequentialView
-from cameo.flux_analysis.analysis import flux_variability_analysis
-
 from cobra.core.Reaction import Reaction as OriginalReaction
 from cobra.core.Model import Model
 from cobra.core.DictList import DictList
@@ -37,9 +36,15 @@ import sympy
 from sympy import Mul
 from sympy.core.singleton import S
 
-from pandas import Series, DataFrame, pandas
+import optlang
 
-from functools import partial
+from cameo.util import TimeMachine
+from cameo import exceptions
+from cameo.exceptions import SolveError, Infeasible, UndefinedSolution
+from cameo.parallel import SequentialView
+from cameo.flux_analysis.analysis import flux_variability_analysis
+
+from pandas import Series, DataFrame, pandas
 
 import logging
 
@@ -63,7 +68,14 @@ except ImportError:
 
 
 def to_solver_based_model(cobrapy_model, solver_interface=optlang):
-    """Convert a core model into a solver-based model."""
+    """Convert a cobrapy model into a solver-based model.
+
+    Parameters
+    ----------
+    cobrapy_model : cobra.core.Model
+    solver_interface : solver_interface, optional
+        For example, optlang.glpk_interface or any other optlang interface (the default is optlang.interface).
+    """
 
     solver_interface = _SOLVER_INTERFACES.get(solver_interface, solver_interface)
     solver_based_model = SolverBasedModel(
@@ -72,30 +84,30 @@ def to_solver_based_model(cobrapy_model, solver_interface=optlang):
 
 
 class LazySolution(object):
-    """This class implements a lazy evaluating version of the original cobrapy Solution class."""
+    """This class implements a lazy evaluating version of the cobrapy Solution class.
+
+    Attributes
+    ----------
+    model : SolverBasedModel
+    primal_dict : dict
+        A dictionary of flux values.
+    dual_dict : dict
+        A dictionary of reduced costs.
+
+    Notes
+    -----
+    See also documentation for cobra.core.Solution.Solution for an extensive list of inherited attributes.
+    """
 
     def __init__(self, model):
+        """
+        Parameters
+        ----------
+        model : SolverBasedModel
+        """
         self.model = model
         self._time_stamp = self.model._timestamp_last_optimization
         self._f = None
-
-    def __str__(self):
-        return str(DataFrame({'primal': Series(self.x_dict), 'dual': Series(self.y_dict)}))
-
-    def _check_freshness(self):
-        if self._time_stamp != self.model._timestamp_last_optimization:
-            timestamp_formatter = lambda timestamp: datetime.datetime.fromtimestamp(timestamp).strftime(
-                "%Y-%m-%d %H:%M:%S:%f")
-            raise UndefinedSolution(
-                'The solution (captured around %s) has become invalid as the model has been re-optimized recently (%s).' % (
-                    timestamp_formatter(self._time_stamp),
-                    timestamp_formatter(self.model._timestamp_last_optimization))
-            )
-
-    def as_cobrapy_solution(self):
-        return Solution(self.f, x=self.x,
-                        x_dict=self.x_dict, y=self.y, y_dict=self.y_dict,
-                        the_solver=None, the_time=0, status=self.status)
 
     @property
     def f(self):
@@ -154,15 +166,76 @@ class LazySolution(object):
     def dual_dict(self):
         return self.y_dict
 
+    def __str__(self):
+        """A pandas DataFrame representation of the solution.
+
+        Returns
+        -------
+        pandas.DataFrame
+        """
+        return str(DataFrame({'primal': Series(self.x_dict), 'dual': Series(self.y_dict)}))
+
+    def _check_freshness(self):
+        """Raises an exceptions if the solution might have become invalid due to re-optimization of the attached model.
+
+        Raises
+        ------
+        UndefinedSolution
+            If solution has become invalid.
+        """
+        if self._time_stamp != self.model._timestamp_last_optimization:
+            timestamp_formatter = lambda timestamp: datetime.datetime.fromtimestamp(timestamp).strftime(
+                "%Y-%m-%d %H:%M:%S:%f")
+            raise UndefinedSolution(
+                'The solution (captured around %s) has become invalid as the model has been re-optimized recently (%s).' % (
+                    timestamp_formatter(self._time_stamp),
+                    timestamp_formatter(self.model._timestamp_last_optimization))
+            )
+
+    def as_cobrapy_solution(self):
+        """Convert into a cobrapy Solution.
+
+        Returns
+        -------
+        cobra.core.Solution.Solution
+        """
+        return Solution(self.f, x=self.x,
+                        x_dict=self.x_dict, y=self.y, y_dict=self.y_dict,
+                        the_solver=None, the_time=0, status=self.status)
+
     def get_primal_by_id(self, reaction_id):
+        """Return a flux/primal value for a reaction.
+
+        Parameters
+        ----------
+        reaction_id : str
+            A reaction ID.
+        """
         return self.x_dict[reaction_id]
 
 
 class Reaction(OriginalReaction):
-    """docstring for Reaction"""
+    """This class extends the cobrapy Reaction class to work with SolverBasedModel.
+
+    Notes
+    -----
+    See also documentation for cobra.core.Reaction.Reaction for an extensive list of inherited attributes.
+    """
 
     @classmethod
     def clone(cls, reaction, model=None):
+        """Clone a reaction.
+
+        Parameters
+        ----------
+        reaction : Reaction, cobra.core.Reaction.Reaction
+        model : model, optional
+
+        Returns
+        -------
+        Reaction
+
+        """
         new_reaction = cls(name=reaction.name)
         for attribute, value in reaction.__dict__.iteritems():
             setattr(new_reaction, attribute, value)
@@ -173,6 +246,12 @@ class Reaction(OriginalReaction):
         return new_reaction
 
     def __init__(self, name=None):
+        """
+        Parameters
+        ----------
+        name : str, optional
+            The name of the reaction.
+        """
         super(Reaction, self).__init__(name=name)
         self._lower_bound = 0
         self._upper_bound = 1000.
@@ -183,6 +262,8 @@ class Reaction(OriginalReaction):
 
     @property
     def variable(self):
+        """An optlang variable representing the forward flux (if associated with model), otherwise None.
+        Representing the net flux if model.reversible_encoding == 'unsplit'"""
         model = self.get_model()
         if model is not None:
             return model.solver.variables[self.id]
@@ -194,10 +275,12 @@ class Reaction(OriginalReaction):
         return self._lower_bound < 0 and self._upper_bound > 0
 
     def _get_reverse_id(self):
+        """Generate the id of revers_variable from the reaction's id."""
         return '_'.join((self.id, 'reverse', hashlib.md5(self.id).hexdigest()[0:5]))
 
     @property
     def reverse_variable(self):
+        """An optlang variable representing the reverse flux (if associated with model), otherwise None."""
         model = self.get_model()
         if model is not None:
             aux_id = self._get_reverse_id()
