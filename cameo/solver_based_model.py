@@ -79,7 +79,7 @@ class LazySolution(object):
     def __init__(self, model):
         self.model = model
         self._time_stamp = self.model._timestamp_last_optimization
-        self._f = None
+        self._f = model.objective.value
 
     def __str__(self):
         return str(DataFrame({'primal': Series(self.x_dict), 'dual': Series(self.y_dict)}))

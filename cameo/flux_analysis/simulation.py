@@ -261,7 +261,7 @@ def room(model, reference=None, cache={}, volatile=True, delta=0.03, epsilon=0.0
                 # vi - yi(vmaxi + w_ui) >= w_ui
                 expression = add([
                     reaction.variable,
-                    mul([RealNumber(-reaction.upper_bound + w_u), var])])
+                    mul([RealNumber(-(reaction.upper_bound + w_u)), var])])
 
                 constraint_a = (model.solver.interface.Constraint(expression, ub=w_u, sloppy=True))
                 if not volatile:
@@ -279,7 +279,7 @@ def room(model, reference=None, cache={}, volatile=True, delta=0.03, epsilon=0.0
                 # vi - yi(vmini - w_li) <= w_li
                 expression = add([
                     reaction.variable,
-                    mul([RealNumber(-reaction.lower_bound + w_l), var])])
+                    mul([RealNumber(-(reaction.lower_bound - w_l)), var])])
 
                 constraint_b = (model.solver.interface.Constraint(expression, lb=w_l, sloppy=True))
                 if not volatile:
@@ -297,8 +297,7 @@ def room(model, reference=None, cache={}, volatile=True, delta=0.03, epsilon=0.0
             cache['first_run'] = False
 
         try:
-            solution = model.solve()
-            return solution
+            return model.solve()
         except SolveError as e:
             print "room could not determine an optimal solution for objective %s" % model.objective
             raise e
