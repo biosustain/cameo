@@ -190,7 +190,10 @@ def _flux_variability_analysis(model, reactions=None):
     model.objective = original_objective
     df = pandas.DataFrame.from_dict(fva_sol, orient='index')
     lb_higher_ub = df[df.lower_bound > df.upper_bound]
-    assert ((lb_higher_ub.lower_bound - lb_higher_ub.upper_bound) < 1e-6).all()  # Assert that these cases really only numerical artifacts
+    try: # this is an alternative solution to what I did above with flags
+        assert ((lb_higher_ub.lower_bound - lb_higher_ub.upper_bound) < 1e-6).all()  # Assert that these cases really only numerical artifacts
+    except AssertionError as e:
+        print zip(model.reactions, (lb_higher_ub.lower_bound - lb_higher_ub.upper_bound) < 1e-6)
     df.lower_bound[lb_higher_ub.index] = df.upper_bound[lb_higher_ub.index]
     return df
 
