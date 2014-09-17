@@ -358,6 +358,8 @@ class SolverBasedModel(Model):
             metabolite._reaction = set(metabolite_reactions)
         self._solver = solver_interface.Model()
         self._populate_solver_from_scratch()
+        self._timestamp_last_optimization = None
+        self.solution = LazySolution(self)
 
     def __copy__(self):
         return self.__deepcopy__()
