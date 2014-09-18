@@ -97,7 +97,7 @@ class EFMModel(object):
     .. [2] Axel von Kamp, Steffen Klamt "Enumeration of Smallest Intervention Strategies in Genome-Scale
        Metabolic Networks" PLOS Computational Biology, vol 10, issue 01, pp. e1003378, 2014.
     """
-    def __init__(self, model, M=100000, matrix=None, include_exchanges=False):
+    def __init__(self, model, M=100000, matrix=None, include_exchanges=False, flux_type="integer"):
         self.z_map = dict()
         self.t_map = dict()
         self.M = M
@@ -105,7 +105,7 @@ class EFMModel(object):
             matrix = model.S
         self.matrix = matrix
         self.model = model.solver.interface.Model()
-        self._populate_model(model, include_exchanges)
+        self._populate_model(model, include_exchanges, flux_type)
 
     def add(self, obj):
         self.model.add(obj)
@@ -127,14 +127,14 @@ class EFMModel(object):
     def t_var(self, reaction_id):
         return self.t_map[reaction_id]
 
-    def _populate_model(self, model, include_exchanges):
+    def _populate_model(self, model, include_exchanges, flux_type):
         constraints = list()
         exchanges = model.exchanges
         for reaction in model.reactions:
             if not reaction in exchanges or include_exchanges:
-                z, t = self.add_reaction(reaction.id, model, constraints)
+                z, t = self.add_reaction(reaction.id, model, constraints, flux_type)
                 if reaction.reversibility:
-                    z_rev, t_rev = self.add_reaction(reaction._get_reverse_id(), model, constraints)
+                    z_rev, t_rev = self.add_reaction(reaction._get_reverse_id(), model, constraints, flux_type)
                     exp = add([z, z_rev])
                     rev_constraint = model.solver.interface.Constraint(exp, ub=1, name="rev_%s" % reaction.id)
                     constraints.append(rev_constraint)
@@ -168,10 +168,10 @@ class EFMModel(object):
         self.model.add(constraints)
         self.model.objective = objective
 
-    def add_reaction(self, r_id, model, constraints):
+    def add_reaction(self, r_id, model, constraints, flux_type):
         z = model.solver.interface.Variable("z_%s" % r_id, type='binary')
         self.z_map[r_id] = z
-        t = model.solver.interface.Variable("t_%s" % r_id, lb=0, type='integer')
+        t = model.solver.interface.Variable("t_%s" % r_id, lb=0, ub=self.M, type=flux_type)
         self.t_map[r_id] = t
 
         expression_1 = add([mul([RealNumber(-self.M), z]), t])
@@ -216,6 +216,7 @@ def shortest_elementary_flux_modes(model=None, k=5, M=100000, efm_model=None, ma
        genome-scale metabolic networks" Bioinformatics, vol 25, issue 23, pp. 3158-3165, 2009.
     """
     if matrix is None:
+        logger.debug("Computing integer matrix...")
         matrix = model.integerS
 
     if efm_model is None:
@@ -247,7 +248,7 @@ def shortest_elementary_flux_modes(model=None, k=5, M=100000, efm_model=None, ma
         efm_model.add(iteration_constraint)
 
         #interation n
-        logger.debug("Iteration %i:" % i+2)
+        logger.debug("Iteration %i:" % (i+2))
         status = efm_model.optimize()
         logger.debug("Iteration %i: %s" % (i+2, status))
         [logger.debug("%s: %f" % (z, z.primal)) for z in efm_model.z_vars if z.primal > 0]
@@ -270,7 +271,7 @@ def fixed_size_elementary_modes(model=None, c=1, efm_model=None, size=20):
     """
 
     if efm_model is None:
-        efm_model = EFMModel(model, M=c, include_exchanges=True, matrix=model.S)
+        efm_model = EFMModel(model, M=c, include_exchanges=True, matrix=model.S, flux_type="continuous")
 
     with TimeMachine() as tm:
         expression = sum(efm_model.z_vars)

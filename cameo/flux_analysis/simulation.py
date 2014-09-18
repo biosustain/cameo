@@ -19,6 +19,10 @@ from cameo.exceptions import SolveError
 from sympy import Add
 from sympy import Mul
 
+import logging
+
+logger = logging.getLogger("cameo")
+
 add = Add._from_args
 mul = Mul._from_args
 NegativeOne = sympy.singleton.S.NegativeOne
@@ -47,6 +51,7 @@ def fba(model, objective=None, *args, **kwargs):
         try:
             solution = model.solve()
             tm.reset()
+            logger.debug("FBA z=%f" % solution.f)
             return solution
         except SolveError as e:
             raise e
@@ -71,37 +76,35 @@ def pfba(model, objective=None, *args, **kwargs):
         original_objective = model.objective.expression
         tm(do=partial(setattr, model, 'reversible_encoding', 'split'),
            undo=partial(setattr, model, 'reversible_encoding', model.reversible_encoding))
-        try:
-            if objective is not None:
-                tm(do=partial(setattr, model, 'objective', objective),
-                   undo=partial(setattr, model, 'objective', original_objective))
-            try:
-                obj_val = model.solve().f
-            except SolveError as e:
-                print "pfba could not determine maximum objective value for\n%s." % model.objective
-                raise e
-            if model.objective.direction == 'max':
-                fix_obj_constraint = model.solver.interface.Constraint(model.objective.expression, lb=obj_val)
-            else:
-                fix_obj_constraint = model.solver.interface.Constraint(model.objective.expression, ub=obj_val)
-            tm(do=partial(model.solver._add_constraint, fix_obj_constraint),
-               undo=partial(model.solver._remove_constraint, fix_obj_constraint))
 
-            pfba_obj = model.solver.interface.Objective(add(
-                [mul((sympy.singleton.S.One, variable)) for variable in model.solver.variables.values()]),
-                direction='min', sloppy=True)
-            # tic = time.time()
-            tm(do=partial(setattr, model, 'objective', pfba_obj),
+        if objective is not None:
+            tm(do=partial(setattr, model, 'objective', objective),
                undo=partial(setattr, model, 'objective', original_objective))
-            # print "obj: ", time.time() - tic
-            try:
-                solution = model.solve()
-                tm.reset()
-                return solution
-            except SolveError as e:
-                print "pfba could not determine an optimal solution for objective %s" % model.objective
-                raise e
-        except Exception as e:
+        try:
+            obj_val = model.solve().f
+        except SolveError as e:
+            print "pfba could not determine maximum objective value for\n%s." % model.objective
+            raise e
+        if model.objective.direction == 'max':
+            fix_obj_constraint = model.solver.interface.Constraint(model.objective.expression, lb=obj_val)
+        else:
+            fix_obj_constraint = model.solver.interface.Constraint(model.objective.expression, ub=obj_val)
+        tm(do=partial(model.solver._add_constraint, fix_obj_constraint),
+           undo=partial(model.solver._remove_constraint, fix_obj_constraint))
+
+        pfba_obj = model.solver.interface.Objective(add(
+            [mul((sympy.singleton.S.One, variable)) for variable in model.solver.variables.values()]),
+            direction='min', sloppy=True)
+        # tic = time.time()
+        tm(do=partial(setattr, model, 'objective', pfba_obj),
+           undo=partial(setattr, model, 'objective', original_objective))
+        # print "obj: ", time.time() - tic
+        try:
+            solution = model.solve()
+            logger.debug("PFBA z=%f" % solution.f)
+            return solution
+        except SolveError as e:
+            print "pfba could not determine an optimal solution for objective %s" % model.objective
             raise e
 
 
@@ -170,7 +173,8 @@ def lmoma(model, reference=None, cache={}, volatile=True, *args, **kwargs):
             else:
                 constraint_a = model.solver.interface.Constraint(add([pos_var, mul([NegativeOne, reaction_variable])]),
                                                                  lb=-flux_value,
-                                                                 sloppy=True)
+                                                                 sloppy=True,
+                                                                 name=constraint_a_id)
                 if not volatile:
                     cache['constraints'][constraint_a_id] = constraint_a
 
@@ -181,7 +185,8 @@ def lmoma(model, reference=None, cache={}, volatile=True, *args, **kwargs):
             else:
                 constraint_b = model.solver.interface.Constraint(add([neg_var, reaction.variable]),
                                                                  lb=flux_value,
-                                                                 sloppy=True)
+                                                                 sloppy=True,
+                                                                 name=constraint_b_id)
                 if not volatile:
                     cache['constraints'][constraint_b_id] = constraint_b
 
@@ -197,6 +202,7 @@ def lmoma(model, reference=None, cache={}, volatile=True, *args, **kwargs):
 
         try:
             solution = model.solve()
+            logger.debug("LMOMA z=%f" % solution.f)
             return solution
         except SolveError as e:
             #print "lmoma could not determine an optimal solution for objective %s" % model.objective
@@ -258,12 +264,10 @@ def room(model, reference=None, cache={}, volatile=True, delta=0.03, epsilon=0.0
                 constraint_a.ub = w_u
             else:
 
-                # vi - yi(vmaxi + w_ui) >= w_ui
-                expression = add([
-                    reaction.variable,
-                    mul([RealNumber(-(reaction.upper_bound + w_u)), var])])
+                # vi - yi(vmaxi + w_ui) <= w_ui
+                expression = add([reaction.variable, mul([RealNumber(-(reaction.upper_bound + w_u)), var])])
 
-                constraint_a = (model.solver.interface.Constraint(expression, ub=w_u, sloppy=True))
+                constraint_a = model.solver.interface.Constraint(expression, ub=w_u, name=constraint_a_id, sloppy=True)
                 if not volatile:
                     cache['constraints'][constraint_a_id] = constraint_a
 
@@ -276,12 +280,12 @@ def room(model, reference=None, cache={}, volatile=True, delta=0.03, epsilon=0.0
                 constraint_b._set_coefficients_low_level({var: -reaction.lower_bound + w_l})
                 constraint_b.lb = w_l
             else:
-                # vi - yi(vmini - w_li) <= w_li
+                # vi - yi(vmini - w_li) >= w_li
                 expression = add([
                     reaction.variable,
                     mul([RealNumber(-(reaction.lower_bound - w_l)), var])])
 
-                constraint_b = (model.solver.interface.Constraint(expression, lb=w_l, sloppy=True))
+                constraint_b = model.solver.interface.Constraint(expression, lb=w_l, name=constraint_b_id, sloppy=True)
                 if not volatile:
                     cache['constraints'][constraint_b_id] = constraint_b
 
@@ -297,7 +301,9 @@ def room(model, reference=None, cache={}, volatile=True, delta=0.03, epsilon=0.0
             cache['first_run'] = False
 
         try:
-            return model.solve()
+            solution = model.solve()
+            logger.debug("ROOM z=%f" % solution.f)
+            return solution
         except SolveError as e:
             print "room could not determine an optimal solution for objective %s" % model.objective
             raise e
@@ -395,7 +401,9 @@ if __name__ == '__main__':
     from cobra.io import read_sbml_model
     from cobra.flux_analysis.parsimonious import optimize_minimal_flux
     from cameo import load_model
+    import logging
 
+    logging.getLogger("cameo").setLevel(logging.DEBUG)
     # sbml_path = '../../tests/data/EcoliCore.xml'
     sbml_path = '../../tests/data/iJO1366.xml'
 

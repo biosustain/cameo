@@ -65,4 +65,3 @@ def load_model(path_or_handle, solver_interface=optlang.glpk_interface):
         if model.interface is not solver_interface and solver_interface is not None:
             model.solver = solver_interface
         return model
-            
