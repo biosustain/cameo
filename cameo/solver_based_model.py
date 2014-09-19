@@ -677,7 +677,10 @@ class SolverBasedModel(Model):
             "%Y-%m-%d %H:%M:%S:%f")
         self._timestamp_last_optimization = time.time()
         # logger.debug('self._timestamp_last_optimization ' + timestamp_formatter(self._timestamp_last_optimization))
+        original_direction = self.objective.direction
+        self.objective.direction = {'minimize': 'min', 'maximize': 'max'}[objective_sense]
         self.solver.optimize()
+        self.objective.direction = original_direction
         solution = solution_type(self)
         # logger.debug('solution = solution_type(self) ' + timestamp_formatter(solution._time_stamp))
         self.solution = solution
