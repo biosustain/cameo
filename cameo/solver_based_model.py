@@ -350,7 +350,7 @@ class Reaction(OriginalReaction):
             # Remove auxiliary variable if not needed anymore
             reverse_variable = self.reverse_variable
             variable = self.variable
-            if value < 0 and self._upper_bound > 0 and self._lower_bound < 0:
+            if value <= 0 and self._upper_bound > 0 and self._lower_bound < 0:
                 reverse_variable.lb, reverse_variable.ub = 0, 0
 
             # Add auxiliary variable if needed
