@@ -112,7 +112,7 @@ def phenotypic_phase_plane(model, variables=[], objective=None, points=20, view=
            undo=partial(setattr, model, 'reversible_encoding', 'split'))
     if objective is not None:
         tm(do=partial(setattr, model, 'objective', objective),
-           undo=partial(setattr, model, 'objective', original_objective))
+           undo=partial(setattr, model, 'objective', model.objective))
 
     variable_reactions = _ids_to_reactions(model, variables)
     variables_min_max = flux_variability_analysis(model, reactions=variable_reactions)

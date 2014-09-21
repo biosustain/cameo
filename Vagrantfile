@@ -11,6 +11,12 @@ sudo pip install nose
 cd /vagrant
 sudo pip install -r requirements.txt
 sudo python setup.py develop
+# get rid of the stupid openpyxl error message
+pip uninstall openpyxl
+pip install openpyxl==1.8.6
+pip install nose rednose coverage
+sudo pip install redis
+sudo python setup.py develop
 
 SCRIPT
 
@@ -50,7 +56,7 @@ end
   # Create a forwarded port mapping which allows access to a specific port
   # within the machine from a port on the host machine. In the example below,
   # accessing "localhost:8080" will access port 80 on the guest machine.
-  config.vm.network "forwarded_port", guest: 8888, host: 8888
+  config.vm.network "forwarded_port", guest: 6666, host: 6666
 
   config.vm.provision :shell, :inline => $script
 
