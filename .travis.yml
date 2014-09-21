@@ -19,11 +19,13 @@ before_install:
   - sudo ldconfig
   - sudo ln -s /run/shm /dev/shm
 install:
-  - pip install python-libsbml-experimental cython numpy scipy -f https://dl.dropboxusercontent.com/u/22461024/pypi.drosophi.la/index.html --no-index
-  - pip install -r requirements.txt
+  #glpk for cobra
+  - pip install glpk
+  - pip install python-libsbml-experimental cython numpy scipy pyzmq pandas bokeh -f https://dl.dropboxusercontent.com/u/22461024/pypi.drosophi.la/index.html --no-index
   - pip install coveralls coverage
   - pip install redis
   - pip install escher --pre
+  - pip install -r requirements.txt
   - pip install rednose
 # command to run tests
 script: nosetests

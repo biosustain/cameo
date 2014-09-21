@@ -82,6 +82,7 @@ class TestFluxVariabilityAnalysis(unittest.TestCase):
                 self.assertAlmostEqual(fva_solution['upper_bound'][key],
                                        REFERENCE_FVA_SOLUTION_ECOLI_CORE['upper_bound'][key], delta=0.000001)
 
+
 class TestPhenotypicPhasePlane(unittest.TestCase):
     def setUp(self):
         self.model = CORE_MODEL.copy()
