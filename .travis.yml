@@ -5,11 +5,24 @@ python:
 virtualenv:
   system_site_packages: true
 before_install:
-  - sudo apt-get install libglpk-dev swig glpk-utils redis-server
+  - sudo apt-get install swig redis-server libzmq3-dev libgmp-dev
+  - sudo service redis-server start
+  - sudo rm -rf /dev/shm
+  - wget https://ftp.gnu.org/gnu/glpk/glpk-4.45.tar.gz
+  - tar xvf glpk-4.45.tar.gz
+  - mkdir glpk
+  - cd glpk-4.45
+  - ./configure --prefix=/
+  - make 
+  - sudo make install
+  - cd ..
+  - sudo ldconfig
+  - sudo ln -s /run/shm /dev/shm
 install:
-  - pip install python-libsbml-experimental cython numpy scipy bokeh pandas pyzmq --find-links=https://dl.dropboxusercontent.com/u/22461024/pypi.drosophi.la/index.html --no-index
+  - pip install python-libsbml-experimental cython numpy scipy -f https://dl.dropboxusercontent.com/u/22461024/pypi.drosophi.la/index.html --no-index
   - pip install coveralls coverage
   - pip install redis
+  - pip install escher --pre
   - pip install -r requirements.txt
   - pip install rednose
 # command to run tests

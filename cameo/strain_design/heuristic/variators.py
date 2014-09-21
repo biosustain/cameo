@@ -14,14 +14,33 @@
 from inspyred.ec.variators import mutator, crossover, n_point_crossover
 from ordered_set import OrderedSet
 from cameo.strain_design.heuristic.genomes import MultipleChromosomeGenome
-
+from numpy import float32 as float
 
 @mutator
 def set_mutation(random, individual, args):
+    """
+    Mutates a given set based on the entries available on the representation.
+
+    Parameters
+    ----------
+
+    random: Random
+    individual: list
+        with unique integers
+    args: dict
+        must contain the representation
+
+    Returns
+    -------
+    list
+        created based on an ordered set
+
+    """
     representation = args.get('representation')
     new_individual = []
+    mutation_rate = float(args.get('mutation_rate', .1))
     for index in individual:
-        if random.random() < args.get('mutation_rate', .1):
+        if random.random() < mutation_rate:
             new_individual.append(random.randint(0, len(representation) - 1))
         else:
             new_individual.append(index)
@@ -31,9 +50,28 @@ def set_mutation(random, individual, args):
 
 @mutator
 def set_indel(random, individual, args):
+    """
+    Creates a random insertion or deletion in the individual.
+
+    Parameters
+    ----------
+
+    random: Random
+    individual: list
+        with unique integers
+    args: dict
+        must contain the representation
+
+    Returns
+    -------
+    list
+        created based on an ordered set
+
+    """
     representation = args.get('representation')
+    indel_rate = float(args.get('indel_rate', .1))
     new_individual = list(individual)
-    if random.random() < args.get('indel_rate', .1):
+    if random.random() < indel_rate:
         if random.random() > 0.5:
             if len(individual) > 1:
                 new_individual.pop(random.randint(0, len(new_individual) - 1))
@@ -50,7 +88,8 @@ def multiple_chromosome_set_mutation(random, individual, args):
     for key in individual.keys:
         representation = args.get('%s_representation' % key)
         for index in individual:
-            if random.random() < args.get('%s_mutation_rate' % key, .1):
+            mutation_rate = float(args.get('%s_mutation_rate' % key, .1))
+            if random.random() < mutation_rate:
                 new_individual[key].append(random.randint(0, len(representation) - 1))
             else:
                 new_individual[key].append(index)
@@ -64,8 +103,9 @@ def multiple_chromosome_set_indel(random, individual, args):
 
     for key in individual.keys:
         representation = args.get('%s_representation' % key)
-        if random.random() < args.get('%s_indel_rate' % key, .1):
-            if random.random() > 0.5:
+        indel_rate = float(args.get('%s_indel_rate' % key, .1))
+        if random.random() < indel_rate:
+            if random.random() > float(0.5):
                 if len(individual) > 1:
                     new_individual[key].pop(random.randint(0, len(new_individual) - 1))
             else:

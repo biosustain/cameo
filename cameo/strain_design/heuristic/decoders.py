@@ -25,19 +25,65 @@ class KnockoutDecoder(object):
 
 
 class ReactionKnockoutDecoder(KnockoutDecoder):
+    """
+    Decoder for set representation. Converts an integer set into reactions available for knockout
+
+    Parameters
+    ----------
+
+    representation : list
+        reactions to knockout
+    model : SolverBasedModel
+
+    """
     def __init__(self, *args, **kwargs):
         super(ReactionKnockoutDecoder, self).__init__(*args, **kwargs)
 
     def __call__(self, individual):
+        """
+        Parameters
+        ----------
+
+        individual : list
+            a list of integers
+
+        Returns
+        -------
+        list
+            [knockouts, decoded representation]
+
+        """
         reactions = [self.model.reactions.get_by_id(self.representation[index]) for index in individual]
         return [reactions, reactions]
 
 
 class GeneKnockoutDecoder(KnockoutDecoder):
+    """
+    Decoder for set representation. Converts an integer set into genes available for knockout
+    Parameters
+    ----------
+
+    representation : list
+        genes to knockout
+    model : SolverBasedModel
+    """
     def __init__(self, *args, **kwargs):
         super(GeneKnockoutDecoder, self).__init__(*args, **kwargs)
 
     def __call__(self, individual):
+        """
+        Parameters
+        ----------
+
+        individual : list
+            a list of integers
+
+        Returns
+        -------
+        list
+            [knockouts, decoded representation]
+
+        """
         genes = [self.model.genes.get_by_id(self.representation[index]) for index in individual]
         reactions = find_gene_knockout_reactions(self.model, genes)
         return [reactions, genes]

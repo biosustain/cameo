@@ -18,11 +18,14 @@ from cameo.exceptions import SolveError
 from cameo.util import TimeMachine
 
 
-def normalized_gene_knockout_growth_rate(gene_id, model, threshold=10 ** -6, simulation_method=fba, wt_reference=None):
-    s = model.solve()
-    biomass = s.f
-    if wt_reference is None:
-        wt_reference = s.x_dict
+def gene_knockout_growth(gene_id, model, threshold=10 ** -6, simulation_method=fba,
+                         normalize=True, biomass=None, biomass_flux=None, *args, **kwargs):
+
+    if biomass_flux is None:
+        s = model.solve()
+        biomass_flux = s.f
+    if not 'reference' in kwargs:
+        kwargs['reference'] = s.x_dict
     gene = model.genes.get_by_id(gene_id)
     knockouts = find_gene_knockout_reactions(model, [gene])
     tm = TimeMachine()
@@ -34,10 +37,11 @@ def normalized_gene_knockout_growth_rate(gene_id, model, threshold=10 ** -6, sim
            undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
 
     try:
-        s = simulation_method(model, wt_reference=wt_reference)
-        f = s.f
+        s = simulation_method(model, *args, **kwargs)
+        f = s.get_primal_by_id(biomass)
         if f >= threshold:
-            f = f / biomass
+            if normalize:
+                f = f / biomass_flux
         else:
             f = 0
     except SolveError:

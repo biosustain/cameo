@@ -14,6 +14,7 @@
 
 import Queue
 from multiprocessing import Pool, cpu_count
+import itertools
 from cameo.util import Singleton
 
 
@@ -41,11 +42,17 @@ class MultiprocessingView(Singleton):
             self.pool = Pool(*self._args, **self._kwargs)
         self.pool.apply_async(func, args=args, **kwargs)
 
+    def imap(self, func, *args, **kwargs):
+        if self.pool is None:
+            self.pool = Pool(*self._args, **self._kwargs)
+        return self.pool.imap(func, *args, **kwargs)
+
     def __len__(self):
         return cpu_count()
 
     def shutdown(self):
-        self.pool.terminate()
+        if not self.pool is None:
+            self.pool.terminate()
 
 
 try:
@@ -65,7 +72,16 @@ try:
         default_db = 0
 
         def __init__(self, name, maxsize=0, namespace='queue', **connection_args):
-            """The default connection parameters are: host='localhost', port=6379, db=0"""
+            """The default connection parameters are: host='localhost', port=6379, db=0
+
+            Parameters
+            ----------
+            name: str
+            maxsize: int
+            namespace: str
+            connection_args: *kwargs
+
+            """
             if maxsize <= 0:
                 maxsize = self.MAX_REDIS_LIST_SIZE
             self._maxsize = maxsize
@@ -93,16 +109,25 @@ try:
             self._db = redis.Redis(**self._connection_args)
 
         def __len__(self):
-            return self.lenght()
+            return self.length()
 
-        def lenght(self):
+        def length(self):
             return self._db.llen(self._key)
 
         def empty(self):
-            return self.lenght() == 0
+            return self.length() == 0
 
         def put(self, item):
-            if self.lenght() >= self._maxsize:
+            """
+            Inserts an object in the queue.
+
+            Parameters
+            ----------
+            item : object
+                An object to put in the queue
+
+            """
+            if self.length() >= self._maxsize:
                 raise Queue.Full
 
             item = pickle.dumps(item)
@@ -110,9 +135,38 @@ try:
             self._db.rpush(self._key, item)
 
         def put_nowait(self, item):
+            """
+            Same as put, for backward compatibility with Python Queue.
+
+            See also
+            --------
+            put
+
+            Parameters
+            ----------
+            item: object
+                An object to put in the queue.
+
+            """
             self.put(item)
 
         def get(self, block=True, timeout=None):
+            """
+            Retrieves the next item in the queue.
+
+            Parameters
+            ----------
+            block: bool, default is True
+                If true, the queue is blocked until it an object is retrieved reaches the timeout.
+            timeout: long
+                The timeout (in seconds) that the method should wait for the queue to return an item. If block is False,
+                time wil ignored.
+
+            Returns
+            -------
+            item: object
+
+            """
             if block:
                 item = self._db.blpop(self._key, timeout=timeout)
             else:
@@ -147,6 +201,9 @@ class SequentialView(object):
 
     def apply_async(self, func, *args, **kwargs):
         return func(*args, **kwargs)
+
+    def imap(self, func, *args, **kwargs):
+        return itertools.imap(func, *args, **kwargs)
 
     def __len__(self):
         return 1

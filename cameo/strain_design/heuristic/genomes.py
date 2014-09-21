@@ -27,3 +27,6 @@ class MultipleChromosomeGenome(object):
 
     def __delitem__(self, key):
         del self.sets[key]
+
+    def __setitem__(self, key, value):
+        self.sets[key] = value

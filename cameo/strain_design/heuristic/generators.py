@@ -20,13 +20,19 @@ def set_generator(random, args):
     Generates a list containing non-repeated elements of a discrete or
     continuous representation.
 
-    :param random: Random()
-    :param args: dict
+    Parameters
+    ----------
+
+    random : Random
+    args : dict
         representation: set containing the possible values
         max_candidate_size: int, default: 9
         variable_candidate_size: bool, default: True
 
-    :return: candidate
+
+    Returns
+    -------
+    list
         A list containing a sample of the elements. If variable_candidate_size is
         True the list size is up to max_candidate_size, otherwise the candidate
         size equals candidate_size
@@ -39,7 +45,7 @@ def set_generator(random, args):
     else:
         size = max_size
     candidate = random.sample(xrange(len(representation)), size)
-    return candidate
+    return list(candidate)
 
 
 @diversify
@@ -53,13 +59,17 @@ def unique_set_generator(random, args):
     --------
     inspyred.ec.generators.diversify
 
-    :param random: Random()
-    :param args: dict
+    Parameters
+    ----------
+    random : Random
+    args : dict
         representation: set containing the possible values
         max_candidate_size: int, default: 9
         variable_candidate_size: bool, default: True
 
-    :return: candidate
+    Returns
+    -------
+    list
         A list containing a sample of the elements. If variable_candidate_size is
         True the list size is up to max_candidate_size, otherwise the candidate
         size equals candidate_size
@@ -72,19 +82,25 @@ def unique_set_generator(random, args):
     else:
         size = max_size
     candidate = random.sample(xrange(len(representation)), size)
-    return candidate
+    return list(candidate)
 
 
 def multiple_chromosome_set_generator(random, args):
     """
     Generates a candidate in with a genome containing multiple chromosomes.
 
-    :param random: Random()
-    :param args: dict
+    Parameters
+    ----------
+    random : Random
+    args : dict
         this dictionary contains an extra key: "keys", which will be the names of the chromosomes.
         for each argument on <unique_set>, this dictionary must contain the same fields, starting with
         the values in "keys".
-    :return:
+
+    Returns
+    -------
+    MultipleChromosomeGenome
+
     """
     keys = args.get('keys')
     candidate = MultipleChromosomeGenome(keys=keys)
@@ -97,3 +113,42 @@ def multiple_chromosome_set_generator(random, args):
         candidate[key] = unique_set_generator(random, key_args)
 
     return candidate
+
+
+def linear_representation(random, args):
+    """
+    Generates a list continuous values of the size of a representation.
+    This function requires that a bounder is defined on the EvolutionaryAlgorithm.
+
+    See Also
+    --------
+    inspyred.ec
+
+
+    Parameters
+    ----------
+    random : Random
+    args : dict
+        representation: set containing the possible values
+        max_candidate_size: int, default: 9
+        variable_candidate_size: bool, default: True
+
+    Returns
+    -------
+    list
+        A list containing tuples - sample of the elements and linear value.
+        If variable_candidate_size is True the list size is up to max_candidate_size,
+        otherwise the candidate size equals candidate_size
+    """
+    bounder = args.get("_ec").bounder
+    representation = args.get('representation')
+    max_size = args.get('candidate_size', 9)
+    variable_size = args.get('variable_candidate_size', True)
+    if variable_size:
+        size = random.randint(1, max_size)
+    else:
+        size = max_size
+
+    indices = random.sample(xrange(len(representation)), size)
+    values = [random.uniform(bounder.lower_bound, bounder.upper_bound) for _ in indices]
+    return [(i, v) for i, v in zip(indices, values)]

@@ -22,7 +22,6 @@ def to_the_power_of_2(arg):
 
 
 class TestSequentialView(unittest.TestCase):
-
     def setUp(self):
         self.view = SequentialView()
 
@@ -32,6 +31,7 @@ class TestSequentialView(unittest.TestCase):
     def test_apply(self):
         for i in xrange(100):
             self.assertEqual(self.view.apply(to_the_power_of_2, i), SOLUTION[i])
+
 
 try:
     from cameo.parallel import MultiprocessingView
@@ -49,7 +49,6 @@ try:
 
 except ImportError:
     print "Skipping MultiprocessingView tests ..."
-
 
 try:
     from cameo.parallel import RedisQueue
@@ -70,27 +69,27 @@ try:
 
         def test_queue_len(self):
             queue = RedisQueue("test-queue-len", maxsize=100)
-            self.assertEqual(queue.lenght(), 0)
+            self.assertEqual(queue.length(), 0)
             queue.put(1)
-            self.assertEqual(queue.lenght(), 1)
+            self.assertEqual(queue.length(), 1)
             queue.put(1)
-            self.assertEqual(queue.lenght(), 2)
+            self.assertEqual(queue.length(), 2)
             queue.put(1)
-            self.assertEqual(queue.lenght(), 3)
+            self.assertEqual(queue.length(), 3)
             queue.get_nowait()
-            self.assertEqual(queue.lenght(), 2)
+            self.assertEqual(queue.length(), 2)
             queue.get_nowait()
-            self.assertEqual(queue.lenght(), 1)
+            self.assertEqual(queue.length(), 1)
             queue.get_nowait()
-            self.assertEqual(queue.lenght(), 0)
+            self.assertEqual(queue.length(), 0)
 
 except ImportError:
     print "Skipping MultiprocessingView tests ..."
 
 
 # class TestIPythonParallelView(unittest.TestCase):
-#     def setUp(self):
-#         try:
+# def setUp(self):
+# try:
 #             subprocess.check_output(["ipcluster", "start", "--daemonize"])
 #             sleep(6)
 #         except subprocess.CalledProcessError:
@@ -122,4 +121,5 @@ except ImportError:
 
 if __name__ == '__main__':
     import nose
+
     nose.runmodule()

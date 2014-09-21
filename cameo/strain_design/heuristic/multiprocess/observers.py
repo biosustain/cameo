@@ -20,8 +20,8 @@ from cameo.parallel import RedisQueue
 class AbstractParallelObserver(object):
     def __init__(self, number_of_islands=None, *args, **kwargs):
         assert isinstance(number_of_islands, int)
-        super(AbstractParallelObserver, self).__init__(*args, **kwargs)
-        self.queue = RedisQueue(name=uuid4(), namespace=self.__class__)
+        super(AbstractParallelObserver, self).__init__()
+        self.queue = RedisQueue(name=str(uuid4()), namespace=self.__name__)
         self.clients = {}
         self.run = True
         for i in xrange(number_of_islands):
@@ -31,22 +31,25 @@ class AbstractParallelObserver(object):
         raise NotImplementedError
 
     def _listen(self):
+        print "Start %s" % self.__name__
         while self.run:
             try:
-                message = self.queue.get(block=True, timeout=5)
+                message = self.queue.get_nowait()
                 self._process_message(message)
             except Empty:
                 pass
             except Exception as e:
                 print e
-                print traceback.format_exc()
+
+        print "Exit %s" % self.__name__
 
     def _process_message(self, message):
         raise NotImplementedError
 
     def start(self):
-        t = Thread(target=self._listen)
-        t.start()
+        self.run = True
+        self.t = Thread(target=self._listen)
+        self.t.start()
 
     def finish(self):
         self.run = False
@@ -65,6 +68,7 @@ class AbstractParallelObserverClient(object):
     def reset(self):
         pass
 
+
 from threading import Thread
 from ipython_notebook_utils import ProgressBar as IPythonProgressBar
 from blessings import Terminal
@@ -75,6 +79,7 @@ class CliMultiprocessProgressObserver(AbstractParallelObserver):
     """
     Command line progress display for multiprocess run
     """
+
     def __init__(self, *args, **kwargs):
         self.progress = {}
         self.terminal = Terminal()
@@ -87,8 +92,9 @@ class CliMultiprocessProgressObserver(AbstractParallelObserver):
         i = message['index']
         if not i in self.progress:
             print ""
-            label = "Island %i: " % (i+1)
-            writer = self.TerminalWriter((self.terminal.height or 1) - 1, self.terminal)
+            label = "Island %i: " % (i + 1)
+            pos = abs(len(self.clients) - i)
+            writer = self.TerminalWriter((self.terminal.height or 1) - pos, self.terminal)
             self.progress[i] = CLIProgressBar(fd=writer,
                                               maxval=message['max_evaluations'],
                                               widgets=[label, Percentage(), Bar(marker=RotatingMarker())])
@@ -105,6 +111,7 @@ class CliMultiprocessProgressObserver(AbstractParallelObserver):
         """
         Writer wrapper to write the progress in a specific terminal position
         """
+
         def __init__(self, pos, term):
             self.pos = pos
             self.term = term
@@ -115,7 +122,6 @@ class CliMultiprocessProgressObserver(AbstractParallelObserver):
 
 
 class CliMultiprocessProgressObserverClient(AbstractParallelObserverClient):
-
     __name__ = "CLI Multiprocess Progress Observer"
 
     def __init__(self, *args, **kwargs):
@@ -144,7 +150,7 @@ class IPythonNotebookMultiprocessProgressObserver(AbstractParallelObserver):
 
     def _create_client(self, i):
         self.clients[i] = IPythonNotebookMultiprocessProgressObserverClient(queue=self.queue, index=i)
-        label = "<span style='color:%s;'>Island %i </span>" % (self.color_map[i], i+1)
+        label = "<span style='color:%s;'>Island %i </span>" % (self.color_map[i], i + 1)
         self.progress[i] = IPythonProgressBar(label=label)
 
     def _process_message(self, message):
@@ -154,7 +160,6 @@ class IPythonNotebookMultiprocessProgressObserver(AbstractParallelObserver):
 
 
 class IPythonNotebookMultiprocessProgressObserverClient(AbstractParallelObserverClient):
-
     __name__ = "IPython Notebook Multiprocess Progress Observer"
 
     def __init__(self, *args, **kwargs):

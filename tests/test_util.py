@@ -26,6 +26,13 @@ class TimeMachineTestCase(unittest.TestCase):
         self.tm(do=normal_function, undo=partial_function)
         self.assertEqual(self.tm.__str__().split('\n')[2:-1], ["undo: <type 'str'> (1,) None", 'redo: normal_function'])
 
+    def test_with_statement(self):
+        l = [1, 2, 3, 4]
+        with TimeMachine() as tm:
+            tm(do=partial(l.append, 33), undo=partial(l.pop))
+            tm(do=partial(l.append, 66), undo=partial(l.pop))
+            tm(do=partial(l.append, 99), undo=partial(l.pop))
+        self.assertEqual(l, [1, 2, 3, 4])
 
 class TestUtils(unittest.TestCase):
     def test_color_generation(self):

@@ -18,6 +18,7 @@ from cameo import util
 from cameo import config
 from cameo import parallel
 from cameo.flux_analysis.simulation import pfba
+from cameo.strain_design import StrainDesignMethod
 from cameo.strain_design.heuristic import ReactionKnockoutOptimization, GeneKnockoutOptimization, \
     KnockoutOptimizationResult
 from cameo.strain_design.heuristic.multiprocess.observers import IPythonNotebookMultiprocessProgressObserver, \
@@ -27,6 +28,12 @@ from cameo.strain_design.heuristic.multiprocess.migrators import Multiprocessing
 
 
 class MultiprocessRunner():
+    """
+    Runner for multiprocessing model. It generates the non-pickable
+    objects on the beginning of the process.
+
+    """
+
     def __init__(self, island_class, init_kwargs, migrator, run_kwargs):
         self.island_class = island_class
         self.init_kwargs = init_kwargs
@@ -40,19 +47,15 @@ class MultiprocessRunner():
         return island.run(**self.run_kwargs)
 
 
-class MultiprocessHeuristicOptimization(object):
-
+class MultiprocessHeuristicOptimization(StrainDesignMethod):
     _island_class = None
 
-    def __init__(self, model=None, objective_function=None, heuristic_method=inspyred.ec.GA,
-                 view=config.default_view, number_of_islands=4, max_migrants=1, *args, **kwargs):
+    def __init__(self, model=None, objective_function=None, heuristic_method=inspyred.ec.GA, max_migrants=1, *args,
+                 **kwargs):
         super(MultiprocessHeuristicOptimization, self).__init__(*args, **kwargs)
         self.model = model
         self.objective_function = objective_function
         self.heuristic_method = heuristic_method
-        self.number_of_islands = number_of_islands
-        self.view = view
-        self.color_map = util.generate_colors(number_of_islands)
         self.migrator = MultiprocessingMigrator(max_migrants)
         self.observers = []
 
@@ -63,11 +66,17 @@ class MultiprocessHeuristicOptimization(object):
             'heuristic_method': self.heuristic_method
         }
 
-    def run(self, **run_kwargs):
+    def run(self, view=config.default_view, number_of_islands=None, **run_kwargs):
+        if number_of_islands is None:
+            number_of_islands = len(view)
         run_kwargs['view'] = parallel.SequentialView()
         runner = MultiprocessRunner(self._island_class, self._init_kwargs(), self.migrator, run_kwargs)
-        clients = [[o.clients[i] for o in self.observers] for i in xrange(self.number_of_islands)]
-        results = self.view.map(runner, clients)
+        clients = [[o.clients[i] for o in self.observers] for i in xrange(number_of_islands)]
+        try:
+            results = view.map(runner, clients)
+        except KeyboardInterrupt as e:
+            view.shutdown()
+            raise e
         return results
 
 
@@ -75,27 +84,27 @@ class MultiprocessKnockoutOptimization(MultiprocessHeuristicOptimization):
     def __init__(self, simulation_method=pfba, *args, **kwargs):
         super(MultiprocessKnockoutOptimization, self).__init__(*args, **kwargs)
         self.simulation_method = simulation_method
-        self.observers = self._set_observers()
 
     def _init_kwargs(self):
         init_kwargs = MultiprocessHeuristicOptimization._init_kwargs(self)
         init_kwargs['simulation_method'] = self.simulation_method
         return init_kwargs
 
-    def _set_observers(self):
+    def _set_observers(self, number_of_islands):
         observers = []
         progress_observer = None
         plotting_observer = None
         if in_ipnb():
-            progress_observer = IPythonNotebookMultiprocessProgressObserver(number_of_islands=self.number_of_islands,
-                                                                            color_map=self.color_map)
+            color_map = util.generate_colors(number_of_islands)
+            progress_observer = IPythonNotebookMultiprocessProgressObserver(number_of_islands=number_of_islands,
+                                                                            color_map=color_map)
             if config.use_bokeh:
-                plotting_observer = IPythonNotebookBokehMultiprocessPlotObserver(number_of_islands=self.number_of_islands,
-                                                                                 color_map=self.color_map)
+                plotting_observer = IPythonNotebookBokehMultiprocessPlotObserver(number_of_islands=number_of_islands,
+                                                                                 color_map=color_map)
             elif config.use_matplotlib:
                 pass
         else:
-            progress_observer = CliMultiprocessProgressObserver(number_of_islands=self.number_of_islands)
+            progress_observer = CliMultiprocessProgressObserver(number_of_islands=number_of_islands)
 
         if not progress_observer is None:
             observers.append(progress_observer)
@@ -104,11 +113,14 @@ class MultiprocessKnockoutOptimization(MultiprocessHeuristicOptimization):
 
         return observers
 
-    def run(self,  **kwargs):
+    def run(self, view=config.default_view, number_of_islands=None, **kwargs):
+        if number_of_islands is None:
+            number_of_islands = len(view)
+        self.observers = self._set_observers(number_of_islands)
         for observer in self.observers:
             observer.start()
 
-        results = MultiprocessHeuristicOptimization.run(self, **kwargs)
+        results = MultiprocessHeuristicOptimization.run(self, view=view, number_of_islands=number_of_islands, **kwargs)
 
         for observer in self.observers:
             observer.finish()
@@ -117,7 +129,6 @@ class MultiprocessKnockoutOptimization(MultiprocessHeuristicOptimization):
 
 
 class MultiprocessReactionKnockoutOptimization(MultiprocessKnockoutOptimization):
-
     _island_class = ReactionKnockoutOptimization
 
     def __init__(self, reactions=None, essential_reactions=None, *args, **kwargs):
@@ -140,7 +151,6 @@ class MultiprocessReactionKnockoutOptimization(MultiprocessKnockoutOptimization)
 
 
 class MultiprocessGeneKnockoutOptimization(MultiprocessKnockoutOptimization):
-
     _island_class = GeneKnockoutOptimization
 
     def __init__(self, genes=None, essential_genes=None, *args, **kwargs):

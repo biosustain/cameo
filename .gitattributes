@@ -1,1 +1,2 @@
 *.ipynb filter=binary
+cameo/_version.py export-subst

@@ -18,6 +18,7 @@ from pandas import DataFrame
 from cameo import config
 from cameo.strain_design.heuristic.multiprocess.observers import AbstractParallelObserver, \
     AbstractParallelObserverClient
+
 if config.use_bokeh:
     from bokeh.plotting import *
 
@@ -35,8 +36,8 @@ class IPythonNotebookBokehMultiprocessPlotObserver(AbstractParallelObserver):
         self.clients[i] = IPythonNotebookBokehMultiprocessPlotObserverClient(queue=self.queue, index=i)
 
     def start(self):
-        AbstractParallelObserver.start(self)
         self._plot()
+        AbstractParallelObserver.start(self)
 
     def _plot(self):
         print "Open plot!"
@@ -45,7 +46,7 @@ class IPythonNotebookBokehMultiprocessPlotObserver(AbstractParallelObserver):
         output_notebook(url=self.url, docname=str(self.uuid))
         figure()
         scatter([], [], title="Best solution convergence plot", tools='', x_axis_label="Iteration",
-                y_axis_label="Fitness", color=self.color_map, fill_alpha=0.2, size=7)
+                  y_axis_label="Fitness", color=self.color_map, fill_alpha=0.2, size=7)
 
         self.plot = curplot()
         renderer = [r for r in self.plot.renderers if isinstance(r, Glyph)][0]
@@ -58,10 +59,10 @@ class IPythonNotebookBokehMultiprocessPlotObserver(AbstractParallelObserver):
 
         index = message['index']
         df = DataFrame({
-             'iteration': [message['iteration']],
-             'fitness': [message['fitness']],
-             'color': [self.color_map[index]],
-             'island': [index]
+            'iteration': [message['iteration']],
+            'fitness': [message['fitness']],
+            'color': [self.color_map[index]],
+            'island': [index]
         })
         self.data_frame = self.data_frame.append(df, ignore_index=True)
         if message['iteration'] % message['n'] == 0:
@@ -81,7 +82,6 @@ class IPythonNotebookBokehMultiprocessPlotObserver(AbstractParallelObserver):
 
 
 class IPythonNotebookBokehMultiprocessPlotObserverClient(AbstractParallelObserverClient):
-
     __name__ = "IPython Notebook Bokeh Multiprocess Plot Observer"
 
     def __init__(self, *args, **kwargs):

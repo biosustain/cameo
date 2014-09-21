@@ -55,7 +55,7 @@ def flux_variability_analysis(model, reactions=None, fraction_of_optimum=0., rem
                undo=partial(setattr, model, 'reversible_encoding', 'split'))
         if fraction_of_optimum > 0.:
             try:
-                obj_val = model.solve()
+                obj_val = model.solve().f
             except SolveError as e:
                 print "flux_variability_analyis was not able to determine an optimal solution for objective %s" % model.objective
                 raise e
@@ -105,48 +105,36 @@ def phenotypic_phase_plane(model, variables=[], objective=None, points=20, view=
     if not hasattr(variables, '__iter__'):
         variables = [variables]
     if view is None:
-        view = SequentialView()
-    tm = TimeMachine()
-    if model.reversible_encoding == 'split':
-        tm(do=partial(setattr, model, 'reversible_encoding', 'unsplit'),
-           undo=partial(setattr, model, 'reversible_encoding', 'split'))
-    if objective is not None:
-        tm(do=partial(setattr, model, 'objective', objective),
-           undo=partial(setattr, model, 'objective', model.objective))
+        view = config.default_view
+    with TimeMachine() as tm:
+        if model.reversible_encoding == 'split':
+            tm(do=partial(setattr, model, 'reversible_encoding', 'unsplit'),
+               undo=partial(setattr, model, 'reversible_encoding', 'split'))
+        if objective is not None:
+            tm(do=partial(setattr, model, 'objective', objective),
+               undo=partial(setattr, model, 'objective', model.objective))
 
-    variable_reactions = _ids_to_reactions(model, variables)
-    variables_min_max = flux_variability_analysis(model, reactions=variable_reactions)
-    grid = [numpy.linspace(lower_bound, upper_bound, points, endpoint=True) for reaction_id, lower_bound, upper_bound in
-            variables_min_max.itertuples()]
-    grid_generator = itertools.product(*grid)
-    original_bounds = dict([(reaction, (reaction.lower_bound, reaction.upper_bound))
-                            for reaction in variable_reactions])
+        variable_reactions = model._ids_to_reactions(variables)
+        variables_min_max = flux_variability_analysis(model, reactions=variable_reactions, view=SequentialView())
+        grid = [numpy.linspace(lower_bound, upper_bound, points, endpoint=True) for
+                reaction_id, lower_bound, upper_bound in
+                variables_min_max.itertuples()]
+        grid_generator = itertools.product(*grid)
+        original_bounds = dict([(reaction, (reaction.lower_bound, reaction.upper_bound))
+                                for reaction in variable_reactions])
 
-    chunks_of_points = partition(list(grid_generator), len(view))
-    evaluator = _PhenotypicPhasePlaneChunkEvaluator(model, variable_reactions)
-    chunk_results = view.map(evaluator, chunks_of_points)
-    envelope = reduce(list.__add__, chunk_results)
+        chunks_of_points = partition(list(grid_generator), len(view))
+        evaluator = _PhenotypicPhasePlaneChunkEvaluator(model, variable_reactions)
+        chunk_results = view.map(evaluator, chunks_of_points)
+        envelope = reduce(list.__add__, chunk_results)
 
-    for reaction, bounds in original_bounds.iteritems():
-        reaction.lower_bound = bounds[0]
-        reaction.upper_bound = bounds[1]
+        for reaction, bounds in original_bounds.iteritems():
+            reaction.lower_bound = bounds[0]
+            reaction.upper_bound = bounds[1]
 
-    variable_reactions_ids = [reaction.id for reaction in variable_reactions]
-    return pandas.DataFrame(envelope,
-                            columns=(variable_reactions_ids + ['objective_lower_bound', 'objective_upper_bound']))
-
-
-def _ids_to_reactions(model, reactions):
-    """Translate reaction IDs into reactions (skips reactions)."""
-    clean_reactions = list()
-    for reaction in reactions:
-        if isinstance(reaction, str):
-            clean_reactions.append(model.reactions.get_by_id(reaction))
-        elif isinstance(reaction, Reaction):
-            clean_reactions.append(reaction)
-        else:
-            raise Exception('%s is not a reaction or reaction ID.' % reaction)
-    return clean_reactions
+        variable_reactions_ids = [reaction.id for reaction in variable_reactions]
+        return pandas.DataFrame(envelope,
+                                columns=(variable_reactions_ids + ['objective_lower_bound', 'objective_upper_bound']))
 
 
 class _FvaFunctionObject(object):
@@ -163,7 +151,7 @@ def _flux_variability_analysis(model, reactions=None):
     if reactions is None:
         reactions = model.reactions
     else:
-        reactions = _ids_to_reactions(model, reactions)
+        reactions = model._ids_to_reactions(reactions)
     fva_sol = OrderedDict()
     for reaction in reactions:
         fva_sol[reaction.id] = dict()
@@ -174,6 +162,8 @@ def _flux_variability_analysis(model, reactions=None):
             fva_sol[reaction.id]['lower_bound'] = solution.f
         except Unbounded:
             fva_sol[reaction.id]['lower_bound'] = -numpy.inf
+        except Infeasible:
+            fva_sol[reaction.id]['lower_bound'] = 0
     for reaction in reactions:
         model.objective = reaction
         model.objective.direction = 'max'
@@ -182,8 +172,14 @@ def _flux_variability_analysis(model, reactions=None):
             fva_sol[reaction.id]['upper_bound'] = solution.f
         except Unbounded:
             fva_sol[reaction.id]['upper_bound'] = numpy.inf
+        except Infeasible:
+            fva_sol[reaction.id]['upper_bound'] = 0
     model.objective = original_objective
-    return pandas.DataFrame.from_dict(fva_sol, orient='index')
+    df = pandas.DataFrame.from_dict(fva_sol, orient='index')
+    lb_higher_ub = df[df.lower_bound > df.upper_bound]
+    assert ((lb_higher_ub.lower_bound - lb_higher_ub.upper_bound) < 1e-6).all()  # Assert that these cases really only numerical artifacts
+    df.lower_bound[lb_higher_ub.index] = df.upper_bound[lb_higher_ub.index]
+    return df
 
 
 def _cycle_free_fva(model, reactions=None, sloppy=True):
@@ -199,21 +195,28 @@ def _cycle_free_fva(model, reactions=None, sloppy=True):
 
     Rer
     """
-    original_objective = copy(model.objective)
-    if reactions is None:
-        reactions = model.reactions
-    else:
-        reactions = _ids_to_reactions(model, reactions)
-    fva_sol = OrderedDict()
-    for reaction in reactions:
-        fva_sol[reaction.id] = dict()
-        try:
+    cycle_count = 0
+    try:
+        original_objective = copy(model.objective)
+        if reactions is None:
+            reactions = model.reactions
+        else:
+            reactions = model._ids_to_reactions(reactions)
+        fva_sol = OrderedDict()
+        for reaction in reactions:
+            fva_sol[reaction.id] = dict()
             model.objective = reaction
-        except:
-            pass
-        model.objective.direction = 'min'
-        try:
-            solution = model.solve()
+            model.objective.direction = 'min'
+            try:
+                solution = model.solve()
+            except Unbounded:
+                fva_sol[reaction.id]['lower_bound'] = -numpy.inf
+                continue
+            except Infeasible:
+                fva_sol[reaction.id]['lower_bound'] = 0
+                continue
+            except Exception as e:
+                raise e
             bound = solution.f
             if sloppy and bound > -100:
                 fva_sol[reaction.id]['lower_bound'] = bound
@@ -223,62 +226,81 @@ def _cycle_free_fva(model, reactions=None, sloppy=True):
                 if abs(v1_cycle_free_fluxes[reaction.id] - bound) < 10 ** -6:
                     fva_sol[reaction.id]['lower_bound'] = bound
                 else:
+                    cycle_count += 1
                     v2_one_cycle_fluxes = _cycle_free_flux(model, v0_fluxes, fix=[reaction.id])
-                    zero_in_v1_but_not_in_v2 = list()
-                    model_broken_cyle = copy(model)
+                    tm = TimeMachine()
                     for key, v1_flux in v1_cycle_free_fluxes.iteritems():
                         if v1_flux == 0 and v2_one_cycle_fluxes[key] != 0:
-                            knockout_reaction = model_broken_cyle.reactions.get_by_id(key)
-                            knockout_reaction.lower_bound = 0.
-                            knockout_reaction.upper_bound = 0.
-                    model_broken_cyle.objective.direction = 'min'
+                            knockout_reaction = model.reactions.get_by_id(key)
+                            tm(do=partial(setattr, knockout_reaction, 'lower_bound', 0.),
+                               undo=partial(setattr, knockout_reaction, 'lower_bound', knockout_reaction.lower_bound))
+                            tm(do=partial(setattr, knockout_reaction, 'upper_bound', 0.),
+                               undo=partial(setattr, knockout_reaction, 'upper_bound', knockout_reaction.lower_bound))
+                    model.objective.direction = 'min'
                     try:
-                        solution = model_broken_cyle.optimize()
+                        solution = model.solve()
                     except Unbounded:
                         fva_sol[reaction.id]['lower_bound'] = -numpy.inf
-        except Unbounded:
-            fva_sol[reaction.id]['lower_bound'] = -numpy.inf
-        except Exception as e:
-            print reaction.id
-            raise e
-    for reaction in reactions:
-        model.objective = reaction
-        model.objective.direction = 'max'
-        try:
-            solution = model.solve()
-            bound = solution.f
-            if sloppy and bound < 100:
-                fva_sol[reaction.id]['upper_bound'] = bound
+                    except Infeasible:
+                        fva_sol[reaction.id]['lower_bound'] = 0
+                    else:
+                        fva_sol[reaction.id]['lower_bound'] = solution.f
+                    finally:
+                        tm.reset()
+        for reaction in reactions:
+            model.objective = reaction
+            model.objective.direction = 'max'
+            try:
+                solution = model.solve()
+            except Unbounded:
+                fva_sol[reaction.id]['upper_bound'] = numpy.inf
+                continue
+            except Infeasible:
+                fva_sol[reaction.id]['upper_bound'] = 0
+                continue
+            except Exception as e:
+                raise e
             else:
-                v0_fluxes = solution.x_dict
-                v1_cycle_free_fluxes = _cycle_free_flux(model, v0_fluxes)
-
-                if abs(v1_cycle_free_fluxes[reaction.id] - bound) < 10 ** -6:
-                    fva_sol[reaction.id]['upper_bound'] = v0_fluxes[reaction.id]
+                bound = solution.f
+                if sloppy and bound < 100:
+                    fva_sol[reaction.id]['upper_bound'] = bound
                 else:
-                    v2_one_cycle_fluxes = _cycle_free_flux(model, v0_fluxes, fix=[reaction.id])
-                    model_broken_cyle = copy(model)
-                    for key, v1_flux in v1_cycle_free_fluxes.iteritems():
-                        if v1_flux == 0 and v2_one_cycle_fluxes[key] != 0:
-                            knockout_reaction = model_broken_cyle.reactions.get_by_id(key)
-                            knockout_reaction.lower_bound = 0.
-                            knockout_reaction.upper_bound = 0.
-                    model_broken_cyle.objective.direction = 'max'
-                    try:
-                        solution = model_broken_cyle.solve()
-                        fva_sol[reaction.id]['upper_bound'] = solution.f
-                    except Unbounded:
-                        fva_sol[reaction.id]['upper_bound'] = numpy.inf
-        except Unbounded:
-            print 'Problem unbounded'
-            fva_sol[reaction.id]['upper_bound'] = numpy.inf
-        except Exception as e:
-            print reaction.id
-            raise e
-            # print model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound
-    model.objective = original_objective
-    fva_sol = pandas.DataFrame.from_dict(fva_sol, orient='index')
-    return fva_sol
+                    v0_fluxes = solution.x_dict
+                    v1_cycle_free_fluxes = _cycle_free_flux(model, v0_fluxes)
+
+                    if abs(v1_cycle_free_fluxes[reaction.id] - bound) < 10 ** -6:
+                        fva_sol[reaction.id]['upper_bound'] = v0_fluxes[reaction.id]
+                    else:
+                        cycle_count += 1
+                        v2_one_cycle_fluxes = _cycle_free_flux(model, v0_fluxes, fix=[reaction.id])
+                        tm = TimeMachine()
+                        for key, v1_flux in v1_cycle_free_fluxes.iteritems():
+                            if v1_flux == 0 and v2_one_cycle_fluxes[key] != 0:
+                                knockout_reaction = model.reactions.get_by_id(key)
+                                tm(do=partial(setattr, knockout_reaction, 'lower_bound', 0.),
+                                   undo=partial(setattr, knockout_reaction, 'lower_bound',
+                                                knockout_reaction.lower_bound))
+                                tm(do=partial(setattr, knockout_reaction, 'upper_bound', 0.),
+                                   undo=partial(setattr, knockout_reaction, 'upper_bound',
+                                                knockout_reaction.lower_bound))
+                        model.objective.direction = 'max'
+                        try:
+                            solution = model.solve()
+                        except Unbounded:
+                            fva_sol[reaction.id]['upper_bound'] = numpy.inf
+                        except Infeasible:
+                            fva_sol[reaction.id]['upper_bound'] = 0
+                        else:
+                            fva_sol[reaction.id]['upper_bound'] = solution.f
+                        finally:
+                            tm.reset()
+        df = pandas.DataFrame.from_dict(fva_sol, orient='index')
+        lb_higher_ub = df[df.lower_bound > df.upper_bound]
+        assert ((lb_higher_ub.lower_bound - lb_higher_ub.upper_bound) < 1e-6).all()  # Assert that these cases really only numerical artifacts
+        df.lower_bound[lb_higher_ub.index] = df.upper_bound[lb_higher_ub.index]
+    finally:
+        model.objective = original_objective
+    return df
 
 
 class _PhenotypicPhasePlaneChunkEvaluator(object):
@@ -302,12 +324,12 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
             self.model.objective.direction = 'min'
             try:
                 solution = self.model.solve().f
-            except UndefinedSolution:
+            except Infeasible:
                 solution = 0
             interval.append(solution)
             self.model.objective.direction = 'max'
             try:
-                solution = self.model.optimize().f
+                solution = self.model.solve().f
             except Infeasible:
                 solution = 0
             interval.append(solution)
@@ -366,12 +388,32 @@ def _fbip_fva(model, knockouts, view):
     tm.reset()
     return perturbation
 
+
+def reaction_component_production(model, reaction):
+    tm = TimeMachine()
+    for metabolite in reaction.metabolites:
+        test = Reaction("EX_%s_temp" % metabolite.id)
+        test._metabolites[metabolite] = -1
+        # hack frozen set from cobrapy to be able to add a reaction
+        metabolite._reaction = set(metabolite._reaction)
+        tm(do=partial(model.add_reactions, [test]), undo=partial(model.remove_reactions, [test]))
+        tm(do=partial(setattr, model, 'objective', test.id), undo=partial(setattr, model, 'objective', model.objective))
+        try:
+            print metabolite.id, "= ", model.solve().f
+        except SolveError:
+            print metabolite, " cannot be produced (reactions: %s)" % metabolite.reactions
+        finally:
+            tm.reset()
+
+
 if __name__ == '__main__':
     import time
     from cameo import load_model
     from cameo.parallel import MultiprocessingView
 
     model = load_model('../../tests/data/EcoliCore.xml')
+    flux_variability_analysis(model, reactions=model.reactions, fraction_of_optimum=1., remove_cycles=True,
+                              view=SequentialView())
     # model.solver = 'cplex'
     view = MultiprocessingView()
     tic = time.time()

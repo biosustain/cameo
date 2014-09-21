@@ -4,11 +4,13 @@ ipython>=2.1.0
 scipy>=0.9.0
 bokeh==0.4.4
 blessings==1.5.1
-progressbar>=2.2
+-e git+https://github.com/fnoble/python-progressbar.git@master#egg=progressbar
 Jinja2==2.7.3
-pandas==0.14.0
+pandas>=0.14.0
 ordered-set==1.2
 inspyred==1.0
 cobra==0.3.0b3
--e git+https://github.com/biosustain/optlang.git@21c6d5078c1d0d964c14529b2e32e2af618577cb#egg=optlang
+-e git+https://github.com/biosustain/optlang.git@fbea102a9268228b34f1b46f02f75cf8a6d94656#egg=optlang
 -e git+https://github.com/biosustain/ipython_notebook_utils.git@b9e68cc2fdbae30d3482306ffcbecbf358530267#egg=ipython_notebook_utils
+sphinx>=1.2.2
+sphinx-rtd-theme>=0.1.6

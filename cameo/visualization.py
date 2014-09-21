@@ -15,9 +15,12 @@ import json
 import logging
 import subprocess
 import tempfile
+from functools import partial
+from escher import Builder
 
 import os
 from IPython.display import HTML, SVG
+from cameo.util import TimeMachine
 
 
 log = logging.getLogger(__name__)
@@ -115,3 +118,23 @@ cdf.embed("%s", 942, 678);
     with open(tmp_html, 'w') as fhandle:
         fhandle.write(html_template % os.path.basename(tmp_pathviz_output))
     return HTML(html_template2 % os.path.basename(tmp_html))
+
+
+def draw_knockout_result(model, map_name, simulation_method, knockouts, *args, **kwargs):
+    tm = TimeMachine()
+
+    try:
+        for reaction in model._ids_to_reactions(knockouts):
+            tm(do=partial(setattr, reaction, 'lower_bound', 0),
+               undo=partial(setattr, reaction, 'lower_bound', reaction.lower_bound))
+            tm(do=partial(setattr, reaction, 'upper_bound', 0),
+               undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
+
+        solution = simulation_method(model, *args, **kwargs).x_dict
+        tm.reset()
+
+        return Builder(map_name, reaction_data=solution)
+
+    except Exception as e:
+        tm.reset()
+        raise e
