@@ -4,12 +4,13 @@
 $script = <<SCRIPT
 
 sudo apt-get update
-sudo apt-get install -y make git libglpk-dev swig glpk-utils swig python-dev python-numpy python-scipy
+sudo apt-get install -y make git libglpk-dev swig glpk-utils swig python-dev python-numpy python-scipy python-matplotlib
 sudo apt-get install -y python-pip
 sudo pip install python-libsbml-experimental cython -f https://dl.dropboxusercontent.com/u/22461024/pypi.drosophi.la/index.html --no-index
 sudo pip install nose
 cd /vagrant
 sudo pip install -r requirements.txt
+sudo pip install escher --pre
 sudo python setup.py develop
 # get rid of the stupid openpyxl error message
 pip uninstall openpyxl
@@ -56,7 +57,7 @@ end
   # Create a forwarded port mapping which allows access to a specific port
   # within the machine from a port on the host machine. In the example below,
   # accessing "localhost:8080" will access port 80 on the guest machine.
-  config.vm.network "forwarded_port", guest: 6666, host: 6666
+  config.vm.network "forwarded_port", guest: 8888, host: 8888
 
   config.vm.provision :shell, :inline => $script
 

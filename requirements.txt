@@ -5,7 +5,8 @@ scipy>=0.9.0
 bokeh==0.4.4
 blessings==1.5.1
 -e git+https://github.com/fnoble/python-progressbar.git@master#egg=progressbar
-Jinja2==2.7.3
+Jinja2>=2.7.3
+tornado>=4.0.2
 pandas>=0.14.0
 ordered-set==1.2
 inspyred==1.0
