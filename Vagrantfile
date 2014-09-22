@@ -7,6 +7,7 @@ sudo apt-get update
 sudo apt-get install -y make git libglpk-dev swig glpk-utils swig python-dev python-numpy python-scipy python-matplotlib
 sudo apt-get install -y python-pip
 sudo pip install python-libsbml-experimental cython -f https://dl.dropboxusercontent.com/u/22461024/pypi.drosophi.la/index.html --no-index
+sudo pip install ipython[notebook]
 sudo pip install nose
 cd /vagrant
 sudo pip install -r requirements.txt
