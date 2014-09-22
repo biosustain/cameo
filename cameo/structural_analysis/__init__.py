@@ -100,6 +100,7 @@ class EFMModel(object):
     def __init__(self, model, M=100000, matrix=None, include_exchanges=False, flux_type="integer"):
         self.z_map = dict()
         self.t_map = dict()
+        self.r_map = dict()
         self.M = M
         if matrix is None:
             matrix = model.S
@@ -126,6 +127,9 @@ class EFMModel(object):
 
     def t_var(self, reaction_id):
         return self.t_map[reaction_id]
+
+    def r_var(self, z_id):
+        return self.r_map[z_id]
 
     def _populate_model(self, model, include_exchanges, flux_type):
         constraints = list()
@@ -162,7 +166,7 @@ class EFMModel(object):
         trivial_solutions_constraint = model.solver.interface.Constraint(trivial_solutions_expression, lb=1)
         constraints.append(trivial_solutions_constraint)
 
-        objective = model.solver.interface.Objective(add(self.z_map.values()), direction='min')
+        objective = model.solver.interface.Objective(add(self.z_vars), direction='min')
         self.model.add(self.z_vars)
         self.model.add(self.t_vars)
         self.model.add(constraints)
@@ -171,24 +175,34 @@ class EFMModel(object):
     def add_reaction(self, r_id, model, constraints, flux_type):
         z = model.solver.interface.Variable("z_%s" % r_id, type='binary')
         self.z_map[r_id] = z
+        self.r_map[z.name] = r_id
         t = model.solver.interface.Variable("t_%s" % r_id, lb=0, ub=self.M, type=flux_type)
         self.t_map[r_id] = t
 
-        expression_1 = add([mul([RealNumber(-self.M), z]), t])
-        constraint_1 = model.solver.interface.Constraint(expression_1, name="c1_%s" % r_id, ub=0)
+        #       / 0 for x = 0
+        # y = -|
+        #       \ 1 for l <= x <= u
+        #
+        # x - uy <= 0
+        # x - ly >= 0
+        expression_1 = add([t, mul([RealNumber(-self.M), z])])
+        constraint_1 = model.solver.interface.Constraint(expression_1, ub=0, name="c1_%s" % r_id)
         constraints.append(constraint_1)
 
-        expression_2 = add([z, mul([NegativeOne, t])])
-        constraint_2 = model.solver.interface.Constraint(expression_2, name="c2_%s" % r_id, ub=0)
+        expression_2 = add([t, mul([NegativeOne, z])])
+        constraint_2 = model.solver.interface.Constraint(expression_2, lb=0, name="c2_%s" % r_id)
         constraints.append(constraint_2)
 
         return z, t
+
+    @property
+    def f(self):
+        return self.model.objective.value
 
     def optimize(self):
         return self.model.optimize()
 
 
-#FIXME: the matrix must be converted into integer values to work!!!!
 def shortest_elementary_flux_modes(model=None, k=5, M=100000, efm_model=None, matrix=None):
     """
     Calculates the shortest elementary flux modes using MILP.[1]
@@ -215,46 +229,54 @@ def shortest_elementary_flux_modes(model=None, k=5, M=100000, efm_model=None, ma
        Stefan Schuster and Francisco J. Planes, "Computing the shortest elementary flux modes in
        genome-scale metabolic networks" Bioinformatics, vol 25, issue 23, pp. 3158-3165, 2009.
     """
+
     if matrix is None:
         logger.debug("Computing integer matrix...")
         matrix = model.integerS
 
     if efm_model is None:
+        logger.debug("Building efm model...")
         efm_model = EFMModel(model, M=M, matrix=matrix, include_exchanges=False)
     else:
         assert isinstance(efm_model, EFMModel)
 
+    elementary_modes = []
     #iteration 1
     logger.debug("Iteration 1:")
     status = efm_model.optimize()
-    logger.debug("Iteration 1: %s" % status)
-    [logger.debug("%s: %f" % (z, z.primal)) for z in efm_model.z_vars if z.primal > 0]
+    logger.debug("Iteration 1: %i (%s)" % (efm_model.f, status))
+
+    iter_modes = []
+
+    [logger.debug("%s: %f" % (c, c.primal)) for c in efm_model.model.constraints if abs(c.primal) > 0]
+
+
+    for z in efm_model.z_vars:
+        if z.primal > 0:
+            logger.debug("%s: %f" % (z, z.primal))
+            iter_modes.append(efm_model.r_var(z.name))
+    elementary_modes.append(iter_modes)
     [logger.debug("%s: %f" % (t, t.primal)) for t in efm_model.t_vars if t.primal > 0]
+
     for i in xrange(k-1):
-        previous_solution_part = list()
-        sum_part = 0
-        for reaction in model.reactions:
-            if not reaction in model.exchanges:
-                z = efm_model.z_var(reaction.id)
-                previous_solution_part.append(mul([RealNumber(z.primal), z]))
-                sum_part += z.primal
-                if reaction.reversibility:
-                    z = efm_model.z_var(reaction._get_reverse_id())
-                    previous_solution_part.append(mul([RealNumber(z.primal), z]))
-                    sum_part += z.primal
-        iteration_expression = add(previous_solution_part)
-        iteration_constraint = model.solver.interface.Constraint(iteration_expression, ub=sum_part-1, name="iter")
+        iteration_expression = add([mul([RealNumber(z.primal), z])for z in efm_model.z_vars if z.primal > 0])
+        iteration_constraint = model.solver.interface.Constraint(iteration_expression, ub=efm_model.f-1, name="iter")
+        with TimeMachine() as tm:
+            tm(do=partial(efm_model.add, iteration_constraint), undo=partial(efm_model.remove, iteration_constraint))
 
-        efm_model.add(iteration_constraint)
+            #interation n
+            logger.debug("Iteration %i:" % (i+2))
+            status = efm_model.optimize()
+            logger.debug("Iteration %i: %s" % (i+2, status))
+            iter_modes = []
+            for z in efm_model.z_vars:
+                if z.primal > 0:
+                    logger.debug("%s: %f" % (z, z.primal))
+                    iter_modes.append(efm_model.r_var(z.name))
+            elementary_modes.append(iter_modes)
+            [logger.debug("%s: %f" % (t, t.primal)) for t in efm_model.t_vars if t.primal > 0]
 
-        #interation n
-        logger.debug("Iteration %i:" % (i+2))
-        status = efm_model.optimize()
-        logger.debug("Iteration %i: %s" % (i+2, status))
-        [logger.debug("%s: %f" % (z, z.primal)) for z in efm_model.z_vars if z.primal > 0]
-        efm_model.remove(iteration_constraint)
-
-    return efm_model
+    return elementary_modes, efm_model
 
 
 def fixed_size_elementary_modes(model=None, c=1, efm_model=None, size=20):
@@ -283,3 +305,5 @@ def fixed_size_elementary_modes(model=None, c=1, efm_model=None, size=20):
         logger.debug("Optimization: %s" % status)
         [logger.debug("%s: %f" % (z, z.primal)) for z in efm_model.z_vars if z.primal > 0]
         [logger.debug("%s: %f" % (t, t.primal)) for t in efm_model.t_vars if t.primal > 0]
+
+    return efm_model
