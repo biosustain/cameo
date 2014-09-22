@@ -173,7 +173,7 @@ class LazySolution(object):
         -------
         pandas.DataFrame
         """
-        return str(DataFrame({'primal': Series(self.x_dict), 'dual': Series(self.y_dict)}))
+        return str(self.to_frame())
 
     def _check_freshness(self):
         """Raises an exceptions if the solution might have become invalid due to re-optimization of the attached model.
@@ -202,6 +202,16 @@ class LazySolution(object):
         return Solution(self.f, x=self.x,
                         x_dict=self.x_dict, y=self.y, y_dict=self.y_dict,
                         the_solver=None, the_time=0, status=self.status)
+
+    def to_frame(self):
+        """Return the solution as a pandas DataFrame.
+
+        Returns
+        -------
+        pandas.DataFrame
+        """
+        return DataFrame({'fluxes': Series(self.x_dict), 'reduced_costs': Series(self.y_dict)})
+
 
     def get_primal_by_id(self, reaction_id):
         """Return a flux/primal value for a reaction.
