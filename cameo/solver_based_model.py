@@ -645,7 +645,7 @@ class SolverBasedModel(Model):
         self.add_reactions([demand_reaction])
         return demand_reaction
 
-    def optimize(self, new_objective=None, objective_sense='maximize', solution_type=LazySolution, **kwargs):
+    def optimize(self, new_objective=None, objective_sense=None, solution_type=LazySolution, **kwargs):
         """OptlangBasedModel implementation of optimize. Returns lazy solution object. Exists for compatibility reasons. Uses model.solve() instead."""
         if new_objective is None or new_objective == 0:
             pass
@@ -687,10 +687,13 @@ class SolverBasedModel(Model):
             "%Y-%m-%d %H:%M:%S:%f")
         self._timestamp_last_optimization = time.time()
         # logger.debug('self._timestamp_last_optimization ' + timestamp_formatter(self._timestamp_last_optimization))
-        original_direction = self.objective.direction
-        self.objective.direction = {'minimize': 'min', 'maximize': 'max'}[objective_sense]
-        self.solver.optimize()
-        self.objective.direction = original_direction
+        if objective_sense is not None:
+            original_direction = self.objective.direction
+            self.objective.direction = {'minimize': 'min', 'maximize': 'max'}[objective_sense]
+            self.solver.optimize()
+            self.objective.direction = original_direction
+        else:
+            self.solver.optimize()
         solution = solution_type(self)
         # logger.debug('solution = solution_type(self) ' + timestamp_formatter(solution._time_stamp))
         self.solution = solution
