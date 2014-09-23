@@ -97,6 +97,17 @@ class TestReaction(unittest.TestCase):
         self.assertEqual(acald_reaction.reverse_variable.lb, 0)
         self.assertEqual(acald_reaction.reverse_variable.ub, 1000099.0)
 
+    def test_set_upper_before_lower_bound_to_0(self):
+        model = self.model
+        model.reactions.GAPD.upper_bound = 0
+        model.reactions.GAPD.lower_bound = 0
+        self.assertEqual(model.reactions.GAPD.lower_bound, 0)
+        self.assertEqual(model.reactions.GAPD.upper_bound, 0)
+        self.assertEqual(model.reactions.GAPD.variable.lb, 0)
+        self.assertEqual(model.reactions.GAPD.variable.ub, 0)
+        self.assertEqual(model.reactions.GAPD.reverse_variable.lb, 0)
+        self.assertEqual(model.reactions.GAPD.reverse_variable.ub, 0)
+
     def test_set_bounds_scenario_2(self):
         model = self.model
         acald_reaction = model.reactions.ACALD
