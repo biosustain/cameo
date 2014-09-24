@@ -247,10 +247,6 @@ def shortest_elementary_flux_modes(model=None, k=5, M=100000, efm_model=None, ma
     logger.debug("Iteration 1: %i (%s)" % (efm_model.f, status))
 
     iter_modes = []
-
-    [logger.debug("%s: %f" % (c, c.primal)) for c in efm_model.model.constraints if abs(c.primal) > 0]
-
-
     for z in efm_model.z_vars:
         if z.primal > 0:
             logger.debug("%s: %f" % (z, z.primal))
