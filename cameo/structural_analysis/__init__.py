@@ -179,6 +179,7 @@ class EFMModel(object):
         t = model.solver.interface.Variable("t_%s" % r_id, lb=0, ub=self.M, type=flux_type)
         self.t_map[r_id] = t
 
+        #
         #       / 0 for x = 0
         # y = -|
         #       \ 1 for l <= x <= u

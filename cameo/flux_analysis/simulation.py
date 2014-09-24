@@ -164,6 +164,7 @@ def lmoma(model, reference=None, cache={}, volatile=True, *args, **kwargs):
 
             # ui = vi - wt
             reaction_variable = reaction.variable
+            rev_reaction_variable = reaction.reverse_variable
 
             constraint_a_id = "c_%s_a" % rid
             if not volatile and constraint_a_id in cache['constraints']:
@@ -171,7 +172,11 @@ def lmoma(model, reference=None, cache={}, volatile=True, *args, **kwargs):
                 constraint_a.lb = -flux_value
 
             else:
-                constraint_a = model.solver.interface.Constraint(add([pos_var, mul([NegativeOne, reaction_variable])]),
+                if reaction.reversibility:
+                    exp_a = add([pos_var, mul([NegativeOne, reaction_variable], rev_reaction_variable)])
+                else:
+                    exp_a = add([pos_var, mul([NegativeOne, reaction_variable])])
+                constraint_a = model.solver.interface.Constraint(exp_a,
                                                                  lb=-flux_value,
                                                                  sloppy=True,
                                                                  name=constraint_a_id)
@@ -183,7 +188,11 @@ def lmoma(model, reference=None, cache={}, volatile=True, *args, **kwargs):
                 constraint_b = cache['constraints'][constraint_b_id]
                 constraint_b.lb = flux_value
             else:
-                constraint_b = model.solver.interface.Constraint(add([neg_var, reaction.variable]),
+                if reaction.reversibility:
+                    exp_b = add([neg_var, reaction.variable, mul([NegativeOne, rev_reaction_variable])])
+                else:
+                    exp_b = add([neg_var, reaction.variable])
+                constraint_b = model.solver.interface.Constraint(exp_b,
                                                                  lb=flux_value,
                                                                  sloppy=True,
                                                                  name=constraint_b_id)
@@ -265,7 +274,11 @@ def room(model, reference=None, cache={}, volatile=True, delta=0.03, epsilon=0.0
             else:
 
                 # vi - yi(vmaxi + w_ui) <= w_ui
-                expression = add([reaction.variable, mul([RealNumber(-(reaction.upper_bound + w_u)), var])])
+                if reaction.reversibility:
+                    expression = add([reaction.variable, mul([NegativeOne, reaction.reverse_variable]),
+                                      mul([RealNumber(-(reaction.upper_bound + w_u)), var])])
+                else:
+                    expression = add([reaction.variable, mul([RealNumber(-(reaction.upper_bound + w_u)), var])])
 
                 constraint_a = model.solver.interface.Constraint(expression, ub=w_u, name=constraint_a_id, sloppy=True)
                 if not volatile:
@@ -281,9 +294,14 @@ def room(model, reference=None, cache={}, volatile=True, delta=0.03, epsilon=0.0
                 constraint_b.lb = w_l
             else:
                 # vi - yi(vmini - w_li) >= w_li
-                expression = add([
-                    reaction.variable,
-                    mul([RealNumber(-(reaction.lower_bound - w_l)), var])])
+                if reaction.reversibility:
+                    expression = add([
+                        reaction.variable, mul([NegativeOne, reaction.reverse_variable]),
+                        mul([RealNumber(-(reaction.lower_bound - w_l)), var])])
+                else:
+                    expression = add([
+                        reaction.variable,
+                        mul([RealNumber(-(reaction.lower_bound - w_l)), var])])
 
                 constraint_b = model.solver.interface.Constraint(expression, lb=w_l, name=constraint_b_id, sloppy=True)
                 if not volatile:

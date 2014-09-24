@@ -5,7 +5,7 @@ import unittest
 
 import os
 
-from cameo.flux_analysis.simulation import fba, pfba, lmoma
+from cameo.flux_analysis.simulation import fba, pfba, lmoma, room
 from cameo.parallel import SequentialView, MultiprocessingView
 from cameo.io import load_model
 from cameo.flux_analysis.analysis import flux_variability_analysis, phenotypic_phase_plane, _cycle_free_fva
@@ -139,8 +139,13 @@ class TestSimulationMethods(unittest.TestCase):
         lmoma_solution = lmoma(self.model, reference=ref)
         res = lmoma_solution.x_dict
         distance = sum([abs(res[v] - ref[v]) for v in res.keys()])
-        print distance
         self.assertAlmostEqual(0, distance, delta=0.000001, msg="moma distance without knockouts must be 0")
+
+    def test_room(self):
+        pfba_solution = pfba(self.model)
+        ref = pfba_solution.x_dict
+        room_solution = room(self.model, reference=ref)
+        self.assertEqual(0, room_solution.f, msg="room objective without knockouts must be 0")
 
 if __name__ == '__main__':
     import nose

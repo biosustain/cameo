@@ -15,6 +15,7 @@ from collections import OrderedDict
 import csv
 import hashlib
 import numpy as np
+from numpy import all
 from numpy.linalg import svd
 import scipy as sp
 import time
@@ -550,11 +551,11 @@ class SolverBasedModel(Model):
         return self.to_array_based_model().S
 
     @property
-    def integerS(self):
+    def intS(self):
         matrix = self.S
         for j, reaction in enumerate(self.reactions):
             col = matrix.getcol(j)
-            if not all([int(coeff) == coeff for coeff in col[0].toarray()]):
+            while not all([int(coeff) == coeff for coeff in col[0].toarray()]):
                 col *= 10
 
             for i in xrange(len(self.metabolites)):
