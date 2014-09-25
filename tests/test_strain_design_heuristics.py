@@ -457,7 +457,7 @@ class TestReactionKnockoutOptimization(unittest.TestCase):
         self.assertEqual(rko._ko_type, "reaction")
         self.assertTrue(isinstance(rko._decoder, ReactionKnockoutDecoder))
 
-    # @unittest.skip('Not deterministic when seeded')
+    @unittest.skip('Not deterministic when seeded')
     def test_run_single_objective(self):
 
         model = load_model(MODEL_PATH)

@@ -19,6 +19,9 @@ from cameo import config
 if config.use_bokeh:
     from bokeh.plotting import *
 
+from bashplotlib.scatterplot import plot_scatter
+from bashplotlib.histogram import plot_hist
+
 
 class GenericStatsData(object):
     def __init__(self, solution, *args, **kwargs):
@@ -35,7 +38,9 @@ class CLIStatsData(GenericStatsData):
         super(CLIStatsData, self).__init__(*args, **kwargs)
 
     def display(self):
-        pass
+        plot_hist(list(self.knockouts_hist), title="Knockout size distribution", colour="blue")
+        lines = ["%s, %s" % (x, y) for x, y in zip(self.solution.solutions['Size'], self.solution.solutions['Fitness'])]
+        plot_scatter(lines, None, None, 20, "*", "blue", "Correlation between number of knockouts and fitness")
 
 
 class BokehStatsData(GenericStatsData):
