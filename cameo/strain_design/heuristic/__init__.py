@@ -40,13 +40,11 @@ from cameo.visualization import draw_knockout_result
 REACTION_KNOCKOUT_TYPE = "reaction"
 GENE_KNOCKOUT_TYPE = "gene"
 
-SIZE = "Size"
-
-FITNESS = "Fitness"
-
-BIOMASS = "Biomass"
-
+SIZE = 'Size'
+FITNESS = 'Fitness'
+BIOMASS = 'Biomass'
 KNOCKOUTS = 'Knockouts'
+REACTIONS = 'Reactions'
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger('cameo')
@@ -484,6 +482,7 @@ class KnockoutOptimizationResult(object):
         fitness = []
         products = []
         sizes = []
+        reactions = []
         for solution in solutions:
             mo = isinstance(solution.fitness, Pareto)
             if mo:
@@ -500,14 +499,17 @@ class KnockoutOptimizationResult(object):
                     biomass.append(simulation_result.get_primal_by_id(self.biomass))
                 fitness.append(solution.fitness)
                 knockouts.append(frozenset([v.id for v in decoded_solution[1]]))
+                reactions.append(frozenset([v.id for v in decoded_solution[0]]))
                 sizes.append(size)
 
                 if isinstance(self.product, (list, tuple)):
                     products.append([simulation_result.get_primal_by_id(p) for p in self.product])
                 elif not self.product is None:
                     products.append(simulation_result.get_primal_by_id(self.product))
-
-        data_frame = DataFrame({KNOCKOUTS: knockouts, FITNESS: fitness, SIZE: sizes})
+        if self.ko_type == REACTION_KNOCKOUT_TYPE:
+            data_frame = DataFrame({KNOCKOUTS: knockouts, FITNESS: fitness, SIZE: sizes})
+        else:
+            data_frame = DataFrame({KNOCKOUTS: knockouts, REACTIONS: reactions, FITNESS: fitness, SIZE: sizes})
         if not self.biomass is None:
             data_frame[BIOMASS] = biomass
         if isinstance(self.product, str):
