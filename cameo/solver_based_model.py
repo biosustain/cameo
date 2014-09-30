@@ -25,6 +25,7 @@ import hashlib
 from copy import copy, deepcopy
 from collections import OrderedDict
 from functools import partial
+import types
 
 from cobra.core import Solution
 from cobra.core.Reaction import Reaction as OriginalReaction
@@ -33,7 +34,9 @@ from cobra.core.DictList import DictList
 from cobra.manipulation.delete import find_gene_knockout_reactions
 
 import sympy
+from sympy import Add
 from sympy import Mul
+
 from sympy.core.singleton import S
 
 import optlang
@@ -50,6 +53,9 @@ import logging
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+add = Add._from_args
+mul = Mul._from_args
 
 _SOLVER_INTERFACES = {}
 
@@ -644,6 +650,51 @@ class SolverBasedModel(Model):
         demand_reaction.upper_bound = 1000
         self.add_reactions([demand_reaction])
         return demand_reaction
+
+    def add_ratio_constraint(self, reaction1, reaction2, ratio, prefix='ratio_constraint'):
+        """Adds a ratio constraint (reaction1/reaction2 = ratio) to the model.
+
+        Parameters
+        ----------
+        reaction1 : str or Reaction
+            A reaction or a reaction ID.
+        reaction2 : str or Reaction
+            A reaction or a reaction ID.
+        ratio : float
+            The ratio in reaction1/reaction2 = ratio
+        prefix : str
+            The prefix that will be added to the constraint ID.
+
+        Returns
+        -------
+        optlang.Constraint
+            The constraint name will be composed of `prefix`
+            and the two reaction IDs (e.g. 'ratio_constraint_reaction1_reaction2').
+
+        Examples
+        --------
+        model.add_ratio_constraint('r1', 'r2', 0.5)
+        print model.solver.constraints['ratio_constraint_r1_r2']
+        > ratio_constraint: ratio_constraint_r1_r2: 0 <= -0.5*r1 + 1.0*PGI <= 0
+        """
+        if isinstance(reaction1, types.StringType):
+            reaction1 = self.reactions.get_by_id(reaction1)
+        if isinstance(reaction2, types.StringType):
+            reaction2 = self.reactions.get_by_id(reaction2)
+
+        if reaction1.reverse_variable is not None:
+            term1 = reaction1.variable - reaction1.reverse_variable
+        else:
+            term1 = reaction1.variable
+
+        if reaction2.reverse_variable is not None:
+            term2 = reaction2.variable - reaction2.reverse_variable
+        else:
+            term2 = reaction2.variable
+
+        ratio_constraint = self.solver.interface.Constraint(term1 - ratio * term2, lb=0, ub=0, name='ratio_constraint_'+reaction1.id+'_'+reaction2.id)
+        self.solver._add_constraint(ratio_constraint, sloppy=True)
+        return ratio_constraint
 
     def optimize(self, new_objective=None, objective_sense='maximize', solution_type=LazySolution, **kwargs):
         """OptlangBasedModel implementation of optimize. Returns lazy solution object. Exists for compatibility reasons. Uses model.solve() instead."""
