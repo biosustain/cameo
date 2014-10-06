@@ -25,6 +25,7 @@ import hashlib
 from copy import copy, deepcopy
 from collections import OrderedDict
 from functools import partial
+import types
 
 from cobra.core import Solution
 from cobra.core.Reaction import Reaction as OriginalReaction
@@ -34,7 +35,9 @@ from cobra.core.DictList import DictList
 from cobra.manipulation.delete import find_gene_knockout_reactions
 
 import sympy
+from sympy import Add
 from sympy import Mul
+
 from sympy.core.singleton import S
 
 import optlang
@@ -51,6 +54,9 @@ import logging
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+add = Add._from_args
+mul = Mul._from_args
 
 _SOLVER_INTERFACES = {}
 
@@ -645,48 +651,6 @@ class SolverBasedModel(Model):
         demand_reaction.upper_bound = 1000
         self.add_reactions([demand_reaction])
         return demand_reaction
-
-    def add_supply(self, metabolite, prefix="SP_"):
-        supply_reaction = Reaction(prefix + metabolite.id)
-        supply_reaction.add_metabolites({metabolite: 1})
-        supply_reaction.lower_bound = 0
-        supply_reaction.upper_bound = 1000
-        self.add_reactions([supply_reaction])
-        return supply_reaction
-
-    def _add_ratio_reaction(self, rxn1, rxn2, coeff1, coeff2):
-        if not isinstance(coeff1, float):
-            coeff1 = float(coeff1)
-        if not isinstance(coeff2, float):
-            coeff2 = float(coeff2)
-        if isinstance(rxn1, str):
-            rxn1 = self.reactions.get_by_id(rxn1)
-            rxn2 = self.reactions.get_by_id(rxn2)
-        elif isinstance(rxn1, Reaction):
-            rxn1 = self.reactions.get_by_id(rxn1.id)
-            rxn2 = self.reactions.get_by_id(rxn2.id)
-        rvMetId = "rvmet_%s_%s" % (rxn1.id, rxn2.id)
-        if self.solver.constraints.has_key(rvMetId):
-            self.solver.remove(rvMetId)
-            print "Existing ratio constraint for %s and %s is updated." % (rxn1.id, rxn2.id)
-        self.add_metabolites([Metabolite(id=rvMetId)])
-        rxn1.add_metabolites({self.metabolites.get_by_id(rvMetId): (1/coeff1)})
-        rxn2.add_metabolites({self.metabolites.get_by_id(rvMetId): -(1/coeff2)})
-
-    def add_ratio_reaction(self, ratiosDict):
-        """Adds new metabolites to enforce desired ratios between given reactions (2 or more).
-        ratiosdict: a dictionary of reactions and flux coefficients. (e.g. {"PGI": 1, "G6PDH2r": 2}
-        """
-        ratiosDict = OrderedDict(ratiosDict)
-        rxns = []
-        ratios = []
-        for rxn, ratio in ratiosDict.iteritems():
-            rxns.append(rxn)
-            ratios.append(ratio)
-
-        for i in range(len(rxns)-1):
-            self._add_ratio_reaction(rxns[i], rxns[i+1], ratios[i], ratios[i+1])
-
 
     def optimize(self, new_objective=None, objective_sense='maximize', solution_type=LazySolution, **kwargs):
         """OptlangBasedModel implementation of optimize. Returns lazy solution object. Exists for compatibility reasons. Uses model.solve() instead."""

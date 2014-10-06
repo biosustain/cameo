@@ -299,6 +299,24 @@ class TestSolverBasedModel(CommonGround):
         self.assertTrue(self.model.solver.variables["DM_" + metabolite.id]
                         in self.model.solver.constraints[metabolite.id].expression)
 
+    def test_add_ratio_constraint(self):
+        solution = self.model.solve()
+        self.assertAlmostEqual(solution.f, 0.873921506968)
+        self.assertNotEqual(2*solution.x_dict['PGI'], solution.x_dict['G6PDH2r'])
+        cp = self.model.copy()
+        ratio_constr = cp.add_ratio_constraint(cp.reactions.PGI, cp.reactions.G6PDH2r, 0.5)
+        self.assertEqual(ratio_constr.name, 'ratio_constraint_PGI_G6PDH2r')
+        solution = cp.solve()
+        self.assertAlmostEqual(solution.f, 0.870407873712)
+        self.assertAlmostEqual(2*solution.x_dict['PGI'], solution.x_dict['G6PDH2r'])
+        cp = self.model.copy()
+        cp.reversible_encoding = 'unsplit'
+        ratio_constr = cp.add_ratio_constraint(cp.reactions.PGI, cp.reactions.G6PDH2r, 0.5)
+        self.assertEqual(ratio_constr.name, 'ratio_constraint_PGI_G6PDH2r')
+        solution = cp.solve()
+        self.assertAlmostEqual(solution.f, 0.870407873712)
+        self.assertAlmostEqual(2*solution.x_dict['PGI'], solution.x_dict['G6PDH2r'])
+
 
 if __name__ == '__main__':
     import nose
