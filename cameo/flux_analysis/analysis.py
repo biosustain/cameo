@@ -25,6 +25,10 @@ from cameo.parallel import SequentialView
 from cameo.flux_analysis.simulation import _cycle_free_flux
 import pandas
 
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 def flux_variability_analysis(model, reactions=None, fraction_of_optimum=0., remove_cycles=True, view=None):
     """Flux variability analysis.
@@ -57,7 +61,7 @@ def flux_variability_analysis(model, reactions=None, fraction_of_optimum=0., rem
             try:
                 obj_val = model.solve().f
             except SolveError as e:
-                print "flux_variability_analyis was not able to determine an optimal solution for objective %s" % model.objective
+                logger.debug("flux_variability_analyis was not able to determine an optimal solution for objective %s" % model.objective)
                 raise e
             if model.objective.direction == 'max':
                 fix_obj_constraint = model.solver.interface.Constraint(model.objective.expression,
@@ -193,7 +197,7 @@ def _flux_variability_analysis(model, reactions=None):
     try: # this is an alternative solution to what I did above with flags
         assert ((lb_higher_ub.lower_bound - lb_higher_ub.upper_bound) < 1e-6).all()  # Assert that these cases really only numerical artifacts
     except AssertionError as e:
-        print zip(model.reactions, (lb_higher_ub.lower_bound - lb_higher_ub.upper_bound) < 1e-6)
+        logger.debug(zip(model.reactions, (lb_higher_ub.lower_bound - lb_higher_ub.upper_bound) < 1e-6))
     df.lower_bound[lb_higher_ub.index] = df.upper_bound[lb_higher_ub.index]
     return df
 
