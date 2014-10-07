@@ -180,7 +180,7 @@ class Solution(SolutionBase):
 
     @property
     def y_dict(self):
-        return dict(zip([self._reaction_ids for r in self.model.reactions], self.y))
+        return dict(zip(self._reaction_ids, self.y))
 
     @property
     def primal_dict(self):
@@ -831,7 +831,7 @@ class SolverBasedModel(Model):
         solution = self.optimize(solution_type=LazySolution, *args, **kwargs)
         if solution.status is not 'optimal':
             self.solver.configuration.presolve = True
-            solution = self.optimize(*args, **kwargs)
+            solution = self.optimize(solution_type=LazySolution, *args, **kwargs)
             self.solver.configuration.presolve = False
             if solution.status is not 'optimal':
                 status = solution.status
