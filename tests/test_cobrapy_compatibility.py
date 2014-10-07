@@ -7,8 +7,6 @@ from cameo import load_model
 from cameo.solver_based_model import to_solver_based_model, SolverBasedModel
 
 
-ecoli_core_sbmodel = load_model('data/EcoliCore.xml')
-
 def setUp(self):
     # Make Model pickable and then load a solver based version of test_pickle
     self.model = to_solver_based_model(create_test_model())
