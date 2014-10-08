@@ -304,3 +304,11 @@ def fixed_size_elementary_modes(model=None, c=1, efm_model=None, size=20):
         [logger.debug("%s: %f" % (t, t.primal)) for t in efm_model.t_vars if t.primal > 0]
 
     return efm_model
+
+
+if __name__ == "__main__":
+    from cameo import  load_model
+
+    model = load_model("../../tests/data/iJO1366.xml", solver_interface='cplex')
+    matrix = model.intS
+    shortest_elementary_flux_modes(model, matrix=matrix)
