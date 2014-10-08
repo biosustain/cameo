@@ -37,7 +37,7 @@ class TestLazySolution(CommonGround):
         self.solution = self.model.optimize()
 
     def test_self_invalidation(self):
-        solution = self.model.optimize()
+        solution = self.model.solve()
         self.assertAlmostEqual(solution.f, 0.873921506968431, delta=0.000001)
         self.model.optimize()
         self.assertRaises(UndefinedSolution, getattr, solution, 'f')

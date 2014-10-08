@@ -90,7 +90,109 @@ def to_solver_based_model(cobrapy_model, solver_interface=optlang):
     return solver_based_model
 
 
-class LazySolution(object):
+class SolutionBase(object):
+
+    def __init__(self, model, *args, **kwargs):
+        super(SolutionBase, self).__init__(*args, **kwargs)
+        self.model = model
+
+    def __str__(self):
+        """A pandas DataFrame representation of the solution.
+
+        Returns
+        -------
+        pandas.DataFrame
+        """
+        return str(self.to_frame())
+
+    def as_cobrapy_solution(self):
+        """Convert into a cobrapy Solution.
+
+        Returns
+        -------
+        cobra.core.Solution.Solution
+        """
+        return Solution(self.f, x=self.x,
+                        x_dict=self.x_dict, y=self.y, y_dict=self.y_dict,
+                        the_solver=None, the_time=0, status=self.status)
+
+    def to_frame(self):
+        """Return the solution as a pandas DataFrame.
+
+        Returns
+        -------
+        pandas.DataFrame
+        """
+        return DataFrame({'fluxes': Series(self.x_dict), 'reduced_costs': Series(self.y_dict)})
+
+
+    def get_primal_by_id(self, reaction_id):
+        """Return a flux/primal value for a reaction.
+
+        Parameters
+        ----------
+        reaction_id : str
+            A reaction ID.
+        """
+        return self.x_dict[reaction_id]
+
+
+class Solution(SolutionBase):
+    """This class mimicks the cobrapy Solution class.
+
+    Attributes
+    ----------
+    primal_dict : dict
+        A dictionary of flux values.
+    dual_dict : dict
+        A dictionary of reduced costs.
+
+    Notes
+    -----
+    See also documentation for cobra.core.Solution.Solution for an extensive list of inherited attributes.
+    """
+
+    def __init__(self, model, *args, **kwargs):
+        """
+        Parameters
+        ----------
+        model : SolverBasedModel
+        """
+        super(Solution, self).__init__(model, *args, **kwargs)
+        self.f = model.solver.objective.value
+        self.x = []
+        for reaction in model.reactions:
+            primal = reaction.variable.primal
+            if reaction.reversibility:
+                primal -= reaction.reverse_variable.primal
+            self.x.append(primal)
+        self.y = []
+        for reaction in model.reactions:
+            dual = reaction.variable.dual
+            if reaction.reversibility:
+                dual -= reaction.reverse_variable.dual
+            self.y.append(dual)
+        self.status = model.solver.status
+        self._reaction_ids = [r.id for r in self.model.reactions]
+
+    @property
+    def x_dict(self):
+        return dict(zip(self._reaction_ids, self.x))
+
+    @property
+    def y_dict(self):
+        return dict(zip(self._reaction_ids, self.y))
+
+    @property
+    def primal_dict(self):
+        return self.x_dict
+
+    @property
+    def dual_dict(self):
+        return self.y_dict
+
+
+class LazySolution(SolutionBase):
     """This class implements a lazy evaluating version of the cobrapy Solution class.
 
     Attributes
@@ -106,15 +208,35 @@ class LazySolution(object):
     See also documentation for cobra.core.Solution.Solution for an extensive list of inherited attributes.
     """
 
-    def __init__(self, model):
+    def __init__(self, model, *args, **kwargs):
         """
         Parameters
         ----------
         model : SolverBasedModel
         """
-        self.model = model
-        self._time_stamp = self.model._timestamp_last_optimization
+        super(LazySolution, self).__init__(model, *args, **kwargs)
+        if self.model._timestamp_last_optimization is not None:
+            self._time_stamp = self.model._timestamp_last_optimization
+        else:
+            self._time_stamp = time.time()
         self._f = None
+
+    def _check_freshness(self):
+        """Raises an exceptions if the solution might have become invalid due to re-optimization of the attached model.
+
+        Raises
+        ------
+        UndefinedSolution
+            If solution has become invalid.
+        """
+        if self._time_stamp != self.model._timestamp_last_optimization:
+            timestamp_formatter = lambda timestamp: datetime.datetime.fromtimestamp(timestamp).strftime(
+                "%Y-%m-%d %H:%M:%S:%f")
+            raise UndefinedSolution(
+                'The solution (captured around %s) has become invalid as the model has been re-optimized recently (%s).' % (
+                    timestamp_formatter(self._time_stamp),
+                    timestamp_formatter(self.model._timestamp_last_optimization))
+            )
 
     @property
     def f(self):
@@ -173,63 +295,6 @@ class LazySolution(object):
     def dual_dict(self):
         return self.y_dict
 
-    def __str__(self):
-        """A pandas DataFrame representation of the solution.
-
-        Returns
-        -------
-        pandas.DataFrame
-        """
-        return str(self.to_frame())
-
-    def _check_freshness(self):
-        """Raises an exceptions if the solution might have become invalid due to re-optimization of the attached model.
-
-        Raises
-        ------
-        UndefinedSolution
-            If solution has become invalid.
-        """
-        if self._time_stamp != self.model._timestamp_last_optimization:
-            timestamp_formatter = lambda timestamp: datetime.datetime.fromtimestamp(timestamp).strftime(
-                "%Y-%m-%d %H:%M:%S:%f")
-            raise UndefinedSolution(
-                'The solution (captured around %s) has become invalid as the model has been re-optimized recently (%s).' % (
-                    timestamp_formatter(self._time_stamp),
-                    timestamp_formatter(self.model._timestamp_last_optimization))
-            )
-
-    def as_cobrapy_solution(self):
-        """Convert into a cobrapy Solution.
-
-        Returns
-        -------
-        cobra.core.Solution.Solution
-        """
-        return Solution(self.f, x=self.x,
-                        x_dict=self.x_dict, y=self.y, y_dict=self.y_dict,
-                        the_solver=None, the_time=0, status=self.status)
-
-    def to_frame(self):
-        """Return the solution as a pandas DataFrame.
-
-        Returns
-        -------
-        pandas.DataFrame
-        """
-        return DataFrame({'fluxes': Series(self.x_dict), 'reduced_costs': Series(self.y_dict)})
-
-
-    def get_primal_by_id(self, reaction_id):
-        """Return a flux/primal value for a reaction.
-
-        Parameters
-        ----------
-        reaction_id : str
-            A reaction ID.
-        """
-        return self.x_dict[reaction_id]
-
 
 class Reaction(OriginalReaction):
     """This class extends the cobrapy Reaction class to work with SolverBasedModel.
@@ -260,6 +325,17 @@ class Reaction(OriginalReaction):
             new_reaction._model = None
         if model is not None:
             new_reaction._model = model
+        for gene in new_reaction.genes:
+            # print gene._reaction
+            # for r in list(gene._reaction):
+            #     print r, type(r)
+            gene._reaction.remove(reaction)
+            # print gene._reaction
+            gene._reaction.add(new_reaction)
+            # print gene._reaction
+        for metabolite in new_reaction.metabolites:
+            metabolite._reaction.remove(reaction)
+            metabolite._reaction.add(new_reaction)
         return new_reaction
 
     def __init__(self, name=None):
@@ -275,7 +351,7 @@ class Reaction(OriginalReaction):
         self._objective_coefficient = 0.
 
     def __str__(self):
-        return self.build_reaction_string()
+        return ''.join((self.id, ": ", self.build_reaction_string()))
 
     @property
     def variable(self):
@@ -652,7 +728,52 @@ class SolverBasedModel(Model):
         self.add_reactions([demand_reaction])
         return demand_reaction
 
-    def optimize(self, new_objective=None, objective_sense='maximize', solution_type=LazySolution, **kwargs):
+    def add_ratio_constraint(self, reaction1, reaction2, ratio, prefix='ratio_constraint'):
+        """Adds a ratio constraint (reaction1/reaction2 = ratio) to the model.
+
+        Parameters
+        ----------
+        reaction1 : str or Reaction
+            A reaction or a reaction ID.
+        reaction2 : str or Reaction
+            A reaction or a reaction ID.
+        ratio : float
+            The ratio in reaction1/reaction2 = ratio
+        prefix : str
+            The prefix that will be added to the constraint ID.
+
+        Returns
+        -------
+        optlang.Constraint
+            The constraint name will be composed of `prefix`
+            and the two reaction IDs (e.g. 'ratio_constraint_reaction1_reaction2').
+
+        Examples
+        --------
+        model.add_ratio_constraint('r1', 'r2', 0.5)
+        print model.solver.constraints['ratio_constraint_r1_r2']
+        > ratio_constraint: ratio_constraint_r1_r2: 0 <= -0.5*r1 + 1.0*PGI <= 0
+        """
+        if isinstance(reaction1, types.StringType):
+            reaction1 = self.reactions.get_by_id(reaction1)
+        if isinstance(reaction2, types.StringType):
+            reaction2 = self.reactions.get_by_id(reaction2)
+
+        if reaction1.reverse_variable is not None:
+            term1 = reaction1.variable - reaction1.reverse_variable
+        else:
+            term1 = reaction1.variable
+
+        if reaction2.reverse_variable is not None:
+            term2 = reaction2.variable - reaction2.reverse_variable
+        else:
+            term2 = reaction2.variable
+
+        ratio_constraint = self.solver.interface.Constraint(term1 - ratio * term2, lb=0, ub=0, name='ratio_constraint_'+reaction1.id+'_'+reaction2.id)
+        self.solver._add_constraint(ratio_constraint, sloppy=True)
+        return ratio_constraint
+
+    def optimize(self, new_objective=None, objective_sense=None, solution_type=Solution, **kwargs):
         """OptlangBasedModel implementation of optimize. Returns lazy solution object. Exists for compatibility reasons. Uses model.solve() instead."""
         if new_objective is None or new_objective == 0:
             pass
@@ -694,7 +815,13 @@ class SolverBasedModel(Model):
             "%Y-%m-%d %H:%M:%S:%f")
         self._timestamp_last_optimization = time.time()
         # logger.debug('self._timestamp_last_optimization ' + timestamp_formatter(self._timestamp_last_optimization))
-        self.solver.optimize()
+        if objective_sense is not None:
+            original_direction = self.objective.direction
+            self.objective.direction = {'minimize': 'min', 'maximize': 'max'}[objective_sense]
+            self.solver.optimize()
+            self.objective.direction = original_direction
+        else:
+            self.solver.optimize()
         solution = solution_type(self)
         # logger.debug('solution = solution_type(self) ' + timestamp_formatter(solution._time_stamp))
         self.solution = solution
@@ -702,10 +829,10 @@ class SolverBasedModel(Model):
 
     def solve(self, *args, **kwargs):
         """Optimize model."""
-        solution = self.optimize(*args, **kwargs)
+        solution = self.optimize(solution_type=LazySolution, *args, **kwargs)
         if solution.status is not 'optimal':
             self.solver.configuration.presolve = True
-            solution = self.optimize(*args, **kwargs)
+            solution = self.optimize(solution_type=LazySolution, *args, **kwargs)
             self.solver.configuration.presolve = False
             if solution.status is not 'optimal':
                 status = solution.status
