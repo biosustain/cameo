@@ -25,6 +25,10 @@ from cameo.parallel import SequentialView
 from cameo.flux_analysis.simulation import _cycle_free_flux
 import pandas
 
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 def flux_variability_analysis(model, reactions=None, fraction_of_optimum=0., remove_cycles=True, view=None):
     """Flux variability analysis.
@@ -57,7 +61,7 @@ def flux_variability_analysis(model, reactions=None, fraction_of_optimum=0., rem
             try:
                 obj_val = model.solve().f
             except SolveError as e:
-                print "flux_variability_analyis was not able to determine an optimal solution for objective %s" % model.objective
+                logger.debug("flux_variability_analyis was not able to determine an optimal solution for objective %s" % model.objective)
                 raise e
             if model.objective.direction == 'max':
                 fix_obj_constraint = model.solver.interface.Constraint(model.objective.expression,
@@ -153,6 +157,7 @@ def _flux_variability_analysis(model, reactions=None):
     else:
         reactions = model._ids_to_reactions(reactions)
     fva_sol = OrderedDict()
+    [lb_flag, ub_flag] = [False, False]
     for reaction in reactions:
         fva_sol[reaction.id] = dict()
         model.objective = reaction
@@ -163,9 +168,8 @@ def _flux_variability_analysis(model, reactions=None):
         except Unbounded:
             fva_sol[reaction.id]['lower_bound'] = -numpy.inf
         except Infeasible:
-            fva_sol[reaction.id]['lower_bound'] = 0
-    for reaction in reactions:
-        model.objective = reaction
+            lb_flag = True
+
         model.objective.direction = 'max'
         try:
             solution = model.solve()
@@ -173,11 +177,27 @@ def _flux_variability_analysis(model, reactions=None):
         except Unbounded:
             fva_sol[reaction.id]['upper_bound'] = numpy.inf
         except Infeasible:
+            ub_flag = True
+
+        if lb_flag is True and ub_flag is True:
+            fva_sol[reaction.id]['lower_bound'] = 0
             fva_sol[reaction.id]['upper_bound'] = 0
+            [lb_flag, ub_flag] = [False, False]
+        elif lb_flag is True and ub_flag is False:
+            fva_sol[reaction.id]['lower_bound'] = fva_sol[reaction.id]['upper_bound']
+            lb_flag = False
+        elif lb_flag is False and ub_flag is True:
+            fva_sol[reaction.id]['upper_bound'] = fva_sol[reaction.id]['lower_bound']
+            ub_flag = False
+
+
     model.objective = original_objective
     df = pandas.DataFrame.from_dict(fva_sol, orient='index')
     lb_higher_ub = df[df.lower_bound > df.upper_bound]
-    assert ((lb_higher_ub.lower_bound - lb_higher_ub.upper_bound) < 1e-6).all()  # Assert that these cases really only numerical artifacts
+    try: # this is an alternative solution to what I did above with flags
+        assert ((lb_higher_ub.lower_bound - lb_higher_ub.upper_bound) < 1e-6).all()  # Assert that these cases really only numerical artifacts
+    except AssertionError as e:
+        logger.debug(zip(model.reactions, (lb_higher_ub.lower_bound - lb_higher_ub.upper_bound) < 1e-6))
     df.lower_bound[lb_higher_ub.index] = df.upper_bound[lb_higher_ub.index]
     return df
 

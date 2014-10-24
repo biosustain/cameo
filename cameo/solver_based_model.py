@@ -29,6 +29,7 @@ import types
 
 from cobra.core import Solution
 from cobra.core.Reaction import Reaction as OriginalReaction
+from cobra.core.Metabolite import Metabolite
 from cobra.core.Model import Model
 from cobra.core.DictList import DictList
 from cobra.manipulation.delete import find_gene_knockout_reactions
