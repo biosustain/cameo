@@ -12,12 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+__all__ = ['flux_variability_analysis', 'phenotypic_phase_plane', 'fbip']
+
 import itertools
 from copy import copy
 from collections import OrderedDict
 from functools import partial
 import numpy
-from cobra.core import Reaction
 from cameo import config
 from cameo.exceptions import UndefinedSolution, Infeasible, Unbounded, SolveError
 from cameo.util import TimeMachine, partition
@@ -407,23 +408,6 @@ def _fbip_fva(model, knockouts, view):
 
     tm.reset()
     return perturbation
-
-
-def reaction_component_production(model, reaction):
-    tm = TimeMachine()
-    for metabolite in reaction.metabolites:
-        test = Reaction("EX_%s_temp" % metabolite.id)
-        test._metabolites[metabolite] = -1
-        # hack frozen set from cobrapy to be able to add a reaction
-        metabolite._reaction = set(metabolite._reaction)
-        tm(do=partial(model.add_reactions, [test]), undo=partial(model.remove_reactions, [test]))
-        tm(do=partial(setattr, model, 'objective', test.id), undo=partial(setattr, model, 'objective', model.objective))
-        try:
-            print metabolite.id, "= ", model.solve().f
-        except SolveError:
-            print metabolite, " cannot be produced (reactions: %s)" % metabolite.reactions
-        finally:
-            tm.reset()
 
 
 if __name__ == '__main__':
