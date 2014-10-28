@@ -7,8 +7,8 @@ import os
 import cobra
 import optlang
 
-from cameo.io import load_model
-from cameo.solver_based_model import SolverBasedModel, _SOLVER_INTERFACES
+from cameo import load_model, solvers
+from cameo.solver_based_model import SolverBasedModel
 
 
 TESTDIR = os.path.dirname(__file__)
@@ -33,7 +33,7 @@ class TestModelLoading(unittest.TestCase):
             model = load_model(handle)
         self.assertAlmostEqual(model.optimize().f, 0.9823718127269768)
 
-    @unittest.skipIf(not _SOLVER_INTERFACES.has_key('cplex'), "No cplex interface available")
+    @unittest.skipIf(not solvers.has_key('cplex'), "No cplex interface available")
     def test_load_model_sbml_path_set_cplex_interface(self):
         model = load_model(os.path.join(TESTDIR, 'data/EcoliCore.xml'), solver_interface='cplex')
         self.assertAlmostEqual(model.optimize().f, 0.8739215069684306)

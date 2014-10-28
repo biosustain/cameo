@@ -7,9 +7,9 @@ import unittest
 import os
 from cobra import Metabolite
 from optlang import Objective
-from cameo import load_model
+from cameo import load_model, solvers
 from cameo.exceptions import UndefinedSolution
-from cameo.solver_based_model import Reaction, _SOLVER_INTERFACES
+from cameo.solver_based_model import Reaction
 from cobra.io import read_sbml_model
 import pandas
 
@@ -257,7 +257,7 @@ class TestSolverBasedModel(CommonGround):
         for key in solution.keys():
             self.assertAlmostEqual(new_solution.x_dict[key], solution[key])
 
-    @unittest.skipIf(not _SOLVER_INTERFACES.has_key('cplex'), "No cplex interface available")
+    @unittest.skipIf(not solvers.has_key('cplex'), "No cplex interface available")
     def test_change_solver_to_cplex_and_check_copy_works(self):
         # First, load model from scratch
         model = load_model(os.path.join(TESTDIR, 'data/EcoliCore.xml'), solver_interface='cplex')

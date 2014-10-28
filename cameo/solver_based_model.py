@@ -44,6 +44,7 @@ import optlang
 
 from cameo.util import TimeMachine
 from cameo import exceptions
+from cameo.config import solvers
 from cameo.exceptions import SolveError, Infeasible, UndefinedSolution
 from cameo.parallel import SequentialView
 from cameo.flux_analysis.analysis import flux_variability_analysis
@@ -58,21 +59,6 @@ logger = logging.getLogger(__name__)
 add = Add._from_args
 mul = Mul._from_args
 
-_SOLVER_INTERFACES = {}
-
-try:
-    from optlang import glpk_interface
-
-    _SOLVER_INTERFACES['glpk'] = optlang.glpk_interface
-except ImportError:
-    pass
-try:
-    from optlang import cplex_interface
-
-    _SOLVER_INTERFACES['cplex'] = optlang.cplex_interface
-except ImportError:
-    pass
-
 
 def to_solver_based_model(cobrapy_model, solver_interface=optlang):
     """Convert a cobrapy model into a solver-based model.
@@ -84,7 +70,7 @@ def to_solver_based_model(cobrapy_model, solver_interface=optlang):
         For example, optlang.glpk_interface or any other optlang interface (the default is optlang.interface).
     """
 
-    solver_interface = _SOLVER_INTERFACES.get(solver_interface, solver_interface)
+    solver_interface = solvers.get(solver_interface, solver_interface)
     solver_based_model = SolverBasedModel(
         solver_interface=solver_interface, description=cobrapy_model)
     return solver_based_model
@@ -603,7 +589,7 @@ class SolverBasedModel(Model):
 
     @solver.setter
     def solver(self, value):
-        interface = _SOLVER_INTERFACES.get(value, value)
+        interface = solvers.get(value, value)
         if self._solver is None:
             self._solver = interface.Model()
             self._populate_solver_from_scratch()

@@ -142,6 +142,12 @@ class TestSimulationMethods(unittest.TestCase):
         print distance
         self.assertAlmostEqual(0, distance, delta=0.000001, msg="moma distance without knockouts must be 0")
 
+class TestSimulationMethodsWithCPLEX(TestSimulationMethods):
+    def setUp(self):
+        self.model = CORE_MODEL
+        self.model.solver = 'cplex'
+
+
 if __name__ == '__main__':
     import nose
 

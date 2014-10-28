@@ -28,7 +28,7 @@ __version__ = get_versions()['version']
 del get_versions
 
 try:
-    from .io import load_model
+    from cameo.io import load_model
 except ImportError:
     pass
 
@@ -36,3 +36,5 @@ from .flux_analysis.analysis import flux_variability_analysis, phenotypic_phase_
 from .flux_analysis.simulation import fba, pfba
 
 import config
+
+from cameo.config import solvers
