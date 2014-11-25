@@ -137,7 +137,7 @@ class HeuristicOptimization(object):
         super(HeuristicOptimization, self).__init__(*args, **kwargs)
         logger.debug("Seed: %s" % seed)
         if seed is None:
-            seed = int(round(time.time() * 1000))
+            seed = int(time.time())
         self.seed = seed
         self.random = Random(seed=seed)
         self.model = model
