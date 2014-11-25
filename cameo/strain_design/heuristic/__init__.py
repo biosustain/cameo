@@ -11,6 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+
+__all__ = ['KnockoutOptimizationResult', 'GeneOptimizationResult']
+
 from cobra.manipulation.delete import find_gene_knockout_reactions
 from inspyred.ec.emo import Pareto
 import time

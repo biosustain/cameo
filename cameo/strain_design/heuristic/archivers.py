@@ -21,7 +21,6 @@ class BestSolutionArchiver(object):
         self.worst_fitness = None
         self.archive = []
 
-
     def __call__(self, random, population, archive, args):
         self.archive = archive
         size = args.get('max_archive_size', 100)

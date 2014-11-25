@@ -11,10 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from math import sqrt
 
-def distance(knockouts, model, simulation_method, **simulation_args):
-    wt = simulation_args.get("reference", None)
-    if wt is None:
-        wt = model.solve().x_dict
 
-    
+def wild_type_euclidean_distance(wt, mutant):
+    return sqrt(sum([(wt[r] - mutant[r])^2 for r in wt.keys()]))
+
+
+def wild_type_manhattan_distance(wt, mutant):
+    return sum([(wt[r] - mutant[r]) for r in wt.keys()])

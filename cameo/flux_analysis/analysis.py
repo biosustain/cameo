@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__all__ = ['flux_variability_analysis', 'phenotypic_phase_plane', 'fbip']
+__all__ = ['flux_variability_analysis', 'phenotypic_phase_plane', 'fbid']
 
 import itertools
 from copy import copy
@@ -359,7 +359,7 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
         return point + tuple(interval)
 
 
-def fbip(model, knockouts, view=config.default_view, method="fva"):
+def fbid(model, knockouts, view=config.default_view, method="fva"):
     """
     Flux balance impact degree by Zhao et al 2013
 
@@ -371,14 +371,14 @@ def fbip(model, knockouts, view=config.default_view, method="fva"):
     """
 
     if method == "fva":
-        _fbip_fva(model, knockouts, view)
+        _fbid_fva(model, knockouts, view)
     elif method == "em":
         raise NotImplementedError("Elementary modes approach is not implemented")
     else:
         raise ValueError("%s method is not valid to compute FBIP" % method)
 
 
-def _fbip_fva(model, knockouts, view):
+def _fbid_fva(model, knockouts, view):
     tm = TimeMachine()
     for reaction in model.reactions:
         if reaction.reversibility:
