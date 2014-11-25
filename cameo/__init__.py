@@ -16,11 +16,36 @@
 """
 CAMEO: Computer Assisted Metabolic Engineering & Optimization
 
+Cameo is a high-level python library developed to aid the in silico
+strain design process in metabolic engineering projects. The library
+provides a modular architecture that enables the efficient construction
+of custom analysis workflows.
+
+Example
+-------
+
 from cameo import load_model
 
-model = load_model('../tests/data/EcoliCore.xml')
+# load a model from SBML format (can be found under cameo/tests/data)
+model = load_model('EcoliCore.xml')
+
+# solve the model and print the objective value
 solution = model.solve()
 print 'Objective value:', solution.f
+
+# Determine a set of gene deletions that will optimize the production
+# of a desired compound
+from cameo.strain_design.heuristic import GeneKnockoutOptimization
+from cameo.strain_design.heuristic.objective_functions import biomass_product_coupled_yield
+from cameo.flux_analysis.simulation import fba
+
+objective = biomass_product_coupled_yield("Ec_biomass_iJO1366_core_53p95M",
+                                          "EX_succ_lp_e_rp_", "EX_glc_lp_e_rp_")
+optimization = GeneKnockoutOptimization(model=model, objective_function=of,
+                              simulation_method=fba, heuristic_method=inspyred.ec.GA)
+optimization.run(max_evaluations=2000, n=1,
+       mutation_rate=0.3, view=cameo.parallel.SequentialView(),
+       product="EX_succ_lp_e_rp_", num_elites=1)
 """
 
 from ._version import get_versions
