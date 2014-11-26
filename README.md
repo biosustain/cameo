@@ -5,7 +5,7 @@
 [![Documentation Status](https://readthedocs.org/projects/cameo/badge/?version=latest)](https://readthedocs.org/projects/cameo/?badge=latest)
 
 ### Vision
-Provide a high-level python library to aid _in silico_ strain design process in metabolic engineering projects. The library provides a modular architecture that enables the efficient construction of custom analysis workflows.
+Cameo is a high-level python library developed to aid the _in silico_ strain design process in metabolic engineering projects. The library provides a modular architecture that enables the efficient construction of custom analysis workflows.
 
 ### Dependencies
 This library depends on:
