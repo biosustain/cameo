@@ -1,23 +1,24 @@
 # Copyright 2014 Novo Nordisk Foundation Center for Biosustainability, DTU.
-
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-
-# http://www.apache.org/licenses/LICENSE-2.0
-
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+__all__ = ['flux_variability_analysis', 'phenotypic_phase_plane', 'fbid']
+
 import itertools
 from copy import copy
 from collections import OrderedDict
 from functools import partial
 import numpy
-from cobra.core import Reaction
 from cameo import config
 from cameo.exceptions import UndefinedSolution, Infeasible, Unbounded, SolveError
 from cameo.util import TimeMachine, partition
@@ -358,7 +359,7 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
         return point + tuple(interval)
 
 
-def fbip(model, knockouts, view=config.default_view, method="fva"):
+def fbid(model, knockouts, view=config.default_view, method="fva"):
     """
     Flux balance impact degree by Zhao et al 2013
 
@@ -370,14 +371,14 @@ def fbip(model, knockouts, view=config.default_view, method="fva"):
     """
 
     if method == "fva":
-        _fbip_fva(model, knockouts, view)
+        _fbid_fva(model, knockouts, view)
     elif method == "em":
         raise NotImplementedError("Elementary modes approach is not implemented")
     else:
         raise ValueError("%s method is not valid to compute FBIP" % method)
 
 
-def _fbip_fva(model, knockouts, view):
+def _fbid_fva(model, knockouts, view):
     tm = TimeMachine()
     for reaction in model.reactions:
         if reaction.reversibility:
@@ -407,23 +408,6 @@ def _fbip_fva(model, knockouts, view):
 
     tm.reset()
     return perturbation
-
-
-def reaction_component_production(model, reaction):
-    tm = TimeMachine()
-    for metabolite in reaction.metabolites:
-        test = Reaction("EX_%s_temp" % metabolite.id)
-        test._metabolites[metabolite] = -1
-        # hack frozen set from cobrapy to be able to add a reaction
-        metabolite._reaction = set(metabolite._reaction)
-        tm(do=partial(model.add_reactions, [test]), undo=partial(model.remove_reactions, [test]))
-        tm(do=partial(setattr, model, 'objective', test.id), undo=partial(setattr, model, 'objective', model.objective))
-        try:
-            print metabolite.id, "= ", model.solve().f
-        except SolveError:
-            print metabolite, " cannot be produced (reactions: %s)" % metabolite.reactions
-        finally:
-            tm.reset()
 
 
 if __name__ == '__main__':

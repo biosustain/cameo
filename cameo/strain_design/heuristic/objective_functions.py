@@ -1,23 +1,26 @@
 # -*- coding: utf-8 -*-
 
 # Copyright 2014 Novo Nordisk Foundation Center for Biosustainability, DTU.
-
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-
-# http://www.apache.org/licenses/LICENSE-2.0
-
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+__all__ = ['biomass_product_coupled_yield', 'product_yield', 'number_of_knockouts']
+
 from cobra import Reaction
 from cameo import config
 
 
-class objective_function(object):
+class ObjectiveFunction(object):
     """
     Blueprint for objective function.
 
@@ -31,13 +34,13 @@ class objective_function(object):
 
     """
     def __init__(self, *args, **kwargs):
-        super(objective_function, self).__init__(*args, **kwargs)
+        super(ObjectiveFunction, self).__init__(*args, **kwargs)
 
     def __call__(self, model, solution, decoded_representation):
         raise NotImplementedError
 
 
-class biomass_product_coupled_yield(objective_function):
+class biomass_product_coupled_yield(ObjectiveFunction):
     """
     Biomass-Product Coupled Yield: (v[biomass] * v[product]) / v[substrate] [1]
 
@@ -89,7 +92,7 @@ class biomass_product_coupled_yield(objective_function):
         return "$$bpcy = \\frac{(%s * %s)}{%s}$$" % (self.biomass.replace("_", "\\_"), self.product.replace("_", "\\_"), self.substrate.replace("_", "\\_"))
 
 
-class product_yield(objective_function):
+class product_yield(ObjectiveFunction):
     """
     Product Yield Objective function: v[product]/v[substrate]
 
@@ -122,7 +125,7 @@ class product_yield(objective_function):
         return "$$yield = \\frac{%s}{%s}$$" % (self.product, self.substrate)
 
 
-class number_of_knockouts(objective_function):
+class number_of_knockouts(ObjectiveFunction):
     """
     Number of Knockouts objective function.
     If sense is maximize then fitness is the number of knockouts, otherwise 1/#knockouts
