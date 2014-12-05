@@ -49,6 +49,7 @@ optimization.run(max_evaluations=2000, n=1,
 """
 
 from ._version import get_versions
+
 __version__ = get_versions()['version']
 del get_versions
 
@@ -57,7 +58,12 @@ try:
 except ImportError:
     pass
 
+from cameo import api
+
 from .flux_analysis.analysis import flux_variability_analysis, phenotypic_phase_plane
 from .flux_analysis.simulation import fba, pfba
 
 import config
+
+from solver_based_model import SolverBasedModel as Model
+from solver_based_model import Reaction

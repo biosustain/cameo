@@ -3,3 +3,4 @@ include README.md
 include requirements.txt
 include versioneer.py
 include cameo/_version.py
+include tests

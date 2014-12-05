@@ -231,3 +231,17 @@ def memoize(function, memo={}):
             memo[args] = rv
             return rv
     return wrapper
+
+
+class IntelliContainer(object):
+    def __init__(self, **kwargs):
+        self._dict = dict(**kwargs)
+
+    def __getattr__(self, value):
+        return self._dict.get(value)
+
+    def __setitem__(self, key, value):
+        self._dict[key] = value
+
+    def __dir__(self):
+        return self._dict.keys()
