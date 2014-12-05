@@ -87,7 +87,7 @@ class TimeMachine(object):
         self.history = OrderedDict()
 
     def __call__(self, do=None, undo=None, bookmark=None):
-        do()
+        output = do()
         current_time = time()
         if bookmark is None:
             entry_id = uuid1()
@@ -97,7 +97,7 @@ class TimeMachine(object):
         self.history.pop(entry_id, None)
         self.history[entry_id] = {'unix_epoch':
                                   current_time, 'undo': undo, 'redo': do}
-        return entry_id
+        return entry_id, output
 
     def __str__(self):
         info = '\n'
