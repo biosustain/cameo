@@ -508,7 +508,7 @@ class SolverBasedModel(Model):
     Every model manipulation is immediately reflected in the solver instance.
     """
 
-    def __init__(self, solver_interface=optlang, description=None, **kwargs):
+    def __init__(self, description=None, solver_interface=optlang, **kwargs):
         super(SolverBasedModel, self).__init__(description, **kwargs)
         self._reversible_encoding = 'split'
         cleaned_reactions = DictList()
