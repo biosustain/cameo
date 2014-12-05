@@ -67,3 +67,4 @@ import config
 
 from solver_based_model import SolverBasedModel as Model
 from solver_based_model import Reaction
+from cobra.core.Metabolite import Metabolite
