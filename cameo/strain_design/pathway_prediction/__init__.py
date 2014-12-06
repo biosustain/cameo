@@ -30,6 +30,9 @@ class PathwayPredictor(object):
 
     def __init__(self, model, universal_model):
         self.model = model.copy()
+        for exchange in self.model.exchanges:
+            if len(exchange.get_reactants()) > 0 and exchange.lower_bound <= 0:
+                exchange.upper_bound = 999999.
         self._y_vars = list()
         switches = list()
         reactions = list()
@@ -38,6 +41,7 @@ class PathwayPredictor(object):
                 continue
             reactions.append(reaction.copy())
         self.model.add_reactions(reactions)
+
         pbar = ProgressBar()
         for reaction in pbar(reactions):
             y = self.model.solver.interface.Variable('y_'+reaction.id, lb=0, ub=1, type='binary')
