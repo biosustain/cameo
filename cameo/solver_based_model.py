@@ -142,9 +142,9 @@ class Solution(SolutionBase):
 
     Attributes
     ----------
-    primal_dict : dict
+    fluxes : OrderedDict
         A dictionary of flux values.
-    dual_dict : dict
+    reduced_costs : OrderedDict
         A dictionary of reduced costs.
 
     Notes
@@ -161,17 +161,10 @@ class Solution(SolutionBase):
         super(Solution, self).__init__(model, *args, **kwargs)
         self.f = model.solver.objective.value
         self.x = []
-        for reaction in model.reactions:
-            primal = reaction.variable.primal
-            if reaction.reversibility:
-                primal -= reaction.reverse_variable.primal
-            self.x.append(primal)
         self.y = []
         for reaction in model.reactions:
-            dual = reaction.variable.dual
-            if reaction.reversibility:
-                dual -= reaction.reverse_variable.dual
-            self.y.append(dual)
+            self.x.append(reaction.flux)
+            self.y.append(reaction.reduced_cost)
         self.status = model.solver.status
         self._reaction_ids = [r.id for r in self.model.reactions]
 
@@ -184,12 +177,21 @@ class Solution(SolutionBase):
         return dict(zip(self._reaction_ids, self.y))
 
     @property
-    def primal_dict(self):
+    def fluxes(self):
         return self.x_dict
 
     @property
-    def dual_dict(self):
+    def reduced_costs(self):
         return self.y_dict
+
+    def __dir__(self):
+        # Hide 'cobrapy' attributes and methods from user.
+        fields = sorted(dir(type(self)) + self.__dict__.keys())
+        fields.remove('x')
+        fields.remove('y')
+        fields.remove('x_dict')
+        fields.remove('y_dict')
+        return fields
 
 
 class LazySolution(SolutionBase):
@@ -198,9 +200,9 @@ class LazySolution(SolutionBase):
     Attributes
     ----------
     model : SolverBasedModel
-    primal_dict : dict
+    fluxes : OrderedDict
         A dictionary of flux values.
-    dual_dict : dict
+    reduced_costs : OrderedDict
         A dictionary of reduced costs.
 
     Notes
@@ -260,10 +262,7 @@ class LazySolution(SolutionBase):
         self._check_freshness()
         primals = OrderedDict()
         for reaction in self.model.reactions:
-            primal = reaction.variable.primal
-            if reaction.reversibility:
-                primal -= reaction.reverse_variable.primal
-            primals[reaction.id] = primal
+            primals[reaction.id] = reaction.flux
         return primals
 
     @property
@@ -276,10 +275,7 @@ class LazySolution(SolutionBase):
         self._check_freshness()
         duals = OrderedDict()
         for reaction in self.model.reactions:
-            dual = reaction.variable.dual
-            if reaction.reversibility:
-                dual -= reaction.reverse_variable.dual
-            duals[reaction.id] = dual
+            duals[reaction.id] = reaction.reduced_cost
         return duals
 
     @property
@@ -288,12 +284,21 @@ class LazySolution(SolutionBase):
         return self.model.solver.status
 
     @property
-    def primal_dict(self):
+    def fluxes(self):
         return self.x_dict
 
     @property
-    def dual_dict(self):
+    def reduced_costs(self):
         return self.y_dict
+
+    def __dir__(self):
+        # Hide 'cobrapy' attributes and methods from user.
+        fields = sorted(dir(type(self)) + self.__dict__.keys())
+        fields.remove('x')
+        fields.remove('y')
+        fields.remove('x_dict')
+        fields.remove('y_dict')
+        return fields
 
 
 class Reaction(OriginalReaction):
@@ -494,6 +499,26 @@ class Reaction(OriginalReaction):
             flux_variability_analysis(model, reactions=[self], view=SequentialView(), remove_cycles=False)[
                 'upper_bound'][
                 self.id]
+
+    @property
+    def flux(self):
+        if self.variable is not None:
+            primal = self.variable.primal
+            if self.reversibility:
+                primal -= self.reverse_variable.primal
+            return primal
+        else:
+            return None
+
+    @property
+    def reduced_cost(self):
+        if self.variable is not None:
+            dual = self.variable.dual
+            if self.reversibility:
+                dual -= self.reverse_variable.dual
+            return dual
+        else:
+            return None
 
     def add_metabolites(self, metabolites, **kwargs):
         super(Reaction, self).add_metabolites(metabolites, **kwargs)

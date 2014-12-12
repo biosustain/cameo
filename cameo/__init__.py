@@ -48,6 +48,11 @@ optimization.run(max_evaluations=2000, n=1,
        product="EX_succ_lp_e_rp_", num_elites=1)
 """
 
+import os
+
+_cameo_path = os.path.dirname(__path__[0])
+_cameo_data_path = os.path.join(_cameo_path, 'data')
+
 from ._version import get_versions
 
 __version__ = get_versions()['version']
@@ -58,7 +63,7 @@ try:
 except ImportError:
     pass
 
-from cameo import api
+# from cameo import api
 
 from .flux_analysis.analysis import flux_variability_analysis, phenotypic_phase_plane
 from .flux_analysis.simulation import fba, pfba
