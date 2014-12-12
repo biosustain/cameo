@@ -29,6 +29,9 @@ class Host(object):
         for id in models:
             self.models[id] = ModelFacade(id)
 
+    def __str__(self):
+        return self.name
+
 
 class ModelFacade(object):
 
@@ -52,23 +55,22 @@ class ModelFacade(object):
 class Hosts(object):
 
     def __init__(self, host_spec):
-        self.host_spec = host_spec
-        for host_id, information in self.host_spec.iteritems():
-            setattr(self, host_id, Host(**information))
+        self._host_spec = host_spec
+        self._hosts = list()
+        for host_id, information in self._host_spec.iteritems():
+            host = Host(**information)
+            self._hosts.append(host)
+            setattr(self, host_id, host)
 
-
-    # def __getattr__(self, value):
-    #     if getattr(self, 'host_spec').has_key(value):
-    #         model load_model('../test/data/' + self.id + '.xml')
-    #     else:
-    #         raise AttributeError("Host %s is not available" % value)
+    def __iter__(self):
+        return iter(self._hosts)
 
     def __dir__(self):
-        return self.host_spec.keys()
+        return self._host_spec.keys()
 
 
-HOST_SPECS = {'ecoli': {'name': 'Escherichia coli', 'models': ('iAF1260', 'iJO1366', 'EcoliCore')},
-         'scerevisiae': {'name': 'Saccharomyces cerevisiae', 'models': ('iND750', 'iMM904')}
+HOST_SPECS = {'ecoli': {'name': 'Escherichia coli', 'models': ('EcoliCore', 'iJO1366',)}, #  'iAF1260', 'iJO1366',
+            'scerevisiae': {'name': 'Saccharomyces cerevisiae', 'models': ('iMM904', )} # 'iND750',
 }
 
 hosts = Hosts(HOST_SPECS)
