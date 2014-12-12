@@ -243,5 +243,34 @@ class IntelliContainer(object):
     def __setitem__(self, key, value):
         self._dict[key] = value
 
+    def __iter__(self):
+        return self._dict.itervalues()
+
     def __dir__(self):
         return self._dict.keys()
+
+
+class DisplayItemsWidget(progressbar.widgets.Widget):
+    """Display an items[pbar.currval]
+
+    Examples
+    --------
+    import time
+    from progressbar import Progressbar, widges
+    pbar = ProgressBar(widgets=[DisplayItemsWidget(["asdf"+str(i) for i in range(10)]), widgets.Bar()])
+    pbar.maxval = 10
+    pbar.start()
+    for i in range(10):
+        time.sleep(.2)
+        pbar.update(i)
+    pbar.finish()
+    """
+
+    def __init__(self, items):
+        self.items = items
+
+    def update(self, pbar):
+        try:
+            return "%s" % self.items[pbar.currval]
+        except IndexError:
+            return ""
