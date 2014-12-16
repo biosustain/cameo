@@ -143,6 +143,29 @@ class TestReaction(unittest.TestCase):
         self.assertEqual(acald_reaction.reverse_variable.lb, 0)
         self.assertEqual(acald_reaction.reverse_variable.ub, 100)
 
+    def test_iMM904_4HGLSDm_problem(self):
+        model = load_model(os.path.join(TESTDIR, 'data/iMM904.xml'))
+        # set upper bound before lower bound after knockout
+        cp = model.copy()
+        rxn = cp.reactions.get_by_id('4HGLSDm')
+        prev_lb, prev_ub = rxn.lower_bound, rxn.upper_bound
+        rxn.lower_bound = 0
+        rxn.upper_bound = 0
+        rxn.upper_bound = prev_ub
+        rxn.lower_bound = prev_lb
+        self.assertEquals(rxn.lower_bound, prev_lb)
+        self.assertEquals(rxn.upper_bound, prev_ub)
+        # set lower bound before upper bound after knockout
+        cp = model.copy()
+        rxn = cp.reactions.get_by_id('4HGLSDm')
+        prev_lb, prev_ub = rxn.lower_bound, rxn.upper_bound
+        rxn.lower_bound = 0
+        rxn.upper_bound = 0
+        rxn.lower_bound = prev_lb
+        rxn.upper_bound = prev_ub
+        self.assertEquals(rxn.lower_bound, prev_lb)
+        self.assertEquals(rxn.upper_bound, prev_ub)
+
     def test_setting_lower_bound_higher_than_higher_bound_sets_higher_bound_to_new_lower_bound(self):
         for reaction in self.model.reactions:
             print reaction.id

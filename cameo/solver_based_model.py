@@ -259,6 +259,7 @@ class LazySolution(SolutionBase):
 
     @property
     def x_dict(self):
+        # TODO: this could be even lazier by returning a lazy dict
         self._check_freshness()
         primals = OrderedDict()
         for reaction in self.model.reactions:
@@ -418,7 +419,7 @@ class Reaction(OriginalReaction):
             variable = self.variable
             reverse_variable = self.reverse_variable
 
-            if model.reversible_encoding == 'split' and value < 0 and self._upper_bound > 0:
+            if model.reversible_encoding == 'split' and value < 0 and self._upper_bound >= 0:
                 if self._lower_bound > 0:
                     variable.lb = 0
                 try:
@@ -432,6 +433,7 @@ class Reaction(OriginalReaction):
                 except ValueError:
                     variable.ub = value
                     variable.lb = value
+
         self._lower_bound = value
 
     @property
@@ -526,6 +528,15 @@ class Reaction(OriginalReaction):
         if model is not None:
             for metabolite, coefficient in metabolites.iteritems():
                 model.solver.constraints[metabolite.id] += coefficient*self.variable
+
+    def knock_out(self, time_machine=None):
+        def _(reaction, lb, ub):
+            reaction.upper_bound = ub
+            reaction.lower_bound = lb
+        if time_machine is not None:
+            time_machine(do=super(Reaction, self).knock_out, undo=partial(_, self, self.lower_bound, self.upper_bound))
+        else:
+            super(Reaction, self).knock_out()
 
 class SolverBasedModel(Model):
     """Implements a model with an attached optlang solver instance.
