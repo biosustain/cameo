@@ -27,18 +27,19 @@ on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 if on_rtd:
     requirements = []
 else:
-    requirements = ['numpy>=1.8.1',
+    requirements = ['numpy>=1.9.1',
                     'pyzmq>=14.3.1',
                     'ipython>=2.1.0',
                     'scipy>=0.9.0',
                     'blessings>=1.5.1',
-                    'progressbar>=2.2',
+                    'progressbar-ipython>=2.3.1',
                     'Jinja2>=2.7.3',
                     'pandas>=0.14.0',
                     'ordered-set>=1.2',
                     'inspyred>=1.0',
                     'cobra>=0.3.0b3',
-                    'optlang>=0.0.3'
+                    'optlang>=0.0.3',
+                    'requests>=2.5.0'
     ]
 
 dependency_links = [
