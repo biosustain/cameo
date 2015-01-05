@@ -34,12 +34,13 @@ else:
                     'blessings>=1.5.1',
                     'progressbar-ipython>=2.3.1',
                     'Jinja2>=2.7.3',
-                    'pandas>=0.14.0',
+                    'pandas>=0.15.2',
                     'ordered-set>=1.2',
                     'inspyred>=1.0',
                     'cobra>=0.3.0b3',
                     'optlang>=0.0.3',
-                    'requests>=2.5.0'
+                    'requests>=2.5.0',
+                    'bashplotlib>=0.6.1'
     ]
 
 dependency_links = [
