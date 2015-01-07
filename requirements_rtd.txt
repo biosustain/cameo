@@ -17,6 +17,5 @@ bashplotlib==0.6.1
 numexpr==2.4
 sphinx-rtd-theme>=0.1.6
 numpydoc>=0.5
-cobra>=0.3.0b3
 mock>=1.0.1
 sphinxcontrib-napoleon>=0.2.8
