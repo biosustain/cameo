@@ -1,3 +1,20 @@
+numpy>=1.9.1
+pyzmq>=14.3.1
+ipython>=2.1.0
+scipy>=0.9.0
+bokeh==0.4.4
+blessings==1.5.1
+progressbar-ipython>=2.3.1
+Jinja2==2.7.3
+pandas>=0.15.2
+ordered-set==1.2
+inspyred==1.0
+cobra==0.3.0b3
+-e git+https://github.com/biosustain/optlang.git@201187a8f469e9cf287dc7bb9cd12aab869e1900#egg=optlang
+-e git+https://github.com/biosustain/ipython_notebook_utils.git@b9e68cc2fdbae30d3482306ffcbecbf358530267#egg=ipython_notebook_utils
+escher==1.0.0b3
+bashplotlib==0.6.1
+numexpr==2.4
 sphinx-rtd-theme>=0.1.6
 numpydoc>=0.5
 cobra>=0.3.0b3
