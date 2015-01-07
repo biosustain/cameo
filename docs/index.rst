@@ -27,8 +27,8 @@ Table of Contents
 
     installation
     quickstart
-    high_level_interface
-    low_level_interface
+    cameo_high_level_interface
+    cameo_low_level_interface
     parallelization
     cobrapy_difference
     How_to

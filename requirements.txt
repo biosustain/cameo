@@ -18,3 +18,4 @@ sphinx-rtd-theme>=0.1.6
 escher==1.0.0b3
 bashplotlib==0.6.1
 redis>=2.10.3
+numexpr==2.4

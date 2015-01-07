@@ -40,7 +40,8 @@ else:
                     'cobra>=0.3.0b3',
                     'optlang>=0.0.3',
                     'requests>=2.5.0',
-                    'bashplotlib>=0.6.1'
+                    'bashplotlib>=0.6.1',
+                    'numexpr>=2.4'
     ]
 
 dependency_links = [
