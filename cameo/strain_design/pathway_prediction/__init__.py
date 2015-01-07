@@ -143,7 +143,7 @@ class PathwayPredictor(object):
                 demand_reaction = self.model.add_demand(product)
             tm(do=str, undo=partial(self.model.remove_reactions, [demand_reaction]))
             demand_reaction.lower_bound = min_production
-            self.model.solver.configuration.verbosity = 3
+            # self.model.solver.configuration.verbosity = 3
             counter = 1
             while counter <= max_predictions:
                 logger.debug('Predicting pathway No. %d' % counter)
@@ -172,7 +172,7 @@ class PathwayPredictor(object):
                 tm(do=partial(self.model.solver._add_constraint, integer_cut),
                    undo=partial(self.model.solver._remove_constraint, integer_cut))
                 counter += 1
-            self.model.solver.configuration.verbosity = 0
+            # self.model.solver.configuration.verbosity = 0
         return pathways
 
 

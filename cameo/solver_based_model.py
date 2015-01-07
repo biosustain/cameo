@@ -326,7 +326,10 @@ class Reaction(OriginalReaction):
         """
         new_reaction = cls(name=reaction.name)
         for attribute, value in reaction.__dict__.iteritems():
-            setattr(new_reaction, attribute, value)
+            try:
+                setattr(new_reaction, attribute, value)
+            except AttributeError:
+                logger.debug("Can't set attribute %s for reaction %s (while cloning it to a cameo style reaction). Skipping it ..." % (attribute, reaction))
         if not isinstance(reaction.get_model(), SolverBasedModel):
             new_reaction._model = None
         if model is not None:

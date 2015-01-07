@@ -93,7 +93,7 @@ class Designer(object):
             for model in pbar_models(list(host.models)):
                 # TODO: Check if product is already part of model
                 pathway_predictor = PathwayPredictor(model, universal_model=METANETX['universal_model'], mapping=METANETX['bigg2mnx'])
-                predicted_pathways = pathway_predictor.run(product, max_predictions=10, timeout=15*60)  # TODO adjust these numbers to something reasonable
+                predicted_pathways = pathway_predictor.run(product, max_predictions=5, timeout=15*60)  # TODO adjust these numbers to something reasonable
                 pathways[(host, model)] = predicted_pathways
         return pathways
 

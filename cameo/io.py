@@ -83,9 +83,11 @@ def load_model(path_or_handle, solver_interface=optlang.glpk_interface, sanitize
 
     if not isinstance(model, SolverBasedModel):
         if solver_interface is not None:
+            logger.debug("Changing solver interface to %s" % solver_interface)
             model = to_solver_based_model(model, solver_interface=solver_interface)
     else:
         if model.interface is not solver_interface and solver_interface is not None:
+            logger.debug("Changing solver interface to %s" % solver_interface)
             model.solver = solver_interface
 
     return model

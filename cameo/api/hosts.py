@@ -14,6 +14,7 @@
 
 
 import os
+import optlang
 import cameo
 from cameo.util import IntelliContainer
 from cameo import load_model
@@ -41,7 +42,7 @@ class ModelFacade(object):
 
     def __getattr__(self, value):
         if self._model is None:
-            super(ModelFacade, self).__setattr__('_model', load_model(os.path.join(MODEL_DIRECTORY, self.id + '.xml')))
+            super(ModelFacade, self).__setattr__('_model', load_model(os.path.join(MODEL_DIRECTORY, self.id + '.xml'), solver_interface=optlang.cplex_interface))
             return getattr(self._model, value)
         else:
             return getattr(self._model, value)
@@ -69,7 +70,7 @@ class Hosts(object):
         return self._host_spec.keys()
 
 
-HOST_SPECS = {'ecoli': {'name': 'Escherichia coli', 'models': ('EcoliCore', 'iJO1366',)}, #  'iAF1260', 'iJO1366',
+HOST_SPECS = {'ecoli': {'name': 'Escherichia coli', 'models': ('iJO1366',)}, #  'iAF1260', 'iJO1366', 'EcoliCore'
             'scerevisiae': {'name': 'Saccharomyces cerevisiae', 'models': ('iMM904', )} # 'iND750',
 }
 

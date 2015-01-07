@@ -15,28 +15,80 @@
 import difflib
 from cameo.api import _METANETX as METANETX
 
+
+def inchi_to_svg(inchi, file=None):
+    try:
+        import openbabel
+    except ImportError, e:
+        print e
+        raise ImportError("OpenBabel seems to be not installed.")
+    convert = openbabel.OBConversion()
+    convert.SetInFormat("inchi")
+    convert.SetOutFormat("svg")
+    mol = openbabel.OBMol()
+    if not convert.ReadString(mol, inchi):
+        raise Exception("%s could not be parsed as an inchi string.")
+    return convert.WriteString(mol)
+
+
 class Compound(object):
 
-    def __init__(self, metabolite):
-        self.metabolite = metabolite
-        self.__dict__.update(METANETX['chem_prop'].loc[metabolite.id].to_dict())
+    def __init__(self, inchi):
+        self.inchi
+
+    def _repr_svg_(self):
+        try:
+            return inchi_to_svg(self.InChI)
+        except ImportError:
+            return self.__repr__()
+
+    def _repr_html_(self):
+        return self._repr_svg_()
 
 
 class Products(object):
 
     def __init__(self):
-        # for metabolite in METANETX['universal_model'].metabolites:
-        #     setattr(self, metabolite.id, Compound(metabolite))
         metabolite_ids = [metabolite.id for metabolite in METANETX['universal_model'].metabolites]
         self.data_frame = METANETX['chem_prop'].loc[metabolite_ids]
 
+    def search(self, query):
+        matches = self._search_by_source(query)
+        if len(matches) > 0:
+            return matches
+        matches = self._search_by_inchi(query)
+        if len(matches) > 0:
+            return matches
+        matches = self._search_by_name_fuzzy(query)
+        if len(matches) > 0:
+            return matches
+        matches = self._search_by_inchi_fuzzy(query)
+        if len(matches) > 0:
+            return matches
+        else:
+            raise Exception("No compound matches found for query %s" % query)
 
-    def search(self, name):
-        matches = difflib.get_close_matches(name, self.data_frame.name, n=20, cutoff=.6)
+    def _search_by_name_fuzzy(self, name):
+        matches = difflib.get_close_matches(name, self.data_frame.name, n=5, cutoff=.6)
         ranks = dict([(match, i) for i, match in enumerate(matches)])
         selection = self.data_frame[self.data_frame.name.isin(matches)]
         selection['search_rank'] = selection.name.map(ranks)
         return selection.sort('search_rank')
+
+    def _search_by_source(self, source_id):
+        return self.data_frame[self.data_frame.source == source_id.lower()]
+
+    def _search_by_inchi(self, inchi):
+        return self.data_frame[self.data_frame.InChI == inchi]
+
+    def _search_by_inchi_fuzzy(self, inchi):
+        # TODO: use openbabel if available
+        matches = difflib.get_close_matches(inchi, self.data_frame.InChI, n=5, cutoff=.6)
+        ranks = dict([(match, i) for i, match in enumerate(matches)])
+        selection = self.data_frame[self.data_frame.InChI.isin(matches)]
+        selection['search_rank'] = selection.name.map(ranks)
+        return selection.sort('search_rank')
+        return self.data_frame[self.data_frame.InChI == inchi]
 
 
 products = Products()
