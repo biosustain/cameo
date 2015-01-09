@@ -17,7 +17,10 @@ from uuid import uuid1
 from time import time
 from datetime import datetime
 import colorsys
-from pandas.core.common import in_ipnb
+try:
+    from pandas.core.common import in_ipnb
+except:
+    pass
 import progressbar
 import ipython_notebook_utils
 import logging
