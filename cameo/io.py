@@ -50,7 +50,7 @@ def load_model(path_or_handle, solver_interface=optlang.glpk_interface, sanitize
                 index = df.query('name == "%s"' % path_or_handle).id.values[0]
                 handle = webmodels.get_sbml_file(index)
                 path = handle.name
-            except:
+            except IndexError:
                 raise ValueError("%s is neither a file nor a model ID." % path)
     elif hasattr(path_or_handle, 'read'):
         path = path_or_handle.name
