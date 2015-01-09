@@ -47,7 +47,7 @@ def load_model(path_or_handle, solver_interface=optlang.glpk_interface, sanitize
             logger.debug('%s not a file path. Querying webmodels ...' % path)
             try:
                 df = webmodels.index_models()
-                index = df.query('name == "%s"' % path_or_handle).index[0]
+                index = df.query('name == "%s"' % path_or_handle).id.values[0]
                 handle = webmodels.get_sbml_file(index)
                 path = handle.name
             except:

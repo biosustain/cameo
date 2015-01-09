@@ -47,7 +47,7 @@ def index_models(host="http://darwin.di.uminho.pt/models"):
     """
     uri = host + "/models.json"
     response = json.loads(requests.get(uri).text)
-    return DataFrame(response, columns=["name", "doi", "author", "year", "formats", "organism", "taxonomy"])
+    return DataFrame(response, columns=["id", "name", "doi", "author", "year", "formats", "organism", "taxonomy"])
 
 
 def get_sbml_file(index, host="http://darwin.di.uminho.pt/models"):
