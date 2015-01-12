@@ -19,17 +19,21 @@
 # logger.info('Initializing cameo advanced programming interface. Be patient this might take a while ...')
 
 import os
-import gzip
 import cPickle as pickle
 import cameo
 
-# with gzip.open(os.path.join(cameo._cameo_data_path, 'metanetx.pgz')) as f:
-#     _METANETX = pickle.load(f)
+import logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-with open(os.path.join(cameo._cameo_data_path, 'metanetx.pickle')) as f:
-    _METANETX = pickle.load(f)
+on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
+if not on_rtd:
+    with open(os.path.join(cameo._cameo_data_path, 'metanetx.pickle')) as f:
+        _METANETX = pickle.load(f)
+else:
+    # Mock this for RTD
+    _METANETX = dict([(key, None) for key in ['chem_prop', 'universal_model', 'bigg2mnx', 'mnx2bigg']])
 
 from cameo.api.hosts import hosts
 from cameo.api.designer import design
 from cameo.api.products import products
-
