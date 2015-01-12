@@ -130,5 +130,5 @@ metanetx['mnx2bigg'] = mnx2bigg
 # with gzip.open('../data/metanetx.pgz', 'w') as f:
 #     pickle.dump(metanetx, f)
 
-with open('../data/metanetx.pickle', 'w') as f:
+with open('../cameo/data/metanetx.pickle', 'w') as f:
     pickle.dump(metanetx, f)

@@ -4,4 +4,4 @@ include requirements.txt
 include versioneer.py
 include cameo/_version.py
 include tests
-include data/metanetx.pickle
+include cameo/data/metanetx.pickle

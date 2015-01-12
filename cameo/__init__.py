@@ -50,7 +50,7 @@ optimization.run(max_evaluations=2000, n=1,
 
 import os
 
-_cameo_path = os.path.dirname(__path__[0])
+_cameo_path = __path__[0]
 _cameo_data_path = os.path.join(_cameo_path, 'data')
 
 from ._version import get_versions

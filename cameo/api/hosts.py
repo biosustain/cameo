@@ -42,7 +42,7 @@ class ModelFacade(object):
 
     def __getattr__(self, value):
         if self._model is None:
-            super(ModelFacade, self).__setattr__('_model', load_model(os.path.join(MODEL_DIRECTORY, self.id + '.xml'), solver_interface=optlang.cplex_interface))
+            super(ModelFacade, self).__setattr__('_model', load_model(os.path.join(MODEL_DIRECTORY, self.id + '.xml'), solver_interface=optlang.glpk_interface))
             return getattr(self._model, value)
         else:
             return getattr(self._model, value)
