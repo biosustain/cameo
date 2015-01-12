@@ -20,6 +20,7 @@ import optlang
 from cobra.io import read_sbml_model
 import time
 import progressbar
+import requests
 from cameo.solver_based_model import SolverBasedModel, to_solver_based_model
 from cameo import webmodels
 
@@ -47,6 +48,13 @@ def load_model(path_or_handle, solver_interface=optlang.glpk_interface, sanitize
             logger.debug('%s not a file path. Querying webmodels ...' % path)
             try:
                 df = webmodels.index_models()
+            except requests.ConnectionError as e:
+                logger.error("You need to be connectedd to the internet to load an online model.")
+                raise e
+            except Exception as e:
+                logger.error("Something went wrong while looking up available webmodels.")
+                raise e
+            try:
                 index = df.query('name == "%s"' % path_or_handle).id.values[0]
                 handle = webmodels.get_sbml_file(index)
                 path = handle.name
