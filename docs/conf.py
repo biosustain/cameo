@@ -27,7 +27,7 @@ if on_rtd:
             return Mock()
 
     MOCK_MODULES = ['numpy', 'numpy.random', 'pandas', 'scipy', 'scipy.sparse', 'scipy.io', 'scipy.stats', 'scipy.version', 'bokeh', 'swiglpk',
-                    'optlang', 'glpk', 'gurobipy', 'gurobipy.GRB', 'cplex', 'mlabwrap', 'pp', 'libsbml']
+                    'glpk', 'gurobipy', 'gurobipy.GRB', 'cplex', 'mlabwrap', 'pp', 'libsbml']
     sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 # If extensions (or modules to document with autodoc) are in another directory,
