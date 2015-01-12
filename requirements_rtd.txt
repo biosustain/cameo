@@ -1,5 +1,6 @@
 sphinx-rtd-theme>=0.1.6
 numpydoc>=0.5
 cobra>=0.3.0b3
+sympy==0.7.5
 mock>=1.0.1
 sphinxcontrib-napoleon>=0.2.8
