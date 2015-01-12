@@ -14,6 +14,7 @@
 
 import cPickle as pickle
 import re
+import optlang
 from pandas import read_table
 from cameo.io import _apply_sanitize_rules, ID_SANITIZE_RULES_TAB_COMPLETION, ID_SANITIZE_RULES_SIMPHENY
 from cameo import Reaction, Metabolite, Model
@@ -113,7 +114,7 @@ for index, row in reaction_selection.iterrows():
         reaction.annotation = dict((key, rest[key]) for key in rest if key in ('EC', 'Description'))
         reactions.append(reaction)
 
-metanetx_model = Model('metanetx_universal_model_bigg_rhea')
+metanetx_model = Model('metanetx_universal_model_bigg_rhea', solver_interface=optlang.interface)
 metanetx_model.add_reactions(reactions)
 # Add sinks for all metabolites
 for metabolite in metanetx_model.metabolites:
