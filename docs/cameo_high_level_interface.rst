@@ -60,160 +60,220 @@ requires only minimal input.
 
 .. parsed-literal::
 
-    <IPython.core.display.Javascript at 0x11802d450>
+    <IPython.core.display.Javascript at 0x114c52910>
 
 
 
 .. parsed-literal::
 
-    <IPython.core.display.Javascript at 0x11802d490>
+    <IPython.core.display.Javascript at 0x114c52950>
 
 
 
 .. raw:: html
 
-    <div class="pb" id="38aca156-f895-4256-9f08-6a157e7bbd5a"><table class="pb ui-widget"><tr>
+    <div class="pb" id="1acca05b-d708-447a-94e3-9eaa83e2e0ed"><table class="pb ui-widget"><tr>
     <td class="pb_widget">Processing</td>
-    <td class="pb_widget"><div id="3d1b0bcd-2100-4795-b8ff-ff3ee0fe0d7a">Escherichia coli</div></td>
+    <td class="pb_widget"><div id="2a06b7ac-2238-478b-9760-047eaeeeae44">Escherichia coli</div></td>
     <td class="pb_widget_fill">
-            <div class="pb_bar" id="d9b360f3-1c38-42a7-86e8-66ee69e3e955"></div>
+            <div class="pb_bar" id="449fe787-96dd-4956-8dce-2e41aa6993f7"></div>
             <script type="text/javascript">
-                $("div#d9b360f3-1c38-42a7-86e8-66ee69e3e955").progressbar({value: 0, max: 2});
+                $("div#449fe787-96dd-4956-8dce-2e41aa6993f7").progressbar({value: 0, max: 2});
             </script>
             </td>
-    <td class="pb_widget"><div id="23fcfffa-4199-4ad2-9524-e438f188391b">ETA:  --:--:--</div></td>
-    <td class="pb_widget"><div id="738534f1-e60d-43cc-b5eb-c8204f605ee9">  0%</div></td>
+    <td class="pb_widget"><div id="3377f440-b83b-46a4-a8e4-86060a64f33a">ETA:  --:--:--</div></td>
+    <td class="pb_widget"><div id="5e845f92-cc4a-4eb0-9bcd-40baaad86a94">  0%</div></td>
     </tr></table><div>
 
 
 
 .. parsed-literal::
 
-    <IPython.core.display.Javascript at 0x11802d850>
+    <IPython.core.display.Javascript at 0x114c52d10>
 
 
 
 .. parsed-literal::
 
-    <IPython.core.display.Javascript at 0x11802d950>
+    <IPython.core.display.Javascript at 0x114c52e10>
 
 
 
 .. raw:: html
 
-    <div class="pb" id="c5c4033d-17a4-4eb7-84fe-406bcd3cce84"><table class="pb ui-widget"><tr>
+    <div class="pb" id="3f37040f-cb32-40ed-83d2-bef6286147e3"><table class="pb ui-widget"><tr>
     <td class="pb_widget">Processing</td>
-    <td class="pb_widget"><div id="21417de5-31a1-4796-b831-32bba54d9b17">iJO1366</div></td>
+    <td class="pb_widget"><div id="a788981e-381e-4f45-874b-42973f136864">iJO1366</div></td>
     <td class="pb_widget_fill">
-            <div class="pb_bar" id="10f5171b-b208-44a1-91d2-b71d5e552c33"></div>
+            <div class="pb_bar" id="d61130ff-1f04-465f-a783-276b043f3cc1"></div>
             <script type="text/javascript">
-                $("div#10f5171b-b208-44a1-91d2-b71d5e552c33").progressbar({value: 0, max: 1});
+                $("div#d61130ff-1f04-465f-a783-276b043f3cc1").progressbar({value: 0, max: 1});
             </script>
             </td>
-    <td class="pb_widget"><div id="51357a8d-03f0-497d-a573-5c1d589bbe82">ETA:  --:--:--</div></td>
-    <td class="pb_widget"><div id="1a9188ef-ef47-4005-a90b-0e112b3fe35f">  0%</div></td>
+    <td class="pb_widget"><div id="668a1c24-71c8-4533-afda-0dd7d7b5f15c">ETA:  --:--:--</div></td>
+    <td class="pb_widget"><div id="030427bf-502f-4b09-8782-4aa484eee32e">  0%</div></td>
     </tr></table><div>
+
 
 
 .. parsed-literal::
 
-    CPLEX Error  1561: Not enough data in SAV file.
-    CPLEX Error  1561: Not enough data in SAV file.
+    <IPython.core.display.Javascript at 0x11bbcaa90>
 
 
-::
+
+.. parsed-literal::
+
+    <IPython.core.display.Javascript at 0x11bbcaa50>
 
 
-    ---------------------------------------------------------------------------
-    CplexSolverError                          Traceback (most recent call last)
 
-    <ipython-input-3-7607d1c24e0c> in <module>()
-          1 from cameo import api
-    ----> 2 report = api.design(product='L-serine')
-    
+.. parsed-literal::
 
-    /Users/niko/Arbejder/Dev/cameo/cameo/api/designer.pyc in __call__(self, product, hosts)
-         67         """
-         68         product = self.__translate_product_to_universal_reactions_model_metabolite(product)
-    ---> 69         pathways = self.predict_pathways(product, hosts=hosts)
-         70         return pathways
-         71 
+    <IPython.core.display.Javascript at 0x1048f3e50>
 
 
-    /Users/niko/Arbejder/Dev/cameo/cameo/api/designer.pyc in predict_pathways(self, product, hosts)
-         93             for model in pbar_models(list(host.models)):
-         94                 # TODO: Check if product is already part of model
-    ---> 95                 pathway_predictor = PathwayPredictor(model, universal_model=METANETX['universal_model'], mapping=METANETX['bigg2mnx'])
-         96                 predicted_pathways = pathway_predictor.run(product, max_predictions=5, timeout=15*60)  # TODO adjust these numbers to something reasonable
-         97                 pathways[(host, model)] = predicted_pathways
+
+.. parsed-literal::
+
+    <IPython.core.display.Javascript at 0x11aa711d0>
 
 
-    /Users/niko/Arbejder/Dev/cameo/cameo/strain_design/pathway_prediction/__init__.pyc in __init__(self, model, universal_model, mapping)
-         66             from cameo.api import _METANETX as metanetx
-         67             universal_model = metanetx['universal_model']
-    ---> 68         self.model = model.copy()
-         69         for exchange in self.model.exchanges:
-         70             if len(exchange.reactants) > 0 and exchange.lower_bound <= 0:
+
+.. parsed-literal::
+
+    <IPython.core.display.Javascript at 0x11c280cd0>
 
 
-    /Users/niko/Arbejder/Dev/cameo/cameo/solver_based_model.pyc in copy(self)
-        589             model_copy._solver = deepcopy(self.solver)
-        590         except:  # Cplex has an issue with deep copies
-    --> 591             model_copy._solver = copy(self.solver)
-        592         return model_copy
-        593 
+
+.. parsed-literal::
+
+    <IPython.core.display.Javascript at 0x11aa71150>
 
 
-    /usr/local/Cellar/python/2.7.8_2/Frameworks/Python.framework/Versions/2.7/lib/python2.7/copy.pyc in copy(x)
-         94                 raise Error("un(shallow)copyable object of type %s" % cls)
-         95 
-    ---> 96     return _reconstruct(x, rv, 0)
-         97 
-         98 
+
+.. parsed-literal::
+
+    <IPython.core.display.Javascript at 0x11aa71090>
 
 
-    /usr/local/Cellar/python/2.7.8_2/Frameworks/Python.framework/Versions/2.7/lib/python2.7/copy.pyc in _reconstruct(x, info, deep, memo)
-        334             state = deepcopy(state, memo)
-        335         if hasattr(y, '__setstate__'):
-    --> 336             y.__setstate__(state)
-        337         else:
-        338             if isinstance(state, tuple) and len(state) == 2:
+
+.. parsed-literal::
+
+    <IPython.core.display.Javascript at 0x11aa71110>
 
 
-    /Users/niko/Arbejder/Dev/optlang/optlang/cplex_interface.pyc in __setstate__(self, repr_dict)
-        479         tmp_file = tempfile.mktemp(suffix=".sav")
-        480         open(tmp_file, 'w').write(repr_dict['cplex_repr'])
-    --> 481         problem = cplex.Cplex(tmp_file)
-        482         self.__init__(problem=problem)
-        483 
+
+.. parsed-literal::
+
+    <IPython.core.display.Javascript at 0x11aa5eed0>
 
 
-    /Users/niko/.virtualenvs/cameo2.7.8/lib/python2.7/site-packages/cplex/__init__.pyc in __init__(self, *args)
-        713                     filetype = args[1]
-        714                 self._lp = _internal._procedural.createprob(env._e, filename, env.parameters.read.apiencoding.get())
-    --> 715                 _internal._procedural.readcopyprob(env._e, self._lp, filename, filetype)
-        716             else:
-        717                 self._lp = _internal._procedural.createprob(env._e, "", env.parameters.read.apiencoding.get())
+
+.. parsed-literal::
+
+    <IPython.core.display.Javascript at 0x11aa5ee90>
 
 
-    /Users/niko/.virtualenvs/cameo2.7.8/lib/python2.7/site-packages/cplex/_internal/_procedural.pyc in readcopyprob(env, lp, filename, filetype)
-        399     else:
-        400         status = CR.CPXXreadcopyprob(env, lp, filename, filetype)
-    --> 401     check_status(env, status)
-        402     return
-        403 
+
+.. parsed-literal::
+
+    <IPython.core.display.Javascript at 0x11aa5ef10>
 
 
-    /Users/niko/.virtualenvs/cameo2.7.8/lib/python2.7/site-packages/cplex/_internal/_procedural.pyc in __call__(self, env, status, from_cb)
-        115                 else:
-        116                     error_string = geterrorstring(env, status)
-    --> 117             raise CplexSolverError(error_string, env, status)
-        118 
-        119 check_status = StatusChecker()
+
+.. parsed-literal::
+
+    <IPython.core.display.Javascript at 0x11aa5ef50>
 
 
-    CplexSolverError: CPLEX Error  1561: Not enough data in SAV file.
 
+.. raw:: html
+
+    <div class="pb" id="047f9345-b4d4-4a35-92dd-176b6e9ecf2a"><table class="pb ui-widget"><tr>
+    <td class="pb_widget">Processing</td>
+    <td class="pb_widget"><div id="a78483e6-40a3-4970-9b1a-2a4343ad97cf">iMM904</div></td>
+    <td class="pb_widget_fill">
+            <div class="pb_bar" id="611cf549-2d62-4c76-9b78-3b9064116faa"></div>
+            <script type="text/javascript">
+                $("div#611cf549-2d62-4c76-9b78-3b9064116faa").progressbar({value: 0, max: 1});
+            </script>
+            </td>
+    <td class="pb_widget"><div id="eed5af8c-c2aa-477f-a95f-0222357104a0">ETA:  --:--:--</div></td>
+    <td class="pb_widget"><div id="95a2b3c2-9f75-4897-986d-6e20b9545061">  0%</div></td>
+    </tr></table><div>
+
+
+
+.. parsed-literal::
+
+    <IPython.core.display.Javascript at 0x114c52e90>
+
+
+
+.. parsed-literal::
+
+    <IPython.core.display.Javascript at 0x11934d650>
+
+
+
+.. parsed-literal::
+
+    <IPython.core.display.Javascript at 0x125185510>
+
+
+
+.. parsed-literal::
+
+    <IPython.core.display.Javascript at 0x1251852d0>
+
+
+
+.. parsed-literal::
+
+    <IPython.core.display.Javascript at 0x126889f10>
+
+
+
+.. parsed-literal::
+
+    <IPython.core.display.Javascript at 0x1251851d0>
+
+
+
+.. parsed-literal::
+
+    <IPython.core.display.Javascript at 0x125185250>
+
+
+
+.. parsed-literal::
+
+    <IPython.core.display.Javascript at 0x125185190>
+
+
+
+.. parsed-literal::
+
+    <IPython.core.display.Javascript at 0x125172e10>
+
+
+
+.. parsed-literal::
+
+    <IPython.core.display.Javascript at 0x125172050>
+
+
+
+.. parsed-literal::
+
+    <IPython.core.display.Javascript at 0x125185210>
+
+
+
+.. parsed-literal::
+
+    <IPython.core.display.Javascript at 0x125172d90>
 
 
 IPython notebook
