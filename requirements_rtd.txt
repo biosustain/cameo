@@ -5,3 +5,8 @@ sympy==0.7.5
 optlang>=0.0.0
 mock>=1.0.1
 sphinxcontrib-napoleon>=0.2.8
+progressbar-ipython>=2.3.1
+blessings==1.5.1
+ordered-set==1.2
+inspyred==1.0
+bashplotlib==0.6.1
