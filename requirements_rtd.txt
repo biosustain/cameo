@@ -2,7 +2,7 @@ sphinx-rtd-theme>=0.1.6
 numpydoc>=0.5
 cobra>=0.3.0b3
 sympy==0.7.5
-optlang>=0.0.0
+-e git+https://github.com/biosustain/optlang.git@b7a271e0b0190e00e287cebdd76c7f4af2b3e6a6#egg=optlang
 mock>=1.0.1
 sphinxcontrib-napoleon>=0.2.8
 progressbar-ipython>=2.3.1
