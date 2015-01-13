@@ -643,11 +643,13 @@ class SolverBasedModel(Model):
     @solver.setter
     def solver(self, value):
         interface = _SOLVER_INTERFACES.get(value, value)
-        if self._solver is None:
-            self._solver = interface.Model()
-            self._populate_solver_from_scratch()
-        else:
-            self._solver = interface.Model.clone(self._solver)
+        # if self._solver is None:
+        #     self._solver = interface.Model()
+        #     self._populate_solver_from_scratch()
+        # else:
+        #     self._solver = interface.Model.clone(self._solver)  #TODO: this is way to slow but could be fixed in the future
+        self._solver = interface.Model()
+        self._populate_solver_from_scratch()
 
     @property
     def exchanges(self):
