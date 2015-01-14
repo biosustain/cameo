@@ -21,7 +21,7 @@ from pandas.util.testing import assert_frame_equal
 
 from cameo import load_model, fba, config
 from cameo.util import RandomGenerator as Random
-from cameo.strain_design.heuristic import HeuristicOptimization, ReactionKnockoutOptimization, set_distance_function
+from cameo.strain_design.heuristic.optimization import HeuristicOptimization, ReactionKnockoutOptimization, set_distance_function
 from cameo.strain_design.heuristic.archivers import SolutionTuple, BestSolutionArchiver
 from cameo.strain_design.heuristic.decoders import ReactionKnockoutDecoder, KnockoutDecoder, GeneKnockoutDecoder
 from cameo.strain_design.heuristic.generators import set_generator, unique_set_generator
