@@ -194,10 +194,9 @@ class TestReaction(unittest.TestCase):
             if new_coefficient < 0:
                 new_coefficient *= -1
             if new_coefficient % 1 == 0:
-                new_coefficient = int(new_coefficient)
+                new_coefficient = new_coefficient
             self.assertIn(str(new_coefficient)+" "+already_included_metabolite.id, str(reaction))
             self.assertIn(new_coefficient2*reaction.variable, self.model.solver.constraints[already_included_metabolite.id].expression)
-
 
 class TestSolverBasedModel(CommonGround):
     def test_reactions_and_variables_match(self):

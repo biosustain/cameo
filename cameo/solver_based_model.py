@@ -621,11 +621,14 @@ class SolverBasedModel(Model):
     @objective.setter
     def objective(self, value):
         if isinstance(value, str):
-            self.solver.objective = self.solver.interface.Objective(
-                Mul._from_args([S.One, self.solver.variables[value]]), sloppy=True)
-        elif isinstance(value, Reaction):
-            self.solver.objective = self.solver.interface.Objective(
-                Mul._from_args([S.One, self.solver.variables[value.id]]), sloppy=True)
+            value = self.reactions.get_by_id(value)
+        if isinstance(value, Reaction):
+            if self.reversible_encoding == 'split' and value.reverse_variable is not None:
+                obj_expression = Add._from_args((Mul._from_args((S.One, value.variable)), Mul._from_args((S.NegativeOne, value.reverse_variable))))
+                self.solver.objective = self.solver.interface.Objective(obj_expression, sloppy=True)
+            else:
+                obj_expression = Mul._from_args((S.One, value.variable))
+                self.solver.objective = self.solver.interface.Objective(obj_expression, sloppy=True)
         elif isinstance(value, self.solver.interface.Objective):
             self.solver.objective = value
         # TODO: maybe the following should be allowed
