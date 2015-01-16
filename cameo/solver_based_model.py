@@ -44,7 +44,7 @@ import optlang
 
 from cameo.util import TimeMachine
 from cameo import exceptions
-from cameo.config import solvers
+from cameo import config
 from cameo.exceptions import SolveError, Infeasible, UndefinedSolution
 from cameo.parallel import SequentialView
 from cameo.flux_analysis.analysis import flux_variability_analysis
@@ -70,7 +70,7 @@ def to_solver_based_model(cobrapy_model, solver_interface=optlang):
         For example, optlang.glpk_interface or any other optlang interface (the default is optlang.interface).
     """
 
-    solver_interface = solvers.get(solver_interface, solver_interface)
+    solver_interface = config.solvers.get(solver_interface, solver_interface)
     solver_based_model = SolverBasedModel(
         solver_interface=solver_interface, description=cobrapy_model)
     return solver_based_model
@@ -631,7 +631,16 @@ class SolverBasedModel(Model):
 
     @solver.setter
     def solver(self, value):
-        interface = _SOLVER_INTERFACES.get(value, value)
+        not_valid_interface = ValueError('%s is not a valid solver interface. Pick from %s, or specify an optlang interface (e.g. optlang.glpk_interface).' % (value, config.solvers.keys()))
+        if isinstance(value, types.StringType):
+            try:
+                interface = config.solvers[value]
+            except KeyError:
+                raise not_valid_interface
+        elif isinstance(value, types.ModuleType):
+            interface = value
+        else:
+            raise not_valid_interface
         # if self._solver is None:
         #     self._solver = interface.Model()
         #     self._populate_solver_from_scratch()
