@@ -1,10 +1,21 @@
-# Copyright (c) 2014 Novo Nordisk Foundation Center for Biosustainability, DTU.
-# See LICENSE for details.
-import copy
-
-import unittest
+# Copyright 2014 Novo Nordisk Foundation Center for Biosustainability, DTU.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import os
+import copy
+import unittest
+
 from cobra import Metabolite
 from optlang import Objective
 from cameo import load_model, solvers
@@ -132,6 +143,29 @@ class TestReaction(unittest.TestCase):
         self.assertEqual(acald_reaction.reverse_variable.lb, 0)
         self.assertEqual(acald_reaction.reverse_variable.ub, 100)
 
+    def test_iMM904_4HGLSDm_problem(self):
+        model = load_model(os.path.join(TESTDIR, 'data/iMM904.xml'))
+        # set upper bound before lower bound after knockout
+        cp = model.copy()
+        rxn = cp.reactions.get_by_id('4HGLSDm')
+        prev_lb, prev_ub = rxn.lower_bound, rxn.upper_bound
+        rxn.lower_bound = 0
+        rxn.upper_bound = 0
+        rxn.upper_bound = prev_ub
+        rxn.lower_bound = prev_lb
+        self.assertEquals(rxn.lower_bound, prev_lb)
+        self.assertEquals(rxn.upper_bound, prev_ub)
+        # set lower bound before upper bound after knockout
+        cp = model.copy()
+        rxn = cp.reactions.get_by_id('4HGLSDm')
+        prev_lb, prev_ub = rxn.lower_bound, rxn.upper_bound
+        rxn.lower_bound = 0
+        rxn.upper_bound = 0
+        rxn.lower_bound = prev_lb
+        rxn.upper_bound = prev_ub
+        self.assertEquals(rxn.lower_bound, prev_lb)
+        self.assertEquals(rxn.upper_bound, prev_ub)
+
     def test_setting_lower_bound_higher_than_higher_bound_sets_higher_bound_to_new_lower_bound(self):
         for reaction in self.model.reactions:
             print reaction.id
@@ -160,10 +194,9 @@ class TestReaction(unittest.TestCase):
             if new_coefficient < 0:
                 new_coefficient *= -1
             if new_coefficient % 1 == 0:
-                new_coefficient = int(new_coefficient)
+                new_coefficient = new_coefficient
             self.assertIn(str(new_coefficient)+" "+already_included_metabolite.id, str(reaction))
             self.assertIn(new_coefficient2*reaction.variable, self.model.solver.constraints[already_included_metabolite.id].expression)
-
 
 class TestSolverBasedModel(CommonGround):
     def test_reactions_and_variables_match(self):

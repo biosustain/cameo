@@ -5,7 +5,7 @@
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 
-# http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -128,9 +128,9 @@ class Solution(SolutionBase):
 
     Attributes
     ----------
-    primal_dict : dict
+    fluxes : OrderedDict
         A dictionary of flux values.
-    dual_dict : dict
+    reduced_costs : OrderedDict
         A dictionary of reduced costs.
 
     Notes
@@ -147,17 +147,10 @@ class Solution(SolutionBase):
         super(Solution, self).__init__(model, *args, **kwargs)
         self.f = model.solver.objective.value
         self.x = []
-        for reaction in model.reactions:
-            primal = reaction.variable.primal
-            if reaction.reversibility:
-                primal -= reaction.reverse_variable.primal
-            self.x.append(primal)
         self.y = []
         for reaction in model.reactions:
-            dual = reaction.variable.dual
-            if reaction.reversibility:
-                dual -= reaction.reverse_variable.dual
-            self.y.append(dual)
+            self.x.append(reaction.flux)
+            self.y.append(reaction.reduced_cost)
         self.status = model.solver.status
         self._reaction_ids = [r.id for r in self.model.reactions]
 
@@ -170,12 +163,21 @@ class Solution(SolutionBase):
         return dict(zip(self._reaction_ids, self.y))
 
     @property
-    def primal_dict(self):
+    def fluxes(self):
         return self.x_dict
 
     @property
-    def dual_dict(self):
+    def reduced_costs(self):
         return self.y_dict
+
+    def __dir__(self):
+        # Hide 'cobrapy' attributes and methods from user.
+        fields = sorted(dir(type(self)) + self.__dict__.keys())
+        fields.remove('x')
+        fields.remove('y')
+        fields.remove('x_dict')
+        fields.remove('y_dict')
+        return fields
 
 
 class LazySolution(SolutionBase):
@@ -184,9 +186,9 @@ class LazySolution(SolutionBase):
     Attributes
     ----------
     model : SolverBasedModel
-    primal_dict : dict
+    fluxes : OrderedDict
         A dictionary of flux values.
-    dual_dict : dict
+    reduced_costs : OrderedDict
         A dictionary of reduced costs.
 
     Notes
@@ -243,13 +245,11 @@ class LazySolution(SolutionBase):
 
     @property
     def x_dict(self):
+        # TODO: this could be even lazier by returning a lazy dict
         self._check_freshness()
         primals = OrderedDict()
         for reaction in self.model.reactions:
-            primal = reaction.variable.primal
-            if reaction.reversibility:
-                primal -= reaction.reverse_variable.primal
-            primals[reaction.id] = primal
+            primals[reaction.id] = reaction.flux
         return primals
 
     @property
@@ -262,10 +262,7 @@ class LazySolution(SolutionBase):
         self._check_freshness()
         duals = OrderedDict()
         for reaction in self.model.reactions:
-            dual = reaction.variable.dual
-            if reaction.reversibility:
-                dual -= reaction.reverse_variable.dual
-            duals[reaction.id] = dual
+            duals[reaction.id] = reaction.reduced_cost
         return duals
 
     @property
@@ -274,12 +271,21 @@ class LazySolution(SolutionBase):
         return self.model.solver.status
 
     @property
-    def primal_dict(self):
+    def fluxes(self):
         return self.x_dict
 
     @property
-    def dual_dict(self):
+    def reduced_costs(self):
         return self.y_dict
+
+    def __dir__(self):
+        # Hide 'cobrapy' attributes and methods from user.
+        fields = sorted(dir(type(self)) + self.__dict__.keys())
+        fields.remove('x')
+        fields.remove('y')
+        fields.remove('x_dict')
+        fields.remove('y_dict')
+        return fields
 
 
 class Reaction(OriginalReaction):
@@ -306,7 +312,10 @@ class Reaction(OriginalReaction):
         """
         new_reaction = cls(name=reaction.name)
         for attribute, value in reaction.__dict__.iteritems():
-            setattr(new_reaction, attribute, value)
+            try:
+                setattr(new_reaction, attribute, value)
+            except AttributeError:
+                logger.debug("Can't set attribute %s for reaction %s (while cloning it to a cameo style reaction). Skipping it ..." % (attribute, reaction))
         if not isinstance(reaction.get_model(), SolverBasedModel):
             new_reaction._model = None
         if model is not None:
@@ -399,7 +408,7 @@ class Reaction(OriginalReaction):
             variable = self.variable
             reverse_variable = self.reverse_variable
 
-            if model.reversible_encoding == 'split' and value < 0 and self._upper_bound > 0:
+            if model.reversible_encoding == 'split' and value < 0 and self._upper_bound >= 0:
                 if self._lower_bound > 0:
                     variable.lb = 0
                 try:
@@ -413,6 +422,7 @@ class Reaction(OriginalReaction):
                 except ValueError:
                     variable.ub = value
                     variable.lb = value
+
         self._lower_bound = value
 
     @property
@@ -481,6 +491,26 @@ class Reaction(OriginalReaction):
                 'upper_bound'][
                 self.id]
 
+    @property
+    def flux(self):
+        if self.variable is not None:
+            primal = self.variable.primal
+            if self.reversibility:
+                primal -= self.reverse_variable.primal
+            return primal
+        else:
+            return None
+
+    @property
+    def reduced_cost(self):
+        if self.variable is not None:
+            dual = self.variable.dual
+            if self.reversibility:
+                dual -= self.reverse_variable.dual
+            return dual
+        else:
+            return None
+
     def add_metabolites(self, metabolites, **kwargs):
         super(Reaction, self).add_metabolites(metabolites, **kwargs)
         model = self.get_model()
@@ -488,13 +518,22 @@ class Reaction(OriginalReaction):
             for metabolite, coefficient in metabolites.iteritems():
                 model.solver.constraints[metabolite.id] += coefficient*self.variable
 
+    def knock_out(self, time_machine=None):
+        def _(reaction, lb, ub):
+            reaction.upper_bound = ub
+            reaction.lower_bound = lb
+        if time_machine is not None:
+            time_machine(do=super(Reaction, self).knock_out, undo=partial(_, self, self.lower_bound, self.upper_bound))
+        else:
+            super(Reaction, self).knock_out()
+
 class SolverBasedModel(Model):
     """Implements a model with an attached optlang solver instance.
 
     Every model manipulation is immediately reflected in the solver instance.
     """
 
-    def __init__(self, solver_interface=optlang, description=None, **kwargs):
+    def __init__(self, description=None, solver_interface=optlang, **kwargs):
         super(SolverBasedModel, self).__init__(description, **kwargs)
         self._reversible_encoding = 'split'
         cleaned_reactions = DictList()
@@ -568,11 +607,14 @@ class SolverBasedModel(Model):
     @objective.setter
     def objective(self, value):
         if isinstance(value, str):
-            self.solver.objective = self.solver.interface.Objective(
-                Mul._from_args([S.One, self.solver.variables[value]]), sloppy=True)
-        elif isinstance(value, Reaction):
-            self.solver.objective = self.solver.interface.Objective(
-                Mul._from_args([S.One, self.solver.variables[value.id]]), sloppy=True)
+            value = self.reactions.get_by_id(value)
+        if isinstance(value, Reaction):
+            if self.reversible_encoding == 'split' and value.reverse_variable is not None:
+                obj_expression = Add._from_args((Mul._from_args((S.One, value.variable)), Mul._from_args((S.NegativeOne, value.reverse_variable))))
+                self.solver.objective = self.solver.interface.Objective(obj_expression, sloppy=True)
+            else:
+                obj_expression = Mul._from_args((S.One, value.variable))
+                self.solver.objective = self.solver.interface.Objective(obj_expression, sloppy=True)
         elif isinstance(value, self.solver.interface.Objective):
             self.solver.objective = value
         # TODO: maybe the following should be allowed
@@ -589,12 +631,14 @@ class SolverBasedModel(Model):
 
     @solver.setter
     def solver(self, value):
-        interface = solvers.get(value, value)
-        if self._solver is None:
-            self._solver = interface.Model()
-            self._populate_solver_from_scratch()
-        else:
-            self._solver = interface.Model.clone(self._solver)
+        interface = _SOLVER_INTERFACES.get(value, value)
+        # if self._solver is None:
+        #     self._solver = interface.Model()
+        #     self._populate_solver_from_scratch()
+        # else:
+        #     self._solver = interface.Model.clone(self._solver)  #TODO: this is way to slow but could be fixed in the future
+        self._solver = interface.Model()
+        self._populate_solver_from_scratch()
 
     @property
     def exchanges(self):

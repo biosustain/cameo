@@ -1,11 +1,11 @@
 # Copyright 2014 Novo Nordisk Foundation Center for Biosustainability, DTU.
-
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-
-# http://www.apache.org/licenses/LICENSE-2.0
-
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,14 +16,45 @@
 """
 CAMEO: Computer Assisted Metabolic Engineering & Optimization
 
+Cameo is a high-level python library developed to aid the in silico
+strain design process in metabolic engineering projects. The library
+provides a modular architecture that enables the efficient construction
+of custom analysis workflows.
+
+Example
+-------
+
 from cameo import load_model
 
-model = load_model('../tests/data/EcoliCore.xml')
+# load a model from SBML format (can be found under cameo/tests/data)
+model = load_model('EcoliCore.xml')
+
+# solve the model and print the objective value
 solution = model.solve()
 print 'Objective value:', solution.f
+
+# Determine a set of gene deletions that will optimize the production
+# of a desired compound
+from cameo.strain_design.heuristic import GeneKnockoutOptimization
+from cameo.strain_design.heuristic.objective_functions import biomass_product_coupled_yield
+from cameo.flux_analysis.simulation import fba
+
+objective = biomass_product_coupled_yield("Ec_biomass_iJO1366_core_53p95M",
+                                          "EX_succ_lp_e_rp_", "EX_glc_lp_e_rp_")
+optimization = GeneKnockoutOptimization(model=model, objective_function=of,
+                              simulation_method=fba, heuristic_method=inspyred.ec.GA)
+optimization.run(max_evaluations=2000, n=1,
+       mutation_rate=0.3, view=cameo.parallel.SequentialView(),
+       product="EX_succ_lp_e_rp_", num_elites=1)
 """
 
+import os
+
+_cameo_path = __path__[0]
+_cameo_data_path = os.path.join(_cameo_path, 'data')
+
 from ._version import get_versions
+
 __version__ = get_versions()['version']
 del get_versions
 
@@ -32,9 +63,13 @@ try:
 except ImportError:
     pass
 
+# from cameo import api
+
 from .flux_analysis.analysis import flux_variability_analysis, phenotypic_phase_plane
 from .flux_analysis.simulation import fba, pfba
 
 import config
 
-from cameo.config import solvers
+from solver_based_model import SolverBasedModel as Model
+from solver_based_model import Reaction
+from cobra.core.Metabolite import Metabolite

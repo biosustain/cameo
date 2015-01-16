@@ -8,6 +8,7 @@ Subpackages
 
     cameo.strain_design.deterministic
     cameo.strain_design.heuristic
+    cameo.strain_design.pathway_prediction
 
 Module contents
 ---------------

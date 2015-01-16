@@ -1,16 +1,17 @@
 # Copyright 2013 Novo Nordisk Foundation Center for Biosustainability, DTU.
-
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-
-# http://www.apache.org/licenses/LICENSE-2.0
-
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import json
 import logging
 import subprocess
@@ -138,3 +139,35 @@ def draw_knockout_result(model, map_name, simulation_method, knockouts, *args, *
     except Exception as e:
         tm.reset()
         raise e
+
+def inchi_to_svg(inchi, file=None):
+    """Generate an SVG drawing from an InChI string.
+
+    Parameters
+    ----------
+    inchi : str
+        An InChI string.
+
+    Returns
+    -------
+    str
+        A vector graphics of the compound represented as SVG.
+
+    Examples
+    --------
+    Draw water
+    >>> inchi_to_svg('InChI=1S/H2O/h1H2')
+    '<?xml version="1.0"?>\n<svg version="1.1" id="topsvg"\nxmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"\nxmlns:cml="http://www.xml-cml.org/schema" x="0" y="0" width="200px" height="200px" viewBox="0 0 100 100">\n<title>OBDepict</title>\n<rect x="0" y="0" width="100" height="100" fill="white"/>\n<text text-anchor="middle" font-size="6" fill ="black" font-family="sans-serif"\nx="50" y="98" ></text>\n<g transform="translate(0,0)">\n<svg width="100" height="100" x="0" y="0" viewBox="0 0 80 80"\nfont-family="sans-serif" stroke="rgb(0,0,0)" stroke-width="2"  stroke-linecap="round">\n<text x="36" y="48" fill="rgb(255,12,12)"  stroke="rgb(255,12,12)" stroke-width="1" font-size="16" >OH</text>\n<text x="60" y="51.68" fill="rgb(255,12,12)"  stroke="rgb(255,12,12)" stroke-width="1" font-size="13" >2</text>\n</svg>\n</g>\n</svg>\n\n'
+    """
+    try:
+        import openbabel
+    except ImportError, e:
+        print e
+        raise ImportError("OpenBabel seems to be not installed.")
+    convert = openbabel.OBConversion()
+    convert.SetInFormat("inchi")
+    convert.SetOutFormat("svg")
+    mol = openbabel.OBMol()
+    if not convert.ReadString(mol, inchi):
+        raise Exception("%s could not be parsed as an inchi string.")
+    return convert.WriteString(mol)

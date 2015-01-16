@@ -45,6 +45,10 @@ help:
 	@echo "  pseudoxml  to make pseudoxml-XML files for display purposes"
 	@echo "  linkcheck  to check all external links for integrity"
 	@echo "  doctest    to run all doctests embedded in the documentation (if enabled)"
+	@echo "  ipy2rst    to convert ipython notebooks in to rst files"
+
+ipy2rst:
+	for i in *.ipynb; do ipython nbconvert $$i --to rst; done
 
 clean:
 	rm -rf $(BUILDDIR)/*

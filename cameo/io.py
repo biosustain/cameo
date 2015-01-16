@@ -1,11 +1,11 @@
 # Copyright 2014 Novo Nordisk Foundation Center for Biosustainability, DTU.
-
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-
-# http://www.apache.org/licenses/LICENSE-2.0
-
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -15,8 +15,12 @@
 import logging
 import types
 import pickle
+from multiprocessing import Process, Queue
 import optlang
 from cobra.io import read_sbml_model
+import time
+import progressbar
+import requests
 from cameo.solver_based_model import SolverBasedModel, to_solver_based_model
 from cameo import webmodels
 
@@ -44,10 +48,17 @@ def load_model(path_or_handle, solver_interface=optlang.glpk_interface, sanitize
             logger.debug('%s not a file path. Querying webmodels ...' % path)
             try:
                 df = webmodels.index_models()
-                index = df.query('name == "%s"' % path_or_handle).index[0]
+            except requests.ConnectionError as e:
+                logger.error("You need to be connectedd to the internet to load an online model.")
+                raise e
+            except Exception as e:
+                logger.error("Something went wrong while looking up available webmodels.")
+                raise e
+            try:
+                index = df.query('name == "%s"' % path_or_handle).id.values[0]
                 handle = webmodels.get_sbml_file(index)
                 path = handle.name
-            except:
+            except IndexError:
                 raise ValueError("%s is neither a file nor a model ID." % path)
     elif hasattr(path_or_handle, 'read'):
         path = path_or_handle.name
@@ -60,7 +71,19 @@ def load_model(path_or_handle, solver_interface=optlang.glpk_interface, sanitize
     except Exception:
         logger.debug('Cannot unpickle %s. Assuming sbml model next.' % path)
         try:
-            model = read_sbml_model(path)
+            interactive = False  # TODO: make this figure out if run inside a shell or IPython notebook
+            if interactive:
+                def read_sbml_model_subprocess(path, queue):
+                    queue.put(read_sbml_model(path))
+                pbar = progressbar.ProgressBar()
+                queue = Queue()
+                proc = Process(target=read_sbml_model_subprocess, args=(path, queue))
+                proc.start()
+                while proc.is_alive():
+                    time.sleep(.5)
+                model = queue.get()
+            else:
+                model = read_sbml_model(path)
             if sanitize:
                 sanitize_ids(model)
         except AttributeError:  # TODO: cobrapy doesn't raise a proper exception if a file does not contain an SBML model
@@ -68,21 +91,28 @@ def load_model(path_or_handle, solver_interface=optlang.glpk_interface, sanitize
 
     if not isinstance(model, SolverBasedModel):
         if solver_interface is not None:
+            logger.debug("Changing solver interface to %s" % solver_interface)
             model = to_solver_based_model(model, solver_interface=solver_interface)
     else:
         if model.interface is not solver_interface and solver_interface is not None:
+            logger.debug("Changing solver interface to %s" % solver_interface)
             model.solver = solver_interface
 
     return model
 
 
-ID_SANITIZE_RULES_SIMPHENY = [('_DASH_', '__'), ('_FSLASH_', '/'),('_BSLASH_', "\\"), ('_LPAREN_', '('), ('_LSQBKT_', '['),
+ID_SANITIZE_RULES_SIMPHENY = [('_DASH_', '-'), ('_FSLASH_', '/'),('_BSLASH_', "\\"), ('_LPAREN_', '('), ('_LSQBKT_', '['),
                      ('_RSQBKT_', ']'), ('_RPAREN_', ')'), ('_COMMA_', ','), ('_PERIOD_', '.'), ('_APOS_', "'"),
-                     ('&amp;', '&'), ('&lt;', '<'), ('&gt;', '>'), ('&quot;', '"'), ('__', '-')]
+                     ('&amp;', '&'), ('&lt;', '<'), ('&gt;', '>'), ('&quot;', '"')]
 
 ID_SANITIZE_RULES_TAB_COMPLETION = [('_DASH_', '_dsh_'), ('_FSLASH_', '_fsh_'),('_BSLASH_', "_bsh_"), ('_LPAREN_', '_lp_'), ('_LSQBKT_', '_lb_'),
                      ('_RSQBKT_', '_rb_'), ('_RPAREN_', '_rp_'), ('_COMMA_', '_cm_'), ('_PERIOD_', '_prd_'), ('_APOS_', "_apo_"),
                      ('&amp;', '_amp_'), ('&lt;', '_lt_'), ('&gt;', '_gt_'), ('&quot;', '_qot_')]
+
+def _apply_sanitize_rules(id, rules):
+        for rule in rules:
+            id = id.replace(*rule)
+        return id
 
 def sanitize_ids(model):
     """Makes IDs crippled by the XML specification less annoying.
@@ -101,11 +131,6 @@ def sanitize_ids(model):
     Will add a nice_id attribute.
 
     """
-
-    def _apply_sanitize_rules(id, rules):
-        for rule in rules:
-            id = id.replace(*rule)
-        return id
 
     for metabolite in model.metabolites:
         met_id = metabolite.id

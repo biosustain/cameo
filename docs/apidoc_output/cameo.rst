@@ -6,6 +6,7 @@ Subpackages
 
 .. toctree::
 
+    cameo.api
     cameo.flux_analysis
     cameo.strain_design
 
@@ -48,6 +49,14 @@ cameo.solver_based_model module
 -------------------------------
 
 .. automodule:: cameo.solver_based_model
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+cameo.stuff module
+------------------
+
+.. automodule:: cameo.stuff
     :members:
     :undoc-members:
     :show-inheritance:
