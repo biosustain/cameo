@@ -389,7 +389,6 @@ class SolverBasedModel(_cobrapy.core.Model):
         timestamp_formatter = lambda timestamp: datetime.datetime.fromtimestamp(timestamp).strftime(
             "%Y-%m-%d %H:%M:%S:%f")
         self._timestamp_last_optimization = time.time()
-        # logger.debug('self._timestamp_last_optimization ' + timestamp_formatter(self._timestamp_last_optimization))
         if objective_sense is not None:
             original_direction = self.objective.direction
             self.objective.direction = {'minimize': 'min', 'maximize': 'max'}[objective_sense]
@@ -397,9 +396,7 @@ class SolverBasedModel(_cobrapy.core.Model):
             self.objective.direction = original_direction
         else:
             self.solver.optimize()
-            logger.debug('hey optimize, %s' % self.solver.status)
         solution = solution_type(self)
-        # logger.debug('solution = solution_type(self) ' + timestamp_formatter(solution._time_stamp))
         self.solution = solution
         return solution
 
