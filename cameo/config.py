@@ -56,9 +56,11 @@ try:
     client.block = True
     default_view = client.direct_view()
 except Exception:
-    try:
-        from .parallel import MultiprocessingView
-        default_view = MultiprocessingView()
-    except ImportError:
-        from .parallel import SequentialView
-        default_view = SequentialView()
+    from .parallel import SequentialView
+    default_view = SequentialView()
+    # try:
+    #     from .parallel import MultiprocessingView
+    #     default_view = MultiprocessingView()
+    # except ImportError:
+    #     from .parallel import SequentialView
+    #     default_view = SequentialView()
