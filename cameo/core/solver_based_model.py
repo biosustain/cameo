@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 # Copyright 2013 Novo Nordisk Foundation Center for Biosustainability, DTU.
-
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-
+#
 #     http://www.apache.org/licenses/LICENSE-2.0
-
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,43 +16,30 @@
 """A solver-based model class and other extensions of cobrapy objects.
 """
 
-
 import time
 import datetime
 import csv
-import hashlib
-
 from copy import copy, deepcopy
-from collections import OrderedDict
 from functools import partial
 import types
 
-from cobra.core import Solution
-from cobra.core.Reaction import Reaction as OriginalReaction
-from cobra.core.Metabolite import Metabolite
-from cobra.core.Model import Model
-from cobra.core.DictList import DictList
-from cobra.manipulation.delete import find_gene_knockout_reactions
-
+import cobra as _cobrapy
 import sympy
 from sympy import Add
 from sympy import Mul
-
 from sympy.core.singleton import S
-
 import optlang
+from pandas import DataFrame, pandas
 
 from cameo.util import TimeMachine
 from cameo import exceptions
 from cameo import config
 from cameo.exceptions import SolveError, Infeasible, UndefinedSolution
-from cameo.parallel import SequentialView
-from cameo.flux_analysis.analysis import flux_variability_analysis
+from .reaction import Reaction
+from .solution import LazySolution, Solution
 
-from pandas import Series, DataFrame, pandas
 
 import logging
-
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -76,458 +63,7 @@ def to_solver_based_model(cobrapy_model, solver_interface=optlang):
     return solver_based_model
 
 
-class SolutionBase(object):
-
-    def __init__(self, model, *args, **kwargs):
-        super(SolutionBase, self).__init__(*args, **kwargs)
-        self.model = model
-
-    def __str__(self):
-        """A pandas DataFrame representation of the solution.
-
-        Returns
-        -------
-        pandas.DataFrame
-        """
-        return str(self.to_frame())
-
-    def as_cobrapy_solution(self):
-        """Convert into a cobrapy Solution.
-
-        Returns
-        -------
-        cobra.core.Solution.Solution
-        """
-        return Solution(self.f, x=self.x,
-                        x_dict=self.x_dict, y=self.y, y_dict=self.y_dict,
-                        the_solver=None, the_time=0, status=self.status)
-
-    def to_frame(self):
-        """Return the solution as a pandas DataFrame.
-
-        Returns
-        -------
-        pandas.DataFrame
-        """
-        return DataFrame({'fluxes': Series(self.x_dict), 'reduced_costs': Series(self.y_dict)})
-
-
-    def get_primal_by_id(self, reaction_id):
-        """Return a flux/primal value for a reaction.
-
-        Parameters
-        ----------
-        reaction_id : str
-            A reaction ID.
-        """
-        return self.x_dict[reaction_id]
-
-
-class Solution(SolutionBase):
-    """This class mimicks the cobrapy Solution class.
-
-    Attributes
-    ----------
-    fluxes : OrderedDict
-        A dictionary of flux values.
-    reduced_costs : OrderedDict
-        A dictionary of reduced costs.
-
-    Notes
-    -----
-    See also documentation for cobra.core.Solution.Solution for an extensive list of inherited attributes.
-    """
-
-    def __init__(self, model, *args, **kwargs):
-        """
-        Parameters
-        ----------
-        model : SolverBasedModel
-        """
-        super(Solution, self).__init__(model, *args, **kwargs)
-        self.f = model.solver.objective.value
-        self.x = []
-        self.y = []
-        for reaction in model.reactions:
-            self.x.append(reaction.flux)
-            self.y.append(reaction.reduced_cost)
-        self.status = model.solver.status
-        self._reaction_ids = [r.id for r in self.model.reactions]
-
-    @property
-    def x_dict(self):
-        return dict(zip(self._reaction_ids, self.x))
-
-    @property
-    def y_dict(self):
-        return dict(zip(self._reaction_ids, self.y))
-
-    @property
-    def fluxes(self):
-        return self.x_dict
-
-    @property
-    def reduced_costs(self):
-        return self.y_dict
-
-    def __dir__(self):
-        # Hide 'cobrapy' attributes and methods from user.
-        fields = sorted(dir(type(self)) + self.__dict__.keys())
-        fields.remove('x')
-        fields.remove('y')
-        fields.remove('x_dict')
-        fields.remove('y_dict')
-        return fields
-
-
-class LazySolution(SolutionBase):
-    """This class implements a lazy evaluating version of the cobrapy Solution class.
-
-    Attributes
-    ----------
-    model : SolverBasedModel
-    fluxes : OrderedDict
-        A dictionary of flux values.
-    reduced_costs : OrderedDict
-        A dictionary of reduced costs.
-
-    Notes
-    -----
-    See also documentation for cobra.core.Solution.Solution for an extensive list of inherited attributes.
-    """
-
-    def __init__(self, model, *args, **kwargs):
-        """
-        Parameters
-        ----------
-        model : SolverBasedModel
-        """
-        super(LazySolution, self).__init__(model, *args, **kwargs)
-        if self.model._timestamp_last_optimization is not None:
-            self._time_stamp = self.model._timestamp_last_optimization
-        else:
-            self._time_stamp = time.time()
-        self._f = None
-
-    def _check_freshness(self):
-        """Raises an exceptions if the solution might have become invalid due to re-optimization of the attached model.
-
-        Raises
-        ------
-        UndefinedSolution
-            If solution has become invalid.
-        """
-        if self._time_stamp != self.model._timestamp_last_optimization:
-            timestamp_formatter = lambda timestamp: datetime.datetime.fromtimestamp(timestamp).strftime(
-                "%Y-%m-%d %H:%M:%S:%f")
-            raise UndefinedSolution(
-                'The solution (captured around %s) has become invalid as the model has been re-optimized recently (%s).' % (
-                    timestamp_formatter(self._time_stamp),
-                    timestamp_formatter(self.model._timestamp_last_optimization))
-            )
-
-    @property
-    def f(self):
-        self._check_freshness()
-        if self._f is None:
-            return self.model.solver.objective.value
-        else:
-            return self._f
-
-    @f.setter
-    def f(self, value):
-        self._f = value
-
-    @property
-    def x(self):
-        self._check_freshness()
-        return self.x_dict.values()
-
-    @property
-    def x_dict(self):
-        # TODO: this could be even lazier by returning a lazy dict
-        self._check_freshness()
-        primals = OrderedDict()
-        for reaction in self.model.reactions:
-            primals[reaction.id] = reaction.flux
-        return primals
-
-    @property
-    def y(self):
-        self._check_freshness()
-        return self.y_dict.values()
-
-    @property
-    def y_dict(self):
-        self._check_freshness()
-        duals = OrderedDict()
-        for reaction in self.model.reactions:
-            duals[reaction.id] = reaction.reduced_cost
-        return duals
-
-    @property
-    def status(self):
-        self._check_freshness()
-        return self.model.solver.status
-
-    @property
-    def fluxes(self):
-        return self.x_dict
-
-    @property
-    def reduced_costs(self):
-        return self.y_dict
-
-    def __dir__(self):
-        # Hide 'cobrapy' attributes and methods from user.
-        fields = sorted(dir(type(self)) + self.__dict__.keys())
-        fields.remove('x')
-        fields.remove('y')
-        fields.remove('x_dict')
-        fields.remove('y_dict')
-        return fields
-
-
-class Reaction(OriginalReaction):
-    """This class extends the cobrapy Reaction class to work with SolverBasedModel.
-
-    Notes
-    -----
-    See also documentation for cobra.core.Reaction.Reaction for an extensive list of inherited attributes.
-    """
-
-    @classmethod
-    def clone(cls, reaction, model=None):
-        """Clone a reaction.
-
-        Parameters
-        ----------
-        reaction : Reaction, cobra.core.Reaction.Reaction
-        model : model, optional
-
-        Returns
-        -------
-        Reaction
-
-        """
-        new_reaction = cls(name=reaction.name)
-        for attribute, value in reaction.__dict__.iteritems():
-            try:
-                setattr(new_reaction, attribute, value)
-            except AttributeError:
-                logger.debug("Can't set attribute %s for reaction %s (while cloning it to a cameo style reaction). Skipping it ..." % (attribute, reaction))
-        if not isinstance(reaction.get_model(), SolverBasedModel):
-            new_reaction._model = None
-        if model is not None:
-            new_reaction._model = model
-        for gene in new_reaction.genes:
-            # print gene._reaction
-            # for r in list(gene._reaction):
-            #     print r, type(r)
-            gene._reaction.remove(reaction)
-            # print gene._reaction
-            gene._reaction.add(new_reaction)
-            # print gene._reaction
-        for metabolite in new_reaction.metabolites:
-            metabolite._reaction.remove(reaction)
-            metabolite._reaction.add(new_reaction)
-        return new_reaction
-
-    def __init__(self, name=None):
-        """
-        Parameters
-        ----------
-        name : str, optional
-            The name of the reaction.
-        """
-        super(Reaction, self).__init__(name=name)
-        self._lower_bound = 0
-        self._upper_bound = 1000.
-        self._objective_coefficient = 0.
-
-    def __str__(self):
-        return ''.join((self.id, ": ", self.build_reaction_string()))
-
-    @property
-    def variable(self):
-        """An optlang variable representing the forward flux (if associated with model), otherwise None.
-        Representing the net flux if model.reversible_encoding == 'unsplit'"""
-        model = self.get_model()
-        if model is not None:
-            return model.solver.variables[self.id]
-        else:
-            return None
-
-    @property
-    def reversibility(self):
-        return self._lower_bound < 0 and self._upper_bound > 0
-
-    def _get_reverse_id(self):
-        """Generate the id of revers_variable from the reaction's id."""
-        return '_'.join((self.id, 'reverse', hashlib.md5(self.id).hexdigest()[0:5]))
-
-    @property
-    def reverse_variable(self):
-        """An optlang variable representing the reverse flux (if associated with model), otherwise None."""
-        model = self.get_model()
-        if model is not None:
-            aux_id = self._get_reverse_id()
-            try:
-                return model.solver.variables[aux_id]
-            except KeyError:
-                return None
-        else:
-            return None
-
-    @property
-    def lower_bound(self):
-        model = self.get_model()
-        if model is not None:
-            if model.reversible_encoding == 'split' and self.reversibility:
-                return -1 * self.reverse_variable.ub
-            else:
-                return self.variable.lb
-        else:
-            return self._lower_bound
-
-    @lower_bound.setter
-    def lower_bound(self, value):
-        model = self.get_model()
-
-        if model is not None:
-
-            if value >= 0 and self._lower_bound < 0 and self._upper_bound > 0:
-                reverse_variable = self.reverse_variable
-                reverse_variable.lb, reverse_variable.ub = 0, 0
-            elif value < 0 and self._lower_bound >= 0 and self._get_reverse_id() not in model.solver.variables:  # self._lower_bound >= 0 implies self._upper_bound >= 0
-                aux_var = model.solver._add_variable(
-                    model.solver.interface.Variable(self._get_reverse_id(), lb=0, ub=0))
-                for met, coeff in self._metabolites.iteritems():
-                    model.solver.constraints[met.id] += sympy.Mul._from_args((-1 * sympy.RealNumber(coeff), aux_var))
-
-            variable = self.variable
-            reverse_variable = self.reverse_variable
-
-            if model.reversible_encoding == 'split' and value < 0 and self._upper_bound >= 0:
-                if self._lower_bound > 0:
-                    variable.lb = 0
-                try:
-                    reverse_variable.ub = -1 * value
-                except ValueError:
-                    reverse_variable.lb = -1 * value
-                    reverse_variable.ub = -1 * value
-            else:
-                try:
-                    variable.lb = value
-                except ValueError:
-                    variable.ub = value
-                    variable.lb = value
-
-        self._lower_bound = value
-
-    @property
-    def upper_bound(self):
-        if self.get_model() is not None:
-            return self.variable.ub
-        else:
-            return self._upper_bound
-
-    @upper_bound.setter
-    def upper_bound(self, value):
-        model = self.get_model()
-        if model is not None:
-            # Remove auxiliary variable if not needed anymore
-            reverse_variable = self.reverse_variable
-            variable = self.variable
-            if value <= 0 and self._upper_bound > 0 and self._lower_bound < 0:
-                reverse_variable.lb, reverse_variable.ub = 0, 0
-
-            # Add auxiliary variable if needed
-            elif value > 0 and self._upper_bound < 0 and self._get_reverse_id() not in model.solver.variables:  # self._upper_bound < 0 implies self._lower_bound < 0
-                aux_var = model.solver._add_variable(
-                    model.solver.interface.Variable(self._get_reverse_id(), lb=0, ub=0))
-                for met, coeff in self._metabolites.iteritems():
-                    model.solver.constraints[met.id] += sympy.Mul._from_args((-1 * sympy.RealNumber(coeff), aux_var))
-
-            if model.reversible_encoding == 'split' and value > 0 and self._lower_bound < 0:
-                variable.ub = value
-                if self._upper_bound < 0:
-                    reverse_variable.ub = -1 * variable.lb
-                    variable.lb = 0
-            else:
-                try:
-                    variable.ub = value
-                except ValueError:
-                    variable.lb = value
-                    variable.ub = value
-
-        self._upper_bound = value
-
-    @property
-    def objective_coefficient(self):
-        return self._objective_coefficient
-
-    @objective_coefficient.setter
-    def objective_coefficient(self, value):
-        model = self.get_model()
-        if model is not None:
-            model.solver._set_linear_objective_term(self.variable, value)
-
-        self._objective_coefficient = value
-
-    @property
-    def effective_lower_bound(self):
-        model = self.get_model()
-        return \
-            flux_variability_analysis(model, reactions=[self], view=SequentialView(), remove_cycles=False)[
-                'lower_bound'][
-                self.id]
-
-    @property
-    def effective_upper_bound(self):
-        model = self.get_model()
-        return \
-            flux_variability_analysis(model, reactions=[self], view=SequentialView(), remove_cycles=False)[
-                'upper_bound'][
-                self.id]
-
-    @property
-    def flux(self):
-        if self.variable is not None:
-            primal = self.variable.primal
-            if self.reversibility:
-                primal -= self.reverse_variable.primal
-            return primal
-        else:
-            return None
-
-    @property
-    def reduced_cost(self):
-        if self.variable is not None:
-            dual = self.variable.dual
-            if self.reversibility:
-                dual -= self.reverse_variable.dual
-            return dual
-        else:
-            return None
-
-    def add_metabolites(self, metabolites, **kwargs):
-        super(Reaction, self).add_metabolites(metabolites, **kwargs)
-        model = self.get_model()
-        if model is not None:
-            for metabolite, coefficient in metabolites.iteritems():
-                model.solver.constraints[metabolite.id] += coefficient*self.variable
-
-    def knock_out(self, time_machine=None):
-        def _(reaction, lb, ub):
-            reaction.upper_bound = ub
-            reaction.lower_bound = lb
-        if time_machine is not None:
-            time_machine(do=super(Reaction, self).knock_out, undo=partial(_, self, self.lower_bound, self.upper_bound))
-        else:
-            super(Reaction, self).knock_out()
-
-class SolverBasedModel(Model):
+class SolverBasedModel(_cobrapy.core.Model):
     """Implements a model with an attached optlang solver instance.
 
     Every model manipulation is immediately reflected in the solver instance.
@@ -536,7 +72,7 @@ class SolverBasedModel(Model):
     def __init__(self, description=None, solver_interface=optlang, **kwargs):
         super(SolverBasedModel, self).__init__(description, **kwargs)
         self._reversible_encoding = 'split'
-        cleaned_reactions = DictList()
+        cleaned_reactions = _cobrapy.core.DictList()
         for reaction in self.reactions:
             if isinstance(reaction, Reaction):
                 cleaned_reactions.append(reaction)
@@ -861,17 +397,20 @@ class SolverBasedModel(Model):
             self.objective.direction = original_direction
         else:
             self.solver.optimize()
+            logger.debug('hey optimize, %s' % self.solver.status)
         solution = solution_type(self)
         # logger.debug('solution = solution_type(self) ' + timestamp_formatter(solution._time_stamp))
         self.solution = solution
         return solution
 
-    def solve(self, *args, **kwargs):
+    def solve(self, solution_type=LazySolution, *args, **kwargs):
         """Optimize model."""
-        solution = self.optimize(solution_type=LazySolution, *args, **kwargs)
+        solution = self.optimize(solution_type=solution_type, *args, **kwargs)
         if solution.status is not 'optimal':
+            logger.debug('No optimal solution found. Turning on presolve.')
             self.solver.configuration.presolve = True
-            solution = self.optimize(solution_type=LazySolution, *args, **kwargs)
+            solution = self.optimize(solution_type=solution_type, *args, **kwargs)
+            logger.debug('hey, %s, %s' % (solution.status, self.solver.status))
             self.solver.configuration.presolve = False
             if solution.status is not 'optimal':
                 status = solution.status
@@ -930,7 +469,7 @@ class SolverBasedModel(Model):
             if abs(flux) > 0:
                 genes_to_check.update(self.reactions.get_by_id(reaction_id).genes)
         for gene in genes_to_check:
-            reactions = find_gene_knockout_reactions(self, [gene])
+            reactions = _cobrapy.manipulation.delete.find_gene_knockout_reactions(self, [gene])
             for reaction in reactions:
                 time_machine(do=partial(setattr, reaction, 'lower_bound', 0),
                              undo=partial(setattr, reaction, 'lower_bound', reaction.lower_bound))
@@ -1032,9 +571,3 @@ class SolverBasedModel(Model):
             if model.reactions.has_id(rid):
                 model.reactions.get_by_id(rid).lower_bound = medium['lower_bound'][i]
                 model.reactions.get_by_id(rid).upper_bound = medium['upper_bound'][i]
-
-
-if __name__ == '__main__':
-    from cameo import load_model
-
-    model = load_model('../../test/data/EcoliCore.xml')

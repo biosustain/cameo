@@ -76,7 +76,9 @@ class AbstractTestFluxVariabilityAnalysis(object):
 
     @unittest.skipIf(TRAVIS, 'Running multiprocess in Travis breaks')
     def test_flux_variability_parallel(self):
-        fva_solution = flux_variability_analysis(self.model, remove_cycles=False, view=MultiprocessingView())
+        mp_view = MultiprocessingView()
+        fva_solution = flux_variability_analysis(self.model, remove_cycles=False, view=mp_view)
+        mp_view.shutdown()
         assert_dataframes_equal(fva_solution, REFERENCE_FVA_SOLUTION_ECOLI_CORE)
 
     @unittest.skip("multiprocessing doesn't work with cycle_free_fva yet")
@@ -159,6 +161,14 @@ class AbstractTestSimulationMethods(object):
         self.assertAlmostEqual(solution.f, 0.873921, delta=0.000001)
 
     def test_pfba(self):
+        fba_solution = fba(self.model)
+        fba_flux_sum = sum((abs(val) for val in fba_solution.x_dict.values()))
+        pfba_solution = pfba(self.model)
+        pfba_flux_sum = sum((abs(val) for val in pfba_solution.x_dict.values()))
+        print pfba_flux_sum
+        self.assertTrue(pfba_flux_sum <= fba_flux_sum)  # looks like GLPK finds a parsimonious solution without the flux minimization objective
+
+    def test_pfba_iJO(self):
         fba_solution = fba(iJO_MODEL)
         fba_flux_sum = sum((abs(val) for val in fba_solution.x_dict.values()))
         pfba_solution = pfba(iJO_MODEL)
@@ -166,6 +176,7 @@ class AbstractTestSimulationMethods(object):
         print pfba_flux_sum
         self.assertTrue(pfba_flux_sum < fba_flux_sum)
 
+    @unittest.skip('quadratic moma not implemented yet.')
     def test_moma(self):
         pass
 

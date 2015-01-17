@@ -14,11 +14,12 @@
 
 import os
 import unittest
+
 import cobra
 import optlang
 
 from cameo import load_model, solvers
-from cameo.solver_based_model import SolverBasedModel
+from cameo.core.solver_based_model import SolverBasedModel
 
 
 TESTDIR = os.path.dirname(__file__)

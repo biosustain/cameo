@@ -14,20 +14,22 @@
 
 from functools import partial
 from itertools import izip
-import logging
+
 from pandas import DataFrame, pandas
 from progressbar import ProgressBar
 from progressbar.widgets import ETA, Bar
-from cameo import config, flux_variability_analysis
+
+from cameo import config, flux_variability_analysis, Reaction
 from cameo.parallel import SequentialView, MultiprocessingView
-from cameo.solver_based_model import Reaction
+from cameo.core.solver_based_model import Reaction
 from cameo.strain_design import StrainDesignMethod
 from cameo.flux_analysis.analysis import phenotypic_phase_plane
 from cameo.util import TimeMachine
 
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
 
+import logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 class DifferentialFVA(StrainDesignMethod):
     """Differential flux variability analysis.

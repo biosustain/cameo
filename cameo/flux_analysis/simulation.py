@@ -14,13 +14,20 @@
 
 __all__ = ['fba', 'pfba', 'moma', 'lmoma', 'room']
 
-import sympy
-
 from functools import partial
-from cameo.util import TimeMachine
-from cameo.exceptions import SolveError
+
+import sympy
 from sympy import Add
 from sympy import Mul
+
+from cameo.util import TimeMachine
+from cameo.exceptions import SolveError
+from cameo.core.solution import Solution
+
+import logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 
 add = Add._from_args
 mul = Mul._from_args
@@ -89,16 +96,13 @@ def pfba(model, objective=None, *args, **kwargs):
                 fix_obj_constraint = model.solver.interface.Constraint(model.objective.expression, ub=obj_val)
             tm(do=partial(model.solver._add_constraint, fix_obj_constraint),
                undo=partial(model.solver._remove_constraint, fix_obj_constraint))
-
             pfba_obj = model.solver.interface.Objective(add(
                 [mul((sympy.singleton.S.One, variable)) for variable in model.solver.variables.values()]),
                 direction='min', sloppy=True)
-            # tic = time.time()
             tm(do=partial(setattr, model, 'objective', pfba_obj),
                undo=partial(setattr, model, 'objective', original_objective))
-            # print "obj: ", time.time() - tic
             try:
-                solution = model.solve()
+                solution = model.solve(solution_type=Solution)
                 tm.reset()
                 return solution
             except SolveError as e:
@@ -199,7 +203,8 @@ def lmoma(model, reference=None, cache={}, volatile=True, *args, **kwargs):
             cache['first_run'] = False
 
         try:
-            solution = model.solve()
+            from cameo.core.solver_based_model import Solution
+            solution = model.solve(solution_type=Solution)
             return solution
         except SolveError as e:
             #print "lmoma could not determine an optimal solution for objective %s" % model.objective

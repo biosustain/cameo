@@ -12,13 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from cameo.strain_design.heuristic.multiprocess import MultiprocessReactionKnockoutOptimization
-from cameo.strain_design.heuristic.objective_functions import biomass_product_coupled_yield
-from cameo.flux_analysis.simulation import fba
-from cameo.solver_based_model import to_solver_based_model
 from cobra.io import read_sbml_model
 from optlang import glpk_interface
 import inspyred
+
+from cameo.strain_design.heuristic.multiprocess import MultiprocessReactionKnockoutOptimization
+from cameo.strain_design.heuristic.objective_functions import biomass_product_coupled_yield
+from cameo.flux_analysis.simulation import fba
+from cameo.core.solver_based_model import to_solver_based_model
+
 
 model = read_sbml_model("../tests/data/iJO1366.xml")
 model = to_solver_based_model(model, solver_interface=glpk_interface)

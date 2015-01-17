@@ -13,11 +13,13 @@
 # limitations under the License.
 
 import types
+
 import nose
 from cobra.test import create_test_model
 from cobra.test.unit_tests import CobraTestCase, TestReactions
 from cobra.test.flux_analysis import TestCobraFluxAnalysis
-from cameo.solver_based_model import to_solver_based_model, SolverBasedModel
+
+from cameo.core.solver_based_model import to_solver_based_model, SolverBasedModel
 
 
 def setUp(self):

@@ -63,13 +63,10 @@ try:
 except ImportError:
     pass
 
-# from cameo import api
+import config
+
+from cameo.core.solver_based_model import SolverBasedModel as Model
+from cameo.core.reaction import Reaction
 
 from .flux_analysis.analysis import flux_variability_analysis, phenotypic_phase_plane
 from .flux_analysis.simulation import fba, pfba
-
-import config
-
-from solver_based_model import SolverBasedModel as Model
-from solver_based_model import Reaction
-from cobra.core.Metabolite import Metabolite

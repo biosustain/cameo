@@ -12,18 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import logging
 import types
 import pickle
+import time
 from multiprocessing import Process, Queue
+
+import requests
+import progressbar
 import optlang
 from cobra.io import read_sbml_model
-import time
-import progressbar
-import requests
-from cameo.solver_based_model import SolverBasedModel, to_solver_based_model
+
+from cameo.core.solver_based_model import SolverBasedModel, to_solver_based_model
 from cameo import webmodels
 
+import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 

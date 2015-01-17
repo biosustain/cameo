@@ -20,12 +20,14 @@ import unittest
 
 from cobra import Metabolite
 from optlang import Objective
-from cameo import load_model
-from cameo.config import solvers
-from cameo.exceptions import UndefinedSolution
-from cameo.solver_based_model import Reaction
 from cobra.io import read_sbml_model
 import pandas
+
+from cameo import load_model, Reaction
+from cameo.config import solvers
+from cameo.exceptions import UndefinedSolution
+from cameo.core.solver_based_model import Reaction
+
 
 TRAVIS = os.getenv('TRAVIS', False)
 TESTDIR = os.path.dirname(__file__)
