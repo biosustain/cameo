@@ -17,15 +17,19 @@ from multiprocessing import Pool, cpu_count
 import itertools
 from cameo.util import Singleton
 
+import logging
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 class MultiprocessingView(Singleton):
 
-    """docstring for Parallel"""
+    """Provides a parallel view (similar to IPython)"""
 
     def __init__(self, *args, **kwargs):
         self._args = args
         self._kwargs = kwargs
-        self.pool = None
+        if not hasattr(self, 'pool'):
+            self.pool = None
 
     def map(self, *args, **kwargs):
         if self.pool is None:
@@ -51,8 +55,23 @@ class MultiprocessingView(Singleton):
         return cpu_count()
 
     def shutdown(self):
-        if not self.pool is None:
-            self.pool.terminate()
+        if self.pool is not None:
+            logger.debug('Terminating multiprocessing pool')
+            try:
+                self.pool.terminate()
+            except Exception as e:
+                logger.debug('Could not terminate multiprocessing pool.')
+                raise e
+            else:
+                self.pool = None
+        else:
+            logger.debug('No multiprocessing pool to shut down.')
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self.shutdown()
 
 
 try:
@@ -210,6 +229,12 @@ class SequentialView(object):
 
     def shutdown(self):
         pass
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self.shutdown()
 
 
 if __name__ == '__main__':

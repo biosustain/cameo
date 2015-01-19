@@ -23,10 +23,11 @@ except:
     pass
 import progressbar
 import ipython_notebook_utils
-import logging
 from numpy.random import RandomState
 
-logger = logging.getLogger('cameo')
+import logging
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 
 class RandomGenerator():

@@ -18,6 +18,24 @@ ndecimals = 6
 import logging
 log = logging.getLogger(__name__)
 
+# Determine available solver interfaces
+solvers = {}
+
+try:
+    from optlang import glpk_interface
+
+    solvers['glpk'] = glpk_interface
+except ImportError:
+    pass
+try:
+    from optlang import cplex_interface
+
+    solvers['cplex'] = cplex_interface
+except ImportError:
+    pass
+
+# Determine if bokeh is available
+# TODO: This should also check if a bokeh server is actually running.
 try:
     import bokeh
     use_bokeh = True
@@ -30,6 +48,7 @@ try:
 except ImportError:
     use_matplotlib = False
 
+#Determine a default parallelization view
 try:
     from IPython import parallel
     from IPython.kernel.zmq import serialize
@@ -37,20 +56,11 @@ try:
     client.block = True
     default_view = client.direct_view()
 except Exception:
-    try:
-        from .parallel import MultiprocessingView
-        default_view = MultiprocessingView()
-    except ImportError:
-        from .parallel import SequentialView
-        default_view = SequentialView()
-# except:
-#     log.debug(
-#         'IPython parallel not available ... using std lib multiprocessing')
-#     try:
-#         from .parallel import MultiprocessingView
-#         default_view = MultiprocessingView(4)
-#     except:
-#         log.debug(
-#             'multiprocessing not available ... using wrapper for standard map and apply (SequentialView)')
-#         from .parallel import SequentialView
-#         default_view = SequentialView()
+    from .parallel import SequentialView
+    default_view = SequentialView()
+    # try:
+    #     from .parallel import MultiprocessingView
+    #     default_view = MultiprocessingView()
+    # except ImportError:
+    #     from .parallel import SequentialView
+    #     default_view = SequentialView()

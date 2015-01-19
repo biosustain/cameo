@@ -59,17 +59,15 @@ __version__ = get_versions()['version']
 del get_versions
 
 try:
-    from .io import load_model
+    from cameo.io import load_model
 except ImportError:
     pass
 
-# from cameo import api
+import config
+
+from cameo.core.solver_based_model import SolverBasedModel as Model
+from cameo.core.reaction import Reaction
+from cobra.core import Metabolite
 
 from .flux_analysis.analysis import flux_variability_analysis, phenotypic_phase_plane
 from .flux_analysis.simulation import fba, pfba
-
-import config
-
-from solver_based_model import SolverBasedModel as Model
-from solver_based_model import Reaction
-from cobra.core.Metabolite import Metabolite

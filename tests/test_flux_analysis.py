@@ -1,3 +1,4 @@
+# @formatter:off
 # Copyright 2014 Novo Nordisk Foundation Center for Biosustainability, DTU.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -11,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+# @formatter:on
 
 import os
 import unittest
@@ -22,6 +24,7 @@ from cameo.flux_analysis.analysis import flux_variability_analysis, phenotypic_p
 
 import pandas
 from pandas.util.testing import assert_frame_equal
+
 TRAVIS = os.getenv('TRAVIS', False)
 
 
@@ -45,12 +48,7 @@ iJO_MODEL = load_model(os.path.join(TESTDIR, 'data/iJO1366.xml'), sanitize=False
 iJO_MODEL_COBRAPY = load_model(os.path.join(TESTDIR, 'data/iJO1366.xml'), solver_interface=None, sanitize=False)
 
 
-class TestFluxVariabilityAnalysis(unittest.TestCase):
-    def setUp(self):
-        self.model = CORE_MODEL.copy()
-        self.biomass_flux = 0.873921
-        self.model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = self.biomass_flux
-
+class AbstractTestFluxVariabilityAnalysis(object):
     def test_flux_variability_sequential(self):
         fva_solution = flux_variability_analysis(self.model, remove_cycles=False, view=SequentialView())
         assert_dataframes_equal(fva_solution, REFERENCE_FVA_SOLUTION_ECOLI_CORE)
@@ -78,7 +76,9 @@ class TestFluxVariabilityAnalysis(unittest.TestCase):
 
     @unittest.skipIf(TRAVIS, 'Running multiprocess in Travis breaks')
     def test_flux_variability_parallel(self):
-        fva_solution = flux_variability_analysis(self.model, remove_cycles=False, view=MultiprocessingView())
+        mp_view = MultiprocessingView()
+        fva_solution = flux_variability_analysis(self.model, remove_cycles=False, view=mp_view)
+        mp_view.shutdown()
         assert_dataframes_equal(fva_solution, REFERENCE_FVA_SOLUTION_ECOLI_CORE)
 
     @unittest.skip("multiprocessing doesn't work with cycle_free_fva yet")
@@ -93,10 +93,25 @@ class TestFluxVariabilityAnalysis(unittest.TestCase):
                                        REFERENCE_FVA_SOLUTION_ECOLI_CORE['upper_bound'][key], delta=0.000001)
 
 
-class TestPhenotypicPhasePlane(unittest.TestCase):
+class TestFluxVariabilityAnalysisGLPK(AbstractTestFluxVariabilityAnalysis, unittest.TestCase):
     def setUp(self):
         self.model = CORE_MODEL.copy()
+        self.model.solver = 'glpk'
+        self.biomass_flux = 0.873921
+        self.model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = self.biomass_flux
 
+
+@unittest.skipIf(TRAVIS, 'CPLEX not available on Travis.')
+class TestFluxVariabilityAnalysisCPLEX(AbstractTestFluxVariabilityAnalysis, unittest.TestCase):
+    def setUp(self):
+        self.model = CORE_MODEL
+        self.model.solver = 'cplex'
+        self.model.solver.problem.parameters.lpmethod = self.model.solver.problem.parameters.lpmethod.values.dual
+        self.biomass_flux = 0.873921
+        self.model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = self.biomass_flux
+
+
+class AbstractTestPhenotypicPhasePlane(object):
     @unittest.skipIf(TRAVIS, 'Running in Travis')
     def test_one_variable_parallel(self):
         ppp = phenotypic_phase_plane(self.model, ['EX_o2_LPAREN_e_RPAREN_'], view=MultiprocessingView())
@@ -122,7 +137,20 @@ class TestPhenotypicPhasePlane(unittest.TestCase):
         assert_dataframes_equal(ppp2d, REFERENCE_PPP_o2_glc_EcoliCore)
 
 
-class TestSimulationMethods(unittest.TestCase):
+class TestPhenotypicPhasePlaneGLPK(AbstractTestPhenotypicPhasePlane, unittest.TestCase):
+    def setUp(self):
+        self.model = CORE_MODEL.copy()
+        self.model.solver = 'glpk'
+
+
+@unittest.skipIf(TRAVIS, 'CPLEX not available on Travis.')
+class TestPhenotypicPhasePlaneCPLEX(AbstractTestPhenotypicPhasePlane, unittest.TestCase):
+    def setUp(self):
+        self.model = CORE_MODEL.copy()
+        self.model.solver = 'cplex'
+
+
+class AbstractTestSimulationMethods(object):
     def setUp(self):
         self.model = CORE_MODEL
 
@@ -133,6 +161,14 @@ class TestSimulationMethods(unittest.TestCase):
         self.assertAlmostEqual(solution.f, 0.873921, delta=0.000001)
 
     def test_pfba(self):
+        fba_solution = fba(self.model)
+        fba_flux_sum = sum((abs(val) for val in fba_solution.x_dict.values()))
+        pfba_solution = pfba(self.model)
+        pfba_flux_sum = sum((abs(val) for val in pfba_solution.x_dict.values()))
+        print pfba_flux_sum
+        self.assertTrue(pfba_flux_sum <= fba_flux_sum)  # looks like GLPK finds a parsimonious solution without the flux minimization objective
+
+    def test_pfba_iJO(self):
         fba_solution = fba(iJO_MODEL)
         fba_flux_sum = sum((abs(val) for val in fba_solution.x_dict.values()))
         pfba_solution = pfba(iJO_MODEL)
@@ -140,6 +176,7 @@ class TestSimulationMethods(unittest.TestCase):
         print pfba_flux_sum
         self.assertTrue(pfba_flux_sum < fba_flux_sum)
 
+    @unittest.skip('quadratic moma not implemented yet.')
     def test_moma(self):
         pass
 
@@ -151,6 +188,20 @@ class TestSimulationMethods(unittest.TestCase):
         distance = sum([abs(res[v] - ref[v]) for v in res.keys()])
         print distance
         self.assertAlmostEqual(0, distance, delta=0.000001, msg="moma distance without knockouts must be 0")
+
+
+class TestSimulationMethodsGLPK(AbstractTestSimulationMethods, unittest.TestCase):
+    def setUp(self):
+        self.model = CORE_MODEL
+        self.model.solver = 'glpk'
+
+
+@unittest.skipIf(TRAVIS, 'CPLEX not available on Travis.')
+class TestSimulationMethodsCPLEX(AbstractTestSimulationMethods, unittest.TestCase):
+    def setUp(self):
+        self.model = CORE_MODEL
+        self.model.solver = 'cplex'
+
 
 if __name__ == '__main__':
     import nose
