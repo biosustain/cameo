@@ -49,12 +49,11 @@ def flux_variability_analysis(model, reactions=None, fraction_of_optimum=0., rem
         Pandas DataFrame containing the results of the flux variability analysis.
 
     """
-    tm = TimeMachine()
     if view is None:
         view = config.default_view
     if reactions is None:
         reactions = model.reactions
-    try:
+    with TimeMachine() as tm:
         if model.reversible_encoding == 'split':
             tm(do=partial(setattr, model, 'reversible_encoding', 'unsplit'),
                undo=partial(setattr, model, 'reversible_encoding', 'split'))
@@ -79,8 +78,6 @@ def flux_variability_analysis(model, reactions=None, fraction_of_optimum=0., rem
             func_obj = _FvaFunctionObject(model, _flux_variability_analysis)
         chunky_results = view.map(func_obj, reaction_chunks)
         solution = pandas.concat(chunky_results)
-    finally:
-        tm.reset()
     return solution
 
 
