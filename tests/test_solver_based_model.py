@@ -233,7 +233,11 @@ class TestReactionCPLEX(AbstractTestReaction, unittest.TestCase):
         self.model.solver = 'cplex'
 
 
-class AbstractTestSolverBasedModel(CommonGround):
+class AbstractTestSolverBasedModel(object):
+    def setUp(self):
+        self.model = TESTMODEL.copy()
+        self.model.solve()
+
     def test_reactions_and_variables_match(self):
         self.model.reversible_encoding = 'unsplit'
         reactions = self.model.reactions
@@ -339,6 +343,7 @@ class AbstractTestSolverBasedModel(CommonGround):
         self.assertAlmostEqual(model_copy.optimize().f, 0.8739215069684306)
 
     def test_copy_preserves_existing_solution(self):
+        self.model.solve()  #TODO: not sure why the model has to be solved here because it is already in setUp
         model_cp = copy.copy(self.model)
         primals_original = [variable.primal for variable in self.model.solver.variables]
         primals_copy = [variable.primal for variable in model_cp.solver.variables]

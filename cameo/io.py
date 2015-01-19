@@ -26,7 +26,6 @@ from cameo.core.solver_based_model import SolverBasedModel, to_solver_based_mode
 from cameo import webmodels
 
 import logging
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def load_model(path_or_handle, solver_interface=optlang.glpk_interface, sanitize=True):
