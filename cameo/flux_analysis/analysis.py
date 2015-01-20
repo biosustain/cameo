@@ -27,9 +27,8 @@ from cameo.flux_analysis.simulation import _cycle_free_flux
 import pandas
 
 import logging
-
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
 
 def flux_variability_analysis(model, reactions=None, fraction_of_optimum=0., remove_cycles=True, view=None):
     """Flux variability analysis.

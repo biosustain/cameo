@@ -26,7 +26,6 @@ from pandas import DataFrame
 import tempfile
 
 import logging
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class NotFoundException(Exception):

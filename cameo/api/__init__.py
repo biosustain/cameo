@@ -23,7 +23,6 @@ import cPickle as pickle
 import cameo
 
 import logging
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 with open(os.path.join(cameo._cameo_data_path, 'metanetx.pickle')) as f:

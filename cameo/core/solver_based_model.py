@@ -38,9 +38,7 @@ from cameo.exceptions import SolveError, Infeasible, UndefinedSolution
 from .reaction import Reaction
 from .solution import LazySolution, Solution
 
-
 import logging
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 add = Add._from_args

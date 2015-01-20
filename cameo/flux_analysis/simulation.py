@@ -25,9 +25,7 @@ from cameo.exceptions import SolveError
 from cameo.core.solution import Solution
 
 import logging
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
 
 add = Add._from_args
 mul = Mul._from_args

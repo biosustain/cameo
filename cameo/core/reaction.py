@@ -23,7 +23,6 @@ from cameo import flux_analysis
 from cameo.parallel import SequentialView
 
 import logging
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 

@@ -26,10 +26,9 @@ from cameo.strain_design import StrainDesignMethod
 from cameo.flux_analysis.analysis import phenotypic_phase_plane
 from cameo.util import TimeMachine
 
-
 import logging
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
 
 class DifferentialFVA(StrainDesignMethod):
     """Differential flux variability analysis.

@@ -26,8 +26,6 @@ from cameo.util import TimeMachine
 from sympy import Add
 
 import logging
-
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
@@ -114,6 +112,7 @@ class PathwayPredictor(object):
         self.model.solver.add(switches)
         logger.debug("Setting minimization of switch variables as objective.")
         self.model.objective = self.model.solver.interface.Objective(Add(*self._y_vars), direction='min')
+        self.model.solver.configuration.verbosity = 3
 
     def run(self, product=None, max_predictions=float("inf"), min_production=.1, timeout=None):
         """Run pathway prediction for a desired product.
@@ -157,7 +156,7 @@ class PathwayPredictor(object):
                     if y_var.primal == 1.0:
                         vars_to_cut.append(y_var)
                 if len(vars_to_cut) == 0:  # no pathway found:
-                    logger.debug("It seems %s is a native product in model %s. No further predictions are attempted.", (product, self.model))
+                    logger.debug("It seems %s is a native product in model %s. No further predictions are attempted." % (product, self.model))
                     break
                 pathway = [self.model.reactions.get_by_id(y_var.name[2:]) for y_var in vars_to_cut]
                 # Figure out adapter reactions to include

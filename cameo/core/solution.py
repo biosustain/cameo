@@ -19,10 +19,9 @@ import time
 import datetime
 from pandas import DataFrame, Series
 
-import logging
 from cameo.exceptions import UndefinedSolution
 
-logging.basicConfig(level=logging.INFO)
+import logging
 logger = logging.getLogger(__name__)
 
 
