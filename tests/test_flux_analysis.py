@@ -156,8 +156,6 @@ class AbstractTestSimulationMethods(object):
 
     def test_fba(self):
         solution = fba(self.model)
-        print self.model.objective
-        print self.model.solver
         self.assertAlmostEqual(solution.f, 0.873921, delta=0.000001)
 
     def test_pfba(self):
@@ -165,8 +163,7 @@ class AbstractTestSimulationMethods(object):
         fba_flux_sum = sum((abs(val) for val in fba_solution.x_dict.values()))
         pfba_solution = pfba(self.model)
         pfba_flux_sum = sum((abs(val) for val in pfba_solution.x_dict.values()))
-        print pfba_flux_sum
-        self.assertTrue(pfba_flux_sum <= fba_flux_sum)  # looks like GLPK finds a parsimonious solution without the flux minimization objective
+        self.assertTrue((pfba_flux_sum - fba_flux_sum) < 1e-6)  # looks like GLPK finds a parsimonious solution without the flux minimization objective
 
     def test_pfba_iJO(self):
         fba_solution = fba(iJO_MODEL)
