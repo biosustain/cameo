@@ -521,11 +521,11 @@ class SolverBasedModel(_cobrapy.core.Model):
         else:
             model = self
         if isinstance(medium, dict):
-            self._load_medium_from_dict(model, medium)
+            model._load_medium_from_dict(model, medium)
         elif isinstance(medium, pandas.DataFrame):
-            self._load_medium_from_dataframe(model, medium)
+            model._load_medium_from_dataframe(model, medium)
         elif isinstance(medium, str):
-            self._load_medium_from_file(model, medium)
+            model._load_medium_from_file(model, medium)
         else:
             raise AssertionError("input type (%s) is not valid" % type(medium))
 
@@ -545,7 +545,7 @@ class SolverBasedModel(_cobrapy.core.Model):
 
     @staticmethod
     def _load_medium_from_dict(model, medium):
-        for rid, values in medium.iteritens():
+        for rid, values in medium.iteritems():
             if model.reactions.has_id(rid):
                 model.reactions.get_by_id(rid).lower_bound = values[0]
                 model.reactions.get_by_id(rid).upper_bound = values[1]
