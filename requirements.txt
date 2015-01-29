@@ -14,7 +14,7 @@ cobra==0.3.0b4
 -e git+https://github.com/biosustain/ipython_notebook_utils.git@b9e68cc2fdbae30d3482306ffcbecbf358530267#egg=ipython_notebook_utils
 sphinx>=1.2.2
 sphinx-rtd-theme>=0.1.6
-escher==1.0.0b3
+escher==1.0.0
 bashplotlib==0.6.1
 redis>=2.10.3
 numexpr==2.4
