@@ -217,6 +217,20 @@ class AbstractTestReaction(object):
             self.assertIn(str(new_coefficient)+" "+already_included_metabolite.id, str(reaction))
             self.assertIn(new_coefficient2*reaction.variable, self.model.solver.constraints[already_included_metabolite.id].expression)
 
+    @unittest.skip('Not implemented yet.')
+    def test_change_id_is_reflected_in_solver(self):
+        for i, reaction in enumerate(self.model.reactions):
+            old_reaction_id = reaction.id
+            self.assertTrue(self.model.solver.variables[old_reaction_id].name, old_reaction_id)
+            self.assertIn(old_reaction_id, self.model.solver.variables)
+            self.assertTrue(self.model.solver.has_key(old_reaction_id))
+            new_reaction_id = reaction.id + '_' +str(i)
+            reaction.id = new_reaction_id
+            self.assertEqual(reaction.id, new_reaction_id)
+            self.assertFalse(self.model.solver.has_key(old_reaction_id))
+            self.assertTrue(self.model.solver.has_key(new_reaction_id))
+            self.assertTrue(self.model.solver.variables[new_reaction_id].name, new_reaction_id)
+
 
 class TestReactionGLPK(AbstractTestReaction, unittest.TestCase):
     def setUp(self):
