@@ -107,11 +107,11 @@ class SolverBasedModel(_cobrapy.core.Model):
         model_copy = super(SolverBasedModel, self).copy()
         try:
             model_copy._solver = deepcopy(self.solver)
-        except:  # Cplex has an issue with deep copies
-            model_copy._solver = copy(self.solver)
+        except:  # pragma: no cover # Cplex has an issue with deep copies
+            model_copy._solver = copy(self.solver) # pragma: no cover
         return model_copy
 
-    def _repr_html_(self):
+    def _repr_html_(self):  # pragma: no cover
         template = """<table>
 <tr>
 <td>Name</td>

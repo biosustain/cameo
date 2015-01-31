@@ -24,7 +24,7 @@ from optlang import Objective
 from cobra.io import read_sbml_model
 import pandas
 
-from cameo import load_model, Reaction
+from cameo import load_model, Reaction, Model
 from cameo.config import solvers
 from cameo.exceptions import UndefinedSolution
 from cameo.core.solver_based_model import Reaction
@@ -111,13 +111,13 @@ class AbstractTestReaction(object):
     def test_removal_from_model_retains_bounds(self):
         model_cp = self.model.copy()
         reaction = model_cp.reactions.ACALD
-        self.assertEqual(reaction.model, model_cp)
+        self.assertEqual(reaction.get_model(), model_cp)
         self.assertEqual(reaction.lower_bound, -999999.0)
         self.assertEqual(reaction.upper_bound, 999999.0)
         self.assertEqual(reaction._lower_bound, -999999.0)
         self.assertEqual(reaction._upper_bound, 999999.0)
         model_cp.remove_reactions([reaction])
-        self.assertEqual(reaction.model, None)
+        self.assertEqual(reaction.get_model(), None)
         self.assertEqual(reaction.lower_bound, -999999.0)
         self.assertEqual(reaction.upper_bound, 999999.0)
         self.assertEqual(reaction._lower_bound, -999999.0)
@@ -389,6 +389,11 @@ class AbstractTestSolverBasedModel(object):
         self.model = TESTMODEL.copy()
         self.model.solve()
 
+    def test_model_from_other_cameo_model(self):
+        model = Model(description=self.model)
+        for reaction in model.reactions:
+            self.assertEqual(reaction, self.model.reactions.get_by_id(reaction.id))
+
     def test_reactions_and_variables_match(self):
         self.model.reversible_encoding = 'unsplit'
         reactions = self.model.reactions
@@ -466,8 +471,21 @@ class AbstractTestSolverBasedModel(object):
             obj.__str__(), 'Maximize\n1.0*Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2')
 
     def test_change_objective(self):
-        self.model.objective = Objective(
-            self.model.solver.variables['ENO'] + self.model.solver.variables['PFK'])
+        expression = 1.0*self.model.solver.variables['ENO'] + 1.0*self.model.solver.variables['PFK']
+        self.model.objective = Objective(expression)
+        self.assertEqual(self.model.objective.expression, expression)
+
+    def test_set_reaction_objective(self):
+        self.model.objective = self.model.reactions.ACALD
+        self.assertEqual(str(self.model.objective.expression), str(1.0*self.model.reactions.ACALD.variable - 1.0*self.model.reactions.ACALD.reverse_variable))
+
+    def test_set_reaction_objective_str(self):
+        self.model.objective = self.model.reactions.ACALD.id
+        self.assertEqual(str(self.model.objective.expression), str(1.0*self.model.reactions.ACALD.variable - 1.0*self.model.reactions.ACALD.reverse_variable))
+
+    def test_invalid_objective_raises(self):
+        self.assertRaises(Exception, setattr, self.model, 'objective', 'This is not a valid objective!')
+        self.assertRaises(Exception, setattr, self.model, 'objective', 3.)
 
     def test_solver_change(self):
         solver_id = id(self.model.solver)
