@@ -137,11 +137,11 @@ class Reaction(_cobrapy.core.Reaction):
             if value >= 0 and self._lower_bound < 0 and self._upper_bound > 0:
                 reverse_variable = self.reverse_variable
                 reverse_variable.lb, reverse_variable.ub = 0, 0
-            elif value < 0 and self._lower_bound >= 0 and self._get_reverse_id() not in model.solver.variables:  # self._lower_bound >= 0 implies self._upper_bound >= 0
-                aux_var = model.solver._add_variable(
+            elif value < 0 and self._lower_bound >= 0 and self.reverse_variable is None:  # self._lower_bound >= 0 implies self._upper_bound >= 0
+                reverse_variable = model.solver._add_variable(
                     model.solver.interface.Variable(self._get_reverse_id(), lb=0, ub=0))
                 for met, coeff in self._metabolites.iteritems():
-                    model.solver.constraints[met.id] += sympy.Mul._from_args((-1 * sympy.RealNumber(coeff), aux_var))
+                    model.solver.constraints[met.id] += sympy.Mul._from_args((-1 * sympy.RealNumber(coeff), reverse_variable))
 
             variable = self.variable
             reverse_variable = self.reverse_variable
@@ -181,11 +181,11 @@ class Reaction(_cobrapy.core.Reaction):
                 reverse_variable.lb, reverse_variable.ub = 0, 0
 
             # Add auxiliary variable if needed
-            elif value > 0 and self._upper_bound < 0 and self._get_reverse_id() not in model.solver.variables:  # self._upper_bound < 0 implies self._lower_bound < 0
-                aux_var = model.solver._add_variable(
+            elif value > 0 and self._upper_bound < 0 and self.reverse_variable is None:  # self._upper_bound < 0 implies self._lower_bound < 0
+                reverse_variable = model.solver._add_variable(
                     model.solver.interface.Variable(self._get_reverse_id(), lb=0, ub=0))
                 for met, coeff in self._metabolites.iteritems():
-                    model.solver.constraints[met.id] += sympy.Mul._from_args((-1 * sympy.RealNumber(coeff), aux_var))
+                    model.solver.constraints[met.id] += sympy.Mul._from_args((-1 * sympy.RealNumber(coeff), reverse_variable))
 
             if model.reversible_encoding == 'split' and value > 0 and self._lower_bound < 0:
                 variable.ub = value

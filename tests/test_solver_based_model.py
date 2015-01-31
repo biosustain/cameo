@@ -16,6 +16,7 @@
 
 import os
 import copy
+from types import FloatType
 import unittest
 
 from cobra import Metabolite
@@ -27,6 +28,7 @@ from cameo import load_model, Reaction
 from cameo.config import solvers
 from cameo.exceptions import UndefinedSolution
 from cameo.core.solver_based_model import Reaction
+from cameo.util import TimeMachine
 
 
 TRAVIS = os.getenv('TRAVIS', False)
@@ -93,6 +95,10 @@ class AbstractTestReaction(object):
             self.assertEqual(cloned_reaction.reactants, reaction.reactants)
             self.assertEqual(cloned_reaction.get_model(), None)
             self.assertEqual(cloned_reaction.variable, None)
+            self.assertEqual(cloned_reaction.reverse_variable, None)
+
+    def test_str(self):
+        self.assertTrue(self.model.reactions[0].__str__().startswith('ACALD'))
 
     def test_knockout(self):
         for reaction in self.model.reactions:
@@ -101,6 +107,21 @@ class AbstractTestReaction(object):
             self.assertEqual(reaction.upper_bound, 0)
             self.assertEqual(self.model.solver.variables[reaction.id].lb, 0)
             self.assertEqual(self.model.solver.variables[reaction.id].ub, 0)
+
+    def test_removal_from_model_retains_bounds(self):
+        model_cp = self.model.copy()
+        reaction = model_cp.reactions.ACALD
+        self.assertEqual(reaction.model, model_cp)
+        self.assertEqual(reaction.lower_bound, -999999.0)
+        self.assertEqual(reaction.upper_bound, 999999.0)
+        self.assertEqual(reaction._lower_bound, -999999.0)
+        self.assertEqual(reaction._upper_bound, 999999.0)
+        model_cp.remove_reactions([reaction])
+        self.assertEqual(reaction.model, None)
+        self.assertEqual(reaction.lower_bound, -999999.0)
+        self.assertEqual(reaction.upper_bound, 999999.0)
+        self.assertEqual(reaction._lower_bound, -999999.0)
+        self.assertEqual(reaction._upper_bound, 999999.0)
 
     def test_set_bounds_scenario_1(self):
         model = self.model
@@ -161,6 +182,125 @@ class AbstractTestReaction(object):
         self.assertEqual(acald_reaction.reverse_variable.lb, 0)
         self.assertEqual(acald_reaction.reverse_variable.ub, 100)
 
+    def test_make_irreversible(self):
+        model = self.model
+        acald_reaction = model.reactions.ACALD
+        self.assertEqual(acald_reaction.lower_bound, -999999.)
+        self.assertEqual(acald_reaction.upper_bound, 999999.)
+        self.assertEqual(acald_reaction.variable.lb, 0.)
+        self.assertEqual(acald_reaction.variable.ub, 999999.)
+        self.assertEqual(acald_reaction.reverse_variable.lb, 0)
+        self.assertEqual(acald_reaction.reverse_variable.ub, 999999.)
+        acald_reaction.lower_bound = 0
+        self.assertEqual(acald_reaction.lower_bound, 0)
+        self.assertEqual(acald_reaction.upper_bound, 999999.)
+        self.assertEqual(acald_reaction.variable.lb, 0)
+        self.assertEqual(acald_reaction.variable.ub, 999999.0)
+        self.assertEqual(acald_reaction.reverse_variable.lb, 0)
+        self.assertEqual(acald_reaction.reverse_variable.ub, 0)
+        acald_reaction.lower_bound = -100
+        self.assertEqual(acald_reaction.lower_bound, -100.)
+        self.assertEqual(acald_reaction.upper_bound, 999999.)
+        self.assertEqual(acald_reaction.variable.lb, 0)
+        self.assertEqual(acald_reaction.variable.ub, 999999.)
+        self.assertEqual(acald_reaction.reverse_variable.lb, 0)
+        self.assertEqual(acald_reaction.reverse_variable.ub, 100)
+
+    def test_make_reversible(self):
+        model = self.model
+        pfk_reaction = model.reactions.PFK
+        self.assertEqual(pfk_reaction.lower_bound, 0.)
+        self.assertEqual(pfk_reaction.upper_bound, 999999.)
+        self.assertEqual(pfk_reaction.variable.lb, 0.)
+        self.assertEqual(pfk_reaction.variable.ub, 999999.)
+        self.assertEqual(pfk_reaction.reverse_variable, None)
+        pfk_reaction.lower_bound = -100.
+        self.assertEqual(pfk_reaction.lower_bound, -100.)
+        self.assertEqual(pfk_reaction.upper_bound, 999999.)
+        self.assertEqual(pfk_reaction.variable.lb, 0)
+        self.assertEqual(pfk_reaction.variable.ub, 999999.0)
+        self.assertEqual(pfk_reaction.reverse_variable.lb, 0)
+        self.assertEqual(pfk_reaction.reverse_variable.ub, 100.)
+        pfk_reaction.lower_bound = 0
+        self.assertEqual(pfk_reaction.lower_bound, 0)
+        self.assertEqual(pfk_reaction.upper_bound, 999999.)
+        self.assertEqual(pfk_reaction.variable.lb, 0)
+        self.assertEqual(pfk_reaction.variable.ub, 999999.)
+        self.assertEqual(pfk_reaction.reverse_variable.lb, 0)
+        self.assertEqual(pfk_reaction.reverse_variable.ub, 0)
+
+    def test_make_irreversible_irreversible_to_the_other_side(self):
+        model = self.model
+        pfk_reaction = model.reactions.PFK
+        self.assertEqual(pfk_reaction.lower_bound, 0.)
+        self.assertEqual(pfk_reaction.upper_bound, 999999.)
+        self.assertEqual(pfk_reaction.variable.lb, 0.)
+        self.assertEqual(pfk_reaction.variable.ub, 999999.)
+        self.assertEqual(pfk_reaction.reverse_variable, None)
+        pfk_reaction.upper_bound = -100.
+        pfk_reaction.lower_bound = -999999.
+        self.assertEqual(pfk_reaction.lower_bound, -999999.)
+        self.assertEqual(pfk_reaction.upper_bound, -100.)
+        self.assertEqual(pfk_reaction.variable.lb, -999999.)
+        self.assertEqual(pfk_reaction.variable.ub, -100)
+        self.assertEqual(pfk_reaction.reverse_variable.lb, 0.)
+        self.assertEqual(pfk_reaction.reverse_variable.ub, 0.)
+
+    def test_make_lhs_irreversible_reversible(self):
+        model = self.model
+        rxn = Reaction('test')
+        rxn.add_metabolites({model.metabolites[0]: -1., model.metabolites[1]: 1.})
+        rxn.lower_bound = -999999.
+        rxn.upper_bound = -100
+        model.add_reaction(rxn)
+        self.assertEqual(rxn.lower_bound, -999999.)
+        self.assertEqual(rxn.upper_bound, -100.)
+        self.assertEqual(rxn.variable.lb, -999999.)
+        self.assertEqual(rxn.variable.ub, -100.)
+        self.assertEqual(rxn.reverse_variable, None)
+        rxn.upper_bound = 666.
+        self.assertEqual(rxn.lower_bound, -999999.)
+        self.assertEqual(rxn.upper_bound, 666.)
+        self.assertEqual(rxn.variable.lb, 0.)
+        self.assertEqual(rxn.variable.ub, 666)
+        self.assertEqual(rxn.reverse_variable.lb, 0.)
+        self.assertEqual(rxn.reverse_variable.ub, 999999.)
+
+    def test_model_less_reaction(self):
+        # self.model.solver.configuration.verbosity = 3
+        self.model.solve()
+        print self.model.reactions.ACALD.flux
+        for reaction in self.model.reactions:
+            self.assertTrue(isinstance(reaction.flux, FloatType))
+            self.assertTrue(isinstance(reaction.reduced_cost, FloatType))
+        for reaction in self.model.reactions:
+            self.model.remove_reactions([reaction])
+            self.assertEqual(reaction.flux, None)
+            self.assertEqual(reaction.reduced_cost, None)
+
+    def test_knockout(self):
+        original_bounds = dict()
+        for reaction in self.model.reactions:
+            original_bounds[reaction.id] = (reaction.lower_bound, reaction.upper_bound)
+            reaction.knock_out()
+            self.assertEqual(reaction.lower_bound, 0)
+            self.assertEqual(reaction.upper_bound, 0)
+        for k, (lb, ub) in original_bounds.iteritems():
+            self.model.reactions.get_by_id(k).lower_bound = lb
+            self.model.reactions.get_by_id(k).upper_bound = ub
+        for reaction in self.model.reactions:
+            self.assertEqual(reaction.lower_bound, original_bounds[reaction.id][0])
+            self.assertEqual(reaction.upper_bound, original_bounds[reaction.id][1])
+        with TimeMachine() as tm:
+            for reaction in self.model.reactions:
+                original_bounds[reaction.id] = (reaction.lower_bound, reaction.upper_bound)
+                reaction.knock_out(time_machine=tm)
+                self.assertEqual(reaction.lower_bound, 0)
+                self.assertEqual(reaction.upper_bound, 0)
+        for reaction in self.model.reactions:
+            self.assertEqual(reaction.lower_bound, original_bounds[reaction.id][0])
+            self.assertEqual(reaction.upper_bound, original_bounds[reaction.id][1])
+
     def test_iMM904_4HGLSDm_problem(self):
         model = load_model(os.path.join(TESTDIR, 'data/iMM904.xml'))
         # set upper bound before lower bound after knockout
@@ -186,7 +326,6 @@ class AbstractTestReaction(object):
 
     def test_setting_lower_bound_higher_than_higher_bound_sets_higher_bound_to_new_lower_bound(self):
         for reaction in self.model.reactions:
-            print reaction.id
             self.assertTrue(reaction.lower_bound <= reaction.upper_bound)
             reaction.lower_bound = reaction.upper_bound + 100
             self.assertEqual(reaction.lower_bound, reaction.upper_bound)
@@ -194,9 +333,7 @@ class AbstractTestReaction(object):
     def test_setting_higher_bound_lower_than_lower_bound_sets_lower_bound_to_new_higher_bound(self):
         for reaction in self.model.reactions:
             self.assertTrue(reaction.lower_bound <= reaction.upper_bound)
-            print reaction.id, reaction.lower_bound, reaction.upper_bound
             reaction.upper_bound = reaction.lower_bound - 100
-            print reaction.id, reaction.lower_bound, reaction.upper_bound
             self.assertEqual(reaction.lower_bound, reaction.upper_bound)
 
     @unittest.skip("String-based comparisons not deterministic.")  #TODO: make this test work again
