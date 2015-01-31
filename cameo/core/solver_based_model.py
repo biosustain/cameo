@@ -171,15 +171,10 @@ class SolverBasedModel(_cobrapy.core.Model):
                 interface = config.solvers[value]
             except KeyError:
                 raise not_valid_interface
-        elif isinstance(value, types.ModuleType):
+        elif isinstance(value, types.ModuleType) and hasattr(value, 'Model'):
             interface = value
         else:
             raise not_valid_interface
-        # if self._solver is None:
-        #     self._solver = interface.Model()
-        #     self._populate_solver_from_scratch()
-        # else:
-        #     self._solver = interface.Model.clone(self._solver)  #TODO: this is way to slow but could be fixed in the future
         self._solver = interface.Model()
         self._populate_solver_from_scratch()
 
@@ -241,7 +236,7 @@ class SolverBasedModel(_cobrapy.core.Model):
                         reaction.reverse_variable.ub = -1 * reaction.variable.lb
                         reaction.variable.lb = 0
             else:
-                raise ValueError('%s is not a valid encoding. Tyr one of %s instead.' % (value, ('unsplit', 'split')))
+                raise ValueError('%s is not a valid encoding. Try one of %s instead.' % (value, ('unsplit', 'split')))
             self._reversible_encoding = value
 
     def add_metabolites(self, metabolite_list):

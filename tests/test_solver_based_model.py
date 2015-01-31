@@ -22,6 +22,7 @@ import unittest
 from cobra import Metabolite
 from optlang import Objective
 from cobra.io import read_sbml_model
+import optlang
 import pandas
 
 from cameo import load_model, Reaction, Model
@@ -402,6 +403,19 @@ class AbstractTestSolverBasedModel(object):
             self.assertEqual(reaction.lower_bound, self.model.solver.variables[reaction.id].lb)
             self.assertEqual(reaction.upper_bound, self.model.solver.variables[reaction.id].ub)
 
+    def test_add_reactions(self):
+        r1 = Reaction('r1')
+        r1.add_metabolites({Metabolite('A'): -1, Metabolite('B'): 1})
+        r1.lower_bound, r1.upper_bound = -999999., 999999.
+        r2 = Reaction('r2')
+        r2.add_metabolites({Metabolite('A'): -1, Metabolite('C'): 1, Metabolite('D'): 1})
+        r2.lower_bound, r2.upper_bound = 0., 999999.
+        self.model.add_reactions([r1, r2])
+        self.assertEqual(self.model.reactions[-2], r1)
+        self.assertEqual(self.model.reactions[-1], r2)
+        self.assertTrue(isinstance(self.model.reactions[-2].reverse_variable, self.model.solver.interface.Variable))
+        self.assertTrue(self.model.reactions[-1].reverse_variable is None)
+
     def test_all_objects_point_to_all_other_correct_objects(self):
         model = load_model(os.path.join(TESTDIR, 'data/EcoliCore.xml'))
         for reaction in model.reactions:
@@ -473,7 +487,7 @@ class AbstractTestSolverBasedModel(object):
     def test_change_objective(self):
         expression = 1.0*self.model.solver.variables['ENO'] + 1.0*self.model.solver.variables['PFK']
         self.model.objective = Objective(expression)
-        self.assertEqual(self.model.objective.expression, expression)
+        self.assertEqual(str(self.model.objective.expression), str(expression))
 
     def test_set_reaction_objective(self):
         self.model.objective = self.model.reactions.ACALD
@@ -497,6 +511,25 @@ class AbstractTestSolverBasedModel(object):
         new_solution = self.model.solve()
         for key in solution.keys():
             self.assertAlmostEqual(new_solution.x_dict[key], solution[key])
+
+    def test_solver_change_with_optlang_interface(self):
+        solver_id = id(self.model.solver)
+        problem_id = id(self.model.solver.problem)
+        solution = self.model.solve().x_dict
+        self.model.solver = optlang.glpk_interface
+        self.assertNotEqual(id(self.model.solver), solver_id)
+        self.assertNotEqual(id(self.model.solver.problem), problem_id)
+        new_solution = self.model.solve()
+        for key in solution.keys():
+            self.assertAlmostEqual(new_solution.x_dict[key], solution[key])
+
+    def test_set_wrong_variable_encoding_raises(self):
+        self.assertRaises(ValueError, setattr, self.model, 'reversible_encoding', 'bonkers')
+
+    def test_invalid_solver_change_raises(self):
+        self.assertRaises(ValueError, setattr, self.model, 'solver', [1,2,3])
+        self.assertRaises(ValueError, setattr, self.model, 'solver', 'ThisIsDefinitelyNotAvalidSolver')
+        self.assertRaises(ValueError, setattr, self.model, 'solver', os)
 
     @unittest.skipIf(not solvers.has_key('cplex'), "No cplex interface available")
     def test_change_solver_to_cplex_and_check_copy_works(self):
