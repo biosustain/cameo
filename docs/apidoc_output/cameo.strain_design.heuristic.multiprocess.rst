@@ -20,6 +20,14 @@ cameo.strain_design.heuristic.multiprocess.observers module
     :undoc-members:
     :show-inheritance:
 
+cameo.strain_design.heuristic.multiprocess.optimization module
+--------------------------------------------------------------
+
+.. automodule:: cameo.strain_design.heuristic.multiprocess.optimization
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 cameo.strain_design.heuristic.multiprocess.plotters module
 ----------------------------------------------------------
 

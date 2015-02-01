@@ -7,6 +7,7 @@ Subpackages
 .. toctree::
 
     cameo.api
+    cameo.core
     cameo.flux_analysis
     cameo.strain_design
 
@@ -41,14 +42,6 @@ cameo.parallel module
 ---------------------
 
 .. automodule:: cameo.parallel
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-cameo.solver_based_model module
--------------------------------
-
-.. automodule:: cameo.solver_based_model
     :members:
     :undoc-members:
     :show-inheritance:

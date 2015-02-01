@@ -67,6 +67,14 @@ cameo.strain_design.heuristic.observers module
     :undoc-members:
     :show-inheritance:
 
+cameo.strain_design.heuristic.optimization module
+-------------------------------------------------
+
+.. automodule:: cameo.strain_design.heuristic.optimization
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 cameo.strain_design.heuristic.plotters module
 ---------------------------------------------
 
