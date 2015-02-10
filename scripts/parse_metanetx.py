@@ -120,9 +120,55 @@ metanetx_model.add_reactions(reactions)
 for metabolite in metanetx_model.metabolites:
     metanetx_model.add_demand(metabolite)
 
+# Select which reactions to include in universal reaction database
+reaction_selection = reac_prop[[(('bigg:' in source) or ('rhea:' in source) or ('kegg:' in source)) and re.match('.*biomass.*', source, re.I) is None for source in reac_prop.Source]]
+reactions = list()
+for index, row in reaction_selection.iterrows():
+    try:
+        stoichiometry = parse_reaction(row.Equation, rev_arrow='=')
+    except ValueError:
+        continue
+    else:
+        for met, coeff in stoichiometry.iteritems():
+            met.name = chem_prop.loc[met.id]['name']
+            try:
+                met.formula = Formula(chem_prop.loc[met.id].formula)
+            except:
+                pass
+            try:
+                met.charge = int(chem_prop.loc[met.id].charge)
+            except:
+                pass
+            rest = chem_prop.loc[met.id].to_dict()
+            met.annotation = dict((key, rest[key]) for key in rest if key in ('mass', 'InChI', 'source'))
+            # print met.id
+            # print met.name
+            # print met.annotation
+        mets = [met.id for met in stoichiometry.keys()]
+        if len(mets) != len(set(mets)):
+            continue
+        reaction = Reaction(index)
+        reaction.add_metabolites(stoichiometry)
+        if reaction.check_mass_balance() != []:
+            continue
+        if row.Balance:
+            reaction.lower_bound = -1*reaction.upper_bound
+        print row['Source']
+        reaction.name = row['Source']
+        rest = row.to_dict()
+        reaction.annotation = dict((key, rest[key]) for key in rest if key in ('EC', 'Description'))
+        reactions.append(reaction)
+
+metanetx_model2 = Model('metanetx_universal_model_bigg_rhea_kegg', solver_interface=optlang.interface)
+metanetx_model2.add_reactions(reactions)
+# Add sinks for all metabolites
+for metabolite in metanetx_model2.metabolites:
+    metanetx_model2.add_demand(metabolite)
+
 # Store all relevant metanetx data in a pickled dictionary
 metanetx = dict()
 metanetx['universal_model'] = metanetx_model
+metanetx['universal_model_low_quality'] = metanetx_model2
 metabolite_ids = [metabolite.id for metabolite in metanetx_model.metabolites]
 metanetx['chem_prop'] = chem_prop.loc[metabolite_ids]
 metanetx['bigg2mnx'] = bigg2mnx
