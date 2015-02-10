@@ -64,7 +64,7 @@ setup(
     install_requires=requirements,
     dependency_links=dependency_links,
     include_package_data = True,
-    author='Nikolaus Sonnenschein',
+    author='Nikolaus Sonnenschein, Joao Cardoso, Emre Özdemir',
     author_email='niko.sonnenschein@gmail.com',
     description='cameo - computer assisted metabolic engineering & optimziation',
     license='Apache License Version 2.0',
