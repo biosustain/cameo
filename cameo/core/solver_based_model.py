@@ -176,7 +176,7 @@ class SolverBasedModel(_cobrapy.core.Model):
         else:
             raise not_valid_interface
         self._solver = interface.Model()
-        self._populate_solver_from_scratch()
+        self._populate_solver_from_scratch()  #FIXME: This ignores non-reaction variables and constraints
 
     @property
     def exchanges(self):

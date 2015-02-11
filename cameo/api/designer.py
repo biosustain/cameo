@@ -16,7 +16,7 @@ from types import StringType
 from functools import partial
 import progressbar
 from cameo import Metabolite, Model
-from cameo.api import _METANETX as METANETX
+from cameo.data import metanetx
 from cameo.api.hosts import hosts, Host
 from cameo.api.products import products
 from cameo.strain_design.pathway_prediction import PathwayPredictor
@@ -92,7 +92,7 @@ class Designer(object):
             pbar_models = progressbar.ProgressBar(widgets=["Processing", DisplayItemsWidget([model.id for model in host.models]), progressbar.Bar(), progressbar.ETA(), progressbar.Percentage()])
             for model in pbar_models(list(host.models)):
                 # TODO: Check if product is already part of model
-                pathway_predictor = PathwayPredictor(model, universal_model=METANETX['universal_model'], mapping=METANETX['bigg2mnx'])
+                pathway_predictor = PathwayPredictor(model)
                 predicted_pathways = pathway_predictor.run(product, max_predictions=5, timeout=15*60)  # TODO adjust these numbers to something reasonable
                 pathways[(host, model)] = predicted_pathways
         return pathways

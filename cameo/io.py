@@ -50,7 +50,7 @@ def load_model(path_or_handle, solver_interface=optlang.glpk_interface, sanitize
             try:
                 df = webmodels.index_models()
             except requests.ConnectionError as e:
-                logger.error("You need to be connectedd to the internet to load an online model.")
+                logger.error("You need to be connected to the internet to load an online model.")
                 raise e
             except Exception as e:
                 logger.error("Something went wrong while looking up available webmodels.")
