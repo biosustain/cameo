@@ -17,11 +17,13 @@ __all__ = ['PathwayPredictor']
 import os
 import gzip
 import cPickle as pickle
+import types
 from functools import partial
 
 import cameo
 from cameo.exceptions import SolveError
-from cameo import Reaction
+from cameo import Reaction, Model, Metabolite
+from cameo.data import metanetx
 from cameo.util import TimeMachine
 from sympy import Add
 
@@ -61,8 +63,13 @@ class PathwayPredictor(object):
         """"""
         if universal_model is None:
             logger.debug("Loading default universal model.")
-            from cameo.api import _METANETX as metanetx
-            universal_model = metanetx['universal_model']
+            from cameo.data.universal_models import metanetx_universal_model_bigg_rhea
+            self.universal_model = metanetx_universal_model_bigg_rhea
+        elif isinstance(universal_model, Model):
+            self.universal_model = universal_model
+        else:
+            raise ValueError('Provided universal_model %s is not a model.' % universal_model)
+        self.products = self.universal_model.metabolites
         self.model = model.copy()
         for exchange in self.model.exchanges:
             if len(exchange.reactants) > 0 and exchange.lower_bound <= 0:
@@ -70,7 +77,7 @@ class PathwayPredictor(object):
 
         logger.debug("Adding reactions from universal model to host model.")
         reactions = list()
-        for reaction in universal_model.reactions:
+        for reaction in self.universal_model.reactions:
             if reaction in self.model.reactions:
                 continue
             reactions.append(reaction.copy())
@@ -79,11 +86,11 @@ class PathwayPredictor(object):
         logger.debug("Adding adapter reactions to connect model with universal model.")
         self._adpater_reactions = list()
         if mapping is None:
-            mapping = metanetx['bigg2mnx']
+            self.mapping = metanetx.bigg2mnx
         for metabolite in model.metabolites:  # model is the original host model
             name = metabolite.id[0:-2]
             try:
-                mnx_name = mapping[name]
+                mnx_name = self.mapping[name]
             except KeyError:
                 continue
                 # print name, 'N/A'
@@ -98,28 +105,29 @@ class PathwayPredictor(object):
                 self.model.add_reaction(adapter_reaction)
 
         logger.debug("Adding switches.")
-        self._y_vars = list()
+        y_vars = list()
         switches = list()
         for reaction in reactions:
             if reaction.id.startswith('DM_'):
                 continue  # demand reactions don't need integer switches
             y = self.model.solver.interface.Variable('y_'+reaction.id, lb=0, ub=1, type='binary')
-            self._y_vars.append(y)
+            y_vars.append(y)
             switch_lb = self.model.solver.interface.Constraint(y*reaction.lower_bound - reaction.variable, name='switch_lb_'+reaction.id, ub=0)
             switches.append(switch_lb)
             switch_ub = self.model.solver.interface.Constraint(y*reaction.upper_bound - reaction.variable, name='switch_ub_'+reaction.id, lb=0)
             switches.append(switch_ub)
         self.model.solver.add(switches)
         logger.debug("Setting minimization of switch variables as objective.")
-        self.model.objective = self.model.solver.interface.Objective(Add(*self._y_vars), direction='min')
-        self.model.solver.configuration.verbosity = 3
+        self.model.objective = self.model.solver.interface.Objective(Add(*y_vars), direction='min')
+        self._y_vars_ids = [var.name for var in y_vars]
 
     def run(self, product=None, max_predictions=float("inf"), min_production=.1, timeout=None):
         """Run pathway prediction for a desired product.
 
         Parameters
         ----------
-        product : Metabolite
+        product : Metabolite, str
+            Metabolite or id or name of metabolite to find production pathways for.
         max_predictions : int, optional
             The maximum number of predictions to compute.
         min_production : float
@@ -132,6 +140,23 @@ class PathwayPredictor(object):
         list
             A list of pathways (list of reactions)
         """
+        if isinstance(product, types.StringType):
+            flag = False
+            for metabolite in self.model.metabolites:
+                if metabolite.id == product:
+                    product = metabolite
+                    flag = True
+                    break
+                if metabolite.name == product:
+                    product = metabolite
+                    flag = True
+                    break
+            if not flag:
+                raise ValueError("Specified product '{product}' could not be found. Try searching pathway_predictor_obj.universal_metabolites.metabolites".format(product=product))
+        elif isinstance(product, Metabolite):
+            pass
+        else:
+            raise ValueError('Provided product %s is neither a metabolite nor an ID or name.' % product)
         pathways = list()
         with TimeMachine() as tm:
             tm(do=partial(setattr, self.model.solver.configuration, 'timeout', timeout),
@@ -142,28 +167,34 @@ class PathwayPredictor(object):
                 demand_reaction = self.model.add_demand(product)
             tm(do=str, undo=partial(self.model.remove_reactions, [demand_reaction]))
             demand_reaction.lower_bound = min_production
-            # self.model.solver.configuration.verbosity = 3
             counter = 1
             while counter <= max_predictions:
                 logger.debug('Predicting pathway No. %d' % counter)
                 try:
-                    self.model.solve()
+                    solution = self.model.solve()
                 except SolveError:
                     logger.debug('No pathway could be predicted. Terminating pathway predictions.')
                     break
                 vars_to_cut = list()
-                for y_var in self._y_vars:
+                for i, y_var_id in enumerate(self._y_vars_ids):
+                    y_var = self.model.solver.variables[y_var_id]
                     if y_var.primal == 1.0:
                         vars_to_cut.append(y_var)
                 if len(vars_to_cut) == 0:  # no pathway found:
-                    logger.debug("It seems %s is a native product in model %s. No further predictions are attempted." % (product, self.model))
-                    break
+                    logger.info("It seems %s is a native product in model %s. Let's see if we can find better heterologous pathways." % (product, self.model))
+                    df =  solution.to_frame()
+                    # knockout adapter with native product
+                    for adapter in self._adpater_reactions:
+                        if product in adapter.metabolites:
+                            logger.debug('Knocking out adapter reaction %s containing native product.' % adapter)
+                            adapter.knock_out(time_machine=tm)
+                    continue
                 pathway = [self.model.reactions.get_by_id(y_var.name[2:]) for y_var in vars_to_cut]
+                logger.debug('Pathway predicted: %s' % '\t'.join([reaction.annotation['Description'] for reaction in pathway]))
                 # Figure out adapter reactions to include
-
                 for adapter in self._adpater_reactions:
                     if abs(adapter.variable.primal) > 1e-6:
-                        logger.debug("Adapter %s added to pathway with primal %e" % (adapter.id, adapter.variable.primal))
+                        # logger.debug('Adapter %s added to pathway with primal %e' % (adapter.id, adapter.variable.primal))
                         pathway.append(adapter)
                 pathways.append(pathway)
                 integer_cut = self.model.solver.interface.Constraint(Add(*vars_to_cut), name="integer_cut_" + str(counter), ub=len(vars_to_cut)-1)
@@ -174,7 +205,9 @@ class PathwayPredictor(object):
             # self.model.solver.configuration.verbosity = 0
         return pathways
 
-
+    def _predict_heterolgous_pathways_for_native_compound(self, product):
+        # Determined reactions that produce product natively and knock them out
+        pass
 
 if __name__ == '__main__':
 

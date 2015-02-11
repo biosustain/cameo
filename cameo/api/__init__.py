@@ -25,9 +25,6 @@ import cameo
 import logging
 logger = logging.getLogger(__name__)
 
-with open(os.path.join(cameo._cameo_data_path, 'metanetx.pickle')) as f:
-    _METANETX = pickle.load(f)
-
 from cameo.api.hosts import hosts
 from cameo.api.designer import design
 from cameo.api.products import products

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import difflib
-from cameo.api import _METANETX as METANETX
+from cameo.data import metanetx
 
 
 def inchi_to_svg(inchi, file=None):
@@ -49,8 +49,7 @@ class Compound(object):
 class Products(object):
 
     def __init__(self):
-        metabolite_ids = [metabolite.id for metabolite in METANETX['universal_model'].metabolites]
-        self.data_frame = METANETX['chem_prop'].loc[metabolite_ids]
+        self.data_frame = metanetx.chem_prop
 
     def search(self, query):
         matches = self._search_by_source(query)
