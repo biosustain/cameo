@@ -42,7 +42,8 @@ else:
                     'optlang>=0.0.3',
                     'requests>=2.5.0',
                     'bashplotlib>=0.6.1',
-                    'numexpr>=2.4'
+                    'numexpr>=2.4',
+                    'networkx>=1.9.1'
     ]
 
 dependency_links = [

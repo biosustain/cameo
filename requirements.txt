@@ -18,3 +18,4 @@ escher==1.0.0
 bashplotlib==0.6.1
 redis>=2.10.3
 numexpr==2.4
+networkx==1.9.1

@@ -22,6 +22,7 @@ from escher import Builder
 import os
 from IPython.display import HTML, SVG
 from cameo.util import TimeMachine
+from cameo import Metabolite, Reaction
 
 
 log = logging.getLogger(__name__)
@@ -171,3 +172,28 @@ def inchi_to_svg(inchi, file=None):
     if not convert.ReadString(mol, inchi):
         raise Exception("%s could not be parsed as an inchi string.")
     return convert.WriteString(mol)
+
+def graph_to_svg(g, layout=nx.spring_layout):
+    """return the SVG of a matplotlib figure generated from a graph"""
+    import networkx as nx
+    import matplotlib.pyplot as plt
+    from io import BytesIO
+    layout = layout(g)
+    fig=plt.figure(figsize=(8, 8))
+    ax = fig.add_subplot(111)
+    # draw reaction nodes
+    rxn_nodes = [node for node in g.nodes() if isinstance(node, Reaction)]
+    # draw metabolites
+    met_nodes = [node for node in g.nodes() if isinstance(node, Metabolite)]
+    nx.draw_networkx_edges(g, nodelist=met_nodes, pos=layout, ax=ax, edge_color='gray', arrows=False, node_color='b')
+    labels = dict()
+    for node in g.nodes():
+        if isinstance(node, Reaction):
+            labels[node] = node.name
+        else:
+            labels[node] = node.name
+    nx.draw_networkx_labels(g, labels=labels, pos=layout, font_size=9)
+    output = BytesIO()
+    fig.savefig(output, format='svg')
+    plt.close(fig)
+    return output.getvalue()
