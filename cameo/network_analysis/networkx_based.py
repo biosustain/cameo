@@ -13,15 +13,43 @@
 # limitations under the License.
 
 
-__all__ = ['reactions_to_network']
+__all__ = ['model_to_network', 'reactions_to_network']
 
 import networkx as nx
 
 
-def model_to_network(model, network_type=nx.DiGraph):
-    return reactions_to_network(model.reactions, network_type=nx.DiGraph)
+def model_to_network(model, network_type=nx.Graph):
+    """Convert a model into a networkx graph.
 
-def reactions_to_network(reactions, network_type=nx.DiGraph):
+    Parameters
+    ----------
+    model: SolverBasedModel
+        The model.
+    network_type: networkx.Graph or or other networkx graph types, optional (default networkx.Graph)
+        The type of networkx graph that should be returned.
+
+    Returns
+    -------
+    networkx.Graph (default)
+        Depends on network_type parameter.
+    """
+    return reactions_to_network(model.reactions, network_type=network_type)
+
+def reactions_to_network(reactions, network_type=nx.Graph):
+    """Convert a list of reactions into a networkx graph.
+
+    Parameters
+    ----------
+    reactions: list
+        The list of reactions.
+    network_type: networkx.Graph or or other networkx graph types, optional (default networkx.Graph)
+        The type of networkx graph that should be returned.
+
+    Returns
+    -------
+    networkx.Graph (default)
+        Depends on network_type parameter.
+    """
     edges = list()
     for reaction in reactions:
         for substrate in reaction.reactants:
@@ -30,4 +58,4 @@ def reactions_to_network(reactions, network_type=nx.DiGraph):
             edges.append((reaction, product))
     if reaction.reversibility:
         edges.extend([(node2, node1) for node1, node2 in edges])
-    return nx.DiGraph(edges)
+    return network_type(edges)
