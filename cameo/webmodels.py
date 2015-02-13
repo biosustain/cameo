@@ -1,11 +1,11 @@
 # Copyright 2014 Novo Nordisk Foundation Center for Biosustainability, DTU.
-
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-
-# http://www.apache.org/licenses/LICENSE-2.0
-
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -25,6 +25,8 @@ import requests
 from pandas import DataFrame
 import tempfile
 
+import logging
+logger = logging.getLogger(__name__)
 
 class NotFoundException(Exception):
     def __init__(self, type, index, *args, **kwargs):
@@ -46,9 +48,16 @@ def index_models(host="http://darwin.di.uminho.pt/models"):
         summary of the models in the database
     """
     uri = host + "/models.json"
-    response = json.loads(requests.get(uri).text)
-    return DataFrame(response, columns=["name", "doi", "author", "year", "formats", "organism", "taxonomy"])
-
+    try:
+        response = requests.get(uri)
+    except requests.ConnectionError as e:
+        logger.error("Cannot reach %s. Are you sure that you are connected to the internet?" % host)
+        raise e
+    if response.status_code == 200:
+        response = json.loads(response.text)
+        return DataFrame(response, columns=["id", "name", "doi", "author", "year", "formats", "organism", "taxonomy"])
+    else:
+        raise Exception("Could not index available models. %s returned status code %d" % (host, response.status_code))
 
 def get_sbml_file(index, host="http://darwin.di.uminho.pt/models"):
     temp = tempfile.NamedTemporaryFile()

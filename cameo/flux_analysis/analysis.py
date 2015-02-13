@@ -1,29 +1,33 @@
 # Copyright 2014 Novo Nordisk Foundation Center for Biosustainability, DTU.
-
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-
-# http://www.apache.org/licenses/LICENSE-2.0
-
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+__all__ = ['flux_variability_analysis', 'phenotypic_phase_plane', 'fbid']
+
 import itertools
 from copy import copy
 from collections import OrderedDict
 from functools import partial
 import numpy
-from cobra.core import Reaction
 from cameo import config
 from cameo.exceptions import UndefinedSolution, Infeasible, Unbounded, SolveError
 from cameo.util import TimeMachine, partition
 from cameo.parallel import SequentialView
 from cameo.flux_analysis.simulation import _cycle_free_flux
 import pandas
+
+import logging
+logger = logging.getLogger(__name__)
 
 
 def flux_variability_analysis(model, reactions=None, fraction_of_optimum=0., remove_cycles=True, view=None):
@@ -44,12 +48,11 @@ def flux_variability_analysis(model, reactions=None, fraction_of_optimum=0., rem
         Pandas DataFrame containing the results of the flux variability analysis.
 
     """
-    tm = TimeMachine()
     if view is None:
         view = config.default_view
     if reactions is None:
         reactions = model.reactions
-    try:
+    with TimeMachine() as tm:
         if model.reversible_encoding == 'split':
             tm(do=partial(setattr, model, 'reversible_encoding', 'unsplit'),
                undo=partial(setattr, model, 'reversible_encoding', 'split'))
@@ -57,7 +60,7 @@ def flux_variability_analysis(model, reactions=None, fraction_of_optimum=0., rem
             try:
                 obj_val = model.solve().f
             except SolveError as e:
-                print "flux_variability_analyis was not able to determine an optimal solution for objective %s" % model.objective
+                logger.debug("flux_variability_analyis was not able to determine an optimal solution for objective %s" % model.objective)
                 raise e
             if model.objective.direction == 'max':
                 fix_obj_constraint = model.solver.interface.Constraint(model.objective.expression,
@@ -74,8 +77,6 @@ def flux_variability_analysis(model, reactions=None, fraction_of_optimum=0., rem
             func_obj = _FvaFunctionObject(model, _flux_variability_analysis)
         chunky_results = view.map(func_obj, reaction_chunks)
         solution = pandas.concat(chunky_results)
-    finally:
-        tm.reset()
     return solution
 
 
@@ -153,6 +154,7 @@ def _flux_variability_analysis(model, reactions=None):
     else:
         reactions = model._ids_to_reactions(reactions)
     fva_sol = OrderedDict()
+    [lb_flag, ub_flag] = [False, False]
     for reaction in reactions:
         fva_sol[reaction.id] = dict()
         model.objective = reaction
@@ -163,9 +165,8 @@ def _flux_variability_analysis(model, reactions=None):
         except Unbounded:
             fva_sol[reaction.id]['lower_bound'] = -numpy.inf
         except Infeasible:
-            fva_sol[reaction.id]['lower_bound'] = 0
-    for reaction in reactions:
-        model.objective = reaction
+            lb_flag = True
+
         model.objective.direction = 'max'
         try:
             solution = model.solve()
@@ -173,11 +174,27 @@ def _flux_variability_analysis(model, reactions=None):
         except Unbounded:
             fva_sol[reaction.id]['upper_bound'] = numpy.inf
         except Infeasible:
+            ub_flag = True
+
+        if lb_flag is True and ub_flag is True:
+            fva_sol[reaction.id]['lower_bound'] = 0
             fva_sol[reaction.id]['upper_bound'] = 0
+            [lb_flag, ub_flag] = [False, False]
+        elif lb_flag is True and ub_flag is False:
+            fva_sol[reaction.id]['lower_bound'] = fva_sol[reaction.id]['upper_bound']
+            lb_flag = False
+        elif lb_flag is False and ub_flag is True:
+            fva_sol[reaction.id]['upper_bound'] = fva_sol[reaction.id]['lower_bound']
+            ub_flag = False
+
+
     model.objective = original_objective
     df = pandas.DataFrame.from_dict(fva_sol, orient='index')
     lb_higher_ub = df[df.lower_bound > df.upper_bound]
-    assert ((lb_higher_ub.lower_bound - lb_higher_ub.upper_bound) < 1e-6).all()  # Assert that these cases really only numerical artifacts
+    try: # this is an alternative solution to what I did above with flags
+        assert ((lb_higher_ub.lower_bound - lb_higher_ub.upper_bound) < 1e-6).all()  # Assert that these cases really only numerical artifacts
+    except AssertionError as e:
+        logger.debug(zip(model.reactions, (lb_higher_ub.lower_bound - lb_higher_ub.upper_bound) < 1e-6))
     df.lower_bound[lb_higher_ub.index] = df.upper_bound[lb_higher_ub.index]
     return df
 
@@ -216,7 +233,6 @@ def _cycle_free_fva(model, reactions=None, sloppy=True):
                 fva_sol[reaction.id]['lower_bound'] = 0
                 continue
             except Exception as e:
-                print reaction.id
                 raise e
             bound = solution.f
             if sloppy and bound > -100:
@@ -399,23 +415,6 @@ def _fbid_fva(model, knockouts, view):
 
     tm.reset()
     return perturbation
-
-
-def reaction_component_production(model, reaction):
-    tm = TimeMachine()
-    for metabolite in reaction.metabolites:
-        test = Reaction("EX_%s_temp" % metabolite.id)
-        test._metabolites[metabolite] = -1
-        # hack frozen set from cobrapy to be able to add a reaction
-        metabolite._reaction = set(metabolite._reaction)
-        tm(do=partial(model.add_reactions, [test]), undo=partial(model.remove_reactions, [test]))
-        tm(do=partial(setattr, model, 'objective', test.id), undo=partial(setattr, model, 'objective', model.objective))
-        try:
-            print metabolite.id, "= ", model.solve().f
-        except SolveError:
-            print metabolite, " cannot be produced (reactions: %s)" % metabolite.reactions
-        finally:
-            tm.reset()
 
 
 if __name__ == '__main__':

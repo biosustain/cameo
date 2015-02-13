@@ -1,11 +1,11 @@
 # Copyright 2013 Novo Nordisk Foundation Center for Biosustainability, DTU.
-
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-
+#
 #     http://www.apache.org/licenses/LICENSE-2.0
-
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -18,13 +18,16 @@ from uuid import uuid1
 from time import time
 from datetime import datetime
 import colorsys
-from pandas.core.common import in_ipnb
+try:
+    from pandas.core.common import in_ipnb
+except:
+    pass
 import progressbar
 import ipython_notebook_utils
-import logging
 from numpy.random import RandomState
 
-logger = logging.getLogger('cameo')
+import logging
+logger = logging.getLogger(__name__)
 
 
 class RandomGenerator():
@@ -88,7 +91,7 @@ class TimeMachine(object):
         self.history = OrderedDict()
 
     def __call__(self, do=None, undo=None, bookmark=None):
-        do()
+        output = do()
         current_time = time()
         if bookmark is None:
             entry_id = uuid1()
@@ -98,7 +101,7 @@ class TimeMachine(object):
         self.history.pop(entry_id, None)
         self.history[entry_id] = {'unix_epoch':
                                   current_time, 'undo': undo, 'redo': do}
-        return entry_id
+        return entry_id, output
 
     def __str__(self):
         info = '\n'
@@ -232,3 +235,46 @@ def memoize(function, memo={}):
             memo[args] = rv
             return rv
     return wrapper
+
+
+class IntelliContainer(object):
+    def __init__(self, **kwargs):
+        self._dict = dict(**kwargs)
+
+    def __getattr__(self, value):
+        return self._dict.get(value)
+
+    def __setitem__(self, key, value):
+        self._dict[key] = value
+
+    def __iter__(self):
+        return self._dict.itervalues()
+
+    def __dir__(self):
+        return self._dict.keys()
+
+
+class DisplayItemsWidget(progressbar.widgets.Widget):
+    """Display an items[pbar.currval]
+
+    Examples
+    --------
+    import time
+    from progressbar import Progressbar, widges
+    pbar = ProgressBar(widgets=[DisplayItemsWidget(["asdf"+str(i) for i in range(10)]), widgets.Bar()])
+    pbar.maxval = 10
+    pbar.start()
+    for i in range(10):
+        time.sleep(.2)
+        pbar.update(i)
+    pbar.finish()
+    """
+
+    def __init__(self, items):
+        self.items = items
+
+    def update(self, pbar):
+        try:
+            return "%s" % self.items[pbar.currval]
+        except IndexError:
+            return ""

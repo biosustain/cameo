@@ -1,5 +1,13 @@
 sphinx-rtd-theme>=0.1.6
 numpydoc>=0.5
-cobra>=0.3.0b3
+cobra>=0.3.0b4
+sympy==0.7.5
+-e git+https://github.com/biosustain/optlang.git@55677a7f426320ac50cfa217dc037f57595b0860#egg=optlang
+-e git+https://github.com/biosustain/ipython_notebook_utils.git@b9e68cc2fdbae30d3482306ffcbecbf358530267#egg=ipython_notebook_utils
 mock>=1.0.1
 sphinxcontrib-napoleon>=0.2.8
+progressbar-ipython>=2.3.1
+blessings==1.5.1
+ordered-set==1.2
+inspyred==1.0
+bashplotlib==0.6.1

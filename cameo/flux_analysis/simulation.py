@@ -1,27 +1,31 @@
 # Copyright 2014 Novo Nordisk Foundation Center for Biosustainability, DTU.
-
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-
-# http://www.apache.org/licenses/LICENSE-2.0
-
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import sympy
+
+__all__ = ['fba', 'pfba', 'moma', 'lmoma', 'room']
 
 from functools import partial
-from cameo.util import TimeMachine
-from cameo.exceptions import SolveError
+
+import sympy
 from sympy import Add
 from sympy import Mul
 
-import logging
+from cameo.util import TimeMachine
+from cameo.exceptions import SolveError
+from cameo.core.solution import Solution
 
-logger = logging.getLogger("cameo")
+import logging
+logger = logging.getLogger(__name__)
 
 add = Add._from_args
 mul = Mul._from_args
@@ -76,14 +80,34 @@ def pfba(model, objective=None, *args, **kwargs):
         original_objective = model.objective.expression
         tm(do=partial(setattr, model, 'reversible_encoding', 'split'),
            undo=partial(setattr, model, 'reversible_encoding', model.reversible_encoding))
-
-        if objective is not None:
-            tm(do=partial(setattr, model, 'objective', objective),
-               undo=partial(setattr, model, 'objective', original_objective))
         try:
-            obj_val = model.solve().f
-        except SolveError as e:
-            print "pfba could not determine maximum objective value for\n%s." % model.objective
+            if objective is not None:
+                tm(do=partial(setattr, model, 'objective', objective),
+                   undo=partial(setattr, model, 'objective', original_objective))
+            try:
+                obj_val = model.solve().f
+            except SolveError as e:
+                print "pfba could not determine maximum objective value for\n%s." % model.objective
+                raise e
+            if model.objective.direction == 'max':
+                fix_obj_constraint = model.solver.interface.Constraint(model.objective.expression, lb=obj_val)
+            else:
+                fix_obj_constraint = model.solver.interface.Constraint(model.objective.expression, ub=obj_val)
+            tm(do=partial(model.solver._add_constraint, fix_obj_constraint),
+               undo=partial(model.solver._remove_constraint, fix_obj_constraint))
+            pfba_obj = model.solver.interface.Objective(add(
+                [mul((sympy.singleton.S.One, variable)) for variable in model.solver.variables.values()]),
+                direction='min', sloppy=True)
+            tm(do=partial(setattr, model, 'objective', pfba_obj),
+               undo=partial(setattr, model, 'objective', original_objective))
+            try:
+                solution = model.solve(solution_type=Solution)
+                tm.reset()
+                return solution
+            except SolveError as e:
+                print "pfba could not determine an optimal solution for objective %s" % model.objective
+                raise e
+        except Exception as e:
             raise e
         if model.objective.direction == 'max':
             fix_obj_constraint = model.solver.interface.Constraint(model.objective.expression, lb=obj_val)
@@ -210,8 +234,8 @@ def lmoma(model, reference=None, cache={}, volatile=True, *args, **kwargs):
             cache['first_run'] = False
 
         try:
-            solution = model.solve()
-            logger.debug("LMOMA z=%f" % solution.f)
+            from cameo.core.solver_based_model import Solution
+            solution = model.solve(solution_type=Solution)
             return solution
         except SolveError as e:
             #print "lmoma could not determine an optimal solution for objective %s" % model.objective

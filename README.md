@@ -1,11 +1,11 @@
 ## cameo - computer assisted metabolic engineering & optimization
 
+[![Documentation Status](https://readthedocs.org/projects/cameo/badge/?version=devel)](https://readthedocs.org/projects/cameo/?badge=devel)
 [![Build Status](https://travis-ci.org/biosustain/cameo.svg?branch=devel)](https://travis-ci.org/biosustain/cameo)
 [![Coverage Status](https://coveralls.io/repos/biosustain/cameo/badge.png?branch=devel)](https://coveralls.io/r/biosustain/cameo?branch=devel)
-[![Documentation Status](https://readthedocs.org/projects/cameo/badge/?version=latest)](https://readthedocs.org/projects/cameo/?badge=latest)
 
 ### Vision
-Provide a high-level python library to aid _in silico_ strain design process in metabolic engineering projects. The library provides a modular architecture that enables the efficient construction of custom analysis workflows.
+Cameo is a high-level python library developed to aid the _in silico_ strain design process in metabolic engineering projects. The library provides a modular architecture that enables the efficient construction of custom analysis workflows.
 
 ### Dependencies
 This library depends on:

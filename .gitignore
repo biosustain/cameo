@@ -47,3 +47,5 @@ nosetests.xml
 .idea
 
 docs/_build
+
+.vagrant

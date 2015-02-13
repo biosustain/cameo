@@ -1,3 +1,0 @@
-IPython Notebook Examples
-=========================
-

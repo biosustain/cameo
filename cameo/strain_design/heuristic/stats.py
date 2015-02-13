@@ -1,11 +1,11 @@
 # Copyright 2014 Novo Nordisk Foundation Center for Biosustainability, DTU.
-
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-
-# http://www.apache.org/licenses/LICENSE-2.0
-
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -18,6 +18,9 @@ from cameo import config
 
 if config.use_bokeh:
     from bokeh.plotting import *
+
+from bashplotlib.scatterplot import plot_scatter
+from bashplotlib.histogram import plot_hist
 
 
 class GenericStatsData(object):
@@ -35,7 +38,9 @@ class CLIStatsData(GenericStatsData):
         super(CLIStatsData, self).__init__(*args, **kwargs)
 
     def display(self):
-        pass
+        plot_hist(list(self.knockouts_hist), title="Knockout size distribution", colour="blue")
+        lines = ["%s, %s" % (x, y) for x, y in zip(self.solution.solutions['Size'], self.solution.solutions['Fitness'])]
+        plot_scatter(lines, None, None, 20, "*", "blue", "Correlation between number of knockouts and fitness")
 
 
 class BokehStatsData(GenericStatsData):
