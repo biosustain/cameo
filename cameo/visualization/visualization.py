@@ -12,11 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+__all__ = ['memoized', 'graph_to_svg', 'draw_knockout_result', 'inchi_to_svg']
+
 import json
 import logging
 import subprocess
 import tempfile
 from functools import partial
+from io import BytesIO
+
+import networkx as nx
 from escher import Builder
 
 import os
@@ -175,9 +180,7 @@ def inchi_to_svg(inchi, file=None):
 
 def graph_to_svg(g, layout=nx.spring_layout):
     """return the SVG of a matplotlib figure generated from a graph"""
-    import networkx as nx
     import matplotlib.pyplot as plt
-    from io import BytesIO
     layout = layout(g)
     fig=plt.figure(figsize=(8, 8))
     ax = fig.add_subplot(111)
