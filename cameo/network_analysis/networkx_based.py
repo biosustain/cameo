@@ -13,7 +13,7 @@
 # limitations under the License.
 
 
-__all__ = ['model_to_network', 'reactions_to_network']
+__all__ = ['model_to_network', 'reactions_to_network', 'remove_highly_connected_nodes']
 
 import networkx as nx
 
@@ -59,3 +59,17 @@ def reactions_to_network(reactions, network_type=nx.Graph):
     if reaction.reversibility:
         edges.extend([(node2, node1) for node1, node2 in edges])
     return network_type(edges)
+
+def remove_highly_connected_nodes(network, max_degree=10, ignore=[]):
+    """Remove highly connected nodes.
+
+    Parameters
+    ----------
+    network: networkx graph
+    max_degree: int (default 10)
+        Remove nodes with degree > max_degree
+    ignore: list
+        List of nodes to ignore.
+    """
+    to_remove = [node for node, degree in network.degree_iter() if degree > max_degree and node not in ignore]
+    network.remove_nodes_from(to_remove)
