@@ -82,6 +82,8 @@ class Reaction(_cobrapy.core.Reaction):
         self._lower_bound = 0
         self._upper_bound = 1000.
         self._objective_coefficient = 0.
+        self._switch_constraints = None
+        self._switch_variable = None
 
     def __str__(self):
         return ''.join((self.id, ": ", self.build_reaction_string()))
@@ -161,6 +163,11 @@ class Reaction(_cobrapy.core.Reaction):
                     variable.ub = value
                     variable.lb = value
 
+            # Deal with switches ...
+            if self._switch_constraints is not None:
+                self.remove_binary_switch()
+                self.add_binary_switch()
+
         self._lower_bound = value
 
     @property
@@ -198,6 +205,11 @@ class Reaction(_cobrapy.core.Reaction):
                 except ValueError:
                     variable.lb = value
                     variable.ub = value
+
+            # Deal with switches ...
+            if self._switch_constraints is not None:
+                self.remove_binary_switch()
+                self.add_binary_switch()
 
         self._upper_bound = value
 
@@ -264,3 +276,30 @@ class Reaction(_cobrapy.core.Reaction):
             time_machine(do=super(Reaction, self).knock_out, undo=partial(_, self, self.lower_bound, self.upper_bound))
         else:
             super(Reaction, self).knock_out()
+
+    def add_binary_switch(self):
+        if self.model is None:
+            raise Exception('...')
+
+        y = self.model.solver.interface.Variable('y_'+self.id, lb=0, ub=1, type='binary')
+        if self.reverse_variable is not None:
+                variable_term = self.variable - self.reverse_variable
+        else:
+            variable_term = self.variable
+        switch_lb = self.model.solver.interface.Constraint(y*self.lower_bound - variable_term, name='switch_lb_'+self.id, ub=0)
+        switch_ub = self.model.solver.interface.Constraint(y*self.upper_bound - variable_term, name='switch_ub_'+self.id, lb=0)
+        self.model.solver._add_variable(y)
+        self.model.solver._add_constraint(switch_lb, sloppy=True)
+        self.model.solver._add_constraint(switch_ub, sloppy=True)
+        self._switch_constraints = [switch_lb, switch_ub]
+        self._switch_variable = y
+        return (y, [switch_lb, switch_ub])
+
+    def remove_binary_switch(self):
+        if self.model is not None and self._switch_constraints is not None:
+            self.model.solver.remove(self._switch_constraints)
+            self.model.solver.remove(self._switch_variable)
+            self._switch_variable = None
+            self._switch_constraints = None
+
+

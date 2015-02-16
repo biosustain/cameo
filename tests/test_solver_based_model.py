@@ -31,6 +31,9 @@ from cameo.exceptions import UndefinedSolution
 from cameo.core.solver_based_model import Reaction
 from cameo.util import TimeMachine
 
+from sympy import Add
+add = Add._from_args
+
 
 TRAVIS = os.getenv('TRAVIS', False)
 TESTDIR = os.path.dirname(__file__)
@@ -368,6 +371,45 @@ class AbstractTestReaction(object):
             self.assertFalse(self.model.solver.has_key(old_reaction_id))
             self.assertTrue(self.model.solver.has_key(new_reaction_id))
             self.assertTrue(self.model.solver.variables[new_reaction_id].name, new_reaction_id)
+
+    def test_binary_switches(self):
+
+        for reaction in self.model.reactions:
+            if reaction.upper_bound > 1000:
+                reaction.upper_bound = 1000.
+            if reaction.lower_bound < -1000:
+                reaction.lower_bound = -1000.
+
+        for reaction in self.model.reactions:
+            self.assertTrue(reaction._switch_constraints is None)
+            self.assertTrue(reaction._switch_variable is None)
+
+            (y, switch_constraints) = reaction.add_binary_switch()
+
+            self.assertEqual(reaction._switch_constraints, switch_constraints)
+            self.assertEqual(reaction._switch_variable, y)
+
+            self.assertEqual(y.name, 'y_' + reaction.id)
+            self.assertEqual(switch_constraints[0].name, 'switch_lb_' + reaction.id)
+            self.assertEqual(switch_constraints[1].name, 'switch_ub_' + reaction.id)
+            self.assertTrue(y.name in reaction.get_model().solver.variables.keys())
+            self.assertTrue(switch_constraints[0].name in reaction.get_model().solver.constraints.keys())
+            self.assertTrue(switch_constraints[1].name in reaction.get_model().solver.constraints.keys())
+
+        self.model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = self.model.solve().f
+        self.model.objective = self.model.solver.interface.Objective(add([reaction._switch_variable for reaction in self.model.reactions]), direction='min')
+        self.model.solve()
+        for reaction in self.model.reactions:
+            if abs(reaction.flux) > 1:
+                self.assertAlmostEqual(reaction._switch_variable.primal, 1.)
+
+        for reaction in self.model.reactions:
+            reaction.remove_binary_switch()
+            self.assertTrue(reaction._switch_constraints is None)
+            self.assertTrue(reaction._switch_variable is None)
+            self.assertFalse('y_' + reaction.id in reaction.get_model().solver.variables.keys())
+            self.assertFalse('switch_lb_' + reaction.id in reaction.get_model().solver.constraints.keys())
+            self.assertFalse('switch_ub_' + reaction.id in reaction.get_model().solver.constraints.keys())
 
 
 class TestReactionGLPK(AbstractTestReaction, unittest.TestCase):
