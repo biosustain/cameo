@@ -12,53 +12,52 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 __all__ = ['model_to_network', 'reactions_to_network', 'remove_highly_connected_nodes']
 
 import networkx as nx
+from cameo.network_analysis.util import distance_based_on_molecular_formula
 
 
-def model_to_network(model, network_type=nx.Graph):
+def model_to_network(model):
     """Convert a model into a networkx graph.
 
     Parameters
     ----------
     model: SolverBasedModel
         The model.
-    network_type: networkx.Graph or or other networkx graph types, optional (default networkx.Graph)
-        The type of networkx graph that should be returned.
 
     Returns
     -------
-    networkx.Graph (default)
-        Depends on network_type parameter.
+    networkx.MultiDiGraph
     """
-    return reactions_to_network(model.reactions, network_type=network_type)
+    return reactions_to_network(model.reactions)
 
-def reactions_to_network(reactions, network_type=nx.Graph):
+def reactions_to_network(reactions):
     """Convert a list of reactions into a networkx graph.
 
     Parameters
     ----------
     reactions: list
         The list of reactions.
-    network_type: networkx.Graph or or other networkx graph types, optional (default networkx.Graph)
-        The type of networkx graph that should be returned.
 
     Returns
     -------
-    networkx.Graph (default)
-        Depends on network_type parameter.
+    networkx.MultiDiGraph
     """
     edges = list()
     for reaction in reactions:
         for substrate in reaction.reactants:
-            edges.append((substrate, reaction))
-        for product in reaction.products:
-            edges.append((reaction, product))
-    if reaction.reversibility:
-        edges.extend([(node2, node1) for node1, node2 in edges])
-    return network_type(edges)
+            for product in reaction.products:
+                try:
+                    distance = distance_based_on_molecular_formula(substrate, product)
+                except ValueError:
+                    distance = 0.
+                if distance <= 0.3:
+                    edges.append((substrate, product, dict(reaction=reaction)))
+                    if reaction.reversibility:
+                        edges.append((product, substrate, dict(reaction=reaction)))
+    multi_graph = nx.MultiDiGraph(edges)
+    return multi_graph
 
 def remove_highly_connected_nodes(network, max_degree=10, ignore=[]):
     """Remove highly connected nodes.
