@@ -277,17 +277,42 @@ class Reaction(_cobrapy.core.Reaction):
         else:
             super(Reaction, self).knock_out()
 
-    def add_binary_switch(self):
+    def add_binary_switch(self, active_when=1):
         if self.model is None:
             raise Exception('...')
 
-        y = self.model.solver.interface.Variable('y_'+self.id, lb=0, ub=1, type='binary')
+        y = self.model.solver.interface.Variable('y_'+self.id, type='binary')
         if self.reverse_variable is not None:
-                variable_term = self.variable - self.reverse_variable
+            variable_term = self.variable - self.reverse_variable
         else:
             variable_term = self.variable
-        switch_lb = self.model.solver.interface.Constraint(y*self.lower_bound - variable_term, name='switch_lb_'+self.id, ub=0)
-        switch_ub = self.model.solver.interface.Constraint(y*self.upper_bound - variable_term, name='switch_ub_'+self.id, lb=0)
+        try:
+            switch_lb = self.model.solver.interface.Constraint(variable_term,
+                                                               indicator_variable=y,
+                                                               active_when=active_when,
+                                                               name='switch_lb_'+self.id,
+                                                               lb=self.lower_bound)
+            switch_ub = self.model.solver.interface.Constraint(variable_term,
+                                                               indicator_variable=y,
+                                                               active_when=active_when,
+                                                               name='switch_ub_'+self.id,
+                                                               ub=self.upper_bound)
+        except Exception as e:  # Solver interface does not support indicator constraints
+            if 'does not support indicator constraints' in str(e):
+                if active_when == 1:
+                    switch_term = y
+                elif active_when == 0:
+                    switch_term = (1-y)
+                else:
+                    raise ValueError('active_when needs be either 1 or 0.')
+                switch_lb = self.model.solver.interface.Constraint(variable_term - switch_term*self.lower_bound,
+                                                                   name='switch_lb_'+self.id,
+                                                                   lb=0)
+                switch_ub = self.model.solver.interface.Constraint(variable_term - switch_term*self.upper_bound,
+                                                                   name='switch_ub_'+self.id,
+                                                                   ub=0)
+            else:
+                raise e
         self.model.solver._add_variable(y)
         self.model.solver._add_constraint(switch_lb, sloppy=True)
         self.model.solver._add_constraint(switch_ub, sloppy=True)

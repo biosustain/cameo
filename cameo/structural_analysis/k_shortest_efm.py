@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from cameo.core.solver_based_model import SolverBasedModel
 
 __all__ = ['shortest_elementary_flux_modes', 'fixed_size_elementary_modes']
 
@@ -18,10 +19,11 @@ from functools import partial
 from itertools import combinations, chain
 from ordered_set import OrderedSet
 import sympy
-import logging
+
 from cameo.util import TimeMachine
 
-logger = logging.getLogger("cameo")
+import logging
+logger = logging.getLogger(__name__)
 
 mul = sympy.Mul._from_args
 add = sympy.Add._from_args
@@ -108,14 +110,14 @@ class EFMModel(object):
         if matrix is None:
             matrix = model.S
         self.matrix = matrix
-        self.model = model.solver.interface.Model()
+        self.solver = model.solver.interface.Model()
         self._populate_model(model, include_exchanges, flux_type)
 
     def add(self, obj):
-        self.model.add(obj)
+        self.solver.add(obj)
 
     def remove(self, obj):
-        self.model.remove(obj)
+        self.solver.remove(obj)
 
     @property
     def z_vars(self):
@@ -170,10 +172,10 @@ class EFMModel(object):
         constraints.append(trivial_solutions_constraint)
 
         objective = model.solver.interface.Objective(add(self.z_vars), direction='min')
-        self.model.add(self.z_vars)
-        self.model.add(self.t_vars)
-        self.model.add(constraints)
-        self.model.objective = objective
+        self.solver.add(self.z_vars)
+        self.solver.add(self.t_vars)
+        self.solver.add(constraints)
+        self.solver.objective = objective
 
     def add_reaction(self, r_id, model, constraints, flux_type):
         z = model.solver.interface.Variable("z_%s" % r_id, type='binary')
@@ -201,10 +203,29 @@ class EFMModel(object):
 
     @property
     def f(self):
-        return self.model.objective.value
+        return self.solver.objective.value
 
     def optimize(self):
-        return self.model.optimize()
+        return self.solver.optimize()
+
+
+class ElementaryFluxModesModel(SolverBasedModel):
+
+    def __init__(self, **kwargs):
+        super(ElementaryFluxModesModel, self).__init__(*kwargs)
+        for reaction in self.reactions:
+            reaction.add_binary_switch()
+
+    def k_shortest_elementary_flux_modes(self, k):
+        pass
+
+    def elementary_flux_modes_of_size(self, size):
+        pass
+
+    def add_reactions(self, reaction_list):
+        super(ElementaryFluxModesModel, self).add_reactions(reaction_list)
+        for reaction in reaction_list:
+            reaction.add_binary_switch()
 
 
 def shortest_elementary_flux_modes(model=None, k=5, M=100000, efm_model=None, matrix=None):
@@ -236,7 +257,7 @@ def shortest_elementary_flux_modes(model=None, k=5, M=100000, efm_model=None, ma
 
     if matrix is None:
         logger.debug("Computing integer matrix...")
-        matrix = model.integerS
+        matrix = model.intS
 
     if efm_model is None:
         logger.debug("Building efm model...")
@@ -247,7 +268,10 @@ def shortest_elementary_flux_modes(model=None, k=5, M=100000, efm_model=None, ma
     elementary_modes = []
     #iteration 1
     logger.debug("Iteration 1:")
+    # efm_model.solver.configuration.verbosity = 3
     status = efm_model.optimize()
+    if status != 'optimal':
+        raise Exception("No optimal solution found.")
     logger.debug("Iteration 1: %i (%s)" % (efm_model.f, status))
 
     iter_modes = []
@@ -259,22 +283,31 @@ def shortest_elementary_flux_modes(model=None, k=5, M=100000, efm_model=None, ma
     [logger.debug("%s: %f" % (t, t.primal)) for t in efm_model.t_vars if t.primal > 0]
 
     for i in xrange(k-1):
-        iteration_expression = add([mul([RealNumber(z.primal), z])for z in efm_model.z_vars if z.primal > 0])
-        iteration_constraint = model.solver.interface.Constraint(iteration_expression, ub=efm_model.f-1, name="iter")
-        with TimeMachine() as tm:
-            tm(do=partial(efm_model.add, iteration_constraint), undo=partial(efm_model.remove, iteration_constraint))
+        for z in efm_model.z_vars:
+            if z.primal > 0:
+                print z
+                print z.primal
+        iteration_expression = add([mul([RealNumber(1.), z]) for z in efm_model.z_vars if z.primal == 1.])
+        iteration_constraint = model.solver.interface.Constraint(iteration_expression, ub=efm_model.f-1, name="iter_%d" % i)
+        print iteration_constraint
+        efm_model.add(iteration_constraint)
+        print len(efm_model.solver.constraints)
+        # with TimeMachine() as tm:
+        # tm(do=partial(efm_model.add, iteration_constraint), undo=partial(efm_model.remove, iteration_constraint))
 
-            #interation n
-            logger.debug("Iteration %i:" % (i+2))
-            status = efm_model.optimize()
-            logger.debug("Iteration %i: %s" % (i+2, status))
-            iter_modes = []
-            for z in efm_model.z_vars:
-                if z.primal > 0:
-                    logger.debug("%s: %f" % (z, z.primal))
-                    iter_modes.append(efm_model.r_var(z.name))
-            elementary_modes.append(iter_modes)
-            [logger.debug("%s: %f" % (t, t.primal)) for t in efm_model.t_vars if t.primal > 0]
+        #interation n
+        logger.debug("Iteration %i:" % (i+2))
+        status = efm_model.optimize()
+        if status != 'optimal':
+            raise Exception("No optimal solution found.")
+        logger.debug("Iteration %i: %s" % (i+2, status))
+        iter_modes = []
+        for z in efm_model.z_vars:
+            if z.primal > 0:
+                logger.debug("%s: %f" % (z, z.primal))
+                iter_modes.append(efm_model.r_var(z.name))
+        elementary_modes.append(iter_modes)
+        [logger.debug("%s: %f" % (t, t.primal)) for t in efm_model.t_vars if t.primal > 0]
 
     return elementary_modes, efm_model
 
