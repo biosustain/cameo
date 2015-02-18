@@ -54,7 +54,7 @@ class Reaction(_cobrapy.core.Reaction):
                 setattr(new_reaction, attribute, value)
             except AttributeError:
                 logger.debug("Can't set attribute %s for reaction %s (while cloning it to a cameo style reaction). Skipping it ..." % (attribute, reaction))
-        if not isinstance(reaction.get_model(), cameo.core.solver_based_model.SolverBasedModel):
+        if not isinstance(reaction.model, cameo.core.solver_based_model.SolverBasedModel):
             new_reaction._model = None
         if model is not None:
             new_reaction._model = model
@@ -90,7 +90,7 @@ class Reaction(_cobrapy.core.Reaction):
     def variable(self):
         """An optlang variable representing the forward flux (if associated with model), otherwise None.
         Representing the net flux if model.reversible_encoding == 'unsplit'"""
-        model = self.get_model()
+        model = self.model
         if model is not None:
             return model.solver.variables[self.id]
         else:
@@ -107,7 +107,7 @@ class Reaction(_cobrapy.core.Reaction):
     @property
     def reverse_variable(self):
         """An optlang variable representing the reverse flux (if associated with model), otherwise None."""
-        model = self.get_model()
+        model = self.model
         if model is not None:
             aux_id = self._get_reverse_id()
             try:
@@ -119,7 +119,7 @@ class Reaction(_cobrapy.core.Reaction):
 
     @property
     def lower_bound(self):
-        model = self.get_model()
+        model = self.model
         if model is not None:
             if model.reversible_encoding == 'split' and self.reversibility:
                 return -1 * self.reverse_variable.ub
@@ -130,7 +130,7 @@ class Reaction(_cobrapy.core.Reaction):
 
     @lower_bound.setter
     def lower_bound(self, value):
-        model = self.get_model()
+        model = self.model
 
         if model is not None:
 
@@ -165,14 +165,14 @@ class Reaction(_cobrapy.core.Reaction):
 
     @property
     def upper_bound(self):
-        if self.get_model() is not None:
+        if self.model is not None:
             return self.variable.ub
         else:
             return self._upper_bound
 
     @upper_bound.setter
     def upper_bound(self, value):
-        model = self.get_model()
+        model = self.model
         if model is not None:
             # Remove auxiliary variable if not needed anymore
             reverse_variable = self.reverse_variable
@@ -207,7 +207,7 @@ class Reaction(_cobrapy.core.Reaction):
 
     @objective_coefficient.setter
     def objective_coefficient(self, value):
-        model = self.get_model()
+        model = self.model
         if model is not None:
             model.solver._set_linear_objective_term(self.variable, value)
 
@@ -215,7 +215,7 @@ class Reaction(_cobrapy.core.Reaction):
 
     @property
     def effective_lower_bound(self):
-        model = self.get_model()
+        model = self.model
         return \
             flux_analysis.flux_variability_analysis(model, reactions=[self], view=SequentialView(), remove_cycles=False)[
                 'lower_bound'][
@@ -223,7 +223,7 @@ class Reaction(_cobrapy.core.Reaction):
 
     @property
     def effective_upper_bound(self):
-        model = self.get_model()
+        model = self.model
         return \
             flux_analysis.flux_variability_analysis(model, reactions=[self], view=SequentialView(), remove_cycles=False)[
                 'upper_bound'][
@@ -251,7 +251,7 @@ class Reaction(_cobrapy.core.Reaction):
 
     def add_metabolites(self, metabolites, **kwargs):
         super(Reaction, self).add_metabolites(metabolites, **kwargs)
-        model = self.get_model()
+        model = self.model
         if model is not None:
             for metabolite, coefficient in metabolites.iteritems():
                 model.solver.constraints[metabolite.id] += coefficient*self.variable

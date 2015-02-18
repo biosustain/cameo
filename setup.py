@@ -38,7 +38,7 @@ else:
                     'pandas>=0.15.2',
                     'ordered-set>=1.2',
                     'inspyred>=1.0',
-                    'cobra>=0.3.0b4',
+                    'cobra>=0.3.1',
                     'optlang>=0.0.3',
                     'requests>=2.5.0',
                     'bashplotlib>=0.6.1',

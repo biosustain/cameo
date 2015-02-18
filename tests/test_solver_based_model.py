@@ -94,7 +94,7 @@ class AbstractTestReaction(object):
             self.assertEqual(cloned_reaction.metabolites, reaction.metabolites)
             self.assertEqual(cloned_reaction.products, reaction.products)
             self.assertEqual(cloned_reaction.reactants, reaction.reactants)
-            self.assertEqual(cloned_reaction.get_model(), None)
+            self.assertEqual(cloned_reaction.model, None)
             self.assertEqual(cloned_reaction.variable, None)
             self.assertEqual(cloned_reaction.reverse_variable, None)
 
@@ -112,13 +112,13 @@ class AbstractTestReaction(object):
     def test_removal_from_model_retains_bounds(self):
         model_cp = self.model.copy()
         reaction = model_cp.reactions.ACALD
-        self.assertEqual(reaction.get_model(), model_cp)
+        self.assertEqual(reaction.model, model_cp)
         self.assertEqual(reaction.lower_bound, -999999.0)
         self.assertEqual(reaction.upper_bound, 999999.0)
         self.assertEqual(reaction._lower_bound, -999999.0)
         self.assertEqual(reaction._upper_bound, 999999.0)
         model_cp.remove_reactions([reaction])
-        self.assertEqual(reaction.get_model(), None)
+        self.assertEqual(reaction.model, None)
         self.assertEqual(reaction.lower_bound, -999999.0)
         self.assertEqual(reaction.upper_bound, 999999.0)
         self.assertEqual(reaction._lower_bound, -999999.0)
@@ -419,48 +419,48 @@ class AbstractTestSolverBasedModel(object):
     def test_all_objects_point_to_all_other_correct_objects(self):
         model = load_model(os.path.join(TESTDIR, 'data/EcoliCore.xml'))
         for reaction in model.reactions:
-            self.assertEqual(reaction.get_model(), model)
+            self.assertEqual(reaction.model, model)
             for gene in reaction.genes:
                 self.assertEqual(gene, model.genes.get_by_id(gene.id))
                 self.assertEqual(gene.model, model)
                 for reaction2 in gene.reactions:
-                    self.assertEqual(reaction2.get_model(), model)
+                    self.assertEqual(reaction2.model, model)
                     self.assertEqual(reaction2, model.reactions.get_by_id(reaction2.id))
 
             for metabolite in reaction.metabolites:
                 self.assertEqual(metabolite.model, model)
                 self.assertEqual(metabolite, model.metabolites.get_by_id(metabolite.id))
                 for reaction2 in metabolite.reactions:
-                    self.assertEqual(reaction2.get_model(), model)
+                    self.assertEqual(reaction2.model, model)
                     self.assertEqual(reaction2, model.reactions.get_by_id(reaction2.id))
 
     def test_all_objects_point_to_all_other_correct_objects_after_copy(self):
         model = load_model(os.path.join(TESTDIR, 'data/EcoliCore.xml'))
         model = model.copy()
         for reaction in model.reactions:
-            self.assertEqual(reaction.get_model(), model)
+            self.assertEqual(reaction.model, model)
             for gene in reaction.genes:
                 self.assertEqual(gene, model.genes.get_by_id(gene.id))
                 self.assertEqual(gene.model, model)
                 for reaction2 in gene.reactions:
-                    self.assertEqual(reaction2.get_model(), model)
+                    self.assertEqual(reaction2.model, model)
                     self.assertEqual(reaction2, model.reactions.get_by_id(reaction2.id))
 
             for metabolite in reaction.metabolites:
                 self.assertEqual(metabolite.model, model)
                 self.assertEqual(metabolite, model.metabolites.get_by_id(metabolite.id))
                 for reaction2 in metabolite.reactions:
-                    self.assertEqual(reaction2.get_model(), model)
+                    self.assertEqual(reaction2.model, model)
                     self.assertEqual(reaction2, model.reactions.get_by_id(reaction2.id))
 
     def test_remove_reactions(self):
         reactions_to_remove = self.model.reactions[10:30]
-        self.assertTrue(all([reaction.get_model() is self.model for reaction in reactions_to_remove]))
+        self.assertTrue(all([reaction.model is self.model for reaction in reactions_to_remove]))
         self.assertTrue(
             all([self.model.reactions.get_by_id(reaction.id) == reaction for reaction in reactions_to_remove]))
 
         self.model.remove_reactions(reactions_to_remove)
-        self.assertTrue(all([reaction.get_model() is None for reaction in reactions_to_remove]))
+        self.assertTrue(all([reaction.model is None for reaction in reactions_to_remove]))
         for reaction in reactions_to_remove:
             self.assertNotIn(reaction.id, self.model.solver.variables.keys())
 

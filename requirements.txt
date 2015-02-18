@@ -9,7 +9,7 @@ Jinja2==2.7.3
 pandas>=0.15.2
 ordered-set==1.2
 inspyred==1.0
-cobra==0.3.0b4
+cobra==0.3.1
 -e git+https://github.com/biosustain/optlang.git@55677a7f426320ac50cfa217dc037f57595b0860#egg=optlang
 -e git+https://github.com/biosustain/ipython_notebook_utils.git@b9e68cc2fdbae30d3482306ffcbecbf358530267#egg=ipython_notebook_utils
 sphinx>=1.2.2
