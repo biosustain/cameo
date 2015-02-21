@@ -105,11 +105,11 @@ class Solution(SolutionBase):
 
     @property
     def x_dict(self):
-        return dict(zip(self._reaction_ids, self.x))
+        return OrderedDict(zip(self._reaction_ids, self.x))
 
     @property
     def y_dict(self):
-        return dict(zip(self._reaction_ids, self.y))
+        return OrderedDict(zip(self._reaction_ids, self.y))
 
     @property
     def fluxes(self):

@@ -243,6 +243,8 @@ class Reaction(_cobrapy.core.Reaction):
     def reduced_cost(self):
         if self.variable is not None:
             dual = self.variable.dual
+            if dual is None:  # cplex cannot determine reduced costs for MILP problems
+                return None
             if self.reversibility:
                 dual -= self.reverse_variable.dual
             return dual

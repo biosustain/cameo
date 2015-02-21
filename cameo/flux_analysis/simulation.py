@@ -201,7 +201,6 @@ def lmoma(model, reference=None, cache={}, volatile=True, *args, **kwargs):
             cache['first_run'] = False
 
         try:
-            from cameo.core.solver_based_model import Solution
             solution = model.solve(solution_type=Solution)
             return solution
         except SolveError as e:
@@ -303,7 +302,7 @@ def room(model, reference=None, cache={}, volatile=True, delta=0.03, epsilon=0.0
             cache['first_run'] = False
 
         try:
-            solution = model.solve()
+            solution = model.solve(solution_type=Solution)
             return solution
         except SolveError as e:
             print "room could not determine an optimal solution for objective %s" % model.objective

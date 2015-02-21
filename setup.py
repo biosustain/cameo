@@ -47,7 +47,7 @@ else:
     ]
 
 dependency_links = [
-    'https://github.com/biosustain/optlang/tarball/devel#egg=optlang-0.0.3'
+    'https://github.com/biosustain/optlang/tarball/devel#egg=optlang-0.1'
 ]
 
 # from https://coderwall.com/p/qawuyq
