@@ -2,7 +2,7 @@ numpy>=1.9.1
 pyzmq>=14.3.1
 ipython>=2.1.0
 scipy>=0.9.0
-bokeh==0.4.4
+bokeh>=0.4.4
 blessings==1.5.1
 progressbar-ipython>=2.3.1
 Jinja2==2.7.3
