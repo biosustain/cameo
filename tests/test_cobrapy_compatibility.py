@@ -14,22 +14,21 @@
 
 import types
 
-import nose
+import os
 from cobra.test import create_test_model
 from cobra.test.unit_tests import CobraTestCase, TestReactions
 from cobra.test.flux_analysis import TestCobraFluxAnalysis
 
 from cameo.core.solver_based_model import to_solver_based_model, SolverBasedModel
 
+TRAVIS = os.getenv('TRAVIS', False)
 
-def setUp(self):
-    # Make Model pickable and then load a solver based version of test_pickle
-    self.model = to_solver_based_model(create_test_model())
-    self.model_class = SolverBasedModel
+if not TRAVIS:
 
-for cls in (CobraTestCase, TestReactions, TestCobraFluxAnalysis):
-    cls.setUp = types.MethodType(setUp, cls)
+    def setUp(self):
+        # Make Model pickable and then load a solver based version of test_pickle
+        self.model = to_solver_based_model(create_test_model())
+        self.model_class = SolverBasedModel
 
-
-if __name__ == '__main__':
-    nose.runmodule()
+    for cls in (CobraTestCase, TestReactions, TestCobraFluxAnalysis):
+        cls.setUp = types.MethodType(setUp, cls)
