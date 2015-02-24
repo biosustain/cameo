@@ -91,9 +91,9 @@ class Environment(object):
     """
 
     def __init__(self, organisms=[], metabolites=[]):
-        assert isinstance(organisms, collections.Iterable)
-        assert isinstance(metabolites, collections.Iterable)
-        self._organisms = organisms
+        assert isinstance(organisms, list)
+        assert isinstance(metabolites, list)
+        self.organisms = organisms
         self._metabolites = metabolites
 
     def update(self, *args, **kwargs):
@@ -147,16 +147,19 @@ class DynamicSystem(object):
 
     def _ode_rhs(self, y, t):
         """
-        this is the Right Hand Side of the system of ODE that describe the dynamic multi-species system
-        :param y: state variables such as liquid volume, biomass concentrations, and metabolite concentrations
-        :param t: time
-        :return:
+        This is the Right Hand Side of the system of ODE that describe the dynamic multi-species system.
 
-        ** this is an abstract method, must be implemented for specific environments **
+        Parameters
+        ----------
+        y: list
+            The state variables: liquid volume(y[0]), biomass concentrations, and metabolite concentrations
+        t: float
+            Time
+
         """
         raise NotImplementedError("the RHS of the ODE must be described for the each specific environment")
 
-    def integrate(self, t0, tf, dt, initial_conditions, solver, verbose=False):
+    def integrate(self, t0, tf, dt, initial_conditions, solver):
         """
         the integrate() solves the ODE of the dynamic system using the designated solver
         :param t0: initial time
@@ -169,42 +172,41 @@ class DynamicSystem(object):
         if solver == 'analytical':
             try:
                 t, y = self.analytical_integrator(t0, tf, dt, initial_conditions, solver)
+                return t, y
             except NotImplementedError:
-                logger.warn('analytical solver %s have no been implemented yet. will '
-                            'use numerical solver dopri5.' % solver)
-                t, y = self.numerical_integrator(t0, tf, dt, initial_conditions, solver='dopri5')
-        else:
-            t, y = self.numerical_integrator(t0, tf, dt, initial_conditions, solver)
+                logger.warn('analytical solver have no been implemented yet. It will use numerical solver dopri5.')
+
+        t, y = self.numerical_integrator(t0, tf, dt, initial_conditions, solver)
         return t, y
 
     def numerical_integrator(self, t0, tf, dt, initial_conditions=None, solver='dopri5'):
         """
-        the numerical_integrator() method integrates the ODE of the dynamic system using a numerical solver
+        The numerical_integrator() method integrates the ODE of the dynamic system using a numerical solver
         """
         if initial_conditions:
             y0 = initial_conditions
         else:
             y0 = self._initial_conditions
 
-        mdfba_ode = ode(self._ode_rhs).set_integrator(solver)
-        mdfba_ode.set_initial_value(y0, t0)
+        m_dfba_ode = ode(self._ode_rhs).set_integrator(solver)
+        m_dfba_ode.set_initial_value(y0, t0)
 
         t = [t0]
         y = [y0]
 
-        while mdfba_ode.successful() and mdfba_ode.t < tf:
-            mdfba_ode.integrate(mdfba_ode.t + dt)
+        while m_dfba_ode.successful() and m_dfba_ode.t < tf:
+            m_dfba_ode.integrate(m_dfba_ode.t + dt)
 
-            t.append(mdfba_ode.t)
-            y.append(mdfba_ode.y)
+            t.append(m_dfba_ode.t)
+            y.append(m_dfba_ode.y)
 
         t = numpy.array(t)
         y = numpy.array(y)
         return t, y
 
-    def analytical_integrator(self, t0, tf, dt, initial_conditions, solver, verbose):
+    def analytical_integrator(self, t0, tf, dt, initial_conditions, solver):
         """
-        the analytical_integrator() method integrates the ODE of the dynamic system using a user-defined analytical method
+        Integrates the ODE of the dynamic system using a user-defined analytical method.
 
         ** this is an abstract method, must be implemented for specific dynamic systems **
         """
@@ -248,20 +250,43 @@ class BioReactor(Environment, DynamicSystem):
         if not isinstance(metabolites, collections.Iterable):
             metabolites = [metabolites]
 
-        Environment.__init__(self, organisms, metabolites)
-        DynamicSystem.__init__(self, initial_conditions)
-
         self.id = id
 
         self.inflow_rate = inflow_rate
         self.outflow_rate = outflow_rate
         self._max_volume = max_volume
 
-        self._s_feed = s_feed or numpy.zeros(len(self.metabolites))
-        self._x_feed = x_feed or numpy.zeros(len(self.organisms))
+        self._s_feed = s_feed or numpy.zeros(len(metabolites))
+        self._x_feed = x_feed or numpy.zeros(len(organisms))
 
-        self._delta_x = delta_x or numpy.zeros(len(self.metabolites))
-        self._delta_s = delta_s or numpy.zeros(len(self.organisms))
+        self._delta_x = delta_x or numpy.zeros(len(organisms))
+        self._delta_s = delta_s or numpy.zeros(len(metabolites))
+
+        Environment.__init__(self, organisms, metabolites)
+        DynamicSystem.__init__(self, initial_conditions)
+
+    @property
+    def metabolites(self):
+        return Environment.metabolites.fget(self)
+
+    @metabolites.setter
+    def metabolites(self, metabolites):
+        Environment.metabolites.fset(self, metabolites)
+        if len(metabolites) != len(self._s_feed):
+            self._s_feed = numpy.zeros(len(self.metabolites))
+            self._delta_s = numpy.zeros(len(self.metabolites))
+
+    @property
+    def organisms(self):
+        return Environment.organisms.fget(self)
+
+    @organisms.setter
+    def organisms(self, organisms):
+        Environment.organisms.fset(self, organisms)
+        if len(organisms) != len(self._x_feed):
+            self._x_feed = numpy.zeros(len(self.organisms))
+            self._delta_x = numpy.zeros(len(self.organisms))
+
 
     @property
     def max_volume(self):
@@ -286,7 +311,7 @@ class BioReactor(Environment, DynamicSystem):
     def update(self, time, volume, s, x):
         if self.max_volume:
             if volume > self.max_volume:
-                raise ValueError('Bioreactor volume %f exceeds reactor limit %f' % (volume, self.max_volume))
+                raise ValueError('Volume %f exceeds limit %f' % (volume, self.max_volume))
 
     def _ode_rhs(self, t, y):
         """
@@ -314,11 +339,13 @@ class BioReactor(Environment, DynamicSystem):
         # assigning growth rates and metabolic production/consumption rates here
         # in this method, these rates are calculated using FBA
 
-        vs = numpy.zeros([number_of_organisms, number_of_metabolites])     # fluxes through metabolites
-        mu = numpy.zeros([number_of_organisms])                          # growth rates of organisms
+        # fluxes through metabolites
+        vs = numpy.zeros([number_of_organisms, number_of_metabolites])
+        # growth rates of organisms
+        mu = numpy.zeros([number_of_organisms])
 
         for i, organism in enumerate(self._organisms):
-            organism.update()   # updating the internal states of the organism
+            organism.update(volume, x[i], s)   # updating the internal states of the organism
             # eg. updating the uptake constraints based on metabolite concentrations
             with TimeMachine() as tm:
                 for reaction_id, constraints in organism.constraints.items():
@@ -327,9 +354,9 @@ class BioReactor(Environment, DynamicSystem):
                        undo=partial(setattr, reaction, 'lower_bound', reaction.lower_bound))
                     tm(do=partial(setattr, reaction, 'upper_bound', constraints[1]),
                        undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
-
-                tm(do=partial(setattr, organism.model, 'objective', organism.objective),
-                   undo=partial(setattr, organism.model, 'objective', organism.model.objective))
+                if organism.objective:
+                    tm(do=partial(setattr, organism.model, 'objective', organism.objective),
+                       undo=partial(setattr, organism.model, 'objective', organism.model.objective))
 
             try:
                 organism.solution = organism.model.solve()
@@ -347,7 +374,7 @@ class BioReactor(Environment, DynamicSystem):
 
         # updating the internal states of the bioreactor
         # eg. flow rates, feed concentrations, and custom defined dX/dt and dS/dt terms
-        self.update(t, volume)
+        self.update(t, volume, x, s)
 
         # calculating the rates of change of reactor volume[L], biomass [g/L] and metabolite [mmol/L]
         # dV/dt [L/hr]

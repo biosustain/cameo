@@ -88,7 +88,7 @@ class IdealFedBatch(BioReactorOX):
 
     def update(self, time, volume, x, s):
         """
-        calculates the flow_rate_in of the fedbatch reactor is calculated here.
+        calculates the flow_rate_in of the fed batch reactor is calculated here.
             - if liquid volume >= volume_max, then the tank is full, set flow_rate_in to zero
             - otherwise, calculate the flow rate so that d_substrate/dt = 0
 
