@@ -303,7 +303,7 @@ def room(model, reference=None, cache={}, volatile=True, delta=0.03, epsilon=0.0
             cache['first_run'] = False
 
         try:
-            solution = model.solve(solution_type=Solution)
+            solution = model.solve()
             return FluxDistributionResult(solution)
         except SolveError as e:
             print "room could not determine an optimal solution for objective %s" % model.objective
