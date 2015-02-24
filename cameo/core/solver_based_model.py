@@ -429,19 +429,27 @@ class SolverBasedModel(_cobrapy.core.Model):
             print 'Cannot determine essential reactions for un-optimal model.'
             raise e
         for reaction_id, flux in solution.x_dict.iteritems():
+            print reaction_id, flux
             if abs(flux) > 0:
                 reaction = self.reactions.get_by_id(reaction_id)
-                time_machine(do=partial(setattr, reaction, 'lower_bound', 0),
-                             undo=partial(setattr, reaction, 'lower_bound', reaction.lower_bound))
-                time_machine(do=partial(setattr, reaction, 'upper_bound', 0),
-                             undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
+                # time_machine(do=partial(setattr, reaction, 'lower_bound', 0),
+                #              undo=partial(setattr, reaction, 'lower_bound', reaction.lower_bound))
+                # time_machine(do=partial(setattr, reaction, 'upper_bound', 0),
+                #              undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
+                reaction.knock_out(time_machine=time_machine)
                 try:
                     sol = self.solve()
                 except (Infeasible, UndefinedSolution):
+                    print 'except (Infeasible, UndefinedSolution):',reaction_id
                     essential.append(reaction)
                 else:
+                    if reaction.id == 'PGK':
+                        print 'PGK', sol.f, sol.f < threshold
                     if sol.f < threshold:
                         essential.append(reaction)
+                        if reaction.id == 'PGK':
+                            print 'PGK asdf', sol.f
+                            print essential
                 finally:
                     time_machine.reset()
         return essential

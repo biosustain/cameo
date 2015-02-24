@@ -189,8 +189,12 @@ class LazySolution(SolutionBase):
     @property
     def x_dict(self):
         self._check_freshness()
-        primals = self.model.solver.primal_values
-        return OrderedDict((reaction.id, primals[reaction.id]) for reaction in self.model.reactions)
+        # primals = self.model.solver.primal_values
+        # return OrderedDict((reaction.id, primals[reaction.id]) for reaction in self.model.reactions)
+        primals = OrderedDict()
+        for reaction in self.model.reactions:
+            primals[reaction.id] = reaction.flux
+        return primals
 
     @property
     def y(self):
@@ -200,9 +204,13 @@ class LazySolution(SolutionBase):
     @property
     def y_dict(self):
         self._check_freshness()
-        reduced_costs = self.model.solver.reduced_costs
-        return OrderedDict((reaction.id, reduced_costs[reaction.id]) for reaction in self.model.reactions)
-        return reduced_costs
+        # reduced_costs = self.model.solver.reduced_costs
+        # return OrderedDict((reaction.id, reduced_costs[reaction.id]) for reaction in self.model.reactions)
+        # return reduced_costs
+        duals = OrderedDict()
+        for reaction in self.model.reactions:
+            duals[reaction.id] = reaction.reduced_cost
+        return duals
 
     @property
     def status(self):
