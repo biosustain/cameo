@@ -2,7 +2,7 @@ sphinx-rtd-theme>=0.1.6
 numpydoc>=0.5
 cobra>=0.3.1
 sympy==0.7.5
--e git+https://github.com/biosustain/optlang.git@260320cdf0e7e1042b30b15da56b39e8b8455ae0#egg=optlang
+-e git+https://github.com/biosustain/optlang.git@700ff4264ef772ddd8401c48f33800d2add415b9#egg=optlang
 -e git+https://github.com/biosustain/ipython_notebook_utils.git@b9e68cc2fdbae30d3482306ffcbecbf358530267#egg=ipython_notebook_utils
 mock>=1.0.1
 sphinxcontrib-napoleon>=0.2.8
