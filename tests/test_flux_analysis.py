@@ -156,7 +156,7 @@ class AbstractTestSimulationMethods(object):
 
     def test_fba(self):
         solution = fba(self.model)
-        self.assertAlmostEqual(solution.f, 0.873921, delta=0.000001)
+        self.assertAlmostEqual(solution.objective_value, 0.873921, delta=0.000001)
 
     def test_pfba(self):
         fba_solution = fba(self.model)

@@ -67,6 +67,7 @@ class FluxDistributionResult(Result):
     def __init__(self, solution, *args, **kwargs):
         super(FluxDistributionResult, self).__init__(*args, **kwargs)
         self._fluxes = solution.fluxes
+        self._objective_value = solution.f
 
     @property
     def data_frame(self):
@@ -75,6 +76,10 @@ class FluxDistributionResult(Result):
     @property
     def fluxes(self):
         return self._fluxes
+
+    @property
+    def objective_value(self):
+        return self._objective_value
 
 
 if __name__ == '__main__':

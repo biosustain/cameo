@@ -53,13 +53,8 @@ def fba(model, objective=None, *args, **kwargs):
         if objective is not None:
             tm(do=partial(setattr, model, 'objective', objective),
                undo=partial(setattr, model, 'objective', model.objective))
-        try:
-            solution = model.solve()
-            result = FluxDistributionResult(solution)
-            tm.reset()
-            return solution
-        except SolveError as e:
-            raise e
+        solution = model.solve()
+        result = FluxDistributionResult(solution)
     return result
 
 def pfba(model, objective=None, *args, **kwargs):
