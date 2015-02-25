@@ -29,20 +29,29 @@ For DyMMM, please cite:
 from collections import OrderedDict
 
 
-def dfba_multi(bioreactor, t0, tf, dt, initial_conditions=None, solver='dopri5'):
+def dfba(bioreactor, t0, tf, dt, initial_conditions=None, solver='dopri5'):
     """
     Dynamic Flux Balance Analysis with Multi-organism support
 
-    Arguments:
-        bioreactor: Bioreactor -- a bioreactor instance with defined organisms and metabolites
-        t0: float -- initial time
-        tf: float -- final time
-        dt: float -- time step
-        initial_conditions: list of float -- the initial conditions in the order of V0, X0, S0 (default: None)
-        solver: str -- ODE solver.  (default: 'dopri5')
-        verbose: bool -- Verbosity control.  (default: False).
+    Parameters
+    ----------
+        bioreactor: BioReactor
+            A BioReactor instance with defined organisms and metabolites.
+        t0: float
+            Initial time.
+        tf: float
+            Final time.
+        dt: float
+            Time step.
+        initial_conditions: list
+            the initial conditions in the order of V0, X0, S0 (default: None).
+        solver: str
+            ODE solver (default: 'dopri5').
+        verbose: bool
+            Verbosity control (default: False).
 
-    Returns:
+    Returns
+    -------
         results: OrderedDict -- simulation results
     """
     t, y = bioreactor.integrate(t0, tf, dt, initial_conditions, solver)
@@ -62,31 +71,12 @@ def dfba_multi(bioreactor, t0, tf, dt, initial_conditions=None, solver='dopri5')
     return result
 
 
-def dfba(bioreactor, t0, tf, dt, initial_conditions=None, solver='dopri5'):
-    """
-    dFBA() is a alias for dFBAm().
-    It is intended to provide legacy support for the name "dFBA"
-    """
-    result = dfba_multi(bioreactor, t0, tf, dt, initial_conditions, solver)
-    return result
-
-
-def dy_mmm(bioreactor, t0, tf, dt, initial_conditions=None, solver='dopri5'):
-    """
-    DyMMM() is a alias for dFBAm()
-    It is intended to provide legacy support for the name "DyMMM"
-    """
-    result = dfba_multi(bioreactor, t0, tf, dt, initial_conditions, solver)
-
-    return result
-
-
 def combinatorial_dfba(organisms, bioreactors, t0, tf, dt, initial_conditions=None, solver='dopri5'):
     """
     Run dFBA for all possible combinations of the given organisms and reactors.
     For example,
         given two organisms "ecoli" and "scerevisiae", and two reactors "batch" and "fedbatch",
-        the call dFBA_combination([ecoli, scerevisiae], [batch, fedbatch], t0, ft, dt] will perform four simulations:
+        the call combinatorial_dfba([ecoli, scerevisiae], [batch, fedbatch], t0, ft, dt] will perform four simulations:
             1. ecoli in batch
             2. ecoli in fedbatch
             3. scerevisiae in batch

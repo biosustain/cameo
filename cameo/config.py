@@ -39,8 +39,10 @@ except ImportError:
 try:
     import bokeh
     use_bokeh = True
+    bokeh_url = 'default'
 except ImportError:
     use_bokeh = False
+    bokeh_url = None
 
 try:
     import matplotlib
