@@ -156,20 +156,20 @@ class AbstractTestSimulationMethods(object):
 
     def test_fba(self):
         solution = fba(self.model)
-        self.assertAlmostEqual(solution.f, 0.873921, delta=0.000001)
+        self.assertAlmostEqual(solution.objective_value, 0.873921, delta=0.000001)
 
     def test_pfba(self):
         fba_solution = fba(self.model)
-        fba_flux_sum = sum((abs(val) for val in fba_solution.x_dict.values()))
+        fba_flux_sum = sum((abs(val) for val in fba_solution.fluxes.values()))
         pfba_solution = pfba(self.model)
-        pfba_flux_sum = sum((abs(val) for val in pfba_solution.x_dict.values()))
+        pfba_flux_sum = sum((abs(val) for val in pfba_solution.fluxes.values()))
         self.assertTrue((pfba_flux_sum - fba_flux_sum) < 1e-6)  # looks like GLPK finds a parsimonious solution without the flux minimization objective
 
     def test_pfba_iJO(self):
         fba_solution = fba(iJO_MODEL)
-        fba_flux_sum = sum((abs(val) for val in fba_solution.x_dict.values()))
+        fba_flux_sum = sum((abs(val) for val in fba_solution.fluxes.values()))
         pfba_solution = pfba(iJO_MODEL)
-        pfba_flux_sum = sum((abs(val) for val in pfba_solution.x_dict.values()))
+        pfba_flux_sum = sum((abs(val) for val in pfba_solution.fluxes.values()))
         print pfba_flux_sum
         self.assertTrue(pfba_flux_sum < fba_flux_sum)
 
@@ -179,9 +179,9 @@ class AbstractTestSimulationMethods(object):
 
     def test_lmoma(self):
         pfba_solution = pfba(self.model)
-        ref = pfba_solution.x_dict
+        ref = pfba_solution.fluxes
         lmoma_solution = lmoma(self.model, reference=ref)
-        res = lmoma_solution.x_dict
+        res = lmoma_solution.fluxes
         distance = sum([abs(res[v] - ref[v]) for v in res.keys()])
         print distance
         self.assertAlmostEqual(0, distance, delta=0.000001, msg="moma distance without knockouts must be 0")

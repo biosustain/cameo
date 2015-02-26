@@ -31,6 +31,10 @@ class SolutionBase(object):
         super(SolutionBase, self).__init__(*args, **kwargs)
         self.model = model
 
+    @property
+    def data_frame(self):
+        return DataFrame({'fluxes': Series(self.x_dict), 'reduced_costs': Series(self.y_dict)})
+
     def __str__(self):
         """A pandas DataFrame representation of the solution.
 
@@ -38,7 +42,7 @@ class SolutionBase(object):
         -------
         pandas.DataFrame
         """
-        return str(self.to_frame())
+        return str(self.data_frame)
 
     def as_cobrapy_solution(self):
         """Convert into a cobrapy Solution.
@@ -50,16 +54,6 @@ class SolutionBase(object):
         return Solution(self.f, x=self.x,
                         x_dict=self.x_dict, y=self.y, y_dict=self.y_dict,
                         the_solver=None, the_time=0, status=self.status)
-
-    def to_frame(self):
-        """Return the solution as a pandas DataFrame.
-
-        Returns
-        -------
-        pandas.DataFrame
-        """
-        return DataFrame({'fluxes': Series(self.x_dict), 'reduced_costs': Series(self.y_dict)})
-
 
     def get_primal_by_id(self, reaction_id):
         """Return a flux/primal value for a reaction.
@@ -194,8 +188,9 @@ class LazySolution(SolutionBase):
 
     @property
     def x_dict(self):
-        # TODO: this could be even lazier by returning a lazy dict
         self._check_freshness()
+        # primals = self.model.solver.primal_values
+        # return OrderedDict((reaction.id, primals[reaction.id]) for reaction in self.model.reactions)
         primals = OrderedDict()
         for reaction in self.model.reactions:
             primals[reaction.id] = reaction.flux
@@ -209,6 +204,9 @@ class LazySolution(SolutionBase):
     @property
     def y_dict(self):
         self._check_freshness()
+        # reduced_costs = self.model.solver.reduced_costs
+        # return OrderedDict((reaction.id, reduced_costs[reaction.id]) for reaction in self.model.reactions)
+        # return reduced_costs
         duals = OrderedDict()
         for reaction in self.model.reactions:
             duals[reaction.id] = reaction.reduced_cost

@@ -14,6 +14,7 @@
 
 from types import DictType
 from sympy import Add
+from cameo.core.result import FluxDistributionResult
 from cameo.core.solution import SolutionBase, Solution
 
 add = Add._from_args
@@ -109,9 +110,11 @@ class ManhattanDistance(object):
 
     def minimize_L1(self, *args, **kwargs):
         self.model.objective.direction = 'min'
-        return self.model.solve(solution_type=Solution)
+        solution = self.model.solve()
+        result = FluxDistributionResult(solution)
+        return result
 
-    def maximize_L1(self, *args, **kwargs):
-        self.model.objective.direction = 'max'
-        return self.model.solve(solution_type=Solution)
+    # def maximize_L1(self, *args, **kwargs):
+    #     self.model.objective.direction = 'max'
+    #     return self.model.solve(solution_type=Solution)
 
