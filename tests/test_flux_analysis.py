@@ -16,11 +16,13 @@
 
 import os
 import unittest
+from cameo.bioreactor import Organism, BioReactor
+from cameo.flux_analysis.dfba import combinatorial_dfba, dfba
 
 from cameo.flux_analysis.simulation import fba, pfba, lmoma
 from cameo.parallel import SequentialView, MultiprocessingView
 from cameo.io import load_model
-from cameo.flux_analysis.analysis import flux_variability_analysis, phenotypic_phase_plane, _cycle_free_fva
+from cameo.flux_analysis.analysis import flux_variability_analysis, phenotypic_phase_plane
 
 import pandas
 from pandas.util.testing import assert_frame_equal
@@ -43,6 +45,7 @@ REFERENCE_PPP_o2_EcoliCore = pandas.read_csv(os.path.join(TESTDIR, 'data/REFEREN
 REFERENCE_PPP_o2_glc_EcoliCore = pandas.read_csv(os.path.join(TESTDIR, 'data/REFERENCE_PPP_o2_glc_EcoliCore.csv'))
 
 CORE_MODEL = load_model(os.path.join(TESTDIR, 'data/EcoliCore.xml'), sanitize=False)
+CORE_MODEL_SANE_NAMES = load_model(os.path.join(TESTDIR, 'data/ecoli_core_model.xml'))
 iJO_MODEL = load_model(os.path.join(TESTDIR, 'data/iJO1366.xml'), sanitize=False)
 
 iJO_MODEL_COBRAPY = load_model(os.path.join(TESTDIR, 'data/iJO1366.xml'), solver_interface=None, sanitize=False)
@@ -199,6 +202,115 @@ class TestSimulationMethodsCPLEX(AbstractTestSimulationMethods, unittest.TestCas
         self.model = CORE_MODEL
         self.model.solver = 'cplex'
 
+
+if __name__ == '__main__':
+    import nose
+
+    nose.runmodule()
+
+
+class DynamicFBATestCase(unittest.TestCase):
+    def setUp(self):
+        assert "EX_o2_e" in [r.id for r in CORE_MODEL_SANE_NAMES.reactions]
+        self.ec = Ecoli(CORE_MODEL_SANE_NAMES, 'Ecoli')
+        self.ec_glc = GlucoseUser(CORE_MODEL_SANE_NAMES, 'Ecoli_glucose_user')
+        self.ec_ac = AcetateUser(CORE_MODEL_SANE_NAMES, 'Ecoli_acetate_user')
+
+    def test_dynamic_fba_1_organism(self):
+        br = BioReactor([self.ec], ['EX_glc_e', 'EX_ac_e', 'EX_o2_e'])
+        init = [1, 0.01, 10, 0, 100]
+        br.initial_conditions = init
+
+        t0 = 0
+        tf = 20
+        dt = 1
+
+        result = dfba(br, t0, tf, dt)
+        self.assertEqual(result.keys(),
+                         ['time', 'volume', 'Ecoli', 'EX_glc_e', 'EX_ac_e', 'EX_o2_e'])
+
+    def test_dynamic_2_organisms(self):
+        br = BioReactor()
+        br.organisms = [self.ec_glc, self.ec_ac]
+        br.metabolites = ['EX_glc_e', 'EX_ac_e']
+        y0 = [1, 0.01, 0.01, 10, 0]
+        t0 = 0
+        tf = 20
+        dt = 1
+
+        result = dfba(br, t0, tf, dt, y0)
+        self.assertEqual(result.keys(),
+                         ['time', 'volume', 'Ecoli_glucose_user', 'Ecoli_acetate_user', 'EX_glc_e', 'EX_ac_e'])
+
+    def test_dynamic_fba_combinations(self):
+        br1 = BioReactor(metabolites=['EX_glc_e', 'EX_ac_e'], id='Br1')
+        br2 = BioReactor(metabolites=['EX_glc_e', 'EX_ac_e', 'EX_o2_e'], id='Br2')
+
+        br1.initial_conditions = [1, 0.01, 10, 0]
+        br2.initial_conditions = [1, 0.01, 10, 0, 10]
+
+        t0 = 0
+        tf = 20
+        dt = 1
+
+        result = combinatorial_dfba([self.ec_glc, self.ec_ac], [br1, br2], t0, tf, dt)
+        self.assertEqual(result.keys(), [('Ecoli_glucose_user', 'Br1'), ('Ecoli_glucose_user', 'Br2'),
+                                         ('Ecoli_acetate_user', 'Br1'), ('Ecoli_acetate_user', 'Br2')])
+
+
+class Ecoli(Organism):
+    """
+    Fixture class for testing dynamic simulations
+    """
+
+    def update(self, volume, growth_rate, substrates):
+        env = self.environment
+
+        index = env.metabolites.index('EX_glc_e')
+        vlb_glc = float(-10 * substrates[index] / (substrates[index] + 1))
+        self.constraints['EX_glc_e'] = (vlb_glc, 0)
+
+        # calculating and updating the acetate uptake constraint
+        index = env.metabolites.index('EX_ac_e')
+        vlb_ac = float(-10 * substrates[index] / (substrates[index] + 1))
+        self.constraints['EX_ac_e'] = (vlb_ac, None)
+        self.constraints['EX_o2_e'] = (-10, None)
+
+        index = env.metabolites.index('EX_o2_e')
+        vlb_o2 = float(-15 * substrates[index] / (substrates[index] + 0.001))
+        self.constraints['EX_o2_e'] = (vlb_o2, None)
+
+
+class GlucoseUser(Organism):
+    """
+    Fixture class for testing dynamic simulations
+    """
+
+    def update(self, volume, growth_rate, substrates):
+        env = self.environment
+
+        index = env.metabolites.index('EX_glc_e')
+        vlb_glc = float(-10 * substrates[index] / (substrates[index] + 1))
+        self.constraints['EX_glc_e'] = (vlb_glc, 0)
+
+        self.constraints['EX_ac_e'] = (0, None)
+        self.constraints['EX_o2_e'] = (-10, None)
+
+
+class AcetateUser(Organism):
+    """
+    Fixture class for testing dynamic simulations
+    """
+
+    def update(self, volume, growth_rate, substrates):
+        env = self.environment
+
+        self.constraints['EX_glc_e'] = (0, 0)
+
+        index = env.metabolites.index('EX_ac_e')
+        vlb_ac = float(-10 * substrates[index] / (substrates[index] + 1))
+        self.constraints['EX_ac_e'] = (vlb_ac, None)
+        self.constraints['EX_o2_e'] = (-10, None)
 
 if __name__ == '__main__':
     import nose
