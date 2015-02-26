@@ -182,7 +182,7 @@ class PathwayPredictor(object):
                         vars_to_cut.append(y_var)
                 if len(vars_to_cut) == 0:  # no pathway found:
                     logger.info("It seems %s is a native product in model %s. Let's see if we can find better heterologous pathways." % (product, self.model))
-                    df =  solution.to_frame()
+                    df =  solution.data_frame
                     # knockout adapter with native product
                     for adapter in self._adpater_reactions:
                         if product in adapter.metabolites:

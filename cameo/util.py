@@ -17,6 +17,8 @@ from uuid import uuid1
 from time import time
 from datetime import datetime
 import colorsys
+import pip
+import platform
 try:
     from pandas.core.common import in_ipnb
 except:
@@ -277,3 +279,14 @@ class DisplayItemsWidget(progressbar.widgets.Widget):
             return "%s" % self.items[pbar.currval]
         except IndexError:
             return ""
+
+def get_system_info():
+    # pip freeze (adapted from http://stackoverflow.com/a/24322465/280182)
+    package_info = list()
+    for dist in pip.get_installed_distributions():
+        req = str(dist.as_requirement())
+        package_info.append(req)
+    return dict(package_info=package_info,
+                platform=platform.platform(),
+                machine=platform.machine(),
+                system=platform.system())

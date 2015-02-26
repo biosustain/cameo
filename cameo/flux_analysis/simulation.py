@@ -23,6 +23,7 @@ from sympy import Mul
 from cameo.util import TimeMachine
 from cameo.exceptions import SolveError
 from cameo.core.solution import Solution
+from cameo.core.result import FluxDistributionResult
 
 import logging
 logger = logging.getLogger(__name__)
@@ -52,13 +53,9 @@ def fba(model, objective=None, *args, **kwargs):
         if objective is not None:
             tm(do=partial(setattr, model, 'objective', objective),
                undo=partial(setattr, model, 'objective', model.objective))
-        try:
-            solution = model.solve()
-            tm.reset()
-            return solution
-        except SolveError as e:
-            raise e
-
+        solution = model.solve()
+        result = FluxDistributionResult(solution)
+    return result
 
 def pfba(model, objective=None, *args, **kwargs):
     """Parsimonious Flux Balance Analysis.
@@ -100,19 +97,18 @@ def pfba(model, objective=None, *args, **kwargs):
             tm(do=partial(setattr, model, 'objective', pfba_obj),
                undo=partial(setattr, model, 'objective', original_objective))
             try:
-                solution = model.solve(solution_type=Solution)
+                solution = model.solve()
+                result = FluxDistributionResult(solution)
                 tm.reset()
-                return solution
+                return result
             except SolveError as e:
                 print "pfba could not determine an optimal solution for objective %s" % model.objective
                 raise e
         except Exception as e:
             raise e
 
-
 def moma(model, reference=None, *args, **kwargs):
-    pass
-
+    raise NotImplementedError('Quadratic MOMA not yet implemented.')
 
 def lmoma(model, reference=None, cache={}, volatile=True, *args, **kwargs):
     """Linear Minimization Of Metabolic Adjustment.
@@ -201,8 +197,8 @@ def lmoma(model, reference=None, cache={}, volatile=True, *args, **kwargs):
             cache['first_run'] = False
 
         try:
-            solution = model.solve(solution_type=Solution)
-            return solution
+            solution = model.solve()
+            return FluxDistributionResult(solution)
         except SolveError as e:
             #print "lmoma could not determine an optimal solution for objective %s" % model.objective
             raise e
@@ -302,8 +298,8 @@ def room(model, reference=None, cache={}, volatile=True, delta=0.03, epsilon=0.0
             cache['first_run'] = False
 
         try:
-            solution = model.solve(solution_type=Solution)
-            return solution
+            solution = model.solve()
+            return FluxDistributionResult(solution)
         except SolveError as e:
             print "room could not determine an optimal solution for objective %s" % model.objective
             raise e

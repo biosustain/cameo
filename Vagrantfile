@@ -19,6 +19,7 @@ pip install openpyxl==1.8.6
 pip install nose rednose coverage
 sudo pip install redis
 sudo python setup.py develop
+ipython notebook --ip=0.0.0.0 --port=8888
 
 SCRIPT
 
