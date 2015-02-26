@@ -177,7 +177,7 @@ class HeuristicOptimization(object):
                 raise TypeError("single objective heuristics do not support multiple objective functions")
         self._heuristic_method = heuristic_method(self.random)
 
-    def _evaluator(self):
+    def _evaluator(self, candidates, args):
         raise NotImplementedError
 
     def run(self, view=config.default_view, maximize=True, **kwargs):
