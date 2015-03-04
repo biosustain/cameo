@@ -359,6 +359,37 @@ class AbstractTestReaction(object):
         self.assertEqual(d1._lower_bound, -1000)
         self.assertEqual(d1.upper_bound, .1)
 
+    def test_irrev_reaction_set_negative_lb(self):
+        self.assertFalse(self.model.reactions.PFK.reversibility)
+        self.assertEqual(self.model.reactions.PFK.lower_bound, 0)
+        self.assertEqual(self.model.reactions.PFK.upper_bound, 999999.0)
+        self.assertEqual(self.model.reactions.PFK.variable.lb, 0)
+        self.assertEqual(self.model.reactions.PFK.variable.ub, 999999.0)
+        self.assertEqual(self.model.reactions.PFK.reverse_variable, None)
+        self.model.reactions.PFK.lower_bound = -1000000000
+        self.assertEqual(self.model.reactions.PFK.lower_bound, -1000000000)
+        self.assertEqual(self.model.reactions.PFK.upper_bound, 999999.0)
+        self.assertEqual(self.model.reactions.PFK.variable.lb, 0)
+        self.assertEqual(self.model.reactions.PFK.variable.ub, 999999.0)
+        self.assertEqual(self.model.reactions.PFK.reverse_variable.lb, 0)
+        self.assertEqual(self.model.reactions.PFK.reverse_variable.ub, 1000000000)
+
+    def test_twist_irrev_right_to_left_reaction_to_left_to_right(self):
+        self.assertFalse(self.model.reactions.PFK.reversibility)
+        self.assertEqual(self.model.reactions.PFK.lower_bound, 0)
+        self.assertEqual(self.model.reactions.PFK.upper_bound, 999999.0)
+        self.assertEqual(self.model.reactions.PFK.variable.lb, 0)
+        self.assertEqual(self.model.reactions.PFK.variable.ub, 999999.0)
+        self.assertEqual(self.model.reactions.PFK.reverse_variable, None)
+        self.model.reactions.PFK.lower_bound = -1000000000
+        self.model.reactions.PFK.upper_bound = 0
+        self.assertEqual(self.model.reactions.PFK.lower_bound, -1000000000)
+        self.assertEqual(self.model.reactions.PFK.upper_bound, 0)
+        self.assertEqual(self.model.reactions.PFK.variable.lb, -1000000000)
+        self.assertEqual(self.model.reactions.PFK.variable.ub, 0)
+        self.assertEqual(self.model.reactions.PFK.reverse_variable.lb, 0)
+        self.assertEqual(self.model.reactions.PFK.reverse_variable.ub, 0)
+
     def test_iMM904_4HGLSDm_problem(self):
         model = load_model(os.path.join(TESTDIR, 'data/iMM904.xml'))
         # set upper bound before lower bound after knockout

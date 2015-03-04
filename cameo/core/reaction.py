@@ -59,13 +59,8 @@ class Reaction(_cobrapy.core.Reaction):
         if model is not None:
             new_reaction._model = model
         for gene in new_reaction.genes:
-            # print gene._reaction
-            # for r in list(gene._reaction):
-            #     print r, type(r)
             gene._reaction.remove(reaction)
-            # print gene._reaction
             gene._reaction.add(new_reaction)
-            # print gene._reaction
         for metabolite in new_reaction.metabolites:
             metabolite._reaction.remove(reaction)
             metabolite._reaction.add(new_reaction)
@@ -120,14 +115,6 @@ class Reaction(_cobrapy.core.Reaction):
     @property
     def lower_bound(self):
         return self._lower_bound
-        # model = self.model
-        # if model is not None:
-        #     if model.reversible_encoding == 'split' and self.reversibility:
-        #         return -1 * self.reverse_variable.ub
-        #     else:
-        #         return self.variable.lb
-        # else:
-        #     return self._lower_bound
 
     @lower_bound.setter
     def lower_bound(self, value):
@@ -148,7 +135,7 @@ class Reaction(_cobrapy.core.Reaction):
             reverse_variable = self.reverse_variable
 
             if model.reversible_encoding == 'split' and value < 0 and self._upper_bound > 0:
-                if self._lower_bound > 0:
+                if self._lower_bound >= 0:
                     variable.lb = 0
                 try:
                     reverse_variable.ub = -1 * value
@@ -168,10 +155,6 @@ class Reaction(_cobrapy.core.Reaction):
     @property
     def upper_bound(self):
         return self._upper_bound
-        # if self.model is not None:
-        #     return self.variable.ub
-        # else:
-        #     return self._upper_bound
 
     @upper_bound.setter
     def upper_bound(self, value):
@@ -182,19 +165,26 @@ class Reaction(_cobrapy.core.Reaction):
             variable = self.variable
             if value <= 0 and self._upper_bound > 0 and self._lower_bound < 0:
                 reverse_variable.lb, reverse_variable.ub = 0, 0
+                try:
+                    variable.ub = value
+                    variable.lb = self._lower_bound
+                except ValueError:
+                    variable.lb = value
+                    self._lower_bound = value
+                    variable.ub = value
 
             # Add auxiliary variable if needed
-            elif value > 0 and self._upper_bound <= 0 and self.reverse_variable is None:  # self._upper_bound < 0 implies self._lower_bound < 0
-                reverse_variable = model.solver._add_variable(
-                    model.solver.interface.Variable(self._get_reverse_id(), lb=0, ub=0))
-                for met, coeff in self._metabolites.iteritems():
-                    model.solver.constraints[met.id] += sympy.Mul._from_args((-1 * sympy.RealNumber(coeff), reverse_variable))
-
-            if model.reversible_encoding == 'split' and value > 0 and self._lower_bound < 0:
+            elif value > 0 and self._upper_bound <= 0:  # self._upper_bound < 0 implies self._lower_bound < 0
+                if self.reverse_variable is None:
+                    reverse_variable = model.solver._add_variable(
+                        model.solver.interface.Variable(self._get_reverse_id(), lb=0, ub=0))
+                    for met, coeff in self._metabolites.iteritems():
+                        model.solver.constraints[met.id] += sympy.Mul._from_args((-1 * sympy.RealNumber(coeff), reverse_variable))
+                else:
+                    reverse_variable = self.reverse_variable
                 variable.ub = value
-                if self._upper_bound <= 0:
-                    reverse_variable.ub = -1 * variable.lb
-                    variable.lb = 0
+                reverse_variable.ub = -1 * variable.lb
+                variable.lb = 0
             else:
                 try:
                     variable.ub = value
@@ -264,11 +254,8 @@ class Reaction(_cobrapy.core.Reaction):
 
     def knock_out(self, time_machine=None):
         def _(reaction, lb, ub):
-            # print 'reaction, lb, ub', reaction, lb, ub
-            # print 'reaction1, reaction.lower_bound, reaction.upper_bound', reaction, reaction.lower_bound, reaction.upper_bound
             reaction.upper_bound = ub
             reaction.lower_bound = lb
-            # print 'reaction2, reaction.lower_bound, reaction.upper_bound', reaction, reaction.lower_bound, reaction.upper_bound
         if time_machine is not None:
             time_machine(do=super(Reaction, self).knock_out, undo=partial(_, self, self.lower_bound, self.upper_bound))
         else:
