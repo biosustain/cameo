@@ -275,6 +275,8 @@ class SolverBasedModel(_cobrapy.core.Model):
                 else:
                     constr_terms[metabolite.id] = [sympy.Mul._from_args([sympy.RealNumber(coeff), reaction_variable])]
                     metabolites[metabolite.id] = metabolite
+                if reaction.reversibility and self._reversible_encoding == "split":
+                    constr_terms[metabolite.id].append(sympy.Mul._from_args([sympy.RealNumber(-1*coeff), aux_var]))
 
         for met_id, terms in constr_terms.iteritems():
             expr = sympy.Add._from_args(terms)
