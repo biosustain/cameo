@@ -275,6 +275,8 @@ class SolverBasedModel(_cobrapy.core.Model):
                 else:
                     constr_terms[metabolite.id] = [sympy.Mul._from_args([sympy.RealNumber(coeff), reaction_variable])]
                     metabolites[metabolite.id] = metabolite
+                if reaction.reversibility and self._reversible_encoding == "split":
+                    constr_terms[metabolite.id].append(sympy.Mul._from_args([sympy.RealNumber(-1*coeff), aux_var]))
 
         for met_id, terms in constr_terms.iteritems():
             expr = sympy.Add._from_args(terms)
@@ -421,67 +423,73 @@ class SolverBasedModel(_cobrapy.core.Model):
         return fields
 
     def essential_reactions(self, threshold=1e-6):
+        """Return a list of essential reactions.
+
+        Parameters
+        ----------
+        threshold : float (default 1e-6)
+            Minimal objective flux to be considered viable.
+
+        Returns
+        -------
+        list
+            List of essential reactions
+        """
         essential = []
-        time_machine = TimeMachine()
         try:
             solution = self.solve()
         except SolveError as e:
             print 'Cannot determine essential reactions for un-optimal model.'
             raise e
-        for reaction_id, flux in solution.x_dict.iteritems():
+        for reaction_id, flux in solution.fluxes.iteritems():
             if abs(flux) > 0:
                 reaction = self.reactions.get_by_id(reaction_id)
-                # time_machine(do=partial(setattr, reaction, 'lower_bound', 0),
-                #              undo=partial(setattr, reaction, 'lower_bound', reaction.lower_bound))
-                # time_machine(do=partial(setattr, reaction, 'upper_bound', 0),
-                #              undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
-                reaction.knock_out(time_machine=time_machine)
-                try:
-                    sol = self.solve()
-                except (Infeasible, UndefinedSolution):
-                    print 'except (Infeasible, UndefinedSolution):',reaction_id
-                    essential.append(reaction)
-                else:
-                    if reaction.id == 'PGK':
-                        print 'PGK', sol.f, sol.f < threshold
-                    if sol.f < threshold:
+                with TimeMachine() as tm:
+                    reaction.knock_out(time_machine=tm)
+                    try:
+                        sol = self.solve()
+                    except (Infeasible, UndefinedSolution):
                         essential.append(reaction)
-                        if reaction.id == 'PGK':
-                            print 'PGK asdf', sol.f
-                            print essential
-                finally:
-                    time_machine.reset()
+                    else:
+                        if sol.f < threshold:
+                            essential.append(reaction)
         return essential
 
     def essential_genes(self, threshold=1e-6):
+        """Return a list of essential genes.
+
+        Parameters
+        ----------
+        threshold : float (default 1e-6)
+            Minimal objective flux to be considered viable.
+
+        Returns
+        -------
+        list
+            List of essential genes
+        """
         essential = []
-        time_machine = TimeMachine()
         try:
             solution = self.solve()
         except SolveError as e:
-            print 'Cannot determine essential genes for unoptimal model.'
+            print 'Cannot determine essential genes for un-optimal model.'
             raise e
         genes_to_check = set()
-        for reaction_id, flux in solution.x_dict.iteritems():
+        for reaction_id, flux in solution.fluxes.iteritems():
             if abs(flux) > 0:
                 genes_to_check.update(self.reactions.get_by_id(reaction_id).genes)
         for gene in genes_to_check:
             reactions = _cobrapy.manipulation.delete.find_gene_knockout_reactions(self, [gene])
-            for reaction in reactions:
-                time_machine(do=partial(setattr, reaction, 'lower_bound', 0),
-                             undo=partial(setattr, reaction, 'lower_bound', reaction.lower_bound))
-                time_machine(do=partial(setattr, reaction, 'upper_bound', 0),
-                             undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
-            try:
-                sol = self.solve()
-            except (Infeasible, UndefinedSolution):
-                essential.append(gene)
-            else:
-                if sol.f < threshold:
+            with TimeMachine() as tm:
+                for reaction in reactions:
+                    reaction.knock_out(time_machine=tm)
+                try:
+                    sol = self.solve()
+                except (Infeasible, UndefinedSolution):
                     essential.append(gene)
-                time_machine.reset()
-            finally:
-                time_machine.reset()
+                else:
+                    if sol.f < threshold:
+                        essential.append(gene)
         return essential
 
     def medium(self):

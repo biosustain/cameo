@@ -239,13 +239,15 @@ class AbstractTestReaction(object):
         self.assertEqual(pfk_reaction.variable.ub, 999999.)
         self.assertEqual(pfk_reaction.reverse_variable, None)
         pfk_reaction.upper_bound = -100.
+        self.assertEqual(pfk_reaction.reverse_variable, None)
         pfk_reaction.lower_bound = -999999.
         self.assertEqual(pfk_reaction.lower_bound, -999999.)
         self.assertEqual(pfk_reaction.upper_bound, -100.)
         self.assertEqual(pfk_reaction.variable.lb, -999999.)
         self.assertEqual(pfk_reaction.variable.ub, -100)
-        self.assertEqual(pfk_reaction.reverse_variable.lb, 0.)
-        self.assertEqual(pfk_reaction.reverse_variable.ub, 0.)
+        self.assertEqual(pfk_reaction.reverse_variable, None)
+        # self.assertEqual(pfk_reaction.reverse_variable.lb, 0.)
+        # self.assertEqual(pfk_reaction.reverse_variable.ub, 0.)
 
     def test_make_lhs_irreversible_reversible(self):
         model = self.model
@@ -301,6 +303,92 @@ class AbstractTestReaction(object):
         for reaction in self.model.reactions:
             self.assertEqual(reaction.lower_bound, original_bounds[reaction.id][0])
             self.assertEqual(reaction.upper_bound, original_bounds[reaction.id][1])
+
+    def test_weird_left_to_right_reaction_issue(self):
+
+        model = Model("Toy Model")
+
+        m1 = Metabolite("M1")
+        d1 = Reaction("ex1")
+        d1.add_metabolites({m1: -1})
+        d1.upper_bound = 0
+        d1.lower_bound = -1000
+        # print d1.reaction, d1.lower_bound, d1.upper_bound
+        model.add_reactions([d1])
+        self.assertFalse(d1.reversibility)
+        self.assertEqual(d1.lower_bound, -1000)
+        self.assertEqual(d1._lower_bound, -1000)
+        self.assertEqual(d1.upper_bound, 0)
+        self.assertEqual(d1._upper_bound, 0)
+        with TimeMachine() as tm:
+            d1.knock_out(time_machine=tm)
+            self.assertEqual(d1.lower_bound, 0)
+            self.assertEqual(d1._lower_bound, 0)
+            self.assertEqual(d1.upper_bound, 0)
+            self.assertEqual(d1._upper_bound, 0)
+        self.assertEqual(d1.lower_bound, -1000)
+        self.assertEqual(d1._lower_bound, -1000)
+        self.assertEqual(d1.upper_bound, 0)
+        self.assertEqual(d1._upper_bound, 0)
+
+    def test_one_left_to_right_reaction_set_positive_ub(self):
+
+        model = Model("Toy Model")
+
+        m1 = Metabolite("M1")
+        d1 = Reaction("ex1")
+        d1.add_metabolites({m1: -1})
+        d1.upper_bound = 0
+        d1.lower_bound = -1000
+        model.add_reactions([d1])
+        self.assertEqual(d1.reverse_variable, None)
+        self.assertEqual(d1._lower_bound, -1000)
+        self.assertEqual(d1.lower_bound, -1000)
+        self.assertEqual(d1._upper_bound, 0)
+        self.assertEqual(d1.upper_bound, 0)
+        self.assertEqual(d1.variable.lb, -1000)
+        self.assertEqual(d1.variable.ub, 0)
+        d1.upper_bound = .1
+        self.assertTrue(d1.reverse_variable is not None)
+        self.assertEqual(d1.variable.lb, 0)
+        self.assertEqual(d1.variable.ub, .1)
+        self.assertEqual(d1.reverse_variable.lb, 0)
+        self.assertEqual(d1.reverse_variable.ub, 1000)
+        self.assertEqual(d1._lower_bound, -1000)
+        self.assertEqual(d1.upper_bound, .1)
+        self.assertEqual(d1._lower_bound, -1000)
+        self.assertEqual(d1.upper_bound, .1)
+
+    def test_irrev_reaction_set_negative_lb(self):
+        self.assertFalse(self.model.reactions.PFK.reversibility)
+        self.assertEqual(self.model.reactions.PFK.lower_bound, 0)
+        self.assertEqual(self.model.reactions.PFK.upper_bound, 999999.0)
+        self.assertEqual(self.model.reactions.PFK.variable.lb, 0)
+        self.assertEqual(self.model.reactions.PFK.variable.ub, 999999.0)
+        self.assertEqual(self.model.reactions.PFK.reverse_variable, None)
+        self.model.reactions.PFK.lower_bound = -1000000000
+        self.assertEqual(self.model.reactions.PFK.lower_bound, -1000000000)
+        self.assertEqual(self.model.reactions.PFK.upper_bound, 999999.0)
+        self.assertEqual(self.model.reactions.PFK.variable.lb, 0)
+        self.assertEqual(self.model.reactions.PFK.variable.ub, 999999.0)
+        self.assertEqual(self.model.reactions.PFK.reverse_variable.lb, 0)
+        self.assertEqual(self.model.reactions.PFK.reverse_variable.ub, 1000000000)
+
+    def test_twist_irrev_right_to_left_reaction_to_left_to_right(self):
+        self.assertFalse(self.model.reactions.PFK.reversibility)
+        self.assertEqual(self.model.reactions.PFK.lower_bound, 0)
+        self.assertEqual(self.model.reactions.PFK.upper_bound, 999999.0)
+        self.assertEqual(self.model.reactions.PFK.variable.lb, 0)
+        self.assertEqual(self.model.reactions.PFK.variable.ub, 999999.0)
+        self.assertEqual(self.model.reactions.PFK.reverse_variable, None)
+        self.model.reactions.PFK.lower_bound = -1000000000
+        self.model.reactions.PFK.upper_bound = 0
+        self.assertEqual(self.model.reactions.PFK.lower_bound, -1000000000)
+        self.assertEqual(self.model.reactions.PFK.upper_bound, 0)
+        self.assertEqual(self.model.reactions.PFK.variable.lb, -1000000000)
+        self.assertEqual(self.model.reactions.PFK.variable.ub, 0)
+        self.assertEqual(self.model.reactions.PFK.reverse_variable.lb, 0)
+        self.assertEqual(self.model.reactions.PFK.reverse_variable.ub, 0)
 
     def test_iMM904_4HGLSDm_problem(self):
         model = load_model(os.path.join(TESTDIR, 'data/iMM904.xml'))
