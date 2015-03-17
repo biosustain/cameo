@@ -51,13 +51,27 @@ except ImportError:
     use_matplotlib = False
 
 #Determine a default parallelization view
+
+
+def in_ipnb():
+    return False
+
 try:
-    from IPython import parallel
+    from IPython import parallel, get_ipython
     from IPython.kernel.zmq import serialize
+
+    try:
+        def in_ipnb():
+            return get_ipython().config.get('IPKernelApp').get('parent_appname') == 'ipython-notebook' or \
+                   get_ipython().config.get('KernelApp').get('parent_appname') == 'ipython-notebook'
+    except Exception:
+        def in_ipnb():
+            return False
+
     client = parallel.Client()
     client.block = True
     default_view = client.direct_view()
-except Exception:
+except Exception as e:
     from .parallel import SequentialView
     default_view = SequentialView()
     # try:
@@ -66,3 +80,5 @@ except Exception:
     # except ImportError:
     #     from .parallel import SequentialView
     #     default_view = SequentialView()
+
+

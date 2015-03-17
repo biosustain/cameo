@@ -19,26 +19,81 @@ Cite:
 Kai Zhuang et al. 2013. Dynamic strain scanning optimization: an efficient strain design strategy for balanced yield,
 titer, and productivity.
 """
+from functools import partial
+
 import cobra
+import math
+from pandas import DataFrame
+
 from cameo import phenotypic_phase_plane, config
-from cameo.bioreactor import Organism, IdealFedBatch, BioReactor
+from cameo.dynamic.bioreactor import Organism, IdealFedBatch, BioReactor
+from cameo.dynamic import dfba
 from cameo.strain_design import StrainDesignMethod
-from pandas.core.common import in_ipnb
-from cameo.strain_design.deterministic.dyssco import plot_utils
+from cameo.config import in_ipnb
+from cameo import plot_utils
+from ipython_notebook_utils import ProgressBar as IPythonNBPorgressBar
+
+
+TITER = 'product_titer'
+YIELD = 'product_yield'
+PRODUCTIVITY = 'productivity'
+
+
+class _DFBAPerformanceEvaluator(object):
+    def __init__(self, reactor, substrate, product, tf, dt, solver):
+        assert isinstance(reactor, BioReactor)
+        assert isinstance(tf, (float, int))
+        assert isinstance(dt, (float, int))
+        self.reactor = reactor
+        self.product = product
+        self.substrate = substrate
+        self.tf = tf
+        self.dt = dt
+        self.solver = solver
+
+    def __call__(self, strain, reporter, *args, **kwargs):
+        self.reactor.organisms = [strain]
+        if reporter is not None:
+            reporters = [reporter]
+        else:
+            reporters = []
+        try:
+            solution = dfba(self.reactor, 0, self.tf, self.dt, solver=self.solver, reporters=reporters)
+
+            return {
+                TITER: self.reactor.calculate_titer_from_dfba(solution, self.product.id),
+                YIELD: self.reactor.calculate_yield_from_dfba(solution, self.substrate.id, self.product.id),
+                PRODUCTIVITY: self.reactor.calculate_productivity_from_dfba(solution, self.product.id)
+            }
+        except:
+            return {
+                TITER: 0,
+                YIELD: 0,
+                PRODUCTIVITY: 0
+            }
 
 
 class DySScO(StrainDesignMethod):
 
-    def __init__(self, organism=None, product=None, reactor=IdealFedBatch, *args, **kwargs):
+    def __init__(self, organism=None, product=None, substrate=None, reactor=None,
+                 dt=1, tf=10, update_function=None, dfba_solver='dopri5', *args, **kwargs):
         super(DySScO, self).__init__(*args, **kwargs)
-        assert isinstance(organism, Organism), "organism must be instance of bioreactor.Organism"
+        assert isinstance(organism, Organism), "organism must be instance of Organism"
         if isinstance(product, str):
             product = organism.model.reactions.get_by_id(product)
+        if isinstance(substrate, str):
+            substrate = organism.model.reactions.get_by_id(substrate)
         assert isinstance(product, cobra.Reaction), "product must be a reaction id or an instance of (cobra.Reaction)"
+        assert isinstance(substrate, cobra.Reaction), "substrate must be a reaction id or an instance of (cobra.Reaction)"
         assert isinstance(reactor, BioReactor)
         self.organism = organism
         self.product = product
+        self.substrate = substrate
         self.reactor = reactor
+        self.tf = tf
+        self.dt = dt
+        self.dfba_solver = dfba_solver
+        self.update_function=update_function
 
     def _generate_strains(self, number_of_strains, view=config.default_view):
         envelope = phenotypic_phase_plane(self.organism.model,
@@ -46,27 +101,64 @@ class DySScO(StrainDesignMethod):
                                           points=number_of_strains,
                                           view=view)
 
-        self._plot_production_envelop(envelope)
+        plot_utils.plot_production_envelope(envelope, self.product.id, highligt=range(1, len(envelope) - 1))
 
-        for i in envelope.index:
+        for i in range(1, len(envelope) - 1):
             row = envelope.loc[i]
-            strain_id = "mutant_%i" % (i+1)
-            strain = Organism(self.organism.model, strain_id, self.organism.objective, self.organism.constraints)
-            strain.update = self.organism.update
-            strain.constraints[self.product.id] = (row[self.product.id], row[self.product.id])
+            strain_id = "_%i" % i
+            strain = Organism(self.organism.model, strain_id, self.organism.objective, dict(self.organism.constraints))
+            strain.update = partial(self.update_function, strain)
+            strain.constraints[self.product.id] = (math.floor(row[self.product.id]), math.ceil(row[self.product.id]))
             yield strain
 
-    def _plot_production_envelop(self, envelope):
-        if in_ipnb():
-            if config.use_bokeh:
-                plot_utils.plot_envelope_ipython_bokeh(envelope)
-            elif config.use_matplotlib:
-                plot_utils.plot_envelope_ipython_matplot_lib(envelope)
-        else:
-            plot_utils.plot_envelope_cli(envelope)
-
     def run(self, ode_solver="dopri5", number_of_strains=10, view=config.default_view):
-        strains = self._generate_strains(number_of_strains, view=view)
+        strains = self._generate_strains(number_of_strains+2, view=view)
+        evaluator = _DFBAPerformanceEvaluator(self.reactor, self.product, self.substrate,
+                                              self.tf, self.dt, self.dfba_solver)
+
+        reporters = []
+        if in_ipnb():
+            for i in range(1, number_of_strains + 1):
+                progress_bar = IPythonNBPorgressBar(size=self.tf, label="Strain %i" % i)
+                progress_bar.start()
+                reporters.append(lambda t, t0, tf, y: progress_bar.set(t))
+
+        performance = DataFrame.from_records(list(view.map(evaluator, strains, reporters)))
+
+        plot_utils.plot_dfba_performance(performance, [s.id for s in strains])
+        return performance
+
+
+if __name__ == "__main__":
+    from cameo import load_model
+    import os
+
+    path = os.path.abspath(os.path.dirname(__file__))
+    model = load_model(os.path.join(path, "../../../../tests/data/ecoli_core_model.xml"))
+
+    organism = Organism(model=model)
+
+    def update(self, volume, growth_rate, substrates):
+        env = self.environment
+
+        index = env.metabolites.index('EX_glc_e')
+        vlb_glc = float(-10 * substrates[index] / (substrates[index] + 1))
+        self.constraints['EX_glc_e'] = (vlb_glc, 0)
+
+        self.constraints['EX_ac_e'] = (0, 10000)
+        self.constraints['EX_o2_e'] = (-10, 10000)
+
+    model.update = update
+
+    product = 'EX_ac_e'
+    substrate = 'EX_glc_e'
+    reactor = IdealFedBatch(primary_substrate=substrate,
+                            metabolites=['EX_glc_e', 'EX_ac_e', 'EX_o2_e'],
+                            initial_conditions=[1.0, 0.1, 0.1])
+
+    dissco = DySScO(organism=organism, product=product, substrate=substrate, reactor=reactor, update_function=update)
+
+
 
 #
 #

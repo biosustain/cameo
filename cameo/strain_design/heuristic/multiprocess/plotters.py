@@ -14,6 +14,7 @@
 import Queue
 
 from uuid import uuid1
+from bokeh.models import Glyph
 from pandas import DataFrame
 from cameo import config
 from cameo.strain_design.heuristic.multiprocess.observers import AbstractParallelObserver, \
@@ -44,14 +45,15 @@ class IPythonNotebookBokehMultiprocessPlotObserver(AbstractParallelObserver):
         self.plotted = True
         self.uuid = uuid1()
         output_notebook(url=self.url, docname=str(self.uuid))
-        figure()
-        scatter([], [], title="Best solution convergence plot", tools='', x_axis_label="Iteration",
-                  y_axis_label="Fitness", color=self.color_map, fill_alpha=0.2, size=7)
+        p = figure(title="Best solution convergence plot", tools='')
+        p.xaxis.axis_label = "Iteration"
+        p.yaxis.axis_label = "Fitness"
+        p.scatter([], [], color=self.color_map, fill_alpha=0.2, size=7)
 
-        self.plot = curplot()
+        self.plot = p
         renderer = [r for r in self.plot.renderers if isinstance(r, Glyph)][0]
         self.ds = renderer.data_source
-        show()
+        show(p)
 
     def _process_message(self, message):
         if not self.plotted:
@@ -74,7 +76,7 @@ class IPythonNotebookBokehMultiprocessPlotObserver(AbstractParallelObserver):
         self.ds.data['fill_color'] = self.data_frame['color']
         self.ds.data['line_color'] = self.data_frame['color']
         self.ds._dirty = True
-        session().store_obj(self.ds)
+        cursession().store_obj(self.ds)
 
     def stop(self):
         self.data_frame = DataFrame(columns=['iteration', 'island', 'color', 'fitness'])

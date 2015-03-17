@@ -28,7 +28,6 @@ from cameo.strain_design.heuristic import decoders
 from cameo.strain_design.heuristic import stats
 from cameo import config
 from cameo.flux_analysis.simulation import pfba, lmoma, moma, room, reset_model
-from cameo.strain_design.heuristic.plotters import GeneFrequencyPlotter
 from cameo.util import partition, TimeMachine, memoize
 from pandas import DataFrame
 

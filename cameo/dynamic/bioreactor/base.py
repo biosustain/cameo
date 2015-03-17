@@ -159,7 +159,7 @@ class DynamicSystem(object):
         """
         raise NotImplementedError("the RHS of the ODE must be described for the each specific environment")
 
-    def integrate(self, t0, tf, dt, initial_conditions, solver):
+    def integrate(self, t0, tf, dt, initial_conditions, solver, reporters=[]):
         """
         the integrate() solves the ODE of the dynamic system using the designated solver
         :param t0: initial time
@@ -171,7 +171,7 @@ class DynamicSystem(object):
         """
         if solver == 'analytical':
             try:
-                t, y = self.analytical_integrator(t0, tf, dt, initial_conditions, solver)
+                t, y = self.analytical_integrator(t0, tf, dt, initial_conditions, solver, reporters=reporters)
                 return t, y
             except NotImplementedError:
                 logger.warn('analytical solver have no been implemented yet. It will use numerical solver dopri5.')
@@ -179,7 +179,7 @@ class DynamicSystem(object):
         t, y = self.numerical_integrator(t0, tf, dt, initial_conditions, solver)
         return t, y
 
-    def numerical_integrator(self, t0, tf, dt, initial_conditions=None, solver='dopri5'):
+    def numerical_integrator(self, t0, tf, dt, initial_conditions=None, solver='dopri5', reporters=[]):
         """
         The numerical_integrator() method integrates the ODE of the dynamic system using a numerical solver
         """
@@ -199,12 +199,16 @@ class DynamicSystem(object):
 
             t.append(m_dfba_ode.t)
             y.append(m_dfba_ode.y)
+            for reporter in reporters:
+                print "Reporting", t0, m_dfba_ode.t, tf, y
+                reporter(t0, m_dfba_ode.t, tf, y)
+
 
         t = numpy.array(t)
         y = numpy.array(y)
         return t, y
 
-    def analytical_integrator(self, t0, tf, dt, initial_conditions, solver):
+    def analytical_integrator(self, t0, tf, dt, initial_conditions, solver, reporters=[]):
         """
         Integrates the ODE of the dynamic system using a user-defined analytical method.
 
@@ -242,7 +246,7 @@ class BioReactor(Environment, DynamicSystem):
     """
 
     def __init__(self, organisms=[], metabolites=[], id='Generic Bioreactor', inflow_rate=0, outflow_rate=0,
-                 max_volume=None, x_feed=None, s_feed=None, delta_x=None, delta_s=None, initial_conditions=[]):
+                 max_volume=None, x_feed=0.0, s_feed=0.0, delta_x=None, delta_s=None, initial_conditions=[]):
 
         if not isinstance(organisms, collections.Iterable):
             organisms = [organisms]
@@ -326,7 +330,8 @@ class BioReactor(Environment, DynamicSystem):
         """
         number_of_organisms = len(self._organisms)
         number_of_metabolites = len(self._metabolites)
-        assert (len(y) == 1 + number_of_organisms + number_of_metabolites)
+        assert (len(y) == 1 + number_of_organisms + number_of_metabolites), \
+            "%s == t + [%s, %s]" % (y, self.organisms, self.metabolites)
 
         dy = numpy.zeros(len(y))
 
@@ -335,6 +340,7 @@ class BioReactor(Environment, DynamicSystem):
         volume = y[0]
         x = y[1:number_of_organisms + 1]
         s = y[number_of_organisms + 1:]
+
 
         # assigning growth rates and metabolic production/consumption rates here
         # in this method, these rates are calculated using FBA
@@ -358,18 +364,16 @@ class BioReactor(Environment, DynamicSystem):
                     tm(do=partial(setattr, organism.model, 'objective', organism.objective),
                        undo=partial(setattr, organism.model, 'objective', organism.model.objective))
 
-            try:
-                organism.solution = organism.model.solve()
-                mu[i] = organism.solution.f
+                try:
+                    organism.solution = organism.model.solve()
+                    mu[i] = organism.solution.f
 
-                for j, metabolite in enumerate(self._metabolites):
-                    if metabolite in organism.model.reactions:
+                    for j, metabolite in enumerate(self._metabolites):
                         vs[i, j] = organism.solution.get_primal_by_id(metabolite)
-            except SolveError:
-                organism.solution = None
-                mu[i] = 0
-                for j, metabolite in enumerate(self._metabolites):
-                    if metabolite in organism.model.reactions:
+                except SolveError:
+                    organism.solution = None
+                    mu[i] = 0
+                    for j, metabolite in enumerate(self._metabolites):
                         vs[i, j] = 0
 
         # updating the internal states of the bioreactor
@@ -386,7 +390,7 @@ class BioReactor(Environment, DynamicSystem):
 
         return dy
 
-    def calculate_yield_from_dfba(self):
+    def calculate_yield_from_dfba(self, dfba_solution, r_substrate, r_product):
         """
         Abstract used for calculating product yield from dFBA solution.
         This is useful for certain analysis methods (eg. DySScO).
@@ -395,7 +399,7 @@ class BioReactor(Environment, DynamicSystem):
         """
         raise NotImplementedError
 
-    def calculate_titer_from_dfba(self):
+    def calculate_titer_from_dfba(self, dfba_solution, r_target):
         """
         Abstract used for calculating product titer from dFBA solution.
         This is useful for certain analysis methods (eg. DySScO).
@@ -404,7 +408,7 @@ class BioReactor(Environment, DynamicSystem):
         """
         raise NotImplementedError
 
-    def calculate_productivity_from_dfba(self):
+    def calculate_productivity_from_dfba(self, dfba_solution, r_target):
         """
         Abstract used for calculating productivity from dFBA solution.
         This is useful for certain analysis methods (eg. DySScO).

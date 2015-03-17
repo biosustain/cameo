@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from bokeh.objects import Range1d, Plot
+from bokeh.models import Range1d
 from inspyred.ec.emo import Pareto
 import numpy as np
 from cameo import config
@@ -50,21 +50,20 @@ class BokehStatsData(GenericStatsData):
         self.ydr = Range1d(start=-0.5, end=20.5)
 
     def display(self):
-        output_notebook()
-        hold()
-        figure(title="Knockout size distribution")
-        quad(top=self.knockouts_hist, bottom=np.zeros(len(self.knockouts_hist)),
-             left=self.knockouts_edges[:-1], right=self.knockouts_edges[1:],
-             title="Knockout size distribution")
-        xaxis()[0].axis_label = "Number of knockouts"
-        yaxis()[0].axis_label = "Number of solutions"
+        output_notebook(url=config.bokeh_url)
+        p = figure(title="Knockout size distribution")
+        p.quad(top=self.knockouts_hist, bottom=np.zeros(len(self.knockouts_hist)),
+               left=self.knockouts_edges[:-1], right=self.knockouts_edges[1:])
+        p.xaxis.axis_label = "Number of knockouts"
+        p.yaxis.axis_label = "Number of solutions"
+        show(p)
 
-        figure(title="Correlation between number of knockouts and fitness")
+        p = figure(title="Correlation between number of knockouts and fitness")
         fitness = self.solution.solutions['Fitness']
         if isinstance(fitness[0], Pareto):
             pass
         else:
-            scatter(self.solution.solutions['Size'], self.solution.solutions['Fitness'])
-            xaxis()[0].axis_label = "Number of knockouts"
-            yaxis()[0].axis_label = "Fitness"
-        show()
+            p.scatter(self.solution.solutions['Size'], self.solution.solutions['Fitness'])
+            p.xaxis.axis_label = "Number of knockouts"
+            p.yaxis.axis_label = "Fitness"
+        show(p)

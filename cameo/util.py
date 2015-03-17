@@ -44,6 +44,9 @@ class RandomGenerator():
             a = 0
         return self._random.randint(a, b)
 
+    def gauss(self, mean, stdev):
+        return self._random.normal(mean, stdev)
+
     def sample(self, population, k):
         if k == 0:
             return []

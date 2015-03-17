@@ -1,21 +1,17 @@
-# Copyright 2015 Novo Nordisk Foundation Center for Biosustainability,
-# Technical University of Denmark.
-#
+# Copyright 2015 Novo Nordisk Foundation Center for Biosustainability, DTU.
+
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-#
-#    http://www.apache.org/licenses/LICENSE-2.0
-#
+
+# http://www.apache.org/licenses/LICENSE-2.0
+
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""
-Package implementing features for simulating bioreactor operation.
-"""
 
-from base import Organism, BioReactor
-from bioreactors import BioReactorOX, IdealBatch, IdealFedBatch
-from bioreactors import ANAEROBIC, AEROBIC, MICRO_AEROBIC
+from .dfba import dfba, combinatorial_dfba
+from .bioreactor import Organism
+from .bioreactor.bioreactors import IdealBatch, IdealFedBatch
