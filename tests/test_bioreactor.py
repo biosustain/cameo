@@ -2,9 +2,11 @@
 Unit testing module for dFBA and MdFBA.
 """
 import os
-from cameo import load_model, fba
-from cameo.bioreactor import Organism, BioReactor
-from cameo.bioreactor.base import Environment
+
+from cameo import load_model
+from cameo.dynamic.bioreactor import Organism, BioReactor
+from cameo.dynamic.bioreactor.base import Environment
+
 
 __author__ = 'kaizhuang'
 

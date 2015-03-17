@@ -16,16 +16,18 @@
 
 import os
 import unittest
-from cameo.bioreactor import Organism, BioReactor
-from cameo.flux_analysis.dfba import combinatorial_dfba, dfba
 
+import pandas
+from pandas.util.testing import assert_frame_equal
+
+from cameo.dynamic.bioreactor import Organism, BioReactor
+from cameo.dynamic.dfba import combinatorial_dfba
+from cameo.dynamic import dfba
 from cameo.flux_analysis.simulation import fba, pfba, lmoma
 from cameo.parallel import SequentialView, MultiprocessingView
 from cameo.io import load_model
 from cameo.flux_analysis.analysis import flux_variability_analysis, phenotypic_phase_plane
 
-import pandas
-from pandas.util.testing import assert_frame_equal
 
 TRAVIS = os.getenv('TRAVIS', False)
 
