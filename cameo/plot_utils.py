@@ -54,6 +54,8 @@ try:
         p.xaxis.axis_label = 'growth'
         p.yaxis.axis_label = key
         colors = ["green" if i in highligt else "red" for i in envelope.index]
+        if "label" in envelope.columns:
+            p.text(envelope["label"], envelope["objective_upper_bound"], envelope[key])
         p.circle(envelope["objective_upper_bound"], envelope[key], color=colors, size=12)
         p.line(envelope["objective_upper_bound"], envelope[key], color="blue")
         show(p)

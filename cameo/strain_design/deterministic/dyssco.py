@@ -100,12 +100,12 @@ class DySScO(StrainDesignMethod):
                                           variables=[self.product],
                                           points=number_of_strains,
                                           view=view)
-
+        envelope["label"] = [""] + ["_%i" % i for i in xrange(1, len(envelope)-1)] + [""]
         plot_utils.plot_production_envelope(envelope, self.product.id, highligt=range(1, len(envelope) - 1))
 
         for i in range(1, len(envelope) - 1):
             row = envelope.loc[i]
-            strain_id = "_%i" % i
+            strain_id = row["label"]
             strain = Organism(self.organism.model, strain_id, self.organism.objective, dict(self.organism.constraints))
             strain.update = partial(self.update_function, strain)
             strain.constraints[self.product.id] = (math.floor(row[self.product.id]), math.ceil(row[self.product.id]))
@@ -134,9 +134,9 @@ if __name__ == "__main__":
     import os
 
     path = os.path.abspath(os.path.dirname(__file__))
-    model = load_model(os.path.join(path, "../../../../tests/data/ecoli_core_model.xml"))
+    gsm = load_model(os.path.join(path, "../../../../tests/data/ecoli_core_model.xml"))
 
-    organism = Organism(model=model)
+    my_organism = Organism(model=gsm)
 
     def update(self, volume, growth_rate, substrates):
         env = self.environment
@@ -148,15 +148,20 @@ if __name__ == "__main__":
         self.constraints['EX_ac_e'] = (0, 10000)
         self.constraints['EX_o2_e'] = (-10, 10000)
 
-    model.update = update
+    gsm.update = update
 
-    product = 'EX_ac_e'
-    substrate = 'EX_glc_e'
-    reactor = IdealFedBatch(primary_substrate=substrate,
-                            metabolites=['EX_glc_e', 'EX_ac_e', 'EX_o2_e'],
-                            initial_conditions=[1.0, 0.1, 0.1])
+    acetate = 'EX_ac_e'
+    glucose = 'EX_glc_e'
+    oxygen = "EX_o2_e"
+    fed_batch_reactor = IdealFedBatch(primary_substrate=glucose,
+                                      metabolites=[glucose, acetate, oxygen],
+                                      initial_conditions=[1.0, 0.1, 0.1, 0.0, 100])
 
-    dissco = DySScO(organism=organism, product=product, substrate=substrate, reactor=reactor, update_function=update)
+    dissco = DySScO(organism=my_organism,
+                    product=acetate,
+                    substrate=glucose,
+                    reactor=fed_batch_reactor,
+                    update_function=update)
 
 
 
