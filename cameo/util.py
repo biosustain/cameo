@@ -24,7 +24,10 @@ try:
 except:
     pass
 import progressbar
-import ipython_notebook_utils
+try:
+    import ipython_notebook_utils
+except ImportError:
+    pass
 from numpy.random import RandomState
 
 import logging
@@ -220,8 +223,8 @@ class Timer(object):
 
     def __exit__(self, type, value, traceback):
         if self.name:
-            print '[%s]' % self.name,
-        print 'Elapsed: %s' % (time() - self.tstart)
+            print('[%s]' % self.name)
+        print('Elapsed: %s' % (time() - self.tstart))
 
 
 def memoize(function, memo={}):

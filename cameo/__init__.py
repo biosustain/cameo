@@ -53,7 +53,7 @@ import os
 _cameo_path = __path__[0]
 _cameo_data_path = os.path.join(_cameo_path, 'data')
 
-from util import get_system_info
+from .util import get_system_info
 
 system_info = get_system_info()
 

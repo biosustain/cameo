@@ -250,4 +250,4 @@ if __name__ == '__main__':
             return arg ** 2
 
     view = MultiprocessingView(processes=4)
-    print view.map(FunctionObject(), range(0, 100))
+    print(view.map(FunctionObject(), range(0, 100)))

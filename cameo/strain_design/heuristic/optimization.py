@@ -182,14 +182,14 @@ class HeuristicOptimization(object):
 
     def run(self, view=config.default_view, maximize=True, **kwargs):
         t = time.time()
-        print time.strftime("Starting optimization at %a, %d %b %Y %H:%M:%S", time.localtime(t))
+        print(time.strftime("Starting optimization at %a, %d %b %Y %H:%M:%S", time.localtime(t)))
         res = self.heuristic_method.evolve(generator=self._generator,
                                            maximize=maximize,
                                            view=view,
                                            evaluator=self._evaluator,
                                            **kwargs)
         runtime = time.time() - t
-        print time.strftime("Finished after %H:%M:%S", time.localtime(runtime))
+        print(time.strftime("Finished after %H:%M:%S", time.localtime(runtime)))
 
         return res
 

@@ -71,7 +71,7 @@ def get_sbml_file(index, host="http://darwin.di.uminho.pt/models"):
     raise NotFoundException("sbml", index)
 
 if __name__ == "__main__":
-    print index_models()
+    print(index_models())
     from cameo import load_model
     model = load_model(get_sbml_file(2))
-    print model.objective
+    print(model.objective)

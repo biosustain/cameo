@@ -168,7 +168,7 @@ def inchi_to_svg(inchi, file=None):
     try:
         import openbabel
     except ImportError, e:
-        print e
+        print(e)
         raise ImportError("OpenBabel seems to be not installed.")
     convert = openbabel.OBConversion()
     convert.SetInFormat("inchi")

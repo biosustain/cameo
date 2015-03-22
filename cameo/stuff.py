@@ -63,8 +63,8 @@ def reaction_component_production(model, reaction):
         tm(do=partial(model.add_reactions, [test]), undo=partial(model.remove_reactions, [test]))
         tm(do=partial(setattr, model, 'objective', test.id), undo=partial(setattr, model, 'objective', model.objective))
         try:
-            print metabolite.id, "= ", model.solve().f
+            print(metabolite.id, "= ", model.solve().f)
         except SolveError:
-            print metabolite, " cannot be produced (reactions: %s)" % metabolite.reactions
+            print(metabolite, " cannot be produced (reactions: %s)" % metabolite.reactions)
         finally:
             tm.reset()
