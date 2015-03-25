@@ -112,9 +112,13 @@ class PathwayPredictor(object):
                 continue  # demand reactions don't need integer switches
             y = self.model.solver.interface.Variable('y_'+reaction.id, lb=0, ub=1, type='binary')
             y_vars.append(y)
-            switch_lb = self.model.solver.interface.Constraint(y*reaction.lower_bound - reaction.variable, name='switch_lb_'+reaction.id, ub=0)
+            if reaction.reverse_variable is not None:
+                flux_term = reaction.variable - reaction.reverse_variable
+            else:
+                flux_term = reaction.variable
+            switch_lb = self.model.solver.interface.Constraint(y*reaction.lower_bound - flux_term, name='switch_lb_'+reaction.id, ub=0)
             switches.append(switch_lb)
-            switch_ub = self.model.solver.interface.Constraint(y*reaction.upper_bound - reaction.variable, name='switch_ub_'+reaction.id, lb=0)
+            switch_ub = self.model.solver.interface.Constraint(y*reaction.upper_bound - flux_term, name='switch_ub_'+reaction.id, lb=0)
             switches.append(switch_ub)
         self.model.solver.add(switches)
         logger.debug("Setting minimization of switch variables as objective.")
