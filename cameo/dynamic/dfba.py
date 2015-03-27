@@ -30,36 +30,6 @@ from collections import OrderedDict
 from cameo import plot_utils
 
 
-class DynamicFBAResult(object):
-    def __init__(self, reactor, time, volume, growth_rates, metabolite_rates):
-        self.time = time
-        self.volume = volume
-        self.growth_rates = growth_rates
-        self.metabolite_rates = metabolite_rates
-        self.reactor = reactor
-
-    def __getitem__(self, item):
-        try:
-            return self.metabolite_rates[item]
-        except KeyError:
-            return self.growth_rates[item]
-
-    def plot(self):
-        plot_utils.plot_dfba_solution(self)
-
-    def __len__(self):
-        return len(self.growth_rates) + len(self.metabolite_rates)
-
-    def __repr__(self):
-        return "DFBA Result (t=%s, v=%s)\nMetabolites:\n%s\nStrains:%s" % (
-            self.time,
-            self.volume,
-            "".join(["\n\t%s: %s (mmol/L/h)" % (k, v) for k, v in self.metabolite_rates.iteritems()]),
-            "".join(["\n\t%s: %s (g/L/h)" % (k, v) for k, v in self.growth_rates.iteritems()]),
-        )
-
-
-
 
 
 def dfba(bioreactor, t0, tf, dt, initial_conditions=None, solver='dopri5', reporters=[]):

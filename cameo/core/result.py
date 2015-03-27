@@ -12,13 +12,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from optlang.interface import OptimizationExpression
 
 import time
 from datetime import datetime
-from cameo import system_info
+from sympy.parsing.sympy_parser import parse_expr
+from cameo import system_info, config
 import getpass
 
 import pandas
+import sympy
 
 
 class MetaInformation(object):
@@ -62,12 +65,26 @@ class Result(object):
     def data_frame(self):
         raise NotImplementedError
 
+
 class FluxDistributionResult(Result):
 
     def __init__(self, solution, *args, **kwargs):
         super(FluxDistributionResult, self).__init__(*args, **kwargs)
         self._fluxes = solution.fluxes
         self._objective_value = solution.f
+
+    def __getitem__(self, item):
+        if isinstance(item, str):
+            exp = parse_expr(item)
+        elif isinstance(item, OptimizationExpression):
+            exp = item.expression
+        elif isinstance(item, sympy.Expr):
+            exp = item
+        else:
+            raise KeyError(item)
+
+        return exp.evalf(n=config.ndecimals,
+                         subs={v: self.fluxes[v.name] for v in exp.atoms() if isinstance(v, sympy.Symbol)})
 
     @property
     def data_frame(self):

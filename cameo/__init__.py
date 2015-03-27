@@ -69,8 +69,9 @@ except ImportError:
 
 import config
 
-from cameo.core.solver_based_model import SolverBasedModel as Model
 from cameo.core.reaction import Reaction
+from cameo.core.solver_based_model import SolverBasedModel as Model
+
 from cobra.core import Metabolite
 
 from .flux_analysis.analysis import flux_variability_analysis, phenotypic_phase_plane

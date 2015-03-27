@@ -341,10 +341,6 @@ class BioReactor(Environment, DynamicSystem):
         x = y[1:number_of_organisms + 1]
         s = y[number_of_organisms + 1:]
 
-
-        # assigning growth rates and metabolic production/consumption rates here
-        # in this method, these rates are calculated using FBA
-
         # fluxes through metabolites
         vs = numpy.zeros([number_of_organisms, number_of_metabolites])
         # growth rates of organisms

@@ -67,21 +67,21 @@ try:
 
     def plot_dfba_solution_ipython_bokeh(dfba_solution):
         output_notebook(url=config.bokeh_url, docname=str(uuid1()))
-        p = figure(title="%s" % dfba_solution.reactor.id)
+        p = figure(title="%s" % dfba_solution.reactor.__name__)
         p.xaxis.axis_label = "time"
         p.yaxis.axis_label = ""
         colors = util.generate_colors(len(dfba_solution))
         i = 0
-        for metabolite in dfba_solution.metabolite_rates:
+        for metabolite in dfba_solution.metabolite_concentrations:
             p.line(dfba_solution.time, dfba_solution[metabolite],
                    color=colors[i],
-                   legend="%s (mmol/L/h)" % metabolite,
+                   legend="%s (mmol/L)" % metabolite,
                    size=12)
             i += 1
-        for organism in dfba_solution.growth_rates:
+        for organism in dfba_solution.biomass:
             p.line(dfba_solution.time, dfba_solution[organism],
                    color=colors[i],
-                   legend="%s (g/L/h)" % organism,
+                   legend="%s (g/L)" % organism,
                    size=12)
             i += 1
         show(p)
