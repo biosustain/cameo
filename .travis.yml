@@ -2,9 +2,6 @@ language: python
 python:
  - "2.7"
  - "3.4"
-# command to install dependencies
-virtualenv:
-  system_site_packages: true
 before_install:
   - sudo apt-get install swig redis-server libzmq3-dev libgmp-dev
   - sudo service redis-server start
