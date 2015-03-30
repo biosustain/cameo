@@ -39,7 +39,7 @@ else:
                     'pandas>=0.15.2',
                     'ordered-set>=1.2',
                     'inspyred>=1.0',
-                    'cobra>=0.3.1',
+                    'cobra>=0.3.2',
                     'optlang>=0.0.3',
                     'requests>=2.5.0',
                     'numexpr>=2.4',
