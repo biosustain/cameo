@@ -211,7 +211,7 @@ class SolverBasedModel(_cobrapy.core.Model):
             try:
                 self.solver._add_constraint(constr, sloppy=False)  # TODO: should be True
             except Exception, e:
-                print e
+                print(e)
                 raise
         objective_expression = sympy.Add._from_args(objective_terms)
         self.solver.objective = self.solver.interface.Objective(objective_expression, name='obj', direction='max')
@@ -439,7 +439,7 @@ class SolverBasedModel(_cobrapy.core.Model):
         try:
             solution = self.solve()
         except SolveError as e:
-            print 'Cannot determine essential reactions for un-optimal model.'
+            print('Cannot determine essential reactions for un-optimal model.')
             raise e
         for reaction_id, flux in solution.fluxes.iteritems():
             if abs(flux) > 0:
@@ -472,7 +472,7 @@ class SolverBasedModel(_cobrapy.core.Model):
         try:
             solution = self.solve()
         except SolveError as e:
-            print 'Cannot determine essential genes for un-optimal model.'
+            print('Cannot determine essential genes for un-optimal model.')
             raise e
         genes_to_check = set()
         for reaction_id, flux in solution.fluxes.iteritems():

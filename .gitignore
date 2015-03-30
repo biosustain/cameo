@@ -49,3 +49,7 @@ nosetests.xml
 docs/_build
 
 .vagrant
+
+.DS_Store
+
+.ipynb_checkpoints

@@ -90,8 +90,8 @@ if __name__ == '__main__':
     from cameo.util import Timer
     with Timer():
         result = FluxDistributionResult(solution)
-        print result.meta_information.system_info
-        print result.meta_information.responsible
-        print result.meta_information.timestamp
-        print result.meta_information.human_readable_timestamp
-        print result.data_frame
+        print(result.meta_information.system_info)
+        print(result.meta_information.responsible)
+        print(result.meta_information.timestamp)
+        print(result.meta_information.human_readable_timestamp)
+        print(result.data_frame)

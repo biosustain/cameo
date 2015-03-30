@@ -217,4 +217,4 @@ if __name__ == '__main__':
 
     from cameo.api import hosts
     pathway_predictor = PathwayPredictor(hosts.ecoli.models.EcoliCore)
-    print pathway_predictor.run(product=pathway_predictor.model.metabolites.MNXM53)  # MNXM53 = L-serine
+    print(pathway_predictor.run(product=pathway_predictor.model.metabolites.MNXM53))  # MNXM53 = L-serine

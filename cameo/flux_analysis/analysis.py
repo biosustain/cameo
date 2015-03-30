@@ -422,11 +422,11 @@ if __name__ == '__main__':
                                  view=view, points=30)
     # print ppp
     # print ppp.describe()
-    print time.time() - tic
+    print(time.time() - tic)
 
     view = SequentialView()
     tic = time.time()
     ppp = phenotypic_phase_plane(model,
                                  ['EX_o2_LPAREN_e_RPAREN_', 'EX_glc_LPAREN_e_RPAREN_', 'EX_nh4_LPAREN_e_RPAREN_'],
                                  view=view, points=30)
-    print time.time() - tic
+    print(time.time() - tic)

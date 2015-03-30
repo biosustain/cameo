@@ -31,7 +31,7 @@ class AbstractParallelObserver(object):
         raise NotImplementedError
 
     def _listen(self):
-        print "Start %s" % self.__name__
+        print("Start %s" % self.__name__)
         while self.run:
             try:
                 message = self.queue.get_nowait()
@@ -39,9 +39,9 @@ class AbstractParallelObserver(object):
             except Empty:
                 pass
             except Exception as e:
-                print e
+                print(e)
 
-        print "Exit %s" % self.__name__
+        print("Exit %s" % self.__name__)
 
     def _process_message(self, message):
         raise NotImplementedError
@@ -91,7 +91,7 @@ class CliMultiprocessProgressObserver(AbstractParallelObserver):
     def _process_message(self, message):
         i = message['index']
         if not i in self.progress:
-            print ""
+            print("")
             label = "Island %i: " % (i + 1)
             pos = abs(len(self.clients) - i)
             writer = self.TerminalWriter((self.terminal.height or 1) - pos, self.terminal)

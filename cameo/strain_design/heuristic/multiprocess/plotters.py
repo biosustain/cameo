@@ -40,7 +40,7 @@ class IPythonNotebookBokehMultiprocessPlotObserver(AbstractParallelObserver):
         AbstractParallelObserver.start(self)
 
     def _plot(self):
-        print "Open plot!"
+        print("Open plot!")
         self.plotted = True
         self.uuid = uuid1()
         output_notebook(url=self.url, docname=str(self.uuid))

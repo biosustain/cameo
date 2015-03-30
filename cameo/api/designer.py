@@ -110,9 +110,9 @@ class Designer(object):
             return product
         elif isinstance(product, StringType):
             search_result = products.search(product)
-            print "Found %d compounds that match query '%s'" % (len(search_result), product)
-            print repr(search_result)
-            print "Choosing best match (%s) ... please interrupt if this is not the desired compound." % search_result.name[0]
+            print("Found %d compounds that match query '%s'" % (len(search_result), product))
+            print(repr(search_result))
+            print("Choosing best match (%s) ... please interrupt if this is not the desired compound." % search_result.name[0])
             return METANETX['universal_model'].metabolites.get_by_id(search_result.index[0])
 
 design = Designer()
