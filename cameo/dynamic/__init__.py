@@ -22,9 +22,9 @@ from cameo.dynamic.bioreactors import batch_reactor
 from cameo.exceptions import SolveError
 from cameo.util import TimeMachine
 
-_METABOLITES_ERROR_MESSAGE = "metabolites must be one of: cobra.Metabolite, string or list of any of both"
-_MODELS_ERROR_MESSAGE = "models must be one of: cameo.SolverBasedModel, list of cameo.SolverBasedModel"
-_MODEL_DYNAMICS_ERROR_MESSAGE = "model_dynamics must be one of: FunctionType, list of FunctionType"
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class DynamicFBAResult(Result):
@@ -93,8 +93,15 @@ def _bioreactor_ode(t, y, metabolites, models, models_dynamics, reactor, simulat
 
         # creating class variables from y and t.
         volume, inflow_rate, outflow_rate = y[0], y[1], y[2]
+        logger.debug("Volume: %f, In: %f, Out: %f" % (volume, inflow_rate, outflow_rate))
+
         x, delta_x, x_feed = y[3:n+3], y[n+3: 2*n+3], y[2*n+3: 3*n+3]
+        for i, model in enumerate(models):
+            logger.debug("Model %s => Cdw: %f (g/L), DeltaX: %f, XFeed: %f" % (model.id, x[i], delta_x[i], x_feed[i]))
+
         s, delta_s, s_feed = y[3*n+3:3*n+m+3], y[3*n+m+3:3*n+2*m+3], y[3*n+2*m+3:3*n+3*m+3]
+        for i, met in enumerate(metabolites):
+            logger.debug("%s => C: %f (mmol/L), DeltaS: %f, SFeed: %f" % (met, s[i], delta_s[i], s_feed[i]))
 
         # fluxes through metabolites
         vs = np.zeros([len(models), len(metabolites)])
@@ -108,18 +115,17 @@ def _bioreactor_ode(t, y, metabolites, models, models_dynamics, reactor, simulat
 
             with TimeMachine() as tm:
                 for reaction_id, c in constraints.items():
+                    logger.debug("Reaction: %s (lb=%f, ub=%f)" % (reaction_id, c[0], c[1]))
                     r = models[i].reactions.get_by_id(reaction_id)
                     tm(do=partial(setattr, r, 'lower_bound', c[0]), undo=partial(setattr, r, 'lower_bound', r.lower_bound))
                     tm(do=partial(setattr, r, 'upper_bound', c[1]), undo=partial(setattr, r, 'upper_bound', r.upper_bound))
-                if objective is not None:
-                    tm(do=partial(setattr, model, 'objective', objective), undo=partial(setattr, model, 'objective', model.objective))
 
                 try:
-                    solution = simulation_method(model, **simulation_kwargs)
+                    solution = simulation_method(model, objective=objective, raw=True, **simulation_kwargs)
                     mu[i] = solution[model.objective]
 
                     for j, metabolite in enumerate(metabolites):
-                        vs[i, j] = solution.fluxes[metabolite]
+                        vs[i, j] = solution[metabolite]
                 except SolveError:
                     mu[i] = 0
                     for j, metabolite in enumerate(metabolites):
@@ -210,7 +216,7 @@ def dfba(reactor, metabolites=None, initial_concentrations=None, delta_s=None, s
     if simulation_kwargs is None:
         simulation_kwargs = {}
     if ode_kwargs is None:
-        ode_kwargs={}
+        ode_kwargs = {}
 
     return _dfba(reactor,
                  metabolites=metabolites,

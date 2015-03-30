@@ -17,7 +17,11 @@ from collections import OrderedDict
 
 import time
 import datetime
+from optlang.interface import OptimizationExpression
 from pandas import DataFrame, Series
+import sympy
+from sympy.parsing.ast_parser import parse_expr
+from cameo import config
 
 from cameo.exceptions import UndefinedSolution
 
@@ -64,6 +68,25 @@ class SolutionBase(object):
             A reaction ID.
         """
         return self.x_dict[reaction_id]
+
+    def __getitem__(self, item):
+        if isinstance(item, str):
+            exp = parse_expr(item)
+        elif isinstance(item, OptimizationExpression):
+            exp = item.expression
+        elif isinstance(item, sympy.Expr):
+            exp = item
+        else:
+            raise KeyError(item)
+
+        subs = {}
+        for v in exp.atoms(sympy.Variable):
+            try:
+                subs[v] = self.model.reactions.get_by_id(v.name).flux
+            except KeyError:
+                subs[v] = v.primal
+
+        return exp.evalf(n=config.ndecimals, subs=subs)
 
 
 class Solution(SolutionBase):

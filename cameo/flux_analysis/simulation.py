@@ -35,7 +35,7 @@ One = sympy.singleton.S.One
 RealNumber = sympy.RealNumber
 
 
-def fba(model, objective=None, *args, **kwargs):
+def fba(model, objective=None, raw=False, *args, **kwargs):
     """Flux Balance Analysis.
 
     Parameters
@@ -54,10 +54,12 @@ def fba(model, objective=None, *args, **kwargs):
             tm(do=partial(setattr, model, 'objective', objective),
                undo=partial(setattr, model, 'objective', model.objective))
         solution = model.solve()
+        if raw:
+            return solution
         result = FluxDistributionResult(solution)
     return result
 
-def pfba(model, objective=None, *args, **kwargs):
+def pfba(model, objective=None, raw=False, *args, **kwargs):
     """Parsimonious Flux Balance Analysis.
 
     Parameters
@@ -98,7 +100,10 @@ def pfba(model, objective=None, *args, **kwargs):
                undo=partial(setattr, model, 'objective', original_objective))
             try:
                 solution = model.solve()
-                result = FluxDistributionResult(solution)
+                if raw:
+                    result = solution
+                else:
+                    result = FluxDistributionResult(solution)
                 tm.reset()
                 return result
             except SolveError as e:
@@ -110,7 +115,7 @@ def pfba(model, objective=None, *args, **kwargs):
 def moma(model, reference=None, *args, **kwargs):
     raise NotImplementedError('Quadratic MOMA not yet implemented.')
 
-def lmoma(model, reference=None, cache={}, volatile=True, *args, **kwargs):
+def lmoma(model, reference=None, cache={}, volatile=True, raw=False, *args, **kwargs):
     """Linear Minimization Of Metabolic Adjustment.
 
     Parameters
@@ -198,7 +203,10 @@ def lmoma(model, reference=None, cache={}, volatile=True, *args, **kwargs):
 
         try:
             solution = model.solve()
-            return FluxDistributionResult(solution)
+            if raw:
+                return solution
+            else:
+                return FluxDistributionResult(solution)
         except SolveError as e:
             #print "lmoma could not determine an optimal solution for objective %s" % model.objective
             raise e
@@ -210,7 +218,7 @@ def lmoma(model, reference=None, cache={}, volatile=True, *args, **kwargs):
             model.objective = original_objective
 
 
-def room(model, reference=None, cache={}, volatile=True, delta=0.03, epsilon=0.001, *args, **kwargs):
+def room(model, reference=None, cache={}, volatile=True, delta=0.03, epsilon=0.001, raw=False, *args, **kwargs):
     """Regulation On/Off Minimization.
 
     Parameters
@@ -299,7 +307,10 @@ def room(model, reference=None, cache={}, volatile=True, delta=0.03, epsilon=0.0
 
         try:
             solution = model.solve()
-            return FluxDistributionResult(solution)
+            if raw:
+                return solution
+            else:
+                return FluxDistributionResult(solution)
         except SolveError as e:
             print "room could not determine an optimal solution for objective %s" % model.objective
             raise e
