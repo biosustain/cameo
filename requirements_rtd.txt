@@ -11,3 +11,4 @@ blessings==1.5.1
 ordered-set==1.2
 inspyred==1.0
 bashplotlib==0.6.1
+six>=1.9.0

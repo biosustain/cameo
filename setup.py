@@ -44,7 +44,7 @@ else:
                     'requests>=2.5.0',
                     'numexpr>=2.4',
                     'networkx>=1.9.1',
-                    'six==1.9.0'
+                    'six>=1.9.0'
     ]
     if sys.version_info[0] < 3:
         requirements.extend(['inspyred>=1.0', 'progressbar-ipython>=2.3.1', 'bashplotlib>=0.6.1'])
