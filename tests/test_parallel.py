@@ -12,15 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import absolute_import, print_function
+
+import six.moves.queue
+
 import unittest
-import Queue
 from cameo.parallel import SequentialView
 import subprocess
 from time import sleep
 
 from IPython.parallel import Client, interactive
+from six.moves import range
 
-SOLUTION = map(lambda x: x ** 2, range(100))
+SOLUTION = [x ** 2 for x in range(100)]
 
 
 @interactive
@@ -37,10 +41,10 @@ class TestSequentialView(unittest.TestCase):
         self.view = SequentialView()
 
     def test_map(self):
-        self.assertEqual(self.view.map(to_the_power_of_2, range(100)), SOLUTION)
+        self.assertEqual(self.view.map(to_the_power_of_2, list(range(100))), SOLUTION)
 
     def test_apply(self):
-        for i in xrange(100):
+        for i in range(100):
             self.assertEqual(self.view.apply(to_the_power_of_2, i), SOLUTION[i])
 
 
@@ -52,14 +56,14 @@ try:
             self.view = MultiprocessingView()
 
         def test_map(self):
-            self.assertEqual(self.view.map(to_the_power_of_2, range(100)), SOLUTION)
+            self.assertEqual(self.view.map(to_the_power_of_2, list(range(100))), SOLUTION)
 
         def test_apply(self):
-            for i in xrange(100):
+            for i in range(100):
                 self.assertEqual(self.view.apply(to_the_power_of_2, i), SOLUTION[i])
 
 except ImportError:
-    print "Skipping MultiprocessingView tests ..."
+    print("Skipping MultiprocessingView tests ...")
 
 try:
     from cameo.parallel import RedisQueue
@@ -68,15 +72,15 @@ try:
         def test_queue_size(self):
             queue = RedisQueue("test-queue-size-1", maxsize=1)
             queue.put(1)
-            self.assertRaises(Queue.Full, queue.put, 1)
+            self.assertRaises(six.moves.queue.Full, queue.put, 1)
 
             queue = RedisQueue("test-queue-size-2", maxsize=2)
             queue.put(1)
             queue.put(1)
-            self.assertRaises(Queue.Full, queue.put, 1)
+            self.assertRaises(six.moves.queue.Full, queue.put, 1)
             queue.get()
             queue.get()
-            self.assertRaises(Queue.Empty, queue.get_nowait)
+            self.assertRaises(six.moves.queue.Empty, queue.get_nowait)
 
         def test_queue_len(self):
             queue = RedisQueue("test-queue-len", maxsize=100)
@@ -95,7 +99,7 @@ try:
             self.assertEqual(queue.length(), 0)
 
 except ImportError:
-    print "Skipping MultiprocessingView tests ..."
+    print("Skipping MultiprocessingView tests ...")
 
 
 # class TestIPythonParallelView(unittest.TestCase):

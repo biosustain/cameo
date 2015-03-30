@@ -12,8 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import absolute_import, print_function
+
 from functools import partial
-from itertools import izip
+import six
+if six.PY2:
+    from itertools import izip as my_zip
+else:
+    my_zip = zip
 
 from pandas import DataFrame, pandas
 from progressbar import ProgressBar
@@ -27,6 +33,7 @@ from cameo.flux_analysis.analysis import phenotypic_phase_plane
 from cameo.util import TimeMachine
 
 import logging
+import six
 logger = logging.getLogger(__name__)
 
 
@@ -206,19 +213,19 @@ class DifferentialFVA(StrainDesignMethod):
 
         solutions = dict((tuple(point.to_dict().items()), fva_result) for (point, fva_result) in results)
         reference_intervals = self.reference_flux_ranges[['lower_bound', 'upper_bound']].values
-        for sol in solutions.itervalues():
+        for sol in six.itervalues(solutions):
             intervals = sol[['lower_bound', 'upper_bound']].values
             gaps = [self._interval_gap(interval1, interval2) for interval1, interval2 in
-                    izip(reference_intervals, intervals)]
+                    my_zip(reference_intervals, intervals)]
             sol['gaps'] = gaps
         if self.normalize_ranges_by is not None:
-            for sol in solutions.itervalues():
+            for sol in six.itervalues(solutions):
                 normalized_intervals = sol[['lower_bound', 'upper_bound']].values / sol.lower_bound[
                     self.normalize_ranges_by]
                 normalized_gaps = [self._interval_gap(interval1, interval2) for interval1, interval2 in
-                                   izip(reference_intervals, normalized_intervals)]
+                                   my_zip(reference_intervals, normalized_intervals)]
                 sol['normalized_gaps'] = normalized_gaps
-        for df in solutions.itervalues():
+        for df in six.itervalues(solutions):
             ko_selection = df[(df.lower_bound == 0) &
                               (df.upper_bound == 0) &
                               (self.reference_flux_ranges.lower_bound != 0) &
@@ -226,13 +233,13 @@ class DifferentialFVA(StrainDesignMethod):
             df['KO'] = False
             df['KO'][ko_selection.index] = True
 
-        for df in solutions.itervalues():
+        for df in six.itervalues(solutions):
             flux_reversal_selection = df[((self.reference_flux_ranges.upper_bound < 0) & (df.lower_bound > 0) |
                                           ((self.reference_flux_ranges.lower_bound > 0) & (df.upper_bound < 0)))]
             df['flux_reversal'] = False
             df['flux_reversal'][flux_reversal_selection.index] = True
 
-        for df in solutions.itervalues():
+        for df in six.itervalues(solutions):
             flux_reversal_selection = df[((self.reference_flux_ranges.lower_bound <= 0) & (df.lower_bound > 0)) | ((self.reference_flux_ranges.upper_bound >= 0) & (df.upper_bound <= 0))]
             df['suddenly_essential'] = False
             df['suddenly_essential'][flux_reversal_selection.index] = True

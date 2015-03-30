@@ -12,10 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import absolute_import, print_function
+
 from types import DictType
 from sympy import Add
 from cameo.core.result import FluxDistributionResult
 from cameo.core.solution import SolutionBase, Solution
+import six
 
 add = Add._from_args
 
@@ -65,23 +68,23 @@ class ManhattanDistance(object):
         self.__set_new_reference(value)
 
     def __prep_model(self):
-        for rid, flux_value in self.reference.iteritems():
+        for rid, flux_value in six.iteritems(self.reference):
             self.__add_deviavtion_constraint(rid, flux_value)
-        objective = self.model.solver.interface.Objective(add(self._aux_variables.values()), name='deviations')
+        objective = self.model.solver.interface.Objective(add(list(self._aux_variables.values())), name='deviations')
         self.model.objective = objective
 
     def __set_new_reference(self, reference):
         # remove unnecessary constraints
         constraints_to_remove = list()
         aux_vars_to_remove = list()
-        for key in self._deviation_constraints.keys():
+        for key in list(self._deviation_constraints.keys()):
             if key not in reference:
                 constraints_to_remove.extend(self._deviation_constraints.pop(key))
                 aux_vars_to_remove.append(self._aux_variables[key])
         self.model.solver._remove_constraints(constraints_to_remove)
         self.model.solver._remove_variables(aux_vars_to_remove)
         # Add new or adapt existing constraints
-        for key, value in reference.iteritems():
+        for key, value in six.iteritems(reference):
             try:
                 (lb_constraint, ub_constraint) = self._deviation_constraints[key]
                 lb_constraint.lb = value

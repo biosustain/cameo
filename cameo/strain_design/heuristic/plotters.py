@@ -10,10 +10,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import absolute_import, print_function
+
+from uuid import uuid1
+
 import scipy
 import numpy as np
 
-from uuid import uuid1
 from cameo import config
 
 if config.use_bokeh:

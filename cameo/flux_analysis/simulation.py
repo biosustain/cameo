@@ -12,7 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import absolute_import, print_function
+
 __all__ = ['fba', 'pfba', 'moma', 'lmoma', 'room']
+
+import six
 
 from functools import partial
 
@@ -83,7 +87,7 @@ def pfba(model, objective=None, *args, **kwargs):
             try:
                 obj_val = model.solve().f
             except SolveError as e:
-                print "pfba could not determine maximum objective value for\n%s." % model.objective
+                print("pfba could not determine maximum objective value for\n%s." % model.objective)
                 raise e
             if model.objective.direction == 'max':
                 fix_obj_constraint = model.solver.interface.Constraint(model.objective.expression, lb=obj_val)
@@ -92,7 +96,7 @@ def pfba(model, objective=None, *args, **kwargs):
             tm(do=partial(model.solver._add_constraint, fix_obj_constraint),
                undo=partial(model.solver._remove_constraint, fix_obj_constraint))
             pfba_obj = model.solver.interface.Objective(add(
-                [mul((sympy.singleton.S.One, variable)) for variable in model.solver.variables.values()]),
+                [mul((sympy.singleton.S.One, variable)) for variable in list(model.solver.variables.values())]),
                 direction='min', sloppy=True)
             tm(do=partial(setattr, model, 'objective', pfba_obj),
                undo=partial(setattr, model, 'objective', original_objective))
@@ -102,7 +106,7 @@ def pfba(model, objective=None, *args, **kwargs):
                 tm.reset()
                 return result
             except SolveError as e:
-                print "pfba could not determine an optimal solution for objective %s" % model.objective
+                print("pfba could not determine an optimal solution for objective %s" % model.objective)
                 raise e
         except Exception as e:
             raise e
@@ -135,7 +139,7 @@ def lmoma(model, reference=None, cache={}, volatile=True, *args, **kwargs):
         obj_terms = list()
         constraints = list()
         variables = list()
-        for rid, flux_value in reference.iteritems():
+        for rid, flux_value in six.iteritems(reference):
             reaction = model.reactions.get_by_id(rid)
             pos_var_id = "u_%s_pos" % rid
             if not volatile and pos_var_id in cache['variables']:
@@ -236,7 +240,7 @@ def room(model, reference=None, cache={}, volatile=True, delta=0.03, epsilon=0.0
     constraints = list()
     variables = list()
     try:
-        for rid, flux_value in reference.iteritems():
+        for rid, flux_value in six.iteritems(reference):
             reaction = model.reactions.get_by_id(rid)
             var_id = "y_%s" % rid
             if not volatile and var_id in cache['variables']:
@@ -301,7 +305,7 @@ def room(model, reference=None, cache={}, volatile=True, delta=0.03, epsilon=0.0
             solution = model.solve()
             return FluxDistributionResult(solution)
         except SolveError as e:
-            print "room could not determine an optimal solution for objective %s" % model.objective
+            print("room could not determine an optimal solution for objective %s" % model.objective)
             raise e
 
     finally:
@@ -363,7 +367,7 @@ def _cycle_free_flux(model, fluxes, fix=[]):
             solution = model.solve()
             # model.solver.configuration.verbosity = 0
         except SolveError as e:
-            print "Couldn't remove cycles from reference flux distribution."
+            print("Couldn't remove cycles from reference flux distribution.")
             raise e
         # print 'returning'
         return solution.x_dict
@@ -387,9 +391,9 @@ def reset_model(model, cache):
         the original objective
 
     """
-    model.solver._remove_variables(cache['variables'].values())
+    model.solver._remove_variables(list(cache['variables'].values()))
     model.objective = cache['original_objective']
-    model.solver._remove_constraints(cache['constraints'].values())
+    model.solver._remove_constraints(list(cache['constraints'].values()))
 
 
 if __name__ == '__main__':
@@ -406,54 +410,54 @@ if __name__ == '__main__':
 
     # model.solver = 'glpk'
 
-    print "cobra fba"
+    print("cobra fba")
     tic = time.time()
     cb_model.optimize(solver='cglpk')
-    print "flux sum:", sum([abs(val) for val in cb_model.solution.x_dict.values()])
-    print "cobra fba runtime:", time.time() - tic
+    print("flux sum:", sum([abs(val) for val in list(cb_model.solution.x_dict.values())]))
+    print("cobra fba runtime:", time.time() - tic)
 
-    print "cobra pfba"
+    print("cobra pfba")
     tic = time.time()
     optimize_minimal_flux(cb_model, solver='cglpk')
-    print "flux sum:", sum([abs(val) for val in cb_model.solution.x_dict.values()])
-    print "cobra pfba runtime:", time.time() - tic
+    print("flux sum:", sum([abs(val) for val in list(cb_model.solution.x_dict.values())]))
+    print("cobra pfba runtime:", time.time() - tic)
 
-    print "pfba"
+    print("pfba")
     tic = time.time()
     solution = pfba(model)
-    print "flux sum:",
-    print sum([abs(val) for val in solution.x_dict.values()])
-    print "cameo pfba runtime:", time.time() - tic
+    print("flux sum:", end=' ')
+    print(sum([abs(val) for val in list(solution.x_dict.values())]))
+    print("cameo pfba runtime:", time.time() - tic)
 
-    print "lmoma"
+    print("lmoma")
     ref = solution.x_dict
     tic = time.time()
     solution = lmoma(model, reference=ref)
     res = solution.x_dict
-    print "flux distance:",
-    print sum([abs(res[v] - ref[v]) for v in res.keys()])
-    print "cameo lmoma runtime:", time.time() - tic
+    print("flux distance:", end=' ')
+    print(sum([abs(res[v] - ref[v]) for v in list(res.keys())]))
+    print("cameo lmoma runtime:", time.time() - tic)
 
-    print "room"
+    print("room")
     tic = time.time()
     solution = room(model, reference=ref)
     res = solution.x_dict
-    print sum([abs(res[v] - ref[v]) for v in res.keys()])
-    print "cameo room runtime:", time.time() - tic
+    print(sum([abs(res[v] - ref[v]) for v in list(res.keys())]))
+    print("cameo room runtime:", time.time() - tic)
 
-    print "flux distance:",
-    print sum([abs(res[v] - ref[v]) for v in res.keys()])
-    print "sum yi:", solution.f
-    print "cameo room runtime:", time.time() - tic
+    print("flux distance:", end=' ')
+    print(sum([abs(res[v] - ref[v]) for v in list(res.keys())]))
+    print("sum yi:", solution.f)
+    print("cameo room runtime:", time.time() - tic)
 
-    print "lmoma w/ ko"
+    print("lmoma w/ ko")
     tic = time.time()
     model.reactions.PGI.lower_bound = 0
     model.reactions.PGI.upper_bound = 0
     solution = lmoma(model, reference=ref)
     res = solution.x_dict
-    print "flux distance:",
-    print sum([abs(res[v] - ref[v]) for v in res.keys()])
-    print "cameo lmoma runtime:", time.time() - tic
+    print("flux distance:", end=' ')
+    print(sum([abs(res[v] - ref[v]) for v in list(res.keys())]))
+    print("cameo lmoma runtime:", time.time() - tic)
 
     # print model.solver

@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import absolute_import, print_function
+
 from ipython_notebook_utils import ProgressBar as IPythonProgressBar
 from progressbar import ProgressBar as CLIProgressBar
 

@@ -12,12 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import absolute_import, print_function
 
 import os
 import optlang
 import cameo
 from cameo.util import IntelliContainer
 from cameo import load_model
+import six
 
 MODEL_DIRECTORY = os.path.join(os.path.join(os.path.split(cameo.__path__[0])[0]), 'tests/data')
 
@@ -58,7 +60,7 @@ class Hosts(object):
     def __init__(self, host_spec):
         self._host_spec = host_spec
         self._hosts = list()
-        for host_id, information in self._host_spec.iteritems():
+        for host_id, information in six.iteritems(self._host_spec):
             host = Host(**information)
             self._hosts.append(host)
             setattr(self, host_id, host)
@@ -67,7 +69,7 @@ class Hosts(object):
         return iter(self._hosts)
 
     def __dir__(self):
-        return self._host_spec.keys()
+        return list(self._host_spec.keys())
 
 
 HOST_SPECS = {'ecoli': {'name': 'Escherichia coli', 'models': ('iJO1366',)}, #  'iAF1260', 'iJO1366', 'EcoliCore'

@@ -11,7 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import Queue
+
+from __future__ import absolute_import, print_function
+
+import six.moves.queue
 
 from uuid import uuid1
 from pandas import DataFrame
@@ -40,7 +43,7 @@ class IPythonNotebookBokehMultiprocessPlotObserver(AbstractParallelObserver):
         AbstractParallelObserver.start(self)
 
     def _plot(self):
-        print "Open plot!"
+        print("Open plot!")
         self.plotted = True
         self.uuid = uuid1()
         output_notebook(url=self.url, docname=str(self.uuid))
@@ -97,7 +100,7 @@ class IPythonNotebookBokehMultiprocessPlotObserverClient(AbstractParallelObserve
                 'iteration': self.iteration,
                 'index': self.index,
                 'n': args.get('n', 1)})
-        except Queue.Full:
+        except six.moves.queue.Full:
             pass
 
     def reset(self):

@@ -12,7 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import absolute_import, print_function
+
 __all__ = ['memoized', 'graph_to_svg', 'draw_knockout_result', 'inchi_to_svg']
+
+import six
 
 import json
 import logging
@@ -76,7 +80,7 @@ def pathviz_maps():
 
 def pathviz_svg(map_id='EcoliCore_coreMap', **kwargs):
     config = {"map": map_id, "ImageSize": 800., "Boundary": False}
-    for key, value in kwargs.iteritems():
+    for key, value in six.iteritems(kwargs):
         config[key] = value
     fd, tmp_pathviz_input = tempfile.mkstemp(prefix='pathviz_svg_', suffix='.json')
     with open(tmp_pathviz_input, 'w') as fhandle:
@@ -113,7 +117,7 @@ cdf.embed("%s", 942, 678);
 <iframe width=800 height=700 src="files/%s" id="CDF"></iframe>
 """
     config = {"map": map_id, "ImageSize": 800., "Boundary": False}
-    for key, value in kwargs.iteritems():
+    for key, value in six.iteritems(kwargs):
         config[key] = value
     fd, tmp_pathviz_input = tempfile.mkstemp(prefix='pathviz_svg_', suffix='.json')
     with open(tmp_pathviz_input, 'w') as fhandle:
@@ -167,8 +171,8 @@ def inchi_to_svg(inchi, file=None):
     """
     try:
         import openbabel
-    except ImportError, e:
-        print e
+    except ImportError as e:
+        print(e)
         raise ImportError("OpenBabel seems to be not installed.")
     convert = openbabel.OBConversion()
     convert.SetInFormat("inchi")

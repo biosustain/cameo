@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import absolute_import, print_function
+
 import difflib
 from cameo.data import metanetx
 
@@ -19,8 +21,8 @@ from cameo.data import metanetx
 def inchi_to_svg(inchi, file=None):
     try:
         import openbabel
-    except ImportError, e:
-        print e
+    except ImportError as e:
+        print(e)
         raise ImportError("OpenBabel seems to be not installed.")
     convert = openbabel.OBConversion()
     convert.SetInFormat("inchi")

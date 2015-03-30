@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import absolute_import, print_function
+
 from functools import partial
 import hashlib
 import cobra as _cobrapy
@@ -23,7 +25,9 @@ from cameo import flux_analysis
 from cameo.parallel import SequentialView
 
 import logging
+import six
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 
 class Reaction(_cobrapy.core.Reaction):
@@ -49,11 +53,13 @@ class Reaction(_cobrapy.core.Reaction):
 
         """
         new_reaction = cls(name=reaction.name)
-        for attribute, value in reaction.__dict__.iteritems():
+        for attribute, value in six.iteritems(reaction.__dict__):
+            if attribute == '_model':  # _model needs to be set after all other attributes have been set.
+                continue
             try:
                 setattr(new_reaction, attribute, value)
             except AttributeError:
-                logger.debug("Can't set attribute %s for reaction %s (while cloning it to a cameo style reaction). Skipping it ..." % (attribute, reaction))
+                logger.info("Can't set attribute %s for reaction %s (while cloning it to a cameo style reaction). Skipping it ..." % (attribute, reaction))
         if not isinstance(reaction.model, cameo.core.solver_based_model.SolverBasedModel):
             new_reaction._model = None
         if model is not None:
@@ -97,7 +103,7 @@ class Reaction(_cobrapy.core.Reaction):
 
     def _get_reverse_id(self):
         """Generate the id of revers_variable from the reaction's id."""
-        return '_'.join((self.id, 'reverse', hashlib.md5(self.id).hexdigest()[0:5]))
+        return '_'.join((self.id, 'reverse', hashlib.md5(self.id.encode('utf-8')).hexdigest()[0:5]))
 
     @property
     def reverse_variable(self):
@@ -128,7 +134,7 @@ class Reaction(_cobrapy.core.Reaction):
             elif value < 0 and self._lower_bound >= 0 and self.reverse_variable is None:  # self._lower_bound >= 0 implies self._upper_bound >= 0
                 reverse_variable = model.solver._add_variable(
                     model.solver.interface.Variable(self._get_reverse_id(), lb=0, ub=0))
-                for met, coeff in self._metabolites.iteritems():
+                for met, coeff in six.iteritems(self._metabolites):
                     model.solver.constraints[met.id] += sympy.Mul._from_args((-1 * sympy.RealNumber(coeff), reverse_variable))
 
             variable = self.variable
@@ -178,7 +184,7 @@ class Reaction(_cobrapy.core.Reaction):
                 if self.reverse_variable is None:
                     reverse_variable = model.solver._add_variable(
                         model.solver.interface.Variable(self._get_reverse_id(), lb=0, ub=0))
-                    for met, coeff in self._metabolites.iteritems():
+                    for met, coeff in six.iteritems(self._metabolites):
                         model.solver.constraints[met.id] += sympy.Mul._from_args((-1 * sympy.RealNumber(coeff), reverse_variable))
                 else:
                     reverse_variable = self.reverse_variable
@@ -249,7 +255,7 @@ class Reaction(_cobrapy.core.Reaction):
         super(Reaction, self).add_metabolites(metabolites, **kwargs)
         model = self.model
         if model is not None:
-            for metabolite, coefficient in metabolites.iteritems():
+            for metabolite, coefficient in six.iteritems(metabolites):
                 model.solver.constraints[metabolite.id] += coefficient*self.variable
 
     def knock_out(self, time_machine=None):

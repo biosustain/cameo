@@ -11,8 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+from __future__ import absolute_import, print_function
+
 from inspyred.ec.generators import diversify
 from cameo.strain_design.heuristic.genomes import MultipleChromosomeGenome
+from six.moves import range
+from six.moves import zip
 
 
 def set_generator(random, args):
@@ -44,7 +49,7 @@ def set_generator(random, args):
         size = random.randint(1, max_size)
     else:
         size = max_size
-    candidate = random.sample(xrange(len(representation)), size)
+    candidate = random.sample(range(len(representation)), size)
     return list(candidate)
 
 
@@ -81,7 +86,7 @@ def unique_set_generator(random, args):
         size = random.randint(1, max_size)
     else:
         size = max_size
-    candidate = random.sample(xrange(len(representation)), size)
+    candidate = random.sample(range(len(representation)), size)
     return list(candidate)
 
 
@@ -149,6 +154,6 @@ def linear_representation(random, args):
     else:
         size = max_size
 
-    indices = random.sample(xrange(len(representation)), size)
+    indices = random.sample(range(len(representation)), size)
     values = [random.uniform(bounder.lower_bound, bounder.upper_bound) for _ in indices]
     return [(i, v) for i, v in zip(indices, values)]

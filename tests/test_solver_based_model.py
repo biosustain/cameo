@@ -14,9 +14,10 @@
 # limitations under the License.
 # @formatter:on
 
+from __future__ import absolute_import, print_function
+
 import os
 import copy
-from types import FloatType
 import unittest
 
 from cobra import Metabolite
@@ -30,6 +31,7 @@ from cameo.config import solvers
 from cameo.exceptions import UndefinedSolution
 from cameo.core.solver_based_model import Reaction
 from cameo.util import TimeMachine
+import six
 
 
 TRAVIS = os.getenv('TRAVIS', False)
@@ -272,10 +274,10 @@ class AbstractTestReaction(object):
     def test_model_less_reaction(self):
         # self.model.solver.configuration.verbosity = 3
         self.model.solve()
-        print self.model.reactions.ACALD.flux
+        print(self.model.reactions.ACALD.flux)
         for reaction in self.model.reactions:
-            self.assertTrue(isinstance(reaction.flux, FloatType))
-            self.assertTrue(isinstance(reaction.reduced_cost, FloatType))
+            self.assertTrue(isinstance(reaction.flux, float))
+            self.assertTrue(isinstance(reaction.reduced_cost, float))
         for reaction in self.model.reactions:
             self.model.remove_reactions([reaction])
             self.assertEqual(reaction.flux, None)
@@ -288,7 +290,7 @@ class AbstractTestReaction(object):
             reaction.knock_out()
             self.assertEqual(reaction.lower_bound, 0)
             self.assertEqual(reaction.upper_bound, 0)
-        for k, (lb, ub) in original_bounds.iteritems():
+        for k, (lb, ub) in six.iteritems(original_bounds):
             self.model.reactions.get_by_id(k).lower_bound = lb
             self.model.reactions.get_by_id(k).upper_bound = ub
         for reaction in self.model.reactions:
@@ -431,7 +433,7 @@ class AbstractTestReaction(object):
             reaction.add_metabolites({Metabolite('test'):-66})
             self.assertIn("66 test", str(reaction))
             self.assertIn(-66.*reaction.variable, self.model.solver.constraints['test'].expression)
-            already_included_metabolite = reaction.metabolites.keys()[0]
+            already_included_metabolite = list(reaction.metabolites.keys())[0]
             previous_coefficient = reaction.get_coefficient(already_included_metabolite.id)
             reaction.add_metabolites({already_included_metabolite: 10})
             new_coefficient = previous_coefficient + 10
@@ -449,12 +451,12 @@ class AbstractTestReaction(object):
             old_reaction_id = reaction.id
             self.assertTrue(self.model.solver.variables[old_reaction_id].name, old_reaction_id)
             self.assertIn(old_reaction_id, self.model.solver.variables)
-            self.assertTrue(self.model.solver.has_key(old_reaction_id))
+            self.assertTrue(old_reaction_id in self.model.solver)
             new_reaction_id = reaction.id + '_' +str(i)
             reaction.id = new_reaction_id
             self.assertEqual(reaction.id, new_reaction_id)
-            self.assertFalse(self.model.solver.has_key(old_reaction_id))
-            self.assertTrue(self.model.solver.has_key(new_reaction_id))
+            self.assertFalse(old_reaction_id in self.model.solver)
+            self.assertTrue(new_reaction_id in self.model.solver)
             self.assertTrue(self.model.solver.variables[new_reaction_id].name, new_reaction_id)
 
 
@@ -487,7 +489,7 @@ class AbstractTestSolverBasedModel(object):
         self.model.reversible_encoding = 'unsplit'
         reactions = self.model.reactions
         for reaction in reactions:
-            self.assertIn(reaction.id, self.model.solver.variables.keys())
+            self.assertIn(reaction.id, list(self.model.solver.variables.keys()))
             self.assertEqual(reaction.lower_bound, self.model.solver.variables[reaction.id].lb)
             self.assertEqual(reaction.upper_bound, self.model.solver.variables[reaction.id].ub)
 
@@ -550,7 +552,7 @@ class AbstractTestSolverBasedModel(object):
         self.model.remove_reactions(reactions_to_remove)
         self.assertTrue(all([reaction.model is None for reaction in reactions_to_remove]))
         for reaction in reactions_to_remove:
-            self.assertNotIn(reaction.id, self.model.solver.variables.keys())
+            self.assertNotIn(reaction.id, list(self.model.solver.variables.keys()))
 
     def test_add_demand(self):
         for metabolite in self.model.metabolites:
@@ -597,7 +599,7 @@ class AbstractTestSolverBasedModel(object):
         self.assertNotEqual(id(self.model.solver), solver_id)
         self.assertNotEqual(id(self.model.solver.problem), problem_id)
         new_solution = self.model.solve()
-        for key in solution.keys():
+        for key in list(solution.keys()):
             self.assertAlmostEqual(new_solution.x_dict[key], solution[key])
 
     def test_solver_change_with_optlang_interface(self):
@@ -608,7 +610,7 @@ class AbstractTestSolverBasedModel(object):
         self.assertNotEqual(id(self.model.solver), solver_id)
         self.assertNotEqual(id(self.model.solver.problem), problem_id)
         new_solution = self.model.solve()
-        for key in solution.keys():
+        for key in list(solution.keys()):
             self.assertAlmostEqual(new_solution.x_dict[key], solution[key])
 
     def test_set_wrong_variable_encoding_raises(self):
@@ -619,7 +621,7 @@ class AbstractTestSolverBasedModel(object):
         self.assertRaises(ValueError, setattr, self.model, 'solver', 'ThisIsDefinitelyNotAvalidSolver')
         self.assertRaises(ValueError, setattr, self.model, 'solver', os)
 
-    @unittest.skipIf(not solvers.has_key('cplex'), "No cplex interface available")
+    @unittest.skipIf('cplex' not in solvers, "No cplex interface available")
     def test_change_solver_to_cplex_and_check_copy_works(self):
         # First, load model from scratch
         model = load_model(os.path.join(TESTDIR, 'data/EcoliCore.xml'), solver_interface='cplex')
@@ -642,11 +644,11 @@ class AbstractTestSolverBasedModel(object):
     def test_essential_genes(self):
         self.model.reversible_encoding = 'split'
         essential_genes = [g.id for g in self.model.essential_genes()]
-        self.assertItemsEqual(essential_genes, ESSENTIAL_GENES)
+        self.assertTrue(sorted(essential_genes) == sorted(ESSENTIAL_GENES))
 
     def test_essential_reactions(self):
         essential_reactions = [r.id for r in self.model.essential_reactions()]
-        self.assertItemsEqual(essential_reactions, ESSENTIAL_REACTIONS)
+        self.assertTrue(sorted(essential_reactions) == sorted(ESSENTIAL_REACTIONS))
 
     def test_effective_bounds(self):
         self.model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = 0.873921
