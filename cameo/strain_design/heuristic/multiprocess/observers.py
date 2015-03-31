@@ -17,6 +17,7 @@ from __future__ import absolute_import, print_function
 import six
 from six.moves.queue import Empty
 from uuid import uuid4
+from Queue import Empty
 from cameo.parallel import RedisQueue
 from six.moves import range
 
@@ -74,9 +75,8 @@ class AbstractParallelObserverClient(object):
 
 
 from threading import Thread
-from ipython_notebook_utils import ProgressBar as IPythonProgressBar
 from blessings import Terminal
-from progressbar import ProgressBar as CLIProgressBar, Percentage, Bar, RotatingMarker
+from cameo.visualization import ProgressBar
 
 
 class CliMultiprocessProgressObserver(AbstractParallelObserver):
@@ -99,9 +99,7 @@ class CliMultiprocessProgressObserver(AbstractParallelObserver):
             label = "Island %i: " % (i + 1)
             pos = abs(len(self.clients) - i)
             writer = self.TerminalWriter((self.terminal.height or 1) - pos, self.terminal)
-            self.progress[i] = CLIProgressBar(fd=writer,
-                                              maxval=message['max_evaluations'],
-                                              widgets=[label, Percentage(), Bar(marker=RotatingMarker())])
+            self.progress[i] = ProgressBar(label=label, fd=writer, size=message['max_evaluations'])
             self.progress[i].start()
 
         self.progress[i].update(message['num_evaluations'])
@@ -154,8 +152,8 @@ class IPythonNotebookMultiprocessProgressObserver(AbstractParallelObserver):
 
     def _create_client(self, i):
         self.clients[i] = IPythonNotebookMultiprocessProgressObserverClient(queue=self.queue, index=i)
-        label = "<span style='color:%s;'>Island %i </span>" % (self.color_map[i], i + 1)
-        self.progress[i] = IPythonProgressBar(label=label)
+        label = "Island %i" % i + 1
+        self.progress[i] = ProgressBar(label=label, color=self.color_map[i])
 
     def _process_message(self, message):
         if self.progress[message['index']].id is None:

@@ -16,16 +16,14 @@ from __future__ import absolute_import, print_function
 
 from six.moves import zip
 
-try:
-    from bokeh.objects import Range1d, Plot
-except ImportError:
-    from bokeh.models import Range1d, Plot
 from inspyred.ec.emo import Pareto
 import numpy as np
 from cameo import config
 
 if config.use_bokeh:
     from bokeh.plotting import *
+    from bokeh.models import Range1d
+
 
 class GenericStatsData(object):
     def __init__(self, solution, *args, **kwargs):
@@ -59,20 +57,20 @@ class BokehStatsData(GenericStatsData):
 
     def display(self):
         output_notebook()
-        hold()
-        figure(title="Knockout size distribution")
-        quad(top=self.knockouts_hist, bottom=np.zeros(len(self.knockouts_hist)),
-             left=self.knockouts_edges[:-1], right=self.knockouts_edges[1:],
-             title="Knockout size distribution")
-        xaxis()[0].axis_label = "Number of knockouts"
-        yaxis()[0].axis_label = "Number of solutions"
+        plot = figure(title="Knockout size distribution")
+        plot.quad(top=self.knockouts_hist, bottom=np.zeros(len(self.knockouts_hist)),
+                  left=self.knockouts_edges[:-1], right=self.knockouts_edges[1:],
+                  title="Knockout size distribution")
+        plot.xaxis.axis_label = "Number of knockouts"
+        plot.yaxis.axis_label = "Number of solutions"
+        show(plot)
 
-        figure(title="Correlation between number of knockouts and fitness")
+        plot = figure(title="Correlation between number of knockouts and fitness")
         fitness = self.solution.solutions['Fitness']
         if isinstance(fitness[0], Pareto):
             pass
         else:
-            scatter(self.solution.solutions['Size'], self.solution.solutions['Fitness'])
-            xaxis()[0].axis_label = "Number of knockouts"
-            yaxis()[0].axis_label = "Fitness"
-        show()
+            plot.scatter(self.solution.solutions['Size'], self.solution.solutions['Fitness'])
+            plot.xaxis.axis_label = "Number of knockouts"
+            plot.yaxis.axis_label = "Fitness"
+        show(plot)

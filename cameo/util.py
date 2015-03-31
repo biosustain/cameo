@@ -30,7 +30,6 @@ try:
 except:
     pass
 import progressbar
-import ipython_notebook_utils
 from numpy.random import RandomState
 
 import logging
@@ -180,39 +179,6 @@ def generate_colors(n):
         color = tuple([rgb[0]*256, rgb[1]*256, rgb[2]*256])
         color_map[i] = '#%02x%02x%02x' % color
     return color_map
-
-
-class ProgressBar(object):
-    def __init__(self, *args, **kwargs):
-        if in_ipnb():
-            self.progress_bar = ipython_notebook_utils.ProgressBar(*args, **kwargs)
-        else:
-            self.progress_bar = progressbar.ProgressBar(*args, **kwargs)
-
-    def start(self):
-        self.progress_bar.start()
-
-    def update(self, value):
-        if isinstance(self.progress_bar, ipython_notebook_utils.ProgressBar):
-            self.progress_bar.set(value)
-        else:
-            self.progress_bar.update(value)
-
-    def __call__(self, iterable):
-        if isinstance(self.progress_bar, ipython_notebook_utils.ProgressBar):
-            self.progress_bar.size = len(iterable)
-
-            def _(iterable):
-                count = 0
-                self.progress_bar.set(0)
-                for item in iterable:
-                    count += 1
-                    self.progress_bar.set(count)
-                    yield item
-
-
-        else:
-            return self.progress_bar(iterable)
 
 
 class Timer(object):
