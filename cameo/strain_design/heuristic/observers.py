@@ -12,22 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from ipython_notebook_utils import ProgressBar as IPythonProgressBar
-from progressbar import ProgressBar as CLIProgressBar
+from cameo.visualization import ProgressBar
 
 
-class CLIProgressObserver():
+class ProgressObserver():
     """
     Progress bar to in command line
     """
-    __name__ = "CLI progress"
+    __name__ = "Progress Observer"
 
     def __init__(self):
         self.progress = None
 
     def __call__(self, population, num_generations, num_evaluations, args):
         if self.progress is None:
-            self.progress = CLIProgressBar(args.get('max_evaluations', 50000))
+            self.progress = ProgressBar(args.get('max_evaluations', 50000))
             self.progress.start()
 
         if num_evaluations % args.get('n', 1) == 0:
@@ -35,21 +34,3 @@ class CLIProgressObserver():
 
     def reset(self):
         self.progress = None
-
-
-class IPythonNotebookProgressObserver():
-    """
-    Progress bar to use within IPython Notebook
-    """
-    __name__ = "IPython Notebook progress"
-
-    def __init__(self):
-        self.progress = IPythonProgressBar()
-
-    def __call__(self, population, num_generations, num_evaluations, args):
-        if num_evaluations % args.get('n', 1) == 0:
-            p = (float(num_evaluations) / float(args.get('max_evaluations', 50000))) * 100.0
-            self.progress.set(p)
-
-    def reset(self):
-        self.progress.start()

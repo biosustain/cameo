@@ -28,7 +28,6 @@ from cameo.strain_design.heuristic import decoders
 from cameo.strain_design.heuristic import stats
 from cameo import config
 from cameo.flux_analysis.simulation import pfba, lmoma, moma, room, reset_model
-from cameo.strain_design.heuristic.plotters import GeneFrequencyPlotter
 from cameo.util import partition, TimeMachine, memoize
 from pandas import DataFrame
 
@@ -364,14 +363,13 @@ class KnockoutOptimization(HeuristicOptimization):
                 pass
             else:
                 pass
-            self.observer.append(observers.IPythonNotebookProgressObserver())
 
         else:
             if config.use_bokeh:
                 pass
             else:
                 pass
-            self.observer.append(observers.CLIProgressObserver())
+        self.observer.append(observers.ProgressObserver())
 
     def run(self, **kwargs):
         for observer in self.observer:

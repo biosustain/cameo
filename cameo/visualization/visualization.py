@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__all__ = ['memoized', 'graph_to_svg', 'draw_knockout_result', 'inchi_to_svg']
+__all__ = ['memoized', 'graph_to_svg', 'draw_knockout_result', 'inchi_to_svg', 'ProgressBar']
 
 import json
 import logging
@@ -200,3 +200,60 @@ def graph_to_svg(g, layout=nx.spring_layout):
     fig.savefig(output, format='svg')
     plt.close(fig)
     return output.getvalue()
+
+
+try:
+    from IPython.display import HTML, Javascript, display
+    import uuid
+
+    class IPythonProgressBar():
+        def __init__(self, size=100, label=""):
+            self.progress = 0
+            self.size = size
+            self.label = label
+            self.id = None
+
+        def start(self, width='50%'):
+            self.id = "progress-bar-%s" % str(uuid.uuid4())
+            style = "width:%s;" % width
+            html = HTML("%s<progress id='%s' value='0' max='%i' style='%s'></progress>&nbsp;<span id='perc-%s'>0&#37;</span>"
+                        % (self.label, self.id, self.size, style, self.id))
+            display(html)
+
+        def increment(self, i=1):
+            p = self.progress + i
+            self._update(p)
+
+        def update(self, progress):
+            p = progress
+            self._update(p)
+
+        def _update(self, p):
+            if p <= self.size:
+                display(Javascript("jQuery('#%s').val('%i')" % (self.id, p)))
+                display(Javascript("jQuery('#perc-%s').html('%i&#37;')" % (self.id, p)))
+                self.progress = p
+            else:
+                raise RuntimeError("Already reached 100%")
+
+        def reset(self):
+            self.progress = 0
+            self.id = None
+
+        def __call__(self, iterable):
+            self.size = len(iterable)
+
+            def _(iterable):
+                count = 0
+                self.set(0)
+                for item in iterable:
+                    count += 1
+                    self.set(count)
+                    yield item
+
+    ProgressBar = IPythonProgressBar
+
+except ImportError:
+    from progressbar import ProgressBar as CLIProgressBar
+
+    ProgressBar = CLIProgressBar
