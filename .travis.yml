@@ -19,12 +19,16 @@ before_install:
 install:
   - if [[ $TRAVIS_PYTHON_VERSION == "3.4" ]]; then pip install pyzmq pandas; fi
   - if [[ $TRAVIS_PYTHON_VERSION == "3.4" ]]; then pip install -e git+https://github.com/coagulant/progressbar-python3.git#egg=progressbar; fi
-  - if [[ $TRAVIS_PYTHON_VERSION == "2.7" ]]; then pip install glpk; fi
-  - pip install python-libsbml-experimental cython numpy scipy pyzmq pandas -f https://dl.dropboxusercontent.com/u/22461024/pypi.drosophi.la/index.html --no-index
+  - if [[ $TRAVIS_PYTHON_VERSION == "2.7" ]]; then pip install progressbar-ipython>=2.3.1; fi
+  - pip install python-libsbml-experimental cython numpy scipy pyzmq pandas bokeh inspyred -f https://dl.dropboxusercontent.com/u/22461024/pypi.drosophi.la/index.html --no-index
   - pip install coveralls coverage
   - pip install redis
   - pip install escher --pre
   - pip install rednose
+  # The next lines have been taken from cobrapy's .travis.yml
+  - wget https://opencobra.github.io/pypi_cobrapy_travis/travis_test_dependencies.zip  # esolver, and glpk
+  - unzip travis_test_dependencies.zip
+  - export PATH=$PATH:$PWD
   - pip install .
 # command to run tests
 script: nosetests

@@ -4,7 +4,6 @@ ipython>=2.1.0
 scipy>=0.9.0
 bokeh>=0.8.1
 blessings==1.5.1
-progressbar-ipython>=2.3.1
 Jinja2==2.7.3
 pandas>=0.15.2
 ordered-set==1.2
