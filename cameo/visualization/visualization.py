@@ -11,8 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from pandas.core.common import in_ipnb
 
-__all__ = ['memoized', 'graph_to_svg', 'draw_knockout_result', 'inchi_to_svg']
+__all__ = ['memoized', 'graph_to_svg', 'draw_knockout_result', 'inchi_to_svg', 'ProgressBar']
 
 import json
 import logging
@@ -200,3 +201,98 @@ def graph_to_svg(g, layout=nx.spring_layout):
     fig.savefig(output, format='svg')
     plt.close(fig)
     return output.getvalue()
+
+
+try:
+    from IPython.display import HTML, Javascript, display
+    import uuid
+    if not in_ipnb():
+        raise ImportError
+
+    class IPythonProgressBar():
+        def __init__(self, size=100, label="", color=None, fd=None):
+            self.progress = 0
+            self.size = size
+            self.label = label
+            self.color = color
+            self.id = None
+
+        def start(self, width='50%'):
+            self.id = "progress-bar-%s" % str(uuid.uuid4())
+            style = "width:%s;" % width
+            if self.color is not None:
+                style += "color: %s;" % self.color
+            html = HTML("%s<progress id='%s' value='0' max='%i' style='%s'></progress>&nbsp;<span id='perc-%s'>0&#37;</span>"
+                        % (self.label, self.id, self.size, style, self.id))
+            display(html)
+
+        def increment(self, i=1):
+            p = self.progress + i
+            self._update(p)
+
+        def update(self, progress):
+            p = progress
+            self._update(p)
+
+        def _update(self, p):
+            if p <= self.size:
+                display(Javascript("jQuery('#%s').val('%i')" % (self.id, p)))
+                display(Javascript("jQuery('#perc-%s').html('%i&#37;')" % (self.id, p)))
+                self.progress = p
+            else:
+                raise RuntimeError("Already reached 100%")
+
+        def reset(self):
+            self.progress = 0
+            self.id = None
+
+        def end(self):
+            pass
+
+        def __call__(self, iterable):
+            self.size = len(iterable)
+
+            def _(iterable):
+                count = 0
+                self.set(0)
+                for item in iterable:
+                    count += 1
+                    self.set(count)
+                    yield item
+
+    ProgressBar = IPythonProgressBar
+
+except ImportError:
+    from progressbar import ProgressBar as PB
+    from progressbar import Bar, RotatingMarker, Percentage
+    import sys
+
+    class CLIProgressBar():
+        widgets = [' ', Bar(marker=RotatingMarker()), ' ', Percentage()]
+
+        def __init__(self, size=100, label="", color=None, fd=sys.stdout):
+            self.progress_bar = PB(widgets=[label] + self.widgets, maxval=size, fd=fd)
+            self.progress = 0
+
+        def start(self, width='50%'):
+            self.progress_bar.start()
+            self.progress = 0
+
+        def increment(self, i=1):
+            p = self.progress + i
+            self.progress_bar.update(p)
+
+        def update(self, progress):
+            self.progress_bar.update(progress)
+
+        def reset(self):
+            self.progress_bar.start()
+            self.progress = 0
+
+        def end(self):
+            self.progress_bar.finish()
+
+        def __call__(self, iterable):
+            self.progress_bar(iterable)
+
+    ProgressBar = CLIProgressBar

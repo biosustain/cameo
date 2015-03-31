@@ -137,6 +137,7 @@ class HeuristicOptimization(object):
         if seed is None:
             seed = int(time.time())
         self.seed = seed
+        self.observers = []
         self.random = Random(seed=seed)
         self.model = model
         self.termination = termination
@@ -144,6 +145,7 @@ class HeuristicOptimization(object):
         self.heuristic_method = heuristic_method
         self.heuristic_method.terminator = termination
         self._generator = None
+
 
     @property
     def objective_function(self):
@@ -180,6 +182,8 @@ class HeuristicOptimization(object):
         raise NotImplementedError
 
     def run(self, view=config.default_view, maximize=True, **kwargs):
+        for observer in self.observers:
+            observer.reset()
         t = time.time()
         print time.strftime("Starting optimization at %a, %d %b %Y %H:%M:%S", time.localtime(t))
         res = self.heuristic_method.evolve(generator=self._generator,
@@ -187,6 +191,8 @@ class HeuristicOptimization(object):
                                            view=view,
                                            evaluator=self._evaluator,
                                            **kwargs)
+        for observer in self.observers:
+            observer.end()
         runtime = time.time() - t
         print time.strftime("Finished after %H:%M:%S", time.localtime(runtime))
 
@@ -225,7 +231,6 @@ class KnockoutEvaluator(object):
 
     """
     def __init__(self, model, decoder, objective_function, simulation_method, simulation_kwargs):
-
         self.model = model
         self.decoder = decoder
         self.objective_function = objective_function
@@ -255,7 +260,11 @@ class KnockoutEvaluator(object):
                    undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
 
             try:
-                solution = self.simulation_method(self.model, cache=self.cache, volatile=False, **self.simulation_kwargs)
+                solution = self.simulation_method(self.model,
+                                                  cache=self.cache,
+                                                  volatile=False,
+                                                  raw=True,
+                                                  **self.simulation_kwargs)
                 fitness = self._calculate_fitness(solution, decoded)
             except SolveError as e:
                 logger.debug(e)
@@ -351,31 +360,28 @@ class KnockoutOptimization(HeuristicOptimization):
         self._set_observer()
 
     def _set_observer(self):
-        self.observer = []
+        self.observers = []
 
         if in_ipnb():
             if config.use_bokeh:
                 if self.is_mo():
-                    self.observer.append(plotters.IPythonBokehParetoPlotter(self.objective_function))
+                    self.observers.append(plotters.IPythonBokehParetoPlotter(self.objective_function))
                 else:
-                    self.observer.append(plotters.IPythonBokehFitnessPlotter())
+                    self.observers.append(plotters.IPythonBokehFitnessPlotter())
             elif config.use_matplotlib:
                 pass
             else:
                 pass
-            self.observer.append(observers.IPythonNotebookProgressObserver())
 
         else:
             if config.use_bokeh:
                 pass
             else:
                 pass
-            self.observer.append(observers.CLIProgressObserver())
+        self.observers.append(observers.ProgressObserver())
 
     def run(self, **kwargs):
-        for observer in self.observer:
-            observer.reset()
-        self.heuristic_method.observer = self.observer
+        self.heuristic_method.observer = self.observers
         super(KnockoutOptimization, self).run(
             distance_function=set_distance_function,
             representation=self.representation,
@@ -743,9 +749,9 @@ class KnockinKnockoutOptimization(KnockoutOptimization):
         return fitness
 
     def run(self, **kwargs):
-        for observer in self.observer:
+        for observer in self.observers:
             observer.reset()
-        self.heuristic_method.observer = self.observer
+        self.heuristic_method.observer = self.observers
         super(KnockoutOptimization, self).run(
             keys=['knockout', 'knockin'],
             knockout_representation=self.representation,

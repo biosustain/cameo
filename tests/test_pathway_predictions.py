@@ -20,15 +20,17 @@ from cameo.strain_design.pathway_prediction import PathwayPredictor
 TESTDIR = os.path.dirname(__file__)
 TESTMODEL = load_model(os.path.join(TESTDIR, 'data/iJO1366.xml'))
 
+TRAVIS = os.getenv('TRAVIS', False)
 
-class TestPathwayPredictor(unittest.TestCase):
+if not TRAVIS:
+    class TestPathwayPredictor(unittest.TestCase):
 
-    def setUp(self):
-        self.pathway_predictor = PathwayPredictor(TESTMODEL)
+        def setUp(self):
+            self.pathway_predictor = PathwayPredictor(TESTMODEL)
 
-    def test_setting_incorrect_universal_model_raises(self):
-        self.assertRaises(self.pathway_predictor.run, product='L-serine', universal_model='Mickey_Mouse')
+        def test_setting_incorrect_universal_model_raises(self):
+            self.assertRaises(self.pathway_predictor.run, product='L-serine', universal_model='Mickey_Mouse')
 
-    def test_predict_native_compound_returns_shorter_alternatives(self):
-        result = self.pathway_predictor.run(product='L-serine')
-        self.assertTrue(len(result) > 0)
+        def test_predict_native_compound_returns_shorter_alternatives(self):
+            result = self.pathway_predictor.run(product='L-serine')
+            self.assertTrue(len(result) > 0)
