@@ -20,7 +20,7 @@ install:
   - if [[ $TRAVIS_PYTHON_VERSION == "3.4" ]]; then pip install pyzmq pandas bokeh; fi
   - if [[ $TRAVIS_PYTHON_VERSION == "3.4" ]]; then pip install -e git+https://github.com/coagulant/progressbar-python3.git#egg=progressbar; fi
   - if [[ $TRAVIS_PYTHON_VERSION == "2.7" ]]; then pip install progressbar-ipython>=2.3.1; fi
-  - pip install python-libsbml-experimental cython numpy scipy pyzmq pandas bokeh -f https://dl.dropboxusercontent.com/u/22461024/pypi.drosophi.la/index.html --no-index
+  - pip install python-libsbml-experimental cython numpy scipy pyzmq pandas bokeh inspyred -f https://dl.dropboxusercontent.com/u/22461024/pypi.drosophi.la/index.html --no-index
   - pip install coveralls coverage
   - pip install redis
   - pip install escher --pre
