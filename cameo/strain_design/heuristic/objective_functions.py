@@ -80,9 +80,9 @@ class biomass_product_coupled_yield(ObjectiveFunction):
 
     def __call__(self, model, solution, decoded_representation):
         try:
-            biomass_flux = round(solution.get_primal_by_id(self.biomass), config.ndecimals)
-            product_flux = round(solution.get_primal_by_id(self.product), config.ndecimals)
-            substrate_flux = round(abs(solution.get_primal_by_id(self.substrate)), config.ndecimals)
+            biomass_flux = round(solution.fluxes[self.biomass], config.ndecimals)
+            product_flux = round(solution.fluxes[self.product], config.ndecimals)
+            substrate_flux = round(abs(solution.fluxes[self.substrate]), config.ndecimals)
             return round((biomass_flux * product_flux) / substrate_flux, config.ndecimals)
 
         except ZeroDivisionError:
@@ -115,8 +115,8 @@ class product_yield(ObjectiveFunction):
 
     def __call__(self, model, solution, decoded_representation):
         try:
-            product_flux = round(solution.get_primal_by_id(self.product), config.ndecimals)
-            substrate_flux = round(abs(solution.get_primal_by_id(self.substrate)), config.ndecimals)
+            product_flux = round(solution.fluxes[self.product], config.ndecimals)
+            substrate_flux = round(abs(solution.fluxes[self.substrate]), config.ndecimals)
             return round(product_flux / substrate_flux, config.ndecimals)
         except ZeroDivisionError:
             return 0.0

@@ -11,7 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from bokeh.objects import Range1d, Plot
+from bokeh.models import Range1d
+
 from inspyred.ec.emo import Pareto
 import numpy as np
 from cameo import config
@@ -51,7 +52,6 @@ class BokehStatsData(GenericStatsData):
 
     def display(self):
         output_notebook()
-        hold()
         figure(title="Knockout size distribution")
         quad(top=self.knockouts_hist, bottom=np.zeros(len(self.knockouts_hist)),
              left=self.knockouts_edges[:-1], right=self.knockouts_edges[1:],

@@ -79,6 +79,9 @@ class IPythonBokehFitnessPlotter(object):
         self.fitness = []
         self.plotted = False
 
+    def end(self):
+        pass
+
 
 class IPythonBokehParetoPlotter(object):
     __name__ = "IPython Bokeh Pareto Plotter"
@@ -129,6 +132,9 @@ class IPythonBokehParetoPlotter(object):
     def reset(self):
         self.fitness = []
         self.plotted = False
+
+    def end(self):
+        pass
 
 
 class GeneFrequencyPlotter():

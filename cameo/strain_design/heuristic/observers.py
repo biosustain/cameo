@@ -34,3 +34,6 @@ class ProgressObserver():
 
     def reset(self):
         self.progress = None
+
+    def end(self):
+        self.progress.end()
