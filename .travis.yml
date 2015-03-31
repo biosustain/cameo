@@ -26,6 +26,10 @@ install:
   - pip install escher --pre
   - pip install -r requirements.txt
   - pip install rednose
+  # The next lines have been taken from cobrapy's .travis.yml
+  - wget https://opencobra.github.io/pypi_cobrapy_travis/travis_test_dependencies.zip  # esolver, and glpk
+  - unzip travis_test_dependencies.zip
+  - export PATH=$PATH:$PWD
 # command to run tests
 script: nosetests
 after_success:
