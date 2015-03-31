@@ -11,13 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from bokeh.models import Range1d
+
 from inspyred.ec.emo import Pareto
 import numpy as np
 from cameo import config
 
 if config.use_bokeh:
     from bokeh.plotting import *
+    from bokeh.models import Range1d
 
 from bashplotlib.scatterplot import plot_scatter
 from bashplotlib.histogram import plot_hist
