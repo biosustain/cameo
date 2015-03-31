@@ -38,7 +38,7 @@ CURRENT_PATH = os.path.dirname(__file__)
 MODEL_PATH = os.path.join(CURRENT_PATH, "data/EcoliCore.xml")
 
 
-TEST_MODEL = load_model(MODEL_PATH)
+TEST_MODEL = load_model(MODEL_PATH, sanitize=False)
 
 SOLUTIONS = [
     [[1, 2, 3], 0.1],
@@ -204,6 +204,10 @@ class TestObjectiveFunctions(unittest.TestCase):
         def get_primal_by_id(self, k):
             return self._primal[k]
 
+        @property
+        def fluxes(self):
+            return self._primal
+
     def test_biomass_product_coupled_yield(self):
         solution = self._MockupSolution()
         solution.set_primal('biomass', 0.6)
@@ -312,7 +316,7 @@ class TestGeneratos(unittest.TestCase):
 
 class TestHeuristicOptimization(unittest.TestCase):
     def setUp(self):
-        self.model = TEST_MODEL.copy()
+        self.model = TEST_MODEL
         self.single_objective_function = product_yield('product', 'substrate')
         self.multiobjective_function = [
             product_yield('product', 'substrate'),
@@ -433,11 +437,11 @@ class TestHeuristicOptimization(unittest.TestCase):
         self.assertFalse(multiobjective_heuristic.is_mo())
 
     def test_set_distance_function(self):
-        s1 = set([1, 2, 3])
-        s2 = set([1, 2, 3, 4])
+        s1 = {1, 2, 3}
+        s2 = {1, 2, 3, 4}
         d = set_distance_function(s1, s2)
         self.assertEqual(d, 1)
-        s3 = set([2, 3, 4])
+        s3 = {2, 3, 4}
         d = set_distance_function(s1, s3)
         self.assertEqual(d, 2)
         d = set_distance_function(s3, s2)
@@ -461,35 +465,33 @@ class TestReactionKnockoutOptimization(unittest.TestCase):
     @unittest.skip('Not deterministic when seeded')
     def test_run_single_objective(self):
 
-        model = load_model(MODEL_PATH)
         result_file = os.path.join(CURRENT_PATH, "data", "reaction_knockout_single_objective.pkl")
         objective = biomass_product_coupled_yield(
             "Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2",
             "EX_ac_LPAREN_e_RPAREN_",
             "EX_glc_LPAREN_e_RPAREN_")
 
-        rko = ReactionKnockoutOptimization(model=model,
+        rko = ReactionKnockoutOptimization(model=self.model,
                                            simulation_method=fba,
                                            objective_function=objective,
                                            seed=SEED)
 
-        print rko.random.random()
+        self.assertEqual(rko.random.random(), 0.1915194503788923)
 
         results = rko.run(max_evaluations=3000, pop_size=10, view=SequentialView())
 
-        print rko.random.random()
-
-        with open(result_file, 'r') as f:
-            expected_results = pickle.load(f)
+        self.assertEqual(rko.random.random(), 0.04225378600400298)
 
         # with open(result_file, 'w') as f:
         #     pickle.dump(results, f)
+
+        with open(result_file, 'r') as f:
+            expected_results = pickle.load(f)
 
         assert_frame_equal(results.solutions, expected_results.solutions)
 
     @unittest.skip('Not deterministic when seeded')
     def test_run_multiobjective(self):
-        model = load_model(MODEL_PATH)
         result_file = os.path.join(CURRENT_PATH, "data", "reaction_knockout_multi_objective.pkl")
         objective1 = biomass_product_coupled_yield(
             "Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2",
@@ -499,7 +501,7 @@ class TestReactionKnockoutOptimization(unittest.TestCase):
         objective2 = number_of_knockouts()
         objective = [objective1, objective2]
 
-        rko = ReactionKnockoutOptimization(model=model,
+        rko = ReactionKnockoutOptimization(model=self.model,
                                            simulation_method=fba,
                                            objective_function=objective,
                                            heuristic_method=inspyred.ec.emo.NSGA2,
@@ -507,11 +509,12 @@ class TestReactionKnockoutOptimization(unittest.TestCase):
 
         results = rko.run(max_evaluations=3000, pop_size=10, view=SequentialView())
 
+        with open(result_file, 'w') as file:
+            pickle.dump(results, file)
+
         with open(result_file, 'r') as file:
             expected_results = pickle.load(file)
 
-        # with open(result_file, 'w') as file:
-        #     pickle.dump(results, file)
 
         assert_frame_equal(results.solutions, expected_results.solutions)
 
