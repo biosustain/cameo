@@ -3,7 +3,7 @@ python:
  - "2.7"
  - "3.4"
 before_install:
-  - sudo apt-get install swig redis-server libzmq3-dev libgmp-dev
+  - sudo apt-get install swig redis-server libzmq3-dev libgmp-dev libglpk-dev glpk-utils
   - sudo service redis-server start
   - sudo rm -rf /dev/shm
   - wget https://ftp.gnu.org/gnu/glpk/glpk-4.45.tar.gz
@@ -20,15 +20,10 @@ install:
   - if [[ $TRAVIS_PYTHON_VERSION == "3.4" ]]; then pip install pyzmq pandas; fi
   - if [[ $TRAVIS_PYTHON_VERSION == "3.4" ]]; then pip install -e git+https://github.com/coagulant/progressbar-python3.git#egg=progressbar; fi
   - if [[ $TRAVIS_PYTHON_VERSION == "2.7" ]]; then pip install progressbar-ipython>=2.3.1; fi
-  - pip install python-libsbml-experimental cython numpy scipy pyzmq pandas inspyred escher -f https://dl.dropboxusercontent.com/u/22461024/pypi.drosophi.la/index.html --no-index
+  - pip install python-libsbml-experimental cython numpy scipy pyzmq pandas inspyred -f https://dl.dropboxusercontent.com/u/22461024/pypi.drosophi.la/index.html --no-index
   - pip install coveralls coverage
   - pip install redis
-  - pip install escher --pre
   - pip install rednose
-  # The next lines have been taken from cobrapy's .travis.yml
-  - wget https://opencobra.github.io/pypi_cobrapy_travis/travis_test_dependencies.zip  # esolver, and glpk
-  - unzip travis_test_dependencies.zip
-  - export PATH=$PATH:$PWD
   - pip install .
 # command to run tests
 script: nosetests

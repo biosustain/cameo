@@ -27,7 +27,6 @@ from io import BytesIO
 
 from pandas.core.common import in_ipnb
 import networkx as nx
-from escher import Builder
 
 import os
 from IPython.display import HTML, SVG
@@ -133,6 +132,7 @@ cdf.embed("%s", 942, 678);
 
 
 def draw_knockout_result(model, map_name, simulation_method, knockouts, *args, **kwargs):
+    from escher import Builder
     tm = TimeMachine()
 
     try:
