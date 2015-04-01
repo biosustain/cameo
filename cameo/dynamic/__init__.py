@@ -16,10 +16,13 @@ import numpy as np
 from pandas import DataFrame
 
 from scipy.integrate import ode
+import six
 from cameo import plot_utils, fba
 from cameo.core.result import Result
 from cameo.dynamic.bioreactors import batch_reactor
 from cameo.exceptions import SolveError
+from cameo.reporters.process import ProgressReporter
+from cameo.reporters.simulation import FluxDistributionReporter
 from cameo.util import TimeMachine
 
 import logging
@@ -37,13 +40,14 @@ class DynamicFBAResult(Result):
         d.update(self.metabolite_concentrations)
         return DataFrame()
 
-    def __init__(self, reactor, time, volume, biomass, metabolite_concentrations, *args, **kwargs):
+    def __init__(self, reactor, time, volume, biomass, metabolite_concentrations, simulations, *args, **kwargs):
         super(DynamicFBAResult, self).__init__(*args, **kwargs)
         self.time = time
         self.volume = volume
         self.biomass = biomass
         self.metabolite_concentrations = metabolite_concentrations
         self.reactor = reactor
+        self.simulations = simulations
 
     def __getitem__(self, item):
         try:
@@ -66,7 +70,44 @@ class DynamicFBAResult(Result):
         )
 
 
-def _bioreactor_ode(t, y, metabolites, models, models_dynamics, reactor, simulation_method, simulation_kwargs):
+def _simulate_model(volume, models, models_dynamics, x, metabolites, s, simulation_method, sim_kwargs):
+    # fluxes through metabolites
+    vs = np.zeros([len(models), len(metabolites)])
+    # growth rates of organisms
+    mu = np.zeros([len(models)])
+    simulations = []
+    for i, model in enumerate(models):
+        # updating the internal states of the organism
+        # eg. updating the uptake constraints based on metabolite concentrations
+        constraints, objective = models_dynamics[i](volume, x[i], metabolites, s)
+
+        with TimeMachine() as tm:
+            for reaction_id, c in six.iteritems(constraints):
+                logger.debug("Reaction: %s (lb=%f, ub=%f)" % (reaction_id, c[0], c[1]))
+                r = model.reactions.get_by_id(reaction_id)
+                tm(do=partial(setattr, r, 'lower_bound', c[0]), undo=partial(setattr, r, 'lower_bound', r.lower_bound))
+                tm(do=partial(setattr, r, 'upper_bound', c[1]), undo=partial(setattr, r, 'upper_bound', r.upper_bound))
+
+            try:
+                for reaction_id, c in six.iteritems(constraints):
+                    r = model.reactions.get_by_id(reaction_id)
+                    logger.debug("Reaction bounds: %s (lb=%f, ub=%f)" % (reaction_id, r.lower_bound, r.upper_bound))
+                solution = simulation_method(model, objective=objective, **sim_kwargs)
+                mu[i] = solution[objective if objective is not None else model.objective]
+                for j, metabolite in enumerate(metabolites):
+                    vs[i, j] = solution[metabolite]
+                    logger.debug("V(%s) = %f" % (metabolite, vs[i, j]))
+                simulations.append(solution)
+            except SolveError:
+                mu[i] = 0
+                for j, metabolite in enumerate(metabolites):
+                    vs[i, j] = 0
+                simulations.append(None)
+
+    return vs, mu, simulations
+
+
+def _bioreactor_ode(t, y, metabolites, models, models_dynamics, reactor, simulation_method, sim_kwargs, solutions):
         """
         Description the reactor system.
 
@@ -103,40 +144,14 @@ def _bioreactor_ode(t, y, metabolites, models, models_dynamics, reactor, simulat
         for i, met in enumerate(metabolites):
             logger.debug("%s => C: %f (mmol/L), DeltaS: %f, SFeed: %f" % (met, s[i], delta_s[i], s_feed[i]))
 
-        # fluxes through metabolites
-        vs = np.zeros([len(models), len(metabolites)])
-        # growth rates of organisms
-        mu = np.zeros([len(models)])
-
-        for i, model in enumerate(models):
-            # updating the internal states of the organism
-            # eg. updating the uptake constraints based on metabolite concentrations
-            constraints, objective = models_dynamics[i](volume, x[i], metabolites, s)
-
-            with TimeMachine() as tm:
-                for reaction_id, c in constraints.items():
-                    logger.debug("Reaction: %s (lb=%f, ub=%f)" % (reaction_id, c[0], c[1]))
-                    r = models[i].reactions.get_by_id(reaction_id)
-                    tm(do=partial(setattr, r, 'lower_bound', c[0]), undo=partial(setattr, r, 'lower_bound', r.lower_bound))
-                    tm(do=partial(setattr, r, 'upper_bound', c[1]), undo=partial(setattr, r, 'upper_bound', r.upper_bound))
-
-                try:
-                    solution = simulation_method(model, objective=objective, raw=True, **simulation_kwargs)
-                    mu[i] = solution[model.objective]
-
-                    for j, metabolite in enumerate(metabolites):
-                        vs[i, j] = solution[metabolite]
-                except SolveError:
-                    mu[i] = 0
-                    for j, metabolite in enumerate(metabolites):
-                        vs[i, j] = 0
+        vs, mu, simulations = _simulate_model(volume, models, models_dynamics,
+                                              x, metabolites, s, simulation_method, sim_kwargs)
+        solutions.append(simulations)
 
         # updating the internal states of the bioreactor
         # eg. flow rates, feed concentrations, and custom defined dX/dt and dS/dt terms
-        d_inflow_rate, d_outflow_rate, d_delta_x, d_x_feed, d_delta_s, d_s_feed = reactor(t, volume, x, s,
-                                                                                          inflow_rate, outflow_rate,
-                                                                                          delta_x, x_feed,
-                                                                                          delta_s, s_feed)
+        d_inflow_rate, d_outflow_rate, d_delta_x, d_x_feed, d_delta_s, d_s_feed = \
+            reactor(t, volume, models, x, metabolites, s, inflow_rate, outflow_rate, delta_x, x_feed, delta_s, s_feed)
 
         # calculating the rates of change of reactor volume[L], biomass [g/L] and metabolite [mmol/L]
         # dV/dt [L/hr]
@@ -146,7 +161,7 @@ def _bioreactor_ode(t, y, metabolites, models, models_dynamics, reactor, simulat
         # dS/dt [mmol/L/hr]
         ds = np.dot(x, vs) + inflow_rate / volume * (s_feed - s) + delta_s
 
-        dy[3:3*n+3] = np.append(dx, [d_delta_x , d_x_feed])
+        dy[3:3*n+3] = np.append(dx, [d_delta_x, d_x_feed])
         dy[3*n+3:3*n+3*m+3] = np.append(ds, [d_delta_s, d_s_feed])
 
         return dy
@@ -259,12 +274,13 @@ def _dfba(reactor, metabolites=None, initial_concentrations=None, delta_s=None, 
     assert len(models) == len(x_feed), "Biomass feed rates (x_feed) and models must have the same size."
 
     y0 = [initial_volume, inflow_rate, outflow_rate] +\
-         initial_biomass + delta_x + x_feed + initial_concentrations + delta_s + s_feed
+        initial_biomass + delta_x + x_feed + initial_concentrations + delta_s + s_feed
 
     dfba_ode = ode(_bioreactor_ode).set_integrator(ode_solver, **ode_kwargs)
     dfba_ode.set_initial_value(y0, t0)
-    dfba_ode.set_f_params(metabolites, models, models_dynamics, reactor, simulation_method, simulation_kwargs)
-
+    solutions = []
+    dfba_ode.set_f_params(metabolites, models, models_dynamics, reactor,
+                          simulation_method, simulation_kwargs, solutions)
     t = [t0]
     y = [y0]
 
@@ -272,9 +288,13 @@ def _dfba(reactor, metabolites=None, initial_concentrations=None, delta_s=None, 
         dfba_ode.integrate(dfba_ode.t + dt)
         t.append(dfba_ode.t)
         y.append(dfba_ode.y)
+
         for reporter in reporters:
-            print "Reporting", t0, dfba_ode.t, tf, y
-            reporter(t0, dfba_ode.t, tf, y)
+            if isinstance(reporter, ProgressReporter):
+                reporter(dfba_ode.t)
+            elif isinstance(reporter, FluxDistributionReporter):
+                for model, solution in zip(models, solutions[-1]):
+                    reporter(model, solution)
 
     t = np.array(t)
     y = np.array(y)
@@ -291,4 +311,4 @@ def _dfba(reactor, metabolites=None, initial_concentrations=None, delta_s=None, 
         i += 1
         metabolite_concentrations[metabolite] = y[:, i]
 
-    return DynamicFBAResult(reactor, t, y[:, 0], biomass, metabolite_concentrations)
+    return DynamicFBAResult(reactor, t, y[:, 0], biomass, metabolite_concentrations, solutions)

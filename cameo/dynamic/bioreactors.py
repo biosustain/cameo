@@ -12,8 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import numpy as np
+import logging
+
+logger = logging.getLogger(__name__)
 
 
-def batch_reactor(t, volume, x, s, inflow_rate, outflow_rate, delta_x, x_feed, delta_s, s_feed):
+def batch_reactor(t, volume, models, x, metabolites, s, inflow_rate, outflow_rate, delta_x, x_feed, delta_s, s_feed):
+    logger.debug("Time: %f, Volume: %f" % (t, volume))
+    assert volume > 0, "Reactor must have a volume."
     assert inflow_rate == 0 and outflow_rate == 0
+    assert len(models) == len(x) and len(metabolites) == len(s)
+    assert len(models) == len(delta_x) and len(metabolites) == len(delta_s)
+    assert len(models) == len(x_feed) and len(metabolites) == len(s_feed)
     return 0, 0, np.zeros(len(delta_x)), np.zeros(len(x_feed)), np.zeros(len(delta_s)), np.zeros(len(s_feed))
