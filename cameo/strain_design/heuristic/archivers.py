@@ -85,6 +85,32 @@ class SolutionTuple(object):
             else:
                 return 1
 
+        def __lt__(self, other):
+            if self.fitness > other.fitness:
+                return True
+            elif self.fitness == other.fitness:
+                if self.improves(other):
+                    return True
+                elif self == other:
+                    return False
+                else:
+                    return False
+            else:
+                return False
+
+        def __gt__(self, other):
+            if self.fitness > other.fitness:
+                return False
+            elif self.fitness == other.fitness:
+                if self.improves(other):
+                    return False
+                elif self == other:
+                    return False
+                else:
+                    return True
+            else:
+                return True
+
         def __str__(self):
             return "%s - %s" % (list(self.candidate), self.fitness)
 
