@@ -76,6 +76,19 @@ class TestBestSolutionArchiver(unittest.TestCase):
         self.assertEqual(sol1.__cmp__(sol1), 0)
         self.assertEqual(sol1.__cmp__(sol3), 1)
 
+        self.assertTrue(sol1 < sol2)
+        self.assertTrue(sol1 == sol1)
+        self.assertTrue(sol1 > sol3)
+
+        #test gt and lt
+        self.assertTrue(sol1.__lt__(sol2))
+        self.assertTrue(sol1.__gt__(sol3))
+        self.assertFalse(sol1.__lt__(sol1))
+        self.assertFalse(sol1.__gt__(sol1))
+        self.assertFalse(sol2.__lt__(sol1))
+        self.assertFalse(sol3.__gt__(sol1))
+
+
         #testing issubset
         self.assertTrue(sol1.issubset(sol2), msg="Solution 1 is subset of Solution 2")
         self.assertFalse(sol2.issubset(sol1), msg="Solution 2 is not subset of Solution 1")
