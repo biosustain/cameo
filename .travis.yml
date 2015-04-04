@@ -24,6 +24,8 @@ install:
   - pip install coveralls coverage
   - pip install redis
   - pip install rednose
+  # temporarily use development version of cobrapy (until 0.4 is released)
+  - pip install -e git+https://github.com/opencobra/cobrapy.git@095d664cbbb69fcb7ae56da997240b35ea5ddb19#egg=cobra
   - pip install .
 # command to run tests
 script: nosetests
