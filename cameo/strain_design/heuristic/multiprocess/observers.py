@@ -17,7 +17,6 @@ from __future__ import absolute_import, print_function
 import six
 from six.moves.queue import Empty
 from uuid import uuid4
-from Queue import Empty
 from cameo.parallel import RedisQueue
 from six.moves import range
 

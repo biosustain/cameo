@@ -42,7 +42,6 @@ def load_model(path_or_handle, solver_interface=optlang.glpk_interface, sanitize
         if reaction and metabolite IDs should be sanitized (works only for SBML models)
     """
 
-    print(path_or_handle)
     if isinstance(path_or_handle, str):
         path = path_or_handle
         try:
