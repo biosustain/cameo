@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import types
+from __future__ import absolute_import, print_function
+
 import pickle
 import time
 from multiprocessing import Process, Queue
@@ -41,10 +42,10 @@ def load_model(path_or_handle, solver_interface=optlang.glpk_interface, sanitize
         if reaction and metabolite IDs should be sanitized (works only for SBML models)
     """
 
-    if isinstance(path_or_handle, types.StringType):
+    if isinstance(path_or_handle, str):
         path = path_or_handle
         try:
-            handle = open(path_or_handle)
+            handle = open(path_or_handle, 'rb')
         except IOError:
             logger.debug('%s not a file path. Querying webmodels ...' % path)
             try:

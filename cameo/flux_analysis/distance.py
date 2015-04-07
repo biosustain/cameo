@@ -12,18 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import absolute_import, print_function
+
 """Methods for manipulating a model to compute a set of fluxes that minimize (or maximize)
 different notions of distance (L1, number of binary changes etc.) to a given reference flux distribution."""
 
+import six
 from six import types
 
-from cameo.core.solution import SolutionBase
+from __future__ import absolute_import, print_function
 
-from sympy import RealNumber
+from types import DictType
 from sympy import Add
 from sympy import Mul
 
 from cameo.core.result import FluxDistributionResult
+from cameo.core.solution import SolutionBase
 
 add = Add._from_args
 mul = Mul._from_args
@@ -113,7 +117,7 @@ class ManhattanDistance(Distance):
         self.model.solver._remove_constraints(constraints_to_remove)
         self.model.solver._remove_variables(aux_vars_to_remove)
         # Add new or adapt existing constraints
-        for key, value in reference.iteritems():
+        for key, value in six.iteritems(reference):
             try:
                 (lb_constraint, ub_constraint) = self._deviation_constraints[key]
                 lb_constraint.lb = value

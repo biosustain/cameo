@@ -1,11 +1,9 @@
 language: python
 python:
  - "2.7"
-# command to install dependencies
-virtualenv:
-  system_site_packages: true
+ - "3.4"
 before_install:
-  - sudo apt-get install swig redis-server libzmq3-dev libgmp-dev
+  - sudo apt-get install swig redis-server libzmq3-dev libgmp-dev libglpk-dev glpk-utils
   - sudo service redis-server start
   - sudo rm -rf /dev/shm
   - wget https://ftp.gnu.org/gnu/glpk/glpk-4.45.tar.gz
@@ -19,13 +17,16 @@ before_install:
   - sudo ldconfig
   - sudo ln -s /run/shm /dev/shm
 install:
-  #glpk for cobra
-  - pip install glpk
-  - pip install python-libsbml-experimental cython numpy scipy pyzmq pandas -f https://dl.dropboxusercontent.com/u/22461024/pypi.drosophi.la/index.html --no-index
+  - if [[ $TRAVIS_PYTHON_VERSION == "3.4" ]]; then pip install pyzmq pandas; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == "3.4" ]]; then pip install -e git+https://github.com/coagulant/progressbar-python3.git#egg=progressbar; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == "2.7" ]]; then pip install progressbar-ipython>=2.3.1; fi
+  - pip install python-libsbml-experimental numpy scipy pyzmq pandas inspyred -f https://dl.dropboxusercontent.com/u/22461024/pypi.drosophi.la/index.html --no-index
   - pip install coveralls coverage
   - pip install redis
-  - pip install escher --pre
   - pip install rednose
+  # temporarily use development version of cobrapy (until 0.4 is released); cython>=0.21 needed for that
+  - pip install cython>=0.21
+  - pip install -e git+https://github.com/opencobra/cobrapy.git@095d664cbbb69fcb7ae56da997240b35ea5ddb19#egg=cobra
   - pip install .
 # command to run tests
 script: nosetests

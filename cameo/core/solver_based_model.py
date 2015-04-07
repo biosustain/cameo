@@ -16,6 +16,8 @@
 """A solver-based model class and other extensions of cobrapy objects.
 """
 
+from __future__ import absolute_import, print_function
+
 import time
 import datetime
 import csv
@@ -32,13 +34,15 @@ import optlang
 from pandas import DataFrame, pandas
 
 from cameo.util import TimeMachine
-from cameo import exceptions
 from cameo import config
+from cameo import exceptions
 from cameo.exceptions import SolveError, Infeasible, UndefinedSolution
 from .reaction import Reaction
 from .solution import LazySolution, Solution
 
 import logging
+import six
+from six.moves import range
 logger = logging.getLogger(__name__)
 
 add = Add._from_args
@@ -165,8 +169,8 @@ class SolverBasedModel(_cobrapy.core.Model):
 
     @solver.setter
     def solver(self, value):
-        not_valid_interface = ValueError('%s is not a valid solver interface. Pick from %s, or specify an optlang interface (e.g. optlang.glpk_interface).' % (value, config.solvers.keys()))
-        if isinstance(value, types.StringType):
+        not_valid_interface = ValueError('%s is not a valid solver interface. Pick from %s, or specify an optlang interface (e.g. optlang.glpk_interface).' % (value, list(config.solvers.keys())))
+        if isinstance(value, str):
             try:
                 interface = config.solvers[value]
             except KeyError:
@@ -196,22 +200,22 @@ class SolverBasedModel(_cobrapy.core.Model):
                     self.solver.interface.Variable(rxn.id, lb=lower_bound, ub=upper_bound))
             if rxn.objective_coefficient != 0.:
                 objective_terms.append(sympy.Mul._from_args((sympy.RealNumber(rxn.objective_coefficient), var)))
-            for met, coeff in rxn._metabolites.iteritems():
-                if constr_terms.has_key(met.id):
+            for met, coeff in six.iteritems(rxn._metabolites):
+                if met.id in constr_terms:
                     constr_terms[met.id] += [(sympy.RealNumber(coeff), var)]
                 else:
                     constr_terms[met.id] = [(sympy.RealNumber(coeff), var)]
                 if lower_bound < 0 and upper_bound > 0:
                     constr_terms[met.id] += [(-1 * sympy.RealNumber(coeff), aux_var)]
 
-        for met_id, terms in constr_terms.iteritems():
+        for met_id, terms in six.iteritems(constr_terms):
             expr = sympy.Add._from_args([sympy.Mul._from_args((coeff, var))
                                          for coeff, var in terms])
             constr = self.solver.interface.Constraint(expr, lb=0, ub=0, name=met_id)
             try:
                 self.solver._add_constraint(constr, sloppy=False)  # TODO: should be True
-            except Exception, e:
-                print e
+            except Exception as e:
+                print(e)
                 raise
         objective_expression = sympy.Add._from_args(objective_terms)
         self.solver.objective = self.solver.interface.Objective(objective_expression, name='obj', direction='max')
@@ -242,7 +246,7 @@ class SolverBasedModel(_cobrapy.core.Model):
     def add_metabolites(self, metabolite_list):
         super(SolverBasedModel, self).add_metabolites(metabolite_list)
         for met in metabolite_list:
-            if not self.solver.constraints.has_key(met.id):
+            if met.id not in self.solver.constraints:
                 self.solver.add(self.solver.interface.Constraint(S.Zero, name=met.id, lb=0, ub=0))
 
     def add_reactions(self, reaction_list):
@@ -268,7 +272,7 @@ class SolverBasedModel(_cobrapy.core.Model):
                                                                    ub=reaction._upper_bound)
             self.solver._add_variable(reaction_variable)
 
-            for metabolite, coeff in reaction.metabolites.iteritems():
+            for metabolite, coeff in six.iteritems(reaction.metabolites):
                 if metabolite.id in constr_terms:
                     constr_terms[metabolite.id].append(
                         sympy.Mul._from_args([sympy.RealNumber(coeff), reaction_variable]))
@@ -278,7 +282,7 @@ class SolverBasedModel(_cobrapy.core.Model):
                 if reaction.reversibility and self._reversible_encoding == "split":
                     constr_terms[metabolite.id].append(sympy.Mul._from_args([sympy.RealNumber(-1*coeff), aux_var]))
 
-        for met_id, terms in constr_terms.iteritems():
+        for met_id, terms in six.iteritems(constr_terms):
             expr = sympy.Add._from_args(terms)
             try:
                 self.solver.constraints[met_id] += expr
@@ -324,9 +328,9 @@ class SolverBasedModel(_cobrapy.core.Model):
         print model.solver.constraints['ratio_constraint_r1_r2']
         > ratio_constraint: ratio_constraint_r1_r2: 0 <= -0.5*r1 + 1.0*PGI <= 0
         """
-        if isinstance(reaction1, types.StringType):
+        if isinstance(reaction1, bytes):
             reaction1 = self.reactions.get_by_id(reaction1)
-        if isinstance(reaction2, types.StringType):
+        if isinstance(reaction2, bytes):
             reaction2 = self.reactions.get_by_id(reaction2)
 
         if reaction1.reverse_variable is not None:
@@ -352,7 +356,7 @@ class SolverBasedModel(_cobrapy.core.Model):
             objective_formula = sympy.Add()
             [setattr(x, 'objective_coefficient', 0.) for x in self.reactions]
             if isinstance(new_objective, dict):
-                for the_reaction, the_coefficient in new_objective.iteritems():
+                for the_reaction, the_coefficient in six.iteritems(new_objective):
                     if isinstance(the_reaction, int):
                         the_reaction = self.reactions[the_reaction]
                     else:
@@ -418,7 +422,7 @@ class SolverBasedModel(_cobrapy.core.Model):
 
     def __dir__(self):
         # Hide 'optimize' from user.
-        fields = sorted(dir(type(self)) + self.__dict__.keys())
+        fields = sorted(dir(type(self)) + list(self.__dict__.keys()))
         fields.remove('optimize')
         return fields
 
@@ -439,9 +443,9 @@ class SolverBasedModel(_cobrapy.core.Model):
         try:
             solution = self.solve()
         except SolveError as e:
-            print 'Cannot determine essential reactions for un-optimal model.'
+            print('Cannot determine essential reactions for un-optimal model.')
             raise e
-        for reaction_id, flux in solution.fluxes.iteritems():
+        for reaction_id, flux in six.iteritems(solution.fluxes):
             if abs(flux) > 0:
                 reaction = self.reactions.get_by_id(reaction_id)
                 with TimeMachine() as tm:
@@ -472,10 +476,10 @@ class SolverBasedModel(_cobrapy.core.Model):
         try:
             solution = self.solve()
         except SolveError as e:
-            print 'Cannot determine essential genes for un-optimal model.'
+            print('Cannot determine essential genes for un-optimal model.')
             raise e
         genes_to_check = set()
-        for reaction_id, flux in solution.fluxes.iteritems():
+        for reaction_id, flux in six.iteritems(solution.fluxes):
             if abs(flux) > 0:
                 genes_to_check.update(self.reactions.get_by_id(reaction_id).genes)
         for gene in genes_to_check:
@@ -498,7 +502,7 @@ class SolverBasedModel(_cobrapy.core.Model):
         lower_bounds = []
         upper_bounds = []
         for ex in self.exchanges:
-            metabolite = ex.metabolites.keys()[0]
+            metabolite = list(ex.metabolites.keys())[0]
             coeff = ex.metabolites[metabolite]
             if coeff * ex.lower_bound > 0:
                 reaction_ids.append(ex.id)
@@ -555,7 +559,7 @@ class SolverBasedModel(_cobrapy.core.Model):
 
     @staticmethod
     def _load_medium_from_dict(model, medium):
-        for rid, values in medium.iteritems():
+        for rid, values in six.iteritems(medium):
             if model.reactions.has_id(rid):
                 model.reactions.get_by_id(rid).lower_bound = values[0]
                 model.reactions.get_by_id(rid).upper_bound = values[1]
@@ -571,7 +575,7 @@ class SolverBasedModel(_cobrapy.core.Model):
 
     @staticmethod
     def _load_medium_from_dataframe(model, medium):
-        for i in xrange(len(medium) - 1):
+        for i in range(len(medium) - 1):
             rid = medium['reaction_id'][i]
             if model.reactions.has_id(rid):
                 model.reactions.get_by_id(rid).lower_bound = medium['lower_bound'][i]

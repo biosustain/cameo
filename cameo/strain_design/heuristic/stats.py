@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import absolute_import, print_function
+
+from six.moves import zip
+
 from inspyred.ec.emo import Pareto
 import numpy as np
 from cameo import config
@@ -19,9 +23,6 @@ from cameo import config
 if config.use_bokeh:
     from bokeh.plotting import *
     from bokeh.models import Range1d
-
-from bashplotlib.scatterplot import plot_scatter
-from bashplotlib.histogram import plot_hist
 
 
 class GenericStatsData(object):
@@ -33,16 +34,20 @@ class GenericStatsData(object):
     def display(self):
         raise NotImplementedError
 
+try:
+    from bashplotlib.scatterplot import plot_scatter
+    from bashplotlib.histogram import plot_hist
+except ImportError:
+    pass
+else:
+    class CLIStatsData(GenericStatsData):
+        def __init__(self, *args, **kwargs):
+            super(CLIStatsData, self).__init__(*args, **kwargs)
 
-class CLIStatsData(GenericStatsData):
-    def __init__(self, *args, **kwargs):
-        super(CLIStatsData, self).__init__(*args, **kwargs)
-
-    def display(self):
-        plot_hist(list(self.knockouts_hist), title="Knockout size distribution", colour="blue")
-        lines = ["%s, %s" % (x, y) for x, y in zip(self.solution.solutions['Size'], self.solution.solutions['Fitness'])]
-        plot_scatter(lines, None, None, 20, "*", "blue", "Correlation between number of knockouts and fitness")
-
+        def display(self):
+            plot_hist(list(self.knockouts_hist), title="Knockout size distribution", colour="blue")
+            lines = ["%s, %s" % (x, y) for x, y in zip(self.solution.solutions['Size'], self.solution.solutions['Fitness'])]
+            plot_scatter(lines, None, None, 20, "*", "blue", "Correlation between number of knockouts and fitness")
 
 class BokehStatsData(GenericStatsData):
     def __init__(self, *args, **kwargs):

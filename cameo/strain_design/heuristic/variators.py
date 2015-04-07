@@ -11,6 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+from __future__ import absolute_import, print_function
+
+from six.moves import range
+
 from inspyred.ec.variators import mutator, crossover, n_point_crossover
 from ordered_set import OrderedSet
 from cameo.strain_design.heuristic.genomes import MultipleChromosomeGenome
@@ -76,7 +81,7 @@ def set_indel(random, individual, args):
             if len(individual) > 1:
                 new_individual.pop(random.randint(0, len(new_individual) - 1))
         else:
-            new_individual.append(random.sample(xrange(len(representation)), 1)[0])
+            new_individual.append(random.sample(range(len(representation)), 1)[0])
 
     return list(OrderedSet(new_individual))
 
@@ -109,7 +114,7 @@ def multiple_chromosome_set_indel(random, individual, args):
                 if len(individual) > 1:
                     new_individual[key].pop(random.randint(0, len(new_individual) - 1))
             else:
-                new_individual[key].append(random.sample(xrange(len(representation)), 1)[0])
+                new_individual[key].append(random.sample(range(len(representation)), 1)[0])
 
     return individual
 

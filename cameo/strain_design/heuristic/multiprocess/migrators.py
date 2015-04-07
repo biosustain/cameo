@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import Queue
+from __future__ import absolute_import, print_function
+
+import six.moves.queue
 from cameo.parallel import RedisQueue
 from uuid import uuid4
 
@@ -66,10 +68,10 @@ class MultiprocessingMigrator(object):
                 migrant.fitness = fit[0]
                 args["_ec"].num_evaluations += 1
             population[migrant_index] = migrant
-        except Queue.Empty:
+        except six.moves.queue.Empty:
             pass
         try:
             self.migrants.put(old_migrant, block=False)
-        except Queue.Full:
+        except six.moves.queue.Full:
             pass
         return population

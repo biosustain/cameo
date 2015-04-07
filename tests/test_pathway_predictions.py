@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import absolute_import, print_function
+
 import os
 import unittest
 from cameo import load_model
@@ -22,7 +24,8 @@ TESTMODEL = load_model(os.path.join(TESTDIR, 'data/iJO1366.xml'))
 
 TRAVIS = os.getenv('TRAVIS', False)
 
-if not TRAVIS:
+# if not TRAVIS:
+if False:
     class TestPathwayPredictor(unittest.TestCase):
 
         def setUp(self):

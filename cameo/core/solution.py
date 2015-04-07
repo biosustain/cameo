@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import absolute_import, print_function
+
 from collections import OrderedDict
 
 import time
@@ -22,6 +24,7 @@ from pandas import DataFrame, Series
 from cameo.exceptions import UndefinedSolution
 
 import logging
+from six.moves import zip
 logger = logging.getLogger(__name__)
 
 
@@ -99,11 +102,11 @@ class Solution(SolutionBase):
 
     @property
     def x_dict(self):
-        return OrderedDict(zip(self._reaction_ids, self.x))
+        return OrderedDict(list(zip(self._reaction_ids, self.x)))
 
     @property
     def y_dict(self):
-        return OrderedDict(zip(self._reaction_ids, self.y))
+        return OrderedDict(list(zip(self._reaction_ids, self.y)))
 
     @property
     def fluxes(self):
@@ -115,7 +118,7 @@ class Solution(SolutionBase):
 
     def __dir__(self):
         # Hide 'cobrapy' attributes and methods from user.
-        fields = sorted(dir(type(self)) + self.__dict__.keys())
+        fields = sorted(dir(type(self)) + list(self.__dict__.keys()))
         fields.remove('x')
         fields.remove('y')
         fields.remove('x_dict')
@@ -184,7 +187,7 @@ class LazySolution(SolutionBase):
     @property
     def x(self):
         self._check_freshness()
-        return self.x_dict.values()
+        return list(self.x_dict.values())
 
     @property
     def x_dict(self):
@@ -199,7 +202,7 @@ class LazySolution(SolutionBase):
     @property
     def y(self):
         self._check_freshness()
-        return self.y_dict.values()
+        return list(self.y_dict.values())
 
     @property
     def y_dict(self):
@@ -227,7 +230,7 @@ class LazySolution(SolutionBase):
 
     def __dir__(self):
         # Hide 'cobrapy' attributes and methods from user.
-        fields = sorted(dir(type(self)) + self.__dict__.keys())
+        fields = sorted(dir(type(self)) + list(self.__dict__.keys()))
         fields.remove('x')
         fields.remove('y')
         fields.remove('x_dict')

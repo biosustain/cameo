@@ -12,12 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import absolute_import
+
+import six
+
+
 def _():
 
     import os
     import glob
     import sys
-    import cPickle as pickle
+    import six.moves.cPickle as pickle
     from cameo import Model
 
     CURRENT_MODULE = sys.modules[__name__]
@@ -43,7 +48,10 @@ def _():
 
         def _load_lazily(self):
             with open(os.path.join(CURRENT_PATH, self.id + '.pickle')) as f:
-                self._model = pickle.load(f)
+                if six.PY2:
+                    self._model = pickle.load(f)
+                else:
+                    self._model = pickle.load(f, encoding='bytes')
 
     for file_path in glob.glob(os.path.join(CURRENT_PATH, '*.pickle')):
         model_id = os.path.splitext(os.path.basename(file_path))[0]

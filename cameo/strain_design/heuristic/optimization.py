@@ -12,11 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import absolute_import, print_function
+
 __all__ = ['KnockoutOptimizationResult', 'GeneOptimizationResult']
+
+from six.moves import range
+
+import time
+from functools import reduce
 
 from cobra.manipulation.delete import find_gene_knockout_reactions
 from inspyred.ec.emo import Pareto
-import time
 
 from cameo.exceptions import SolveError
 from cameo.strain_design.heuristic import archivers
@@ -185,7 +191,7 @@ class HeuristicOptimization(object):
         for observer in self.observers:
             observer.reset()
         t = time.time()
-        print time.strftime("Starting optimization at %a, %d %b %Y %H:%M:%S", time.localtime(t))
+        print(time.strftime("Starting optimization at %a, %d %b %Y %H:%M:%S", time.localtime(t)))
         res = self.heuristic_method.evolve(generator=self._generator,
                                            maximize=maximize,
                                            view=view,
@@ -194,7 +200,7 @@ class HeuristicOptimization(object):
         for observer in self.observers:
             observer.end()
         runtime = time.time() - t
-        print time.strftime("Finished after %H:%M:%S", time.localtime(runtime))
+        print(time.strftime("Finished after %H:%M:%S", time.localtime(runtime)))
 
         return res
 
@@ -523,7 +529,7 @@ class KnockoutOptimizationResult(object):
         if isinstance(self.product, str):
             data_frame[self.product] = products
         elif isinstance(self.product, (list, tuple)):
-            for i in xrange(self.product):
+            for i in range(self.product):
                 data_frame[self.product[i]] = products[i:]
 
         return data_frame

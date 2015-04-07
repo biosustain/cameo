@@ -12,13 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import absolute_import, print_function
+
 __all__ = ['flux_variability_analysis', 'phenotypic_phase_plane', 'fbid']
+
+import six
+from six.moves import zip
+from functools import reduce
 
 import itertools
 from copy import copy
 from collections import OrderedDict
 from functools import partial
 import numpy
+import cameo
 from cameo import config
 from cameo.exceptions import UndefinedSolution, Infeasible, Unbounded, SolveError
 from cameo.util import TimeMachine, partition
@@ -103,7 +110,9 @@ def phenotypic_phase_plane(model, variables=[], objective=None, points=20, view=
         Pandas DataFrame containing the phenotypic phase plane.
 
     """
-    if not hasattr(variables, '__iter__'):
+    if isinstance(variables, str):
+        variables = [variables]
+    elif isinstance(variables, cameo.core.reaction.Reaction):
         variables = [variables]
     if view is None:
         view = config.default_view
@@ -129,7 +138,7 @@ def phenotypic_phase_plane(model, variables=[], objective=None, points=20, view=
         chunk_results = view.map(evaluator, chunks_of_points)
         envelope = reduce(list.__add__, chunk_results)
 
-        for reaction, bounds in original_bounds.iteritems():
+        for reaction, bounds in six.iteritems(original_bounds):
             reaction.lower_bound = bounds[0]
             reaction.upper_bound = bounds[1]
 
@@ -194,7 +203,7 @@ def _flux_variability_analysis(model, reactions=None):
     try: # this is an alternative solution to what I did above with flags
         assert ((lb_higher_ub.lower_bound - lb_higher_ub.upper_bound) < 1e-6).all()  # Assert that these cases really only numerical artifacts
     except AssertionError as e:
-        logger.debug(zip(model.reactions, (lb_higher_ub.lower_bound - lb_higher_ub.upper_bound) < 1e-6))
+        logger.debug(list(zip(model.reactions, (lb_higher_ub.lower_bound - lb_higher_ub.upper_bound) < 1e-6)))
     df.lower_bound[lb_higher_ub.index] = df.upper_bound[lb_higher_ub.index]
     return df
 
@@ -246,7 +255,7 @@ def _cycle_free_fva(model, reactions=None, sloppy=True):
                     cycle_count += 1
                     v2_one_cycle_fluxes = _cycle_free_flux(model, v0_fluxes, fix=[reaction.id])
                     tm = TimeMachine()
-                    for key, v1_flux in v1_cycle_free_fluxes.iteritems():
+                    for key, v1_flux in six.iteritems(v1_cycle_free_fluxes):
                         if v1_flux == 0 and v2_one_cycle_fluxes[key] != 0:
                             knockout_reaction = model.reactions.get_by_id(key)
                             tm(do=partial(setattr, knockout_reaction, 'lower_bound', 0.),
@@ -291,7 +300,7 @@ def _cycle_free_fva(model, reactions=None, sloppy=True):
                         cycle_count += 1
                         v2_one_cycle_fluxes = _cycle_free_flux(model, v0_fluxes, fix=[reaction.id])
                         tm = TimeMachine()
-                        for key, v1_flux in v1_cycle_free_fluxes.iteritems():
+                        for key, v1_flux in six.iteritems(v1_cycle_free_fluxes):
                             if v1_flux == 0 and v2_one_cycle_fluxes[key] != 0:
                                 knockout_reaction = model.reactions.get_by_id(key)
                                 tm(do=partial(setattr, knockout_reaction, 'lower_bound', 0.),
@@ -422,11 +431,11 @@ if __name__ == '__main__':
                                  view=view, points=30)
     # print ppp
     # print ppp.describe()
-    print time.time() - tic
+    print(time.time() - tic)
 
     view = SequentialView()
     tic = time.time()
     ppp = phenotypic_phase_plane(model,
                                  ['EX_o2_LPAREN_e_RPAREN_', 'EX_glc_LPAREN_e_RPAREN_', 'EX_nh4_LPAREN_e_RPAREN_'],
                                  view=view, points=30)
-    print time.time() - tic
+    print(time.time() - tic)

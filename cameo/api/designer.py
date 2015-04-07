@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from types import StringType
+from __future__ import absolute_import, print_function
+
 from functools import partial
 import progressbar
 from cameo import Metabolite, Model
@@ -21,6 +22,7 @@ from cameo.api.hosts import hosts, Host
 from cameo.api.products import products
 from cameo.strain_design.pathway_prediction import PathwayPredictor
 from cameo.util import TimeMachine, DisplayItemsWidget
+import six
 
 
 class Designs(object):
@@ -99,7 +101,7 @@ class Designer(object):
 
     def calculate_maximum_yields(self, pathways):
         """"""
-        for (host, model), pathway in pathways.iteritems():
+        for (host, model), pathway in six.iteritems(pathways):
             tm = TimeMachine()
             tm(do=partial(model.add_reactions, pathway), undo=partial(model.remove_reactions, pathway))
             maximum_theoretical_yield()
@@ -108,11 +110,11 @@ class Designer(object):
     def __translate_product_to_universal_reactions_model_metabolite(self, product):
         if isinstance(product, Metabolite):
             return product
-        elif isinstance(product, StringType):
+        elif isinstance(product, str):
             search_result = products.search(product)
-            print "Found %d compounds that match query '%s'" % (len(search_result), product)
-            print repr(search_result)
-            print "Choosing best match (%s) ... please interrupt if this is not the desired compound." % search_result.name[0]
+            print("Found %d compounds that match query '%s'" % (len(search_result), product))
+            print(repr(search_result))
+            print("Choosing best match (%s) ... please interrupt if this is not the desired compound." % search_result.name[0])
             return METANETX['universal_model'].metabolites.get_by_id(search_result.index[0])
 
 design = Designer()
