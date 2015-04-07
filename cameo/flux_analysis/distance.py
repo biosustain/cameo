@@ -14,45 +14,42 @@
 
 from __future__ import absolute_import, print_function
 
+"""Methods for manipulating a model to compute a set of fluxes that minimize (or maximize)
+different notions of distance (L1, number of binary changes etc.) to a given reference flux distribution."""
+
+import six
+from six import types
+
+from __future__ import absolute_import, print_function
+
 from types import DictType
 from sympy import Add
+from sympy import Mul
+
 from cameo.core.result import FluxDistributionResult
-from cameo.core.solution import SolutionBase, Solution
-import six
+from cameo.core.solution import SolutionBase
 
 add = Add._from_args
+mul = Mul._from_args
+
+import logging
+logger = logging.getLogger(__name__)
 
 
-class ManhattanDistance(object):
+class Distance(object):
 
-    """Compute steady-state fluxes that maximize/minimize the Manhattan distance (L1 norm)
-    to a reference flux distribution.
-
-    Parameters
-    ----------
-    model : Model
-    reference : dict or solution
-        A
-
-    Attributes
-    ----------
-    model : Model
-    reference : dict
-    """
+    """Abstract distance base class."""
 
     @staticmethod
     def __check_valid_reference(reference):
-        if not isinstance(reference, DictType) and not isinstance(reference, SolutionBase):
+        if not isinstance(reference, types.DictType) and not isinstance(reference, SolutionBase):
             raise ValueError('%s is not a valid reference flux distribution. Needs to be either a dict or Solution object.')
 
     def __init__(self, model, reference=None, *args, **kwargs):
-        super(ManhattanDistance, self).__init__(*args, **kwargs)
-        self._aux_variables = dict()
-        self._deviation_constraints = dict()
+        super(Distance, self).__init__(*args, **kwargs)
         self.__check_valid_reference(reference)
         self._reference = reference
         self._model = model.copy()
-        self.__prep_model()
 
     @property  # read-only
     def model(self):
@@ -65,19 +62,55 @@ class ManhattanDistance(object):
     @reference.setter
     def reference(self, value):
         self.__check_valid_reference(value)
-        self.__set_new_reference(value)
+        self._set_new_reference(value)
 
-    def __prep_model(self):
-        for rid, flux_value in six.iteritems(self.reference):
-            self.__add_deviavtion_constraint(rid, flux_value)
-        objective = self.model.solver.interface.Objective(add(list(self._aux_variables.values())), name='deviations')
+    def _set_new_reference(self, reference):
+        raise NotImplementedError
+
+    def _prep_model(self):
+        raise NotImplementedError
+
+    def minimize(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def maximize(self, *args, **kwargs):
+        raise NotImplementedError
+
+
+class ManhattanDistance(Distance):
+
+    """Compute steady-state fluxes that minimizes the Manhattan distance (L1 norm)
+    to a reference flux distribution.
+
+    Parameters
+    ----------
+    model : Model
+    reference : dict or Solution
+        A reference flux distribution.
+
+    Attributes
+    ----------
+    model : Model
+    reference : dict
+    """
+
+    def __init__(self, model, reference=None, *args, **kwargs):
+        super(ManhattanDistance, self).__init__(model, reference=reference, *args, **kwargs)
+        self._aux_variables = dict()
+        self._deviation_constraints = dict()
+        self._prep_model()
+
+    def _prep_model(self):
+        for rid, flux_value in self.reference.iteritems():
+            self._add_deviavtion_constraint(rid, flux_value)
+        objective = self.model.solver.interface.Objective(add(self._aux_variables.values()), name='deviations')
         self.model.objective = objective
 
-    def __set_new_reference(self, reference):
+    def _set_new_reference(self, reference):
         # remove unnecessary constraints
         constraints_to_remove = list()
         aux_vars_to_remove = list()
-        for key in list(self._deviation_constraints.keys()):
+        for key in self._deviation_constraints.keys():
             if key not in reference:
                 constraints_to_remove.extend(self._deviation_constraints.pop(key))
                 aux_vars_to_remove.append(self._aux_variables[key])
@@ -90,9 +123,9 @@ class ManhattanDistance(object):
                 lb_constraint.lb = value
                 ub_constraint.ub = value
             except KeyError:
-                self.__add_deviavtion_constraint(key, value)
+                self._add_deviavtion_constraint(key, value)
 
-    def __add_deviavtion_constraint(self, reaction_id, flux_value):
+    def _add_deviavtion_constraint(self, reaction_id, flux_value):
         reaction = self.model.reactions.get_by_id(reaction_id)
         aux_var = self.model.solver.interface.Variable('aux_'+reaction_id, lb=0)
         self._aux_variables[reaction_id] = aux_var
@@ -111,13 +144,72 @@ class ManhattanDistance(object):
         self.model.solver._add_constraint(constraint_ub, sloppy=True)
         self._deviation_constraints[reaction_id] = (constraint_lb, constraint_ub)
 
-    def minimize_L1(self, *args, **kwargs):
+    def minimize(self, *args, **kwargs):
         self.model.objective.direction = 'min'
         solution = self.model.solve()
         result = FluxDistributionResult(solution)
         return result
 
-    # def maximize_L1(self, *args, **kwargs):
-    #     self.model.objective.direction = 'max'
-    #     return self.model.solve(solution_type=Solution)
 
+class RegulatoryOnOffDistance(Distance):
+    """Minimize the number of reactions that need to be activated in order for a model
+    to compute fluxes that are close to a provided reference flux distribution (none need to be activated
+    if, for example, the model itself had been used to produce the reference flux distribution).
+
+    Parameters
+    ----------
+    model : Model
+    reference : dict or Solution
+        A reference flux distribution.
+
+    Attributes
+    ----------
+    model : Model
+    reference : dict
+    """
+
+    def __init__(self, model, reference=None, *args, **kwargs):
+        super(RegulatoryOnOffDistance, self).__init__(model, reference=reference, *args, **kwargs)
+        self._aux_variables = dict()
+        self._switch_constraints = dict()
+        self._prep_model()
+
+    def _prep_model(self):
+        for rid, flux_value in self.reference.iteritems():
+            self._add_switch_constraint(rid, flux_value)
+        objective = self.model.solver.interface.Objective(add(self._aux_variables.values()), name='switches')
+        self.model.objective = objective
+
+    def _add_switch_constraint(self, reaction_id, flux_value, delta=0.03, epsilon=0.001):
+        reaction = self.model.reactions.get_by_id(reaction_id)
+        var_id = "y_%s" % reaction_id
+        var = self.model.solver.interface.Variable(var_id, type="binary")
+        self.model.solver._add_variable(var)
+        self._aux_variables[var.name] = var
+
+        constraint_a_id = "c_%s_lb" % reaction_id
+        w_u = flux_value + delta * abs(flux_value) + epsilon
+        # vi - yi(vmaxi + w_ui) >= w_ui
+        expression = add([
+            reaction.variable,
+            mul([RealNumber(-reaction.upper_bound + w_u), var])])
+        constraint_a = self.model.solver.interface.Constraint(expression, ub=w_u, name=constraint_a_id)
+
+        self._switch_constraints[constraint_a.name] = constraint_a
+        w_l = flux_value - delta * abs(flux_value) - epsilon
+        constraint_b_id = "c_%s_ub" % reaction_id
+        # vi - yi(vmini - w_li) <= w_li
+        expression = add([
+            reaction.variable,
+            mul([RealNumber(-reaction.lower_bound + w_l), var])])
+        constraint_b = self.model.solver.interface.Constraint(expression, lb=w_l, name=constraint_b_id)
+
+        self._switch_constraints[constraint_b.name] = constraint_b
+        self.model.solver._add_constraint(constraint_a)
+        self.model.solver._add_constraint(constraint_b)
+
+    def minimize(self, *args, **kwargs):
+        self.model.objective.direction = 'min'
+        solution = self.model.solve()
+        result = FluxDistributionResult(solution)
+        return result
