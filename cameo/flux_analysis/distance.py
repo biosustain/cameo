@@ -15,7 +15,7 @@
 """Methods for manipulating a model to compute a set of fluxes that minimize (or maximize)
 different notions of distance (L1, number of binary changes etc.) to a given reference flux distribution."""
 
-from six.types import DictType
+from six import types
 
 from cameo.core.solution import SolutionBase
 
@@ -38,7 +38,7 @@ class Distance(object):
 
     @staticmethod
     def __check_valid_reference(reference):
-        if not isinstance(reference, DictType) and not isinstance(reference, SolutionBase):
+        if not isinstance(reference, types.DictType) and not isinstance(reference, SolutionBase):
             raise ValueError('%s is not a valid reference flux distribution. Needs to be either a dict or Solution object.')
 
     def __init__(self, model, reference=None, *args, **kwargs):
