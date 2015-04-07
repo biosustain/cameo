@@ -20,9 +20,6 @@ different notions of distance (L1, number of binary changes etc.) to a given ref
 import six
 from six import types
 
-from __future__ import absolute_import, print_function
-
-from types import DictType
 from sympy import Add
 from sympy import Mul
 
