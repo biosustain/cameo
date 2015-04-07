@@ -22,6 +22,7 @@ from six import types
 
 from sympy import Add
 from sympy import Mul
+from sympy import RealNumber
 
 from cameo.core.result import FluxDistributionResult
 from cameo.core.solution import SolutionBase
