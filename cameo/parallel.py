@@ -132,8 +132,9 @@ try:
             self._db = redis.Redis(**self._connection_args)
 
         def __len__(self):
-            return self.length()
+            return self.length
 
+        @property
         def length(self):
             return self._db.llen(self._key)
 
@@ -150,7 +151,7 @@ try:
                 An object to put in the queue
 
             """
-            if self.length() >= self._maxsize:
+            if self.length >= self._maxsize:
                 raise six.moves.queue.Full
 
             item = pickle.dumps(item)
@@ -192,14 +193,16 @@ try:
             """
             if block:
                 item = self._db.blpop(self._key, timeout=timeout)
+                if item:
+                    item = item[1]
+                logger.debug("Wait...")
             else:
                 item = self._db.lpop(self._key)
+                logger.debug("No-wait...")
 
+            logger.debug("Item: %s" % [item])
             if item:
-                if isinstance(item, str):
-                    return pickle.loads(item)
-                else:
-                    return pickle.loads(item[1])
+                return pickle.loads(item)
             else:
                 raise six.moves.queue.Empty
 

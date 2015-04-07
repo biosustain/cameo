@@ -82,21 +82,54 @@ try:
             queue.get()
             self.assertRaises(six.moves.queue.Empty, queue.get_nowait)
 
+        def test_queue_objects(self):
+            queue = RedisQueue("test-queue", maxsize=100)
+            # put int
+            queue.put(1)
+            v = queue.get_nowait()
+            self.assertEqual(v, 1)
+            self.assertIsInstance(v, int)
+
+            # put str
+            queue.put("a")
+            v = queue.get_nowait()
+            self.assertEqual(v, "a")
+            self.assertIsInstance(v, str)
+
+            # put float
+            queue.put(1.)
+
+            v = queue.get_nowait()
+            self.assertEqual(v, 1.)
+            self.assertIsInstance(v, float)
+
+            # put list
+            queue.put([1, 3, 4, 5, "a", "b", "c", 1., 2., 3.])
+            v = queue.get_nowait()
+            self.assertEqual(v, [1, 3, 4, 5, "a", "b", "c", 1., 2., 3.])
+            self.assertIsInstance(v, list)
+
+            # put dict
+            queue.put({"x": "y"})
+            v = queue.get_nowait()
+            self.assertEqual(v, {"x": "y"})
+            self.assertIsInstance(v, dict)
+
         def test_queue_len(self):
             queue = RedisQueue("test-queue-len", maxsize=100)
-            self.assertEqual(queue.length(), 0)
+            self.assertEqual(queue.length, 0)
             queue.put(1)
-            self.assertEqual(queue.length(), 1)
+            self.assertEqual(queue.length, 1)
             queue.put(1)
-            self.assertEqual(queue.length(), 2)
+            self.assertEqual(queue.length, 2)
             queue.put(1)
-            self.assertEqual(queue.length(), 3)
+            self.assertEqual(queue.length, 3)
             queue.get_nowait()
-            self.assertEqual(queue.length(), 2)
+            self.assertEqual(queue.length, 2)
             queue.get_nowait()
-            self.assertEqual(queue.length(), 1)
+            self.assertEqual(queue.length, 1)
             queue.get_nowait()
-            self.assertEqual(queue.length(), 0)
+            self.assertEqual(queue.length, 0)
 
 except ImportError:
     print("Skipping MultiprocessingView tests ...")
