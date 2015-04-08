@@ -54,8 +54,6 @@ import os
 _cameo_path = __path__[0]
 _cameo_data_path = os.path.join(_cameo_path, 'data')
 
-from cameo import config
-
 from .util import get_system_info
 
 system_info = get_system_info()
@@ -70,7 +68,6 @@ try:
 except ImportError:
     pass
 
-from cameo import config
 from cameo.core.reaction import Reaction
 from cameo.core.solver_based_model import SolverBasedModel as Model
 from cobra.core import Metabolite

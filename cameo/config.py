@@ -62,12 +62,11 @@ try:
     from IPython import parallel, get_ipython
     from IPython.kernel.zmq import serialize
 
-    try:
-        def in_ipnb():
+    def in_ipnb():
+        try:
             return get_ipython().config.get('IPKernelApp').get('parent_appname') == 'ipython-notebook' or \
-                   get_ipython().config.get('KernelApp').get('parent_appname') == 'ipython-notebook'
-    except Exception:
-        def in_ipnb():
+                get_ipython().config.get('KernelApp').get('parent_appname') == 'ipython-notebook'
+        except Exception:
             return False
 
     client = parallel.Client()

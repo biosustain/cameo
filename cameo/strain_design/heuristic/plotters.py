@@ -9,9 +9,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from bokeh.models import GlyphRenderer
-
 from __future__ import absolute_import, print_function
+
 
 from uuid import uuid1
 
@@ -22,7 +21,7 @@ from cameo import config
 
 if config.use_bokeh:
     from bokeh.plotting import *
-
+    from bokeh.models import GlyphRenderer
 
 class IPythonBokehFitnessPlotter(object):
     __name__ = "IPython Bokeh Fitness Plot"
