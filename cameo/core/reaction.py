@@ -15,10 +15,11 @@
 
 from __future__ import absolute_import, print_function
 
+import warnings
+
 from functools import partial
 import hashlib
 import cobra as _cobrapy
-import sympy
 
 import cameo
 from cameo import flux_analysis
@@ -88,22 +89,46 @@ class Reaction(_cobrapy.core.Reaction):
         return ''.join((self.id, ": ", self.build_reaction_string()))
 
     @property
-    def variable(self):
-        """An optlang variable representing the forward flux (if associated with model), otherwise None.
-        Representing the net flux if model.reversible_encoding == 'unsplit'"""
-        model = self.model
-        if model is not None:
-            return model.solver.variables[self.id]
-        else:
-            return None
-
-    @property
     def reversibility(self):
         return self._lower_bound < 0 and self._upper_bound > 0
 
     def _get_reverse_id(self):
-        """Generate the id of revers_variable from the reaction's id."""
+        """Generate the id of reverse_variable from the reaction's id."""
         return '_'.join((self.id, 'reverse', hashlib.md5(self.id.encode('utf-8')).hexdigest()[0:5]))
+
+    def _get_forward_id(self):
+        """Generate the id of forward_variable from the reaction's id."""
+        return self.id
+        # return '_'.join((self.id, 'forward', hashlib.md5(self.id.encode('utf-8')).hexdigest()[0:5]))
+
+    @property
+    def flux_expression(self):
+        """An optlang variable representing the forward flux (if associated with model), otherwise None.
+        Representing the net flux if model.reversible_encoding == 'unsplit'"""
+        model = self.model
+        if model is not None:
+            return 1.*self.forward_variable - 1.*self.reverse_variable
+        else:
+            return None
+
+    @property
+    def variable(self):
+        warnings.warn('reaction.variable is deprecated. Please use reaction.forward_variable.', DeprecationWarning)
+        return self.forward_variable
+
+    @property
+    def forward_variable(self):
+        """An optlang variable representing the forward flux (if associated with model), otherwise None.
+        Representing the net flux if model.reversible_encoding == 'unsplit'"""
+        model = self.model
+        if model is not None:
+            aux_id = self._get_forward_id()
+            try:
+                return model.solver.variables[aux_id]
+            except KeyError:
+                return None
+        else:
+            return None
 
     @property
     def reverse_variable(self):
@@ -128,33 +153,48 @@ class Reaction(_cobrapy.core.Reaction):
 
         if model is not None:
 
-            if value >= 0 and self._lower_bound < 0 and self._upper_bound > 0:
-                reverse_variable = self.reverse_variable
-                reverse_variable.lb, reverse_variable.ub = 0, 0
-            elif value < 0 and self._lower_bound >= 0 and self.reverse_variable is None:  # self._lower_bound >= 0 implies self._upper_bound >= 0
-                reverse_variable = model.solver._add_variable(
-                    model.solver.interface.Variable(self._get_reverse_id(), lb=0, ub=0))
-                for met, coeff in six.iteritems(self._metabolites):
-                    model.solver.constraints[met.id] += sympy.Mul._from_args((-1 * sympy.RealNumber(coeff), reverse_variable))
+            forward_variable, reverse_variable = self.forward_variable, self.reverse_variable
+            if self._lower_bound < 0 and self._upper_bound > 0: # reversible
+                if value < 0:
+                    reverse_variable.ub = -1*value
+                elif value >= 0:
+                    reverse_variable.ub = 0
+                    try:
+                        forward_variable.lb = value
+                    except ValueError:
+                        forward_variable.ub = value
+                        self._upper_bound = value
+                        forward_variable.lb = value
+            elif self._lower_bound == 0 and self._upper_bound == 0: # knockout
+                if value < 0:
+                    reverse_variable.ub = -1*value
+                elif value >= 0:
+                    forward_variable.ub = value
+                    forward_variable.lb = value
+            elif self._lower_bound >= 0: # forward irreversible
+                if value < 0:
+                    reverse_variable.ub = -1*value
+                    forward_variable.lb = 0
+                else:
+                    try:
+                        forward_variable.lb = value
+                    except ValueError:
+                        forward_variable.ub = value
+                        self._upper_bound = value
+                        forward_variable.lb = value
 
-            variable = self.variable
-            reverse_variable = self.reverse_variable
-
-            if model.reversible_encoding == 'split' and value < 0 and self._upper_bound > 0:
-                if self._lower_bound >= 0:
-                    variable.lb = 0
-                try:
-                    reverse_variable.ub = -1 * value
-                except ValueError:
-                    reverse_variable.lb = -1 * value
-                    reverse_variable.ub = -1 * value
-            else:
-                try:
-                    variable.lb = value
-                except ValueError:
-                    variable.ub = value
+            elif self._upper_bound <= 0: # reverse irreversible
+                if value > 0:
+                    reverse_variable.ub = 0
+                    reverse_variable.ub = 0
+                    forward_variable.ub = value
                     self._upper_bound = value
-                    variable.lb = value
+                    forward_variable.lb = value
+                else:
+                    reverse_variable.ub = -1*value
+            else:
+                print({'value': value, 'self._lower_bound': self._lower_bound, 'self._upper_bound': self._upper_bound})
+                raise ValueError('lower_bound issue')
 
         self._lower_bound = value
 
@@ -166,38 +206,48 @@ class Reaction(_cobrapy.core.Reaction):
     def upper_bound(self, value):
         model = self.model
         if model is not None:
-            # Remove auxiliary variable if not needed anymore
-            reverse_variable = self.reverse_variable
-            variable = self.variable
-            if value <= 0 and self._upper_bound > 0 and self._lower_bound < 0:
-                reverse_variable.lb, reverse_variable.ub = 0, 0
-                try:
-                    variable.ub = value
-                    variable.lb = self._lower_bound
-                except ValueError:
-                    variable.lb = value
-                    self._lower_bound = value
-                    variable.ub = value
 
-            # Add auxiliary variable if needed
-            elif value > 0 and self._upper_bound <= 0:  # self._upper_bound < 0 implies self._lower_bound < 0
-                if self.reverse_variable is None:
-                    reverse_variable = model.solver._add_variable(
-                        model.solver.interface.Variable(self._get_reverse_id(), lb=0, ub=0))
-                    for met, coeff in six.iteritems(self._metabolites):
-                        model.solver.constraints[met.id] += sympy.Mul._from_args((-1 * sympy.RealNumber(coeff), reverse_variable))
+            forward_variable, reverse_variable = self.forward_variable, self.reverse_variable
+            if self._lower_bound < 0 and self._upper_bound > 0: # reversible
+                if value > 0:
+                    forward_variable.ub = value
+                elif value <= 0:
+                    forward_variable.ub = 0
+                    try:
+                        reverse_variable.lb = -1*value
+                    except ValueError:
+                        reverse_variable.ub = -1*value
+                        self._lower_bound = value
+                        reverse_variable.lb = -1*value
+            elif self._lower_bound == 0 and self._upper_bound == 0: # knockout
+                if value > 0:
+                    forward_variable.ub = value
+                elif value <= 0:
+                    reverse_variable.ub = -1*value
+            elif self._lower_bound >= 0: # forward irreversible
+                if value > 0:
+                    forward_variable.ub = value
                 else:
-                    reverse_variable = self.reverse_variable
-                variable.ub = value
-                reverse_variable.ub = -1 * variable.lb
-                variable.lb = 0
-            else:
-                try:
-                    variable.ub = value
-                except ValueError:
-                    variable.lb = value
+                    forward_variable.lb = 0
+                    forward_variable.ub = 0
+                    reverse_variable.ub = -1*value
                     self._lower_bound = value
-                    variable.ub = value
+                    reverse_variable.lb = -1*value
+
+            elif self._upper_bound <= 0: # reverse irreversible
+                if value < 0:
+                    try:
+                        reverse_variable.lb = -1*value
+                    except ValueError:
+                        reverse_variable.ub = -1*value
+                        self._lower_bound = value
+                        reverse_variable.lb = -1*value
+                else:
+                    forward_variable.ub = value
+                    reverse_variable.lb = 0
+            else:
+                print({'value': value, 'self._lower_bound': self._lower_bound, 'self._upper_bound': self._upper_bound})
+                raise ValueError('upper_bound issue')
 
         self._upper_bound = value
 
