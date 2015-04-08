@@ -84,7 +84,7 @@ try:
                    legend="%s (g/L)" % organism,
                    size=12)
             i += 1
-        show(p)
+        return p
 
 except ImportError:
 

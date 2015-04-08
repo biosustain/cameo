@@ -20,18 +20,16 @@ Kai Zhuang et al. 2013. Dynamic strain scanning optimization: an efficient strai
 titer, and productivity.
 """
 from functools import partial
+import types
+from cameo.core.solver_based_model import SolverBasedModel, Reaction
 
-import cobra
 import math
 from pandas import DataFrame
 
-from cameo import phenotypic_phase_plane, config
-from cameo.dynamic.bioreactor import Organism, IdealFedBatch, BioReactor
-from cameo.dynamic import dfba
+from cameo import phenotypic_phase_plane, config, fba
+from cameo.dynamic import dfba, batch_reactor
 from cameo.strain_design import StrainDesignMethod
-from cameo.config import in_ipnb
 from cameo import plot_utils
-from ipython_notebook_utils import ProgressBar as IPythonNBPorgressBar
 
 
 TITER = 'product_titer'
@@ -40,30 +38,59 @@ PRODUCTIVITY = 'productivity'
 
 
 class _DFBAPerformanceEvaluator(object):
-    def __init__(self, reactor, substrate, product, tf, dt, solver):
-        assert isinstance(reactor, BioReactor)
+    def __init__(self, reactor_function=None, substrate=None, initial_substrate_concentration=None, product=None,
+                 initial_volume=None, inflow_rate=None, outflow_rate=None, delta_s=None, s_feed=None,
+                 initial_biomass=None, model_dynamics=None, delta_x=None, x_feed=None, tf=None, dt=None,
+                 simulation_method=None, simulation_kwargs=None, ode_solver=None, ode_kwargs=None):
         assert isinstance(tf, (float, int))
         assert isinstance(dt, (float, int))
-        self.reactor = reactor
+        self.reactor_function = reactor_function
         self.product = product
         self.substrate = substrate
+        self.initial_substrate_concentration = initial_substrate_concentration
+        self.initial_biomass = initial_biomass
+        self.initial_volume = initial_volume
+        self.inflow_rate, self.outflow_rate = inflow_rate, outflow_rate
+        self.model_dynamics = model_dynamics
         self.tf = tf
         self.dt = dt
-        self.solver = solver
+        self.delta_x, self.x_feed = delta_x, x_feed
+        self.delta_s, self.s_feed = delta_s, s_feed
+        self.simulation_method, self.simulation_kwargs = simulation_method, simulation_kwargs
+        self.ode_solver, self.ode_kwargs = ode_solver, ode_kwargs
 
-    def __call__(self, strain, reporter, *args, **kwargs):
-        self.reactor.organisms = [strain]
+    def __call__(self, strain, reporter):
         if reporter is not None:
             reporters = [reporter]
         else:
             reporters = []
         try:
-            solution = dfba(self.reactor, 0, self.tf, self.dt, solver=self.solver, reporters=reporters)
+            solution = dfba(self.reactor_function,
+                            metabolites=[self.substrate.id, self.product.id],
+                            initial_concentrations=[self.initial_substrate_concentration],
+                            delta_s=self.delta_s,
+                            s_feed=self.s_feed,
+                            models=[strain[0]],
+                            initial_biomass=[self.initial_biomass],
+                            models_dynamics=[partial(_model_dynamics, strain[2], self.model_dynamics)],
+                            delta_x=self.delta_x,
+                            x_feed=self.x_feed,
+                            initial_volume=self.initial_volume,
+                            inflow_rate=self.inflow_rate,
+                            outflow_rate=self.outflow_rate,
+                            t0=0,
+                            tf=self.tf,
+                            dt=self.dt,
+                            simulation_method=self.simulation_method,
+                            simulation_kwargs=self.simulation_kwargs,
+                            ode_solver=self.ode_solver,
+                            ode_kwargs=self.ode_kwargs,
+                            reporters=reporters)
 
             return {
-                TITER: self.reactor.calculate_titer_from_dfba(solution, self.product.id),
-                YIELD: self.reactor.calculate_yield_from_dfba(solution, self.substrate.id, self.product.id),
-                PRODUCTIVITY: self.reactor.calculate_productivity_from_dfba(solution, self.product.id)
+                TITER: solution.product_titer(solution, self.product.id),
+                YIELD: solution.product_yield(solution, self.substrate.id, self.product.id),
+                PRODUCTIVITY: solution.productivity(solution, self.product.id)
             }
         except:
             return {
@@ -73,55 +100,73 @@ class _DFBAPerformanceEvaluator(object):
             }
 
 
+def _model_dynamics(constrains, function, *args):
+    constrains0, objective = function(*args)
+    return constrains.update(constrains0), objective
+
+
 class DySScO(StrainDesignMethod):
 
-    def __init__(self, organism=None, product=None, substrate=None, reactor=None,
-                 dt=1, tf=10, update_function=None, dfba_solver='dopri5', *args, **kwargs):
+    def __init__(self, reactor=None, model=None, product=None, substrate=None, initial_substrate_concentration=10,
+                 model_dynamics=None, initial_biomass=0.01, initial_volume=10, inflow_rate=0, outflow_rate=0,
+                 simulation_method=fba, simulation_kwargs=None, ode_solver='dopri5', ode_kwargs=None, dt=1, tf=10,
+                 delta_s=None, s_feed=None, delta_x=None, x_feed=None, *args, **kwargs):
         super(DySScO, self).__init__(*args, **kwargs)
-        assert isinstance(organism, Organism), "organism must be instance of Organism"
-        if isinstance(product, str):
-            product = organism.model.reactions.get_by_id(product)
-        if isinstance(substrate, str):
-            substrate = organism.model.reactions.get_by_id(substrate)
-        assert isinstance(product, cobra.Reaction), "product must be a reaction id or an instance of (cobra.Reaction)"
-        assert isinstance(substrate, cobra.Reaction), "substrate must be a reaction id or an instance of (cobra.Reaction)"
-        assert isinstance(reactor, BioReactor)
-        self.organism = organism
+        assert isinstance(model, SolverBasedModel), "organism must be instance of SolverBasedModel"
+        if isinstance(product, str): product = model.reactions.get_by_id(product)
+        if isinstance(substrate, str): substrate = model.reactions.get_by_id(substrate)
+
+        assert isinstance(product, Reaction), "product must be a reaction id or an instance of (Reaction)"
+        assert isinstance(substrate, Reaction), "substrate must be a reaction id or an instance of (Reaction)"
+        assert isinstance(reactor, types.FunctionType)
+        self.reactor = reactor
+        self.model = model
+        self.model_dynamics = model_dynamics
+        self.initial_biomass = initial_biomass
         self.product = product
         self.substrate = substrate
-        self.reactor = reactor
+        self.initial_substrate_concentration = initial_substrate_concentration
+        self.initial_volume = initial_volume
+        self.inflow_rate, self.outflow_rate = inflow_rate, outflow_rate
+        self.delta_s, self.delta_x = delta_s, delta_x
+        self.s_feed, self.x_feed = s_feed, x_feed
         self.tf = tf
         self.dt = dt
-        self.dfba_solver = dfba_solver
-        self.update_function=update_function
+        self.ode_solver = ode_solver
+        self.ode_kwargs = ode_kwargs
+        self.simulation_method = simulation_method
+        self.simulation_kwargs = simulation_kwargs
 
     def _generate_strains(self, number_of_strains, view=config.default_view):
-        envelope = phenotypic_phase_plane(self.organism.model,
-                                          variables=[self.product],
-                                          points=number_of_strains,
-                                          view=view)
+        envelope = phenotypic_phase_plane(self.model, variables=[self.product], points=number_of_strains, view=view)
         envelope["label"] = [""] + ["_%i" % i for i in xrange(1, len(envelope)-1)] + [""]
         plot_utils.plot_production_envelope(envelope, self.product.id, highligt=range(1, len(envelope) - 1))
 
         for i in range(1, len(envelope) - 1):
             row = envelope.loc[i]
             strain_id = row["label"]
-            strain = Organism(self.organism.model, strain_id, self.organism.objective, dict(self.organism.constraints))
-            strain.update = partial(self.update_function, strain)
-            strain.constraints[self.product.id] = (math.floor(row[self.product.id]), math.ceil(row[self.product.id]))
+            constrains = {self.product.id: (math.floor(row[self.product.id]), math.ceil(row[self.product.id]))}
+            strain = (self.model, strain_id, self.model.objective, constrains)
             yield strain
 
     def run(self, ode_solver="dopri5", number_of_strains=10, view=config.default_view):
         strains = self._generate_strains(number_of_strains+2, view=view)
-        evaluator = _DFBAPerformanceEvaluator(self.reactor, self.product, self.substrate,
-                                              self.tf, self.dt, self.dfba_solver)
+        evaluator = _DFBAPerformanceEvaluator(reactor_function=self.reactor,
+                                              substrate=self.substrate.id,
+                                              initial_substrate_concentration=self.initial_substrate_concentration,
+                                              product=self.product.id,
+                                              initial_volume=self.initial_volume,
+                                              inflow_rate=self.inflow_rate,
+                                              outflow_rate=self.outflow_rate,
+                                              delta_s=self.delta_s, s_feed=self.s_feed,
+                                              initial_biomass=self.initial_biomass, model_dynamics=self.model_dynamics,
+                                              delta_x=self.delta_s, x_feed=self.x_feed,
+                                              tf=self.tf, dt=self.dt,
+                                              simulation_method=self.simulation_method,
+                                              simulation_kwargs=self.simulation_kwargs,
+                                              ode_solver=self.ode_solver, ode_kwargs=self.ode_kwargs)
 
         reporters = []
-        if in_ipnb():
-            for i in range(1, number_of_strains + 1):
-                progress_bar = IPythonNBPorgressBar(size=self.tf, label="Strain %i" % i)
-                progress_bar.start()
-                reporters.append(lambda t, t0, tf, y: progress_bar.set(t))
 
         performance = DataFrame.from_records(list(view.map(evaluator, strains, reporters)))
 
@@ -135,8 +180,6 @@ if __name__ == "__main__":
 
     path = os.path.abspath(os.path.dirname(__file__))
     gsm = load_model(os.path.join(path, "../../../../tests/data/ecoli_core_model.xml"))
-
-    my_organism = Organism(model=gsm)
 
     def update(self, volume, growth_rate, substrates):
         env = self.environment
@@ -152,16 +195,12 @@ if __name__ == "__main__":
 
     acetate = 'EX_ac_e'
     glucose = 'EX_glc_e'
-    oxygen = "EX_o2_e"
-    fed_batch_reactor = IdealFedBatch(primary_substrate=glucose,
-                                      metabolites=[glucose, acetate, oxygen],
-                                      initial_conditions=[1.0, 0.1, 0.1, 0.0, 100])
+    oxygen = 'EX_o2_e'
 
-    dissco = DySScO(organism=my_organism,
+    dissco = DySScO(organism=gsm,
                     product=acetate,
                     substrate=glucose,
-                    reactor=fed_batch_reactor,
-                    update_function=update)
+                    reactor=batch_reactor)
 
 
 

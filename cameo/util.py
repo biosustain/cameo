@@ -19,10 +19,7 @@ from datetime import datetime
 import colorsys
 import pip
 import platform
-try:
-    from pandas.core.common import in_ipnb
-except:
-    pass
+
 import progressbar
 from numpy.random import RandomState
 

@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from cobra import Metabolite
+import six
 
 __all__ = ['model_to_network', 'reactions_to_network', 'remove_highly_connected_nodes']
 
@@ -18,7 +20,7 @@ import networkx as nx
 from cameo.network_analysis.util import distance_based_on_molecular_formula
 
 
-def model_to_network(model):
+def model_to_network(model, distance_function=distance_based_on_molecular_formula, exchanges=False):
     """Convert a model into a networkx graph.
 
     Parameters
@@ -30,9 +32,10 @@ def model_to_network(model):
     -------
     networkx.MultiDiGraph
     """
-    return reactions_to_network(model.reactions)
+    return reactions_to_network(model.reactions, distance_function=distance_function, exchanges=exchanges)
 
-def reactions_to_network(reactions):
+
+def reactions_to_network(reactions, distance_function=distance_based_on_molecular_formula, exchanges=False):
     """Convert a list of reactions into a networkx graph.
 
     Parameters
@@ -44,20 +47,40 @@ def reactions_to_network(reactions):
     -------
     networkx.MultiDiGraph
     """
-    edges = list()
+    r_edges = list()
+    metabolite_nodes = set()
+
+    e_edges = list()
+    exchange_nodes = set()
+
     for reaction in reactions:
         for substrate in reaction.reactants:
             for product in reaction.products:
                 try:
-                    distance = distance_based_on_molecular_formula(substrate, product)
+                    distance = distance_function(substrate, product)
                 except ValueError:
                     distance = 0.
                 if distance <= 0.3:
-                    edges.append((substrate, product, dict(reaction=reaction)))
+                    r_edges.append((substrate, product, dict(reaction=reaction)))
                     if reaction.reversibility:
-                        edges.append((product, substrate, dict(reaction=reaction)))
-    multi_graph = nx.MultiDiGraph(edges)
+                        r_edges.append((product, substrate, dict(reaction=reaction)))
+                metabolite_nodes.add(product)
+            metabolite_nodes.add(substrate)
+        if len(reaction.metabolites) == 1 and exchanges:
+            met = six.next(six.iterkeys(reaction.metabolites))
+            met_ex = Metabolite(id=met.id, formula=met.formula)
+            e_edges.append((met, met_ex, dict(reaction=reaction)))
+            exchange_nodes.add(met_ex)
+
+    multi_graph = nx.MultiDiGraph()
+
+    multi_graph.add_nodes_from([(m, dict(id=m.id)) for m in metabolite_nodes], color="#088da5", type="metabolite")
+    multi_graph.add_nodes_from([(m, dict(id=m.id)) for m in exchange_nodes], color="#fdeae0", type="exchange")
+
+    multi_graph.add_edges_from(r_edges)
+    multi_graph.add_edges_from(e_edges)
     return multi_graph
+
 
 def remove_highly_connected_nodes(network, max_degree=10, ignore=[]):
     """Remove highly connected nodes.

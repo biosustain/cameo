@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from functools import partial
+from IPython.core.display import HTML, display
+from IPython.html import widgets
 import numpy as np
 from pandas import DataFrame
 
@@ -26,6 +28,7 @@ from cameo.reporters.simulation import FluxDistributionReporter
 from cameo.util import TimeMachine
 
 import logging
+from cameo.visualization.escher_ext import NotebookBuilder
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +52,18 @@ class DynamicFBAResult(Result):
         self.reactor = reactor
         self.simulations = simulations
 
+    def product_yield(self, substrate, product):
+        s_f = self.metabolite_concentrations[substrate][-1]
+        s0 = self.metabolite_concentrations[substrate][0]
+        p_f = self.metabolite_concentrations[product][-1]
+        return p_f / (s_f - s0)
+
+    def product_titer(self, product):
+        return self.metabolite_concentrations[product][-1]
+
+    def productivity(self, product):
+        return self.metabolite_concentrations[product][-1]/self.time[-1]
+
     def __getitem__(self, item):
         try:
             return self.metabolite_concentrations[item]
@@ -68,6 +83,7 @@ class DynamicFBAResult(Result):
             "".join(["\n\t%s: %s (mmol/L)" % (k, v) for k, v in self.metabolite_concentrations.iteritems()]),
             "".join(["\n\t%s: %s (g/L)" % (k, v) for k, v in self.biomass.iteritems()]),
         )
+
 
 
 def _simulate_model(volume, models, models_dynamics, x, metabolites, s, simulation_method, sim_kwargs):
@@ -283,18 +299,20 @@ def _dfba(reactor, metabolites=None, initial_concentrations=None, delta_s=None, 
                           simulation_method, simulation_kwargs, solutions)
     t = [t0]
     y = [y0]
+    try:
+        while dfba_ode.successful() and dfba_ode.t < tf:
+            dfba_ode.integrate(dfba_ode.t + dt)
+            t.append(dfba_ode.t)
+            y.append(dfba_ode.y)
 
-    while dfba_ode.successful() and dfba_ode.t < tf:
-        dfba_ode.integrate(dfba_ode.t + dt)
-        t.append(dfba_ode.t)
-        y.append(dfba_ode.y)
-
-        for reporter in reporters:
-            if isinstance(reporter, ProgressReporter):
-                reporter(dfba_ode.t)
-            elif isinstance(reporter, FluxDistributionReporter):
-                for model, solution in zip(models, solutions[-1]):
-                    reporter(model, solution)
+            for reporter in reporters:
+                if isinstance(reporter, ProgressReporter):
+                    reporter(dfba_ode.t)
+                elif isinstance(reporter, FluxDistributionReporter):
+                    for model, solution in zip(models, solutions[-1]):
+                        reporter(model, solution)
+    finally:
+        [r.close() for r in reporters]
 
     t = np.array(t)
     y = np.array(y)
