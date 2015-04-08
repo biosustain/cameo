@@ -14,6 +14,8 @@
 from cobra import Metabolite
 import six
 
+from __future__ import absolute_import, print_function
+
 __all__ = ['model_to_network', 'reactions_to_network', 'remove_highly_connected_nodes']
 
 import networkx as nx

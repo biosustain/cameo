@@ -12,12 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import Queue
+from __future__ import absolute_import, print_function
+
+import six.moves.queue
 from multiprocessing import Pool, cpu_count
 import itertools
 from cameo.util import Singleton
 
 import logging
+import six
+from six.moves import map
+from six.moves import range
 logger = logging.getLogger(__name__)
 
 class MultiprocessingView(Singleton):
@@ -75,7 +80,7 @@ class MultiprocessingView(Singleton):
 
 try:
     import redis
-    import cPickle as pickle
+    import six.moves.cPickle as pickle
 
     class RedisQueue(object):
         """
@@ -83,7 +88,7 @@ try:
         http://peter-hoffmann.com/2012/python-simple-queue-redis-queue.html
         """
 
-        MAX_REDIS_LIST_SIZE = 4294967295L
+        MAX_REDIS_LIST_SIZE = 4294967295
 
         default_host = "localhost"
         default_port = "6379"
@@ -108,7 +113,7 @@ try:
                 'port': self.default_port,
                 'db': self.default_db
             }
-            for key, val in connection_args.iteritems():
+            for key, val in six.iteritems(connection_args):
                 self._connection_args[key] = val
             self._db = redis.Redis(**self._connection_args)
             self._key = '%s:%s' % (namespace, name)
@@ -127,8 +132,9 @@ try:
             self._db = redis.Redis(**self._connection_args)
 
         def __len__(self):
-            return self.length()
+            return self.length
 
+        @property
         def length(self):
             return self._db.llen(self._key)
 
@@ -145,8 +151,8 @@ try:
                 An object to put in the queue
 
             """
-            if self.length() >= self._maxsize:
-                raise Queue.Full
+            if self.length >= self._maxsize:
+                raise six.moves.queue.Full
 
             item = pickle.dumps(item)
 
@@ -187,16 +193,18 @@ try:
             """
             if block:
                 item = self._db.blpop(self._key, timeout=timeout)
+                if item:
+                    item = item[1]
+                logger.debug("Wait...")
             else:
                 item = self._db.lpop(self._key)
+                logger.debug("No-wait...")
 
+            logger.debug("Item: %s" % [item])
             if item:
-                if isinstance(item, str):
-                    return pickle.loads(item)
-                else:
-                    return pickle.loads(item[1])
+                return pickle.loads(item)
             else:
-                raise Queue.Empty
+                raise six.moves.queue.Empty
 
         def get_nowait(self):
             """Equivalent to get(False)."""
@@ -212,7 +220,7 @@ except ImportError:
 
 class SequentialView(object):
     def map(self, *args, **kwargs):
-        return map(*args, **kwargs)
+        return list(map(*args, **kwargs))
 
     def apply(self, func, *args, **kwargs):
         return func(*args, **kwargs)
@@ -250,4 +258,4 @@ if __name__ == '__main__':
             return arg ** 2
 
     view = MultiprocessingView(processes=4)
-    print view.map(FunctionObject(), range(0, 100))
+    print(view.map(FunctionObject(), list(range(0, 100))))

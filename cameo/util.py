@@ -12,6 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import absolute_import, print_function
+
+import six
+from six.moves import range
+
 from collections import OrderedDict
 from uuid import uuid1
 from time import time
@@ -105,7 +110,7 @@ class TimeMachine(object):
 
     def __str__(self):
         info = '\n'
-        for item in self.history.iteritems():
+        for item in six.iteritems(self.history):
             info += self._history_item_to_str(item)
         return info
 
@@ -125,14 +130,14 @@ class TimeMachine(object):
             elements = undo_entry.func, undo_entry.args, undo_entry.keywords  # partial
             info += 'undo: ' + ' '.join([str(elem) for elem in elements]) + '\n'
         except AttributeError:  # normal python function
-            info += 'undo: ' + undo_entry.func_name + '\n'
+            info += 'undo: ' + undo_entry.__name__ + '\n'
 
         redo_entry = entry['redo']
         try:
             elements = redo_entry.func, redo_entry.args, redo_entry.keywords  # partial
             info += 'redo: ' + ' '.join([str(elem) for elem in elements]) + '\n'
         except AttributeError:
-            info += 'redo: ' + redo_entry.func_name + '\n'
+            info += 'redo: ' + redo_entry.__name__ + '\n'
         return info
 
     def undo(self, bookmark=None):
@@ -142,7 +147,7 @@ class TimeMachine(object):
                 entry['undo']()
             except KeyError:  # history is empty
                 pass
-        elif bookmark in self.history.keys():
+        elif bookmark in list(self.history.keys()):
             uuid = False
             while uuid is not bookmark:
                 (uuid, entry) = self.history.popitem()
@@ -156,19 +161,19 @@ class TimeMachine(object):
 
     def reset(self):
         if self.history:  # history is not empty
-            self.undo(bookmark=self.history.keys()[0])
+            self.undo(bookmark=list(self.history.keys())[0])
 
 
 def partition(lst, n):
     """Partition a list into n bite size chunks."""
     division = len(lst) / float(n)
-    return [lst[int(round(division * i)): int(round(division * (i + 1)))] for i in xrange(n)]
+    return [lst[int(round(division * i)): int(round(division * (i + 1)))] for i in range(n)]
 
 
 def generate_colors(n):
-    hsv_tuples = [(v*1.0/n, 0.5, 0.5) for v in xrange(n)]
+    hsv_tuples = [(v*1.0/n, 0.5, 0.5) for v in range(n)]
     color_map = {}
-    for i in xrange(n):
+    for i in range(n):
         rgb = colorsys.hsv_to_rgb(*hsv_tuples[i])
         color = tuple([rgb[0]*256, rgb[1]*256, rgb[2]*256])
         color_map[i] = '#%02x%02x%02x' % color
@@ -186,8 +191,8 @@ class Timer(object):
 
     def __exit__(self, type, value, traceback):
         if self.name:
-            print '[%s]' % self.name,
-        print 'Elapsed: %s' % (time() - self.tstart)
+            print('[%s]' % self.name, end=' ')
+        print('Elapsed: %s' % (time() - self.tstart))
 
 
 def memoize(function, memo={}):
@@ -215,10 +220,10 @@ class IntelliContainer(object):
         self._dict[key] = value
 
     def __iter__(self):
-        return self._dict.itervalues()
+        return six.itervalues(self._dict)
 
     def __dir__(self):
-        return self._dict.keys()
+        return list(self._dict.keys())
 
 
 class DisplayItemsWidget(progressbar.widgets.Widget):

@@ -12,10 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import absolute_import, print_function
+
 import unittest
 from functools import partial
 
 from cameo.util import TimeMachine, generate_colors, Singleton
+import six
+from six.moves import range
 
 
 class TimeMachineTestCase(unittest.TestCase):
@@ -35,7 +39,10 @@ class TimeMachineTestCase(unittest.TestCase):
 
         partial_function = partial(str, 1)
         self.tm(do=normal_function, undo=partial_function)
-        self.assertEqual(self.tm.__str__().split('\n')[2:-1], ["undo: <type 'str'> (1,) None", 'redo: normal_function'])
+        if six.PY2:
+            self.assertEqual(self.tm.__str__().split('\n')[2:-1], ["undo: <type 'str'> (1,) None", 'redo: normal_function'])
+        elif six.PY3:
+            self.assertEqual(self.tm.__str__().split('\n')[2:-1], ["undo: <class 'str'> (1,) None", 'redo: normal_function'])
 
     def test_with_statement(self):
         l = [1, 2, 3, 4]
@@ -47,7 +54,7 @@ class TimeMachineTestCase(unittest.TestCase):
 
 class TestUtils(unittest.TestCase):
     def test_color_generation(self):
-        for i in xrange(1, 100):
+        for i in range(1, 100):
             color_map = generate_colors(i)
             self.assertEqual(len(color_map), i)
             self.assertEqual(len(color_map), len(set(color_map.values())))

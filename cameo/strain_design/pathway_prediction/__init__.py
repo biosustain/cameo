@@ -12,15 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import absolute_import, print_function
+
 __all__ = ['PathwayPredictor']
 
-import os
-import gzip
-import cPickle as pickle
-import types
 from functools import partial
 
-import cameo
 from cameo.exceptions import SolveError
 from cameo import Reaction, Model, Metabolite
 from cameo.data import metanetx
@@ -144,7 +141,7 @@ class PathwayPredictor(object):
         list
             A list of pathways (list of reactions)
         """
-        if isinstance(product, types.StringType):
+        if isinstance(product, bytes):
             flag = False
             for metabolite in self.model.metabolites:
                 if metabolite.id == product:
@@ -217,4 +214,4 @@ if __name__ == '__main__':
 
     from cameo.api import hosts
     pathway_predictor = PathwayPredictor(hosts.ecoli.models.EcoliCore)
-    print pathway_predictor.run(product=pathway_predictor.model.metabolites.MNXM53)  # MNXM53 = L-serine
+    print(pathway_predictor.run(product=pathway_predictor.model.metabolites.MNXM53))  # MNXM53 = L-serine

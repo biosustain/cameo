@@ -11,7 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import Queue
+
+from __future__ import absolute_import, print_function
+
+import six.moves.queue
 
 from uuid import uuid1
 from bokeh.models import Glyph
@@ -98,7 +101,7 @@ class IPythonNotebookBokehMultiprocessPlotObserverClient(AbstractParallelObserve
                 'iteration': self.iteration,
                 'index': self.index,
                 'n': args.get('n', 1)})
-        except Queue.Full:
+        except six.moves.queue.Full:
             pass
 
     def reset(self):

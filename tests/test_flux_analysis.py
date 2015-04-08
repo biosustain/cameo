@@ -14,6 +14,8 @@
 # limitations under the License.
 # @formatter:on
 
+from __future__ import absolute_import, print_function
+
 import os
 import unittest
 
@@ -57,7 +59,7 @@ class AbstractTestFluxVariabilityAnalysis(object):
     def test_flux_variability_sequential(self):
         fva_solution = flux_variability_analysis(self.model, remove_cycles=False, view=SequentialView())
         assert_dataframes_equal(fva_solution, REFERENCE_FVA_SOLUTION_ECOLI_CORE)
-        print REFERENCE_FVA_SOLUTION_ECOLI_CORE
+        print(REFERENCE_FVA_SOLUTION_ECOLI_CORE)
         for key in fva_solution.index:
             self.assertAlmostEqual(fva_solution['lower_bound'][key],
                                    REFERENCE_FVA_SOLUTION_ECOLI_CORE['lower_bound'][key], delta=0.000001)
@@ -68,14 +70,14 @@ class AbstractTestFluxVariabilityAnalysis(object):
     @unittest.skip('Removing cycles is still not robust.')
     def test_flux_variability_sequential_remove_cycles(self):
         fva_solution = flux_variability_analysis(self.model, remove_cycles=True, view=SequentialView())
-        print fva_solution.min()
-        print fva_solution.max()
+        print(fva_solution.min())
+        print(fva_solution.max())
         for key in fva_solution.index:
             if abs(REFERENCE_FVA_SOLUTION_ECOLI_CORE['lower_bound'][key]) < 999993:
                 self.assertAlmostEqual(fva_solution['lower_bound'][key],
                                        REFERENCE_FVA_SOLUTION_ECOLI_CORE['lower_bound'][key], delta=0.000001)
             if abs(REFERENCE_FVA_SOLUTION_ECOLI_CORE['upper_bound'][key]) < 999993:
-                print key
+                print(key)
                 self.assertAlmostEqual(fva_solution['upper_bound'][key],
                                        REFERENCE_FVA_SOLUTION_ECOLI_CORE['upper_bound'][key], delta=0.000001)
 
@@ -165,17 +167,17 @@ class AbstractTestSimulationMethods(object):
 
     def test_pfba(self):
         fba_solution = fba(self.model)
-        fba_flux_sum = sum((abs(val) for val in fba_solution.fluxes.values()))
+        fba_flux_sum = sum((abs(val) for val in list(fba_solution.fluxes.values())))
         pfba_solution = pfba(self.model)
-        pfba_flux_sum = sum((abs(val) for val in pfba_solution.fluxes.values()))
+        pfba_flux_sum = sum((abs(val) for val in list(pfba_solution.fluxes.values())))
         self.assertTrue((pfba_flux_sum - fba_flux_sum) < 1e-6)  # looks like GLPK finds a parsimonious solution without the flux minimization objective
 
     def test_pfba_iJO(self):
         fba_solution = fba(iJO_MODEL)
-        fba_flux_sum = sum((abs(val) for val in fba_solution.fluxes.values()))
+        fba_flux_sum = sum((abs(val) for val in list(fba_solution.fluxes.values())))
         pfba_solution = pfba(iJO_MODEL)
-        pfba_flux_sum = sum((abs(val) for val in pfba_solution.fluxes.values()))
-        print pfba_flux_sum
+        pfba_flux_sum = sum((abs(val) for val in list(pfba_solution.fluxes.values())))
+        print(pfba_flux_sum)
         self.assertTrue(pfba_flux_sum < fba_flux_sum)
 
     @unittest.skip('quadratic moma not implemented yet.')
@@ -187,8 +189,8 @@ class AbstractTestSimulationMethods(object):
         ref = pfba_solution.fluxes
         lmoma_solution = lmoma(self.model, reference=ref)
         res = lmoma_solution.fluxes
-        distance = sum([abs(res[v] - ref[v]) for v in res.keys()])
-        print distance
+        distance = sum([abs(res[v] - ref[v]) for v in list(res.keys())])
+        print(distance)
         self.assertAlmostEqual(0, distance, delta=0.000001, msg="moma distance without knockouts must be 0")
 
 

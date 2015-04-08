@@ -20,6 +20,8 @@ An high level API for retrieving models from the
 http://darwin.di.uminho.pt/models database
 """
 
+from __future__ import absolute_import, print_function
+
 import json
 import requests
 from pandas import DataFrame
@@ -71,7 +73,7 @@ def get_sbml_file(index, host="http://darwin.di.uminho.pt/models"):
     raise NotFoundException("sbml", index)
 
 if __name__ == "__main__":
-    print index_models()
+    print(index_models())
     from cameo import load_model
     model = load_model(get_sbml_file(2))
-    print model.objective
+    print(model.objective)

@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import absolute_import, print_function
+
 import os
 import unittest
 import inspyred
@@ -30,6 +32,7 @@ from cameo.strain_design.heuristic.objective_functions import biomass_product_co
     number_of_knockouts
 from cobra.manipulation.delete import find_gene_knockout_reactions
 from cameo.parallel import SequentialView, MultiprocessingView
+from six.moves import range
 
 config.default_view = MultiprocessingView(processes=2)
 
@@ -73,6 +76,19 @@ class TestBestSolutionArchiver(unittest.TestCase):
         self.assertEqual(sol1.__cmp__(sol2), -1)
         self.assertEqual(sol1.__cmp__(sol1), 0)
         self.assertEqual(sol1.__cmp__(sol3), 1)
+
+        self.assertTrue(sol1 < sol2)
+        self.assertTrue(sol1 == sol1)
+        self.assertTrue(sol1 > sol3)
+
+        #test gt and lt
+        self.assertTrue(sol1.__lt__(sol2))
+        self.assertTrue(sol1.__gt__(sol3))
+        self.assertFalse(sol1.__lt__(sol1))
+        self.assertFalse(sol1.__gt__(sol1))
+        self.assertFalse(sol2.__lt__(sol1))
+        self.assertFalse(sol3.__gt__(sol1))
+
 
         #testing issubset
         self.assertTrue(sol1.issubset(sol2), msg="Solution 1 is subset of Solution 2")
@@ -264,13 +280,13 @@ class TestDecoders(unittest.TestCase):
     def test_reaction_knockout_decoder(self):
         decoder = ReactionKnockoutDecoder([r.id for r in self.model.reactions], self.model)
         reactions1, reactions2 = decoder([1, 2, 3, 4])
-        self.assertItemsEqual(reactions1, reactions2)
+        self.assertTrue(sorted(reactions1, key=lambda x: x.id) == sorted(reactions2, key=lambda x: x.id))
 
     def test_gene_knockout_decoder(self):
         decoder = GeneKnockoutDecoder([g.id for g in self.model.genes], self.model)
         reactions1, genes = decoder([1, 2, 3, 4])
         reactions2 = find_gene_knockout_reactions(self.model, genes)
-        self.assertItemsEqual(reactions1, reactions2)
+        self.assertTrue(sorted(reactions1, key=lambda x: x.id) == sorted(reactions2, key=lambda x: x.id))
 
 
 class TestGeneratos(unittest.TestCase):
@@ -284,14 +300,14 @@ class TestGeneratos(unittest.TestCase):
         self.args.setdefault('variable_candidate_size', False)
 
         self.args['candidate_size'] = 10
-        for _ in xrange(10000):
+        for _ in range(10000):
             candidate = set_generator(self.random, self.args)
             self.assertEqual(len(candidate), 10)
             candidate = unique_set_generator(self.random, self.args)
             self.assertEqual(len(candidate), 10)
 
         self.args['candidate_size'] = 20
-        for _ in xrange(10000):
+        for _ in range(10000):
             candidate = set_generator(self.random, self.args)
             self.assertEqual(len(candidate), 20)
             candidate = unique_set_generator(self.random, self.args)
@@ -301,14 +317,14 @@ class TestGeneratos(unittest.TestCase):
         self.args.setdefault('variable_candidate_size', True)
 
         self.args['candidate_size'] = 10
-        for _ in xrange(10000):
+        for _ in range(10000):
             candidate = set_generator(self.random, self.args)
             self.assertLessEqual(len(candidate), 10)
             candidate = unique_set_generator(self.random, self.args)
             self.assertLessEqual(len(candidate), 10)
 
         self.args['candidate_size'] = 20
-        for _ in xrange(10000):
+        for _ in range(10000):
             candidate = set_generator(self.random, self.args)
             self.assertLessEqual(len(candidate), 20)
             candidate = unique_set_generator(self.random, self.args)
@@ -459,7 +475,7 @@ class TestReactionKnockoutOptimization(unittest.TestCase):
                                            simulation_method=fba,
                                            seed=SEED)
 
-        self.assertItemsEqual(self.essential_reactions, rko.essential_reactions)
+        self.assertTrue(sorted(self.essential_reactions) == sorted(rko.essential_reactions))
         self.assertEqual(rko._ko_type, "reaction")
         self.assertTrue(isinstance(rko._decoder, ReactionKnockoutDecoder))
 

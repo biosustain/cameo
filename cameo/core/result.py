@@ -14,6 +14,8 @@
 # limitations under the License.
 from optlang.interface import OptimizationExpression
 
+from __future__ import absolute_import, print_function
+
 import time
 from datetime import datetime
 from sympy.parsing.sympy_parser import parse_expr
@@ -88,7 +90,7 @@ class FluxDistributionResult(Result):
 
     @property
     def data_frame(self):
-        return pandas.DataFrame(self._fluxes.values(), index=self._fluxes.keys(), columns=['flux'])
+        return pandas.DataFrame(list(self._fluxes.values()), index=list(self._fluxes.keys()), columns=['flux'])
 
     @property
     def fluxes(self):
@@ -107,8 +109,8 @@ if __name__ == '__main__':
     from cameo.util import Timer
     with Timer():
         result = FluxDistributionResult(solution)
-        print result.meta_information.system_info
-        print result.meta_information.responsible
-        print result.meta_information.timestamp
-        print result.meta_information.human_readable_timestamp
-        print result.data_frame
+        print(result.meta_information.system_info)
+        print(result.meta_information.responsible)
+        print(result.meta_information.timestamp)
+        print(result.meta_information.human_readable_timestamp)
+        print(result.data_frame)
