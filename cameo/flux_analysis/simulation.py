@@ -87,7 +87,7 @@ def pfba(model, objective=None, *args, **kwargs):
             try:
                 obj_val = model.solve().f
             except SolveError as e:
-                print("pfba could not determine maximum objective value for\n%s." % model.objective)
+                logger.error("pfba could not determine maximum objective value for\n%s." % model.objective)
                 raise e
             if model.objective.direction == 'max':
                 fix_obj_constraint = model.solver.interface.Constraint(model.objective.expression, lb=obj_val)
@@ -106,7 +106,7 @@ def pfba(model, objective=None, *args, **kwargs):
                 tm.reset()
                 return result
             except SolveError as e:
-                print("pfba could not determine an optimal solution for objective %s" % model.objective)
+                logger.error("pfba could not determine an optimal solution for objective %s" % model.objective)
                 raise e
         except Exception as e:
             raise e
@@ -305,7 +305,7 @@ def room(model, reference=None, cache={}, volatile=True, delta=0.03, epsilon=0.0
             solution = model.solve()
             return FluxDistributionResult(solution)
         except SolveError as e:
-            print("room could not determine an optimal solution for objective %s" % model.objective)
+            logger.error("room could not determine an optimal solution for objective %s" % model.objective)
             raise e
 
     finally:
@@ -367,7 +367,7 @@ def _cycle_free_flux(model, fluxes, fix=[]):
             solution = model.solve()
             # model.solver.configuration.verbosity = 0
         except SolveError as e:
-            print("Couldn't remove cycles from reference flux distribution.")
+            logger.warning("Couldn't remove cycles from reference flux distribution.")
             raise e
         # print 'returning'
         return solution.x_dict
