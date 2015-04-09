@@ -23,13 +23,13 @@ class MultipleChromosomeGenome(object):
         self.chromosomes = {}
         self.keys = keys
         for key in keys:
-            self.sets[key] = OrderedSet()
+            self.chromosomes[key] = OrderedSet()
 
     def __getitem__(self, key):
-        return self.sets[key]
+        return self.chromosomes[key]
 
     def __delitem__(self, key):
-        del self.sets[key]
+        del self.chromosomes[key]
 
     def __setitem__(self, key, value):
-        self.sets[key] = value
+        self.chromosomes[key] = value

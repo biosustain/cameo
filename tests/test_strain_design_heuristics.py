@@ -23,10 +23,12 @@ from pandas.util.testing import assert_frame_equal
 
 from cameo import load_model, fba, config
 from cameo.util import RandomGenerator as Random
-from cameo.strain_design.heuristic.optimization import HeuristicOptimization, ReactionKnockoutOptimization, set_distance_function
+from cameo.strain_design.heuristic.optimization import HeuristicOptimization, ReactionKnockoutOptimization, \
+    set_distance_function
 from cameo.strain_design.heuristic.archivers import SolutionTuple, BestSolutionArchiver
 from cameo.strain_design.heuristic.decoders import ReactionKnockoutDecoder, KnockoutDecoder, GeneKnockoutDecoder
-from cameo.strain_design.heuristic.generators import set_generator, unique_set_generator
+from cameo.strain_design.heuristic.generators import set_generator, unique_set_generator, \
+    multiple_chromosome_set_generator
 from cameo.strain_design.heuristic.objective_functions import biomass_product_coupled_yield, product_yield, \
     number_of_knockouts
 from cobra.manipulation.delete import find_gene_knockout_reactions
@@ -294,6 +296,39 @@ class TestGeneratos(unittest.TestCase):
         self.args = {}
         self.args.setdefault('representation', [r.id for r in self.model.reactions])
         self.random = Random()
+
+    def test_set_generator(self):
+        random = Random(SEED)
+        representation = ["a", "b", "c", "d", "e", "f"]
+        candidate_size = 5
+        variable_candidate_size = False
+        expected = [[3, 5, 4, 4, 0],
+                    [1, 1, 1, 2, 3],
+                    [4, 4, 2, 2, 0],
+                    [0, 4, 5, 0, 1],
+                    [2, 0, 3, 4, 5],
+                    [2, 2, 3, 3, 0]]
+
+        for i in range(len(expected)-1):
+            candidate = set_generator(random, dict(representation=representation,
+                                                   candidate_size=candidate_size,
+                                                   variable_candidate_size=variable_candidate_size))
+            self.assertEqual(candidate, expected[i])
+
+    def test_multiple_chromossome_set_generator(self):
+        random = Random(SEED)
+        args = dict(keys=["test_key_1", "test_key_2"],
+                    test_key_1_representation=["a1", "a2", "a3", "a4", "a5"],
+                    test_key_2_representation=["b1", "b2", "b3", "b4", "b5", "b6", "b7"],
+                    test_key_1_candidate_size=3,
+                    test_key_2_candidate_size=5,
+                    variable_candidate_size=False)
+        candidate = multiple_chromosome_set_generator(random, args)
+
+        self.assertEqual(len(candidate['test_key_1']), 3)
+
+        self.assertEqual(len(candidate['test_key_2']), 5)
+
 
     def test_fixed_size_generator(self):
         self.args.setdefault('variable_candidate_size', False)
