@@ -56,6 +56,22 @@ class MultiprocessRunner():
 
 
 class MultiprocessHeuristicOptimization(StrainDesignMethod):
+    """
+    Heuristic Optimization abstract implementation.
+
+    Arguments
+    =========
+
+    model: SolverBasedModel
+        A model to simulate.
+    objective_function: a list of or one objective_function
+        The objective for the algorithm to optimize.
+    heuristic_method: inspyred.ec instance
+        The method using for search (default: inspyred.ec.GA).
+    max_migrants: int
+        The number of individuals travelling between islands (different processes) at the same time (default: 1).
+
+    """
     _island_class = None
 
     def __init__(self, model=None, objective_function=None, heuristic_method=inspyred.ec.GA, max_migrants=1, *args,
@@ -89,6 +105,23 @@ class MultiprocessHeuristicOptimization(StrainDesignMethod):
 
 
 class MultiprocessKnockoutOptimization(MultiprocessHeuristicOptimization):
+    """
+    Heuristic Knockout Optimization Abstract implementation.
+
+    Arguments
+    =========
+
+    model: SolverBasedModel
+        A model to simulate.
+    objective_function: a list of or one objective_function
+        The objective for the algorithm to optimize.
+    heuristic_method: inspyred.ec instance
+        The method using for search (default: inspyred.ec.GA).
+    max_migrants: int
+        The number of individuals travelling between islands (different processes) at the same time (default: 1).
+    simulation_method: a function from flux_analysis.simulation
+        The method to simulate the model (default: pfba).
+    """
     def __init__(self, simulation_method=pfba, *args, **kwargs):
         super(MultiprocessKnockoutOptimization, self).__init__(*args, **kwargs)
         self.simulation_method = simulation_method
@@ -137,6 +170,23 @@ class MultiprocessKnockoutOptimization(MultiprocessHeuristicOptimization):
 
 
 class MultiprocessReactionKnockoutOptimization(MultiprocessKnockoutOptimization):
+    """
+    Heuristic Knockout Optimization Abstract implementation.
+
+    Arguments
+    =========
+
+    model: SolverBasedModel
+        A model to simulate.
+    objective_function: a list of or one objective_function
+        The objective for the algorithm to optimize.
+    heuristic_method: inspyred.ec instance
+        The method using for search (default: inspyred.ec.GA).
+    max_migrants: int
+        The number of individuals travelling between islands (different processes) at the same time (default: 1).
+    simulation_method: a function from flux_analysis.simulation
+        The method to simulate the model (default: pfba).
+    """
     _island_class = ReactionKnockoutOptimization
 
     def __init__(self, reactions=None, essential_reactions=None, *args, **kwargs):
