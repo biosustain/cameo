@@ -67,7 +67,7 @@ def get_sbml_file(index, host="http://darwin.di.uminho.pt/models"):
     response = requests.get(uri)
     if response.status_code == 200:
 
-        temp.write(response.text)
+        temp.write(response.text.encode('utf-8'))
         temp.flush()
         return temp
     raise NotFoundException("sbml", index)
