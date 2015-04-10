@@ -21,6 +21,7 @@ import copy
 import unittest
 
 from cobra import Metabolite
+import numpy
 from optlang import Objective
 from cobra.io import read_sbml_model
 import optlang
@@ -96,10 +97,6 @@ class AbstractTestReaction(object):
             self.assertEqual(cloned_reaction.metabolites, reaction.metabolites)
             self.assertEqual(cloned_reaction.products, reaction.products)
             self.assertEqual(cloned_reaction.reactants, reaction.reactants)
-            self.assertEqual(cloned_reaction.model, None)
-            self.assertEqual(cloned_reaction.variable, None)
-            self.assertEqual(cloned_reaction.reverse_variable, None)
-
     def test_str(self):
         self.assertTrue(self.model.reactions[0].__str__().startswith('ACALD'))
 
@@ -138,10 +135,10 @@ class AbstractTestReaction(object):
         acald_reaction.upper_bound = acald_reaction.lower_bound - 100
         self.assertEqual(acald_reaction.lower_bound, -1000099.0)
         self.assertEqual(acald_reaction.upper_bound, -1000099.0)
-        self.assertEqual(acald_reaction.variable.lb, -1000099.0)
-        self.assertEqual(acald_reaction.variable.ub, -1000099.0)
-        self.assertEqual(acald_reaction.reverse_variable.lb, 0)
-        self.assertEqual(acald_reaction.reverse_variable.ub, 0)
+        self.assertEqual(acald_reaction.variable.lb, 0)
+        self.assertEqual(acald_reaction.variable.ub, 0)
+        self.assertEqual(acald_reaction.reverse_variable.lb, 1000099.)
+        self.assertEqual(acald_reaction.reverse_variable.ub, 1000099.)
         acald_reaction.upper_bound = 100
         self.assertEqual(acald_reaction.lower_bound, -1000099.0)
         self.assertEqual(acald_reaction.upper_bound, 100)
@@ -216,7 +213,8 @@ class AbstractTestReaction(object):
         self.assertEqual(pfk_reaction.upper_bound, 999999.)
         self.assertEqual(pfk_reaction.variable.lb, 0.)
         self.assertEqual(pfk_reaction.variable.ub, 999999.)
-        self.assertEqual(pfk_reaction.reverse_variable, None)
+        self.assertEqual(pfk_reaction.reverse_variable.lb, 0)
+        self.assertEqual(pfk_reaction.reverse_variable.ub, 0)
         pfk_reaction.lower_bound = -100.
         self.assertEqual(pfk_reaction.lower_bound, -100.)
         self.assertEqual(pfk_reaction.upper_bound, 999999.)
@@ -239,15 +237,20 @@ class AbstractTestReaction(object):
         self.assertEqual(pfk_reaction.upper_bound, 999999.)
         self.assertEqual(pfk_reaction.variable.lb, 0.)
         self.assertEqual(pfk_reaction.variable.ub, 999999.)
-        self.assertEqual(pfk_reaction.reverse_variable, None)
+        self.assertEqual(pfk_reaction.reverse_variable.lb, 0)
+        self.assertEqual(pfk_reaction.reverse_variable.ub, 0)
         pfk_reaction.upper_bound = -100.
-        self.assertEqual(pfk_reaction.reverse_variable, None)
+        self.assertEqual(pfk_reaction.forward_variable.lb, 0)
+        self.assertEqual(pfk_reaction.forward_variable.ub, 0)
+        self.assertEqual(pfk_reaction.reverse_variable.lb, 100)
+        self.assertEqual(pfk_reaction.reverse_variable.ub, 100)
         pfk_reaction.lower_bound = -999999.
         self.assertEqual(pfk_reaction.lower_bound, -999999.)
         self.assertEqual(pfk_reaction.upper_bound, -100.)
-        self.assertEqual(pfk_reaction.variable.lb, -999999.)
-        self.assertEqual(pfk_reaction.variable.ub, -100)
-        self.assertEqual(pfk_reaction.reverse_variable, None)
+        self.assertEqual(pfk_reaction.variable.lb, 0)
+        self.assertEqual(pfk_reaction.variable.ub, 0)
+        self.assertEqual(pfk_reaction.reverse_variable.lb, 100)
+        self.assertEqual(pfk_reaction.reverse_variable.ub, 999999.)
         # self.assertEqual(pfk_reaction.reverse_variable.lb, 0.)
         # self.assertEqual(pfk_reaction.reverse_variable.ub, 0.)
 
@@ -260,9 +263,10 @@ class AbstractTestReaction(object):
         model.add_reaction(rxn)
         self.assertEqual(rxn.lower_bound, -999999.)
         self.assertEqual(rxn.upper_bound, -100.)
-        self.assertEqual(rxn.variable.lb, -999999.)
-        self.assertEqual(rxn.variable.ub, -100.)
-        self.assertEqual(rxn.reverse_variable, None)
+        self.assertEqual(rxn.variable.lb, 0.)
+        self.assertEqual(rxn.variable.ub, 0.)
+        self.assertEqual(rxn.reverse_variable.lb, 100.)
+        self.assertEqual(rxn.reverse_variable.ub, 999999.)
         rxn.upper_bound = 666.
         self.assertEqual(rxn.lower_bound, -999999.)
         self.assertEqual(rxn.upper_bound, 666.)
@@ -343,15 +347,15 @@ class AbstractTestReaction(object):
         d1.upper_bound = 0
         d1.lower_bound = -1000
         model.add_reactions([d1])
-        self.assertEqual(d1.reverse_variable, None)
+        self.assertEqual(d1.reverse_variable.lb, 0)
+        self.assertEqual(d1.reverse_variable.ub, 1000)
         self.assertEqual(d1._lower_bound, -1000)
         self.assertEqual(d1.lower_bound, -1000)
         self.assertEqual(d1._upper_bound, 0)
         self.assertEqual(d1.upper_bound, 0)
-        self.assertEqual(d1.variable.lb, -1000)
+        self.assertEqual(d1.variable.lb, 0)
         self.assertEqual(d1.variable.ub, 0)
         d1.upper_bound = .1
-        self.assertTrue(d1.reverse_variable is not None)
         self.assertEqual(d1.variable.lb, 0)
         self.assertEqual(d1.variable.ub, .1)
         self.assertEqual(d1.reverse_variable.lb, 0)
@@ -367,7 +371,8 @@ class AbstractTestReaction(object):
         self.assertEqual(self.model.reactions.PFK.upper_bound, 999999.0)
         self.assertEqual(self.model.reactions.PFK.variable.lb, 0)
         self.assertEqual(self.model.reactions.PFK.variable.ub, 999999.0)
-        self.assertEqual(self.model.reactions.PFK.reverse_variable, None)
+        self.assertEqual(self.model.reactions.PFK.reverse_variable.lb, 0)
+        self.assertEqual(self.model.reactions.PFK.reverse_variable.ub, 0)
         self.model.reactions.PFK.lower_bound = -1000000000
         self.assertEqual(self.model.reactions.PFK.lower_bound, -1000000000)
         self.assertEqual(self.model.reactions.PFK.upper_bound, 999999.0)
@@ -382,15 +387,16 @@ class AbstractTestReaction(object):
         self.assertEqual(self.model.reactions.PFK.upper_bound, 999999.0)
         self.assertEqual(self.model.reactions.PFK.variable.lb, 0)
         self.assertEqual(self.model.reactions.PFK.variable.ub, 999999.0)
-        self.assertEqual(self.model.reactions.PFK.reverse_variable, None)
+        self.assertEqual(self.model.reactions.PFK.reverse_variable.lb, 0)
+        self.assertEqual(self.model.reactions.PFK.reverse_variable.ub, 0)
         self.model.reactions.PFK.lower_bound = -1000000000
         self.model.reactions.PFK.upper_bound = 0
         self.assertEqual(self.model.reactions.PFK.lower_bound, -1000000000)
         self.assertEqual(self.model.reactions.PFK.upper_bound, 0)
-        self.assertEqual(self.model.reactions.PFK.variable.lb, -1000000000)
+        self.assertEqual(self.model.reactions.PFK.variable.lb, 0)
         self.assertEqual(self.model.reactions.PFK.variable.ub, 0)
         self.assertEqual(self.model.reactions.PFK.reverse_variable.lb, 0)
-        self.assertEqual(self.model.reactions.PFK.reverse_variable.ub, 0)
+        self.assertEqual(self.model.reactions.PFK.reverse_variable.ub, 1000000000)
 
     def test_iMM904_4HGLSDm_problem(self):
         model = load_model(os.path.join(TESTDIR, 'data/iMM904.xml'))
@@ -485,13 +491,13 @@ class AbstractTestSolverBasedModel(object):
         for reaction in model.reactions:
             self.assertEqual(reaction, self.model.reactions.get_by_id(reaction.id))
 
-    def test_reactions_and_variables_match(self):
-        self.model.reversible_encoding = 'unsplit'
-        reactions = self.model.reactions
-        for reaction in reactions:
-            self.assertIn(reaction.id, list(self.model.solver.variables.keys()))
-            self.assertEqual(reaction.lower_bound, self.model.solver.variables[reaction.id].lb)
-            self.assertEqual(reaction.upper_bound, self.model.solver.variables[reaction.id].ub)
+    # def test_reactions_and_variables_match(self):
+    #     self.model.reversible_encoding = 'unsplit'
+    #     reactions = self.model.reactions
+    #     for reaction in reactions:
+    #         self.assertIn(reaction.id, list(self.model.solver.variables.keys()))
+    #         self.assertEqual(reaction.lower_bound, self.model.solver.variables[reaction.id].lb)
+    #         self.assertEqual(reaction.upper_bound, self.model.solver.variables[reaction.id].ub)
 
     def test_add_reactions(self):
         r1 = Reaction('r1')
@@ -504,7 +510,6 @@ class AbstractTestSolverBasedModel(object):
         self.assertEqual(self.model.reactions[-2], r1)
         self.assertEqual(self.model.reactions[-1], r2)
         self.assertTrue(isinstance(self.model.reactions[-2].reverse_variable, self.model.solver.interface.Variable))
-        self.assertTrue(self.model.reactions[-1].reverse_variable is None)
 
     def test_all_objects_point_to_all_other_correct_objects(self):
         model = load_model(os.path.join(TESTDIR, 'data/EcoliCore.xml'))
@@ -613,9 +618,6 @@ class AbstractTestSolverBasedModel(object):
         for key in list(solution.keys()):
             self.assertAlmostEqual(new_solution.x_dict[key], solution[key])
 
-    def test_set_wrong_variable_encoding_raises(self):
-        self.assertRaises(ValueError, setattr, self.model, 'reversible_encoding', 'bonkers')
-
     def test_invalid_solver_change_raises(self):
         self.assertRaises(ValueError, setattr, self.model, 'solver', [1,2,3])
         self.assertRaises(ValueError, setattr, self.model, 'solver', 'ThisIsDefinitelyNotAvalidSolver')
@@ -639,10 +641,10 @@ class AbstractTestSolverBasedModel(object):
         model_cp = copy.copy(self.model)
         primals_original = [variable.primal for variable in self.model.solver.variables]
         primals_copy = [variable.primal for variable in model_cp.solver.variables]
-        self.assertEqual(primals_copy, primals_original)
+        abs_diff = abs(numpy.array(primals_copy) - numpy.array(primals_original))
+        self.assertFalse(any(abs_diff > 1e-6))
 
     def test_essential_genes(self):
-        self.model.reversible_encoding = 'split'
         essential_genes = [g.id for g in self.model.essential_genes()]
         self.assertTrue(sorted(essential_genes) == sorted(ESSENTIAL_GENES))
 
@@ -675,7 +677,7 @@ class AbstractTestSolverBasedModel(object):
         self.assertAlmostEqual(solution.f, 0.870407873712)
         self.assertAlmostEqual(2*solution.x_dict['PGI'], solution.x_dict['G6PDH2r'])
         cp = self.model.copy()
-        cp.reversible_encoding = 'unsplit'
+
         ratio_constr = cp.add_ratio_constraint(cp.reactions.PGI, cp.reactions.G6PDH2r, 0.5)
         self.assertEqual(ratio_constr.name, 'ratio_constraint_PGI_G6PDH2r')
         solution = cp.solve()

@@ -22,7 +22,6 @@ from six import types
 
 from sympy import Add
 from sympy import Mul
-from sympy import RealNumber
 
 from cameo.core.result import FluxDistributionResult
 from cameo.core.solution import SolutionBase
@@ -180,30 +179,20 @@ class RegulatoryOnOffDistance(Distance):
 
     def _add_switch_constraint(self, reaction_id, flux_value, delta=0.03, epsilon=0.001):
         reaction = self.model.reactions.get_by_id(reaction_id)
-        var_id = "y_%s" % reaction_id
-        var = self.model.solver.interface.Variable(var_id, type="binary")
-        self.model.solver._add_variable(var)
-        self._aux_variables[var.name] = var
+        switch_variable = self.model.solver.interface.Variable("y_"+reaction_id, type="binary")
+        self.model.solver._add_variable(switch_variable)
+        self._aux_variables[switch_variable.name] = switch_variable
 
-        constraint_a_id = "c_%s_lb" % reaction_id
         w_u = flux_value + delta * abs(flux_value) + epsilon
-        # vi - yi(vmaxi + w_ui) >= w_ui
-        expression = add([
-            reaction.variable,
-            mul([RealNumber(-reaction.upper_bound + w_u), var])])
-        constraint_a = self.model.solver.interface.Constraint(expression, ub=w_u, name=constraint_a_id)
-
-        self._switch_constraints[constraint_a.name] = constraint_a
-        w_l = flux_value - delta * abs(flux_value) - epsilon
-        constraint_b_id = "c_%s_ub" % reaction_id
-        # vi - yi(vmini - w_li) <= w_li
-        expression = add([
-            reaction.variable,
-            mul([RealNumber(-reaction.lower_bound + w_l), var])])
-        constraint_b = self.model.solver.interface.Constraint(expression, lb=w_l, name=constraint_b_id)
-
-        self._switch_constraints[constraint_b.name] = constraint_b
+        expression = reaction.flux_expression - switch_variable * (reaction.upper_bound - w_u)
+        constraint_a = self.model.solver.interface.Constraint(expression, ub=w_u, name="switch_constraint_%s_lb" % reaction_id)
         self.model.solver._add_constraint(constraint_a)
+        self._switch_constraints[constraint_a.name] = constraint_a
+
+        w_l = flux_value - delta * abs(flux_value) - epsilon
+        expression = reaction.flux_expression - switch_variable * (reaction.lower_bound - w_l)
+        constraint_b = self.model.solver.interface.Constraint(expression, lb=w_l, name="switch_constraint_%s_ub" % reaction_id)
+        self._switch_constraints[constraint_b.name] = constraint_b
         self.model.solver._add_constraint(constraint_b)
 
     def minimize(self, *args, **kwargs):

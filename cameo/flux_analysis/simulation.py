@@ -78,8 +78,6 @@ def pfba(model, objective=None, *args, **kwargs):
     """
     with TimeMachine() as tm:
         original_objective = model.objective.expression
-        tm(do=partial(setattr, model, 'reversible_encoding', 'split'),
-           undo=partial(setattr, model, 'reversible_encoding', model.reversible_encoding))
         try:
             if objective is not None:
                 tm(do=partial(setattr, model, 'objective', objective),
@@ -320,8 +318,6 @@ def _cycle_free_flux(model, fluxes, fix=[]):
     # import time
     tm = TimeMachine()
     try:
-        tm(do=partial(setattr, model, 'reversible_encoding', 'unsplit'),
-           undo=partial(setattr, model, 'reversible_encoding', model.reversible_encoding))
         exchange_reactions = model.exchanges
         exchange_ids = [exchange.id for exchange in exchange_reactions]
         internal_reactions = [reaction for reaction in model.reactions if reaction.id not in exchange_ids]

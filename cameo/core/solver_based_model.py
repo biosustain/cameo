@@ -73,7 +73,6 @@ class SolverBasedModel(_cobrapy.core.Model):
 
     def __init__(self, description=None, solver_interface=optlang, **kwargs):
         super(SolverBasedModel, self).__init__(description, **kwargs)
-        self._reversible_encoding = 'split'
         cleaned_reactions = _cobrapy.core.DictList()
         for reaction in self.reactions:
             if isinstance(reaction, Reaction):
@@ -147,12 +146,7 @@ class SolverBasedModel(_cobrapy.core.Model):
         if isinstance(value, str):
             value = self.reactions.get_by_id(value)
         if isinstance(value, Reaction):
-            if self.reversible_encoding == 'split' and value.reverse_variable is not None:
-                obj_expression = Add._from_args((Mul._from_args((S.One, value.variable)), Mul._from_args((S.NegativeOne, value.reverse_variable))))
-                self.solver.objective = self.solver.interface.Objective(obj_expression, sloppy=True)
-            else:
-                obj_expression = Mul._from_args((S.One, value.variable))
-                self.solver.objective = self.solver.interface.Objective(obj_expression, sloppy=True)
+            self.solver.objective = self.solver.interface.Objective(value.flux_expression, sloppy=True)
         elif isinstance(value, self.solver.interface.Objective):
             self.solver.objective = value
         # TODO: maybe the following should be allowed
@@ -192,12 +186,13 @@ class SolverBasedModel(_cobrapy.core.Model):
         for rxn in self.reactions:
             lower_bound, upper_bound = rxn._lower_bound, rxn._upper_bound
             if lower_bound < 0 and upper_bound > 0:  # i.e. lower_bound < 0 and upper_bound > 0
-                var = self.solver._add_variable(self.solver.interface.Variable(rxn.id, lb=0, ub=upper_bound))
+                var = self.solver._add_variable(self.solver.interface.Variable(rxn._get_forward_id(), lb=0, ub=upper_bound))
                 aux_var = self.solver._add_variable(
                     self.solver.interface.Variable(rxn._get_reverse_id(), lb=0, ub=-1 * lower_bound))
             else:
-                var = self.solver._add_variable(
-                    self.solver.interface.Variable(rxn.id, lb=lower_bound, ub=upper_bound))
+                var = self.solver._add_variable(self.solver.interface.Variable(rxn._get_forward_id(), lb=lower_bound, ub=upper_bound))
+                aux_var = self.solver._add_variable(
+                    self.solver.interface.Variable(rxn._get_reverse_id(), lb=0, ub=0))
             if rxn.objective_coefficient != 0.:
                 objective_terms.append(sympy.Mul._from_args((sympy.RealNumber(rxn.objective_coefficient), var)))
             for met, coeff in six.iteritems(rxn._metabolites):
@@ -220,29 +215,6 @@ class SolverBasedModel(_cobrapy.core.Model):
         objective_expression = sympy.Add._from_args(objective_terms)
         self.solver.objective = self.solver.interface.Objective(objective_expression, name='obj', direction='max')
 
-    @property
-    def reversible_encoding(self):
-        return self._reversible_encoding
-
-    @reversible_encoding.setter
-    def reversible_encoding(self, value):
-        if self._reversible_encoding == value:
-            pass
-        else:
-            if value == 'unsplit':
-                for reaction in self.reactions:
-                    if reaction.reversibility:
-                        reaction.variable.lb = -1 * reaction.reverse_variable.ub
-                        reaction.reverse_variable.ub = 0
-            elif value == 'split':
-                for reaction in self.reactions:
-                    if reaction.reversibility:
-                        reaction.reverse_variable.ub = -1 * reaction.variable.lb
-                        reaction.variable.lb = 0
-            else:
-                raise ValueError('%s is not a valid encoding. Try one of %s instead.' % (value, ('unsplit', 'split')))
-            self._reversible_encoding = value
-
     def add_metabolites(self, metabolite_list):
         super(SolverBasedModel, self).add_metabolites(metabolite_list)
         for met in metabolite_list:
@@ -263,24 +235,29 @@ class SolverBasedModel(_cobrapy.core.Model):
         constr_terms = dict()
         metabolites = {}
         for reaction in cloned_reaction_list:
-            if reaction.reversibility and self._reversible_encoding == "split":
-                reaction_variable = self.solver.interface.Variable(reaction.id, lb=0, ub=reaction._upper_bound)
-                aux_var = self.solver.interface.Variable(reaction._get_reverse_id(), lb=0, ub=-reaction._lower_bound)
-                self.solver._add_variable(aux_var)
-            else:
-                reaction_variable = self.solver.interface.Variable(reaction.id, lb=reaction._lower_bound,
-                                                                   ub=reaction._upper_bound)
-            self.solver._add_variable(reaction_variable)
+            if reaction.reversibility:
+                forward_variable = self.solver.interface.Variable(reaction._get_forward_id(), lb=0, ub=reaction._upper_bound)
+                reverse_variable = self.solver.interface.Variable(reaction._get_reverse_id(), lb=0, ub=-1*reaction._lower_bound)
+            elif 0 == reaction.lower_bound and reaction.upper_bound == 0:
+                forward_variable = self.solver.interface.Variable(reaction._get_forward_id(), lb=0, ub=0)
+                reverse_variable = self.solver.interface.Variable(reaction._get_reverse_id(), lb=0, ub=0)
+            elif reaction.lower_bound >= 0:
+                forward_variable = self.solver.interface.Variable(reaction.id, lb=reaction._lower_bound, ub=reaction._upper_bound)
+                reverse_variable = self.solver.interface.Variable(reaction._get_reverse_id(), lb=0, ub=0)
+            elif reaction.upper_bound <= 0:
+                forward_variable = self.solver.interface.Variable(reaction.id, lb=0, ub=0)
+                reverse_variable = self.solver.interface.Variable(reaction._get_reverse_id(), lb=-1*reaction._upper_bound, ub=-1*reaction._lower_bound)
+            self.solver._add_variable(forward_variable)
+            self.solver._add_variable(reverse_variable)
 
             for metabolite, coeff in six.iteritems(reaction.metabolites):
                 if metabolite.id in constr_terms:
                     constr_terms[metabolite.id].append(
-                        sympy.Mul._from_args([sympy.RealNumber(coeff), reaction_variable]))
+                        sympy.Mul._from_args([sympy.RealNumber(coeff), forward_variable]))
                 else:
-                    constr_terms[metabolite.id] = [sympy.Mul._from_args([sympy.RealNumber(coeff), reaction_variable])]
+                    constr_terms[metabolite.id] = [sympy.Mul._from_args([sympy.RealNumber(coeff), forward_variable])]
                     metabolites[metabolite.id] = metabolite
-                if reaction.reversibility and self._reversible_encoding == "split":
-                    constr_terms[metabolite.id].append(sympy.Mul._from_args([sympy.RealNumber(-1*coeff), aux_var]))
+                constr_terms[metabolite.id].append(sympy.Mul._from_args([sympy.RealNumber(-1*coeff), reverse_variable]))
 
         for met_id, terms in six.iteritems(constr_terms):
             expr = sympy.Add._from_args(terms)

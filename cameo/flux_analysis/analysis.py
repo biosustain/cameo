@@ -60,9 +60,6 @@ def flux_variability_analysis(model, reactions=None, fraction_of_optimum=0., rem
     if reactions is None:
         reactions = model.reactions
     with TimeMachine() as tm:
-        if model.reversible_encoding == 'split':
-            tm(do=partial(setattr, model, 'reversible_encoding', 'unsplit'),
-               undo=partial(setattr, model, 'reversible_encoding', 'split'))
         if fraction_of_optimum > 0.:
             try:
                 obj_val = model.solve().f
@@ -117,9 +114,6 @@ def phenotypic_phase_plane(model, variables=[], objective=None, points=20, view=
     if view is None:
         view = config.default_view
     with TimeMachine() as tm:
-        if model.reversible_encoding == 'split':
-            tm(do=partial(setattr, model, 'reversible_encoding', 'unsplit'),
-               undo=partial(setattr, model, 'reversible_encoding', 'split'))
         if objective is not None:
             tm(do=partial(setattr, model, 'objective', objective),
                undo=partial(setattr, model, 'objective', model.objective))
