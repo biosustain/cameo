@@ -111,8 +111,8 @@ def multiple_chromosome_set_generator(random, args):
     candidate = MultipleChromosomeGenome(keys=keys)
     for key in keys:
         key_args = {
-            'representation': args.get("%s_representation"),
-            'candidate_size': args.get("%s_candidate_size"),
+            'representation': args.get("%s_representation" % key),
+            'candidate_size': args.get("%s_candidate_size" % key),
             'variable_candidate_size': args.get('variable_candidate_size')
         }
         candidate[key] = unique_set_generator(random, key_args)

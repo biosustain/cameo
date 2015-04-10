@@ -2,8 +2,8 @@
 [run]
 branch = True
 source = cameo
-#omit =
-#    optlang/cplex_interface.py
+omit =
+    cameo/strain_design/heuristic/plotters.py
 
 [report]
 # Regexes for lines to exclude from consideration

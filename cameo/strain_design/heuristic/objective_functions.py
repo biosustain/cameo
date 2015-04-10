@@ -40,6 +40,10 @@ class ObjectiveFunction(object):
     def __call__(self, model, solution, decoded_representation):
         raise NotImplementedError
 
+    @property
+    def name(self):
+        raise NotImplementedError
+
 
 class biomass_product_coupled_yield(ObjectiveFunction):
     """
@@ -66,7 +70,8 @@ class biomass_product_coupled_yield(ObjectiveFunction):
     doi:10.1186/1471-2105-6-308
     """
 
-    def __init__(self, biomass, product, substrate):
+    def __init__(self, biomass, product, substrate, *args, **kwargs):
+        super(biomass_product_coupled_yield, self).__init__(*args, **kwargs)
         if isinstance(biomass, Reaction):
             biomass = biomass.id
         self.biomass = biomass
@@ -76,7 +81,6 @@ class biomass_product_coupled_yield(ObjectiveFunction):
         if isinstance(substrate, Reaction):
             substrate = substrate.id
         self.substrate = substrate
-        self.name = "bpcy = (%s * %s) / %s" % (biomass, product, substrate)
         self.__name__ = self.__class__.__name__
 
     def __call__(self, model, solution, decoded_representation):
@@ -92,6 +96,9 @@ class biomass_product_coupled_yield(ObjectiveFunction):
     def _repr_latex_(self):
         return "$$bpcy = \\frac{(%s * %s)}{%s}$$" % (self.biomass.replace("_", "\\_"), self.product.replace("_", "\\_"), self.substrate.replace("_", "\\_"))
 
+    @property
+    def name(self):
+        return "bpcy = (%s * %s) / %s" % (self.biomass, self.product, self.substrate)
 
 class product_yield(ObjectiveFunction):
     """
@@ -109,10 +116,10 @@ class product_yield(ObjectiveFunction):
     float
         fitness value
     """
-    def __init__(self, product, substrate):
+    def __init__(self, product, substrate, *args, **kwargs):
+        super(product_yield, self).__init__(*args, **kwargs)
         self.product = product
         self.substrate = substrate
-        self.name = "yield = (%s / %s)" % (product, substrate)
 
     def __call__(self, model, solution, decoded_representation):
         try:
@@ -124,6 +131,10 @@ class product_yield(ObjectiveFunction):
 
     def _repr_latex_(self):
         return "$$yield = \\frac{%s}{%s}$$" % (self.product, self.substrate)
+
+    @property
+    def name(self):
+        return "yield = (%s / %s)" % (self.product, self.substrate)
 
 
 class number_of_knockouts(ObjectiveFunction):
@@ -142,12 +153,9 @@ class number_of_knockouts(ObjectiveFunction):
         fitness value
     """
 
-    def __init__(self, sense='min'):
+    def __init__(self, sense='min', *args, **kwargs):
+        super(number_of_knockouts, self).__init__(*args, **kwargs)
         self.sense = sense
-        if sense == 'max':
-            self.name = "max #knockouts"
-        else:
-            self.name = "min #knockouts"
 
     def __call__(self, model, solution, decoded_representation):
         if self.sense == 'max':
@@ -157,3 +165,10 @@ class number_of_knockouts(ObjectiveFunction):
 
     def _repr_latex_(self):
         return "$$ %s\\:\\#knockouts $$" % self.sense
+
+    @property
+    def name(self):
+        if self.sense == 'max':
+            return "max #knockouts"
+        else:
+            return "min #knockouts"
