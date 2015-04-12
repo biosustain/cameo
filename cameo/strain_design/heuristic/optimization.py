@@ -42,7 +42,7 @@ import logging
 
 from functools import partial
 from cameo.util import RandomGenerator as Random
-from pandas.core.common import in_ipnb
+from cameo.config import in_ipnb
 from cameo.visualization import draw_knockout_result
 
 REACTION_KNOCKOUT_TYPE = "reaction"
@@ -184,7 +184,7 @@ class HeuristicOptimization(object):
                 raise TypeError("single objective heuristics do not support multiple objective functions")
         self._heuristic_method = heuristic_method(self.random)
 
-    def _evaluator(self):
+    def _evaluator(self, candidates, args):
         raise NotImplementedError
 
     def run(self, view=config.default_view, maximize=True, **kwargs):

@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 from __future__ import absolute_import, print_function
 
 from six.moves import zip
@@ -49,6 +50,7 @@ else:
             lines = ["%s, %s" % (x, y) for x, y in zip(self.solution.solutions['Size'], self.solution.solutions['Fitness'])]
             plot_scatter(lines, None, None, 20, "*", "blue", "Correlation between number of knockouts and fitness")
 
+
 class BokehStatsData(GenericStatsData):
     def __init__(self, *args, **kwargs):
         super(BokehStatsData, self).__init__(*args, **kwargs)
@@ -56,21 +58,20 @@ class BokehStatsData(GenericStatsData):
         self.ydr = Range1d(start=-0.5, end=20.5)
 
     def display(self):
-        output_notebook()
-        plot = figure(title="Knockout size distribution")
-        plot.quad(top=self.knockouts_hist, bottom=np.zeros(len(self.knockouts_hist)),
-                  left=self.knockouts_edges[:-1], right=self.knockouts_edges[1:],
-                  title="Knockout size distribution")
-        plot.xaxis.axis_label = "Number of knockouts"
-        plot.yaxis.axis_label = "Number of solutions"
-        show(plot)
+        output_notebook(url=config.bokeh_url)
+        p = figure(title="Knockout size distribution")
+        p.quad(top=self.knockouts_hist, bottom=np.zeros(len(self.knockouts_hist)),
+               left=self.knockouts_edges[:-1], right=self.knockouts_edges[1:])
+        p.xaxis.axis_label = "Number of knockouts"
+        p.yaxis.axis_label = "Number of solutions"
+        show(p)
 
-        plot = figure(title="Correlation between number of knockouts and fitness")
         fitness = self.solution.solutions['Fitness']
         if isinstance(fitness[0], Pareto):
             pass
         else:
-            plot.scatter(self.solution.solutions['Size'], self.solution.solutions['Fitness'])
-            plot.xaxis.axis_label = "Number of knockouts"
-            plot.yaxis.axis_label = "Fitness"
-        show(plot)
+            p = figure(title="Correlation between number of knockouts and fitness")
+            p.scatter(self.solution.solutions['Size'], self.solution.solutions['Fitness'])
+            p.xaxis.axis_label = "Number of knockouts"
+            p.yaxis.axis_label = "Fitness"
+            show(p)

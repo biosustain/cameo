@@ -9,8 +9,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 from __future__ import absolute_import, print_function
+
 
 from uuid import uuid1
 
@@ -21,15 +21,14 @@ from cameo import config
 
 if config.use_bokeh:
     from bokeh.plotting import *
-
+    from bokeh.models import GlyphRenderer
 
 class IPythonBokehFitnessPlotter(object):
     __name__ = "IPython Bokeh Fitness Plot"
 
-    def __init__(self, window_size=1000, url='default'):
+    def __init__(self, window_size=1000):
         self.iteration = 0
         self.window_size = window_size
-        self.url = url
         self.iterations = []
         self.fitness = []
         self.uuid = None
@@ -39,16 +38,15 @@ class IPythonBokehFitnessPlotter(object):
     def _set_plot(self):
         self.uuid = uuid1()
         try:
-            output_notebook(url=self.url, docname=str(self.uuid))
-            hold()
-            figure()
-            scatter([], [], tools='', title="Best solution fitness plot")
-            xaxis()[0].axis_label = "Iteration"
-            yaxis()[0].axis_label = "Fitness"
-            self.plot = curplot()
-            renderer = [r for r in self.plot.renderers if isinstance(r, Glyph)][0]
-            self.ds = renderer.data_source
-            show()
+            output_notebook(url=config.bokeh_url, docname=str(self.uuid))
+            p = figure(title="Best solution fitness plot", tools='')
+            p.scatter([], [])
+            p.xaxis.axis_label = "Iteration"
+            p.yaxis.axis_label = "Fitness"
+            self.plot = p
+            renderer = p.select(dict(type=GlyphRenderer))
+            self.ds = renderer[0].data_source
+            show(p)
             self.plotted = True
         except SystemExit as e:
             logger.info("Bokeh-server is not running. Skipping plotting.")
@@ -74,7 +72,7 @@ class IPythonBokehFitnessPlotter(object):
         if self.can_plot:
             self.ds.data['x'] = self.iterations[-self.window_size:]
             self.ds.data['y'] = self.fitness[-self.window_size:]
-            session().store_obj(self.ds)
+            cursession().store_objects(self.ds)
 
     def reset(self):
         self.iteration = 0
@@ -102,16 +100,15 @@ class IPythonBokehParetoPlotter(object):
     def _set_plot(self):
         try:
             self.uuid = uuid1()
-            output_notebook(url=self.url, docname=str(self.uuid))
-            hold()
-            figure()
-            scatter([], [], tools='', title="Multi-objective Pareto Fitness Plot")
-            xaxis()[0].axis_label = self.ofs[self.x].name
-            yaxis()[0].axis_label = self.ofs[self.y].name
-            self.plot = curplot()
-            renderer = [r for r in self.plot.renderers if isinstance(r, Glyph)][0]
-            self.ds = renderer.data_source
-            show()
+            output_notebook(url=config.bokeh_url, docname=str(self.uuid))
+            p = figure(tools='', title="Multi-objective Pareto Fitness Plot")
+            p.scatter([], [])
+            p.xaxis.axis_label = self.ofs[self.x].name
+            p.yaxis.axis_label = self.ofs[self.y].name
+            self.plot = p
+            renderer = p.select(dict(type=GlyphRenderer))
+            self.ds = renderer[0].data_source
+            show(p)
             self.plotted = True
         except SystemExit as e:
             logger.info("Bokeh-server is not running. Skipping plotting.")
@@ -130,7 +127,7 @@ class IPythonBokehParetoPlotter(object):
         if self.can_plot:
             self.ds.data['x'] = [e[self.x] for e in self.fitness]
             self.ds.data['y'] = [e[self.y] for e in self.fitness]
-            session().store_obj(self.ds)
+            cursession().store_objects(self.ds)
 
     def reset(self):
         self.fitness = []
@@ -156,10 +153,10 @@ class GeneFrequencyPlotter():
 
     def plot(self):
         self.uuid = uuid1()
-        output_notebook(url=self.url, docname=str(self.uuid))
-        figure()
+        output_notebook(url=config.bokeh_url, docname=str(self.uuid))
+        p = figure()
 
-        quad(top=self.freqs[:, 1], left=self.freqs[:, 1], bottom=np.zeros(len(self.freqs[:, 1])),
+        p.quad(top=self.freqs[:, 1], left=self.freqs[:, 1], bottom=np.zeros(len(self.freqs[:, 1])),
              right=self.freqs[:, 1], x_range=list(self.freqs[:, 0]))
-        xaxis().major_label_orientation = np.pi / 3
-        show()
+        p.xaxis.major_label_orientation = np.pi / 3
+        show(p)

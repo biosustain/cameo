@@ -25,10 +25,6 @@ import colorsys
 import pip
 import platform
 
-try:
-    from pandas.core.common import in_ipnb
-except:
-    pass
 import progressbar
 from numpy.random import RandomState
 
@@ -48,6 +44,9 @@ class RandomGenerator():
             b = a
             a = 0
         return self._random.randint(a, b)
+
+    def gauss(self, mean, stdev):
+        return self._random.normal(mean, stdev)
 
     def sample(self, population, k):
         if k == 0:

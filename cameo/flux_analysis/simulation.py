@@ -26,7 +26,6 @@ from sympy import Mul
 
 from cameo.util import TimeMachine
 from cameo.exceptions import SolveError
-from cameo.core.solution import Solution
 from cameo.core.result import FluxDistributionResult
 
 import logging
