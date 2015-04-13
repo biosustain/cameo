@@ -61,6 +61,7 @@ def index_models(host="http://darwin.di.uminho.pt/models"):
     else:
         raise Exception("Could not index available models. %s returned status code %d" % (host, response.status_code))
 
+
 def get_sbml_file(index, host="http://darwin.di.uminho.pt/models"):
     temp = tempfile.NamedTemporaryFile()
     uri = host + "/models/%i.sbml" % index
