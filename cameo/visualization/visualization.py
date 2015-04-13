@@ -25,11 +25,10 @@ import tempfile
 from functools import partial
 from io import BytesIO
 
-from pandas.core.common import in_ipnb
+from cameo.util import in_ipnb
 import networkx as nx
 
 import os
-from IPython.display import HTML, SVG
 from cameo.util import TimeMachine
 from cameo import Metabolite, Reaction
 
@@ -39,7 +38,7 @@ log = logging.getLogger(__name__)
 import collections
 import functools
 
-from IPython.display import HTML, SVG
+from IPython.display import HTML, SVG, Javascript, display
 
 
 class memoized(object):
@@ -208,7 +207,6 @@ def graph_to_svg(g, layout=nx.spring_layout):
 
 
 try:
-    from IPython.display import HTML, Javascript, display
     import uuid
     if not in_ipnb():
         raise ImportError
@@ -238,9 +236,10 @@ try:
             p = progress
             self._update(p)
 
-        def _update(self, p):
-            if p <= self.size:
-                display(Javascript("jQuery('#%s').val('%i')" % (self.id, p)))
+        def _update(self, v):
+            if v <= self.size:
+                p = v * 100 / self.size
+                display(Javascript("jQuery('#%s').val('%i')" % (self.id, v)))
                 display(Javascript("jQuery('#perc-%s').html('%i&#37;')" % (self.id, p)))
                 self.progress = p
             else:

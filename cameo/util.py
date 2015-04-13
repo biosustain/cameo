@@ -25,10 +25,6 @@ import colorsys
 import pip
 import platform
 
-try:
-    from pandas.core.common import in_ipnb
-except:
-    pass
 import progressbar
 from numpy.random import RandomState
 
@@ -262,3 +258,33 @@ def get_system_info():
                 platform=platform.platform(),
                 machine=platform.machine(),
                 system=platform.system())
+
+
+def in_ipnb():
+    """
+    Check if it is running inside an IPython Notebook (updated for new notebooks)
+    """
+    try:
+        import IPython
+        ip = IPython.get_ipython()
+
+        front_end = None
+        if "IPKernelApp" in ip.config:
+            front_end = ip.config.get('IPKernelApp').get("parent_appname")
+        elif "KernelApp" in ip.config:
+            front_end = ip.config.get('KernelApp').get("parent_appname")
+
+        if isinstance(front_end, IPython.config.loader.LazyConfigValue) or front_end is None:
+            if isinstance(ip, IPython.kernel.zmq.zmqshell.ZMQInteractiveShell):
+                return True
+            else:
+                return False
+        elif isinstance(front_end, six.string_types):
+            if 'ipython-notebook' in front_end.lower():
+                return True
+            elif 'notebook' in front_end.lower():
+                return True
+    except Exception as e:
+        print("Cannot determine if running a notebook because of %s" % e.message)
+        return False
+    return False

@@ -44,6 +44,8 @@ try:
 except ImportError:
     use_bokeh = False
 
+bokeh_url = 'default'
+
 try:
     import matplotlib
     use_matplotlib = True
