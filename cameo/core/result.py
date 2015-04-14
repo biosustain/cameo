@@ -17,10 +17,14 @@ from __future__ import absolute_import, print_function
 
 import time
 from datetime import datetime
-from cameo import system_info
+from optlang.interface import OptimizationExpression
+import sympy
+from sympy.parsing.sympy_parser import parse_expr
+from cameo import system_info, config
 import getpass
 
 import pandas
+from cameo.visualization import plotting
 
 
 class MetaInformation(object):
@@ -64,12 +68,29 @@ class Result(object):
     def data_frame(self):
         raise NotImplementedError
 
-class FluxDistributionResult(Result):
+    @property
+    def plot(self):
+        raise NotImplementedError
 
+
+class FluxDistributionResult(Result):
     def __init__(self, solution, *args, **kwargs):
         super(FluxDistributionResult, self).__init__(*args, **kwargs)
         self._fluxes = solution.fluxes
         self._objective_value = solution.f
+
+    def __getitem__(self, item):
+        if isinstance(item, str):
+            exp = parse_expr(item)
+        elif isinstance(item, OptimizationExpression):
+            exp = item.expression
+        elif isinstance(item, sympy.Expr):
+            exp = item
+        else:
+            raise KeyError(item)
+
+        return exp.evalf(n=config.ndecimals,
+                         subs={v: self.fluxes[v.name] for v in exp.atoms() if isinstance(v, sympy.Symbol)})
 
     @property
     def data_frame(self):
@@ -82,6 +103,32 @@ class FluxDistributionResult(Result):
     @property
     def objective_value(self):
         return self._objective_value
+
+    @property
+    def plot(self):
+        pass
+
+
+class PhenotypicPhasePlaneResult(Result):
+    def __init__(self, phase_plane, reaction_ids, *args, **kwargs):
+        super(PhenotypicPhasePlaneResult, self).__init__(*args, **kwargs)
+        self._phase_plane = phase_plane
+        self.reaction_ids = reaction_ids
+
+    @property
+    def data_frame(self):
+        return pandas.DataFrame(self._phase_plane)
+
+    @property
+    def plot(self):
+        for r_id in self.reaction_ids:
+            plotting.plot_production_envelope(self._phase_plane, key=r_id)
+
+    def __getitem__(self, item):
+        return self._phase_plane[item]
+
+    def iterrows(self):
+        return self._phase_plane.iterrows()
 
 
 if __name__ == '__main__':
