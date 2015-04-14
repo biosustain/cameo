@@ -30,7 +30,7 @@ import networkx as nx
 
 import os
 from cameo.util import TimeMachine
-from cameo import Metabolite, Reaction
+import cameo
 
 
 log = logging.getLogger(__name__)
@@ -189,13 +189,13 @@ def graph_to_svg(g, layout=nx.spring_layout):
     fig=plt.figure(figsize=(8, 8))
     ax = fig.add_subplot(111)
     # draw reaction nodes
-    rxn_nodes = [node for node in g.nodes() if isinstance(node, Reaction)]
+    rxn_nodes = [node for node in g.nodes() if isinstance(node, cameo.Reaction)]
     # draw metabolites
-    met_nodes = [node for node in g.nodes() if isinstance(node, Metabolite)]
+    met_nodes = [node for node in g.nodes() if isinstance(node, cameo.Metabolite)]
     nx.draw_networkx_edges(g, nodelist=met_nodes, pos=layout, ax=ax, edge_color='gray', arrows=False, node_color='b')
     labels = dict()
     for node in g.nodes():
-        if isinstance(node, Reaction):
+        if isinstance(node, cameo.Reaction):
             labels[node] = node.name
         else:
             labels[node] = node.name
