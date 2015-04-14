@@ -257,15 +257,10 @@ def room(model, reference=None, cache={}, volatile=True, delta=0.03, epsilon=0.0
 
             if not volatile and constraint_a_id in cache['constraints']:
                 constraint_a = cache['constraints'][constraint_a_id]
-                constraint_a._set_coefficients_low_level({var: -reaction.upper_bound + w_u})
+                constraint_a._set_coefficients_low_level({var: reaction.upper_bound - w_u})
                 constraint_a.ub = w_u
             else:
-
-                # vi - yi(vmaxi + w_ui) >= w_ui
-                expression = add([
-                    reaction.variable,
-                    mul([RealNumber(-reaction.upper_bound + w_u), var])])
-
+                expression = reaction.flux_expression - var * (reaction.upper_bound - w_u)
                 constraint_a = (model.solver.interface.Constraint(expression, ub=w_u, sloppy=True))
                 if not volatile:
                     cache['constraints'][constraint_a_id] = constraint_a
@@ -276,14 +271,10 @@ def room(model, reference=None, cache={}, volatile=True, delta=0.03, epsilon=0.0
 
             if not volatile and constraint_b_id in cache['constraints']:
                 constraint_b = cache['constraints'][constraint_b_id]
-                constraint_b._set_coefficients_low_level({var: -reaction.lower_bound + w_l})
+                constraint_b._set_coefficients_low_level({var: reaction.lower_bound - w_l})
                 constraint_b.lb = w_l
             else:
-                # vi - yi(vmini - w_li) <= w_li
-                expression = add([
-                    reaction.variable,
-                    mul([RealNumber(-reaction.lower_bound + w_l), var])])
-
+                expression = reaction.flux_expression - var * (reaction.lower_bound - w_l)
                 constraint_b = (model.solver.interface.Constraint(expression, lb=w_l, sloppy=True))
                 if not volatile:
                     cache['constraints'][constraint_b_id] = constraint_b
