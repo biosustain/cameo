@@ -18,6 +18,7 @@ __all__ = ['memoized', 'graph_to_svg', 'draw_knockout_result', 'inchi_to_svg', '
 
 import six
 
+import os
 import json
 import logging
 import subprocess
@@ -25,11 +26,10 @@ import tempfile
 from functools import partial
 from io import BytesIO
 
-from cameo.util import in_ipnb
 import networkx as nx
+from escher import Builder
 
-import os
-from cameo.util import TimeMachine
+from cameo.util import TimeMachine, in_ipnb
 from cameo import Metabolite, Reaction
 
 
@@ -131,7 +131,6 @@ cdf.embed("%s", 942, 678);
 
 
 def draw_knockout_result(model, map_name, simulation_method, knockouts, *args, **kwargs):
-    from escher import Builder
     tm = TimeMachine()
 
     try:
