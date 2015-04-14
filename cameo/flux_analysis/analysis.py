@@ -104,8 +104,8 @@ def phenotypic_phase_plane(model, variables=[], objective=None, points=20, view=
 
     Returns
     -------
-    pandas.DataFrame
-        Pandas DataFrame containing the phenotypic phase plane.
+    PhenotypicPhasePlaneResult
+        The phenotypic phase plane.
 
     """
     if isinstance(variables, str):
@@ -384,22 +384,22 @@ def _fbid_fva(model, knockouts, view):
     tm = TimeMachine()
     for reaction in model.reactions:
         if reaction.reversibility:
-            tm(do=partial(setattr, reaction, 'upper_bound', 1),
-               undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
             tm(do=partial(setattr, reaction, 'lower_bound', -1),
-               undo=partial(setattr, reaction, 'lower_bound', reaction.upper_bound))
-        else:
+               undo=partial(setattr, reaction, 'lower_bound', reaction.lower_bound))
             tm(do=partial(setattr, reaction, 'upper_bound', 1),
                undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
+        else:
             tm(do=partial(setattr, reaction, 'lower_bound', 0),
-               undo=partial(setattr, reaction, 'lower_bound', reaction.upper_bound))
+               undo=partial(setattr, reaction, 'lower_bound', reaction.lower_bound))
+            tm(do=partial(setattr, reaction, 'upper_bound', 1),
+               undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
 
     wt_fva = flux_variability_analysis(model, view)
     for reaction in knockouts:
         tm(do=partial(setattr, reaction, 'upper_bound', 0),
            undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
         tm(do=partial(setattr, reaction, 'lower_bound', 0),
-           undo=partial(setattr, reaction, 'lower_bound', reaction.upper_bound))
+           undo=partial(setattr, reaction, 'lower_bound', reaction.lower_bound))
 
     mt_fva = flux_variability_analysis(model, view)
 
