@@ -19,7 +19,7 @@ from __future__ import absolute_import, print_function
 import os
 import unittest
 
-from cameo.flux_analysis.simulation import fba, pfba, lmoma
+from cameo.flux_analysis.simulation import fba, pfba, lmoma, room
 from cameo.parallel import SequentialView, MultiprocessingView
 from cameo.io import load_model
 from cameo.flux_analysis.analysis import flux_variability_analysis, phenotypic_phase_plane, _cycle_free_fva
@@ -165,7 +165,8 @@ class AbstractTestSimulationMethods(object):
         fba_flux_sum = sum((abs(val) for val in list(fba_solution.fluxes.values())))
         pfba_solution = pfba(self.model)
         pfba_flux_sum = sum((abs(val) for val in list(pfba_solution.fluxes.values())))
-        self.assertTrue((pfba_flux_sum - fba_flux_sum) < 1e-6)  # looks like GLPK finds a parsimonious solution without the flux minimization objective
+        # looks like GLPK finds a parsimonious solution without the flux minimization objective
+        self.assertTrue((pfba_flux_sum - fba_flux_sum) < 1e-6)
 
     def test_pfba_iJO(self):
         fba_solution = fba(iJO_MODEL)
@@ -185,8 +186,16 @@ class AbstractTestSimulationMethods(object):
         lmoma_solution = lmoma(self.model, reference=ref)
         res = lmoma_solution.fluxes
         distance = sum([abs(res[v] - ref[v]) for v in list(res.keys())])
-        print(distance)
-        self.assertAlmostEqual(0, distance, delta=0.000001, msg="moma distance without knockouts must be 0")
+        self.assertAlmostEqual(0, distance, delta=0.000001, msg="lmoma distance without knockouts must be 0 (was %f)"
+                                                                % distance)
+
+    def test_room(self):
+        pfba_solution = pfba(self.model)
+        ref = pfba_solution.fluxes
+        room_solution = room(self.model, reference=ref)
+        distance = room_solution.objective_value
+        self.assertAlmostEqual(0, distance, delta=0.000001, msg="room distance without knockouts must be 0 (was %f)"
+                                                                % distance)
 
 
 class TestSimulationMethodsGLPK(AbstractTestSimulationMethods, unittest.TestCase):
