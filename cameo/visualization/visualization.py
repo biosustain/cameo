@@ -25,12 +25,13 @@ import tempfile
 from functools import partial
 from io import BytesIO
 
-from cameo.util import in_ipnb
 import networkx as nx
+from escher import Builder
 
 import os
-from cameo.util import TimeMachine
+from cameo.util import TimeMachine, in_ipnb
 import cameo
+
 
 
 log = logging.getLogger(__name__)
@@ -131,7 +132,6 @@ cdf.embed("%s", 942, 678);
 
 
 def draw_knockout_result(model, map_name, simulation_method, knockouts, *args, **kwargs):
-    from escher import Builder
     tm = TimeMachine()
 
     try:
