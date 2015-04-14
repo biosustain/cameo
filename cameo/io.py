@@ -30,16 +30,19 @@ import logging
 logger = logging.getLogger(__name__)
 
 def load_model(path_or_handle, solver_interface=optlang.glpk_interface, sanitize=True):
-    """Read a model from a file.
+    """Read a metabolic model .
 
     Parameters
     ----------
-    path_or_handle : path, fhandle
-        Either a file path or a file handle to a SBML or pickled model
+    path_or_handle : path, fhandle or name.
+        One of:
+            * file path of a model file;
+            * file handle to a SBML or pickled model; or
+            * the identifier of a model in a web database (optflux.org/models)
     solver_interface : solver_interface, optional
-        e.g. optlang.glpk_interface or any other optlang interface
+        E.g. optlang.glpk_interface or any other optlang interface.
     sanitize : boolean, optional
-        if reaction and metabolite IDs should be sanitized (works only for SBML models)
+        If reaction and metabolite IDs should be sanitized (works only for SBML models).
     """
 
     if isinstance(path_or_handle, str):
