@@ -316,3 +316,21 @@ class Reaction(_cobrapy.core.Reaction):
             time_machine(do=super(Reaction, self).knock_out, undo=partial(_, self, self.lower_bound, self.upper_bound))
         else:
             super(Reaction, self).knock_out()
+
+    def _repr_html_(self):
+        return """
+        <table>
+            <tr>
+                <td><strong>Id</strong></td><td>%s</td>
+            </tr>
+            <tr>
+                <td><strong>Stoichiometry</strong></td><td>%s</td>
+            </tr>
+            <tr>
+                <td><strong>Lower bound</strong></td><td>%f</td>
+            </tr>
+            <tr>
+                <td><strong>Upper bound</strong></td><td>%f</td>
+            </tr>
+        </table>
+        """ % (self.id, self.reaction, self.lower_bound, self.upper_bound)
