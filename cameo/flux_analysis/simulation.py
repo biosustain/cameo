@@ -11,6 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""
+Methods for simulating flux distributions.
+Currently implements:
+* fba - Flux Balance Analysis
+* pfba - Parsimonious Flux Balance Analysis
+* lmoma - (Linear) Minimization of Metabolic Adjustment
+* room - Regulatory On/Off Minimization
+
+"""
+
+
+
 
 from __future__ import absolute_import, print_function
 
@@ -49,7 +61,7 @@ def fba(model, objective=None, *args, **kwargs):
 
     Returns
     -------
-    LazySolution
+    FluxDistributionResult
         Contains the result of the linear solver.
 
     """
@@ -72,7 +84,7 @@ def pfba(model, objective=None, *args, **kwargs):
 
     Returns
     -------
-    LazySolution
+    FluxDistributionResult
         Contains the result of the linear solver.
 
     """
@@ -126,7 +138,7 @@ def lmoma(model, reference=None, cache={}, volatile=True, *args, **kwargs):
 
     Returns
     -------
-    LazySolution
+    FluxDistributionResult
         Contains the result of the linear solver.
 
     """
@@ -213,7 +225,7 @@ def lmoma(model, reference=None, cache={}, volatile=True, *args, **kwargs):
 
 
 def room(model, reference=None, cache={}, volatile=True, delta=0.03, epsilon=0.001, *args, **kwargs):
-    """Regulation On/Off Minimization.
+    """Regulatory On/Off Minimization [1].
 
     Parameters
     ----------
@@ -226,9 +238,13 @@ def room(model, reference=None, cache={}, volatile=True, delta=0.03, epsilon=0.0
 
     Returns
     -------
-    LazySolution
+    FluxDistributionResult
         Contains the result of the linear solver.
 
+    References
+    ----------
+    [1] Tomer Shlomi, Omer Berkman and Eytan Ruppin, "Regulatory on/off minimization of metabolic
+    flux changes after genetic perturbations", PNAS 2005 102 (21) 7695-7700; doi:10.1073/pnas.0406346102
     """
     original_objective = model.objective.expression
     if not volatile and not 'original_objective' in cache:
