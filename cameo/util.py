@@ -285,5 +285,6 @@ def in_ipnb():
             elif 'notebook' in front_end.lower():
                 return True
     except Exception as e:
+        logger.debug("Cannot determine if running a notebook because of %s" % e)
         return False
     return False
