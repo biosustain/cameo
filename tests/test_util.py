@@ -17,7 +17,7 @@ from __future__ import absolute_import, print_function
 import unittest
 from functools import partial
 
-from cameo.util import TimeMachine, generate_colors, Singleton
+from cameo.util import TimeMachine, generate_colors, Singleton, partition
 import six
 from six.moves import range
 
@@ -65,3 +65,28 @@ class TestSingleton(unittest.TestCase):
         s1 = Singleton()
         s2 = Singleton()
         self.assertEqual(s1, s2)
+
+
+class TestPartition(unittest.TestCase):
+    def test_partition(self):
+        chunks = 3
+        try:
+            xrange
+        except NameError:
+            xrange = range
+        iterables = [
+            [1, 2, 3, 4, 5, 6, 7, 8, 9],
+            set([5, 3, 8, 3, 8, 5, 8, 0, 10, 11, 15]),
+            xrange(29)
+        ]
+        for fixture in iterables:
+            test_output = partition(fixture, chunks)
+            self.assertEqual(len(fixture), sum(map(len, test_output)))
+            self.assertEqual(len(test_output), chunks)
+            for out_chunk in test_output:
+                self.assertTrue(set(out_chunk).issubset(set(fixture)))
+
+
+if __name__ == "__main__":
+    import nose
+    nose.runmodule()

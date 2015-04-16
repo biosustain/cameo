@@ -167,6 +167,14 @@ def partition(lst, n):
     return [lst[int(round(division * i)): int(round(division * (i + 1)))] for i in range(n)]
 
 
+def partition2(ite, n):
+    """Partition an iterable into n bite size chunks."""
+    # Returns a list of lists. Each output chunk is not a consecutive part of the input iterable.
+    out = [ [] for j in range(n) ]
+    for i, element in enumerate(ite):
+        out[i % n].append(element)
+    return out
+
 def generate_colors(n):
     hsv_tuples = [(v*1.0/n, 0.5, 0.5) for v in range(n)]
     color_map = {}
