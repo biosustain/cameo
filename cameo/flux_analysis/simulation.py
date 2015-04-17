@@ -124,7 +124,8 @@ def pfba(model, objective=None, *args, **kwargs):
 def moma(model, reference=None, *args, **kwargs):
     raise NotImplementedError('Quadratic MOMA not yet implemented.')
 
-def lmoma(model, reference=None, cache={}, volatile=True, *args, **kwargs):
+
+def lmoma(model, reference=None, cache=None, volatile=True, *args, **kwargs):
     """Linear Minimization Of Metabolic Adjustment.
 
     Parameters
@@ -142,13 +143,21 @@ def lmoma(model, reference=None, cache={}, volatile=True, *args, **kwargs):
         Contains the result of the linear solver.
 
     """
+    if cache is None:
+        cache = {}
+
+    assert isinstance(reference, (dict, FluxDistributionResult)), "reference must be a flux distribution (dict or " \
+                                                                  "FluxDistributionResult"
+
+
     original_objective = model.objective.expression
+    obj_terms = list()
+    constraints = list()
+    variables = list()
     if not volatile and not 'original_objective' in cache:
         cache['original_objective'] = original_objective
     try:
-        obj_terms = list()
-        constraints = list()
-        variables = list()
+
         for rid, flux_value in six.iteritems(reference):
             reaction = model.reactions.get_by_id(rid)
             pos_var_id = "u_%s_pos" % rid
@@ -175,15 +184,13 @@ def lmoma(model, reference=None, cache={}, volatile=True, *args, **kwargs):
             obj_terms.append(neg_var)
 
             # ui = vi - wt
-            reaction_variable = reaction.variable
-
             constraint_a_id = "c_%s_a" % rid
             if not volatile and constraint_a_id in cache['constraints']:
                 constraint_a = cache['constraints'][constraint_a_id]
                 constraint_a.lb = -flux_value
 
             else:
-                constraint_a = model.solver.interface.Constraint(add([pos_var, mul([NegativeOne, reaction_variable])]),
+                constraint_a = model.solver.interface.Constraint(pos_var - reaction.flux_expression,
                                                                  lb=-flux_value,
                                                                  sloppy=True)
                 if not volatile:
@@ -194,7 +201,7 @@ def lmoma(model, reference=None, cache={}, volatile=True, *args, **kwargs):
                 constraint_b = cache['constraints'][constraint_b_id]
                 constraint_b.lb = flux_value
             else:
-                constraint_b = model.solver.interface.Constraint(add([neg_var, reaction.variable]),
+                constraint_b = model.solver.interface.Constraint(neg_var + reaction.flux_expression,
                                                                  lb=flux_value,
                                                                  sloppy=True)
                 if not volatile:
@@ -246,13 +253,20 @@ def room(model, reference=None, cache={}, volatile=True, delta=0.03, epsilon=0.0
     [1] Tomer Shlomi, Omer Berkman and Eytan Ruppin, "Regulatory on/off minimization of metabolic
     flux changes after genetic perturbations", PNAS 2005 102 (21) 7695-7700; doi:10.1073/pnas.0406346102
     """
+    if cache is None:
+        cache = {}
+
+    assert isinstance(reference, (dict, FluxDistributionResult)), "reference must be a flux distribution (dict or " \
+                                                                  "FluxDistributionResult"
+
     original_objective = model.objective.expression
+    constraints = list()
+    variables = list()
+
     if not volatile and not 'original_objective' in cache:
         cache['original_objective'] = original_objective
     # upper and lower relax
 
-    constraints = list()
-    variables = list()
     try:
         for rid, flux_value in six.iteritems(reference):
             reaction = model.reactions.get_by_id(rid)
