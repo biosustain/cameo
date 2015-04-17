@@ -15,15 +15,17 @@
 
 from __future__ import absolute_import, print_function
 
+import getpass
+import pandas
+import cameo
+import sympy
 import time
+
+
 from datetime import datetime
 from optlang.interface import OptimizationExpression
-import sympy
 from sympy.parsing.sympy_parser import parse_expr
 from cameo import system_info, config
-import getpass
-
-import pandas
 from cameo.visualization import plotting
 
 
@@ -80,7 +82,9 @@ class FluxDistributionResult(Result):
         self._objective_value = solution.f
 
     def __getitem__(self, item):
-        if isinstance(item, str):
+        if isinstance(item, cameo.Reaction):
+            return self.fluxes[item.id]
+        elif isinstance(item, str):
             exp = parse_expr(item)
         elif isinstance(item, OptimizationExpression):
             exp = item.expression
@@ -90,7 +94,7 @@ class FluxDistributionResult(Result):
             raise KeyError(item)
 
         return exp.evalf(n=config.ndecimals,
-                         subs={v: self.fluxes[v.name] for v in exp.atoms() if isinstance(v, sympy.Symbol)})
+                         subs={v: self.fluxes[v.name] for v in exp.atoms(sympy.Symbol)})
 
     @property
     def data_frame(self):
@@ -107,6 +111,12 @@ class FluxDistributionResult(Result):
     @property
     def plot(self):
         pass
+
+    def iteritems(self):
+        return self.fluxes.iteritems()
+
+    def keys(self):
+        return self.fluxes.keys()
 
 
 class PhenotypicPhasePlaneResult(Result):

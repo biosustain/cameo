@@ -182,20 +182,18 @@ class AbstractTestSimulationMethods(object):
 
     def test_lmoma(self):
         pfba_solution = pfba(self.model)
-        ref = pfba_solution.fluxes
-        lmoma_solution = lmoma(self.model, reference=ref)
-        res = lmoma_solution.fluxes
-        distance = sum([abs(res[v] - ref[v]) for v in list(res.keys())])
-        self.assertAlmostEqual(0, distance, delta=0.000001, msg="lmoma distance without knockouts must be 0 (was %f)"
-                                                                % distance)
+        solution = lmoma(self.model, reference=pfba_solution)
+        distance = sum([abs(solution[v] - pfba_solution[v]) for v in list(pfba_solution.keys())])
+        self.assertAlmostEqual(0, distance,
+                               delta=0.000001,
+                               msg="lmoma distance without knockouts must be 0 (was %f)" % distance)
 
     def test_room(self):
         pfba_solution = pfba(self.model)
-        ref = pfba_solution.fluxes
-        room_solution = room(self.model, reference=ref)
-        distance = room_solution.objective_value
-        self.assertAlmostEqual(0, distance, delta=0.000001, msg="room distance without knockouts must be 0 (was %f)"
-                                                                % distance)
+        solution = room(self.model, reference=pfba_solution)
+        self.assertAlmostEqual(0, solution.objective_value,
+                               delta=0.000001,
+                               msg="room objective without knockouts must be 0 (was %f)" % solution.objective_value)
 
 
 class TestSimulationMethodsGLPK(AbstractTestSimulationMethods, unittest.TestCase):
