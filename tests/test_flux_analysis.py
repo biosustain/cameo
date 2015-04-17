@@ -22,7 +22,7 @@ import unittest
 from cameo.flux_analysis.simulation import fba, pfba, lmoma, room
 from cameo.parallel import SequentialView, MultiprocessingView
 from cameo.io import load_model
-from cameo.flux_analysis.analysis import flux_variability_analysis, phenotypic_phase_plane, _cycle_free_fva, fseof
+from cameo.flux_analysis.analysis import flux_variability_analysis, phenotypic_phase_plane, _cycle_free_fva
 
 import pandas
 from pandas.util.testing import assert_frame_equal
@@ -209,16 +209,6 @@ class TestSimulationMethodsCPLEX(AbstractTestSimulationMethods, unittest.TestCas
     def setUp(self):
         self.model = CORE_MODEL
         self.model.solver = 'cplex'
-
-
-class TestFSEOF(unittest.TestCase):
-    def setUp(self):
-        self.model = iJO_MODEL.copy()
-        self.model.solver = 'glpk'
-
-    def test_fseof(self):
-        fseof_result = fseof(self.model, enforced_reaction="EX_succ_LPAREN_e_RPAREN_")
-        self.assertIsInstance(fseof_result, list)
 
 
 if __name__ == '__main__':

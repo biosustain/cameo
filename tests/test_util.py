@@ -52,6 +52,7 @@ class TimeMachineTestCase(unittest.TestCase):
             tm(do=partial(l.append, 99), undo=partial(l.pop))
         self.assertEqual(l, [1, 2, 3, 4])
 
+
 class TestUtils(unittest.TestCase):
     def test_color_generation(self):
         for i in range(1, 100):
@@ -70,14 +71,10 @@ class TestSingleton(unittest.TestCase):
 class TestPartition(unittest.TestCase):
     def test_partition(self):
         chunks = 3
-        try:
-            xrange
-        except NameError:
-            xrange = range
         iterables = [
             [1, 2, 3, 4, 5, 6, 7, 8, 9],
             set([5, 3, 8, 3, 8, 5, 8, 0, 10, 11, 15]),
-            xrange(29)
+            range(29)
         ]
         for fixture in iterables:
             test_output = partition(fixture, chunks)
@@ -86,6 +83,8 @@ class TestPartition(unittest.TestCase):
             for out_chunk in test_output:
                 self.assertTrue(set(out_chunk).issubset(set(fixture)))
 
+        bad_input = 5
+        self.assertRaises(TypeError, partition, bad_input, chunks)
 
 if __name__ == "__main__":
     import nose

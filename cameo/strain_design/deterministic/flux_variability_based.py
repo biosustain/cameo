@@ -24,6 +24,7 @@ else:
 from pandas import DataFrame, pandas
 from progressbar import ProgressBar
 from progressbar.widgets import ETA, Bar
+from copy import copy
 
 from cameo import config, flux_variability_analysis, Reaction
 from cameo.parallel import SequentialView, MultiprocessingView
@@ -332,3 +333,80 @@ if __name__ == '__main__':
         #         result = diffFVA.run(surface_only=True, view=())
         # except:
         #     pass
+
+
+def fseof(model, enforced_reaction, max_enforced_flux=0.9, granularity=10, primary_objective=None, exclude=[]):
+    """
+    Performs a Flux Scanning based on Enforced Objective Flux (FSEOF) analysis.
+    :param model: SolverBasedModel
+    :param enforced_reaction: The flux that will be enforced.
+    :param max_enforced_flux: The maximal flux of secondary_objective that will be enforced, relative to the theoretical maximum.
+    :param granularity: The number of enforced flux levels.
+    :param primary_objective: The primary objective flux (defaults to model.objective)
+    :param exclude: Iterable of reactions or reaction ids that will not be included in the output.
+    :return: List of reactions that correlate with enforced flux.
+    """
+
+    model = model.copy()
+    ndecimals = config.ndecimals
+
+    # Convert enforced reaction to Reaction object
+    if not isinstance(enforced_reaction, Reaction):
+        enforced_reaction = model.reactions.get_by_id(enforced_reaction)
+    primary_objective = primary_objective or copy(model.objective)
+
+    # Exclude list
+    exclude_ids = []
+    for reaction in exclude:
+        if isinstance(reaction, Reaction):
+            exclude_ids.append(reaction.id)
+        else:
+            exclude_ids.append(reaction)
+
+    original_objective = copy(model.objective)
+    original_lb = enforced_reaction.lower_bound
+    original_ub = enforced_reaction.upper_bound
+
+    try:
+        # Find initial flux of enforced reaction
+        model.objective = primary_objective
+        initial_solution = model.solve()
+        initial_fluxes = initial_solution.fluxes
+        initial_flux = round(initial_fluxes[enforced_reaction.id], ndecimals)
+
+        # Find theoretical maximum of enforced reaction
+        model.objective = enforced_reaction
+        max_theoretical_flux = round(model.solve().fluxes[enforced_reaction.id], ndecimals)
+
+        max_flux = max_theoretical_flux * max_enforced_flux
+
+        # Calculate enforcement levels
+        enforcements = [initial_flux + (i+1)*(max_flux - initial_flux)/granularity for i in range(granularity)]
+
+        # FSEOF results
+        results = {reaction.id: [round(initial_fluxes[reaction.id], config.ndecimals)] for reaction in model.reactions}
+
+        # Scan fluxes for different levels of enforcement
+        model.objective = primary_objective
+        for enforcement in enforcements:
+            enforced_reaction.lower_bound = enforcement
+            enforced_reaction.upper_bound = enforcement
+            solution = model.solve()
+            for reaction_id, flux in solution.fluxes.items():
+                results[reaction_id].append(round(flux, config.ndecimals))
+
+    finally:
+        # Reset objective and bounds
+        enforced_reaction.lower_bound = original_lb
+        enforced_reaction.upper_bound = original_ub
+        model.objective = original_objective
+
+    # Test each reaction
+    fseof_reactions = []
+    for reaction_id, fluxes in results.items():
+        if abs(fluxes[-1]) > abs(fluxes[0]) and min(fluxes)*max(fluxes) >= 0:
+            fseof_reactions.append(reaction_id)
+
+    return fseof_reactions
+
+

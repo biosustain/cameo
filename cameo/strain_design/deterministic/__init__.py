@@ -12,4 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .flux_variability_based import DifferentialFVA
+from .flux_variability_based import DifferentialFVA, fseof

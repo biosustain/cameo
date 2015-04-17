@@ -85,66 +85,6 @@ def flux_variability_analysis(model, reactions=None, fraction_of_optimum=0., rem
     return solution
 
 
-def fseof(model, enforced_reaction, max_enforced_flux=0.9, granularity=10, primary_objective=None):
-    """
-    Performs a Flux Scanning based on Enforced Objective Flux (FSEOF) analysis.
-    :param model: SolverBasedModel
-    :param enforced_reaction: The flux that will be enforced.
-    :param max_enforced_flux: The maximal flux of secondary_objective that will be enforced, relative to the theoretical maximum.
-    :param granularity: The number of enforced flux levels.
-    :param primary_objective: The primary objective flux (defaults to model.objective)
-    :return: List of reactions that correlate with enforced flux.
-    """
-    # Convert enforced reaction to Reaction object
-    if not isinstance(enforced_reaction, cameo.core.reaction.Reaction):
-        enforced_reaction = model.reactions.get_by_id(enforced_reaction)
-    primary_objective = primary_objective or copy(model.objective)
-
-    original_objective = model.objective
-    original_lb = enforced_reaction.lower_bound
-    original_ub = enforced_reaction.upper_bound
-
-    try:
-        # Find initial flux of enforced reaction
-        model.objective = primary_objective
-        initial_solution = model.solve()
-        initial_fluxes = initial_solution.fluxes
-        initial_flux = initial_fluxes[enforced_reaction.id]
-
-        # Find theoretical maximum of enforced reaction
-        model.objective = enforced_reaction
-        max_theoretical_flux = model.solve().fluxes[enforced_reaction.id]
-
-        max_flux = max_theoretical_flux * max_enforced_flux
-
-        # Calculate enforcement levels
-        enforcements = [initial_flux + (i+1)*(max_flux - initial_flux)/granularity for i in range(granularity)]
-
-        # FSEOF results
-        results = {reaction.id: [initial_fluxes[reaction.id]] for reaction in model.reactions}
-
-        # Scan fluxes for different levels of enforcement
-        model.objective = primary_objective
-        for enforcement in enforcements:
-            enforced_reaction.lower_bound = enforcement
-            solution = model.solve()
-            for reaction_id, flux in solution.fluxes.items():
-                results[reaction_id].append(flux)
-
-    finally:
-        # Reset objective and bounds
-        enforced_reaction.lower_bound = original_lb
-        model.objective = original_objective
-
-    # Test each reaction
-    fseof_reactions = []
-    for reaction_id, fluxes in results.items():
-        if abs(fluxes[-1]) > abs(fluxes[0]) and min(fluxes)*max(fluxes) >= 0:
-            fseof_reactions.append(reaction_id)
-
-    return fseof_reactions
-
-
 def phenotypic_phase_plane(model, variables=[], objective=None, points=20, view=None):
     """Phenotypic phase plane analysis.
 
