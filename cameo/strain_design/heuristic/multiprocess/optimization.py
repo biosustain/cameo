@@ -21,7 +21,6 @@ from functools import reduce
 
 import inspyred
 
-from pandas.core.common import in_ipnb
 from cameo import util
 from cameo import config
 from cameo import parallel
@@ -135,7 +134,7 @@ class MultiprocessKnockoutOptimization(MultiprocessHeuristicOptimization):
         observers = []
         progress_observer = None
         plotting_observer = None
-        if in_ipnb():
+        if util.in_ipnb():
             color_map = util.generate_colors(number_of_islands)
             progress_observer = IPythonNotebookMultiprocessProgressObserver(number_of_islands=number_of_islands,
                                                                             color_map=color_map)

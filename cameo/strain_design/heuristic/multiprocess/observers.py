@@ -83,6 +83,8 @@ class CliMultiprocessProgressObserver(AbstractParallelObserver):
     Command line progress display for multiprocess run
     """
 
+    __name__ = "CLI Multiprocess Progress Observer"
+
     def __init__(self, *args, **kwargs):
         self.progress = {}
         self.terminal = Terminal()
@@ -144,6 +146,8 @@ class IPythonNotebookMultiprocessProgressObserver(AbstractParallelObserver):
     IPython Notebook Progress Observer for multiprocess run
     """
 
+    __name__ = "IPython Notebook Multiprocess Progress Observer"
+
     def __init__(self, color_map=None, *args, **kwargs):
         self.progress = {}
         self.color_map = color_map
@@ -151,7 +155,7 @@ class IPythonNotebookMultiprocessProgressObserver(AbstractParallelObserver):
 
     def _create_client(self, i):
         self.clients[i] = IPythonNotebookMultiprocessProgressObserverClient(queue=self.queue, index=i)
-        label = "Island %i" % i + 1
+        label = "Island %i" % (i + 1)
         self.progress[i] = ProgressBar(label=label, color=self.color_map[i])
 
     def _process_message(self, message):

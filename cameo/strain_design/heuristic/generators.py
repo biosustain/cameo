@@ -14,6 +14,8 @@
 
 from __future__ import absolute_import, print_function
 
+__all__ = ['set_generator', 'unique_set_generator']
+
 from inspyred.ec.generators import diversify
 from cameo.strain_design.heuristic.genomes import MultipleChromosomeGenome
 from six.moves import range
