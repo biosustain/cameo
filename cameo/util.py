@@ -172,11 +172,12 @@ def partition(ite, n):
     """Partition an iterable into n bite size chunks."""
     try:
         length = len(ite)
-    except AttributeError:
+    except TypeError:
         ite = list(ite)
         length = len(ite)
     division = length / float(n)
-    return [list(islice(ite, round(division * i), round(division * (i + 1)))) for i in range(n)]
+    iterator = iter(ite)
+    return [list(islice(iterator, 0, round(division * (i + 1)) - round(division * i))) for i in range(n)]
 
 
 def generate_colors(n):
