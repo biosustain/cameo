@@ -14,6 +14,9 @@
 
 from __future__ import absolute_import
 
+__all__ = ['ReactionKnockoutDecoder', 'GeneKnockoutDecoder']
+
+
 from cobra.manipulation.delete import find_gene_knockout_reactions
 
 

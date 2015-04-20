@@ -14,6 +14,9 @@
 
 from __future__ import absolute_import, print_function
 
+
+__all__ = ['set_mutation', 'set_indel']
+
 from six.moves import range
 
 from inspyred.ec.variators import mutator, crossover, n_point_crossover

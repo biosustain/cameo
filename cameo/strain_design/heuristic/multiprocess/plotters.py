@@ -28,6 +28,8 @@ if config.use_bokeh:
 
 
 class IPythonNotebookBokehMultiprocessPlotObserver(AbstractParallelObserver):
+    __name__ = "IPython Notebook Bokeh Multiprocess Plot Observer"
+
     def __init__(self, url='default', color_map={}, *args, **kwargs):
         super(IPythonNotebookBokehMultiprocessPlotObserver, self).__init__(*args, **kwargs)
         self.url = url
@@ -49,7 +51,7 @@ class IPythonNotebookBokehMultiprocessPlotObserver(AbstractParallelObserver):
         output_notebook(url=config.bokeh_url, docname=str(self.uuid))
         self.plot = figure(title="Best solution convergence plot", tools='')
         self.plot.scatter([], [], color=self.color_map, fill_alpha=0.2, size=7)
-        self.plot.x_axis.axis_label = "Iteration",
+        self.plot.xaxis.axis_label = "Iteration"
         self.plot.yaxis.axis_label = "Fitness"
 
         renderer = self.plot.select(dict(type=GlyphRenderer))
