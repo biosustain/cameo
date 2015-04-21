@@ -93,8 +93,7 @@ class FluxDistributionResult(Result):
         else:
             raise KeyError(item)
 
-        return exp.evalf(n=config.ndecimals,
-                         subs={v: self.fluxes[v.name] for v in exp.atoms(sympy.Symbol)})
+        return exp.evalf(subs={v: self.fluxes[v.name] for v in exp.atoms(sympy.Symbol)})
 
     @property
     def data_frame(self):
