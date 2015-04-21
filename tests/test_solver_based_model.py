@@ -607,6 +607,11 @@ class AbstractTestSolverBasedModel(object):
         for key in list(solution.keys()):
             self.assertAlmostEqual(new_solution.x_dict[key], solution[key])
 
+    def test_solver_change_preserves_non_metabolic_constraints(self):
+        all_constraint_ids = self.model.solver.constraints.keys()
+        self.model.solver = 'glpk'
+        self.assertEqual(self.model.solver.constraints.keys(), all_constraint_ids)
+
     def test_solver_change_with_optlang_interface(self):
         solver_id = id(self.model.solver)
         problem_id = id(self.model.solver.problem)

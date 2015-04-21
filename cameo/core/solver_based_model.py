@@ -173,8 +173,11 @@ class SolverBasedModel(_cobrapy.core.Model):
             interface = value
         else:
             raise not_valid_interface
+        non_metabolic_constraints = [constraint for constraint in self.solver.constraints if constraint.name not in self.metabolites]
         self._solver = interface.Model()
         self._populate_solver_from_scratch()  #FIXME: This ignores non-reaction variables and constraints
+        for constraint in non_metabolic_constraints:
+            self._solver._add_constraint(interface.Constraint.clone(constraint, model=self._solver))
 
     @property
     def exchanges(self):
