@@ -113,7 +113,7 @@ class FluxDistributionResult(Result):
         pass
 
     def iteritems(self):
-        return six.iteritems(self.fluxes.iteritems())
+        return six.iteritems(self.fluxes)
 
     def keys(self):
         return self.fluxes.keys()
