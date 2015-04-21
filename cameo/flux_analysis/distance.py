@@ -39,8 +39,9 @@ class Distance(object):
 
     @staticmethod
     def __check_valid_reference(reference):
-        if not isinstance(reference, types.DictType) and not isinstance(reference, SolutionBase):
-            raise ValueError('%s is not a valid reference flux distribution. Needs to be either a dict or Solution object.')
+        if not isinstance(reference, (types.DictType, SolutionBase, FluxDistributionResult)):
+            raise ValueError('%s is not a valid reference flux distribution.'
+                             'Needs to be either a dict or Solution or FluxDistributionResult.')
 
     def __init__(self, model, reference=None, *args, **kwargs):
         super(Distance, self).__init__(*args, **kwargs)
@@ -64,7 +65,7 @@ class Distance(object):
     def _set_new_reference(self, reference):
         raise NotImplementedError
 
-    def _prep_model(self):
+    def _prep_model(self, *args, **kwargs):
         raise NotImplementedError
 
     def minimize(self, *args, **kwargs):
@@ -97,7 +98,7 @@ class ManhattanDistance(Distance):
         self._deviation_constraints = dict()
         self._prep_model()
 
-    def _prep_model(self):
+    def _prep_model(self, *args, **kwargs):
         for rid, flux_value in self.reference.iteritems():
             self._add_deviavtion_constraint(rid, flux_value)
         objective = self.model.solver.interface.Objective(add(self._aux_variables.values()), name='deviations')
@@ -165,19 +166,19 @@ class RegulatoryOnOffDistance(Distance):
     reference : dict
     """
 
-    def __init__(self, model, reference=None, *args, **kwargs):
+    def __init__(self, model, reference=None, delta=0.03, epsilon=0.001, *args, **kwargs):
         super(RegulatoryOnOffDistance, self).__init__(model, reference=reference, *args, **kwargs)
         self._aux_variables = dict()
         self._switch_constraints = dict()
-        self._prep_model()
+        self._prep_model(delta=delta, epsilon=epsilon)
 
-    def _prep_model(self):
+    def _prep_model(self, delta=None, epsilon=None):
         for rid, flux_value in self.reference.iteritems():
-            self._add_switch_constraint(rid, flux_value)
+            self._add_switch_constraint(rid, flux_value, delta, epsilon)
         objective = self.model.solver.interface.Objective(add(self._aux_variables.values()), name='switches')
         self.model.objective = objective
 
-    def _add_switch_constraint(self, reaction_id, flux_value, delta=0.03, epsilon=0.001):
+    def _add_switch_constraint(self, reaction_id, flux_value, delta, epsilon):
         reaction = self.model.reactions.get_by_id(reaction_id)
         switch_variable = self.model.solver.interface.Variable("y_"+reaction_id, type="binary")
         self.model.solver._add_variable(switch_variable)
