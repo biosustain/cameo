@@ -18,7 +18,6 @@ from __future__ import absolute_import, print_function
 different notions of distance (L1, number of binary changes etc.) to a given reference flux distribution."""
 
 import six
-from six import types
 
 from sympy import Add
 from sympy import Mul
@@ -39,7 +38,7 @@ class Distance(object):
 
     @staticmethod
     def __check_valid_reference(reference):
-        if not isinstance(reference, (types.DictType, SolutionBase, FluxDistributionResult)):
+        if not isinstance(reference, (dict, SolutionBase, FluxDistributionResult)):
             raise ValueError('%s is not a valid reference flux distribution.'
                              'Needs to be either a dict or Solution or FluxDistributionResult.')
 
