@@ -20,6 +20,7 @@ import pandas
 import cameo
 import sympy
 import time
+import six
 
 
 from datetime import datetime
@@ -112,7 +113,7 @@ class FluxDistributionResult(Result):
         pass
 
     def iteritems(self):
-        return self.fluxes.iteritems()
+        return six.iteritems(self.fluxes.iteritems())
 
     def keys(self):
         return self.fluxes.keys()
