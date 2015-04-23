@@ -98,7 +98,7 @@ class ManhattanDistance(Distance):
         self._prep_model()
 
     def _prep_model(self, *args, **kwargs):
-        for rid, flux_value in self.reference.iteritems():
+        for rid, flux_value in six.iteritems(self.reference):
             self._add_deviavtion_constraint(rid, flux_value)
         objective = self.model.solver.interface.Objective(add(self._aux_variables.values()), name='deviations')
         self.model.objective = objective
@@ -164,7 +164,7 @@ class RegulatoryOnOffDistance(Distance):
         self._prep_model(delta=delta, epsilon=epsilon)
 
     def _prep_model(self, delta=None, epsilon=None):
-        for rid, flux_value in self.reference.iteritems():
+        for rid, flux_value in six.iteritems(self.reference):
             self._add_switch_constraint(rid, flux_value, delta, epsilon)
         objective = self.model.solver.interface.Objective(add(self._aux_variables.values()), name='switches')
         self.model.objective = objective

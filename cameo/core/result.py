@@ -112,6 +112,9 @@ class FluxDistributionResult(Result):
     def plot(self):
         pass
 
+    def iteritems(self):
+        return six.iteritems(self.fluxes)
+
     def items(self):
         return six.iteritems(self.fluxes)
 

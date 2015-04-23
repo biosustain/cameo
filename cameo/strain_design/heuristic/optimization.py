@@ -41,7 +41,6 @@ from pandas import DataFrame
 import inspyred
 import logging
 
-from functools import partial
 from cameo.util import RandomGenerator as Random
 from cameo.util import in_ipnb
 from cameo.visualization import draw_knockout_result
@@ -56,8 +55,8 @@ BIOMASS = 'Biomass'
 KNOCKOUTS = 'Knockouts'
 REACTIONS = 'Reactions'
 
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger('cameo')
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 PRE_CONFIGURED = {
     inspyred.ec.GA: [
@@ -504,7 +503,11 @@ class KnockoutOptimizationResult(core.result.Result):
 
             if proceed:
                 decoded_solution = self.decoder(solution.candidate)
-                simulation_result = self._simulate(decoded_solution[0])
+                try:
+                    simulation_result = self._simulate(decoded_solution[0])
+                except SolveError as e:
+                    logger.debug(e)
+                    continue
                 size = len(decoded_solution[1])
 
                 if self.biomass:
@@ -536,11 +539,8 @@ class KnockoutOptimizationResult(core.result.Result):
         with TimeMachine() as tm:
             for reaction in reactions:
                 reaction.knock_out(time_machine=tm)
-            try:
-                solution = self.simulation_method(self.model, reference=self.reference)
-            except SolveError as e:
-                logger.exception(e)
-        return solution
+            solution = self.simulation_method(self.model, reference=self.reference)
+            return solution
 
     def _repr_html_(self):
 
