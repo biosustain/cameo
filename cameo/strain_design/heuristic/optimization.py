@@ -45,6 +45,7 @@ from functools import partial
 from cameo.util import RandomGenerator as Random
 from cameo.util import in_ipnb
 from cameo.visualization import draw_knockout_result
+from cameo import core
 
 REACTION_KNOCKOUT_TYPE = "reaction"
 GENE_KNOCKOUT_TYPE = "gene"
@@ -409,7 +410,7 @@ class KnockoutOptimization(HeuristicOptimization):
 
 
 # TODO: Figure out a way to provide generic parameters for different simulation methods
-class KnockoutOptimizationResult(object):
+class KnockoutOptimizationResult(core.result.Result):
     @staticmethod
     def merge(a, b):
         return a._merge(b)
