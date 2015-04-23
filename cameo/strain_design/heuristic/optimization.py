@@ -262,11 +262,7 @@ class KnockoutEvaluator(object):
         reactions = decoded[0]
         with TimeMachine() as tm:
             for reaction in reactions:
-                tm(do=partial(setattr, reaction, 'lower_bound', 0),
-                   undo=partial(setattr, reaction, 'lower_bound', reaction.lower_bound))
-                tm(do=partial(setattr, reaction, 'upper_bound', 0),
-                   undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
-
+                reaction.knock_out(time_machine=tm)
             try:
                 solution = self.simulation_method(self.model,
                                                   cache=self.cache,
@@ -537,19 +533,13 @@ class KnockoutOptimizationResult(core.result.Result):
         return data_frame
 
     def _simulate(self, reactions):
-        tm = TimeMachine()
-        for reaction in reactions:
-            tm(do=partial(setattr, reaction, 'lower_bound', 0),
-               undo=partial(setattr, reaction, 'lower_bound', reaction.lower_bound))
-            tm(do=partial(setattr, reaction, 'upper_bound', 0),
-               undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
-
-        try:
-            solution = self.simulation_method(self.model, reference=self.reference)
-        except Exception as e:
-            logger.exception(e)
-
-        tm.reset()
+        with TimeMachine() as tm:
+            for reaction in reactions:
+                reaction.knock_out(time_machine=tm)
+            try:
+                solution = self.simulation_method(self.model, reference=self.reference)
+            except SolveError as e:
+                logger.exception(e)
         return solution
 
     def _repr_html_(self):
