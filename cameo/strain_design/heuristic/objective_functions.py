@@ -40,6 +40,9 @@ class ObjectiveFunction(object):
     def __call__(self, model, solution, decoded_representation):
         raise NotImplementedError
 
+    def _repr_latex_(self):
+        return self.__class__.__name__
+
     @property
     def name(self):
         raise NotImplementedError
