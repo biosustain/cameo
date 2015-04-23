@@ -271,70 +271,6 @@ class _DifferentialFvaEvaluator(object):
         target_reaction.lower_bound, target_reaction.upper_bound = target_bound, target_bound
 
 
-if __name__ == '__main__':
-    from cameo.io import load_model
-    from cameo.util import Timer
-
-    model = load_model(
-        '/Users/niko/Arbejder/Dev/cameo/tests/data/EcoliCore.xml')
-
-    solution = model.solve()
-    max_growth = solution.f
-
-    reference_model = model.copy()
-    biomass_rxn = model.reactions.get_by_id('Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2')
-    reference_model.reactions.get_by_id(
-        'Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2').lower_bound = max_growth
-
-    diffFVA = DifferentialFVA(design_space_model=model,
-                              reference_model=reference_model,
-                              objective='EX_succ_LPAREN_e_RPAREN_',
-                              variables=['Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2',
-                                         'EX_o2_LPAREN_e_RPAREN_'],
-                              normalize_ranges_by='Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2',
-                              points=10
-    )
-    result = diffFVA.run(surface_only=True, view=SequentialView())
-
-    with Timer('Sequential'):
-        result = diffFVA.run(surface_only=True, view=SequentialView())
-    with Timer('Multiprocessing'):
-        result = diffFVA.run(surface_only=True, view=MultiprocessingView())
-        # try:
-        # from IPython.parallel import Client
-        #     client = Client()
-        #     view = client.load_balanced_view()
-        #     view.block = True
-        # except:
-        #     pass
-        # else:
-        #     with Timer('IPython'):
-        #         result = diffFVA.run(surface_only=False, view=view)
-
-        # model = load_model(
-        #     '/Users/niko/Arbejder/Dev/cameo/tests/data/iJO1366.xml')
-        #
-        # reference_model = model.copy()
-        # biomass_rxn = reference_model.reactions.get_by_id('Ec_biomass_iJO1366_core_53p95M')
-        # biomass_rxn.lower_bound = .9 * reference_model.solve().f
-        #
-        #
-        # diffFVA = DifferentialFVA(model, reference_model, 'EX_trp_DASH_L_LPAREN_e_RPAREN_', ['Ec_biomass_iJO1366_core_53p95M'],
-        #                       normalize_ranges_by='Ec_biomass_iJO1366_core_53p95M', points=10)
-        # with Timer('Sequential'):
-        #     result = diffFVA.run(surface_only=True, view=SequentialView())
-        # with Timer('Multiprocessing'):
-        #     result = diffFVA.run(surface_only=True, view=MultiprocessingView())
-        # try:
-        #     from IPython.parallel import Client
-        #     client = Client()
-        #     view = client.load_balanced_view()
-        #     with Timer('IPython'):
-        #         result = diffFVA.run(surface_only=True, view=())
-        # except:
-        #     pass
-
-
 def fseof(model, enforced_reaction, max_enforced_flux=0.9, granularity=10, primary_objective=None, exclude=[]):
     """
     Performs a Flux Scanning based on Enforced Objective Flux (FSEOF) analysis.
@@ -408,5 +344,69 @@ def fseof(model, enforced_reaction, max_enforced_flux=0.9, granularity=10, prima
             fseof_reactions.append(reaction_id)
 
     return fseof_reactions
+
+
+if __name__ == '__main__':
+    from cameo.io import load_model
+    from cameo.util import Timer
+
+    model = load_model(
+        '/Users/niko/Arbejder/Dev/cameo/tests/data/EcoliCore.xml')
+
+    solution = model.solve()
+    max_growth = solution.f
+
+    reference_model = model.copy()
+    biomass_rxn = model.reactions.get_by_id('Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2')
+    reference_model.reactions.get_by_id(
+        'Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2').lower_bound = max_growth
+
+    diffFVA = DifferentialFVA(design_space_model=model,
+                              reference_model=reference_model,
+                              objective='EX_succ_LPAREN_e_RPAREN_',
+                              variables=['Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2',
+                                         'EX_o2_LPAREN_e_RPAREN_'],
+                              normalize_ranges_by='Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2',
+                              points=10
+    )
+    result = diffFVA.run(surface_only=True, view=SequentialView())
+
+    with Timer('Sequential'):
+        result = diffFVA.run(surface_only=True, view=SequentialView())
+    with Timer('Multiprocessing'):
+        result = diffFVA.run(surface_only=True, view=MultiprocessingView())
+        # try:
+        # from IPython.parallel import Client
+        #     client = Client()
+        #     view = client.load_balanced_view()
+        #     view.block = True
+        # except:
+        #     pass
+        # else:
+        #     with Timer('IPython'):
+        #         result = diffFVA.run(surface_only=False, view=view)
+
+        # model = load_model(
+        #     '/Users/niko/Arbejder/Dev/cameo/tests/data/iJO1366.xml')
+        #
+        # reference_model = model.copy()
+        # biomass_rxn = reference_model.reactions.get_by_id('Ec_biomass_iJO1366_core_53p95M')
+        # biomass_rxn.lower_bound = .9 * reference_model.solve().f
+        #
+        #
+        # diffFVA = DifferentialFVA(model, reference_model, 'EX_trp_DASH_L_LPAREN_e_RPAREN_', ['Ec_biomass_iJO1366_core_53p95M'],
+        #                       normalize_ranges_by='Ec_biomass_iJO1366_core_53p95M', points=10)
+        # with Timer('Sequential'):
+        #     result = diffFVA.run(surface_only=True, view=SequentialView())
+        # with Timer('Multiprocessing'):
+        #     result = diffFVA.run(surface_only=True, view=MultiprocessingView())
+        # try:
+        #     from IPython.parallel import Client
+        #     client = Client()
+        #     view = client.load_balanced_view()
+        #     with Timer('IPython'):
+        #         result = diffFVA.run(surface_only=True, view=())
+        # except:
+        #     pass
 
 

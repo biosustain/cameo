@@ -60,15 +60,6 @@ class TestUtils(unittest.TestCase):
             self.assertEqual(len(color_map), i)
             self.assertEqual(len(color_map), len(set(color_map.values())))
 
-
-class TestSingleton(unittest.TestCase):
-    def test_singleton(self):
-        s1 = Singleton()
-        s2 = Singleton()
-        self.assertEqual(s1, s2)
-
-
-class TestPartition(unittest.TestCase):
     def test_partition(self):
         chunks = 3
         iterables = [
@@ -85,6 +76,14 @@ class TestPartition(unittest.TestCase):
 
         bad_input = 5
         self.assertRaises(TypeError, partition, bad_input, chunks)
+
+
+class TestSingleton(unittest.TestCase):
+    def test_singleton(self):
+        s1 = Singleton()
+        s2 = Singleton()
+        self.assertEqual(s1, s2)
+
 
 if __name__ == "__main__":
     import nose
