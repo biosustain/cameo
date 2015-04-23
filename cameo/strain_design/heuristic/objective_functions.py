@@ -41,11 +41,11 @@ class ObjectiveFunction(object):
         raise NotImplementedError
 
     def _repr_latex_(self):
-        return self.__class__.__name__
+        return self.name
 
     @property
     def name(self):
-        raise NotImplementedError
+        return self.__class__.__name__
 
 
 class biomass_product_coupled_yield(ObjectiveFunction):
