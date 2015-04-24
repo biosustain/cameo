@@ -24,6 +24,7 @@ from datetime import datetime
 import colorsys
 import pip
 import platform
+from itertools import islice
 
 import progressbar
 from numpy.random import RandomState
@@ -161,10 +162,22 @@ class TimeMachine(object):
             self.undo(bookmark=list(self.history.keys())[0])
 
 
-def partition(lst, n):
+def partition_(lst, n):
     """Partition a list into n bite size chunks."""
     division = len(lst) / float(n)
     return [lst[int(round(division * i)): int(round(division * (i + 1)))] for i in range(n)]
+
+
+def partition(ite, n):
+    """Partition an iterable into n bite size chunks."""
+    try:
+        length = len(ite)
+    except TypeError:
+        ite = list(ite)
+        length = len(ite)
+    division = length / float(n)
+    iterator = iter(ite)
+    return [list(islice(iterator, 0, round(division * (i + 1)) - round(division * i))) for i in range(n)]
 
 
 def generate_colors(n):

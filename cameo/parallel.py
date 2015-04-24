@@ -56,7 +56,12 @@ class MultiprocessingView(Singleton):
         return self.pool.imap(func, *args, **kwargs)
 
     def __len__(self):
-        return cpu_count()
+        if len(self._args) > 0:
+            return self._args[0]
+        elif "processes" in self._kwargs:
+            return self._kwargs["processes"]
+        else:
+            return cpu_count()
 
     def shutdown(self):
         if self.pool is not None:
