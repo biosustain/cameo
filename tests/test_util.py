@@ -16,6 +16,7 @@ from __future__ import absolute_import, print_function
 
 import unittest
 from functools import partial
+from itertools import chain
 
 from cameo.util import TimeMachine, generate_colors, Singleton, partition
 import six
@@ -71,6 +72,7 @@ class TestUtils(unittest.TestCase):
             test_output = partition(fixture, chunks)
             self.assertEqual(len(fixture), sum(map(len, test_output)))
             self.assertEqual(len(test_output), chunks)
+            self.assertEqual(list(fixture), list(chain(*test_output)))
             for out_chunk in test_output:
                 self.assertTrue(set(out_chunk).issubset(set(fixture)))
 
@@ -82,7 +84,7 @@ class TestSingleton(unittest.TestCase):
     def test_singleton(self):
         s1 = Singleton()
         s2 = Singleton()
-        self.assertEqual(s1, s2)
+        self.assertIs(s1, s2)
 
 
 if __name__ == "__main__":
