@@ -97,7 +97,7 @@ def pfba(model, objective=None, *args, **kwargs):
             try:
                 obj_val = fba(model)[model.objective]
             except SolveError as e:
-                logger.error("pfba could not determine maximum objective value for\n%s." % model.objective)
+                logger.debug("pfba could not determine maximum objective value for\n%s." % model.objective)
                 raise e
             if model.objective.direction == 'max':
                 fix_obj_constraint = model.solver.interface.Constraint(model.objective.expression, lb=obj_val)

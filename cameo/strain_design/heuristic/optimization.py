@@ -41,10 +41,10 @@ from pandas import DataFrame
 import inspyred
 import logging
 
-from functools import partial
 from cameo.util import RandomGenerator as Random
 from cameo.util import in_ipnb
 from cameo.visualization import draw_knockout_result
+from cameo import core
 
 REACTION_KNOCKOUT_TYPE = "reaction"
 GENE_KNOCKOUT_TYPE = "gene"
@@ -55,8 +55,8 @@ BIOMASS = 'Biomass'
 KNOCKOUTS = 'Knockouts'
 REACTIONS = 'Reactions'
 
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger('cameo')
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 PRE_CONFIGURED = {
     inspyred.ec.GA: [
@@ -261,11 +261,7 @@ class KnockoutEvaluator(object):
         reactions = decoded[0]
         with TimeMachine() as tm:
             for reaction in reactions:
-                tm(do=partial(setattr, reaction, 'lower_bound', 0),
-                   undo=partial(setattr, reaction, 'lower_bound', reaction.lower_bound))
-                tm(do=partial(setattr, reaction, 'upper_bound', 0),
-                   undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
-
+                reaction.knock_out(time_machine=tm)
             try:
                 solution = self.simulation_method(self.model,
                                                   cache=self.cache,
@@ -409,7 +405,7 @@ class KnockoutOptimization(HeuristicOptimization):
 
 
 # TODO: Figure out a way to provide generic parameters for different simulation methods
-class KnockoutOptimizationResult(object):
+class KnockoutOptimizationResult(core.result.Result):
     @staticmethod
     def merge(a, b):
         return a._merge(b)
@@ -507,7 +503,11 @@ class KnockoutOptimizationResult(object):
 
             if proceed:
                 decoded_solution = self.decoder(solution.candidate)
-                simulation_result = self._simulate(decoded_solution[0])
+                try:
+                    simulation_result = self._simulate(decoded_solution[0])
+                except SolveError as e:
+                    logger.debug(e)
+                    continue
                 size = len(decoded_solution[1])
 
                 if self.biomass:
@@ -536,20 +536,11 @@ class KnockoutOptimizationResult(object):
         return data_frame
 
     def _simulate(self, reactions):
-        tm = TimeMachine()
-        for reaction in reactions:
-            tm(do=partial(setattr, reaction, 'lower_bound', 0),
-               undo=partial(setattr, reaction, 'lower_bound', reaction.lower_bound))
-            tm(do=partial(setattr, reaction, 'upper_bound', 0),
-               undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
-
-        try:
+        with TimeMachine() as tm:
+            for reaction in reactions:
+                reaction.knock_out(time_machine=tm)
             solution = self.simulation_method(self.model, reference=self.reference)
-        except Exception as e:
-            logger.exception(e)
-
-        tm.reset()
-        return solution
+            return solution
 
     def _repr_html_(self):
 

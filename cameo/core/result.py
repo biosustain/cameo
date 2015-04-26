@@ -20,6 +20,7 @@ import pandas
 import cameo
 import sympy
 import time
+import six
 
 
 from datetime import datetime
@@ -93,8 +94,7 @@ class FluxDistributionResult(Result):
         else:
             raise KeyError(item)
 
-        return exp.evalf(n=config.ndecimals,
-                         subs={v: self.fluxes[v.name] for v in exp.atoms(sympy.Symbol)})
+        return exp.evalf(subs={v: self.fluxes[v.name] for v in exp.atoms(sympy.Symbol)})
 
     @property
     def data_frame(self):
@@ -113,7 +113,10 @@ class FluxDistributionResult(Result):
         pass
 
     def iteritems(self):
-        return self.fluxes.iteritems()
+        return six.iteritems(self.fluxes)
+
+    def items(self):
+        return six.iteritems(self.fluxes)
 
     def keys(self):
         return self.fluxes.keys()

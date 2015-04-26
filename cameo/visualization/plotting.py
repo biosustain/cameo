@@ -38,7 +38,7 @@ try:
     from bokeh.plotting import *
 
     def plot_production_envelope_ipython_bokeh(envelope, key, highligt=[]):
-        output_notebook(url=config.bokeh_url, docname=str(uuid1()))
+        output_notebook()
         p = figure(title="Production envelope")
         p.xaxis.axis_label = 'growth'
         p.yaxis.axis_label = key

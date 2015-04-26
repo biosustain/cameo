@@ -40,9 +40,12 @@ class ObjectiveFunction(object):
     def __call__(self, model, solution, decoded_representation):
         raise NotImplementedError
 
+    def _repr_latex_(self):
+        return self.name
+
     @property
     def name(self):
-        raise NotImplementedError
+        return self.__class__.__name__
 
 
 class biomass_product_coupled_yield(ObjectiveFunction):

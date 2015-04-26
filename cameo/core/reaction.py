@@ -259,7 +259,7 @@ class Reaction(_cobrapy.core.Reaction):
     def objective_coefficient(self, value):
         model = self.model
         if model is not None:
-            model.solver._set_linear_objective_term(self.variable, value)
+            model.solver._set_linear_objective_term(self.forward_variable, value)
 
         self._objective_coefficient = value
 
@@ -281,8 +281,8 @@ class Reaction(_cobrapy.core.Reaction):
 
     @property
     def flux(self):
-        if self.variable is not None:
-            primal = self.variable.primal
+        if self.forward_variable is not None:
+            primal = self.forward_variable.primal
             if self.reversibility:
                 primal -= self.reverse_variable.primal
             return primal
@@ -291,8 +291,8 @@ class Reaction(_cobrapy.core.Reaction):
 
     @property
     def reduced_cost(self):
-        if self.variable is not None:
-            dual = self.variable.dual
+        if self.forward_variable is not None:
+            dual = self.forward_variable.dual
             if dual is None:  # cplex cannot determine reduced costs for MILP problems
                 return None
             if self.reversibility:
@@ -306,7 +306,7 @@ class Reaction(_cobrapy.core.Reaction):
         model = self.model
         if model is not None:
             for metabolite, coefficient in six.iteritems(metabolites):
-                model.solver.constraints[metabolite.id] += coefficient*self.variable
+                model.solver.constraints[metabolite.id] += coefficient*self.forward_variable
 
     def knock_out(self, time_machine=None):
         def _(reaction, lb, ub):
