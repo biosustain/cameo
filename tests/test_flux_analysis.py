@@ -194,14 +194,14 @@ class AbstractTestSimulationMethods(object):
         solution = lmoma(self.model, reference=pfba_solution)
         distance = sum([abs(solution[v] - pfba_solution[v]) for v in list(pfba_solution.keys())])
         self.assertAlmostEqual(0, distance,
-                               delta=self.model.solver.configuration.tolerance,
+                               delta=1e-6,
                                msg="lmoma distance without knockouts must be 0 (was %f)" % distance)
 
     def test_room(self):
         pfba_solution = pfba(self.model)
         solution = room(self.model, reference=pfba_solution)
         self.assertAlmostEqual(0, solution.objective_value,
-                               delta=self.model.solver.configuration.tolerance,
+                               delta=1e-6,
                                msg="room objective without knockouts must be 0 (was %f)" % solution.objective_value)
 
     def test_room_shlomi_2005(self):
