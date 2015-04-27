@@ -19,8 +19,10 @@ from functools import partial
 from itertools import chain
 
 from cameo.util import TimeMachine, generate_colors, Singleton, partition
+from cameo.network_analysis.util import distance_based_on_molecular_formula
 import six
 from six.moves import range
+from cobra import Metabolite
 
 
 class TimeMachineTestCase(unittest.TestCase):
@@ -79,6 +81,19 @@ class TestUtils(unittest.TestCase):
         bad_input = 5
         self.assertRaises(TypeError, partition, bad_input, chunks)
 
+    def test_distance_based_on_molecular_formula(self):  # from network_analysis.util
+        met1 = Metabolite("H2O", formula="H2O")
+        met2 = Metabolite("H2O2", formula="H2O2")
+        met3 = Metabolite("C6H12O6", formula="C6H12O6")
+
+        self.assertEqual(distance_based_on_molecular_formula(met1, met2, normalize=False), 1)
+        self.assertEqual(distance_based_on_molecular_formula(met1, met2, normalize=True), 1./7)
+
+        self.assertEqual(distance_based_on_molecular_formula(met2, met3, normalize=False), 20)
+        self.assertEqual(distance_based_on_molecular_formula(met2, met3, normalize=True), 20./28)
+
+        self.assertEqual(distance_based_on_molecular_formula(met1, met3, normalize=False), 21)
+        self.assertEqual(distance_based_on_molecular_formula(met1, met3, normalize=True), 21./27)
 
 class TestSingleton(unittest.TestCase):
     def test_singleton(self):
