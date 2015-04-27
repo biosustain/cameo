@@ -21,9 +21,6 @@ Currently implements:
 
 """
 
-
-
-
 from __future__ import absolute_import, print_function
 
 __all__ = ['fba', 'pfba', 'moma', 'lmoma', 'room']
@@ -146,6 +143,8 @@ def lmoma(model, reference=None, cache=None, *args, **kwargs):
         volatile = True
         cache = ProblemCache(model)
 
+    cache.begin_transaction()
+
     if not isinstance(reference, (dict, FluxDistributionResult)):
         raise TypeError("reference must be a flux distribution (dict or FluxDistributionResult")
 
@@ -158,10 +157,10 @@ def lmoma(model, reference=None, cache=None, *args, **kwargs):
                 return var
 
             pos_var_id = "u_%s_pos" % rid
-            cache.add_variable(model, pos_var_id, create_variable, None, 0)
+            cache.add_variable(pos_var_id, create_variable, None, 0)
 
             neg_var_id = "u_%s_neg" % rid
-            cache.add_variable(model, neg_var_id, create_variable, None, 0)
+            cache.add_variable(neg_var_id, create_variable, None, 0)
 
             # ui = vi - wt
             def update_upper_constraint(model, constraint, var, reaction, flux_value):
@@ -174,10 +173,10 @@ def lmoma(model, reference=None, cache=None, *args, **kwargs):
                                                                name=constraint_id)
                 return constraint
 
-            cache.add_constraint(model, "c_%s_ub" % rid, create_upper_constraint, update_upper_constraint,
+            cache.add_constraint("c_%s_ub" % rid, create_upper_constraint, update_upper_constraint,
                                  cache.variables[pos_var_id], reaction, flux_value)
 
-            def update_lower_constraint(model, constraint, var, reaction, flux_value):
+            def update_lower_constraint(constraint, var, reaction, flux_value):
                 constraint.ub = flux_value
 
             def create_lower_constraint(model, constraint_id, var, reaction, flux_value):
@@ -187,7 +186,7 @@ def lmoma(model, reference=None, cache=None, *args, **kwargs):
                                                                name=constraint_id)
                 return constraint
 
-            cache.add_constraint(model, "c_%s_lb" % rid, create_lower_constraint, update_lower_constraint,
+            cache.add_constraint("c_%s_lb" % rid, create_lower_constraint, update_lower_constraint,
                                  cache.variables[neg_var_id], reaction, flux_value)
 
         model.objective = model.solver.interface.Objective(add([mul([One, var]) for var in cache.variables.values()]),
@@ -197,6 +196,9 @@ def lmoma(model, reference=None, cache=None, *args, **kwargs):
             return FluxDistributionResult(model.solve())
         except SolveError as e:
             raise e
+    except Exception as e:
+        cache.rollback()
+        raise e
 
     finally:
         if volatile:

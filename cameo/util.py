@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from __future__ import absolute_import, print_function
+from functools import partial
 
 import six
 from six.moves import range
@@ -34,36 +35,77 @@ logger = logging.getLogger(__name__)
 
 class ProblemCache(object):
     def __init__(self, model):
+        self.time_machine = None
         self._model = model
-        self._id = hash(model)
         self.variables = {}
         self.constraints = {}
         self.original_objective = model.objective.expression
+
+    def begin_transaction(self):
+        self.time_machine = TimeMachine()
+        self.transaction_id = uuid1()
+        self.time_machine(do=int, undo=int, bookmark=self.transaction_id)
 
     @property
     def model(self):
         return self._model
 
-    def add_constraint(self, model, constraint_id, create, update, *args, **kwargs):
-        self._verify_model(model)
+    def _rebuild_constraint(self, constraint):
+        (expression, lb, ub, name) = constraint.expression, constraint.lb, constraint.ub, constraint.name
+
+        def _():
+            self.model.solver._remove_constraint(constraint)
+            new_constraint = self.model.solver.interface.Constraint(expression, lb=lb, ub=ub, name=name)
+            self.constraints[name] = new_constraint
+            self.model._add_constraint(new_constraint, sloppy=True)
+
+    def _append_constraint(self, constraint_id, create, *args, **kwargs):
+        self.constraints[constraint_id] = create(self.model, constraint_id, *args, **kwargs)
+        self.model.solver._add_constraint(self.constraints[constraint_id])
+
+    def _remove_constraint(self, constraint_id):
+        constraint = self.constraints.pop(constraint_id)
+        self.model.solver._remove_constraint(constraint)
+
+    def _append_variable(self, variable_id, create, model, *args, **kwargs):
+        self.variables[variable_id] = create(model, variable_id, *args, **kwargs)
+        self.model.solver._add_variable(self.variables[variable_id])
+
+    def _remove_variable(self, variable_id):
+        variable = self.variables.pop(variable_id)
+        self.model.solver._remove_variable(variable)
+
+    def _rebuild_variable(self, variable):
+        (type, lb, ub, name) = variable.type, variable.lb, variable.ub, variable.name
+
+        def _():
+            self.model.solver._remove_variable(variable)
+            new_variable = self.model.solver.interface.Variable(name, lb=lb, ub=ub, type=type)
+            self.variables[name] = variable
+            self.model._add_variable(new_variable, sloppy=True)
+
+    def add_constraint(self, constraint_id, create, update, *args, **kwargs):
         if constraint_id in self.constraints:
             if update is not None:
-                update(model, self.constraints[constraint_id], *args, **kwargs)
+                self.time_machine(
+                    do=partial(update, self.model, self.constraints[constraint_id], *args, **kwargs),
+                    undo=self._rebuild_constraint(self.constraints[constraint_id]))
         else:
-            self.constraints[constraint_id] = create(model, constraint_id, *args, **kwargs)
-            model.solver._add_constraint(self.constraints[constraint_id])
+            self.time_machine(
+                do=partial(self._append_constraint, constraint_id, create, *args, **kwargs),
+                undo=partial(self._remove_constraint, constraint_id)
+            )
 
-    def add_variable(self, model, variable_id, create, update, *args, **kwargs):
-        self._verify_model(model)
+    def add_variable(self, variable_id, create, update, *args, **kwargs):
         if variable_id in self.variables:
             if update is not None:
-                update(model, self.variables[variable_id], *args, **kwargs)
+                self.time_machine(
+                    do=partial(update, self.model, self.variables[variable_id], *args, **kwargs))
         else:
-            self.variables[variable_id] = create(model, variable_id, *args, **kwargs)
-            model.solver._add_variable(self.variables[variable_id])
-
-    def _verify_model(self, model):
-        assert self._id == hash(model), "Cannot use a different model instance"
+            self.time_machine(
+                do=partial(self._append_variable, variable_id, create, *args, **kwargs),
+                undo=partial(self._remove_variable, variable_id)
+            )
 
     def reset(self):
         self.model.solver._remove_constraints(self.constraints.values())
@@ -71,6 +113,14 @@ class ProblemCache(object):
         self.model.objective = self.original_objective
         self.variables = {}
         self.constraints = {}
+        self.transaction_id = None
+        self.time_machine.reset()
+        self.time_machine = None
+
+    def rollback(self):
+        if self.transaction_id is None:
+            raise RuntimeError("Start transaction must be called before rollback")
+        self.time_machine.undo(self.transaction_id)
 
 
 class RandomGenerator():
