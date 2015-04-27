@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sbml xmlns="http://www.sbml.org/sbml/level3/version1/core" xmlns:fbc="http://www.sbml.org/sbml/level3/version1/fbc/version1" level="3" version="1" fbc:required="false">
+  <model substanceUnits="substance" timeUnits="dimensionless" volumeUnits="volume" areaUnits="area" lengthUnits="metre" extentUnits="substance">
+    <listOfCompartments>
+      <compartment id="p" name="periplasm" spatialDimensions="3" size="1" constant="true"/>
+      <compartment id="c" name="cytosol" spatialDimensions="3" size="1" constant="true"/>
+      <compartment id="e" name="extracellular" spatialDimensions="3" size="1" constant="true"/>
+    </listOfCompartments>
+    <listOfSpecies>
+      <species id="M_A_None" name="A" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false">
+        <notes>
+          <html xmlns="http://www.w3.org/1999/xhtml"/>
+        </notes>
+      </species>
+      <species id="M_B_None" name="B" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false">
+        <notes>
+          <html xmlns="http://www.w3.org/1999/xhtml"/>
+        </notes>
+      </species>
+      <species id="M_C_None" name="C" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false">
+        <notes>
+          <html xmlns="http://www.w3.org/1999/xhtml"/>
+        </notes>
+      </species>
+      <species id="M_D_None" name="D" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false">
+        <notes>
+          <html xmlns="http://www.w3.org/1999/xhtml"/>
+        </notes>
+      </species>
+      <species id="M_E_None" name="E" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false">
+        <notes>
+          <html xmlns="http://www.w3.org/1999/xhtml"/>
+        </notes>
+      </species>
+      <species id="M_byp_None" name="byp" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false">
+        <notes>
+          <html xmlns="http://www.w3.org/1999/xhtml"/>
+        </notes>
+      </species>
+      <species id="M_cof_None" name="cof" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false">
+        <notes>
+          <html xmlns="http://www.w3.org/1999/xhtml"/>
+        </notes>
+      </species>
+      <species id="M_A_None_boundary" name="A" hasOnlySubstanceUnits="false" boundaryCondition="true" constant="false">
+        <notes>
+          <html xmlns="http://www.w3.org/1999/xhtml"/>
+        </notes>
+      </species>
+      <species id="M_E_None_boundary" name="E" hasOnlySubstanceUnits="false" boundaryCondition="true" constant="false">
+        <notes>
+          <html xmlns="http://www.w3.org/1999/xhtml"/>
+        </notes>
+      </species>
+      <species id="M_byp_None_boundary" name="byp" hasOnlySubstanceUnits="false" boundaryCondition="true" constant="false">
+        <notes>
+          <html xmlns="http://www.w3.org/1999/xhtml"/>
+        </notes>
+      </species>
+    </listOfSpecies>
+    <listOfReactions>
+      <reaction id="R_b1" name="b1" reversible="false" fast="false">
+        <notes>
+          <html xmlns="http://www.w3.org/1999/xhtml">
+            <p>GENE_ASSOCIATION: </p>
+            <p>SUBSYSTEM: </p>
+          </html>
+        </notes>
+        <listOfReactants>
+          <speciesReference species="M_A_None_boundary" stoichiometry="1" constant="true"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="M_A_None" stoichiometry="1" constant="true"/>
+        </listOfProducts>
+      </reaction>
+      <reaction id="R_b2" name="b2" reversible="false" fast="false">
+        <notes>
+          <html xmlns="http://www.w3.org/1999/xhtml">
+            <p>GENE_ASSOCIATION: </p>
+            <p>SUBSYSTEM: </p>
+          </html>
+        </notes>
+        <listOfReactants>
+          <speciesReference species="M_E_None" stoichiometry="1" constant="true"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="M_E_None_boundary" stoichiometry="1" constant="true"/>
+        </listOfProducts>
+      </reaction>
+      <reaction id="R_b3" name="b3" reversible="false" fast="false">
+        <notes>
+          <html xmlns="http://www.w3.org/1999/xhtml">
+            <p>GENE_ASSOCIATION: </p>
+            <p>SUBSYSTEM: </p>
+          </html>
+        </notes>
+        <listOfReactants>
+          <speciesReference species="M_byp_None" stoichiometry="1" constant="true"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="M_byp_None_boundary" stoichiometry="1" constant="true"/>
+        </listOfProducts>
+      </reaction>
+      <reaction id="R_v1" name="v1" reversible="false" fast="false">
+        <notes>
+          <html xmlns="http://www.w3.org/1999/xhtml">
+            <p>GENE_ASSOCIATION: </p>
+            <p>SUBSYSTEM: </p>
+          </html>
+        </notes>
+        <listOfReactants>
+          <speciesReference species="M_A_None" stoichiometry="2" constant="true"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="M_B_None" stoichiometry="2" constant="true"/>
+        </listOfProducts>
+      </reaction>
+      <reaction id="R_v2" name="v2" reversible="false" fast="false">
+        <notes>
+          <html xmlns="http://www.w3.org/1999/xhtml">
+            <p>GENE_ASSOCIATION: </p>
+            <p>SUBSYSTEM: </p>
+          </html>
+        </notes>
+        <listOfReactants>
+          <speciesReference species="M_B_None" stoichiometry="2" constant="true"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="M_C_None" stoichiometry="1" constant="true"/>
+          <speciesReference species="M_byp_None" stoichiometry="1" constant="true"/>
+        </listOfProducts>
+      </reaction>
+      <reaction id="R_v3" name="v3" reversible="false" fast="false">
+        <notes>
+          <html xmlns="http://www.w3.org/1999/xhtml">
+            <p>GENE_ASSOCIATION: </p>
+            <p>SUBSYSTEM: </p>
+          </html>
+        </notes>
+        <listOfReactants>
+          <speciesReference species="M_cof_None" stoichiometry="1" constant="true"/>
+          <speciesReference species="M_B_None" stoichiometry="1" constant="true"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="M_D_None" stoichiometry="1" constant="true"/>
+          <speciesReference species="M_byp_None" stoichiometry="1" constant="true"/>
+        </listOfProducts>
+      </reaction>
+      <reaction id="R_v4" name="v4" reversible="false" fast="false">
+        <notes>
+          <html xmlns="http://www.w3.org/1999/xhtml">
+            <p>GENE_ASSOCIATION: </p>
+            <p>SUBSYSTEM: </p>
+          </html>
+        </notes>
+        <listOfReactants>
+          <speciesReference species="M_D_None" stoichiometry="1" constant="true"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="M_cof_None" stoichiometry="1" constant="true"/>
+          <speciesReference species="M_E_None" stoichiometry="1" constant="true"/>
+        </listOfProducts>
+      </reaction>
+      <reaction id="R_v5" name="v5" reversible="false" fast="false">
+        <notes>
+          <html xmlns="http://www.w3.org/1999/xhtml">
+            <p>GENE_ASSOCIATION: </p>
+            <p>SUBSYSTEM: </p>
+          </html>
+        </notes>
+        <listOfReactants>
+          <speciesReference species="M_C_None" stoichiometry="1" constant="true"/>
+          <speciesReference species="M_cof_None" stoichiometry="1" constant="true"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="M_D_None" stoichiometry="1" constant="true"/>
+        </listOfProducts>
+      </reaction>
+      <reaction id="R_v6" name="v6" reversible="false" fast="false">
+        <notes>
+          <html xmlns="http://www.w3.org/1999/xhtml">
+            <p>GENE_ASSOCIATION: </p>
+            <p>SUBSYSTEM: </p>
+          </html>
+        </notes>
+        <listOfReactants>
+          <speciesReference species="M_C_None" stoichiometry="1" constant="true"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="M_E_None" stoichiometry="1" constant="true"/>
+        </listOfProducts>
+      </reaction>
+    </listOfReactions>
+    <fbc:listOfFluxBounds>
+      <fbc:fluxBound fbc:reaction="R_b1" fbc:operation="greaterEqual" fbc:value="0"/>
+      <fbc:fluxBound fbc:reaction="R_b1" fbc:operation="lessEqual" fbc:value="10"/>
+      <fbc:fluxBound fbc:reaction="R_b2" fbc:operation="greaterEqual" fbc:value="0"/>
+      <fbc:fluxBound fbc:reaction="R_b2" fbc:operation="lessEqual" fbc:value="1000"/>
+      <fbc:fluxBound fbc:reaction="R_b3" fbc:operation="greaterEqual" fbc:value="0"/>
+      <fbc:fluxBound fbc:reaction="R_b3" fbc:operation="lessEqual" fbc:value="1000"/>
+      <fbc:fluxBound fbc:reaction="R_v1" fbc:operation="greaterEqual" fbc:value="0"/>
+      <fbc:fluxBound fbc:reaction="R_v1" fbc:operation="lessEqual" fbc:value="1000"/>
+      <fbc:fluxBound fbc:reaction="R_v2" fbc:operation="greaterEqual" fbc:value="0"/>
+      <fbc:fluxBound fbc:reaction="R_v2" fbc:operation="lessEqual" fbc:value="1000"/>
+      <fbc:fluxBound fbc:reaction="R_v3" fbc:operation="greaterEqual" fbc:value="0"/>
+      <fbc:fluxBound fbc:reaction="R_v3" fbc:operation="lessEqual" fbc:value="1000"/>
+      <fbc:fluxBound fbc:reaction="R_v4" fbc:operation="greaterEqual" fbc:value="0"/>
+      <fbc:fluxBound fbc:reaction="R_v4" fbc:operation="lessEqual" fbc:value="1000"/>
+      <fbc:fluxBound fbc:reaction="R_v5" fbc:operation="greaterEqual" fbc:value="0"/>
+      <fbc:fluxBound fbc:reaction="R_v5" fbc:operation="lessEqual" fbc:value="1000"/>
+      <fbc:fluxBound fbc:reaction="R_v6" fbc:operation="equal" fbc:value="0"/>
+    </fbc:listOfFluxBounds>
+  </model>
+</sbml>
