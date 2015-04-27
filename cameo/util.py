@@ -32,6 +32,47 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+class ProblemCache(object):
+    def __init__(self, model):
+        self._model = model
+        self._id = hash(model)
+        self.variables = {}
+        self.constraints = {}
+        self.original_objective = model.objective.expression
+
+    @property
+    def model(self):
+        return self._model
+
+    def add_constraint(self, model, constraint_id, create, update, *args, **kwargs):
+        self._verify_model(model)
+        if constraint_id in self.variables:
+            if update is not None:
+                update(model, self.constraints[constraint_id], *args, **kwargs)
+        else:
+            self.constraints[constraint_id] = create(model, constraint_id, *args, **kwargs)
+            model.solver._add_constraint(self.constraints[constraint_id])
+
+    def add_variable(self, model, variable_id, create, update, *args, **kwargs):
+        self._verify_model(model)
+        if variable_id in self.variables:
+            if update is not None:
+                update(model, self.variables[variable_id], *args, **kwargs)
+        else:
+            self.variables[variable_id] = create(model, variable_id, *args, **kwargs)
+            model.solver._add_variable(self.variables[variable_id])
+
+    def _verify_model(self, model):
+        assert self._id == hash(model), "Cannot use a different model instance"
+
+    def reset(self):
+        self.model.solver._remove_constraints(self.constraints.values())
+        self.model.solver._remove_variables(self.variables.values())
+        self.model.objective = self.original_objective
+        self.variables = {}
+        self.constraints = {}
+
+
 class RandomGenerator():
     def __init__(self, seed=None):
         self._random = RandomState(seed=seed)
