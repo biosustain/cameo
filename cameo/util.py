@@ -46,7 +46,7 @@ class ProblemCache(object):
 
     def add_constraint(self, model, constraint_id, create, update, *args, **kwargs):
         self._verify_model(model)
-        if constraint_id in self.variables:
+        if constraint_id in self.constraints:
             if update is not None:
                 update(model, self.constraints[constraint_id], *args, **kwargs)
         else:
