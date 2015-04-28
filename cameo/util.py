@@ -40,9 +40,10 @@ class ProblemCache(object):
         self.variables = {}
         self.constraints = {}
         self.original_objective = model.objective.expression
+        self.time_machine = TimeMachine()
+        self.transaction_id = None
 
     def begin_transaction(self):
-        self.time_machine = TimeMachine()
         self.transaction_id = uuid1()
         self.time_machine(do=int, undo=int, bookmark=self.transaction_id)
 
@@ -67,8 +68,8 @@ class ProblemCache(object):
         constraint = self.constraints.pop(constraint_id)
         self.model.solver._remove_constraint(constraint)
 
-    def _append_variable(self, variable_id, create, model, *args, **kwargs):
-        self.variables[variable_id] = create(model, variable_id, *args, **kwargs)
+    def _append_variable(self, variable_id, create, *args, **kwargs):
+        self.variables[variable_id] = create(self.model, variable_id, *args, **kwargs)
         self.model.solver._add_variable(self.variables[variable_id])
 
     def _remove_variable(self, variable_id):
@@ -100,7 +101,8 @@ class ProblemCache(object):
         if variable_id in self.variables:
             if update is not None:
                 self.time_machine(
-                    do=partial(update, self.model, self.variables[variable_id], *args, **kwargs))
+                    do=partial(update, self.model, self.variables[variable_id], *args, **kwargs),
+                    undo=self._rebuild_variable(self.variables[variable_id]))
         else:
             self.time_machine(
                 do=partial(self._append_variable, variable_id, create, *args, **kwargs),
@@ -114,13 +116,13 @@ class ProblemCache(object):
         self.variables = {}
         self.constraints = {}
         self.transaction_id = None
-        self.time_machine.reset()
-        self.time_machine = None
+        self.time_machine.history.clear()
 
     def rollback(self):
         if self.transaction_id is None:
             raise RuntimeError("Start transaction must be called before rollback")
         self.time_machine.undo(self.transaction_id)
+        self.transaction_id = None
 
 
 class RandomGenerator():

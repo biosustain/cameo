@@ -231,6 +231,8 @@ def room(model, reference=None, cache=None, delta=0.03, epsilon=0.001, *args, **
     elif not isinstance(cache, ProblemCache):
             raise TypeError("Invalid cache object (must be a cameo.util.ProblemCache)")
 
+    cache.begin_transaction()
+
     if not isinstance(reference, (dict, FluxDistributionResult)):
         raise TypeError("reference must be a flux distribution (dict or FluxDistributionResult")
 
@@ -241,7 +243,7 @@ def room(model, reference=None, cache=None, delta=0.03, epsilon=0.001, *args, **
             def create_variable(model, var_id):
                 return model.solver.interface.Variable(var_id, type="binary")
 
-            cache.add_variable(model, "y_%s" % rid, create_variable, None)
+            cache.add_variable("y_%s" % rid, create_variable, None)
 
             def create_upper_constraint(model, constraint_id, reaction, variable, flux_value, epsilon):
                 w_u = flux_value + delta * abs(flux_value) + epsilon
@@ -256,7 +258,7 @@ def room(model, reference=None, cache=None, delta=0.03, epsilon=0.001, *args, **
                 constraint._set_coefficients_low_level({variable: reaction.upper_bound - w_u})
                 constraint.ub = w_u
 
-            cache.add_constraint(model, "c_%s_upper" % rid, create_upper_constraint, update_upper_constraint,
+            cache.add_constraint("c_%s_upper" % rid, create_upper_constraint, update_upper_constraint,
                                  reaction, cache.variables["y_%s" % rid], flux_value, epsilon)
 
             def create_lower_constraint(model, constraint_id, reaction, variable, flux_value, epsilon):
@@ -274,7 +276,7 @@ def room(model, reference=None, cache=None, delta=0.03, epsilon=0.001, *args, **
 
 
 
-            cache.add_constraint(model, "c_%s_lower" % rid, create_lower_constraint, update_lower_constraint,
+            cache.add_constraint("c_%s_lower" % rid, create_lower_constraint, update_lower_constraint,
                                  reaction, cache.variables["y_%s" % rid], flux_value, epsilon)
 
         model.objective = model.solver.interface.Objective(add([mul([One, var]) for var in cache.variables.values()]),
@@ -285,6 +287,10 @@ def room(model, reference=None, cache=None, delta=0.03, epsilon=0.001, *args, **
         except SolveError as e:
             logger.error("room could not determine an optimal solution for objective %s" % model.objective)
             raise e
+
+    except Exception as e:
+        cache.rollback()
+        raise e
 
     finally:
         if volatile:
