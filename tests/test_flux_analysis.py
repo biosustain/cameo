@@ -20,8 +20,6 @@ import os
 import unittest
 
 from cameo.flux_analysis.simulation import fba, pfba, lmoma, room
-from cameo.core.solver_based_model import SolverBasedModel
-from cobra import Metabolite
 from cameo.parallel import SequentialView, MultiprocessingView
 from cameo.io import load_model
 from cameo.flux_analysis.analysis import flux_variability_analysis, phenotypic_phase_plane, _cycle_free_fva
@@ -214,6 +212,7 @@ class AbstractTestSimulationMethods(object):
         self.assertEquals(
             result.fluxes,
             {'b1': 10.0, 'b2': 5.0, 'b3': 5.0, 'v1': 5.0, 'v2': 5.0, 'v3': 0.0, 'v4': 5.0, 'v5': 5.0, 'v6': 0.0})
+
 
 class TestSimulationMethodsGLPK(AbstractTestSimulationMethods, unittest.TestCase):
     def setUp(self):
