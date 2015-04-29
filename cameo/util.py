@@ -58,7 +58,7 @@ class ProblemCache(object):
             self.model.solver._remove_constraint(constraint)
             new_constraint = self.model.solver.interface.Constraint(expression, lb=lb, ub=ub, name=name)
             self.constraints[name] = new_constraint
-            self.model._add_constraint(new_constraint, sloppy=True)
+            self.model.solver._add_constraint(new_constraint, sloppy=True)
 
         return rebuild
 
@@ -85,7 +85,7 @@ class ProblemCache(object):
             self.model.solver._remove_variable(variable)
             new_variable = self.model.solver.interface.Variable(name, lb=lb, ub=ub, type=type)
             self.variables[name] = variable
-            self.model._add_variable(new_variable, sloppy=True)
+            self.model.solver._add_variable(new_variable, sloppy=True)
 
         return rebuild
 
