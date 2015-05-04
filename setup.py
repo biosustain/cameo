@@ -56,13 +56,11 @@ dependency_links = [
     'https://github.com/coagulant/progressbar-python3.git'
 ]
 
-# from https://coderwall.com/p/qawuyq
-try:
-    import pypandoc
-
-    description = pypandoc.convert('README.md', 'rst')
-except (IOError, ImportError):
-    description = ''
+# Run
+# pandoc --from=markdown --to=rst README.md -o README.rst
+# from time to time, to keep README.rst updated
+with open('README.rst', 'r') as f:
+    description = f.read()
 
 setup(
     name='cameo',
