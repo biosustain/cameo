@@ -14,20 +14,22 @@
 
 from __future__ import absolute_import, print_function
 
-__all__ = ['bigg2mnx', 'mnx2bigg']
+__all__ = ['bigg2mnx', 'mnx2bigg', 'all2mnx', 'mnx2all']
 
 import six
 import os
 import pickle
+import shelve
 import gzip
 
 import cameo
 
-with open(os.path.join(cameo._cameo_data_path, 'metanetx.pickle'), 'rb') as f:
-    _METANETX = pickle.load(f)
+_METANETX = shelve.open(os.path.join(cameo._cameo_data_path, 'metanetx.shelve'))
 
 bigg2mnx = _METANETX['bigg2mnx']
 mnx2bigg = _METANETX['mnx2bigg']
+all2mnx = _METANETX['all2mnx']
+mnx2all = {v: k for k, v in six.iteritems(all2mnx)}
 
 with gzip.open(os.path.join(cameo._cameo_data_path, 'metanetx_chem_prop.pklz'), 'rb') as f:
     if six.PY3:
