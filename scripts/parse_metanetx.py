@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import cPickle as pickle
-import shelve
 import re
 import gzip
 import optlang
@@ -131,8 +130,7 @@ if __name__ == '__main__':
 
     REVERSE_ID_SANITIZE_RULES_SIMPHENY = [(value, key) for key, value in ID_SANITIZE_RULES_SIMPHENY]
 
-    # final result shelve
-    metanetx = shelve.open('../cameo/data/metanetx.shelve')
+    metanetx = dict()
     # Metabolites
     bigg_selection = chem_xref[['bigg' in blub for blub in chem_xref.XREF]]
     sanitized_XREF = [
@@ -166,6 +164,8 @@ if __name__ == '__main__':
         all2mnx[cleaned_key] = mnx_id
 
     metanetx['all2mnx'] = all2mnx
+    with gzip.open('../cameo/data/metanetx.pklz', 'wb') as f:
+        pickle.dump(metanetx, f)
 
     # generate universal reaction models
     db_combinations = [('bigg',), ('rhea',) , ('bigg', 'rhea'), ('bigg', 'rhea', 'kegg'), ('bigg', 'rhea', 'kegg', 'brenda')]

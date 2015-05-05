@@ -18,13 +18,13 @@ __all__ = ['bigg2mnx', 'mnx2bigg', 'all2mnx', 'mnx2all']
 
 import six
 import os
-import pickle
-import shelve
+import six.moves.cPickle as pickle
 import gzip
 
 import cameo
 
-_METANETX = shelve.open(os.path.join(cameo._cameo_data_path, 'metanetx.shelve'))
+with gzip.open(os.path.join(cameo._cameo_data_path, 'metanetx.pklz'), 'rb') as f:
+    _METANETX = pickle.load(f)  # TODO: this is pretty slow (~8 seconds)
 
 bigg2mnx = _METANETX['bigg2mnx']
 mnx2bigg = _METANETX['mnx2bigg']
