@@ -176,7 +176,7 @@ def lmoma(model, reference=None, cache=None, *args, **kwargs):
             cache.add_constraint("c_%s_ub" % rid, create_upper_constraint, update_upper_constraint,
                                  cache.variables[pos_var_id], reaction, flux_value)
 
-            def update_lower_constraint(constraint, var, reaction, flux_value):
+            def update_lower_constraint(model,constraint, var, reaction, flux_value):
                 constraint.ub = flux_value
 
             def create_lower_constraint(model, constraint_id, var, reaction, flux_value):
