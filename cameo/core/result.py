@@ -110,6 +110,7 @@ class FluxDistributionResult(Result):
 
     @property
     def plot(self):
+        # TODO: Add barchart or something similar.
         pass
 
     def iteritems(self):

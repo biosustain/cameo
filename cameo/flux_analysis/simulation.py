@@ -90,35 +90,32 @@ def pfba(model, objective=None, *args, **kwargs):
     """
     with TimeMachine() as tm:
         original_objective = model.objective.expression
-        try:
-            if objective is not None:
-                tm(do=partial(setattr, model, 'objective', objective),
-                   undo=partial(setattr, model, 'objective', original_objective))
-            try:
-                obj_val = fba(model)[model.objective]
-            except SolveError as e:
-                logger.debug("pfba could not determine maximum objective value for\n%s." % model.objective)
-                raise e
-            if model.objective.direction == 'max':
-                fix_obj_constraint = model.solver.interface.Constraint(model.objective.expression, lb=obj_val)
-            else:
-                fix_obj_constraint = model.solver.interface.Constraint(model.objective.expression, ub=obj_val)
-            tm(do=partial(model.solver._add_constraint, fix_obj_constraint),
-               undo=partial(model.solver._remove_constraint, fix_obj_constraint))
-            pfba_obj = model.solver.interface.Objective(add(
-                [mul((sympy.singleton.S.One, variable)) for variable in list(model.solver.variables.values())]),
-                direction='min', sloppy=True)
-            tm(do=partial(setattr, model, 'objective', pfba_obj),
+        if objective is not None:
+            tm(do=partial(setattr, model, 'objective', objective),
                undo=partial(setattr, model, 'objective', original_objective))
-            try:
-                solution = model.solve()
-                result = FluxDistributionResult(solution)
-                tm.reset()
-                return result
-            except SolveError as e:
-                logger.error("pfba could not determine an optimal solution for objective %s" % model.objective)
-                raise e
-        except Exception as e:
+        try:
+            obj_val = model.solve().f
+        except SolveError as e:
+            logger.debug("pfba could not determine maximum objective value for\n%s." % model.objective)
+            raise e
+        if model.objective.direction == 'max':
+            fix_obj_constraint = model.solver.interface.Constraint(model.objective.expression, lb=obj_val)
+        else:
+            fix_obj_constraint = model.solver.interface.Constraint(model.objective.expression, ub=obj_val)
+        tm(do=partial(model.solver._add_constraint, fix_obj_constraint),
+           undo=partial(model.solver._remove_constraint, fix_obj_constraint))
+        pfba_obj = model.solver.interface.Objective(add(
+            [mul((sympy.singleton.S.One, variable)) for variable in list(model.solver.variables.values())]),
+            direction='min', sloppy=True)
+        tm(do=partial(setattr, model, 'objective', pfba_obj),
+           undo=partial(setattr, model, 'objective', original_objective))
+        try:
+            solution = model.solve()
+            result = FluxDistributionResult(solution)
+            tm.reset()
+            return result
+        except SolveError as e:
+            logger.error("pfba could not determine an optimal solution for objective %s" % model.objective)
             raise e
 
 def moma(model, reference=None, *args, **kwargs):
