@@ -26,7 +26,7 @@ import six
 from datetime import datetime
 from optlang.interface import OptimizationExpression
 from sympy.parsing.sympy_parser import parse_expr
-from cameo import system_info, config
+from cameo import system_info
 from cameo.visualization import plotting
 
 
@@ -86,7 +86,10 @@ class FluxDistributionResult(Result):
         if isinstance(item, cameo.Reaction):
             return self.fluxes[item.id]
         elif isinstance(item, str):
-            exp = parse_expr(item)
+            try:
+                return self.fluxes[item]
+            except KeyError:
+                exp = parse_expr(item)
         elif isinstance(item, OptimizationExpression):
             exp = item.expression
         elif isinstance(item, sympy.Expr):
@@ -120,6 +123,12 @@ class FluxDistributionResult(Result):
 
     def keys(self):
         return self.fluxes.keys()
+
+    def values(self):
+        return self.fluxes.values()
+
+    def _repr_html_(self):
+        return "<strong>objective value: %s</strong>" % self.objective_value
 
 
 class PhenotypicPhasePlaneResult(Result):
