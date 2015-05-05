@@ -18,6 +18,7 @@ __all__ = ['PathwayPredictor']
 
 from functools import partial
 
+from cameo.core.result import Result
 from cameo.exceptions import SolveError
 from cameo import Reaction, Model, Metabolite
 from cameo.data import metanetx
@@ -26,6 +27,31 @@ from sympy import Add
 
 import logging
 logger = logging.getLogger(__name__)
+
+
+class PathwayPredictions(Result):
+
+    def __init__(self, pathways, *args, **kwargs):
+        super(PathwayPredictions, self).__init__(*args, **kwargs)
+        # TODO: sort the pathways to make them easier to read
+        self.pathways = pathways
+        print(self.pathways)
+
+    def _repr_html_(self):
+        raise NotImplementedError
+
+    def __str__(self):
+        string = str()
+        for i, pathway in enumerate(self.pathways):
+            string += 'Pathway No. {}'.format(i + 1)
+            for reaction in pathway:
+                string += '{}, {}:'.format(reaction.id, reaction.name, reaction.build_reaction_string(use_metabolite_names=True))
+        return string
+
+    @property
+    def plot(self):
+        # TODO: small pathway visualizations would be great.
+        raise NotImplementedError
 
 
 class PathwayPredictor(object):
@@ -83,7 +109,7 @@ class PathwayPredictor(object):
         logger.debug("Adding adapter reactions to connect model with universal model.")
         self._adpater_reactions = list()
         if mapping is None:
-            self.mapping = metanetx.bigg2mnx
+            self.mapping = metanetx.all2mnx
         for metabolite in model.metabolites:  # model is the original host model
             name = metabolite.id[0:-2]
             try:
@@ -155,7 +181,10 @@ class PathwayPredictor(object):
             if not flag:
                 raise ValueError("Specified product '{product}' could not be found. Try searching pathway_predictor_obj.universal_metabolites.metabolites".format(product=product))
         elif isinstance(product, Metabolite):
-            pass
+            try:
+                product = self.model.metabolites.get_by_id(product.id)
+            except KeyError:
+                raise ValueError('Provided product %s is not a known metabolite.' % product)
         else:
             raise ValueError('Provided product %s is neither a metabolite nor an ID or name.' % product)
         pathways = list()
@@ -204,7 +233,7 @@ class PathwayPredictor(object):
                    undo=partial(self.model.solver._remove_constraint, integer_cut))
                 counter += 1
             # self.model.solver.configuration.verbosity = 0
-        return pathways
+        return PathwayPredictions(pathways)
 
     def _predict_heterolgous_pathways_for_native_compound(self, product):
         # Determined reactions that produce product natively and knock them out
