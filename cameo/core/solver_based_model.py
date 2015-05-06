@@ -223,7 +223,7 @@ class SolverBasedModel(_cobrapy.core.Model):
             try:
                 self.solver.constraints[met_id] += expr
             except KeyError:
-                self.solver._add_constraint(self.solver.interface.Constraint(expr, name=met_id, lb=0, ub=0))
+                self.solver._add_constraint(self.solver.interface.Constraint(expr, name=met_id, lb=0, ub=0), sloppy=True)
 
         objective_expression = sympy.Add._from_args(objective_terms)
         self.solver.objective = self.solver.interface.Objective(objective_expression, name='obj', direction='max')
