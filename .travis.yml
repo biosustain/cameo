@@ -3,7 +3,7 @@ python:
  - "2.7"
  - "3.4"
 before_install:
-  - sudo apt-get install swig redis-server libzmq3-dev libgmp-dev libglpk-dev glpk-utils
+  - sudo apt-get install swig redis-server libzmq3-dev libgmp-dev libglpk-dev glpk-utils pandoc
   - sudo service redis-server start
   - sudo rm -rf /dev/shm
   - wget https://ftp.gnu.org/gnu/glpk/glpk-4.45.tar.gz
@@ -11,7 +11,7 @@ before_install:
   - mkdir glpk
   - cd glpk-4.45
   - ./configure --prefix=/
-  - make 
+  - make
   - sudo make install
   - cd ..
   - sudo ldconfig
@@ -24,6 +24,7 @@ install:
   - pip install -e git+https://github.com/zakandrewking/escher.git@9d8dd5ff91c783ca51176987ac71a8e330686760#egg=escher
   - pip install python-libsbml-experimental numpy scipy pyzmq pandas inspyred -f https://dl.dropboxusercontent.com/u/22461024/pypi.drosophi.la/index.html --no-index
   - pip install coveralls coverage
+  - pip install pypandoc
   - pip install redis
   - pip install rednose
   # temporarily use development version of cobrapy (until 0.4 is released); cython>=0.21 needed for that
@@ -36,3 +37,11 @@ after_success:
   - coveralls
 notifications:
   slack: biosustain:UGm09rOjMCgXko3rS3wUivoX
+deploy:
+  provider: pypi
+  user: Nikolaus.Sonnenschein
+  password:
+    secure: nxjszXtUzQfnLlfg0cmFjd9gRekXDog6dkkN1rMc7CIWH2gZ1gAX4sNETVChnuSmu9egzhuIkviHstRrdyGoEZ7ZkHlTXmpVAs9AY96eMSejnwHHODhYno0jB7DjGcfejodLF+lo6lWz7S7mXXwML6YLM3xxG+AOjLHlHbPTaKc=
+  on:
+    tags: true
+    repo: biosustain/cameo

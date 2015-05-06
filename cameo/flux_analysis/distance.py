@@ -127,9 +127,9 @@ class ManhattanDistance(Distance):
         aux_var = self.model.solver.interface.Variable('aux_'+reaction_id, lb=0)
         self._aux_variables[reaction_id] = aux_var
         self.model.solver._add_variable(aux_var)
-        constraint_lb = self.model.solver.interface.Constraint(reaction.flux_expression, ub=flux_value, name='deviation_lb_'+reaction_id)
+        constraint_lb = self.model.solver.interface.Constraint(reaction.flux_expression - aux_var, ub=flux_value, name='deviation_lb_'+reaction_id)
         self.model.solver._add_constraint(constraint_lb, sloppy=True)
-        constraint_ub = self.model.solver.interface.Constraint(reaction.flux_expression, lb=flux_value, name='deviation_ub_'+reaction_id)
+        constraint_ub = self.model.solver.interface.Constraint(reaction.flux_expression + aux_var, lb=flux_value, name='deviation_ub_'+reaction_id)
         self.model.solver._add_constraint(constraint_ub, sloppy=True)
         self._deviation_constraints[reaction_id] = (constraint_lb, constraint_ub)
 
