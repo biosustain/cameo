@@ -27,6 +27,7 @@ from sympy import Add
 
 import logging
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 
 class PathwayPredictions(Result):
@@ -94,6 +95,11 @@ class PathwayPredictor(object):
             raise ValueError('Provided universal_model %s is not a model.' % universal_model)
         self.products = self.universal_model.metabolites
         self.model = model.copy()
+        try:
+            logger.debug('Trying to set solver to cplex to speed up pathway predictions.')
+            self.model.solver = 'cplex'
+        except ValueError:
+            logger.debug('cplex not available for pathway predictions.')
         for exchange in self.model.exchanges:
             if len(exchange.reactants) > 0 and exchange.lower_bound <= 0:
                 exchange.upper_bound = 999999.
