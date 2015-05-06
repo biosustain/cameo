@@ -14,20 +14,30 @@
 
 from __future__ import absolute_import, print_function
 
+import six
+
 from functools import partial
-import progressbar
 from cameo import Metabolite, Model
-from cameo.data import metanetx
+from cameo import config
+from cameo.core.result import Result
 from cameo.api.hosts import hosts, Host
 from cameo.api.products import products
 from cameo.strain_design.pathway_prediction import PathwayPredictor
 from cameo.util import TimeMachine, DisplayItemsWidget
-import six
+from cameo.data.universal_models import metanetx_universal_model_bigg_rhea_kegg_brenda
+
+import logging
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+# TODO: implement cplex preference (if available)
 
 
-class Designs(object):
-    # TODO: implement results object for Designer
-    pass
+class StrainDesigns(Result):
+
+    def __init__(self, *args, **kwargs):
+        super(StrainDesigns, self).__init__(*args, **kwargs)
+
 
 class Designer(object):
     """High-level strain design functionality.
@@ -36,7 +46,6 @@ class Designer(object):
     -------
     design = Designer()
     designs = design(product='L-glutamate')
-
     """
 
     def __init__(self):
@@ -87,15 +96,19 @@ class Designer(object):
         """
         pathways = dict()
         product = self.__translate_product_to_universal_reactions_model_metabolite(product)
-        pbar_hosts = progressbar.ProgressBar(widgets=["Processing", DisplayItemsWidget(list(hosts)), progressbar.Bar(), progressbar.ETA(), progressbar.Percentage()])
-        for host in pbar_hosts(list(hosts)):
+        for host in hosts:
             if isinstance(host, Model):
                 host = Host(name='UNKNOWN_HOST', models=[host])
-            pbar_models = progressbar.ProgressBar(widgets=["Processing", DisplayItemsWidget([model.id for model in host.models]), progressbar.Bar(), progressbar.ETA(), progressbar.Percentage()])
-            for model in pbar_models(list(host.models)):
-                # TODO: Check if product is already part of model
-                pathway_predictor = PathwayPredictor(model)
-                predicted_pathways = pathway_predictor.run(product, max_predictions=5, timeout=15*60)  # TODO adjust these numbers to something reasonable
+            for model in list(host.models):
+                print('Predicting pathways for product {} and host {} using model {}.'.format(product.name, host, model.id))
+                try:
+                    logger.debug('Trying to set solver to cplex for pathway predictions.')
+                    model.solver = 'cplex'  # CPLEX is better predicting pathways
+                except ValueError:
+                    logger.debug('Could not set solver to cplex for pathway predictions.')
+                    pass
+                pathway_predictor = PathwayPredictor(model, universal_model=metanetx_universal_model_bigg_rhea_kegg_brenda)
+                predicted_pathways = pathway_predictor.run(product, max_predictions=5, timeout=3*60)  # TODO adjust these numbers to something reasonable
                 pathways[(host, model)] = predicted_pathways
         return pathways
 
@@ -115,7 +128,7 @@ class Designer(object):
             print("Found %d compounds that match query '%s'" % (len(search_result), product))
             print(repr(search_result))
             print("Choosing best match (%s) ... please interrupt if this is not the desired compound." % search_result.name[0])
-            return METANETX['universal_model'].metabolites.get_by_id(search_result.index[0])
+            return metanetx_universal_model_bigg_rhea_kegg_brenda.metabolites.get_by_id(search_result.index[0])
 
 design = Designer()
 

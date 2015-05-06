@@ -184,7 +184,7 @@ class PathwayPredictor(object):
             try:
                 product = self.model.metabolites.get_by_id(product.id)
             except KeyError:
-                raise ValueError('Provided product %s is not a known metabolite.' % product)
+                raise ValueError('Provided product %s cannot be found in universal reaction database.' % product)
         else:
             raise ValueError('Provided product %s is neither a metabolite nor an ID or name.' % product)
         pathways = list()
