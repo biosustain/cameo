@@ -216,7 +216,7 @@ class SolverBasedModel(_cobrapy.core.Model):
                 constr_terms[metabolite.id].append(sympy.Mul._from_args([sympy.RealNumber(-1*coeff), reverse_variable]))
 
             if reaction.objective_coefficient != 0.:
-                objective_terms.append(sympy.Mul._from_args((sympy.RealNumber(reaction.objective_coefficient), reaction.flux_expression)))
+                objective_terms.append(reaction.objective_coefficient * reaction.flux_expression)
 
         for met_id, terms in six.iteritems(constr_terms):
             expr = sympy.Add._from_args(terms)
@@ -225,8 +225,11 @@ class SolverBasedModel(_cobrapy.core.Model):
             except KeyError:
                 self.solver._add_constraint(self.solver.interface.Constraint(expr, name=met_id, lb=0, ub=0), sloppy=True)
 
-        objective_expression = sympy.Add._from_args(objective_terms)
-        self.solver.objective = self.solver.interface.Objective(objective_expression, name='obj', direction='max')
+        objective_expression = sympy.Add(*objective_terms)
+        if self.solver.objective is None:
+            self.solver.objective = self.solver.interface.Objective(objective_expression, name='obj', direction='max')
+        else:
+            self.solver.objective += objective_expression
 
     def add_reactions(self, reaction_list):
         cloned_reaction_list = list()
