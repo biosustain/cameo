@@ -19,10 +19,51 @@ __all__ = ['set_mutation', 'set_indel']
 
 from six.moves import range
 
-from inspyred.ec.variators import mutator, crossover, n_point_crossover
+from inspyred.ec.variators import mutator, crossover
 from ordered_set import OrderedSet
 from cameo.strain_design.heuristic.genomes import MultipleChromosomeGenome
 from numpy import float32 as float
+
+
+def _do_set_n_point_crossover(representation, mom, dad, points):
+    chunks = []
+    i = 0
+    for point in points:
+        chunks.append([representation.index(v) for v in representation[i:point]])
+        i = point
+    chunks.append([representation.index(v) for v in representation[i:]])
+
+    bro = OrderedSet()
+    sis = OrderedSet()
+
+    cross = True
+    for variables in chunks:
+        for v in variables:
+            if v in mom:
+                bro.append(v) if cross else sis.append(v)
+            if v in dad:
+                sis.append(v) if cross else bro.append(v)
+        cross = not cross
+    return bro, sis
+
+
+@crossover
+def set_n_point_crossover(random, mom, dad, args):
+    representation = args.get('representation')
+    crossover_rate = args.setdefault('crossover_rate', 1.0)
+    num_crossover_points = args.setdefault('num_crossover_points', 1)
+    children = []
+    if random.random() < crossover_rate:
+        points = random.sample(representation, num_crossover_points)
+        bro, sis = _do_set_n_point_crossover(representation, mom, dad, points)
+
+        children.append(bro)
+        children.append(sis)
+    else:
+        children.append(mom)
+        children.append(dad)
+    return children
+
 
 @mutator
 def set_mutation(random, individual, args):
