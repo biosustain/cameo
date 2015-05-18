@@ -137,6 +137,14 @@ class TestBestSolutionArchiver(unittest.TestCase):
         self.assertEqual(sol.candidate, solution, msg="Best solution must be the first (%s)" % sol.candidate)
         self.assertEqual(sol.fitness, fitness, msg="Best fitness must be the first (%s)" % sol.fitness)
 
+    def test_uniqueness_of_solutions(self):
+        size = 2
+        pool = BestSolutionArchiver()
+        pool.add(SOLUTIONS[1][0], SOLUTIONS[1][1], size)
+        pool.add(SOLUTIONS[1][0], SOLUTIONS[1][1], size)
+
+        self.assertEqual(pool.length(), 1, "Added repeated solution")
+
     def test_pool_size_limit(self):
         size = 1
         pool = BestSolutionArchiver()
