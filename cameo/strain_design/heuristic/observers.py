@@ -33,7 +33,7 @@ class ProgressObserver():
             self.progress.start()
 
         if num_evaluations % args.get('n', 1) == 0:
-            if num_evaluations > self.max_evaluations:
+            if num_evaluations < self.max_evaluations:
                 self.progress.update(self.max_evaluations)
             else:
                 self.progress.update(num_evaluations)
