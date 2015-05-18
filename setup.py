@@ -40,7 +40,7 @@ else:
                     'ordered-set>=1.2',
                     'inspyred>=1.0',
                     'cobra>=0.3.2',
-                    'optlang>=0.0.3',
+                    'optlang>=0.2.6',
                     'requests>=2.5.0',
                     'numexpr>=2.4',
                     'networkx>=1.9.1',
@@ -52,7 +52,6 @@ else:
         requirements.extend(['progressbar'])
 
 dependency_links = [
-    'https://github.com/biosustain/optlang/tarball/devel#egg=optlang-0.1',
     'https://github.com/coagulant/progressbar-python3.git'
 ]
 

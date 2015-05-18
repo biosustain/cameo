@@ -23,7 +23,6 @@ def _():
     import glob
     import sys
     import six.moves.cPickle as pickle
-    import gzip
     from cameo import Model
 
     CURRENT_MODULE = sys.modules[__name__]
@@ -48,13 +47,13 @@ def _():
             return dir(self._model)
 
         def _load_lazily(self):
-            with gzip.open(os.path.join(CURRENT_PATH, self.id + '.pklz')) as f:
+            with open(os.path.join(CURRENT_PATH, self.id + '.pickle')) as f:
                 if six.PY2:
                     self._model = pickle.load(f)
                 else:
                     self._model = pickle.load(f, encoding='bytes')
 
-    for file_path in glob.glob(os.path.join(CURRENT_PATH, '*.pklz')):
+    for file_path in glob.glob(os.path.join(CURRENT_PATH, '*.pickle')):
         model_id = os.path.splitext(os.path.basename(file_path))[0]
         setattr(CURRENT_MODULE, model_id, ModelFacade(model_id))
 

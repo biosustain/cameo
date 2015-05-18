@@ -54,11 +54,11 @@ class biomass_product_coupled_yield(ObjectiveFunction):
 
     Parameters
     ----------
-    biomass: str
+    biomass: str or Reaction
         biomass reaction identifier
-    product: str
+    product: str or Reaction
         product reaction identifier
-    substrate: str
+    substrate: str or Reaction
         substrate reaction identifier
 
     Returns
@@ -109,9 +109,9 @@ class product_yield(ObjectiveFunction):
 
     Parameters
     ----------
-    product: str
+    product: str or Reaction
         product reaction identifier
-    substrate: str
+    substrate: str or Reaction
         substrate reaction identifier
 
     Returns

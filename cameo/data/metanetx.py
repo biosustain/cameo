@@ -23,8 +23,8 @@ import gzip
 
 import cameo
 
-with gzip.open(os.path.join(cameo._cameo_data_path, 'metanetx.pklz'), 'rb') as f:
-    _METANETX = pickle.load(f)  # TODO: this is pretty slow (~8 seconds)
+with open(os.path.join(cameo._cameo_data_path, 'metanetx.pickle'), 'rb') as f:
+    _METANETX = pickle.load(f)
 
 bigg2mnx = _METANETX['bigg2mnx']
 mnx2bigg = _METANETX['mnx2bigg']
