@@ -578,10 +578,11 @@ class TestReactionKnockoutOptimization(unittest.TestCase):
 class TestVariators(unittest.TestCase):
     def test_set_n_point_crossover(self):
         representation = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N"]
+        int_representation = [representation.index(v) for v in representation]
         mom = OrderedSet([representation.index(v) for v in ["A", "B", "E", "K", "L", "M"]])
         dad = OrderedSet([representation.index(v) for v in ["A", "C", "I", "J", "K", "L"]])
         points = [4]
-        children = _do_set_n_point_crossover(representation, mom, dad, points)
+        children = _do_set_n_point_crossover(int_representation, mom, dad, points)
         bro = OrderedSet([0, 1, 8, 9, 10, 11])
         sis = OrderedSet([0, 2, 4, 10, 11, 12])
         self.assertEqual(children[0], bro)
