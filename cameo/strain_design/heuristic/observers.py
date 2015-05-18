@@ -29,11 +29,11 @@ class ProgressObserver():
     def __call__(self, population, num_generations, num_evaluations, args):
         if self.progress is None:
             self.max_evaluations = args.get('max_evaluations', 50000)
-            self.progress = ProgressBar()
+            self.progress = ProgressBar(self.max_evaluations)
             self.progress.start()
 
         if num_evaluations % args.get('n', 1) == 0:
-            if num_evaluations < self.max_evaluations:
+            if num_evaluations > self.max_evaluations:
                 self.progress.update(self.max_evaluations)
             else:
                 self.progress.update(num_evaluations)
