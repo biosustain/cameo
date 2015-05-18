@@ -40,7 +40,7 @@ else:
                     'ordered-set>=1.2',
                     'inspyred>=1.0',
                     'cobra>=0.3.2',
-                    'optlang>=0.0.3',
+                    'optlang>=0.2.6',
                     'requests>=2.5.0',
                     'numexpr>=2.4',
                     'networkx>=1.9.1',
@@ -52,17 +52,14 @@ else:
         requirements.extend(['progressbar'])
 
 dependency_links = [
-    'https://github.com/biosustain/optlang/tarball/devel#egg=optlang-0.1',
     'https://github.com/coagulant/progressbar-python3.git'
 ]
 
-# from https://coderwall.com/p/qawuyq
-try:
-    import pypandoc
-
-    description = pypandoc.convert('README.md', 'rst')
-except (IOError, ImportError):
-    description = ''
+# Run
+# pandoc --from=markdown --to=rst README.md -o README.rst
+# from time to time, to keep README.rst updated
+with open('README.rst', 'r') as f:
+    description = f.read()
 
 setup(
     name='cameo',

@@ -61,9 +61,9 @@ logger.setLevel(logging.INFO)
 PRE_CONFIGURED = {
     inspyred.ec.GA: [
         [
-            inspyred.ec.variators.crossovers.n_point_crossover,
             variators.set_mutation,
-            variators.set_indel
+            variators.set_indel,
+            variators.set_n_point_crossover
         ],
         inspyred.ec.selectors.tournament_selection,
         inspyred.ec.replacers.generational_replacement,
@@ -83,7 +83,7 @@ PRE_CONFIGURED = {
         [
             variators.set_mutation,
             variators.set_indel,
-            inspyred.ec.variators.crossovers.n_point_crossover
+            variators.set_n_point_crossover
         ],
         inspyred.ec.selectors.tournament_selection,
         inspyred.ec.replacers.nsga_replacement,
@@ -93,7 +93,7 @@ PRE_CONFIGURED = {
         [
             variators.set_mutation,
             variators.set_indel,
-            inspyred.ec.variators.crossovers.n_point_crossover
+            variators.set_n_point_crossover
         ],
         inspyred.ec.selectors.default_selection,
         inspyred.ec.replacers.paes_replacement,

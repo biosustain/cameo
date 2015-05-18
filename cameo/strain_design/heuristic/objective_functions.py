@@ -54,11 +54,11 @@ class biomass_product_coupled_yield(ObjectiveFunction):
 
     Parameters
     ----------
-    biomass: str
+    biomass: str or Reaction
         biomass reaction identifier
-    product: str
+    product: str or Reaction
         product reaction identifier
-    substrate: str
+    substrate: str or Reaction
         substrate reaction identifier
 
     Returns
@@ -109,9 +109,9 @@ class product_yield(ObjectiveFunction):
 
     Parameters
     ----------
-    product: str
+    product: str or Reaction
         product reaction identifier
-    substrate: str
+    substrate: str or Reaction
         substrate reaction identifier
 
     Returns
@@ -121,7 +121,11 @@ class product_yield(ObjectiveFunction):
     """
     def __init__(self, product, substrate, *args, **kwargs):
         super(product_yield, self).__init__(*args, **kwargs)
+        if isinstance(product, Reaction):
+            product = product.id
         self.product = product
+        if isinstance(substrate, Reaction):
+            substrate = substrate.id
         self.substrate = substrate
 
     def __call__(self, model, solution, decoded_representation):
