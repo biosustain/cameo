@@ -496,10 +496,7 @@ class KnockoutOptimizationResult(core.result.Result):
         reactions = []
         for solution in solutions:
             mo = isinstance(solution.fitness, Pareto)
-            if mo:
-                proceed = True
-            else:
-                proceed = solution.fitness > 0
+            proceed = True if mo else solution.fitness > 0
 
             if proceed:
                 decoded_solution = self.decoder(solution.candidate)
@@ -511,26 +508,32 @@ class KnockoutOptimizationResult(core.result.Result):
                 size = len(decoded_solution[1])
 
                 if self.biomass:
-                    biomass.append(simulation_result.get_primal_by_id(self.biomass))
+                    biomass.append(simulation_result[self.biomass])
                 fitness.append(solution.fitness)
                 knockouts.append(frozenset([v.id for v in decoded_solution[1]]))
                 reactions.append(frozenset([v.id for v in decoded_solution[0]]))
                 sizes.append(size)
 
-                if isinstance(self.product, (list, tuple)):
-                    products.append([simulation_result.get_primal_by_id(p) for p in self.product])
-                elif not self.product is None:
-                    products.append(simulation_result.get_primal_by_id(self.product))
+                if isinstance(self.product, (list, tuple, set)):
+                    products.append([simulation_result[p] for p in self.product])
+                elif self.product is not None:
+                    products.append(simulation_result[self.product])
+
+        assert len(knockouts) == len(fitness)
+        assert len(sizes) == len(knockouts)
         if self.ko_type == REACTION_KNOCKOUT_TYPE:
             data_frame = DataFrame({KNOCKOUTS: knockouts, FITNESS: fitness, SIZE: sizes})
         else:
             data_frame = DataFrame({KNOCKOUTS: knockouts, REACTIONS: reactions, FITNESS: fitness, SIZE: sizes})
-        if not self.biomass is None:
+        if self.biomass is not None:
+            assert len(biomass) == len(knockouts)
             data_frame[BIOMASS] = biomass
         if isinstance(self.product, str):
+            assert len(biomass) == len(products)
             data_frame[self.product] = products
-        elif isinstance(self.product, (list, tuple)):
+        elif isinstance(self.product, (list, tuple, set)):
             for i in range(self.product):
+                assert len(biomass) == len(products[i:])
                 data_frame[self.product[i]] = products[i:]
 
         return data_frame
