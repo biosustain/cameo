@@ -58,8 +58,11 @@ def set_n_point_crossover(random, mom, dad, args):
         points = random.sample(int_representation, num_crossover_points)
         bro, sis = _do_set_n_point_crossover(int_representation, mom, dad, points)
 
-        children.append(bro)
-        children.append(sis)
+        # ensure number of knockouts > 0 or do not add individual
+        if len(bro) > 0:
+            children.append(bro)
+        if len(sis) > 0:
+            children.append(sis)
     else:
         children.append(mom)
         children.append(dad)
