@@ -564,6 +564,10 @@ class AbstractTestSolverBasedModel(object):
         for reaction in reactions_to_remove:
             self.assertNotIn(reaction.id, list(self.model.solver.variables.keys()))
 
+        self.model.add_reactions(reactions_to_remove)
+        for reaction in reactions_to_remove:
+            self.assertIn(reaction, self.model.reactions)
+
     def test_add_demand(self):
         for metabolite in self.model.metabolites:
             demand_reaction = self.model.add_demand(metabolite, prefix="DemandReaction_")
