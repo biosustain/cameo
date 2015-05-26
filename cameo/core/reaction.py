@@ -260,7 +260,7 @@ class Reaction(_cobrapy.core.Reaction):
         model = self.model
         if model is not None:
             model.solver._set_linear_objective_term(self.forward_variable, value)
-
+            model.solver._set_linear_objective_term(self.reverse_variable, -1*value)
         self._objective_coefficient = value
 
     @property
@@ -281,23 +281,15 @@ class Reaction(_cobrapy.core.Reaction):
 
     @property
     def flux(self):
-        if self.forward_variable is not None:
-            primal = self.forward_variable.primal
-            if self.reversibility:
-                primal -= self.reverse_variable.primal
-            return primal
+        if self.model is not None:
+            return self.forward_variable.primal - self.reverse_variable.primal
         else:
             return None
 
     @property
     def reduced_cost(self):
-        if self.forward_variable is not None:
-            dual = self.forward_variable.dual
-            if dual is None:  # cplex cannot determine reduced costs for MILP problems
-                return None
-            if self.reversibility:
-                dual -= self.reverse_variable.dual
-            return dual
+        if self.model is not None:
+            return self.forward_variable.dual - self.reverse_variable.dual
         else:
             return None
 
