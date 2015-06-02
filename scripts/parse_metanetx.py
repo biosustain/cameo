@@ -4,7 +4,7 @@
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+# http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -22,12 +22,12 @@ from cameo import Reaction, Metabolite, Model
 from cobra.core.Formula import Formula
 
 import logging
+
 logger = logging.getLogger('parse_metanetx')
 # logger.setLevel(logging.DEBUG)
 
 
 def parse_reaction(formula, irrev_arrow='-->', rev_arrow='<=>'):
-
     def parse_rhs_side(string):
         return parse_one_side(string, factor=1.)
 
@@ -41,7 +41,7 @@ def parse_reaction(formula, irrev_arrow='-->', rev_arrow='<=>'):
                 coeff, metabolite_id = term.strip().split(' ')
             except:
                 raise ValueError('Something is fishy with the provided term %s' % term)
-            return Metabolite(metabolite_id), factor*float(coeff)
+            return Metabolite(metabolite_id), factor * float(coeff)
 
         terms = string.split('+')
         return dict([parse_coeff_and_metabolites(term) for term in terms])
@@ -57,10 +57,14 @@ def parse_reaction(formula, irrev_arrow='-->', rev_arrow='<=>'):
     stoichiometry.update(parse_rhs_side(rhs))
     return stoichiometry
 
+
 def construct_universal_model(list_of_db_prefixes):
     # Select which reactions to include in universal reaction database
 
-    reaction_selection = reac_prop[[any([source.startswith(db_prefix) for db_prefix in list_of_db_prefixes]) and re.match('.*biomass.*', source, re.I) is None for source in reac_prop.Source]]
+    reaction_selection = reac_prop[[
+        any([source.startswith(db_prefix) for db_prefix in list_of_db_prefixes]) and re.match('.*biomass.*', source,
+                                                                                              re.I) is None for source
+        in reac_prop.Source]]
     reactions = list()
     for index, row in reaction_selection.iterrows():
         try:
@@ -94,7 +98,7 @@ def construct_universal_model(list_of_db_prefixes):
             if reaction.check_mass_balance() != []:
                 continue
             if row.Balance:
-                reaction.lower_bound = -1*reaction.upper_bound
+                reaction.lower_bound = -1 * reaction.upper_bound
             reaction.name = row['Source']
             rest = row.to_dict()
             reaction.annotation = dict((key, rest[key]) for key in rest if key in ('EC', 'Description'))
@@ -107,9 +111,11 @@ def construct_universal_model(list_of_db_prefixes):
         model.add_demand(metabolite)
     return model
 
+
 if __name__ == '__main__':
 
     import logging
+
     logging.basicConfig(level='INFO')
 
     # load metanetx data
@@ -119,40 +125,53 @@ if __name__ == '__main__':
     reac_xref.columns = [name.replace('#', '') for name in reac_xref.columns]
     reac_prop = read_table('../data/metanetx/reac_prop.tsv.gz', skiprows=107, compression='gzip', index_col=0)
     reac_prop.columns = [name.replace('#', '') for name in reac_prop.columns]
-    chem_prop = read_table('../data/metanetx/chem_prop.tsv.gz', skiprows=125, compression='gzip', index_col=0, names=['name', 'formula', 'charge', 'mass', 'InChI', 'SMILES', 'source'])
+    chem_prop = read_table('../data/metanetx/chem_prop.tsv.gz', skiprows=125, compression='gzip', index_col=0,
+                           names=['name', 'formula', 'charge', 'mass', 'InChI', 'SMILES', 'source'])
 
     REVERSE_ID_SANITIZE_RULES_SIMPHENY = [(value, key) for key, value in ID_SANITIZE_RULES_SIMPHENY]
 
-    # final result dictionary
     metanetx = dict()
     # Metabolites
     bigg_selection = chem_xref[['bigg' in blub for blub in chem_xref.XREF]]
-    sanitized_XREF = [_apply_sanitize_rules(_apply_sanitize_rules(id.replace('bigg:', ''), REVERSE_ID_SANITIZE_RULES_SIMPHENY), ID_SANITIZE_RULES_TAB_COMPLETION) for id in bigg_selection.XREF]
+    sanitized_XREF = [
+        _apply_sanitize_rules(_apply_sanitize_rules(id.replace('bigg:', ''), REVERSE_ID_SANITIZE_RULES_SIMPHENY),
+                              ID_SANITIZE_RULES_TAB_COMPLETION) for id in bigg_selection.XREF]
     bigg2mnx = dict(zip(sanitized_XREF, bigg_selection.MNX_ID))
     mnx2bigg = dict(zip(bigg_selection.MNX_ID, sanitized_XREF))
 
     # Reactions
     bigg_selection = reac_xref[['bigg' in blub for blub in reac_xref.XREF]]
-    sanitized_XREF = [_apply_sanitize_rules(_apply_sanitize_rules(id.replace('bigg:', ''), REVERSE_ID_SANITIZE_RULES_SIMPHENY), ID_SANITIZE_RULES_TAB_COMPLETION) for id in bigg_selection.XREF]
+    sanitized_XREF = [
+        _apply_sanitize_rules(_apply_sanitize_rules(id.replace('bigg:', ''), REVERSE_ID_SANITIZE_RULES_SIMPHENY),
+                              ID_SANITIZE_RULES_TAB_COMPLETION) for id in bigg_selection.XREF]
     bigg2mnx.update(dict(zip(sanitized_XREF, bigg_selection.MNX_ID)))
     mnx2bigg.update(dict(zip(bigg_selection.MNX_ID, sanitized_XREF)))
 
     # put into final result dict
     metanetx['bigg2mnx'] = bigg2mnx
     metanetx['mnx2bigg'] = mnx2bigg
-    # metabolite_ids = [metabolite.id for metabolite in metanetx_model.metabolites]
-    # metanetx['chem_prop'] = chem_prop.loc[metabolite_ids]
-    # metanetx['chem_prop'] = chem_prop
 
-    with open('../cameo/data/metanetx.pickle', 'w') as f:
+    all2mnx = dict()
+    for other_id, mnx_id in chem_xref[['XREF', 'MNX_ID']].values:
+        cleaned_key = _apply_sanitize_rules(
+            _apply_sanitize_rules(other_id.split(':')[1], REVERSE_ID_SANITIZE_RULES_SIMPHENY),
+            ID_SANITIZE_RULES_TAB_COMPLETION)
+        all2mnx[cleaned_key] = mnx_id
+    for other_id, mnx_id in reac_xref[['XREF', 'MNX_ID']].values:
+        cleaned_key = _apply_sanitize_rules(
+            _apply_sanitize_rules(other_id.split(':')[1], REVERSE_ID_SANITIZE_RULES_SIMPHENY),
+            ID_SANITIZE_RULES_TAB_COMPLETION)
+        all2mnx[cleaned_key] = mnx_id
+
+    metanetx['all2mnx'] = all2mnx
+    with open('../cameo/data/metanetx.pickle', 'wb') as f:
         pickle.dump(metanetx, f)
 
     # generate universal reaction models
     db_combinations = [('bigg',), ('rhea',) , ('bigg', 'rhea'), ('bigg', 'rhea', 'kegg'), ('bigg', 'rhea', 'kegg', 'brenda')]
     for db_combination in db_combinations:
-        print db_combination
         universal_model = construct_universal_model(db_combination)
-        with open('../cameo/data/universal_models/{model_name}.pickle'.format(model_name=universal_model.id) , 'w') as f:
+        with open('../cameo/data/universal_models/{model_name}.pickle'.format(model_name=universal_model.id) , 'wb') as f:
             pickle.dump(universal_model, f)
 
     chem_prop_filtered = chem_prop[[any([source.startswith(db) for db in ('bigg', 'rhea', 'kegg', 'brenda', 'chebi')]) for source in chem_prop.source]]

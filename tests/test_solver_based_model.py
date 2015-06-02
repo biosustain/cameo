@@ -506,10 +506,15 @@ class AbstractTestSolverBasedModel(object):
         r2 = Reaction('r2')
         r2.add_metabolites({Metabolite('A'): -1, Metabolite('C'): 1, Metabolite('D'): 1})
         r2.lower_bound, r2.upper_bound = 0., 999999.
+        r2.objective_coefficient = 3.
         self.model.add_reactions([r1, r2])
         self.assertEqual(self.model.reactions[-2], r1)
         self.assertEqual(self.model.reactions[-1], r2)
         self.assertTrue(isinstance(self.model.reactions[-2].reverse_variable, self.model.solver.interface.Variable))
+        self.assertEqual(self.model.objective.expression.coeff(self.model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.forward_variable), 1.)
+        self.assertEqual(self.model.objective.expression.coeff(self.model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.reverse_variable), -1.)
+        self.assertEqual(self.model.objective.expression.coeff(self.model.reactions.r2.forward_variable), 3.)
+        self.assertEqual(self.model.objective.expression.coeff(self.model.reactions.r2.reverse_variable), -3.)
 
     def test_all_objects_point_to_all_other_correct_objects(self):
         model = load_model(os.path.join(TESTDIR, 'data/EcoliCore.xml'))
@@ -559,6 +564,10 @@ class AbstractTestSolverBasedModel(object):
         for reaction in reactions_to_remove:
             self.assertNotIn(reaction.id, list(self.model.solver.variables.keys()))
 
+        self.model.add_reactions(reactions_to_remove)
+        for reaction in reactions_to_remove:
+            self.assertIn(reaction, self.model.reactions)
+
     def test_add_demand(self):
         for metabolite in self.model.metabolites:
             demand_reaction = self.model.add_demand(metabolite, prefix="DemandReaction_")
@@ -577,7 +586,7 @@ class AbstractTestSolverBasedModel(object):
     def test_objective(self):
         obj = self.model.objective
         self.assertEqual(
-            obj.__str__(), 'Maximize\n1.0*Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2')
+            obj.__str__(), 'Maximize\n-1.0*Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2_reverse_9ebcd + 1.0*Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2')
 
     def test_change_objective(self):
         expression = 1.0*self.model.solver.variables['ENO'] + 1.0*self.model.solver.variables['PFK']

@@ -95,7 +95,7 @@ class SolverBasedModel(_cobrapy.core.Model):
                 metabolite_reactions.append(model_reaction)
             metabolite._reaction = set(metabolite_reactions)
         self._solver = solver_interface.Model()
-        self._populate_solver_from_scratch()
+        self._populate_solver(self.reactions)
         self._timestamp_last_optimization = None
         self.solution = LazySolution(self)
 
@@ -174,46 +174,11 @@ class SolverBasedModel(_cobrapy.core.Model):
         else:
             raise not_valid_interface
         self._solver = interface.Model()
-        self._populate_solver_from_scratch()  #FIXME: This ignores non-reaction variables and constraints
+        self._populate_solver(self.reactions)  #FIXME: This ignores non-reaction variables and constraints
 
     @property
     def exchanges(self):
         return [reaction for reaction in self.reactions if len(reaction.reactants) == 0 or len(reaction.products) == 0]
-
-    def _populate_solver_from_scratch(self):
-        objective_terms = list()
-        constr_terms = dict()
-        for rxn in self.reactions:
-            lower_bound, upper_bound = rxn._lower_bound, rxn._upper_bound
-            if lower_bound < 0 and upper_bound > 0:  # i.e. lower_bound < 0 and upper_bound > 0
-                var = self.solver._add_variable(self.solver.interface.Variable(rxn._get_forward_id(), lb=0, ub=upper_bound))
-                aux_var = self.solver._add_variable(
-                    self.solver.interface.Variable(rxn._get_reverse_id(), lb=0, ub=-1 * lower_bound))
-            else:
-                var = self.solver._add_variable(self.solver.interface.Variable(rxn._get_forward_id(), lb=lower_bound, ub=upper_bound))
-                aux_var = self.solver._add_variable(
-                    self.solver.interface.Variable(rxn._get_reverse_id(), lb=0, ub=0))
-            if rxn.objective_coefficient != 0.:
-                objective_terms.append(sympy.Mul._from_args((sympy.RealNumber(rxn.objective_coefficient), var)))
-            for met, coeff in six.iteritems(rxn._metabolites):
-                if met.id in constr_terms:
-                    constr_terms[met.id] += [(sympy.RealNumber(coeff), var)]
-                else:
-                    constr_terms[met.id] = [(sympy.RealNumber(coeff), var)]
-                if lower_bound < 0 and upper_bound > 0:
-                    constr_terms[met.id] += [(-1 * sympy.RealNumber(coeff), aux_var)]
-
-        for met_id, terms in six.iteritems(constr_terms):
-            expr = sympy.Add._from_args([sympy.Mul._from_args((coeff, var))
-                                         for coeff, var in terms])
-            constr = self.solver.interface.Constraint(expr, lb=0, ub=0, name=met_id)
-            try:
-                self.solver._add_constraint(constr, sloppy=False)  # TODO: should be True
-            except Exception as e:
-                print(e)
-                raise
-        objective_expression = sympy.Add._from_args(objective_terms)
-        self.solver.objective = self.solver.interface.Objective(objective_expression, name='obj', direction='max')
 
     def add_metabolites(self, metabolite_list):
         super(SolverBasedModel, self).add_metabolites(metabolite_list)
@@ -221,20 +186,11 @@ class SolverBasedModel(_cobrapy.core.Model):
             if met.id not in self.solver.constraints:
                 self.solver.add(self.solver.interface.Constraint(S.Zero, name=met.id, lb=0, ub=0))
 
-    def add_reactions(self, reaction_list):
-        cloned_reaction_list = list()
-        for reaction in reaction_list:  # this is necessary for cobrapy compatibility
-            if not isinstance(reaction, Reaction):
-                cloned_reaction_list.append(Reaction.clone(reaction, model=self))
-            else:
-                cloned_reaction_list.append(reaction)
-
-        # cobrapy will raise an exceptions if one of the reactions already exists in the model (before adding any reactions)
-        super(SolverBasedModel, self).add_reactions(cloned_reaction_list)
-
+    def _populate_solver(self, reaction_list):
         constr_terms = dict()
+        objective_terms = list()
         metabolites = {}
-        for reaction in cloned_reaction_list:
+        for reaction in reaction_list:
             if reaction.reversibility:
                 forward_variable = self.solver.interface.Variable(reaction._get_forward_id(), lb=0, ub=reaction._upper_bound)
                 reverse_variable = self.solver.interface.Variable(reaction._get_reverse_id(), lb=0, ub=-1*reaction._lower_bound)
@@ -259,16 +215,40 @@ class SolverBasedModel(_cobrapy.core.Model):
                     metabolites[metabolite.id] = metabolite
                 constr_terms[metabolite.id].append(sympy.Mul._from_args([sympy.RealNumber(-1*coeff), reverse_variable]))
 
+            if reaction.objective_coefficient != 0.:
+                objective_terms.append(reaction.objective_coefficient * reaction.flux_expression)
+
         for met_id, terms in six.iteritems(constr_terms):
             expr = sympy.Add._from_args(terms)
             try:
                 self.solver.constraints[met_id] += expr
             except KeyError:
-                self.solver._add_constraint(self.solver.interface.Constraint(expr, name=met_id, lb=0, ub=0))
+                self.solver._add_constraint(self.solver.interface.Constraint(expr, name=met_id, lb=0, ub=0), sloppy=True)
+
+        objective_expression = sympy.Add(*objective_terms)
+        if self.solver.objective is None:
+            self.solver.objective = self.solver.interface.Objective(objective_expression, name='obj', direction='max')
+        else:
+            self.solver.objective.variables  # TODO: remove this weird hack. Looks like some weird issue with lazy objective expressions in CPLEX and GLPK interface in optlang.
+            self.solver.objective += objective_expression
+
+    def add_reactions(self, reaction_list):
+        cloned_reaction_list = list()
+        for reaction in reaction_list:  # this is necessary for cobrapy compatibility
+            if not isinstance(reaction, Reaction):
+                cloned_reaction_list.append(Reaction.clone(reaction, model=self))
+            else:
+                cloned_reaction_list.append(reaction)
+
+        # cobrapy will raise an exceptions if one of the reactions already exists in the model (before adding any reactions)
+        super(SolverBasedModel, self).add_reactions(cloned_reaction_list)
+
+        self._populate_solver(cloned_reaction_list)
 
     def remove_reactions(self, the_reactions):
         for reaction in the_reactions:
-            self.solver.remove(reaction.id)
+            self.solver.remove(reaction.forward_variable)
+            self.solver.remove(reaction.reverse_variable)
         super(SolverBasedModel, self).remove_reactions(the_reactions)
 
     def add_demand(self, metabolite, prefix="DM_"):

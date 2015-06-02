@@ -9,7 +9,7 @@ pandas>=0.15.2
 ordered-set==1.2
 inspyred==1.0
 cobra==0.3.2
--e git+https://github.com/biosustain/optlang.git@700ff4264ef772ddd8401c48f33800d2add415b9#egg=optlang
+optlang==0.2.6
 sphinx>=1.2.2
 sphinx-rtd-theme>=0.1.6
 escher==1.0.0

@@ -91,7 +91,7 @@ def pfba(model, objective=None, *args, **kwargs):
             tm(do=partial(setattr, model, 'objective', objective),
                undo=partial(setattr, model, 'objective', original_objective))
         try:
-            obj_val = fba(model)[model.objective]
+            obj_val = model.solve().f
         except SolveError as e:
             logger.debug("pfba could not determine maximum objective value for\n%s." % model.objective)
             raise e
