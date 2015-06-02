@@ -24,7 +24,7 @@ from cameo.api.hosts import hosts, Host
 from cameo.api.products import products
 from cameo.strain_design.pathway_prediction import PathwayPredictor
 from cameo.util import TimeMachine, DisplayItemsWidget
-from cameo.data.universal_models import metanetx_universal_model_bigg_rhea_kegg_brenda
+from cameo.data import universal_models
 
 import logging
 logger = logging.getLogger(__name__)
@@ -107,7 +107,7 @@ class Designer(object):
                 except ValueError:
                     logger.debug('Could not set solver to cplex for pathway predictions.')
                     pass
-                pathway_predictor = PathwayPredictor(model, universal_model=metanetx_universal_model_bigg_rhea_kegg_brenda)
+                pathway_predictor = PathwayPredictor(model, universal_model=universal_models.metanetx_universal_model_bigg_rhea_kegg_brenda)
                 predicted_pathways = pathway_predictor.run(product, max_predictions=5, timeout=3*60)  # TODO adjust these numbers to something reasonable
                 pathways[(host, model)] = predicted_pathways
         return pathways
@@ -128,7 +128,7 @@ class Designer(object):
             print("Found %d compounds that match query '%s'" % (len(search_result), product))
             print(repr(search_result))
             print("Choosing best match (%s) ... please interrupt if this is not the desired compound." % search_result.name[0])
-            return metanetx_universal_model_bigg_rhea_kegg_brenda.metabolites.get_by_id(search_result.index[0])
+            return universal_models.metanetx_universal_model_bigg_rhea_kegg_brenda.metabolites.get_by_id(search_result.index[0])
 
 design = Designer()
 
