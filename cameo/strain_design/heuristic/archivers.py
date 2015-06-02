@@ -27,17 +27,18 @@ class BestSolutionArchiver(object):
 
     def __call__(self, random, population, archive, args):
         self.archive = archive
+        maximize = args.get("maximize", True)
         size = args.get('max_archive_size', 100)
-        [self.add(individual.candidate, individual.fitness, size) for individual in population]
+        [self.add(individual.candidate, individual.fitness, size, maximize) for individual in population]
         return self.archive
 
-    def add(self, candidate, fitness, max_size):
+    def add(self, candidate, fitness, max_size, maximize=True):
         if self.worst_fitness is None:
             self.worst_fitness = fitness
 
         if fitness >= self.worst_fitness:
 
-            candidate = SolutionTuple(candidate, fitness)
+            candidate = SolutionTuple(candidate, fitness, maximize)
             add = True
             for c in self.archive:
                 if c == candidate:
@@ -67,16 +68,17 @@ class BestSolutionArchiver(object):
 
 
 class SolutionTuple(object):
-        def __init__(self, candidate, fitness):
+        def __init__(self, candidate, fitness, maximize=True):
             self.candidate = set(candidate)
             self.fitness = fitness
+            self.maximize = maximize
 
         def __eq__(self, other):
             return self.candidate == other.candidate and self.fitness == other.fitness
 
         def __cmp__(self, other):
             if self.fitness > other.fitness:
-                return -1
+                return -1 if self.maximize else 1
             elif self.fitness == other.fitness:
                 if self.improves(other):
                     return -1
@@ -85,11 +87,11 @@ class SolutionTuple(object):
                 else:
                     return 1
             else:
-                return 1
+                return 1 if self.maximize else -1
 
         def __lt__(self, other):
             if self.fitness > other.fitness:
-                return True
+                return self.maximize
             elif self.fitness == other.fitness:
                 if self.improves(other):
                     return True
@@ -98,11 +100,11 @@ class SolutionTuple(object):
                 else:
                     return False
             else:
-                return False
+                return not self.maximize
 
         def __gt__(self, other):
             if self.fitness > other.fitness:
-                return False
+                return not self.maximize
             elif self.fitness == other.fitness:
                 if self.improves(other):
                     return False
@@ -111,10 +113,11 @@ class SolutionTuple(object):
                 else:
                     return True
             else:
-                return True
+                return self.maximize
 
         def __str__(self):
-            return "%s - %s" % (list(self.candidate), self.fitness)
+            sense = "max" if self.maximize else "min"
+            return "%s - %s sense: %s" % (list(self.candidate), self.fitness, sense)
 
         def __repr__(self):
             return "SolutionTuple #%s: %s" % (id(self), self.__str__())
@@ -127,4 +130,11 @@ class SolutionTuple(object):
 
         def improves(self, other):
             assert isinstance(other, SolutionTuple)
-            return self.issubset(other) and len(self.symmetric_difference(other)) > 0 and self.fitness >= other.fitness
+            if self.maximize:
+                return self.issubset(other) and \
+                       len(self.symmetric_difference(other)) > 0 and \
+                       self.fitness >= other.fitness
+            else:
+                return self.issubset(other) and \
+                       len(self.symmetric_difference(other)) > 0 and \
+                       self.fitness <= other.fitness
