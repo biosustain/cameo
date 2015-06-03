@@ -32,11 +32,13 @@ logger.setLevel(logging.DEBUG)
 
 class PathwayPredictions(Result):
 
+    def data_frame(self):
+        raise NotImplementedError
+
     def __init__(self, pathways, *args, **kwargs):
         super(PathwayPredictions, self).__init__(*args, **kwargs)
         # TODO: sort the pathways to make them easier to read
         self.pathways = pathways
-        print(self.pathways)
 
     def _repr_html_(self):
         raise NotImplementedError

@@ -13,12 +13,17 @@
 # limitations under the License.
 
 from __future__ import absolute_import, print_function
+from IPython.core.display import display
+from IPython.core.display import HTML
+from pandas import DataFrame
 
 import six
+import numpy as np
 
 from functools import partial
-from cameo import Metabolite, Model
-from cameo import config
+from cameo import Metabolite, Model, phenotypic_phase_plane
+from cameo import config, util
+from cameo.api.output import notice
 from cameo.core.result import Result
 from cameo.api.hosts import hosts, Host
 from cameo.api.products import products
@@ -27,6 +32,8 @@ from cameo.util import TimeMachine, DisplayItemsWidget
 from cameo.data import universal_models
 
 import logging
+from cameo.visualization import visualization
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
@@ -52,7 +59,7 @@ class Designer(object):
         """"""
         pass
 
-    def __call__(self, product='L-glutamate', hosts=hosts):
+    def __call__(self, product='L-glutamate', hosts=hosts, database=None):
         """The works.
 
         The following workflow will be followed to determine suitable
@@ -76,11 +83,15 @@ class Designer(object):
         -------
         Designs
         """
-        product = self.__translate_product_to_universal_reactions_model_metabolite(product)
-        pathways = self.predict_pathways(product, hosts=hosts)
+        if database is None:
+            database = universal_models.metanetx_universal_model_bigg_rhea_kegg_brenda
+
+        notice("Starting searching for compound %s" % product)
+        product = self.__translate_product_to_universal_reactions_model_metabolite(product, database)
+        pathways = self.predict_pathways(product, hosts=hosts, database=database)
         return pathways
 
-    def predict_pathways(self, product, hosts=hosts):  #TODO: make this work with a single host or model
+    def predict_pathways(self, product, hosts=None, database=None):  #TODO: make this work with a single host or model
         """Predict production routes for a desired product and host spectrum.
         Parameters
         ----------
@@ -95,40 +106,114 @@ class Designer(object):
             ...
         """
         pathways = dict()
-        product = self.__translate_product_to_universal_reactions_model_metabolite(product)
+        product = self.__translate_product_to_universal_reactions_model_metabolite(product, database)
         for host in hosts:
             if isinstance(host, Model):
                 host = Host(name='UNKNOWN_HOST', models=[host])
             for model in list(host.models):
-                print('Predicting pathways for product {} and host {} using model {}.'.format(product.name, host, model.id))
+                notice('Predicting pathways for product %s and host %s using model %s.'
+                       % (product.name, host, model.id))
                 try:
                     logger.debug('Trying to set solver to cplex for pathway predictions.')
                     model.solver = 'cplex'  # CPLEX is better predicting pathways
                 except ValueError:
                     logger.debug('Could not set solver to cplex for pathway predictions.')
                     pass
-                pathway_predictor = PathwayPredictor(model, universal_model=universal_models.metanetx_universal_model_bigg_rhea_kegg_brenda)
+                pathway_predictor = PathwayPredictor(model, universal_model=database)
                 predicted_pathways = pathway_predictor.run(product, max_predictions=5, timeout=3*60)  # TODO adjust these numbers to something reasonable
                 pathways[(host, model)] = predicted_pathways
+                self.__display_pathways_information(predicted_pathways, host, model, product)
         return pathways
 
     def calculate_maximum_yields(self, pathways):
-        """"""
+        """
+        """
         for (host, model), pathway in six.iteritems(pathways):
             tm = TimeMachine()
             tm(do=partial(model.add_reactions, pathway), undo=partial(model.remove_reactions, pathway))
             maximum_theoretical_yield()
 
-
-    def __translate_product_to_universal_reactions_model_metabolite(self, product):
+    def __translate_product_to_universal_reactions_model_metabolite(self, product, database):
         if isinstance(product, Metabolite):
             return product
         elif isinstance(product, str):
             search_result = products.search(product)
-            print("Found %d compounds that match query '%s'" % (len(search_result), product))
-            print(repr(search_result))
-            print("Choosing best match (%s) ... please interrupt if this is not the desired compound." % search_result.name[0])
-            return universal_models.metanetx_universal_model_bigg_rhea_kegg_brenda.metabolites.get_by_id(search_result.index[0])
+            notice("Found %d compounds that match query '%s'" % (len(search_result), product))
+            self.__display_product_search_result(search_result)
+            notice("Choosing best match (%s) ... please interrupt if this is not the desired compound."
+                   % search_result.name[0])
+            return database.metabolites.get_by_id(search_result.index[0])
+
+    @staticmethod
+    def __display_product_search_result(search_result):
+        if util.in_ipnb():
+            Designer.__display_product_search_results_html(search_result)
+        else:
+            Designer.__display_product_search_results_text(search_result)
+
+    @staticmethod
+    def __display_product_search_results_html(search_result):
+        rows = []
+        for index, row in search_result.iterrows():
+            name = row["name"]
+            formula = row["formula"]
+            inchi = Designer.__generate_svg(row["InChI"])
+            rows.append("<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>" % (index, name, formula, inchi))
+
+        display(HTML(
+            """
+            <table>
+                <thead>
+                    <th>Id</th>
+                    <th>Name</th>
+                    <th>Formula</th>
+                    <th></th>
+                </thead>
+                <tbody>
+                    %s
+                </tbody>
+            </table>
+            """ % "\n".join(rows)
+        ))
+
+    @staticmethod
+    def __display_product_search_results_text(search_result):
+        rows = np.ndarray((len(search_result), 4), dtype=object)
+        for i, index in enumerate(search_result.index):
+            row = search_result.loc[index]
+            name = row["name"]
+            formula = row["formula"]
+            inchi = Designer.__generate_ascii(row["InChI"])
+            rows[i, ] = [index, name, formula, inchi]
+            i += 1
+
+        display(DataFrame(rows, columns=["Id", "Name", "Formula", "Structure"]))
+
+
+
+    @staticmethod
+    def __generate_svg(inchi):
+        if isinstance(inchi, float) or inchi is None:
+            return ""
+        else:
+            return visualization.inchi_to_svg(inchi, three_d=True)
+
+    @staticmethod
+    def __generate_ascii(inchi):
+        if isinstance(inchi, float) or inchi is None:
+            return ""
+        else:
+            return visualization.inchi_to_ascii(inchi)
+
+    @staticmethod
+    def __display_pathways_information(predicted_pathways, host, model, product):
+        for i, pathway in enumerate(predicted_pathways):
+            notice("Pathway %i for %s using model %s" % ((i+1), host.name, model.id))
+            with TimeMachine() as tm:
+                tm(do=partial(model.add_reactions, pathway), undo=partial(model.remove_reactions, pathway))
+                production_enveope = phenotypic_phase_plane(model, variables=[product])
+                production_enveope.plot
+
 
 design = Designer()
 

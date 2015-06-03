@@ -89,7 +89,6 @@ class Products(object):
         selection = self.data_frame[self.data_frame.InChI.isin(matches)]
         selection['search_rank'] = selection.name.map(ranks)
         return selection.sort('search_rank')
-        return self.data_frame[self.data_frame.InChI == inchi]
 
 
 products = Products()
