@@ -33,7 +33,7 @@ else:
     requirements = ['numpy>=1.9.1',
                     'pyzmq>=14.3.1',
                     'ipython>=2.1.0',
-                    'scipy>=0.9.0',
+                    'scipy>=0.14.0',
                     'blessings>=1.5.1',
                     'Jinja2>=2.7.3',
                     'pandas>=0.15.2',
