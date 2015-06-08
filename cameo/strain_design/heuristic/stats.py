@@ -56,7 +56,7 @@ class BokehStatsData(GenericStatsData):
         self.ydr = Range1d(start=-0.5, end=20.5)
 
     def display(self):
-        output_notebook()
+        output_notebook(hide_banner=True)
         plot = figure(title="Knockout size distribution")
         plot.quad(top=self.knockouts_hist, bottom=np.zeros(len(self.knockouts_hist)),
                   left=self.knockouts_edges[:-1], right=self.knockouts_edges[1:],

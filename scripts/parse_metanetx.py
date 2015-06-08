@@ -164,14 +164,14 @@ if __name__ == '__main__':
         all2mnx[cleaned_key] = mnx_id
 
     metanetx['all2mnx'] = all2mnx
-    with gzip.open('../cameo/data/metanetx.pklz', 'wb') as f:
+    with open('../cameo/data/metanetx.pickle', 'wb') as f:
         pickle.dump(metanetx, f)
 
     # generate universal reaction models
     db_combinations = [('bigg',), ('rhea',) , ('bigg', 'rhea'), ('bigg', 'rhea', 'kegg'), ('bigg', 'rhea', 'kegg', 'brenda')]
     for db_combination in db_combinations:
         universal_model = construct_universal_model(db_combination)
-        with gzip.open('../cameo/data/universal_models/{model_name}.pklz'.format(model_name=universal_model.id) , 'wb') as f:
+        with open('../cameo/data/universal_models/{model_name}.pickle'.format(model_name=universal_model.id) , 'wb') as f:
             pickle.dump(universal_model, f)
 
     chem_prop_filtered = chem_prop[[any([source.startswith(db) for db in ('bigg', 'rhea', 'kegg', 'brenda', 'chebi')]) for source in chem_prop.source]]

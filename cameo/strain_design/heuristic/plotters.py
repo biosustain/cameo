@@ -39,7 +39,7 @@ class IPythonBokehFitnessPlotter(object):
     def _set_plot(self):
         self.uuid = uuid1()
         try:
-            output_notebook(url=config.bokeh_url, docname=str(self.uuid))
+            output_notebook(url=config.bokeh_url, docname=str(self.uuid), hide_banner=True)
             self.plot = figure(title="Best solution fitness plot",  tools='')
             self.plot.scatter([], [])
             self.plot.xaxis.axis_label = "Iteration"
@@ -101,7 +101,8 @@ class IPythonBokehParetoPlotter(object):
     def _set_plot(self):
         try:
             self.uuid = uuid1()
-            output_notebook(url=config.bokeh_url, docname=str(self.uuid))
+            # TODO the following needs to works also with not bokeh server running.
+            output_notebook(url=config.bokeh_url, docname=str(self.uuid), hide_banner=True)
             self.plot = figure(title="Multi-objective Pareto Fitness Plot", tools='')
             self.plot.scatter([], [])
             self.plot.xaxis.axis_label = self.ofs[self.x].name
@@ -154,7 +155,7 @@ class GeneFrequencyPlotter():
 
     def plot(self):
         self.uuid = uuid1()
-        output_notebook(url=self.url, docname=str(self.uuid))
+        output_notebook(url=self.url, docname=str(self.uuid), hide_banner=True)
         figure()
 
         quad(top=self.freqs[:, 1], left=self.freqs[:, 1], bottom=np.zeros(len(self.freqs[:, 1])),

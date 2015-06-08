@@ -21,9 +21,6 @@ Currently implements:
 
 """
 
-
-
-
 from __future__ import absolute_import, print_function
 
 __all__ = ['fba', 'pfba', 'moma', 'lmoma', 'room']
@@ -36,10 +33,10 @@ import sympy
 from sympy import Add
 from sympy import Mul
 
-from cameo.util import TimeMachine
+from cameo.util import TimeMachine, ProblemCache
 from cameo.exceptions import SolveError
-from cameo.core.solution import Solution
 from cameo.core.result import FluxDistributionResult
+
 
 import logging
 logger = logging.getLogger(__name__)
@@ -118,11 +115,12 @@ def pfba(model, objective=None, *args, **kwargs):
             logger.error("pfba could not determine an optimal solution for objective %s" % model.objective)
             raise e
 
+
 def moma(model, reference=None, *args, **kwargs):
     raise NotImplementedError('Quadratic MOMA not yet implemented.')
 
 
-def lmoma(model, reference=None, cache=None, volatile=True, *args, **kwargs):
+def lmoma(model, reference=None, cache=None, *args, **kwargs):
     """Linear Minimization Of Metabolic Adjustment.
 
     Parameters
@@ -140,105 +138,81 @@ def lmoma(model, reference=None, cache=None, volatile=True, *args, **kwargs):
         Contains the result of the linear solver.
 
     """
+    volatile = False
     if cache is None:
-        cache = {}
+        volatile = True
+        cache = ProblemCache(model)
 
-    assert isinstance(reference, (dict, FluxDistributionResult)), "reference must be a flux distribution (dict or " \
-                                                                  "FluxDistributionResult"
+    cache.begin_transaction()
 
+    if not isinstance(reference, (dict, FluxDistributionResult)):
+        raise TypeError("reference must be a flux distribution (dict or FluxDistributionResult")
 
-    original_objective = model.objective.expression
-    obj_terms = list()
-    constraints = list()
-    variables = list()
-    if not volatile and not 'original_objective' in cache:
-        cache['original_objective'] = original_objective
     try:
-
         for rid, flux_value in six.iteritems(reference):
             reaction = model.reactions.get_by_id(rid)
+
+            def create_variable(model, var_id, lb):
+                var = model.solver.interface.Variable(var_id, lb=lb)
+                return var
+
             pos_var_id = "u_%s_pos" % rid
-            if not volatile and pos_var_id in cache['variables']:
-                pos_var = cache['variables'][pos_var_id]
-            else:
-                pos_var = model.solver.interface.Variable(pos_var_id, lb=0)
-                model.solver._add_variable(pos_var)
-                if not volatile:
-                    cache['variables'][pos_var_id] = pos_var
+            cache.add_variable(pos_var_id, create_variable, None, 0)
 
             neg_var_id = "u_%s_neg" % rid
-            if not volatile and neg_var_id in cache['variables']:
-                neg_var = cache['variables'][neg_var_id]
-            else:
-                neg_var = model.solver.interface.Variable(neg_var_id, lb=0)
-                model.solver._add_variable(neg_var)
-                if not volatile:
-                    cache['variables'][neg_var_id] = neg_var
-
-            variables.extend([pos_var, neg_var])
-
-            obj_terms.append(pos_var)
-            obj_terms.append(neg_var)
+            cache.add_variable(neg_var_id, create_variable, None, 0)
 
             # ui = vi - wt
-            constraint_a_id = "c_%s_a" % rid
-            if not volatile and constraint_a_id in cache['constraints']:
-                constraint_a = cache['constraints'][constraint_a_id]
-                constraint_a.lb = -flux_value
+            def update_upper_constraint(model, constraint, var, reaction, flux_value):
+                constraint.lb = flux_value
 
-            else:
-                constraint_a = model.solver.interface.Constraint(pos_var - reaction.flux_expression,
-                                                                 lb=-flux_value,
-                                                                 sloppy=True)
-                if not volatile:
-                    cache['constraints'][constraint_a_id] = constraint_a
+            def create_upper_constraint(model, constraint_id, var, reaction, flux_value):
+                constraint = model.solver.interface.Constraint(reaction.flux_expression + var,
+                                                               lb=flux_value,
+                                                               sloppy=True,
+                                                               name=constraint_id)
+                return constraint
 
-            constraint_b_id = "c_%s_b" % rid
-            if not volatile and constraint_b_id in cache['constraints']:
-                constraint_b = cache['constraints'][constraint_b_id]
-                constraint_b.lb = flux_value
-            else:
-                constraint_b = model.solver.interface.Constraint(neg_var + reaction.flux_expression,
-                                                                 lb=flux_value,
-                                                                 sloppy=True)
-                if not volatile:
-                    cache['constraints'][constraint_b_id] = constraint_b
+            cache.add_constraint("c_%s_ub" % rid, create_upper_constraint, update_upper_constraint,
+                                 cache.variables[pos_var_id], reaction, flux_value)
 
-            constraints.extend([constraint_a, constraint_b])
+            def update_lower_constraint(model,constraint, var, reaction, flux_value):
+                constraint.ub = flux_value
 
-        if volatile or cache['first_run']:
-            for constraint in constraints:
-                model.solver._add_constraint(constraint, sloppy=True)
+            def create_lower_constraint(model, constraint_id, var, reaction, flux_value):
+                constraint = model.solver.interface.Constraint(reaction.flux_expression - var,
+                                                               ub=flux_value,
+                                                               sloppy=True,
+                                                               name=constraint_id)
+                return constraint
 
-            model.objective = model.solver.interface.Objective(add([mul([One, term]) for term in obj_terms]))
-            model.solver.objective.direction = 'min'
-            cache['first_run'] = False
+            cache.add_constraint("c_%s_lb" % rid, create_lower_constraint, update_lower_constraint,
+                                 cache.variables[neg_var_id], reaction, flux_value)
+
+        model.objective = model.solver.interface.Objective(add([mul([One, var]) for var in cache.variables.values()]),
+                                                           direction="min")
 
         try:
-            solution = model.solve()
-            return FluxDistributionResult(solution)
+            return FluxDistributionResult(model.solve())
         except SolveError as e:
-            #print "lmoma could not determine an optimal solution for objective %s" % model.objective
             raise e
+    except Exception as e:
+        cache.rollback()
+        raise e
 
     finally:
         if volatile:
-            model.solver._remove_variables(variables)
-            model.solver._remove_constraints(constraints)
-            model.objective = original_objective
+            cache.reset()
 
 
-def room(model, reference=None, cache={}, volatile=True, delta=0.03, epsilon=0.001, *args, **kwargs):
+def room(model, reference=None, cache=None, delta=0.03, epsilon=0.001, *args, **kwargs):
     """Regulatory On/Off Minimization [1].
 
     Parameters
     ----------
     model: SolverBasedModel
     reference: dict
-    objective: str or reaction or optlang.Objective
-        An objective to be minimized/maximized for
-    volatile: boolean
-    cache: dict
+    cache: ProblemCache
 
     Returns
     -------
@@ -250,73 +224,63 @@ def room(model, reference=None, cache={}, volatile=True, delta=0.03, epsilon=0.0
     [1] Tomer Shlomi, Omer Berkman and Eytan Ruppin, "Regulatory on/off minimization of metabolic
     flux changes after genetic perturbations", PNAS 2005 102 (21) 7695-7700; doi:10.1073/pnas.0406346102
     """
+    volatile = False
     if cache is None:
-        cache = {}
+        volatile = True
+        cache = ProblemCache(model)
+    elif not isinstance(cache, ProblemCache):
+            raise TypeError("Invalid cache object (must be a cameo.util.ProblemCache)")
 
-    assert isinstance(reference, (dict, FluxDistributionResult)), "reference must be a flux distribution (dict or " \
-                                                                  "FluxDistributionResult"
+    cache.begin_transaction()
 
-    original_objective = model.objective.expression
-    constraints = list()
-    variables = list()
-
-    if not volatile and not 'original_objective' in cache:
-        cache['original_objective'] = original_objective
-    # upper and lower relax
+    if not isinstance(reference, (dict, FluxDistributionResult)):
+        raise TypeError("reference must be a flux distribution (dict or FluxDistributionResult")
 
     try:
         for rid, flux_value in six.iteritems(reference):
             reaction = model.reactions.get_by_id(rid)
-            var_id = "y_%s" % rid
-            if not volatile and var_id in cache['variables']:
-                var = cache['variables'][var_id]
-            else:
-                var = model.solver.interface.Variable(var_id, type="binary")
-                model.solver._add_variable(var)
-                if not volatile:
-                    cache['variables'][var_id] = var
 
-            variables.append(var)
+            def create_variable(model, var_id):
+                return model.solver.interface.Variable(var_id, type="binary")
 
-            constraint_a_id = "c_%s_a" % rid
+            cache.add_variable("y_%s" % rid, create_variable, None)
 
-            w_u = flux_value + delta * abs(flux_value) + epsilon
+            def create_upper_constraint(model, constraint_id, reaction, variable, flux_value, epsilon):
+                w_u = flux_value + delta * abs(flux_value) + epsilon
+                return model.solver.interface.Constraint(
+                    reaction.flux_expression - variable * (reaction.upper_bound - w_u),
+                    ub=w_u,
+                    sloppy=True,
+                    name=constraint_id)
 
-            if not volatile and constraint_a_id in cache['constraints']:
-                constraint_a = cache['constraints'][constraint_a_id]
-                constraint_a._set_coefficients_low_level({var: reaction.upper_bound - w_u})
-                constraint_a.ub = w_u
-            else:
-                expression = reaction.flux_expression - var * (reaction.upper_bound - w_u)
-                constraint_a = (model.solver.interface.Constraint(expression, ub=w_u, sloppy=True))
-                if not volatile:
-                    cache['constraints'][constraint_a_id] = constraint_a
+            def update_upper_constraint(model, constraint, reaction, variable, flux_value, epsilon):
+                w_u = flux_value + delta * abs(flux_value) + epsilon
+                constraint._set_coefficients_low_level({variable: reaction.upper_bound - w_u})
+                constraint.ub = w_u
 
-            w_l = flux_value - delta * abs(flux_value) - epsilon
+            cache.add_constraint("c_%s_upper" % rid, create_upper_constraint, update_upper_constraint,
+                                 reaction, cache.variables["y_%s" % rid], flux_value, epsilon)
 
-            constraint_b_id = "c_%s_b" % rid
+            def create_lower_constraint(model, constraint_id, reaction, variable, flux_value, epsilon):
+                w_l = flux_value - delta * abs(flux_value) - epsilon
+                return model.solver.interface.Constraint(
+                    reaction.flux_expression - variable * (reaction.lower_bound - w_l),
+                    lb=w_l,
+                    sloppy=True,
+                    name=constraint_id)
 
-            if not volatile and constraint_b_id in cache['constraints']:
-                constraint_b = cache['constraints'][constraint_b_id]
-                constraint_b._set_coefficients_low_level({var: reaction.lower_bound - w_l})
-                constraint_b.lb = w_l
-            else:
-                expression = reaction.flux_expression - var * (reaction.lower_bound - w_l)
-                constraint_b = (model.solver.interface.Constraint(expression, lb=w_l, sloppy=True))
-                if not volatile:
-                    cache['constraints'][constraint_b_id] = constraint_b
+            def update_lower_constraint(model, constraint, reaction, variable, flux_value, epsilon):
+                w_l = flux_value - delta * abs(flux_value) - epsilon
+                constraint._set_coefficients_low_level({variable: reaction.lower_bound - w_l})
+                constraint.lb = w_l
 
-            constraints.extend([constraint_a, constraint_b])
 
-        if volatile or cache['first_run']:
-            model.objective = model.solver.interface.Objective(add([mul([One, term]) for term in variables]))
-            model.solver.objective.direction = 'min'
 
-            for constraint in constraints:
-                model.solver._add_constraint(constraint, sloppy=True)
+            cache.add_constraint("c_%s_lower" % rid, create_lower_constraint, update_lower_constraint,
+                                 reaction, cache.variables["y_%s" % rid], flux_value, epsilon)
 
-            cache['first_run'] = False
-
+        model.objective = model.solver.interface.Objective(add([mul([One, var]) for var in cache.variables.values()]),
+                                                           direction='min')
         try:
             solution = model.solve()
             return FluxDistributionResult(solution)
@@ -324,11 +288,13 @@ def room(model, reference=None, cache={}, volatile=True, delta=0.03, epsilon=0.0
             logger.error("room could not determine an optimal solution for objective %s" % model.objective)
             raise e
 
+    except Exception as e:
+        cache.rollback()
+        raise e
+
     finally:
         if volatile:
-            model.solver._remove_variables(variables)
-            model.solver._remove_constraints(constraints)
-            model.objective = original_objective
+            cache.reset()
 
 
 def _cycle_free_flux(model, fluxes, fix=[]):
@@ -389,25 +355,6 @@ def _cycle_free_flux(model, fluxes, fix=[]):
         # tic = time.time()
         # print 'resetting'
         tm.reset()
-        # print 'reset', time.time() - tic
-
-
-def reset_model(model, cache):
-    """
-    When the simulation was not volatile, uses the cache to
-    revert the model to it's original state.
-
-    Parameters
-    ----------
-    model: SolverBasedModel
-    cache: dict
-        The cache must contain the added variables, constrains and
-        the original objective
-
-    """
-    model.solver._remove_variables(list(cache['variables'].values()))
-    model.objective = cache['original_objective']
-    model.solver._remove_constraints(list(cache['constraints'].values()))
 
 
 if __name__ == '__main__':
@@ -424,52 +371,49 @@ if __name__ == '__main__':
 
     # model.solver = 'glpk'
 
-    print("cobra fba")
-    tic = time.time()
-    cb_model.optimize(solver='cglpk')
-    print("flux sum:", sum([abs(val) for val in list(cb_model.solution.x_dict.values())]))
-    print("cobra fba runtime:", time.time() - tic)
+    # print("cobra fba")
+    # tic = time.time()
+    # cb_model.optimize(solver='cglpk')
+    # print("flux sum:", sum([abs(val) for val in list(cb_model.solution.x_dict.values())]))
+    # print("cobra fba runtime:", time.time() - tic)
 
-    print("cobra pfba")
-    tic = time.time()
-    optimize_minimal_flux(cb_model, solver='cglpk')
-    print("flux sum:", sum([abs(val) for val in list(cb_model.solution.x_dict.values())]))
-    print("cobra pfba runtime:", time.time() - tic)
+    # print("cobra pfba")
+    # tic = time.time()
+    # optimize_minimal_flux(cb_model, solver='cglpk')
+    # print("flux sum:", sum([abs(val) for val in list(cb_model.solution.x_dict.values())]))
+    # print("cobra pfba runtime:", time.time() - tic)
 
     print("pfba")
     tic = time.time()
-    solution = pfba(model)
+    ref = pfba(model)
     print("flux sum:", end=' ')
-    print(sum([abs(val) for val in list(solution.x_dict.values())]))
+    print(sum([abs(val) for val in list(ref.values())]))
     print("cameo pfba runtime:", time.time() - tic)
 
     print("lmoma")
-    ref = solution.x_dict
+    cache = ProblemCache(model)
     tic = time.time()
-    solution = lmoma(model, reference=ref)
-    res = solution.x_dict
+    res = lmoma(model, reference=ref, cache=cache)
     print("flux distance:", end=' ')
     print(sum([abs(res[v] - ref[v]) for v in list(res.keys())]))
     print("cameo lmoma runtime:", time.time() - tic)
 
     print("room")
     tic = time.time()
-    solution = room(model, reference=ref)
-    res = solution.x_dict
+    res = room(model, reference=ref)
     print(sum([abs(res[v] - ref[v]) for v in list(res.keys())]))
     print("cameo room runtime:", time.time() - tic)
 
     print("flux distance:", end=' ')
     print(sum([abs(res[v] - ref[v]) for v in list(res.keys())]))
-    print("sum yi:", solution.f)
+    print("sum yi:", res.objective_value)
     print("cameo room runtime:", time.time() - tic)
 
     print("lmoma w/ ko")
     tic = time.time()
     model.reactions.PGI.lower_bound = 0
     model.reactions.PGI.upper_bound = 0
-    solution = lmoma(model, reference=ref)
-    res = solution.x_dict
+    res = lmoma(model, reference=ref, cache=cache)
     print("flux distance:", end=' ')
     print(sum([abs(res[v] - ref[v]) for v in list(res.keys())]))
     print("cameo lmoma runtime:", time.time() - tic)

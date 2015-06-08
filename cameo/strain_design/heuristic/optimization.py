@@ -16,7 +16,6 @@ from __future__ import absolute_import, print_function
 
 __all__ = ['KnockoutOptimizationResult', 'GeneOptimizationResult']
 
-
 from six.moves import range
 
 import time
@@ -34,8 +33,8 @@ from cameo.strain_design.heuristic import generators
 from cameo.strain_design.heuristic import decoders
 from cameo.strain_design.heuristic import stats
 from cameo import config
-from cameo.flux_analysis.simulation import pfba, lmoma, moma, room, reset_model
-from cameo.util import partition, TimeMachine, memoize
+from cameo.flux_analysis.simulation import pfba, lmoma, moma, room
+from cameo.util import partition, TimeMachine, memoize, ProblemCache
 from pandas import DataFrame
 
 import inspyred
@@ -61,9 +60,9 @@ logger.setLevel(logging.INFO)
 PRE_CONFIGURED = {
     inspyred.ec.GA: [
         [
-            inspyred.ec.variators.crossovers.n_point_crossover,
             variators.set_mutation,
-            variators.set_indel
+            variators.set_indel,
+            variators.set_n_point_crossover
         ],
         inspyred.ec.selectors.tournament_selection,
         inspyred.ec.replacers.generational_replacement,
@@ -83,7 +82,7 @@ PRE_CONFIGURED = {
         [
             variators.set_mutation,
             variators.set_indel,
-            inspyred.ec.variators.crossovers.n_point_crossover
+            variators.set_n_point_crossover
         ],
         inspyred.ec.selectors.tournament_selection,
         inspyred.ec.replacers.nsga_replacement,
@@ -93,7 +92,7 @@ PRE_CONFIGURED = {
         [
             variators.set_mutation,
             variators.set_indel,
-            inspyred.ec.variators.crossovers.n_point_crossover
+            variators.set_n_point_crossover
         ],
         inspyred.ec.selectors.default_selection,
         inspyred.ec.replacers.paes_replacement,
@@ -243,16 +242,11 @@ class KnockoutEvaluator(object):
         self.objective_function = objective_function
         self.simulation_method = simulation_method
         self.simulation_kwargs = simulation_kwargs
-        self.cache = {
-            'first_run': True,
-            'original_objective': self.model.objective,
-            'variables': {},
-            'constraints': {}
-        }
+        self.cache = ProblemCache()
 
     def __call__(self, population):
         res = [self.evaluate_individual(frozenset(i)) for i in population]
-        reset_model(self.model, self.cache)
+        self.cache.reset()
         return res
 
     @memoize
@@ -496,11 +490,7 @@ class KnockoutOptimizationResult(core.result.Result):
         reactions = []
         for solution in solutions:
             mo = isinstance(solution.fitness, Pareto)
-            if mo:
-                proceed = True
-            else:
-                proceed = solution.fitness > 0
-
+            proceed = True if mo else solution.fitness > 0
             if proceed:
                 decoded_solution = self.decoder(solution.candidate)
                 try:
@@ -511,26 +501,31 @@ class KnockoutOptimizationResult(core.result.Result):
                 size = len(decoded_solution[1])
 
                 if self.biomass:
-                    biomass.append(simulation_result.get_primal_by_id(self.biomass))
+                    biomass.append(simulation_result[self.biomass])
                 fitness.append(solution.fitness)
                 knockouts.append(frozenset([v.id for v in decoded_solution[1]]))
                 reactions.append(frozenset([v.id for v in decoded_solution[0]]))
                 sizes.append(size)
+                if isinstance(self.product, (list, tuple, set)):
+                    products.append([simulation_result[p] for p in self.product])
+                elif self.product is not None:
+                    products.append(simulation_result[self.product])
 
-                if isinstance(self.product, (list, tuple)):
-                    products.append([simulation_result.get_primal_by_id(p) for p in self.product])
-                elif not self.product is None:
-                    products.append(simulation_result.get_primal_by_id(self.product))
+        assert len(knockouts) == len(fitness)
+        assert len(sizes) == len(knockouts)
         if self.ko_type == REACTION_KNOCKOUT_TYPE:
             data_frame = DataFrame({KNOCKOUTS: knockouts, FITNESS: fitness, SIZE: sizes})
         else:
             data_frame = DataFrame({KNOCKOUTS: knockouts, REACTIONS: reactions, FITNESS: fitness, SIZE: sizes})
-        if not self.biomass is None:
+        if self.biomass is not None:
+            assert len(biomass) == len(knockouts)
             data_frame[BIOMASS] = biomass
         if isinstance(self.product, str):
+            assert len(biomass) == len(products)
             data_frame[self.product] = products
-        elif isinstance(self.product, (list, tuple)):
+        elif isinstance(self.product, (list, tuple, set)):
             for i in range(self.product):
+                assert len(biomass) == len(products[i:])
                 data_frame[self.product[i]] = products[i:]
 
         return data_frame

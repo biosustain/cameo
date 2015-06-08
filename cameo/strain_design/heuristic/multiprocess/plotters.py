@@ -48,7 +48,7 @@ class IPythonNotebookBokehMultiprocessPlotObserver(AbstractParallelObserver):
     def _plot(self):
         self.plotted = True
         self.uuid = uuid1()
-        output_notebook(url=config.bokeh_url, docname=str(self.uuid))
+        output_notebook(url=config.bokeh_url, docname=str(self.uuid), hide_banner=True)
         self.plot = figure(title="Best solution convergence plot", tools='')
         self.plot.scatter([], [], color=self.color_map, fill_alpha=0.2, size=7)
         self.plot.xaxis.axis_label = "Iteration"
