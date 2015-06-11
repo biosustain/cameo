@@ -16,28 +16,24 @@ from __future__ import absolute_import, print_function
 
 __all__ = ['memoized', 'graph_to_svg', 'draw_knockout_result', 'inchi_to_svg', 'ProgressBar']
 
+import os
 import six
-
 import json
+import cameo
 import logging
-import subprocess
 import tempfile
-from functools import partial
-from io import BytesIO
+import functools
+import subprocess
+import collections
 
 import networkx as nx
+
+from functools import partial
+from io import BytesIO
 from escher import Builder
-
-import os
 from cameo.util import TimeMachine, in_ipnb
-import cameo
-
-
 
 log = logging.getLogger(__name__)
-
-import collections
-import functools
 
 from IPython.display import HTML, SVG, Javascript, display
 
@@ -169,7 +165,6 @@ def inchi_to_svg(inchi, file=None, debug=False, three_d=False):
     >>> inchi_to_svg('InChI=1S/H2O/h1H2')
     '<?xml version="1.0"?>\n<svg version="1.1" id="topsvg"\nxmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"\nxmlns:cml="http://www.xml-cml.org/schema" x="0" y="0" width="200px" height="200px" viewBox="0 0 100 100">\n<title>OBDepict</title>\n<rect x="0" y="0" width="100" height="100" fill="white"/>\n<text text-anchor="middle" font-size="6" fill ="black" font-family="sans-serif"\nx="50" y="98" ></text>\n<g transform="translate(0,0)">\n<svg width="100" height="100" x="0" y="0" viewBox="0 0 80 80"\nfont-family="sans-serif" stroke="rgb(0,0,0)" stroke-width="2"  stroke-linecap="round">\n<text x="36" y="48" fill="rgb(255,12,12)"  stroke="rgb(255,12,12)" stroke-width="1" font-size="16" >OH</text>\n<text x="60" y="51.68" fill="rgb(255,12,12)"  stroke="rgb(255,12,12)" stroke-width="1" font-size="13" >2</text>\n</svg>\n</g>\n</svg>\n\n'
     """
-
     in_file = tempfile.NamedTemporaryFile()
     in_file.write(inchi)
     in_file.flush()
@@ -179,12 +174,12 @@ def inchi_to_svg(inchi, file=None, debug=False, three_d=False):
     error_level = 5 if debug else 1
     try:
         if file is not None:
-            os.system("obabel -iinchi %s -osvg -O %s %s -xh 50 ---errorlevel %d" %
+            os.system("obabel -iinchi %s -osvg -O %s %s -xh 40 ---errorlevel %d" %
                       (in_file.name, file.name, gen, error_level))
             return file.name
         else:
             out_file = tempfile.NamedTemporaryFile()
-            os.system("obabel -iinchi %s -osvg -O %s %s -xh 50 ---errorlevel %d"
+            os.system("obabel -iinchi %s -osvg -O %s %s -xh 40 ---errorlevel %d"
                       % (in_file.name, out_file.name, gen, error_level))
             return out_file.read()
     finally:
@@ -221,12 +216,12 @@ def inchi_to_ascii(inchi, file=None, debug=False):
     error_level = 5 if debug else 1
     try:
         if file is not None:
-            os.system("obabel -iinchi %s -oascii -O %s --gen3d -xh 50 ---errorlevel %d"
+            os.system("obabel -iinchi %s -oascii -O %s --gen3d -xh 40 ---errorlevel %d"
                       % (in_file.name, file.name, error_level))
             return file.name
         else:
             out_file = tempfile.NamedTemporaryFile()
-            os.system("obabel -iinchi %s -oascii -O %s --gen3d -xh 50 ---errorlevel %d"
+            os.system("obabel -iinchi %s -oascii -O %s --gen3d -xh 40 ---errorlevel %d"
                       % (in_file.name, out_file.name, error_level))
             return out_file.read()
     finally:
