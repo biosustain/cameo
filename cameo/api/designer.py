@@ -23,21 +23,39 @@ import numpy as np
 from functools import partial
 from cameo import Metabolite, Model, phenotypic_phase_plane
 from cameo import config, util
-from cameo.api.output import notice
 from cameo.core.result import Result
+from cameo.core.reaction import Reaction
 from cameo.api.hosts import hosts, Host
 from cameo.api.products import products
-from cameo.strain_design.pathway_prediction import PathwayPredictor
+from cameo.strain_design.heuristic import GeneKnockoutOptimization
+from cameo.strain_design.heuristic.objective_functions import biomass_product_coupled_yield
+from cameo.ui import notice, bold
+from cameo.strain_design import pathway_prediction
 from cameo.util import TimeMachine, DisplayItemsWidget
 from cameo.data import universal_models
 
 import logging
 from cameo.visualization import visualization
+from cameo.visualization.plotting import Grid
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 # TODO: implement cplex preference (if available)
+
+
+class _OptimizationRunner(object):
+
+    def __call__(self, strategy, *args, **kwargs):
+        (host, model, predicted_pathways) = (strategy[0][0], strategy[0][1], strategy[1])
+        for i, pathway in enumerate(predicted_pathways.pathways):
+            with TimeMachine() as tm:
+                predicted_pathways.plug_model(model, i, tm)
+                objective = biomass_product_coupled_yield(model.biomass,
+                                                          predicted_pathways.exchange,
+                                                          model.carbon_source)
+                opt = GeneKnockoutOptimization(model, objective_function=objective, progress=True, plot=False)
+                return opt.run(product=predicted_pathways.exchange.id, max_evaluations=10000)
 
 
 class StrainDesigns(Result):
@@ -59,7 +77,7 @@ class Designer(object):
         """"""
         pass
 
-    def __call__(self, product='L-glutamate', hosts=hosts, database=None):
+    def __call__(self, product='L-glutamate', hosts=hosts, database=None, view=config.default_view):
         """The works.
 
         The following workflow will be followed to determine suitable
@@ -84,12 +102,17 @@ class Designer(object):
         Designs
         """
         if database is None:
-            database = universal_models.metanetx_universal_model_bigg_rhea_kegg_brenda
+            database = universal_models.metanetx_universal_model_bigg
 
         notice("Starting searching for compound %s" % product)
         product = self.__translate_product_to_universal_reactions_model_metabolite(product, database)
         pathways = self.predict_pathways(product, hosts=hosts, database=database)
+        self.optimize_strains(pathways, product, view)
         return pathways
+
+    def optimize_strains(self, patwhays, product, view):
+        results = view.apply(runner, six.iteritems(patwhays))
+
 
     def predict_pathways(self, product, hosts=None, database=None):  #TODO: make this work with a single host or model
         """Predict production routes for a desired product and host spectrum.
@@ -119,19 +142,11 @@ class Designer(object):
                 except ValueError:
                     logger.debug('Could not set solver to cplex for pathway predictions.')
                     pass
-                pathway_predictor = PathwayPredictor(model, universal_model=database)
+                pathway_predictor = pathway_prediction.PathwayPredictor(model, universal_model=database)
                 predicted_pathways = pathway_predictor.run(product, max_predictions=5, timeout=3*60)  # TODO adjust these numbers to something reasonable
                 pathways[(host, model)] = predicted_pathways
-                self.__display_pathways_information(predicted_pathways, host, model, product)
+                self.__display_pathways_information(predicted_pathways, host, model, product, pathway_predictor.mapping)
         return pathways
-
-    def calculate_maximum_yields(self, pathways):
-        """
-        """
-        for (host, model), pathway in six.iteritems(pathways):
-            tm = TimeMachine()
-            tm(do=partial(model.add_reactions, pathway), undo=partial(model.remove_reactions, pathway))
-            maximum_theoretical_yield()
 
     def __translate_product_to_universal_reactions_model_metabolite(self, product, database):
         if isinstance(product, Metabolite):
@@ -189,14 +204,12 @@ class Designer(object):
 
         display(DataFrame(rows, columns=["Id", "Name", "Formula", "Structure"]))
 
-
-
     @staticmethod
     def __generate_svg(inchi):
         if isinstance(inchi, float) or inchi is None:
             return ""
         else:
-            return visualization.inchi_to_svg(inchi, three_d=True)
+            return visualization.inchi_to_svg(inchi, three_d=False)
 
     @staticmethod
     def __generate_ascii(inchi):
@@ -206,13 +219,17 @@ class Designer(object):
             return visualization.inchi_to_ascii(inchi)
 
     @staticmethod
-    def __display_pathways_information(predicted_pathways, host, model, product):
-        for i, pathway in enumerate(predicted_pathways):
-            notice("Pathway %i for %s using model %s" % ((i+1), host.name, model.id))
-            with TimeMachine() as tm:
-                tm(do=partial(model.add_reactions, pathway), undo=partial(model.remove_reactions, pathway))
-                production_enveope = phenotypic_phase_plane(model, variables=[product])
-                production_enveope.plot
+    def __display_pathways_information(predicted_pathways, host, original_model, product, mapping):
+        model = original_model.copy()
+        with Grid(nrows=2, title="Production envelopes for %s (%s)" % (host.name, model.id)) as grid:
+            for i, pathway in enumerate(predicted_pathways.pathways):
+                with TimeMachine() as tm:
+                    predicted_pathways.plug_model(model, i, tm)
+                    production_envelope = phenotypic_phase_plane(model, variables=[predicted_pathways.exchange])
+                    production_envelope.plot(grid, title="Pathway %i" % (i+1), width=320, height=300)
+
+
+
 
 
 design = Designer()
