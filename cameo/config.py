@@ -39,7 +39,8 @@ except ImportError:
 # Determine if bokeh is available
 # TODO: This should also check if a bokeh server is actually running.
 try:
-    import bokeh
+    from bokeh.plotting import output_notebook
+    output_notebook()
     use_bokeh = True
 except ImportError:
     use_bokeh = False
