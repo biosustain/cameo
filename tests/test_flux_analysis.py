@@ -26,6 +26,7 @@ from cameo.flux_analysis.analysis import flux_variability_analysis, phenotypic_p
 
 import pandas
 from pandas.util.testing import assert_frame_equal
+from cameo.util import TimeMachine
 
 TRAVIS = os.getenv('TRAVIS', False)
 
@@ -48,6 +49,9 @@ CORE_MODEL = load_model(os.path.join(TESTDIR, 'data/EcoliCore.xml'), sanitize=Fa
 iJO_MODEL = load_model(os.path.join(TESTDIR, 'data/iJO1366.xml'), sanitize=False)
 
 iJO_MODEL_COBRAPY = load_model(os.path.join(TESTDIR, 'data/iJO1366.xml'), solver_interface=None, sanitize=False)
+
+TOY_MODEL_PAPIN_2004 = load_model(os.path.join(TESTDIR, "data/toy_model_Papin_2003.xml"))
+
 
 
 class AbstractTestFluxVariabilityAnalysis(object):
@@ -166,7 +170,8 @@ class AbstractTestSimulationMethods(object):
         pfba_solution = pfba(self.model)
         pfba_flux_sum = sum((abs(val) for val in list(pfba_solution.fluxes.values())))
         # looks like GLPK finds a parsimonious solution without the flux minimization objective
-        self.assertTrue((pfba_flux_sum - fba_flux_sum) < 1e-6)
+        self.assertTrue((pfba_flux_sum - fba_flux_sum) < 1e-6,
+                        msg="FBA sum is suppose to be lower than PFBA (was %f)" % (pfba_flux_sum - fba_flux_sum))
 
     def test_pfba_iJO(self):
         fba_solution = fba(iJO_MODEL)
@@ -174,7 +179,9 @@ class AbstractTestSimulationMethods(object):
         pfba_solution = pfba(iJO_MODEL)
         pfba_flux_sum = sum((abs(val) for val in list(pfba_solution.fluxes.values())))
         print(pfba_flux_sum)
-        self.assertTrue(pfba_flux_sum < fba_flux_sum)
+        self.assertTrue((pfba_flux_sum - fba_flux_sum) < 1e-6,
+                        msg="FBA sum is suppose to be lower than PFBA (was %f)" % (pfba_flux_sum - fba_flux_sum))
+
 
     @unittest.skip('quadratic moma not implemented yet.')
     def test_moma(self):
@@ -185,15 +192,26 @@ class AbstractTestSimulationMethods(object):
         solution = lmoma(self.model, reference=pfba_solution)
         distance = sum([abs(solution[v] - pfba_solution[v]) for v in list(pfba_solution.keys())])
         self.assertAlmostEqual(0, distance,
-                               delta=0.000001,
+                               delta=1e-6,
                                msg="lmoma distance without knockouts must be 0 (was %f)" % distance)
 
     def test_room(self):
         pfba_solution = pfba(self.model)
         solution = room(self.model, reference=pfba_solution)
         self.assertAlmostEqual(0, solution.objective_value,
-                               delta=0.000001,
+                               delta=1e-6,
                                msg="room objective without knockouts must be 0 (was %f)" % solution.objective_value)
+
+    def test_room_shlomi_2005(self):
+        reference = {"b1": -10, "v1": 10, "v2": 5, "v3": 0, "v4": 0, "v5": 0, "v6": 5, "b2": 5, "b3": 5}
+        TOY_MODEL_PAPIN_2004.solver = self.model.solver.interface
+        with TimeMachine() as tm:
+            TOY_MODEL_PAPIN_2004.reactions.v6.knock_out(tm)
+            result = room(TOY_MODEL_PAPIN_2004, reference=reference, delta=0, epsilon=0)
+
+        self.assertEquals(
+            result.fluxes,
+            {'b1': 10.0, 'b2': 5.0, 'b3': 5.0, 'v1': 5.0, 'v2': 5.0, 'v3': 0.0, 'v4': 5.0, 'v5': 5.0, 'v6': 0.0})
 
 
 class TestSimulationMethodsGLPK(AbstractTestSimulationMethods, unittest.TestCase):

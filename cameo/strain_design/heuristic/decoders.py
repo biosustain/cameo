@@ -42,8 +42,8 @@ class ReactionKnockoutDecoder(KnockoutDecoder):
     model : SolverBasedModel
 
     """
-    def __init__(self, *args, **kwargs):
-        super(ReactionKnockoutDecoder, self).__init__(*args, **kwargs)
+    def __init__(self, representation, model, *args, **kwargs):
+        super(ReactionKnockoutDecoder, self).__init__(representation, model, *args, **kwargs)
 
     def __call__(self, individual):
         """
@@ -73,8 +73,8 @@ class GeneKnockoutDecoder(KnockoutDecoder):
         genes to knockout
     model : SolverBasedModel
     """
-    def __init__(self, *args, **kwargs):
-        super(GeneKnockoutDecoder, self).__init__(*args, **kwargs)
+    def __init__(self, representation, model, *args, **kwargs):
+        super(GeneKnockoutDecoder, self).__init__(representation, model, *args, **kwargs)
 
     def __call__(self, individual):
         """

@@ -26,7 +26,7 @@ from cameo import load_model, fba, config
 from cameo.strain_design.heuristic.variators import _do_set_n_point_crossover
 from cameo.util import RandomGenerator as Random
 from cameo.strain_design.heuristic.optimization import HeuristicOptimization, ReactionKnockoutOptimization, \
-    set_distance_function
+    set_distance_function, KnockoutOptimizationResult
 from cameo.strain_design.heuristic.archivers import SolutionTuple, BestSolutionArchiver
 from cameo.strain_design.heuristic.decoders import ReactionKnockoutDecoder, KnockoutDecoder, GeneKnockoutDecoder
 from cameo.strain_design.heuristic.generators import set_generator, unique_set_generator, \
@@ -66,11 +66,11 @@ class TestBestSolutionArchiver(unittest.TestCase):
         sol1 = SolutionTuple(SOLUTIONS[0][0], SOLUTIONS[0][1])
         sol2 = SolutionTuple(SOLUTIONS[1][0], SOLUTIONS[1][1])
         sol3 = SolutionTuple(SOLUTIONS[2][0], SOLUTIONS[2][1])
-        self.assertEqual(sol1.__str__(), "[1, 2, 3] - 0.1")
-        self.assertEqual(sol2.__str__(), "[1, 2, 3, 4] - 0.1")
-        self.assertEqual(sol3.__str__(), "[2, 3, 4] - 0.45")
+        self.assertEqual(sol1.__str__(), "[1, 2, 3] - 0.1 sense: max")
+        self.assertEqual(sol2.__str__(), "[1, 2, 3, 4] - 0.1 sense: max")
+        self.assertEqual(sol3.__str__(), "[2, 3, 4] - 0.45 sense: max")
 
-    def test_solution_comparison(self):
+    def test_solution_comparison_maximization(self):
         sol1 = SolutionTuple(SOLUTIONS[0][0], SOLUTIONS[0][1])
         sol2 = SolutionTuple(SOLUTIONS[1][0], SOLUTIONS[1][1])
         sol3 = SolutionTuple(SOLUTIONS[2][0], SOLUTIONS[2][1])
@@ -115,6 +115,50 @@ class TestBestSolutionArchiver(unittest.TestCase):
         self.assertFalse(sol2.improves(sol1), msg="Solution 2 does not improve Solution 1")
         self.assertFalse(sol2.improves(sol3), msg="Solution 2 does not improve Solution 3")
 
+    def test_solution_comparison_minimization(self):
+        sol1 = SolutionTuple(SOLUTIONS[0][0], SOLUTIONS[0][1], maximize=False)
+        sol2 = SolutionTuple(SOLUTIONS[1][0], SOLUTIONS[1][1], maximize=False)
+        sol3 = SolutionTuple(SOLUTIONS[2][0], SOLUTIONS[2][1], maximize=False)
+
+        #test ordering
+        self.assertEqual(sol1.__cmp__(sol2), -1)
+        self.assertEqual(sol1.__cmp__(sol1), 0)
+        self.assertEqual(sol1.__cmp__(sol3), -1)
+
+        self.assertTrue(sol1 < sol2)
+        self.assertTrue(sol1 == sol1)
+        self.assertTrue(sol1 < sol3)
+
+        #test gt and lt
+        self.assertTrue(sol1.__lt__(sol2))
+        self.assertTrue(sol1.__lt__(sol3))
+        self.assertFalse(sol1.__gt__(sol1))
+        self.assertFalse(sol1.__lt__(sol1))
+        self.assertTrue(sol2.__gt__(sol1))
+        self.assertFalse(sol3.__lt__(sol1))
+
+        #testing issubset
+        self.assertTrue(sol1.issubset(sol2), msg="Solution 1 is subset of Solution 2")
+        self.assertFalse(sol2.issubset(sol1), msg="Solution 2 is not subset of Solution 1")
+        self.assertTrue(sol3.issubset(sol2), msg="Solution 3 is subset of Solution 2")
+        self.assertFalse(sol2.issubset(sol3), msg="Solution 2 is not subset of Solution 3")
+        self.assertFalse(sol1.issubset(sol3), msg="Solution 1 is subset of Solution 3")
+        self.assertFalse(sol2.issubset(sol3), msg="Solution 3 is not subset of Solution 1")
+
+        #test difference
+        l = len(sol2.symmetric_difference(sol1))
+        self.assertEqual(l, 1, msg="Difference between Solution 2 and 1 is (%s)" % sol2.symmetric_difference(sol1))
+        l = len(sol3.symmetric_difference(sol2))
+        self.assertEqual(l, 1, msg="Difference between Solution 3 and 1 is (%s)" % sol3.symmetric_difference(sol2))
+        l = len(sol3.symmetric_difference(sol1))
+        self.assertEqual(l, 2, msg="Difference between Solution 1 and 3 is (%s)" % sol3.symmetric_difference(sol1))
+
+        self.assertTrue(sol1.improves(sol2), msg="Solution 1 is better than Solution 2")
+        self.assertFalse(sol3.improves(sol2), msg="Solution 3 is not better than Solution 2")
+        self.assertFalse(sol3.improves(sol1), msg="Solution 3 does not improve Solution 1")
+        self.assertFalse(sol2.improves(sol1), msg="Solution 2 does not improve Solution 1")
+        self.assertFalse(sol2.improves(sol3), msg="Solution 2 does not improve Solution 3")
+
     def test_add_greater_solution_with_same_fitness(self):
         size = 1
         pool = BestSolutionArchiver()
@@ -138,6 +182,14 @@ class TestBestSolutionArchiver(unittest.TestCase):
         sol = pool.get(0)
         self.assertEqual(sol.candidate, solution, msg="Best solution must be the first (%s)" % sol.candidate)
         self.assertEqual(sol.fitness, fitness, msg="Best fitness must be the first (%s)" % sol.fitness)
+
+    def test_uniqueness_of_solutions(self):
+        size = 2
+        pool = BestSolutionArchiver()
+        pool.add(SOLUTIONS[1][0], SOLUTIONS[1][1], size)
+        pool.add(SOLUTIONS[1][0], SOLUTIONS[1][1], size)
+
+        self.assertEqual(pool.length(), 1, "Added repeated solution")
 
     def test_pool_size_limit(self):
         size = 1
@@ -328,9 +380,7 @@ class TestGeneratos(unittest.TestCase):
         candidate = multiple_chromosome_set_generator(random, args)
 
         self.assertEqual(len(candidate['test_key_1']), 3)
-
         self.assertEqual(len(candidate['test_key_2']), 5)
-
 
     def test_fixed_size_generator(self):
         self.args.setdefault('variable_candidate_size', False)
@@ -501,6 +551,43 @@ class TestHeuristicOptimization(unittest.TestCase):
         self.assertEqual(d, 1)
 
 
+class TestKnockoutOptimizationResult(unittest.TestCase):
+    def setUp(self):
+        self.model = TEST_MODEL
+        self.representation = [r.id for r in self.model.reactions]
+        random = Random(SEED)
+        args = {"representation": self.representation}
+        self.solutions = BestSolutionArchiver()
+        for _ in range(10000):
+            self.solutions.add(set_generator(random, args), random.random(), 100)
+        self.decoder = ReactionKnockoutDecoder(self.representation, self.model)
+
+    def test_result(self):
+        result = KnockoutOptimizationResult(
+            model=self.model,
+            heuristic_method=None,
+            simulation_method=fba,
+            solutions=self.solutions,
+            objective_function=None,
+            ko_type="reaction",
+            decoder=self.decoder,
+            product="EX_ac_LPAREN_e_RPAREN_",
+            biomass="Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2",
+            seed=SEED,
+            reference=None)
+
+        self.assertEqual(result.ko_type, "reaction")
+
+        individuals = []
+        for index, row in result.solutions.iterrows():
+            individual = SolutionTuple(set(self.representation.index(r) for r in row["Knockouts"]), row["Fitness"])
+            self.assertNotIn(individual, individuals, msg="%s is repeated on result")
+            individuals.append(individual)
+            self.assertIn(individual, self.solutions.archive)
+            self.assertEqual(len(row["Knockouts"]), row["Size"])
+            self.assertEqual(self.solutions.archive.count(individual), 1, msg="%s is unique in archive" % individual)
+
+
 class TestReactionKnockoutOptimization(unittest.TestCase):
     def setUp(self):
         self.model = TEST_MODEL
@@ -535,11 +622,11 @@ class TestReactionKnockoutOptimization(unittest.TestCase):
 
         self.assertEqual(rko.random.random(), 0.04225378600400298)
 
-        # with open(result_file, 'w') as f:
-        #     pickle.dump(results, f)
+        # with open(result_file, 'w') as out_file:
+        #     pickle.dump(results, out_file)
 
-        with open(result_file, 'r') as f:
-            expected_results = pickle.load(f)
+        with open(result_file, 'r') as in_file:
+            expected_results = pickle.load(in_file)
 
         assert_frame_equal(results.solutions, expected_results.solutions)
 
@@ -562,12 +649,11 @@ class TestReactionKnockoutOptimization(unittest.TestCase):
 
         results = rko.run(max_evaluations=3000, pop_size=10, view=SequentialView())
 
-        with open(result_file, 'w') as file:
-            pickle.dump(results, file)
+        with open(result_file, 'w') as out_file:
+            pickle.dump(results, out_file)
 
-        with open(result_file, 'r') as file:
-            expected_results = pickle.load(file)
-
+        with open(result_file, 'r') as in_file:
+            expected_results = pickle.load(in_file)
 
         assert_frame_equal(results.solutions, expected_results.solutions)
 
