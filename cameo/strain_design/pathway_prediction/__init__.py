@@ -20,10 +20,11 @@ from functools import partial
 
 from cameo.core.result import Result
 from cameo.exceptions import SolveError
-from cameo import Reaction, Model, Metabolite
+from cameo import Model, Metabolite
 from cameo.data import metanetx
 from cameo.util import TimeMachine
 from sympy import Add
+from . import util
 
 import logging
 logger = logging.getLogger(__name__)
@@ -35,13 +36,32 @@ class PathwayPredictions(Result):
     def data_frame(self):
         raise NotImplementedError
 
-    def __init__(self, pathways, *args, **kwargs):
+    def __init__(self, pathways, exchange, *args, **kwargs):
         super(PathwayPredictions, self).__init__(*args, **kwargs)
         # TODO: sort the pathways to make them easier to read
         self.pathways = pathways
+        self.exchange = exchange
+
+    def plug_model(self, model, index, tm=None):
+        if tm is not None:
+            tm(do=partial(model.add_reactions, self.pathways[index]),
+               undo=partial(model.remove_reactions, self.pathways[index]))
+            try:
+                tm(do=partial(model.add_reaction, self.exchange),
+                   undo=partial(model.remove_reactions, [self.exchange]))
+            except:
+                logger.warning("Exchange %s already in model" % self.exchange.id)
+                pass
+        else:
+            model.add_reactions(self.pathways[index])
+            try:
+                model.add_reaction(self.exchange)
+            except:
+                logger.warning("Exchange %s already in model" % self.exchange.id)
+                pass
 
     def _repr_html_(self):
-        raise NotImplementedError
+        return self.data_frame()._repr_html_()
 
     def __str__(self):
         string = str()
@@ -51,8 +71,7 @@ class PathwayPredictions(Result):
                 string += '{}, {}:'.format(reaction.id, reaction.name, reaction.build_reaction_string(use_metabolite_names=True))
         return string
 
-    @property
-    def plot(self):
+    def plot(self, grid=None, width=None, height=None, title=None):
         # TODO: small pathway visualizations would be great.
         raise NotImplementedError
 
@@ -118,22 +137,9 @@ class PathwayPredictor(object):
         self._adpater_reactions = list()
         if mapping is None:
             self.mapping = metanetx.all2mnx
-        for metabolite in model.metabolites:  # model is the original host model
-            name = metabolite.id[0:-2]
-            try:
-                mnx_name = self.mapping[name]
-            except KeyError:
-                continue
-                # print name, 'N/A'
-            adapter_reaction = Reaction('adapter_' + metabolite.id + '_' + mnx_name)
-            adapter_reaction.lower_bound = -1000
-            try:
-                adapter_reaction.add_metabolites({self.model.metabolites.get_by_id(metabolite.id): -1, self.model.metabolites.get_by_id(mnx_name): 1})
-            except KeyError:
-                pass
-            else:
-                self._adpater_reactions.append(adapter_reaction)
-                self.model.add_reaction(adapter_reaction)
+
+        self._adpater_reactions = util.create_adaptor_reactions(model.metabolites, self.model, self.mapping)
+        self.model.add_reactions(self._adpater_reactions)
 
         logger.debug("Adding switches.")
         y_vars = list()
@@ -220,7 +226,6 @@ class PathwayPredictor(object):
                         vars_to_cut.append(y_var)
                 if len(vars_to_cut) == 0:  # no pathway found:
                     logger.info("It seems %s is a native product in model %s. Let's see if we can find better heterologous pathways." % (product, self.model))
-                    df =  solution.data_frame
                     # knockout adapter with native product
                     for adapter in self._adpater_reactions:
                         if product in adapter.metabolites:
@@ -229,19 +234,21 @@ class PathwayPredictor(object):
                     continue
                 pathway = [self.model.reactions.get_by_id(y_var.name[2:]) for y_var in vars_to_cut]
                 logger.debug('Pathway predicted: %s' % '\t'.join([reaction.annotation['Description'] for reaction in pathway]))
+
                 # Figure out adapter reactions to include
                 for adapter in self._adpater_reactions:
                     if abs(adapter.variable.primal) > 1e-6:
-                        # logger.debug('Adapter %s added to pathway with primal %e' % (adapter.id, adapter.variable.primal))
                         pathway.append(adapter)
                 pathways.append(pathway)
-                integer_cut = self.model.solver.interface.Constraint(Add(*vars_to_cut), name="integer_cut_" + str(counter), ub=len(vars_to_cut)-1)
+                integer_cut = self.model.solver.interface.Constraint(Add(*vars_to_cut),
+                                                                     name="integer_cut_" + str(counter),
+                                                                     ub=len(vars_to_cut)-1)
                 logger.debug('Adding integer cut.')
                 tm(do=partial(self.model.solver._add_constraint, integer_cut),
                    undo=partial(self.model.solver._remove_constraint, integer_cut))
                 counter += 1
             # self.model.solver.configuration.verbosity = 0
-        return PathwayPredictions(pathways)
+            return PathwayPredictions(pathways, demand_reaction)
 
     def _predict_heterolgous_pathways_for_native_compound(self, product):
         # Determined reactions that produce product natively and knock them out
