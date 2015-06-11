@@ -356,9 +356,6 @@ class FseofResult(cameo.core.result.Result):
     def __eq__(self, other):
         return isinstance(other, self.__class__) and self.objective == other.objective and self.reactions == other.reactions
 
-    def plot(self):
-        pass
-
     @property
     def reactions(self):
         return self._reactions

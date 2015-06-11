@@ -185,7 +185,7 @@ class Reaction(_cobrapy.core.Reaction):
 
             elif self._upper_bound <= 0: # reverse irreversible
                 if value > 0:
-                    reverse_variable.ub = 0
+                    reverse_variable.lb = 0
                     reverse_variable.ub = 0
                     forward_variable.ub = value
                     self._upper_bound = value
