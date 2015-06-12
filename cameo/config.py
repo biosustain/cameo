@@ -40,7 +40,7 @@ except ImportError:
 # TODO: This should also check if a bokeh server is actually running.
 try:
     from bokeh.plotting import output_notebook
-    output_notebook()
+    output_notebook(hide_banner=True)
     use_bokeh = True
 except ImportError:
     use_bokeh = False
