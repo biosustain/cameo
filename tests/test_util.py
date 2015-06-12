@@ -16,10 +16,13 @@ from __future__ import absolute_import, print_function
 
 import unittest
 from functools import partial
+from itertools import chain
 
 from cameo.util import TimeMachine, generate_colors, Singleton, partition
+from cameo.network_analysis.util import distance_based_on_molecular_formula
 import six
 from six.moves import range
+from cobra import Metabolite
 
 
 class TimeMachineTestCase(unittest.TestCase):
@@ -71,18 +74,34 @@ class TestUtils(unittest.TestCase):
             test_output = partition(fixture, chunks)
             self.assertEqual(len(fixture), sum(map(len, test_output)))
             self.assertEqual(len(test_output), chunks)
+            self.assertEqual(list(fixture), list(chain(*test_output)))
             for out_chunk in test_output:
                 self.assertTrue(set(out_chunk).issubset(set(fixture)))
 
         bad_input = 5
         self.assertRaises(TypeError, partition, bad_input, chunks)
 
+    @unittest.skip  # Development API changes to cobra.core.Metabolite
+    def test_distance_based_on_molecular_formula(self):  # from network_analysis.util
+        met1 = Metabolite("H2O", formula="H2O")
+        met2 = Metabolite("H2O2", formula="H2O2")
+        met3 = Metabolite("C6H12O6", formula="C6H12O6")
+
+        self.assertEqual(distance_based_on_molecular_formula(met1, met2, normalize=False), 1)
+        self.assertEqual(distance_based_on_molecular_formula(met1, met2, normalize=True), 1./7)
+
+        self.assertEqual(distance_based_on_molecular_formula(met2, met3, normalize=False), 20)
+        self.assertEqual(distance_based_on_molecular_formula(met2, met3, normalize=True), 20./28)
+
+        self.assertEqual(distance_based_on_molecular_formula(met1, met3, normalize=False), 21)
+        self.assertEqual(distance_based_on_molecular_formula(met1, met3, normalize=True), 21./27)
+
 
 class TestSingleton(unittest.TestCase):
     def test_singleton(self):
         s1 = Singleton()
         s2 = Singleton()
-        self.assertEqual(s1, s2)
+        self.assertIs(s1, s2)
 
 
 if __name__ == "__main__":

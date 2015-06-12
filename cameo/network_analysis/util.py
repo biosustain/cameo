@@ -22,9 +22,9 @@ def distance_based_on_molecular_formula(metabolite1, metabolite2, normalize=True
     for element in elements:
          distance += abs(metabolite1.formula.elements.get(element, 0) - metabolite2.formula.elements.get(element, 0))
     if normalize:
-        try:
-            return distance / sum(list(metabolite1.formula.elements.values()) + list(metabolite2.formula.elements.values()))
-        except:
-            print(metabolite1, metabolite2, metabolite1.formula.elements, metabolite2.formula.elements)
+        #try:
+        return distance / sum(list(metabolite1.formula.elements.values()) + list(metabolite2.formula.elements.values()))
+        #except:
+        #    print(metabolite1, metabolite2, metabolite1.formula.elements, metabolite2.formula.elements)
     else:
         return distance

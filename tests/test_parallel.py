@@ -20,6 +20,7 @@ import unittest
 from cameo.parallel import SequentialView
 import subprocess
 from time import sleep
+from multiprocessing import cpu_count
 
 from IPython.parallel import Client, interactive
 from six.moves import range
@@ -61,6 +62,15 @@ try:
         def test_apply(self):
             for i in range(100):
                 self.assertEqual(self.view.apply(to_the_power_of_2, i), SOLUTION[i])
+
+        def test_length(self):
+            self.assertEqual(len(self.view), cpu_count())
+
+            view = MultiprocessingView(4)
+            self.assertEqual(len(view), 4)
+
+            view = MultiprocessingView(processes=3)
+            self.assertEqual(len(view), 3)
 
 except ImportError:
     print("Skipping MultiprocessingView tests ...")

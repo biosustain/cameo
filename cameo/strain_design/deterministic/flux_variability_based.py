@@ -24,14 +24,15 @@ else:
 from pandas import DataFrame, pandas
 from progressbar import ProgressBar
 from progressbar.widgets import ETA, Bar
-from copy import copy
 
+from cameo.flux_analysis import fba
 from cameo import config, flux_variability_analysis, Reaction
 from cameo.parallel import SequentialView, MultiprocessingView
 from cameo.core.solver_based_model import Reaction
 from cameo.strain_design import StrainDesignMethod
 from cameo.flux_analysis.analysis import phenotypic_phase_plane
 from cameo.util import TimeMachine
+import cameo
 
 import logging
 import six
@@ -193,8 +194,8 @@ class DifferentialFVA(StrainDesignMethod):
                 tm(do=int, undo=partial(setattr, reaction, 'lower_bound', reaction.lower_bound))
                 tm(do=int, undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
             target_reaction = self.design_space_model.reactions.get_by_id(self.objective)
-            tm(do=int, undo=partial(setattr, target_reaction, 'lower_bound', reaction.lower_bound))
-            tm(do=int, undo=partial(setattr, target_reaction, 'upper_bound', reaction.upper_bound))
+            tm(do=int, undo=partial(setattr, target_reaction, 'lower_bound', target_reaction.lower_bound))
+            tm(do=int, undo=partial(setattr, target_reaction, 'upper_bound', target_reaction.upper_bound))
 
             if view is None:
                 view = config.default_view
@@ -271,7 +272,7 @@ class _DifferentialFvaEvaluator(object):
         target_reaction.lower_bound, target_reaction.upper_bound = target_bound, target_bound
 
 
-def fseof(model, enforced_reaction, max_enforced_flux=0.9, granularity=10, primary_objective=None, exclude=[]):
+def fseof(model, enforced_reaction, max_enforced_flux=0.9, granularity=10, primary_objective=None, solution_method=fba, exclude=[]):
     """
     Performs a Flux Scanning based on Enforced Objective Flux (FSEOF) analysis.
     :param model: SolverBasedModel
@@ -282,37 +283,36 @@ def fseof(model, enforced_reaction, max_enforced_flux=0.9, granularity=10, prima
     :param exclude: Iterable of reactions or reaction ids that will not be included in the output.
     :return: List of reactions that correlate with enforced flux.
     """
-
-    model = model.copy()
     ndecimals = config.ndecimals
+    with TimeMachine() as tm:
 
-    # Convert enforced reaction to Reaction object
-    if not isinstance(enforced_reaction, Reaction):
-        enforced_reaction = model.reactions.get_by_id(enforced_reaction)
-    primary_objective = primary_objective or copy(model.objective)
+        # Convert enforced reaction to Reaction object
+        if not isinstance(enforced_reaction, Reaction):
+            enforced_reaction = model.reactions.get_by_id(enforced_reaction)
+        primary_objective = primary_objective or model.objective
 
-    # Exclude list
-    exclude_ids = []
-    for reaction in exclude:
-        if isinstance(reaction, Reaction):
-            exclude_ids.append(reaction.id)
-        else:
-            exclude_ids.append(reaction)
+        # Exclude list
+        exclude += model.exchanges
+        exclude_ids = [enforced_reaction.id]
+        for reaction in exclude:
+            if isinstance(reaction, Reaction):
+                exclude_ids.append(reaction.id)
+            else:
+                exclude_ids.append(reaction)
 
-    original_objective = copy(model.objective)
-    original_lb = enforced_reaction.lower_bound
-    original_ub = enforced_reaction.upper_bound
+        tm(do=int, undo=partial(setattr, model, "objective", model.objective))
+        tm(do=int, undo=partial(setattr, enforced_reaction, "lower_bound", enforced_reaction.lower_bound))
+        tm(do=int, undo=partial(setattr, enforced_reaction, "upper_bound", enforced_reaction.upper_bound))
 
-    try:
         # Find initial flux of enforced reaction
         model.objective = primary_objective
-        initial_solution = model.solve()
+        initial_solution = solution_method(model)
         initial_fluxes = initial_solution.fluxes
         initial_flux = round(initial_fluxes[enforced_reaction.id], ndecimals)
 
         # Find theoretical maximum of enforced reaction
         model.objective = enforced_reaction
-        max_theoretical_flux = round(model.solve().fluxes[enforced_reaction.id], ndecimals)
+        max_theoretical_flux = round(solution_method(model).fluxes[enforced_reaction.id], ndecimals)
 
         max_flux = max_theoretical_flux * max_enforced_flux
 
@@ -327,23 +327,64 @@ def fseof(model, enforced_reaction, max_enforced_flux=0.9, granularity=10, prima
         for enforcement in enforcements:
             enforced_reaction.lower_bound = enforcement
             enforced_reaction.upper_bound = enforcement
-            solution = model.solve()
+            solution = solution_method(model)
             for reaction_id, flux in solution.fluxes.items():
                 results[reaction_id].append(round(flux, config.ndecimals))
-
-    finally:
-        # Reset objective and bounds
-        enforced_reaction.lower_bound = original_lb
-        enforced_reaction.upper_bound = original_ub
-        model.objective = original_objective
 
     # Test each reaction
     fseof_reactions = []
     for reaction_id, fluxes in results.items():
-        if abs(fluxes[-1]) > abs(fluxes[0]) and min(fluxes)*max(fluxes) >= 0:
-            fseof_reactions.append(reaction_id)
+        if reaction_id not in exclude_ids and abs(fluxes[-1]) > abs(fluxes[0]) and min(fluxes)*max(fluxes) >= 0:
+            fseof_reactions.append(model.reactions.get_by_id(reaction_id))
 
-    return fseof_reactions
+    return FseofResult(fseof_reactions, enforced_reaction, model)
+
+
+class FseofResult(cameo.core.result.Result):
+    """
+    Object for holding FSEOF results.
+    """
+    def __init__(self, reactions, objective, model, *args, **kwargs):
+        super(FseofResult, self).__init__(*args, **kwargs)
+        self._reactions = reactions
+        self._objective = objective
+        self._model = model
+
+    def __iter__(self):
+        return iter(self.reactions)
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.objective == other.objective and self.reactions == other.reactions
+
+    @property
+    def reactions(self):
+        return self._reactions
+
+    @property
+    def model(self):
+        return self._model
+
+    @property
+    def objective(self):
+        return self._objective
+
+    def _repr_html_(self):
+        template = """
+<table>
+     <tr>
+        <td><b>Enforced objective</b></td>
+        <td>%(objective)s</td>
+    </tr>
+    <tr>
+        <td><b>Reactions</b></td>
+        <td>%(reactions)s</td>
+    <tr>
+</table>"""
+        return template % {'objective': self.objective.nice_id, 'reactions': "<br>".join(reaction.id for reaction in self.reactions)}
+
+    @property
+    def data_frame(self):
+        return pandas.DataFrame((r.id for r in self.reactions), columns=["Reaction id"])
 
 
 if __name__ == '__main__':
