@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from __future__ import absolute_import, print_function
+from pandas import DataFrame
 
 __all__ = ['PathwayPredictor']
 
@@ -26,26 +27,30 @@ from cameo.util import TimeMachine
 from sympy import Add
 from . import util
 
+import re
+
 import logging
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
 
 
-class PathwayPredictions(Result):
-
+class PathwayResult(Result):
     def data_frame(self):
-        raise NotImplementedError
+        return DataFrame([[r.id, r.reaction, r.lower_bound, r.upper_bound] for r in self.pathway
+                          if not r.id.startswith("adapter")],
+                         columns=["id", "equation", "lower_bound", "upper_bound"])
 
-    def __init__(self, pathways, exchange, *args, **kwargs):
-        super(PathwayPredictions, self).__init__(*args, **kwargs)
-        # TODO: sort the pathways to make them easier to read
-        self.pathways = pathways
+    def __init__(self, pathway, exchange, *args, **kwargs):
+        super(Result, self).__init__(*args, **kwargs)
+        self.pathway = pathway
         self.exchange = exchange
 
-    def plug_model(self, model, index, tm=None):
+    def plot(self, **kwargs):
+        pass
+
+    def plug_model(self, model, tm=None):
         if tm is not None:
-            tm(do=partial(model.add_reactions, self.pathways[index]),
-               undo=partial(model.remove_reactions, self.pathways[index]))
+            tm(do=partial(model.add_reactions, self.pathway),
+               undo=partial(model.remove_reactions, self.pathway))
             try:
                 tm(do=partial(model.add_reaction, self.exchange),
                    undo=partial(model.remove_reactions, [self.exchange]))
@@ -53,12 +58,26 @@ class PathwayPredictions(Result):
                 logger.warning("Exchange %s already in model" % self.exchange.id)
                 pass
         else:
-            model.add_reactions(self.pathways[index])
+            model.add_reactions(self.pathway)
             try:
                 model.add_reaction(self.exchange)
             except:
                 logger.warning("Exchange %s already in model" % self.exchange.id)
                 pass
+
+
+class PathwayPredictions(Result):
+
+    def data_frame(self):
+        raise NotImplementedError
+
+    def __init__(self, pathways, *args, **kwargs):
+        super(PathwayPredictions, self).__init__(*args, **kwargs)
+        # TODO: sort the pathways to make them easier to read
+        self.pathways = pathways
+
+    def plug_model(self, model, index, tm=None):
+        self.pathways[index].plug_model(model, tm)
 
     def _repr_html_(self):
         return self.data_frame()._repr_html_()
@@ -74,6 +93,10 @@ class PathwayPredictions(Result):
     def plot(self, grid=None, width=None, height=None, title=None):
         # TODO: small pathway visualizations would be great.
         raise NotImplementedError
+
+    def __iter__(self):
+        for p in self.pathways:
+            yield p
 
 
 class PathwayPredictor(object):
@@ -104,8 +127,12 @@ class PathwayPredictor(object):
     >>> pathway_predictor.run(product=pathway_predictor.model.metabolites.MNXM2861)
     """
 
-    def __init__(self, model, universal_model=None, mapping=None):
+    def __init__(self, model, universal_model=None, mapping=None, compartment_regexp=None):
         """"""
+
+        if compartment_regexp is None:
+            compartment_regexp = re.compile(".*")
+
         if universal_model is None:
             logger.debug("Loading default universal model.")
             from cameo.data.universal_models import metanetx_universal_model_bigg_rhea
@@ -138,7 +165,8 @@ class PathwayPredictor(object):
         if mapping is None:
             self.mapping = metanetx.all2mnx
 
-        self._adpater_reactions = util.create_adaptor_reactions(model.metabolites, self.model, self.mapping)
+        self._adpater_reactions = util.create_adaptor_reactions(model.metabolites, self.model,
+                                                                self.mapping, compartment_regexp)
         self.model.add_reactions(self._adpater_reactions)
 
         logger.debug("Adding switches.")
@@ -162,7 +190,7 @@ class PathwayPredictor(object):
         self.model.objective = self.model.solver.interface.Objective(Add(*y_vars), direction='min')
         self._y_vars_ids = [var.name for var in y_vars]
 
-    def run(self, product=None, max_predictions=float("inf"), min_production=.1, timeout=None):
+    def run(self, product=None, max_predictions=float("inf"), min_production=.1, timeout=None, compartment_regexp=None):
         """Run pathway prediction for a desired product.
 
         Parameters
@@ -239,7 +267,7 @@ class PathwayPredictor(object):
                 for adapter in self._adpater_reactions:
                     if abs(adapter.variable.primal) > 1e-6:
                         pathway.append(adapter)
-                pathways.append(pathway)
+                pathways.append(PathwayResult(pathway, demand_reaction))
                 integer_cut = self.model.solver.interface.Constraint(Add(*vars_to_cut),
                                                                      name="integer_cut_" + str(counter),
                                                                      ub=len(vars_to_cut)-1)
@@ -248,7 +276,7 @@ class PathwayPredictor(object):
                    undo=partial(self.model.solver._remove_constraint, integer_cut))
                 counter += 1
             # self.model.solver.configuration.verbosity = 0
-            return PathwayPredictions(pathways, demand_reaction)
+            return PathwayPredictions(pathways)
 
     def _predict_heterolgous_pathways_for_native_compound(self, product):
         # Determined reactions that produce product natively and knock them out

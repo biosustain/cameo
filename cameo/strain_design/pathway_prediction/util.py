@@ -14,9 +14,12 @@
 from cameo import Reaction
 
 
-def create_adaptor_reactions(original_metabolites, expanded_model, mapping):
+def create_adaptor_reactions(original_metabolites, expanded_model, mapping, compartment_regexp):
     adapter_reactions = []
     for metabolite in original_metabolites:  # model is the original host model
+        if not compartment_regexp.match(metabolite.id):
+            continue
+
         name = metabolite.id[0:-2]
         try:
             mnx_name = mapping[name]
