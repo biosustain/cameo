@@ -71,8 +71,7 @@ class Result(object):
     def data_frame(self):
         raise NotImplementedError
 
-    @property
-    def plot(self):
+    def plot(self, grid=None, width=None, height=None, title=None):
         raise NotImplementedError
 
 
@@ -111,8 +110,7 @@ class FluxDistributionResult(Result):
     def objective_value(self):
         return self._objective_value
 
-    @property
-    def plot(self):
+    def plot(self, grid=None, width=None, height=None, title=None):
         # TODO: Add barchart or something similar.
         pass
 
@@ -142,10 +140,10 @@ class PhenotypicPhasePlaneResult(Result):
     def data_frame(self):
         return pandas.DataFrame(self._phase_plane)
 
-    @property
-    def plot(self):
+    def plot(self, grid=None, width=None, height=None, title=None):
         for r_id in self.reaction_ids:
-            plotting.plot_production_envelope(self._phase_plane, key=r_id)
+            plotting.plot_production_envelope(self._phase_plane, key=r_id, grid=grid,
+                                              width=width, height=height, title=title)
 
     def __getitem__(self, item):
         return self._phase_plane[item]
