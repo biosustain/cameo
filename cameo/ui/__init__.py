@@ -13,10 +13,20 @@
 # limitations under the License.
 
 from __future__ import absolute_import, print_function
-from IPython.core.display import HTML
+from uuid import uuid4
+from IPython.core.display import HTML, Javascript
 from IPython.core.display import display
 
 from cameo import util
+import logging
+import os
+
+
+ASSETS = os.path.join(os.path.dirname(__file__), "assets")
+
+LOADING_IMAGE = os.path.join(ASSETS, "loading.gif")
+
+logger = logging.getLogger(__name__)
 
 
 def notice(message):
@@ -31,3 +41,24 @@ def bold(message):
         display(HTML("<strong>%s</strong>" % message))
     else:
         print("\033[1m" + message + "\033[0m")
+
+
+def loading():
+    if util.in_ipnb():
+        identifier = str(uuid4())
+        with open(LOADING_IMAGE, 'rb') as f:
+            display(HTML("""
+            <img class="loading" id="%s" style="margin:auto; text-align:center;" src="data:image/gif;base64,%s"/>
+            """ % (identifier, f.read().encode('base64').replace('\n', ''))))
+        return identifier
+    else:
+        logger.debug("loading only works on Jupyter notebooks")
+
+
+def stop_loader(identifier):
+    if util.in_ipnb():
+        display(Javascript("""
+        jQuery("#%s").remove();
+        """ % identifier))
+    else:
+        logger.debug("loading only works on Jupyter notebooks")
