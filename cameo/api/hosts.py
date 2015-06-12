@@ -29,8 +29,8 @@ class Host(object):
     def __init__(self, name='', models=[], biomass=[], carbon_sources=[]):
         self.name = name
         self.models = IntelliContainer()
-        for id, biomass in zip(models, biomass):
-            self.models[id] = ModelFacade(id, biomass)
+        for id, biomass, carbon_source in zip(models, biomass, carbon_sources):
+            self.models[id] = ModelFacade(id, biomass, carbon_source)
 
     def __str__(self):
         return self.name
@@ -60,11 +60,12 @@ class ModelFacade(object):
     def __setattr__(self, key, value):
         if key in ["_id", "_model", "biomass", "carbon_source"]:
             self.__dict__[key] = value
-            return
-        try:
-            return setattr(self._model, key, value)
-        except KeyError:
-            return setattr(super(ModelFacade, self), key, value)
+        else:
+            try:
+                setattr(self._model, key, value)
+            except KeyError:
+                setattr(super(ModelFacade, self), key, value)
+
 
 class Hosts(object):
 
@@ -89,14 +90,14 @@ HOST_SPECS = {
         'name': 'Escherichia coli',
         'models': ('iJO1366',),
         'biomass': ('Ec_biomass_iJO1366_WT_53p95M',),
-        'carbon_sources': ('EX_glc_e_',)
+        'carbon_sources': ('EX_glc_lp_e_rp_',)
     },
     # 'iND750',
     'scerevisiae': {
         'name': 'Saccharomyces cerevisiae',
         'models': ('iMM904', ),
-        'biomass': ('',),
-        'carbon_sources': ('',)
+        'biomass': ('biomass_SC5_notrace',),
+        'carbon_sources': ('EX_glc_lp_e_rp_',)
 
     }
 }
