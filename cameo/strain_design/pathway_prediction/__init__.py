@@ -50,10 +50,10 @@ class PathwayResult(Result):
     def plug_model(self, model, tm=None):
         if tm is not None:
             tm(do=partial(model.add_reactions, self.pathway),
-               undo=partial(model.remove_reactions, self.pathway))
+               undo=partial(model.remove_reactions, self.pathway, delete=False))
             try:
                 tm(do=partial(model.add_reaction, self.exchange),
-                   undo=partial(model.remove_reactions, [self.exchange]))
+                   undo=partial(model.remove_reactions, [self.exchange], delete=False))
             except:
                 logger.warning("Exchange %s already in model" % self.exchange.id)
                 pass
@@ -237,7 +237,7 @@ class PathwayPredictor(object):
                 demand_reaction = self.model.reactions.get_by_id('DM_' + product.id)
             except KeyError:
                 demand_reaction = self.model.add_demand(product)
-            tm(do=str, undo=partial(self.model.remove_reactions, [demand_reaction]))
+            tm(do=str, undo=partial(self.model.remove_reactions, [demand_reaction], delete=False))
             demand_reaction.lower_bound = min_production
             counter = 1
             while counter <= max_predictions:

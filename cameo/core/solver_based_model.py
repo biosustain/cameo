@@ -245,11 +245,11 @@ class SolverBasedModel(_cobrapy.core.Model):
 
         self._populate_solver(cloned_reaction_list)
 
-    def remove_reactions(self, the_reactions):
+    def remove_reactions(self, the_reactions, delete=True):
         for reaction in the_reactions:
             self.solver.remove(reaction.forward_variable)
             self.solver.remove(reaction.reverse_variable)
-        super(SolverBasedModel, self).remove_reactions(the_reactions)
+        super(SolverBasedModel, self).remove_reactions(the_reactions, delete=delete)
 
     def add_demand(self, metabolite, prefix="DM_"):
         demand_reaction = Reaction(prefix + metabolite.id)

@@ -183,15 +183,14 @@ class Designer(object):
     def __display_compound_html(name, inchi):
         svg = Designer.__generate_svg(inchi)
         display(HTML("""
-        <p><strong>%s</strong><br/>
+        <p>
             %s
         </p>
-        """ % (name, svg)))
+        """ % svg))
 
     @staticmethod
     def __display_compound_cli(name, inchi):
         text = Designer.__generate_ascii(inchi)
-        bold(name)
         print(text)
 
     @staticmethod
