@@ -35,8 +35,8 @@ logger = logging.getLogger(__name__)
 
 class PathwayResult(Result):
     def data_frame(self):
-        return DataFrame([[r.id, r.reaction, r.lower_bound, r.upper_bound] for r in self.pathway
-                          if not r.id.startswith("adapter")],
+        return DataFrame([[r.id, r.build_reaction_string(use_metabolite_names=True), r.lower_bound, r.upper_bound]
+                          for r in self.pathway if not r.id.startswith("adapter")],
                          columns=["id", "equation", "lower_bound", "upper_bound"])
 
     def __init__(self, pathway, exchange, *args, **kwargs):
@@ -173,8 +173,8 @@ class PathwayPredictor(object):
         y_vars = list()
         switches = list()
         for reaction in reactions:
-            if reaction.id.startswith('DM_'):
-                continue  # demand reactions don't need integer switches
+            # if reaction.id.startswith('DM_'):
+            #     continue  # demand reactions don't need integer switches
             y = self.model.solver.interface.Variable('y_'+reaction.id, lb=0, ub=1, type='binary')
             y_vars.append(y)
             if reaction.reverse_variable is not None:
