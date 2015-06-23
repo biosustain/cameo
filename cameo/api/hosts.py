@@ -97,7 +97,7 @@ HOST_SPECS = {
         'name': 'Saccharomyces cerevisiae',
         'models': ('iMM904', ),
         'biomass': ('biomass_SC5_notrace',),
-        'carbon_sources': ('EX_glc_lp_e_rp_',)
+        'carbon_sources': ('EX_glc_e_',)
 
     }
 }
