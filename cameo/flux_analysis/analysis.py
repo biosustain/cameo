@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from __future__ import absolute_import, print_function
+from cobra.core import Reaction
 from cameo.core.result import PhenotypicPhasePlaneResult
 
 __all__ = ['flux_variability_analysis', 'phenotypic_phase_plane', 'fbid']
@@ -141,7 +142,9 @@ def phenotypic_phase_plane(model, variables=[], objective=None, points=20, view=
         phase_plane = pandas.DataFrame(envelope, columns=(variable_reactions_ids +
                                                           ['objective_lower_bound', 'objective_upper_bound']))
 
-        return PhenotypicPhasePlaneResult(phase_plane, variable_reactions_ids)
+        if isinstance(objective, Reaction):
+            objective = objective.id
+        return PhenotypicPhasePlaneResult(phase_plane, variable_reactions_ids, objective)
 
 
 class _FvaFunctionObject(object):
