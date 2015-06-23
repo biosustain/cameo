@@ -20,14 +20,15 @@ import re
 
 import numpy as np
 
-from cameo import Metabolite, Model, phenotypic_phase_plane, load_model
+from cameo import Metabolite, Model, phenotypic_phase_plane, fba
 from cameo import config, util
 from cameo.core.result import Result
 from cameo.api.hosts import hosts, Host
 from cameo.api.products import products
+from cameo.exceptions import SolveError
 from cameo.strain_design.heuristic import GeneKnockoutOptimization
 from cameo.strain_design.heuristic.objective_functions import biomass_product_coupled_yield
-from cameo.ui import notice, bold, loading, stop_loader
+from cameo.ui import notice, searching, stop_loader
 from cameo.strain_design import pathway_prediction
 from cameo.util import TimeMachine
 from cameo.data import universal_models
@@ -45,14 +46,14 @@ logger.setLevel(logging.INFO)
 class _OptimizationRunner(object):
 
     def __call__(self, strategy, *args, **kwargs):
-        (host, model, pathway) = strategy
+        (host, model, pathway) = (strategy[0], strategy[1], strategy[2])
         with TimeMachine() as tm:
             pathway.plug_model(model, tm)
             objective = biomass_product_coupled_yield(model.biomass,
-                                                      pathway.exchange,
+                                                      pathway.product,
                                                       model.carbon_source)
-            opt = GeneKnockoutOptimization(model, objective_function=objective, progress=True, plot=False)
-            return opt.run(product=pathway.exchange.id, max_evaluations=10000)
+            opt = GeneKnockoutOptimization(model=model, objective_function=objective, progress=True, plot=False)
+            return opt.run(product=pathway.product.id, max_evaluations=10000)
 
 
 class StrainDesigns(Result):
@@ -105,13 +106,12 @@ class Designer(object):
         product = self.__translate_product_to_universal_reactions_model_metabolite(product, database)
         pathways = self.predict_pathways(product, hosts=hosts, database=database)
         optimization_reports = self.optimize_strains(pathways, view)
-        return pathways
+        return optimization_reports
 
     def optimize_strains(self, pathways, view):
         runner = _OptimizationRunner()
-        return view.apply(runner, [(host, model, pathway) for (host, model) in pathways
-                                   for pathway in pathways[host, model]])
-
+        designs = [(host, model, pathway) for (host, model) in pathways for pathway in pathways[host, model]]
+        return view.map(runner, designs)
 
     def predict_pathways(self, product, hosts=None, database=None):  #TODO: make this work with a single host or model
         """Predict production routes for a desired product and host spectrum.
@@ -136,7 +136,7 @@ class Designer(object):
             for model in list(host.models):
                 notice('Predicting pathways for product %s in %s (using model %s).'
                        % (product.name, host, model.id))
-                identifier = loading()
+                identifier = searching()
                 try:
                     logger.debug('Trying to set solver to cplex for pathway predictions.')
                     model.solver = 'cplex'  # CPLEX is better predicting pathways
@@ -147,7 +147,7 @@ class Designer(object):
                                                                         universal_model=database,
                                                                         compartment_regexp=re.compile(".*_c$"))
                 # TODO adjust these numbers to something reasonable
-                predicted_pathways = pathway_predictor.run(product, max_predictions=4, timeout=3*60)
+                predicted_pathways = pathway_predictor.run(product, max_predictions=4, timeout=3*60, silent=True)
                 pathways[(host, model)] = predicted_pathways
                 stop_loader(identifier)
                 self.__display_pathways_information(predicted_pathways, host, model)
@@ -162,7 +162,7 @@ class Designer(object):
             self.__display_product_search_result(search_result)
             notice("Choosing best match (%s) ... please interrupt if this is not the desired compound."
                    % search_result.name[0])
-            self.__display_compound(search_result.name[0], search_result.InChI[0])
+            self.__display_compound(search_result.InChI[0])
             return database.metabolites.get_by_id(search_result.index[0])
 
     @staticmethod
@@ -173,14 +173,14 @@ class Designer(object):
             Designer.__display_product_search_results_cli(search_result)
 
     @staticmethod
-    def __display_compound(name, inchi):
+    def __display_compound(inchi):
         if util.in_ipnb():
-            Designer.__display_compound_html(name, inchi)
+            Designer.__display_compound_html(inchi)
         else:
-            Designer.__display_compound_cli(name, inchi)
+            Designer.__display_compound_cli(inchi)
 
     @staticmethod
-    def __display_compound_html(name, inchi):
+    def __display_compound_html(inchi):
         svg = Designer.__generate_svg(inchi)
         display(HTML("""
         <p>
@@ -189,7 +189,7 @@ class Designer(object):
         """ % svg))
 
     @staticmethod
-    def __display_compound_cli(name, inchi):
+    def __display_compound_cli(inchi):
         text = Designer.__generate_ascii(inchi)
         print(text)
 
@@ -245,16 +245,22 @@ class Designer(object):
     @staticmethod
     def __display_pathways_information(predicted_pathways, host, original_model):
         # TODO: remove copy hack.
-        model = load_model(original_model._id)
-        with Grid(nrows=2, title="Production envelopes for %s (%s)" % (host.name, model.id)) as grid:
+        with Grid(nrows=2, title="Production envelopes for %s (%s)" % (host.name, original_model.id)) as grid:
             for i, pathway in enumerate(predicted_pathways):
                 pathway_id = "Pathway %i" % (i+1)
-                bold(pathway_id)
-                display((pathway.data_frame()))
                 with TimeMachine() as tm:
-                    pathway.plug_model(model, tm)
-                    production_envelope = phenotypic_phase_plane(model, variables=[pathway.exchange])
-                    production_envelope.plot(grid, title=pathway_id, width=320, height=300)
+                    pathway.plug_model(original_model, tm)
+                    production_envelope = phenotypic_phase_plane(original_model,
+                                                                 variables=[original_model.biomass],
+                                                                 objective=pathway.product)
+                    production_envelope.plot(grid, title=pathway_id, width=400, height=300)
 
+    @staticmethod
+    def calculate_yield(model, source, product):
+        try:
+            flux_dist = fba(model, objective=product)
+            return flux_dist[product.id]/abs(flux_dist[source.id])
+        except SolveError:
+            return 0.0
 
 design = Designer()
