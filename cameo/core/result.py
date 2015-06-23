@@ -27,6 +27,7 @@ from datetime import datetime
 from optlang.interface import OptimizationExpression
 from sympy.parsing.sympy_parser import parse_expr
 from cameo import system_info
+from cameo.ui import notice
 from cameo.visualization import plotting
 
 
@@ -131,19 +132,23 @@ class FluxDistributionResult(Result):
 
 
 class PhenotypicPhasePlaneResult(Result):
-    def __init__(self, phase_plane, reaction_ids, *args, **kwargs):
+    def __init__(self, phase_plane, variable_ids, objective, *args, **kwargs):
         super(PhenotypicPhasePlaneResult, self).__init__(*args, **kwargs)
         self._phase_plane = phase_plane
-        self.reaction_ids = reaction_ids
+        self.variable_ids = variable_ids
+        self.objective = objective
 
     @property
     def data_frame(self):
         return pandas.DataFrame(self._phase_plane)
 
     def plot(self, grid=None, width=None, height=None, title=None):
-        for r_id in self.reaction_ids:
-            plotting.plot_production_envelope(self._phase_plane, key=r_id, grid=grid,
-                                              width=width, height=height, title=title)
+        if len(self.variable_ids) > 1:
+            notice("Multi-dimensional plotting is not supported")
+            return
+        plotting.plot_production_envelope(self._phase_plane, objective=self.objective, key=self.variable_ids[0],
+                                          grid=grid, width=width, height=height, title=title)
+
 
     def __getitem__(self, item):
         return self._phase_plane[item]
