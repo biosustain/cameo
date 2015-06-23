@@ -15,18 +15,24 @@
 from __future__ import absolute_import, print_function
 
 from functools import partial
+from uuid import uuid4
+from IPython.core.display import display, HTML, Javascript
+from IPython.html.widgets import interact, IntSlider
 import six
+from cameo.core.result import Result, PhenotypicPhasePlaneResult
+from cameo.ui import notice
+from cameo.visualization.escher_ext import NotebookBuilder
+
 if six.PY2:
     from itertools import izip as my_zip
 else:
     my_zip = zip
 
 from pandas import DataFrame, pandas
-from progressbar import ProgressBar
-from progressbar.widgets import ETA, Bar
+from cameo.visualization import ProgressBar, plotting
 from copy import copy
 
-from cameo import config, flux_variability_analysis, Reaction
+from cameo import config, flux_variability_analysis, pfba
 from cameo.parallel import SequentialView, MultiprocessingView
 from cameo.core.solver_based_model import Reaction
 from cameo.strain_design import StrainDesignMethod
@@ -86,6 +92,7 @@ class DifferentialFVA(StrainDesignMethod):
 
         self.design_space_model = design_space_model
         self.reference_model = reference_model
+
 
         if isinstance(objective, Reaction):
             self.objective = objective.id
@@ -207,7 +214,7 @@ class DifferentialFVA(StrainDesignMethod):
                                                                    view=view, remove_cycles=False)
             self._init_search_grid(surface_only=surface_only, improvements_only=improvements_only)
 
-            progress = ProgressBar(len(self.grid), widgets=['Scanning grid points ', Bar(), ' ', ETA()])
+            progress = ProgressBar(len(self.grid), label='Scanning grid points ')
             func_obj = _DifferentialFvaEvaluator(self.design_space_model, self.variables, self.objective,
                                                  included_reactions)
             results = list(progress(view.imap(func_obj, self.grid.iterrows())))
@@ -246,8 +253,82 @@ class DifferentialFVA(StrainDesignMethod):
             df['suddenly_essential'][flux_reversal_selection.index] = True
 
         # solutions['reference_flux_ranges'] = self.reference_flux_ranges
-        return pandas.Panel(solutions)
+        return DifferencialFVAResult(pandas.Panel(solutions), self.envelope, self.variables, self.objective)
 
+
+class DifferencialFVAResult(PhenotypicPhasePlaneResult):
+    def __init__(self, solutions, phase_plane, variables_ids, objective, *args, **kwargs):
+        if isinstance(phase_plane, PhenotypicPhasePlaneResult):
+            phase_plane = phase_plane._phase_plane
+        super(DifferencialFVAResult, self).__init__(phase_plane, variables_ids, objective, *args, **kwargs)
+        self.solutions = solutions
+
+    def plot(self, grid=None, width=None, height=None, title=None):
+        if len(self.variable_ids) > 1:
+            notice("Multi-dimensional plotting is not supported")
+            return
+        title = "DifferentialFVA Result" if title is None else title
+        x = [elem[0][1] for elem in list(self.solutions.items)]
+        y = [elem[1][1] for elem in list(self.solutions.items)]
+        colors = ["red" for _ in x]
+        plotting.plot_production_envelope(self._phase_plane, objective=self.objective, key=self.variable_ids[0],
+                                          grid=grid, width=width, height=height, title=title,
+                                          points=[x, y], points_colors=colors)
+
+    def _repr_html_(self):
+        def _data_frame(solution):
+            notice("%s: %f" % self.solutions.axes[0][solution-1][0])
+            notice("%s: %f" % self.solutions.axes[0][solution-1][1])
+            display(self.solutions.iloc[solution-1])
+
+        return interact(_data_frame, solution=[1, len(self.solutions)])
+
+    def display_on_map(self, map_name=None):
+        view = _MapView(self.solutions, map_name)
+        slider = IntSlider(min=1, max=len(self.solutions), value=1)
+        slider.on_trait_change(lambda x: view(slider.get_state("value")["value"]))
+        display(slider)
+        view(1)
+
+
+class _MapView(object):
+    def __init__(self, solutions, map_name):
+        self.solutions = solutions
+        self.map_name = map_name
+        self.builder = None
+
+    def __call__(self, index):
+        reaction_data = dict(self.solutions.iloc[index-1].gaps)
+        axis = self.solutions.axes[0]
+        if self.builder is None:
+            self._init_builder(reaction_data, axis[index-1][0], axis[index-1][1])
+        else:
+            self.builder.update(reaction_data)
+            self.update_header(axis[index-1][0], axis[index-1][1])
+
+    def update_header(self, objective, variable):
+        display(Javascript("""
+            jQuery("#objective-%s").text("%f");\n
+            jQuery("#variable-%s").text("%f");
+        """ % (self.header_id, objective[1], self.header_id, variable[1])))
+
+    def _init_builder(self, reaction_data, objective, variable):
+        self.header_id = str(uuid4()).replace("-", "_")
+        display(HTML("""
+        <p>
+            %s&nbsp;<span id="objective-%s">%f</span></br>
+            %s&nbsp;<span id="variable-%s">%f</span>
+        </p>
+        """ % (objective[0], self.header_id, objective[1],
+               variable[0], self.header_id, variable[1])))
+
+        self.builder = NotebookBuilder(map_name=self.map_name,
+                                       reaction_data=reaction_data,
+                                       reaction_scale=[
+                                           dict(type='min', color="red", size=20),
+                                           dict(type='median', color="grey", size=7),
+                                           dict(type='max', color='green', size=20)])
+        display(self.builder.display_in_notebook())
 
 class _DifferentialFvaEvaluator(object):
     def __init__(self, model, variables, objective, included_reactions):
