@@ -21,8 +21,8 @@ from cameo import config, util
 try:
     # import matplotlib.pyplot as plt
 
-    def plot_production_envelope_ipython_matplotlib(envelope, key, highligt=[], grid=None,
-                                                    width=None, height=None, title=None):
+    def plot_production_envelope_ipython_matplotlib(envelope, objective, key, grid=None, width=None, height=None,
+                                                    title=None, points=None, points_colors=None):
         pass
         # plt.plot(envelope["objective_upper_bound"], envelope[key], title="Production envelop")
         # plt.xlabel("growth")
@@ -30,27 +30,41 @@ try:
 
 except ImportError:
 
-    def plot_production_envelope_ipython_matplotlib(envelope, key, highligt=[], grid=None,
-                                                    width=None, height=None, title=None):
+    def plot_production_envelope_ipython_matplotlib(envelope, objective, key, grid=None, width=None, height=None,
+                                                    title=None, points=None, points_colors=None):
         pass
 
 try:
     from bokeh import plotting
     from bokeh.models import GridPlot
 
-    def plot_production_envelope_ipython_bokeh(envelope, key, highligt=[], grid=None,
-                                               width=None, height=None, title=None):
+    def plot_production_envelope_ipython_bokeh(envelope, objective, key, grid=None, width=None, height=None,
+                                               title=None, points=None, points_colors=None):
         p = plotting.figure(title=title if title is not None else "Production envelope",
-                            tools="",
+                            tools="save",
                             plot_width=width if width is not None else 700,
                             plot_height=height if height is not None else 700)
-        p.xaxis.axis_label = 'growth'
-        p.yaxis.axis_label = key
-        colors = ["blue" if i in highligt else "grey" for i in envelope.index]
+        p.xaxis.axis_label = key
+        p.yaxis.axis_label = objective
+
+        ub = envelope["objective_upper_bound"].values
+        lb = envelope["objective_lower_bound"].values
+        var = envelope[key].values
+
+        x = [0] + [v for v in var] + list(reversed([v for v in var]))
+        y = [0] + [v for v in lb] + list(reversed([v for v in ub]))
+
+        p.patch(x=x, y=y, color="#99d8c9", alpha=0.3)
+
         if "label" in envelope.columns:
-            p.text(envelope["label"], envelope["objective_upper_bound"], envelope[key])
-        p.circle(envelope["objective_upper_bound"], envelope[key], color=colors, size=5)
-        p.line(envelope["objective_upper_bound"], envelope[key], color="green")
+            p.text(envelope["label"].values, var, ub)
+        p.line(var, ub, color="blue")
+        p.line(var, lb, color="blue")
+        if ub[-1] != lb[-1]:
+            p.line((var[-1], var[-1]), (ub[-1], lb[-1]), color="blue")
+
+        if points is not None:
+            p.scatter(*points, color="green" if points_colors is None else points_colors)
         if grid is not None:
             grid.append(p)
         else:
@@ -58,31 +72,35 @@ try:
 
 except ImportError:
 
-    def plot_production_envelope_ipython_bokeh(envelope, key, highligt=[], grid=None,
-                                               width=None, height=None, title=None):
+    def plot_production_envelope_ipython_bokeh(envelope, objective, key, grid=None, width=None, height=None,
+                                               title=None, points=None, points_colors=None):
         pass
 
 try:
     from bashplotlib import scatterplot
 
-    def plot_production_envelope_cli(envelope, key, highligt=[], grid=None, width=None, height=None, title=None):
-        scatterplot.plot_scatter(None, envelope["objective_upper_bound"], envelope[key], "*")
+    def plot_production_envelope_cli(envelope, objective, key, grid=None, width=None, height=None,
+                                               title=None, points=None, points_colors=None):
+        scatterplot.plot_scatter(None, envelope[key], envelope["objective_upper_bound"], "*")
 
 except ImportError:
-    def plot_production_envelope_cli(envelope, key, highligt=[], grid=None, width=None, height=None, title=None):
+    def plot_production_envelope_cli(envelope, objective, key, grid=None, width=None, height=None,
+                                               title=None, points=None, points_colors=None):
         pass
 
 
-def plot_production_envelope(envelope, key, highligt=[], grid=None, width=None, height=None, title=None):
+def plot_production_envelope(envelope, objective, key, grid=None, width=None, height=None, title=None,
+                             points=None, points_colors=None):
     if util.in_ipnb():
         if config.use_bokeh:
-            plot_production_envelope_ipython_bokeh(envelope, key, highligt=highligt, grid=grid,
-                                                   width=width, height=height, title=title)
+            plot_production_envelope_ipython_bokeh(envelope, objective, key, grid=grid, width=width, height=height,
+                                                   title=title, points=points, points_colors=points_colors)
         elif config.use_matplotlib:
-            plot_production_envelope_ipython_matplotlib(envelope, key, highligt=highligt, grid=grid,
-                                                        width=width, height=height, title=title)
+            plot_production_envelope_ipython_matplotlib(envelope, objective, key, grid=grid, width=width, height=height,
+                                                        title=title, points=points, points_colors=points_colors)
     else:
-        plot_production_envelope_cli(envelope, key, highligt=highligt, width=width, height=height, title=title)
+        plot_production_envelope_cli(envelope, objective, key, width=width, height=height, title=title, points=points,
+                                     points_colors=points_colors)
 
 
 class Grid(object):
