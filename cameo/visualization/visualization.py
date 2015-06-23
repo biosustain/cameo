@@ -298,18 +298,17 @@ try:
             self.id = None
 
         def end(self):
-            pass
+            self.update(self.size)
 
         def __call__(self, iterable):
-            self.size = len(iterable)
-
-            def _(iterable):
-                count = 0
-                self.set(0)
-                for item in iterable:
-                    count += 1
-                    self.set(count)
-                    yield item
+            count = 0
+            self.start()
+            self.update(0)
+            for item in iterable:
+                count += 1
+                self.update(count)
+                yield item
+            self.end()
 
     ProgressBar = IPythonProgressBar
 
