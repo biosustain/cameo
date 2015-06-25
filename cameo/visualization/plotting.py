@@ -40,6 +40,7 @@ try:
 
     def plot_production_envelope_ipython_bokeh(envelope, objective, key, grid=None, width=None, height=None,
                                                title=None, points=None, points_colors=None):
+
         p = plotting.figure(title=title if title is not None else "Production envelope",
                             tools="save",
                             plot_width=width if width is not None else 700,
@@ -65,6 +66,7 @@ try:
 
         if points is not None:
             p.scatter(*points, color="green" if points_colors is None else points_colors)
+
         if grid is not None:
             grid.append(p)
         else:
