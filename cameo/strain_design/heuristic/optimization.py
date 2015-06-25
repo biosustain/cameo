@@ -204,7 +204,7 @@ class HeuristicOptimization(object):
         for observer in self.observers:
             observer.end()
         runtime = time.time() - t
-        print(time.strftime("Finished after %H:%M:%S", time.localtime(runtime)))
+        print(time.strftime("Finished after %H:%M:%S", time.gmtime(runtime)))
 
         return res
 
@@ -246,7 +246,7 @@ class KnockoutEvaluator(object):
         self.objective_function = objective_function
         self.simulation_method = simulation_method
         self.simulation_kwargs = simulation_kwargs
-        self.cache = ProblemCache()
+        self.cache = ProblemCache(model)
 
     def __call__(self, population):
         res = [self.evaluate_individual(frozenset(i)) for i in population]
