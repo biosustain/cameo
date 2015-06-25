@@ -66,9 +66,9 @@ class AbstractTestLazySolution(CommonGround):
 
     def test_solution_contains_only_reaction_specific_values(self):
         reaction_IDs = set([reaction.id for reaction in self.model.reactions])
-        for attr in ('x_dict', 'y_dict'):
-            self.assertEqual(set(getattr(self.solution, attr).keys()).intersection(reaction_IDs), reaction_IDs)
-            self.assertEqual(set(getattr(self.solution, attr).keys()).difference(reaction_IDs), set())
+        self.assertEqual(set(self.solution.x_dict.keys()).difference(reaction_IDs), set())
+        metabolite_IDs = set([metabolite.id for metabolite in self.model.metabolites])
+        self.assertEqual(set(self.solution.y_dict.keys()).difference(metabolite_IDs), set())
 
 
 class TestLazySolutionGLPK(AbstractTestLazySolution, unittest.TestCase):
