@@ -40,7 +40,7 @@ class IPythonBokehFitnessPlotter(object):
         self.uuid = uuid1()
         try:
             output_notebook(url=config.bokeh_url, docname=str(self.uuid), hide_banner=True)
-            self.plot = figure(title="Best solution fitness plot",  tools='')
+            self.plot = figure(title="Fitness plot",  tools='', plot_height=400, plot_width=650)
             self.plot.scatter([], [])
             self.plot.xaxis.axis_label = "Iteration"
             self.plot.yaxis.axis_label = "Fitness"
@@ -103,7 +103,7 @@ class IPythonBokehParetoPlotter(object):
             self.uuid = uuid1()
             # TODO the following needs to works also with not bokeh server running.
             output_notebook(url=config.bokeh_url, docname=str(self.uuid), hide_banner=True)
-            self.plot = figure(title="Multi-objective Pareto Fitness Plot", tools='')
+            self.plot = figure(title="Multi-objective Fitness Plot", tools='', plot_height=400, plot_width=650)
             self.plot.scatter([], [])
             self.plot.xaxis.axis_label = self.ofs[self.x].name
             self.plot.yaxis.axis_label = self.ofs[self.y].name
