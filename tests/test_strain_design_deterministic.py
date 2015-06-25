@@ -18,10 +18,9 @@ import os
 import unittest
 
 from cameo import load_model
-from cameo.util import RandomGenerator as Random
-from cameo.strain_design.deterministic import fseof
-from cameo.parallel import SequentialView, MultiprocessingView
+from cameo.strain_design.deterministic.flux_variability_based import fseof, FseofResult
 from six.moves import range
+from pandas import DataFrame
 
 TESTDIR = os.path.dirname(__file__)
 iJO_MODEL = load_model(os.path.join(TESTDIR, 'data/iJO1366.xml'), sanitize=False)
@@ -33,8 +32,17 @@ class TestFSEOF(unittest.TestCase):
         self.model.solver = 'glpk'
 
     def test_fseof(self):
+        objective = self.model.objective
         fseof_result = fseof(self.model, enforced_reaction="EX_succ_LPAREN_e_RPAREN_")
-        self.assertIsInstance(fseof_result, list)
+        self.assertIsInstance(fseof_result, FseofResult)
+        self.assertIs(objective, self.model.objective)
+
+    def test_fseof_result(self):
+        fseof_result = fseof(self.model, self.model.reactions.EX_ac_LPAREN_e_RPAREN_, 0.8, exclude=["PGI"])
+        self.assertIsInstance(fseof_result.data_frame, DataFrame)
+        self.assertIs(fseof_result.objective, self.model.reactions.EX_ac_LPAREN_e_RPAREN_)
+        self.assertIs(fseof_result.model, self.model)
+        self.assertEqual(list(fseof_result), list(fseof_result.reactions))
 
 
 if __name__ == "__main__":

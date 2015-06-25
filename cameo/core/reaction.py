@@ -185,13 +185,18 @@ class Reaction(_cobrapy.core.Reaction):
 
             elif self._upper_bound <= 0: # reverse irreversible
                 if value > 0:
-                    reverse_variable.ub = 0
+                    reverse_variable.lb = 0
                     reverse_variable.ub = 0
                     forward_variable.ub = value
                     self._upper_bound = value
                     forward_variable.lb = value
                 else:
-                    reverse_variable.ub = -1*value
+                    try:
+                        reverse_variable.ub = -1*value
+                    except ValueError:
+                        reverse_variable.lb = -1*value
+                        self._upper_bound = value
+                        reverse_variable.ub = -1*value
             else:
                 print({'value': value, 'self._lower_bound': self._lower_bound, 'self._upper_bound': self._upper_bound})
                 raise ValueError('lower_bound issue')
@@ -226,7 +231,12 @@ class Reaction(_cobrapy.core.Reaction):
                     reverse_variable.ub = -1*value
             elif self._lower_bound >= 0: # forward irreversible
                 if value > 0:
-                    forward_variable.ub = value
+                    try:
+                        forward_variable.ub = value
+                    except ValueError:
+                        forward_variable.lb = value
+                        self._lower_bound = value
+                        forward_variable.ub = value
                 else:
                     forward_variable.lb = 0
                     forward_variable.ub = 0
