@@ -24,7 +24,15 @@ import os
 
 ASSETS = os.path.join(os.path.dirname(__file__), "assets")
 
-LOADING_IMAGE = os.path.join(ASSETS, "loading.gif")
+SEARCHING_IMAGE_FILE = os.path.join(ASSETS, "searching.gif")
+with open(SEARCHING_IMAGE_FILE, "rb") as f:
+    SEARCHING_IMAGE = f.read().encode('base64').replace('\n', '')
+
+
+LOADING_IMAGE_FILE = os.path.join(ASSETS, "searching.gif")
+with open(SEARCHING_IMAGE_FILE, "rb") as f:
+    LOADING_IMAGE = f.read().encode('base64').replace('\n', '')
+
 
 logger = logging.getLogger(__name__)
 
@@ -43,13 +51,23 @@ def bold(message):
         print("\033[1m" + message + "\033[0m")
 
 
+def searching():
+    if util.in_ipnb():
+        identifier = str(uuid4())
+        display(HTML("""
+        <img class="loading" id="%s" style="margin:auto; text-align:center;" src="data:image/gif;base64,%s"/>
+        """ % (identifier, SEARCHING_IMAGE)))
+        return identifier
+    else:
+        logger.debug("loading only works on Jupyter notebooks")
+
+
 def loading():
     if util.in_ipnb():
         identifier = str(uuid4())
-        with open(LOADING_IMAGE, 'rb') as f:
-            display(HTML("""
-            <img class="loading" id="%s" style="margin:auto; text-align:center;" src="data:image/gif;base64,%s"/>
-            """ % (identifier, f.read().encode('base64').replace('\n', ''))))
+        display(HTML("""
+        <img class="loading" id="%s" style="margin:auto; text-align:center;" src="data:image/gif;base64,%s"/>
+        """ % (identifier, LOADING_IMAGE)))
         return identifier
     else:
         logger.debug("loading only works on Jupyter notebooks")
