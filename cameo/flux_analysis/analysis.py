@@ -113,6 +113,7 @@ def phenotypic_phase_plane(model, variables=[], objective=None, points=20, view=
         variables = [variables]
     elif isinstance(variables, cameo.core.reaction.Reaction):
         variables = [variables]
+
     if view is None:
         view = config.default_view
     with TimeMachine() as tm:
@@ -142,8 +143,14 @@ def phenotypic_phase_plane(model, variables=[], objective=None, points=20, view=
         phase_plane = pandas.DataFrame(envelope, columns=(variable_reactions_ids +
                                                           ['objective_lower_bound', 'objective_upper_bound']))
 
+        if objective is None:
+            objective = model.objective
+
         if isinstance(objective, Reaction):
             objective = objective.id
+        else:
+            objective = str(objective)
+
         return PhenotypicPhasePlaneResult(phase_plane, variable_reactions_ids, objective)
 
 
