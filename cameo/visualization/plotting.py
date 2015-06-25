@@ -22,7 +22,7 @@ try:
     # import matplotlib.pyplot as plt
 
     def plot_production_envelope_ipython_matplotlib(envelope, objective, key, grid=None, width=None, height=None,
-                                                    title=None, points=None, points_colors=None):
+                                                    title=None, points=None, points_colors=None, axis_font_size=None):
         pass
         # plt.plot(envelope["objective_upper_bound"], envelope[key], title="Production envelop")
         # plt.xlabel("growth")
@@ -31,7 +31,7 @@ try:
 except ImportError:
 
     def plot_production_envelope_ipython_matplotlib(envelope, objective, key, grid=None, width=None, height=None,
-                                                    title=None, points=None, points_colors=None):
+                                                    title=None, points=None, points_colors=None, axis_font_size=None):
         pass
 
 try:
@@ -39,7 +39,7 @@ try:
     from bokeh.models import GridPlot
 
     def plot_production_envelope_ipython_bokeh(envelope, objective, key, grid=None, width=None, height=None,
-                                               title=None, points=None, points_colors=None):
+                                               title=None, points=None, points_colors=None, axis_font_size=None):
 
         p = plotting.figure(title=title if title is not None else "Production envelope",
                             tools="save",
@@ -64,6 +64,10 @@ try:
         if ub[-1] != lb[-1]:
             p.line((var[-1], var[-1]), (ub[-1], lb[-1]), color="blue")
 
+        if axis_font_size is not None:
+            p.xaxis.axis_label_text_font_size = axis_font_size
+            p.yaxis.axis_label_text_font_size = axis_font_size
+
         if points is not None:
             p.scatter(*points, color="green" if points_colors is None else points_colors)
 
@@ -75,34 +79,36 @@ try:
 except ImportError:
 
     def plot_production_envelope_ipython_bokeh(envelope, objective, key, grid=None, width=None, height=None,
-                                               title=None, points=None, points_colors=None):
+                                               title=None, points=None, points_colors=None, axis_font_size=None):
         pass
 
 try:
     from bashplotlib import scatterplot
 
     def plot_production_envelope_cli(envelope, objective, key, grid=None, width=None, height=None,
-                                               title=None, points=None, points_colors=None):
+                                               title=None, points=None, points_colors=None, axis_font_size=None):
         scatterplot.plot_scatter(None, envelope[key], envelope["objective_upper_bound"], "*")
 
 except ImportError:
     def plot_production_envelope_cli(envelope, objective, key, grid=None, width=None, height=None,
-                                               title=None, points=None, points_colors=None):
+                                               title=None, points=None, points_colors=None, axis_font_size=None):
         pass
 
 
 def plot_production_envelope(envelope, objective, key, grid=None, width=None, height=None, title=None,
-                             points=None, points_colors=None):
+                             points=None, points_colors=None, axis_font_size=None):
     if util.in_ipnb():
         if config.use_bokeh:
             plot_production_envelope_ipython_bokeh(envelope, objective, key, grid=grid, width=width, height=height,
-                                                   title=title, points=points, points_colors=points_colors)
+                                                   title=title, points=points, points_colors=points_colors,
+                                                   axis_font_size=axis_font_size)
         elif config.use_matplotlib:
             plot_production_envelope_ipython_matplotlib(envelope, objective, key, grid=grid, width=width, height=height,
-                                                        title=title, points=points, points_colors=points_colors)
+                                                        title=title, points=points, points_colors=points_colors,
+                                                        axis_font_size=axis_font_size)
     else:
         plot_production_envelope_cli(envelope, objective, key, width=width, height=height, title=title, points=points,
-                                     points_colors=points_colors)
+                                     points_colors=points_colors, axis_font_size=axis_font_size)
 
 
 class Grid(object):

@@ -142,12 +142,13 @@ class PhenotypicPhasePlaneResult(Result):
     def data_frame(self):
         return pandas.DataFrame(self._phase_plane)
 
-    def plot(self, grid=None, width=None, height=None, title=None):
+    def plot(self, grid=None, width=None, height=None, title=None, axis_font_size=None):
         if len(self.variable_ids) > 1:
             notice("Multi-dimensional plotting is not supported")
             return
         plotting.plot_production_envelope(self._phase_plane, objective=self.objective, key=self.variable_ids[0],
-                                          grid=grid, width=width, height=height, title=title)
+                                          grid=grid, width=width, height=height, title=title,
+                                          axis_font_size=axis_font_size)
 
 
     def __getitem__(self, item):
