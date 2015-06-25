@@ -11,10 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from functools import partial
 from cameo import Reaction
+from cameo.ui import notice
+from cameo.util import in_ipnb, TimeMachine
+from IPython.display import display
 
 
-def create_adaptor_reactions(original_metabolites, expanded_model, mapping, compartment_regexp):
+def create_adaptor_reactions(original_metabolites, database, mapping, compartment_regexp):
     adapter_reactions = []
     for metabolite in original_metabolites:  # model is the original host model
         if not compartment_regexp.match(metabolite.id):
@@ -22,18 +26,26 @@ def create_adaptor_reactions(original_metabolites, expanded_model, mapping, comp
 
         name = metabolite.id[0:-2]
         try:
-            mnx_name = mapping[name]
+            mapped_name = mapping[name]
         except KeyError:
             continue
             # print name, 'N/A'
-        adapter_reaction = Reaction('adapter_' + metabolite.id + '_' + mnx_name)
+        adapter_reaction = Reaction('adapter_' + metabolite.id + '_' + mapped_name)
         adapter_reaction.lower_bound = -1000
         try:
-            adapter_reaction.add_metabolites({expanded_model.metabolites.get_by_id(metabolite.id): -1,
-                                              expanded_model.metabolites.get_by_id(mnx_name): 1})
+            adapter_reaction.add_metabolites({metabolite: -1,
+                                              database.metabolites.get_by_id(mapped_name): 1})
         except KeyError:
             pass
         else:
             adapter_reactions.append(adapter_reaction)
 
     return adapter_reactions
+
+
+def display_pathway(pathway, i):
+    notice("Pathway %i" % i)
+    if in_ipnb():
+        display(pathway.data_frame)
+    else:
+        print(pathway.data_frame)
