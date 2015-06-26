@@ -26,12 +26,12 @@ ASSETS = os.path.join(os.path.dirname(__file__), "assets")
 
 SEARCHING_IMAGE_FILE = os.path.join(ASSETS, "searching.gif")
 with open(SEARCHING_IMAGE_FILE, "rb") as f:
-    SEARCHING_IMAGE = f.read().encode('base64').replace('\n', '')
+    SEARCHING_IMAGE = str(f.read()).encode('base64').replace('\n', '')
 
 
 LOADING_IMAGE_FILE = os.path.join(ASSETS, "searching.gif")
 with open(SEARCHING_IMAGE_FILE, "rb") as f:
-    LOADING_IMAGE = f.read().encode('base64').replace('\n', '')
+    LOADING_IMAGE = str(f.read()).encode('base64').replace('\n', '')
 
 
 logger = logging.getLogger(__name__)
