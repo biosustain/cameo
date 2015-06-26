@@ -25,13 +25,13 @@ from cameo.strain_design.heuristic.genomes import MultipleChromosomeGenome
 from numpy import float32 as float
 
 
-def _do_set_n_point_crossover(int_representation, mom, dad, points, random, candidate_size):
+def _do_set_n_point_crossover(representation, mom, dad, points, random, candidate_size):
     chunks = []
     i = 0
     for point in points:
-        chunks.append(int_representation[i:point])
+        chunks.append(representation[i:point])
         i = point
-    chunks.append(int_representation[i:])
+    chunks.append(representation[i:])
 
     bro = OrderedSet()
     sis = OrderedSet()
