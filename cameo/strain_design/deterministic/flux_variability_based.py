@@ -254,14 +254,14 @@ class DifferentialFVA(StrainDesignMethod):
             df['suddenly_essential'][flux_reversal_selection.index] = True
 
         # solutions['reference_flux_ranges'] = self.reference_flux_ranges
-        return DifferencialFVAResult(pandas.Panel(solutions), self.envelope, self.variables, self.objective)
+        return DifferentialFVAResult(pandas.Panel(solutions), self.envelope, self.variables, self.objective)
 
 
-class DifferencialFVAResult(PhenotypicPhasePlaneResult):
+class DifferentialFVAResult(PhenotypicPhasePlaneResult):
     def __init__(self, solutions, phase_plane, variables_ids, objective, *args, **kwargs):
         if isinstance(phase_plane, PhenotypicPhasePlaneResult):
             phase_plane = phase_plane._phase_plane
-        super(DifferencialFVAResult, self).__init__(phase_plane, variables_ids, objective, *args, **kwargs)
+        super(DifferentialFVAResult, self).__init__(phase_plane, variables_ids, objective, *args, **kwargs)
         self.solutions = solutions
 
     def plot(self, grid=None, width=None, height=None, title=None):
