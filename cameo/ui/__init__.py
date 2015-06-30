@@ -32,7 +32,7 @@ with open(SEARCHING_IMAGE_FILE, "rb") as f:
     if six.PY2:
         SEARCHING_IMAGE = b64encode(f.read()).replace('\n', '')
     elif six.PY3:
-        SEARCHING_IMAGE = b64encode(bytearray(f.read())).replace('\n', '')
+        SEARCHING_IMAGE = str(b64encode(f.read())).replace('\n', '')
 
 
 
@@ -41,7 +41,8 @@ with open(SEARCHING_IMAGE_FILE, "rb") as f:
     if six.PY2:
         LOADING_IMAGE = b64encode(f.read()).replace('\n', '')
     elif six.PY3:
-        LOADING_IMAGE = b64encode(bytearray(f.read())).replace('\n', '')
+        s = f.read()
+        LOADING_IMAGE = str(b64encode(f.read())).replace('\n', '')
 
 
 logger = logging.getLogger(__name__)
