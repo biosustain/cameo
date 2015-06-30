@@ -20,18 +20,28 @@ from IPython.core.display import display
 from cameo import util
 import logging
 import os
+import six
+
+from base64 import b64encode
 
 
 ASSETS = os.path.join(os.path.dirname(__file__), "assets")
 
 SEARCHING_IMAGE_FILE = os.path.join(ASSETS, "searching.gif")
 with open(SEARCHING_IMAGE_FILE, "rb") as f:
-    SEARCHING_IMAGE = str(f.read()).encode('base64').replace('\n', '')
+    if six.PY2:
+        SEARCHING_IMAGE = b64encode(f.read()).replace('\n', '')
+    elif six.PY3:
+        SEARCHING_IMAGE = b64encode(bytearray(f.read())).replace('\n', '')
+
 
 
 LOADING_IMAGE_FILE = os.path.join(ASSETS, "searching.gif")
 with open(SEARCHING_IMAGE_FILE, "rb") as f:
-    LOADING_IMAGE = str(f.read()).encode('base64').replace('\n', '')
+    if six.PY2:
+        LOADING_IMAGE = b64encode(f.read()).replace('\n', '')
+    elif six.PY3:
+        LOADING_IMAGE = b64encode(bytearray(f.read())).replace('\n', '')
 
 
 logger = logging.getLogger(__name__)
