@@ -14,7 +14,7 @@
 
 
 """
-CAMEO: Computer Assisted Metabolic Engineering & Optimization
+CAMEO: Computer Aided Metabolic Engineering & Optimization
 
 Cameo is a high-level python library developed to aid the in silico
 strain design process in metabolic engineering projects. The library

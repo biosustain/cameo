@@ -1,4 +1,4 @@
-cameo - computer assisted metabolic engineering & optimization
+cameo - computer aided metabolic engineering & optimization
 --------------------------------------------------------------
 
 |Documentation Status| |Build Status| |Coverage Status|
