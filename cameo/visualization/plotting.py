@@ -28,7 +28,7 @@ try:
         # plt.xlabel("growth")
         # plt.ylabel(key)
 
-except ImportError:
+except:
 
     def plot_production_envelope_ipython_matplotlib(envelope, objective, key, grid=None, width=None, height=None,
                                                     title=None, points=None, points_colors=None, axis_font_size=None):
@@ -76,7 +76,7 @@ try:
         else:
             plotting.show(p)
 
-except ImportError:
+except:
 
     def plot_production_envelope_ipython_bokeh(envelope, objective, key, grid=None, width=None, height=None,
                                                title=None, points=None, points_colors=None, axis_font_size=None):
@@ -89,7 +89,7 @@ try:
                                                title=None, points=None, points_colors=None, axis_font_size=None):
         scatterplot.plot_scatter(None, envelope[key], envelope["objective_upper_bound"], "*")
 
-except ImportError:
+except:
     def plot_production_envelope_cli(envelope, objective, key, grid=None, width=None, height=None,
                                                title=None, points=None, points_colors=None, axis_font_size=None):
         pass
