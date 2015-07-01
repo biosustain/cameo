@@ -36,7 +36,7 @@ class SolutionBase(object):
 
     @property
     def data_frame(self):
-        return DataFrame({'fluxes': Series(self.x_dict), 'reduced_costs': Series(self.y_dict)})
+        return DataFrame({'fluxes': Series(self.fluxes), 'reduced_costs': Series(self.reduced_costs)})
 
     def __str__(self):
         """A pandas DataFrame representation of the solution.
@@ -68,6 +68,22 @@ class SolutionBase(object):
         """
         return self.x_dict[reaction_id]
 
+    @property
+    def x_dict(self):
+        return self.fluxes
+
+    @property
+    def x(self):
+        return self.fluxes.values()
+
+    @property
+    def y_dict(self):
+        return self.shadow_prices
+
+    @property
+    def y(self):
+        return self.shadow_prices.values()
+
 
 class Solution(SolutionBase):
     """This class mimicks the cobrapy Solution class.
@@ -92,29 +108,17 @@ class Solution(SolutionBase):
         """
         super(Solution, self).__init__(model, *args, **kwargs)
         self.f = model.solver.objective.value
-        self.x = []
-        self.y = []
+        self.fluxes = OrderedDict()
+        self.shadow_prices = OrderedDict()
+        self.reduced_costs = OrderedDict()
         for reaction in model.reactions:
-            self.x.append(reaction.flux)
-            self.y.append(reaction.reduced_cost)
+            self.fluxes[reaction.id] = reaction.flux
+            self.reduced_costs[reaction.id] = reaction.variable.dual
+        for metabolite in model.metabolites:
+            self.reduced_costs[metabolite.id] = self.model.solver.constraints[metabolite.id].dual
         self.status = model.solver.status
         self._reaction_ids = [r.id for r in self.model.reactions]
-
-    @property
-    def x_dict(self):
-        return OrderedDict(list(zip(self._reaction_ids, self.x)))
-
-    @property
-    def y_dict(self):
-        return OrderedDict(list(zip(self._reaction_ids, self.y)))
-
-    @property
-    def fluxes(self):
-        return self.x_dict
-
-    @property
-    def reduced_costs(self):
-        return self.y_dict
+        self._metabolite_ids = [m.id for m in self.model.metabolites]
 
     def __dir__(self):
         # Hide 'cobrapy' attributes and methods from user.
@@ -176,6 +180,11 @@ class LazySolution(SolutionBase):
             )
 
     @property
+    def status(self):
+        self._check_freshness()
+        return self.model.solver.status
+
+    @property
     def f(self):
         self._check_freshness()
         if self._f is None:
@@ -188,48 +197,28 @@ class LazySolution(SolutionBase):
         self._f = value
 
     @property
-    def x(self):
+    def fluxes(self):
         self._check_freshness()
-        return list(self.x_dict.values())
-
-    @property
-    def x_dict(self):
-        self._check_freshness()
-        # primals = self.model.solver.primal_values
-        # return OrderedDict((reaction.id, primals[reaction.id]) for reaction in self.model.reactions)
         primals = OrderedDict()
         for reaction in self.model.reactions:
             primals[reaction.id] = reaction.flux
         return primals
 
     @property
-    def y(self):
+    def reduced_costs(self):
         self._check_freshness()
-        return list(self.y_dict.values())
-
-    @property
-    def y_dict(self):
-        self._check_freshness()
-        # reduced_costs = self.model.solver.reduced_costs
-        # return OrderedDict((reaction.id, reduced_costs[reaction.id]) for reaction in self.model.reactions)
-        # return reduced_costs
         duals = OrderedDict()
         for reaction in self.model.reactions:
-            duals[reaction.id] = reaction.reduced_cost
+            duals[reaction.id] = reaction.flux
         return duals
 
     @property
-    def status(self):
+    def shadow_prices(self):
         self._check_freshness()
-        return self.model.solver.status
-
-    @property
-    def fluxes(self):
-        return self.x_dict
-
-    @property
-    def reduced_costs(self):
-        return self.y_dict
+        duals = OrderedDict()
+        for metabolite in self.model.metabolites:
+            duals[metabolite.id] = self.model.solver.constraints[metabolite.id].dual
+        return duals
 
     def __dir__(self):
         # Hide 'cobrapy' attributes and methods from user.

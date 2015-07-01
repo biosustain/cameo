@@ -1,4 +1,4 @@
-## cameo - computer assisted metabolic engineering & optimization
+## cameo - computer aided metabolic engineering & optimization
 
 [![Documentation Status](https://readthedocs.org/projects/cameo/badge/?version=devel)](https://readthedocs.org/projects/cameo/?badge=devel)
 [![Build Status](https://travis-ci.org/biosustain/cameo.svg?branch=devel)](https://travis-ci.org/biosustain/cameo)

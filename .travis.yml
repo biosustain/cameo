@@ -22,7 +22,7 @@ install:
   - if [[ $TRAVIS_PYTHON_VERSION == "2.7" ]]; then pip install progressbar-ipython>=2.3.1; fi
   # Install escher from repo until 1.1.1 get's released
   - pip install -e git+https://github.com/zakandrewking/escher.git@9d8dd5ff91c783ca51176987ac71a8e330686760#egg=escher
-  - pip install python-libsbml-experimental numpy scipy pyzmq pandas inspyred -f https://dl.dropboxusercontent.com/u/22461024/pypi.drosophi.la/index.html --no-index
+  - pip install python-libsbml-experimental numpy scipy pyzmq pandas inspyred -f http://nikosonnensche.in/wheels/index.html --no-index
   - pip install coveralls coverage
   - pip install pypandoc
   - pip install redis

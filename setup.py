@@ -71,7 +71,7 @@ setup(
     include_package_data = True,
     author='Nikolaus Sonnenschein, Joao Cardoso, Emre Özdemir',
     author_email='niko.sonnenschein@gmail.com',
-    description='cameo - computer assisted metabolic engineering & optimziation',
+    description='cameo - computer aided metabolic engineering & optimziation',
     license='Apache License Version 2.0',
     keywords='biology metabolism bioinformatics',
     url='TBD',
