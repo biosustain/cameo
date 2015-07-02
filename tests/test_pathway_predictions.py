@@ -18,22 +18,22 @@ import os
 import unittest
 from cameo import load_model
 from cameo.strain_design.pathway_prediction import PathwayPredictor
+from cameo.data.universal_models import metanetx_universal_model_bigg
 
 TESTDIR = os.path.dirname(__file__)
 TESTMODEL = load_model(os.path.join(TESTDIR, 'data/iJO1366.xml'))
 
 TRAVIS = os.getenv('TRAVIS', False)
 
-# if not TRAVIS:
-if False:
+if not TRAVIS:
     class TestPathwayPredictor(unittest.TestCase):
 
         def setUp(self):
-            self.pathway_predictor = PathwayPredictor(TESTMODEL)
+            self.pathway_predictor = PathwayPredictor(TESTMODEL, universal_model=metanetx_universal_model_bigg)
 
         def test_setting_incorrect_universal_model_raises(self):
             self.assertRaises(self.pathway_predictor.run, product='L-serine', universal_model='Mickey_Mouse')
 
         def test_predict_native_compound_returns_shorter_alternatives(self):
-            result = self.pathway_predictor.run(product='L-serine')
+            result = self.pathway_predictor.run(product='L-serine', max_predictions=1)
             self.assertTrue(len(result) > 0)

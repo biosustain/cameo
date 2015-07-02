@@ -25,13 +25,13 @@ from cameo.strain_design.heuristic.genomes import MultipleChromosomeGenome
 from numpy import float32 as float
 
 
-def _do_set_n_point_crossover(int_representation, mom, dad, points):
+def _do_set_n_point_crossover(representation, mom, dad, points, random, candidate_size):
     chunks = []
     i = 0
     for point in points:
-        chunks.append(int_representation[i:point])
+        chunks.append(representation[i:point])
         i = point
-    chunks.append(int_representation[i:])
+    chunks.append(representation[i:])
 
     bro = OrderedSet()
     sis = OrderedSet()
@@ -44,19 +44,25 @@ def _do_set_n_point_crossover(int_representation, mom, dad, points):
             if v in dad:
                 sis.append(v) if cross else bro.append(v)
         cross = not cross
+
+    if len(bro) > candidate_size:
+        bro = random.sample(bro, candidate_size)
+
+    if len(sis) > candidate_size:
+        sis = random.sample(sis, candidate_size)
     return bro, sis
 
 
 @crossover
 def set_n_point_crossover(random, mom, dad, args):
-    representation = args.get('representation')
-    int_representation = [representation.index(v) for v in representation]
+    representation = list(set(mom).union(set(dad)))
     crossover_rate = args.setdefault('crossover_rate', 1.0)
     num_crossover_points = args.setdefault('num_crossover_points', 1)
+    candidate_size = args.setdefault('candidate_size', 9)
     children = []
-    if random.random() < crossover_rate:
-        points = random.sample(int_representation, num_crossover_points)
-        bro, sis = _do_set_n_point_crossover(int_representation, mom, dad, points)
+    if random.random() <= crossover_rate:
+        points = random.sample(representation, num_crossover_points)
+        bro, sis = _do_set_n_point_crossover(representation, mom, dad, points, random, candidate_size)
 
         # ensure number of knockouts > 0 or do not add individual
         if len(bro) > 0:
@@ -171,6 +177,6 @@ def multiple_chromosome_set_indel(random, individual, args):
 def multiple_chromosome_n_point_crossover(random, mom, dad, args):
     children = MultipleChromosomeGenome(keys=mom.keys)
     for key in children.keys:
-        children[key] = n_point_crossover(random, mom[key], dad[key], args)
+        children[key] = set_n_point_crossover(random, mom[key], dad[key], args)
 
     return children

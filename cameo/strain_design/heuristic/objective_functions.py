@@ -176,6 +176,6 @@ class number_of_knockouts(ObjectiveFunction):
     @property
     def name(self):
         if self.sense == 'max':
-            return "max #knockouts"
+            return "max knockouts"
         else:
-            return "min #knockouts"
+            return "min knockouts"

@@ -14,7 +14,8 @@
 
 from __future__ import absolute_import, print_function
 
-__all__ = ['KnockoutOptimizationResult', 'GeneOptimizationResult']
+__all__ = ['KnockoutOptimizationResult', 'GeneOptimizationResult',
+           'ReactionKnockoutOptimization', 'GeneKnockoutOptimization']
 
 from six.moves import range
 
@@ -136,10 +137,12 @@ class HeuristicOptimization(object):
 
     """
     def __init__(self, model=None, heuristic_method=inspyred.ec.GA, objective_function=None, seed=None,
-                 termination=inspyred.ec.terminators.evaluation_termination, *args, **kwargs):
-
+                 termination=inspyred.ec.terminators.evaluation_termination, plot=True, progress=True,
+                 *args, **kwargs):
         super(HeuristicOptimization, self).__init__(*args, **kwargs)
         logger.debug("Seed: %s" % seed)
+        self.plot = plot
+        self.progress = progress
         if seed is None:
             seed = int(time.time())
         self.seed = seed
@@ -148,6 +151,7 @@ class HeuristicOptimization(object):
         self.model = model
         self.termination = termination
         self._objective_function = objective_function
+        self._heuristic_method = None
         self.heuristic_method = heuristic_method
         self.heuristic_method.terminator = termination
         self._generator = None
@@ -200,7 +204,7 @@ class HeuristicOptimization(object):
         for observer in self.observers:
             observer.end()
         runtime = time.time() - t
-        print(time.strftime("Finished after %H:%M:%S", time.localtime(runtime)))
+        print(time.strftime("Finished after %H:%M:%S", time.gmtime(runtime)))
 
         return res
 
@@ -242,7 +246,7 @@ class KnockoutEvaluator(object):
         self.objective_function = objective_function
         self.simulation_method = simulation_method
         self.simulation_kwargs = simulation_kwargs
-        self.cache = ProblemCache()
+        self.cache = ProblemCache(model)
 
     def __call__(self, population):
         res = [self.evaluate_individual(frozenset(i)) for i in population]
@@ -359,7 +363,7 @@ class KnockoutOptimization(HeuristicOptimization):
     def _set_observer(self):
         self.observers = []
 
-        if in_ipnb():
+        if in_ipnb() and self.plot:
             if config.use_bokeh:
                 if self.is_mo():
                     self.observers.append(plotters.IPythonBokehParetoPlotter(self.objective_function))
@@ -375,7 +379,8 @@ class KnockoutOptimization(HeuristicOptimization):
                 pass
             else:
                 pass
-        self.observers.append(observers.ProgressObserver())
+        if self.progress:
+            self.observers.append(observers.ProgressObserver())
 
     def run(self, **kwargs):
         self.heuristic_method.observer = self.observers
