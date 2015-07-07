@@ -7,62 +7,39 @@ environment:
     WITH_COMPILER: "cmd /E:ON /V:ON /C .\\appveyor\\run_with_compiler.cmd"
 
   matrix:
-
-    # Pre-installed Python versions, which Appveyor may upgrade to
-    # a later point release.
-
     - PYTHON: "C:\\Python27"
-      PYTHON_VERSION: "2.7.x" # currently 2.7.9
-      PYTHON_ARCH: "32"
-
-    - PYTHON: "C:\\Python33"
-      PYTHON_VERSION: "3.3.x" # currently 3.3.5
+      PYTHON_VERSION: "2.7.9"
       PYTHON_ARCH: "32"
 
     - PYTHON: "C:\\Python34"
-      PYTHON_VERSION: "3.4.x" # currently 3.4.3
+      PYTHON_VERSION: "3.4.3"
       PYTHON_ARCH: "32"
 
     - PYTHON: "C:\\Python27-x64"
-      PYTHON_VERSION: "2.7.x" # currently 2.7.9
+      PYTHON_VERSION: "2.7.9"
       PYTHON_ARCH: "64"
       WINDOWS_SDK_VERSION: "v7.0"
 
-    - PYTHON: "C:\\Python33-x64"
-      PYTHON_VERSION: "3.3.x" # currently 3.3.5
-      PYTHON_ARCH: "64"
-      WINDOWS_SDK_VERSION: "v7.1"
-
     - PYTHON: "C:\\Python34-x64"
-      PYTHON_VERSION: "3.4.x" # currently 3.4.3
+      PYTHON_VERSION: "3.4.3"
       PYTHON_ARCH: "64"
       WINDOWS_SDK_VERSION: "v7.1"
-
-    # Also build on a Python version not pre-installed by Appveyor.
-    # See: https://github.com/ogrisel/python-appveyor-demo/issues/10
-
-    - PYTHON: "C:\\Python266"
-      PYTHON_VERSION: "2.6.6"
-      PYTHON_ARCH: "32"
 
 init:
   - "ECHO %PYTHON% %PYTHON_VERSION% %PYTHON_ARCH%"
 
 install:
   - "powershell appveyor\\install.ps1"
-
-  # Install the build dependencies of the project. If some dependencies contain
-  # compiled extensions and are not provided as pre-built wheel packages,
-  # pip will build them from source using the MSVC compiler matching the
-  # target Python version and architecture
-  - "%WITH_COMPILER% pip install nosetests rednose"
+  # Download glpk.h and glpk.lib (separate files for 32/64 bit)
+#  - ps: Start-FileDownload 'https://opencobra.github.io/pypi_cobrapy_travis/glpk.h'
+#  - "appveyor DownloadFile https://opencobra.github.io/pypi_cobrapy_travis/glpk.lib%PYTHON_ARCH% -FileName glpk.lib"
+#  - "%PYTHON%/python -m pip install Cython -f https://opencobra.github.io/pypi_cobrapy_travis/ --no-index"
   - "%WITH_COMPILER% pip install -r requirements.txt"
 
 build: off
 
 test_script:
-  # - "%WITH_COMPILER% %PYTHON%/python setup.py test"
-  - "%WITH_COMPILER% nosetests"
+  - "%WITH_COMPILER% %PYTHON%/python setup.py test"
 
 after_test:
   - "%WITH_COMPILER% %PYTHON%/python setup.py bdist_wheel"
