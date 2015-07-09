@@ -73,6 +73,21 @@ def get_sbml_file(index, host="http://darwin.di.uminho.pt/models"):
         return temp
     raise NotFoundException("sbml", index)
 
+def index_models_bigg():
+    response = requests.get('http://bigg.ucsd.edu/api/v2/models')
+    if response.ok:
+        return DataFrame.from_dict(response.json()['results'])
+    else:
+        raise Exception("Could not index available models. bigg.ucsd.edu returned status code {}".format(response.status_code))
+
+def get_model_from_bigg(id):
+    response = requests.get('http://bigg.ucsd.edu/api/v2/models/{}/download'.format(id))
+    if response.ok:
+        return DataFrame.from_dict(response.json()['results'])
+    else:
+        raise Exception("Could not download model {}. bigg.ucsd.edu returned status code {}".format(id, response.status_code))
+
+
 if __name__ == "__main__":
     print(index_models())
     from cameo import load_model
