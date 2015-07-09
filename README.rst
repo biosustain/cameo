@@ -1,7 +1,7 @@
 cameo - computer aided metabolic engineering & optimization
---------------------------------------------------------------
+-----------------------------------------------------------
 
-|Documentation Status| |Build Status| |Coverage Status|
+|Documentation Status| |Build Status| |Coverage Status| |DOI|
 
 Vision
 ~~~~~~
@@ -52,5 +52,7 @@ install the appropriate version manually and then retry
    :target: https://readthedocs.org/projects/cameo/?badge=devel
 .. |Build Status| image:: https://travis-ci.org/biosustain/cameo.svg?branch=devel
    :target: https://travis-ci.org/biosustain/cameo
-.. |Coverage Status| image:: https://coveralls.io/repos/biosustain/cameo/badge.png?branch=devel
+.. |Coverage Status| image:: https://coveralls.io/repos/biosustain/cameo/badge.svg?branch=devel
    :target: https://coveralls.io/r/biosustain/cameo?branch=devel
+.. |DOI| image:: https://zenodo.org/badge/doi/10.5281/zenodo.19827.svg
+   :target: http://dx.doi.org/10.5281/zenodo.19827

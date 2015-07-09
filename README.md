@@ -2,7 +2,9 @@
 
 [![Documentation Status](https://readthedocs.org/projects/cameo/badge/?version=devel)](https://readthedocs.org/projects/cameo/?badge=devel)
 [![Build Status](https://travis-ci.org/biosustain/cameo.svg?branch=devel)](https://travis-ci.org/biosustain/cameo)
-[![Coverage Status](https://coveralls.io/repos/biosustain/cameo/badge.png?branch=devel)](https://coveralls.io/r/biosustain/cameo?branch=devel)
+[![Coverage Status](https://coveralls.io/repos/biosustain/cameo/badge.svg?branch=devel)](https://coveralls.io/r/biosustain/cameo?branch=devel)
+[![DOI](https://zenodo.org/badge/doi/10.5281/zenodo.19827.svg)](http://dx.doi.org/10.5281/zenodo.19827)
+
 
 ### Vision
 Cameo is a high-level python library developed to aid the _in silico_ strain design process in metabolic engineering projects. The library provides a modular architecture that enables the efficient construction of custom analysis workflows.
