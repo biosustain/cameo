@@ -326,6 +326,9 @@ class Reaction(_cobrapy.core.Reaction):
                 <td><strong>Id</strong></td><td>%s</td>
             </tr>
             <tr>
+                <td><strong>Name</strong></td><td>%s</td>
+            </tr>
+            <tr>
                 <td><strong>Stoichiometry</strong></td><td>%s</td>
             </tr>
             <tr>
@@ -335,4 +338,4 @@ class Reaction(_cobrapy.core.Reaction):
                 <td><strong>Upper bound</strong></td><td>%f</td>
             </tr>
         </table>
-        """ % (self.id, self.reaction, self.lower_bound, self.upper_bound)
+        """ % (self.id, self.name, self.reaction, self.lower_bound, self.upper_bound)
