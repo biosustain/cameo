@@ -455,6 +455,7 @@ class SolverBasedModel(_cobrapy.core.Model):
                         essential.append(gene)
         return essential
 
+    @property
     def medium(self):
         reaction_ids = []
         reaction_names = []
