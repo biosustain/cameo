@@ -47,6 +47,9 @@ class SolutionBase(object):
         """
         return str(self.data_frame)
 
+    def _repr_html_(self):
+        return self.data_frame._repr_html_()
+
     def as_cobrapy_solution(self):
         """Convert into a cobrapy Solution.
 
