@@ -42,6 +42,7 @@ deploy:
   user: Nikolaus.Sonnenschein
   password:
     secure: nxjszXtUzQfnLlfg0cmFjd9gRekXDog6dkkN1rMc7CIWH2gZ1gAX4sNETVChnuSmu9egzhuIkviHstRrdyGoEZ7ZkHlTXmpVAs9AY96eMSejnwHHODhYno0jB7DjGcfejodLF+lo6lWz7S7mXXwML6YLM3xxG+AOjLHlHbPTaKc=
+  distributions: "sdist bdist_wheel" # Your distributions here
   on:
     tags: true
     repo: biosustain/cameo
