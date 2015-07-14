@@ -13,11 +13,11 @@
 # limitations under the License.
 
 from __future__ import absolute_import, print_function
-from functools import partial
 
 import six
 from six.moves import range
 
+import re
 from collections import OrderedDict
 from uuid import uuid1
 from time import time
@@ -26,12 +26,44 @@ import colorsys
 import pip
 import platform
 from itertools import islice
+from functools import partial
 
 import progressbar
 from numpy.random import RandomState
 
 import logging
 logger = logging.getLogger(__name__)
+
+
+class ModelFacade(object):
+
+    def __init__(self, id=id, *args, **kwargs):
+        self._id = id
+        self._model = None
+
+    def _load_model(self):
+        raise NotImplementedError("You forgot to implement this method!")
+
+    @property
+    def model(self):
+        if self._model is None:
+            self._model = self._load_model()
+        return self._model
+
+    def __getattr__(self, value):
+        try:
+            return getattr(self.model, value)
+        except AttributeError:
+            return getattr(super(ModelFacade, self), value, self)
+
+    def __dir__(self):
+        return dir(self.model)
+
+    def __setattr__(self, key, value):
+        if hasattr(self, '_model') and not self._model is None:
+            setattr(self.model, key, value)
+        else:
+            self.__dict__[key] = value
 
 
 class ProblemCache(object):
@@ -259,38 +291,6 @@ class TimeMachine(object):
             self.undo(bookmark=list(self.history.keys())[0])
 
 
-def partition_(lst, n):
-    """Partition a list into n bite size chunks."""
-    division = len(lst) / float(n)
-    return [lst[int(round(division * i)): int(round(division * (i + 1)))] for i in range(n)]
-
-
-def partition(ite, n):
-    """Partition an iterable into n bite size chunks."""
-    try:
-        length = len(ite)
-    except TypeError:
-        ite = list(ite)
-        length = len(ite)
-    division = length / float(n)
-    iterator = iter(ite)
-    return [list(islice(iterator, 0, round(division * (i + 1)) - round(division * i))) for i in range(n)]
-
-
-def flatten(l):
-    return [item for sublist in l for item in sublist]
-
-
-def generate_colors(n):
-    hsv_tuples = [(v*1.0/n, 0.5, 0.5) for v in range(n)]
-    color_map = {}
-    for i in range(n):
-        rgb = colorsys.hsv_to_rgb(*hsv_tuples[i])
-        color = tuple([rgb[0]*256, rgb[1]*256, rgb[2]*256])
-        color_map[i] = '#%02x%02x%02x' % color
-    return color_map
-
-
 class Timer(object):
     """Taken from http://stackoverflow.com/a/5849861/280182"""
 
@@ -304,20 +304,6 @@ class Timer(object):
         if self.name:
             print('[%s]' % self.name, end=' ')
         print('Elapsed: %s' % (time() - self.tstart))
-
-
-def memoize(function, memo={}):
-    def wrapper(*args):
-        logger.debug("key = %s" % str(args))
-        if args in memo:
-            logger.debug("Key found")
-            return memo[args]
-        else:
-            logger.debug("Key not found")
-            rv = function(*args)
-            memo[args] = rv
-            return rv
-    return wrapper
 
 
 class IntelliContainer(object):
@@ -362,6 +348,51 @@ class DisplayItemsWidget(progressbar.widgets.Widget):
         except IndexError:
             return ""
 
+
+def partition_(lst, n):
+    """Partition a list into n bite size chunks."""
+    division = len(lst) / float(n)
+    return [lst[int(round(division * i)): int(round(division * (i + 1)))] for i in range(n)]
+
+
+def partition(ite, n):
+    """Partition an iterable into n bite size chunks."""
+    try:
+        length = len(ite)
+    except TypeError:
+        ite = list(ite)
+        length = len(ite)
+    division = length / float(n)
+    iterator = iter(ite)
+    return [list(islice(iterator, 0, round(division * (i + 1)) - round(division * i))) for i in range(n)]
+
+
+def flatten(l):
+    return [item for sublist in l for item in sublist]
+
+
+def generate_colors(n):
+    hsv_tuples = [(v*1.0/n, 0.5, 0.5) for v in range(n)]
+    color_map = {}
+    for i in range(n):
+        rgb = colorsys.hsv_to_rgb(*hsv_tuples[i])
+        color = tuple([rgb[0]*256, rgb[1]*256, rgb[2]*256])
+        color_map[i] = '#%02x%02x%02x' % color
+    return color_map
+
+def memoize(function, memo={}):
+    def wrapper(*args):
+        logger.debug("key = %s" % str(args))
+        if args in memo:
+            logger.debug("Key found")
+            return memo[args]
+        else:
+            logger.debug("Key not found")
+            rv = function(*args)
+            memo[args] = rv
+            return rv
+    return wrapper
+
 def get_system_info():
     # pip freeze (adapted from http://stackoverflow.com/a/24322465/280182)
     package_info = list()
@@ -372,7 +403,6 @@ def get_system_info():
                 platform=platform.platform(),
                 machine=platform.machine(),
                 system=platform.system())
-
 
 def in_ipnb():
     """
@@ -402,3 +432,14 @@ def in_ipnb():
         logger.debug("Cannot determine if running a notebook because of %s" % e)
         return False
     return False
+
+def str_to_valid_variable_name(s):
+    """Adapted from http://stackoverflow.com/a/3303361/280182"""
+
+    # Remove invalid characters
+    s = re.sub('[^0-9a-zA-Z_]', '_', s)
+
+    # Remove leading characters until we find a letter or underscore
+    s = re.sub('^[^a-zA-Z_]+', '', s)
+
+    return s
