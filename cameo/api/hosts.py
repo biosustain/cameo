@@ -15,9 +15,8 @@
 from __future__ import absolute_import, print_function
 
 import os
-import optlang
 import cameo
-from cameo.util import IntelliContainer
+from cameo import util
 from cameo import load_model
 import six
 
@@ -28,7 +27,7 @@ class Host(object):
 
     def __init__(self, name='', models=[], biomass=[], carbon_sources=[]):
         self.name = name
-        self.models = IntelliContainer()
+        self.models = util.IntelliContainer()
         for id, biomass, carbon_source in zip(models, biomass, carbon_sources):
             self.models[id] = ModelFacade(id, biomass, carbon_source)
 
@@ -36,35 +35,15 @@ class Host(object):
         return self.name
 
 
-class ModelFacade(object):
+class ModelFacade(util.ModelFacade):
+
+    def _load_model(self):
+        return load_model(os.path.join(MODEL_DIRECTORY, self._id + '.xml'))
 
     def __init__(self, id, biomass=None, carbon_source=None):
-        self._id = id
-        self._model = None
+        super(ModelFacade, self).__init__(id)
         self.biomass = biomass
         self.carbon_source = carbon_source
-
-    def __getattr__(self, value):
-        if self._model is None:
-            super(ModelFacade, self).__setattr__('_model', load_model(os.path.join(MODEL_DIRECTORY, self._id + '.xml')))
-        try:
-            return getattr(self._model, value)
-        except KeyError:
-            return getattr(super(ModelFacade, self), value, self)
-
-    def __dir__(self):
-        if self._model is None:
-            self._model = load_model(os.path.join(MODEL_DIRECTORY, self._id + '.xml'))
-        return dir(self._model)
-
-    def __setattr__(self, key, value):
-        if key in ["_id", "_model", "biomass", "carbon_source"]:
-            self.__dict__[key] = value
-        else:
-            try:
-                setattr(self._model, key, value)
-            except KeyError:
-                setattr(super(ModelFacade, self), key, value)
 
 
 class Hosts(object):

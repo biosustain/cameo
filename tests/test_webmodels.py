@@ -15,17 +15,17 @@ from tempfile import _TemporaryFileWrapper
 from unittest import TestCase
 from pandas import DataFrame
 import requests
-from cameo.webmodels import index_models, get_sbml_file, NotFoundException
+from cameo.models.webmodels import index_models_minho, get_sbml_file, NotFoundException
 
 
 class WebmodelsTestCase(TestCase):
 
     def test_invalid_host(self):
-        self.assertRaises(requests.ConnectionError, index_models, host="http://blabla")
+        self.assertRaises(requests.ConnectionError, index_models_minho, host="http://blabla")
         self.assertRaises(requests.ConnectionError, get_sbml_file, 1, host="http://blabla")
 
     def test_index(self):
-        index = index_models()
+        index = index_models_minho()
         self.assertIsInstance(index, DataFrame)
         self.assertListEqual(list(index.columns),
                              ["id", "name", "doi", "author", "year", "formats", "organism", "taxonomy"])

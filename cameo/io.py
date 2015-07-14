@@ -24,7 +24,7 @@ import optlang
 from cobra.io import read_sbml_model
 
 from cameo.core.solver_based_model import SolverBasedModel, to_solver_based_model
-from cameo import webmodels
+from cameo.models import webmodels
 
 import logging
 logger = logging.getLogger(__name__)
@@ -50,21 +50,25 @@ def load_model(path_or_handle, solver_interface=optlang.glpk_interface, sanitize
         try:
             handle = open(path_or_handle, 'rb')
         except IOError:
-            logger.debug('%s not a file path. Querying webmodels ...' % path)
+            logger.debug('%s not a file path. Querying webmodels ... trying http://bigg.ucsd.edu first' % path)
             try:
-                df = webmodels.index_models()
-            except requests.ConnectionError as e:
-                logger.error("You need to be connected to the internet to load an online model.")
-                raise e
-            except Exception as e:
-                logger.error("Something went wrong while looking up available webmodels.")
-                raise e
-            try:
-                index = df.query('name == "%s"' % path_or_handle).id.values[0]
-                handle = webmodels.get_sbml_file(index)
-                path = handle.name
-            except IndexError:
-                raise ValueError("%s is neither a file nor a model ID." % path)
+                return webmodels.get_model_from_bigg(path)
+            except:
+                logger.debug('%s not a file path. Querying webmodels ... trying minho next' % path)
+                try:
+                    df = webmodels.index_models_minho()
+                except requests.ConnectionError as e:
+                    logger.error("You need to be connected to the internet to load an online model.")
+                    raise e
+                except Exception as e:
+                    logger.error("Something went wrong while looking up available webmodels.")
+                    raise e
+                try:
+                    index = df.query('name == "%s"' % path_or_handle).id.values[0]
+                    handle = webmodels.get_sbml_file(index)
+                    path = handle.name
+                except IndexError:
+                    raise ValueError("%s is neither a file nor a model ID." % path)
     elif hasattr(path_or_handle, 'read'):
         path = path_or_handle.name
         handle = path_or_handle
@@ -88,7 +92,11 @@ def load_model(path_or_handle, solver_interface=optlang.glpk_interface, sanitize
                     time.sleep(.5)
                 model = queue.get()
             else:
-                model = read_sbml_model(path)
+                try:
+                    model = read_sbml_model(path)
+                except Exception as e:
+                    logger.error("Looks like something blow up while trying to import {} as a SBML model. Try validating the model at http://sbml.org/Facilities/Validator/ to get more information.".format(path))
+                    raise e
             if sanitize:
                 sanitize_ids(model)
         except AttributeError:  # TODO: cobrapy doesn't raise a proper exception if a file does not contain an SBML model
