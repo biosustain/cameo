@@ -15,7 +15,7 @@ from tempfile import _TemporaryFileWrapper
 from unittest import TestCase
 from pandas import DataFrame
 import requests
-from cameo.models import index_models_minho, get_sbml_file, NotFoundException
+from cameo.models.webmodels import index_models_minho, get_sbml_file, NotFoundException
 
 
 class WebmodelsTestCase(TestCase):
