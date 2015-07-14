@@ -60,7 +60,7 @@ class ModelFacade(object):
         return dir(self.model)
 
     def __setattr__(self, key, value):
-        if hasattr(self, '_model') and not self._model is None:
+        if '_model' in self.__dict__ and not self._model is None:
             setattr(self.model, key, value)
         else:
             self.__dict__[key] = value
