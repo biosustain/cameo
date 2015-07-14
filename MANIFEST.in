@@ -4,6 +4,7 @@ include README.rst
 include requirements.txt
 include versioneer.py
 include cameo/_version.py
+include cameo/ui/assets/searching.gif
 recursive-include cameo/data *
 recursive-include tests *
 recursive-exclude tests/coverage *
