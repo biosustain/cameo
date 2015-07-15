@@ -13,6 +13,7 @@
 from __future__ import absolute_import, print_function
 
 from uuid import uuid1
+from requests import ConnectionError
 
 import scipy
 import numpy as np
@@ -39,7 +40,6 @@ class IPythonBokehFitnessPlotter(object):
     def _set_plot(self):
         self.uuid = uuid1()
         try:
-            output_notebook(url=config.bokeh_url, docname=str(self.uuid), hide_banner=True)
             self.plot = figure(title="Fitness plot",  tools='', plot_height=400, plot_width=650)
             self.plot.scatter([], [])
             self.plot.xaxis.axis_label = "Iteration"
@@ -47,11 +47,14 @@ class IPythonBokehFitnessPlotter(object):
 
             renderer = self.plot.select(dict(type=GlyphRenderer))
             self.ds = renderer[0].data_source
+            output_notebook(url=config.bokeh_url, docname=str(self.uuid), hide_banner=True)
             show(self.plot)
             self.plotted = True
-        except SystemExit as e:
+        except ConnectionError:
+            from bokeh import io
+            io._state._session = None
+            output_notebook(url=None, docname=None, hide_banner=True)
             logger.info("Bokeh-server is not running. Skipping plotting.")
-            logger.error(e)
             self.can_plot = False
 
     def __call__(self, population, num_generations, num_evaluations, args):
@@ -70,9 +73,9 @@ class IPythonBokehFitnessPlotter(object):
             self._update_plot()
 
     def _update_plot(self):
+        self.ds.data['x'] = self.iterations[-self.window_size:]
+        self.ds.data['y'] = self.fitness[-self.window_size:]
         if self.can_plot:
-            self.ds.data['x'] = self.iterations[-self.window_size:]
-            self.ds.data['y'] = self.fitness[-self.window_size:]
             cursession().store_objects(self.ds)
 
     def reset(self):
@@ -82,7 +85,12 @@ class IPythonBokehFitnessPlotter(object):
         self.plotted = False
 
     def end(self):
-        pass
+        if not self.can_plot:
+            plot = figure(title="Fitness plot",  tools='', plot_height=400, plot_width=650)
+            plot.xaxis.axis_label = "Iteration"
+            plot.yaxis.axis_label = "Fitness"
+            plot.scatter(self.ds.data['x'], self.ds.data['y'])
+            show(plot)
 
 
 class IPythonBokehParetoPlotter(object):
@@ -112,9 +120,10 @@ class IPythonBokehParetoPlotter(object):
             self.ds = renderer[0].data_source
             show(self.plot)
             self.plotted = True
-        except SystemExit as e:
+        except ConnectionError as e:
             logger.info("Bokeh-server is not running. Skipping plotting.")
-            logger.error(e)
+            from bokeh import io
+            io._state._session = None
             self.can_plot = False
 
     def __call__(self, population, num_generations, num_evaluations, args):
@@ -126,9 +135,9 @@ class IPythonBokehParetoPlotter(object):
             self._update()
 
     def _update(self):
+        self.ds.data['x'] = [e[self.x] for e in self.fitness]
+        self.ds.data['y'] = [e[self.y] for e in self.fitness]
         if self.can_plot:
-            self.ds.data['x'] = [e[self.x] for e in self.fitness]
-            self.ds.data['y'] = [e[self.y] for e in self.fitness]
             cursession().store_objects(self.ds)
 
     def reset(self):
@@ -136,7 +145,12 @@ class IPythonBokehParetoPlotter(object):
         self.plotted = False
 
     def end(self):
-        pass
+        if not self.can_plot:
+            plot = figure(title="Fitness plot",  tools='', plot_height=400, plot_width=650)
+            plot.xaxis.axis_label = "Iteration"
+            plot.yaxis.axis_label = "Fitness"
+            plot.scatter(self.ds.data['x'], self.ds.data['y'])
+            show(plot)
 
 
 class GeneFrequencyPlotter():
