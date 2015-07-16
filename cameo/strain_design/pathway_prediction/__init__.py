@@ -21,7 +21,7 @@ __all__ = ['PathwayPredictor']
 from functools import partial
 
 from cameo.core.result import Result
-from cameo.data import universal_models
+from cameo.models import universal_models
 from cameo.exceptions import SolveError
 from cameo import Model, Metabolite
 from cameo.data import metanetx
