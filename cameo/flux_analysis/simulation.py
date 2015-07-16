@@ -22,6 +22,11 @@ Currently implements:
 """
 
 from __future__ import absolute_import, print_function
+from optlang.interface import OptimizationExpression
+import pandas
+from sympy.parsing.sympy_parser import parse_expr
+import cameo
+from cameo.core.result import Result
 
 __all__ = ['fba', 'pfba', 'moma', 'lmoma', 'room']
 
@@ -35,8 +40,6 @@ from sympy import Mul
 
 from cameo.util import TimeMachine, ProblemCache
 from cameo.exceptions import SolveError
-from cameo.core.result import FluxDistributionResult
-
 
 import logging
 logger = logging.getLogger(__name__)
@@ -419,3 +422,58 @@ if __name__ == '__main__':
     print("cameo lmoma runtime:", time.time() - tic)
 
     # print model.solver
+
+
+class FluxDistributionResult(Result):
+    def __init__(self, solution, *args, **kwargs):
+        super(FluxDistributionResult, self).__init__(*args, **kwargs)
+        self._fluxes = solution.fluxes
+        self._objective_value = solution.f
+
+    def __getitem__(self, item):
+        if isinstance(item, cameo.Reaction):
+            return self.fluxes[item.id]
+        elif isinstance(item, str):
+            try:
+                return self.fluxes[item]
+            except KeyError:
+                exp = parse_expr(item)
+        elif isinstance(item, OptimizationExpression):
+            exp = item.expression
+        elif isinstance(item, sympy.Expr):
+            exp = item
+        else:
+            raise KeyError(item)
+
+        return exp.evalf(subs={v: self.fluxes[v.name] for v in exp.atoms(sympy.Symbol)})
+
+    @property
+    def data_frame(self):
+        return pandas.DataFrame(list(self._fluxes.values()), index=list(self._fluxes.keys()), columns=['flux'])
+
+    @property
+    def fluxes(self):
+        return self._fluxes
+
+    @property
+    def objective_value(self):
+        return self._objective_value
+
+    def plot(self, grid=None, width=None, height=None, title=None):
+        # TODO: Add barchart or something similar.
+        pass
+
+    def iteritems(self):
+        return six.iteritems(self.fluxes)
+
+    def items(self):
+        return six.iteritems(self.fluxes)
+
+    def keys(self):
+        return self.fluxes.keys()
+
+    def values(self):
+        return self.fluxes.values()
+
+    def _repr_html_(self):
+        return "<strong>objective value: %s</strong>" % self.objective_value

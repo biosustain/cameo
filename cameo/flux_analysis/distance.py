@@ -22,7 +22,7 @@ import six
 from sympy import Add
 from sympy import Mul
 
-from cameo.core.result import FluxDistributionResult
+from cameo.flux_analysis.simulation import FluxDistributionResult
 from cameo.core.solution import SolutionBase
 
 add = Add._from_args

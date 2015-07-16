@@ -19,7 +19,6 @@ from uuid import uuid4
 from IPython.core.display import display, HTML, Javascript
 from IPython.html.widgets import interact, IntSlider
 import six
-from cameo.core.result import Result, PhenotypicPhasePlaneResult
 from cameo.ui import notice
 from cameo.visualization.escher_ext import NotebookBuilder
 
@@ -36,7 +35,7 @@ from cameo import config, flux_variability_analysis, fba
 from cameo.parallel import SequentialView, MultiprocessingView
 from cameo.core.solver_based_model import Reaction
 from cameo.strain_design import StrainDesignMethod
-from cameo.flux_analysis.analysis import phenotypic_phase_plane
+from cameo.flux_analysis.analysis import phenotypic_phase_plane, PhenotypicPhasePlaneResult
 from cameo.util import TimeMachine
 import cameo
 
