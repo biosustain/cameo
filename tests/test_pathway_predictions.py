@@ -18,7 +18,7 @@ import os
 import unittest
 from cameo import load_model
 from cameo.strain_design.pathway_prediction import PathwayPredictor
-from cameo.data.universal_models import metanetx_universal_model_bigg
+from cameo.models.universal import metanetx_universal_model_bigg
 
 TESTDIR = os.path.dirname(__file__)
 TESTMODEL = load_model(os.path.join(TESTDIR, 'data/iJO1366.xml'))

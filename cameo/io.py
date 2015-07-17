@@ -21,7 +21,7 @@ from multiprocessing import Process, Queue
 import requests
 import progressbar
 import optlang
-from cobra.io import read_sbml_model
+from cobra.io import read_sbml_model, load_json_model
 
 from cameo.core.solver_based_model import SolverBasedModel, to_solver_based_model
 from cameo.models import webmodels
@@ -78,29 +78,21 @@ def load_model(path_or_handle, solver_interface=optlang.glpk_interface, sanitize
     try:
         model = pickle.load(handle)
     except Exception:
-        logger.debug('Cannot unpickle %s. Assuming sbml model next.' % path)
+        logger.debug('Cannot unpickle %s. Assuming json model next.' % path)
         try:
-            interactive = False  # TODO: make this figure out if run inside a shell or IPython notebook
-            if interactive:
-                def read_sbml_model_subprocess(path, queue):
-                    queue.put(read_sbml_model(path))
-                pbar = progressbar.ProgressBar()
-                queue = Queue()
-                proc = Process(target=read_sbml_model_subprocess, args=(path, queue))
-                proc.start()
-                while proc.is_alive():
-                    time.sleep(.5)
-                model = queue.get()
-            else:
-                try:
-                    model = read_sbml_model(path)
-                except Exception as e:
-                    logger.error("Looks like something blow up while trying to import {} as a SBML model. Try validating the model at http://sbml.org/Facilities/Validator/ to get more information.".format(path))
-                    raise e
-            if sanitize:
-                sanitize_ids(model)
-        except AttributeError:  # TODO: cobrapy doesn't raise a proper exception if a file does not contain an SBML model
-            raise ValueError('FIXME')
+            model = load_json_model(path)
+        except Exception:
+            logger.debug("Cannot import %s as json model. Assuming sbml model next." % path)
+            try:
+                model = read_sbml_model(path)
+            except AttributeError as e:
+                logger.error("cobrapy doesn't raise a proper exception if a file does not contain an SBML model")
+                raise e
+            except Exception as e:
+                logger.error("Looks like something blow up while trying to import {} as a SBML model. Try validating the model at http://sbml.org/Facilities/Validator/ to get more information.".format(path))
+                raise e
+    if sanitize:
+        sanitize_ids(model)
 
     if not isinstance(model, SolverBasedModel):
         if solver_interface is not None:

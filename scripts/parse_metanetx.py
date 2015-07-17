@@ -13,12 +13,14 @@
 # limitations under the License.
 
 import cPickle as pickle
+from math import isnan
 import re
 import gzip
 import optlang
-from pandas import read_table
+from pandas import read_table, notnull
 from cameo.io import _apply_sanitize_rules, ID_SANITIZE_RULES_TAB_COMPLETION, ID_SANITIZE_RULES_SIMPHENY
 from cameo import Reaction, Metabolite, Model
+from cobra.io.json import save_json_model
 from cobra.core.Formula import Formula
 
 import logging
@@ -57,7 +59,6 @@ def parse_reaction(formula, irrev_arrow='-->', rev_arrow='<=>'):
     stoichiometry.update(parse_rhs_side(rhs))
     return stoichiometry
 
-
 def construct_universal_model(list_of_db_prefixes):
     # Select which reactions to include in universal reaction database
 
@@ -85,7 +86,7 @@ def construct_universal_model(list_of_db_prefixes):
                 #     continue
                 try:
                     met.charge = int(chem_prop.loc[met.id].charge)
-                except ValueError:
+                except (ValueError, TypeError):
                     logger.debug('Cannot parse charge %s. Skipping charge' % chem_prop.loc[met.id].charge)
                     pass
                 rest = chem_prop.loc[met.id].to_dict()
@@ -127,6 +128,9 @@ if __name__ == '__main__':
     reac_prop.columns = [name.replace('#', '') for name in reac_prop.columns]
     chem_prop = read_table('../data/metanetx/chem_prop.tsv.gz', skiprows=125, compression='gzip', index_col=0,
                            names=['name', 'formula', 'charge', 'mass', 'InChI', 'SMILES', 'source'])
+
+    # replace NaN with None
+    chem_prop = chem_prop.where((notnull(chem_prop)), None)
 
     REVERSE_ID_SANITIZE_RULES_SIMPHENY = [(value, key) for key, value in ID_SANITIZE_RULES_SIMPHENY]
 
@@ -171,9 +175,14 @@ if __name__ == '__main__':
     db_combinations = [('bigg',), ('rhea',) , ('bigg', 'rhea'), ('bigg', 'rhea', 'kegg'), ('bigg', 'rhea', 'kegg', 'brenda')]
     for db_combination in db_combinations:
         universal_model = construct_universal_model(db_combination)
-        with open('../cameo/data/universal_models/{model_name}.pickle'.format(model_name=universal_model.id) , 'wb') as f:
-            pickle.dump(universal_model, f)
-
+        # The following is a hack; uncomment the following
+        import json
+        from cobra.io.json import _to_dict, _DEFAULT_REACTION_ATTRIBUTES
+        _DEFAULT_REACTION_ATTRIBUTES.add('annotation')
+        d_model = _to_dict(universal_model)
+        with open('../cameo/models/universal_models/{model_name}.json'.format(model_name=universal_model.id), 'w') as f:
+            json.dump(d_model, f)
+        # save_json_model(universal_model, '../cameo/models/universal_models/{model_name}.json'.format(model_name=universal_model.id))
     chem_prop_filtered = chem_prop[[any([source.startswith(db) for db in ('bigg', 'rhea', 'kegg', 'brenda', 'chebi')]) for source in chem_prop.source]]
     chem_prop_filtered = chem_prop_filtered.dropna(subset=['name'])
     with gzip.open('../cameo/data/metanetx_chem_prop.pklz','wb') as f:

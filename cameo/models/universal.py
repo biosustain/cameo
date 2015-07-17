@@ -16,13 +16,8 @@ from __future__ import absolute_import
 
 __all__ = ['universal']
 
-import six
-
-
 import os
 import glob
-import sys
-import six.moves.cPickle as pickle
 import cameo
 from cameo import util
 
@@ -30,15 +25,12 @@ from cameo import util
 class ModelFacadeUniversal(util.ModelFacade):
 
     def _load_model(self):
-        if six.PY2:
-            return pickle.load(open(self._id))
-        else:
-            return pickle.load(open(self._id, 'rb'), encoding='bytes')
+        return cameo.load_model(self._id)
 
 class ModelDB(object): pass
 
 universal = ModelDB()
 
-for file_path in glob.glob(os.path.join(os.path.dirname(cameo.__file__), 'data', 'universal_models', '*.pickle')):
+for file_path in glob.glob(os.path.join(os.path.dirname(cameo.__file__), 'models', 'universal_models', '*.json')):
     model_id = os.path.splitext(os.path.basename(file_path))[0]
     setattr(universal, util.str_to_valid_variable_name(model_id), ModelFacadeUniversal(file_path))
