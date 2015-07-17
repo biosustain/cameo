@@ -13,33 +13,56 @@
 # limitations under the License.
 
 from __future__ import absolute_import, print_function
-from cobra.core import Reaction
-from cameo.core.result import PhenotypicPhasePlaneResult
 
-__all__ = ['flux_variability_analysis', 'phenotypic_phase_plane', 'fbid']
+__all__ = ['find_blocked_reactions', 'flux_variability_analysis', 'phenotypic_phase_plane', 'fbid']
+
+from cobra.core import Reaction
 
 import six
 from six.moves import zip
-from functools import reduce
 
 import itertools
 from copy import copy
 from collections import OrderedDict
-from functools import partial
+from functools import partial, reduce
 import numpy
+import pandas
+
 import cameo
 from cameo import config
-from cameo.exceptions import UndefinedSolution, Infeasible, Unbounded, SolveError
+from cameo.exceptions import Infeasible, Unbounded, SolveError
 from cameo.util import TimeMachine, partition
 from cameo.parallel import SequentialView
 from cameo.flux_analysis.simulation import _cycle_free_flux
-import pandas
+from cameo.core.result import Result
+from cameo.ui import notice
+from cameo.visualization import plotting
 
 import logging
 logger = logging.getLogger(__name__)
 
 
-def flux_variability_analysis(model, reactions=None, fraction_of_optimum=0., remove_cycles=True, view=None):
+def find_blocked_reactions(model):
+    """Determine reactions that cannot carry steady-state flux.
+
+    Parameters
+    ----------
+    model: SolverBasedModel
+
+    Returns
+    -------
+    list
+        A list of reactions.
+
+    """
+    with TimeMachine() as tm:
+        for exchange in model.exchanges:
+            tm(do=partial(setattr, exchange, 'lower_bound', -999999), undo=partial(setattr, exchange, 'lower_bound', exchange.lower_bound))
+            tm(do=partial(setattr, exchange, 'upper_bound', 999999), undo=partial(setattr, exchange, 'upper_bound', exchange.upper_bound))
+        fva_solution = flux_variability_analysis(model)
+    return [model.reactions.get_by_id(id) for id in fva_solution.data_frame.query('upper_bound == lower_bound == 0').index]
+
+def flux_variability_analysis(model, reactions=None, fraction_of_optimum=0., remove_cycles=False, view=None):
     """Flux variability analysis.
 
     Parameters
@@ -83,8 +106,7 @@ def flux_variability_analysis(model, reactions=None, fraction_of_optimum=0., rem
             func_obj = _FvaFunctionObject(model, _flux_variability_analysis)
         chunky_results = view.map(func_obj, reaction_chunks)
         solution = pandas.concat(chunky_results)
-    return solution
-
+    return FluxVariabilityResult(solution)
 
 def phenotypic_phase_plane(model, variables=[], objective=None, points=20, view=None):
     """Phenotypic phase plane analysis.
@@ -125,7 +147,7 @@ def phenotypic_phase_plane(model, variables=[], objective=None, points=20, view=
         variables_min_max = flux_variability_analysis(model, reactions=variable_reactions, view=SequentialView())
         grid = [numpy.linspace(lower_bound, upper_bound, points, endpoint=True) for
                 reaction_id, lower_bound, upper_bound in
-                variables_min_max.itertuples()]
+                variables_min_max.data_frame.itertuples()]
         grid_generator = itertools.product(*grid)
         original_bounds = dict([(reaction, (reaction.lower_bound, reaction.upper_bound))
                                 for reaction in variable_reactions])
@@ -203,7 +225,6 @@ def _flux_variability_analysis(model, reactions=None):
             fva_sol[reaction.id]['upper_bound'] = fva_sol[reaction.id]['lower_bound']
             ub_flag = False
 
-
     model.objective = original_objective
     df = pandas.DataFrame.from_dict(fva_sol, orient='index')
     lb_higher_ub = df[df.lower_bound > df.upper_bound]
@@ -213,7 +234,6 @@ def _flux_variability_analysis(model, reactions=None):
         logger.debug(list(zip(model.reactions, (lb_higher_ub.lower_bound - lb_higher_ub.upper_bound) < 1e-6)))
     df.lower_bound[lb_higher_ub.index] = df.upper_bound[lb_higher_ub.index]
     return df
-
 
 def _cycle_free_fva(model, reactions=None, sloppy=True):
     """Cycle free flux-variability analysis. (http://cran.r-project.org/web/packages/sybilcycleFreeFlux/index.html)
@@ -422,27 +442,46 @@ def _fbid_fva(model, knockouts, view):
     return perturbation
 
 
-if __name__ == '__main__':
-    import time
-    from cameo import load_model
-    from cameo.parallel import MultiprocessingView
+class PhenotypicPhasePlaneResult(Result):
+    def __init__(self, phase_plane, variable_ids, objective, *args, **kwargs):
+        super(PhenotypicPhasePlaneResult, self).__init__(*args, **kwargs)
+        self._phase_plane = phase_plane
+        self.variable_ids = variable_ids
+        self.objective = objective
 
-    model = load_model('../../tests/data/EcoliCore.xml')
-    flux_variability_analysis(model, reactions=model.reactions, fraction_of_optimum=1., remove_cycles=True,
-                              view=SequentialView())
-    # model.solver = 'cplex'
-    view = MultiprocessingView()
-    tic = time.time()
-    ppp = phenotypic_phase_plane(model,
-                                 ['EX_o2_LPAREN_e_RPAREN_', 'EX_glc_LPAREN_e_RPAREN_', 'EX_nh4_LPAREN_e_RPAREN_'],
-                                 view=view, points=30)
-    # print ppp
-    # print ppp.describe()
-    print(time.time() - tic)
+    @property
+    def data_frame(self):
+        return pandas.DataFrame(self._phase_plane)
 
-    view = SequentialView()
-    tic = time.time()
-    ppp = phenotypic_phase_plane(model,
-                                 ['EX_o2_LPAREN_e_RPAREN_', 'EX_glc_LPAREN_e_RPAREN_', 'EX_nh4_LPAREN_e_RPAREN_'],
-                                 view=view, points=30)
-    print(time.time() - tic)
+    def plot(self, grid=None, width=None, height=None, title=None, axis_font_size=None):
+        if len(self.variable_ids) > 1:
+            notice("Multi-dimensional plotting is not supported")
+            return
+        plotting.plot_production_envelope(self._phase_plane, objective=self.objective, key=self.variable_ids[0],
+                                          grid=grid, width=width, height=height, title=title,
+                                          axis_font_size=axis_font_size)
+
+    def __getitem__(self, item):
+        return self._phase_plane[item]
+
+    def iterrows(self):
+        return self._phase_plane.iterrows()
+
+
+class FluxVariabilityResult(Result):
+    def __init__(self, data_frame, *args, **kwargs):
+        super(FluxVariabilityResult, self).__init__(*args, **kwargs)
+        self._data_frame = data_frame
+
+    @property
+    def data_frame(self):
+        return self._data_frame
+
+    def plot(self, grid=None, width=None, height=None, title=None, axis_font_size=None):
+        raise NotImplementedError('Plotting of flux variability results has not been implemented yet.')
+
+    def __getitem__(self, item):
+        return self._data_frame[item]
+
+    def iterrows(self):
+        return self._data_frame.iterrows()

@@ -21,7 +21,7 @@ __all__ = ['PathwayPredictor']
 from functools import partial
 
 from cameo.core.result import Result
-from cameo.data import universal_models
+from cameo import models
 from cameo.exceptions import SolveError
 from cameo import Model, Metabolite
 from cameo.data import metanetx
@@ -154,7 +154,7 @@ class PathwayPredictor(object):
 
         if universal_model is None:
             logger.debug("Loading default universal model.")
-            self.universal_model = universal_models.metanetx_universal_model_bigg_rhea
+            self.universal_model = models.universal.metanetx_universal_model_bigg_rhea
         elif isinstance(universal_model, Model):
             self.universal_model = universal_model
         else:
@@ -239,8 +239,7 @@ class PathwayPredictor(object):
                     continue
 
                 pathway = [self.model.reactions.get_by_id(y_var.name[2:]) for y_var in vars_to_cut]
-                logger.debug('Pathway predicted: %s' % '\t'.join([r.annotation['Description'] for r in pathway]))
-
+                logger.debug('Pathway predicted: %s' % '\t'.join([r.build_reaction_string(use_metabolite_names=True) for r in pathway]))
                 # Figure out adapter reactions to include
                 adapters = [adapter for adapter in self.adpater_reactions if abs(adapter.flux) != 0]
 
@@ -307,7 +306,7 @@ class PathwayPredictor(object):
             if reaction in self.model.reactions:
                 continue
             if reaction in universal_exchanges:
-                metabolite = reaction.metabolites.keys()[0]
+                metabolite = list(reaction.metabolites.keys())[0]
                 if metabolite.id in original_model_metabolites:
                     continue
 
@@ -317,7 +316,7 @@ class PathwayPredictor(object):
         return new_reactions
 
     def _find_product(self, product):
-        if isinstance(product, bytes):
+        if isinstance(product, str):
             for metabolite in self.model.metabolites:
                 if metabolite.id == product:
                     return metabolite

@@ -212,7 +212,7 @@ class LazySolution(SolutionBase):
         self._check_freshness()
         duals = OrderedDict()
         for reaction in self.model.reactions:
-            duals[reaction.id] = reaction.flux
+            duals[reaction.id] = reaction.reduced_cost
         return duals
 
     @property

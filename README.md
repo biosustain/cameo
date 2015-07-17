@@ -1,4 +1,4 @@
-## cameo - computer aided metabolic engineering & optimization
+## Cameo—Computer Aided Metabolic Engineering and Optimization
 
 [![Documentation Status](https://readthedocs.org/projects/cameo/badge/?version=devel)](https://readthedocs.org/projects/cameo/?badge=devel)
 [![Build Status](https://travis-ci.org/biosustain/cameo.svg?branch=devel)](https://travis-ci.org/biosustain/cameo)
@@ -6,8 +6,67 @@
 [![DOI](https://zenodo.org/badge/doi/10.5281/zenodo.19827.svg)](http://dx.doi.org/10.5281/zenodo.19827)
 
 
-### Vision
-Cameo is a high-level python library developed to aid the _in silico_ strain design process in metabolic engineering projects. The library provides a modular architecture that enables the efficient construction of custom analysis workflows.
+### What is Cameo?
+**Cameo** is a high-level python library developed to aid the strain design process in metabolic engineering projects. The library provides a modular framework of simulation methods, strain design methods, access to models, that targets developers that want  custom analysis workflows. 
+
+Computationally heavy methods have been parallelized and can be run on a clusters using the IPython parallelization framework (see example and documentation for more details). The default fallback is python's multiprocessing library.
+
+Furthermore, it exposes a high-level API to users that just want to . 
+
+You got curious? Head over to [try.cameo.bio](http://try.cameo.bio) and give it a try.
+
+### Installation
+Use pip to install Cameo from [PyPI](https://pypi.python.org/pypi/cameo) (we recommend doing this inside a [virtual environment](http://docs.python-guide.org/en/latest/dev/virtualenvs/)).
+
+    pip install cameo
+
+We highly recommend updating `pip` beforehand (`pip install pip --upgrade`).
+
+In case you downloaded the source code, run
+
+	pip install -e .  # recommended
+
+while you are in the top level directory. You might need to run these commands with administrative privileges if you're not using a virtual environment (using `sudo` for example).
+
+
+### Examples
+
+A number of examples are available as static ([nbviewer.ipython.org](http://nbviewer.ipython.org/github/biosustain/cameo-notebooks/tree/master/)) or executable Jupyter (née IPython) notebooks ([try.cameo.bio](http://try.cameo.bio)).
+
+#### High-level API (for users)
+Compute strain engineering strategies for a desired product in a number of host organisms using the high-level interface.
+
+	from cameo.api import design
+	design(product='L-Serine')
+
+[Output](http://nbviewer.ipython.org/github/biosustain/cameo-notebooks/blob/master/8-high-level-API.ipynb)
+
+#### Low-level API (for developers)
+
+Find gene knockout targets using evolutionary computation.
+
+	from cameo import models
+	from cameo.strain_design.heuristic import GeneKnockoutOptimization
+	from cameo.strain_design.heuristic.objective_functions import biomass_product_coupled_yield
+	
+	model = models.bigg.e_coli_core
+	obj = biomass_product_coupled_yield(
+	    model.reactions.Biomass_Ecoli_core_w_GAM,
+	    model.reactions.EX_succ_e,
+	    model.reactions.EX_glc_e)
+	ko = GeneKnockoutOptimization(model=model, objective_function=obj)
+	ko.run(max_evaluations=50000, n=1, mutation_rate=0.15, indel_rate=0.185)
+
+[Output](http://nbviewer.ipython.org/github/biosustain/cameo-notebooks/blob/master/6-predict-gene-knockout-strategies.ipynb)
+
+Predict heterologous pathways for a desired chemical.
+
+	from cameo.strain_design import pathway_prediction
+	predictor = pathway_prediction.PathwayPredictor(model)
+	pathways = predictor.run(product="vanillin")
+
+[Output](http://nbviewer.ipython.org/github/biosustain/cameo-notebooks/blob/master/7-predict-heterologous-pathways.ipynb)
+
 
 ### Dependencies
 This library depends on:
@@ -23,10 +82,3 @@ Furthermore, the following dependencies are needed:
 - [pandas](http://pandas.pydata.org/) is needed because most functions returns results as pandas DataFrames.
 - [inspyred](https://pypi.python.org/pypi/inspyred) for evolutionary computations.
 
-Computationally heavy methods have been parallelized and can be run on a clusters using the IPython parallelization framework (see example and documentation for more details). The default fallback is python's multiprocessing library.
-
-### Installation
-Run
-    python setup.py install
-to install cameo. Installation is still a little bit shaky, so if it fails due to version mismatches, try to install the appropriate version manually and then retry `python setup.py install`. For example:
-pip install pytz==2013b --upgrade

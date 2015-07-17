@@ -9,7 +9,7 @@ pandas>=0.15.2
 ordered-set==1.2
 inspyred==1.0
 cobra==0.3.2
-optlang==0.2.6
+optlang==0.2.7
 sphinx>=1.2.2
 sphinx-rtd-theme>=0.1.6
 escher==1.0.0

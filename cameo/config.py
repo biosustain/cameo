@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from __future__ import absolute_import, print_function
+from .util import in_ipnb
 
 non_zero_flux_threshold = 1e-6
 ndecimals = 6
@@ -40,7 +41,8 @@ except ImportError:
 # TODO: This should also check if a bokeh server is actually running.
 try:
     from bokeh.plotting import output_notebook
-    output_notebook(hide_banner=True)
+    if in_ipnb():
+        output_notebook(hide_banner=True)
     use_bokeh = True
 except ImportError:
     use_bokeh = False
