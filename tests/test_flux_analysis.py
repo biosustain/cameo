@@ -22,7 +22,8 @@ import unittest
 from cameo.flux_analysis.simulation import fba, pfba, lmoma, room
 from cameo.parallel import SequentialView, MultiprocessingView
 from cameo.io import load_model
-from cameo.flux_analysis.analysis import flux_variability_analysis, phenotypic_phase_plane, _cycle_free_fva
+from cameo.flux_analysis.analysis import flux_variability_analysis, phenotypic_phase_plane, _cycle_free_fva, \
+    find_blocked_reactions
 
 import pandas
 from pandas.util.testing import assert_frame_equal
@@ -52,14 +53,31 @@ iJO_MODEL_COBRAPY = load_model(os.path.join(TESTDIR, 'data/iJO1366.xml'), solver
 
 TOY_MODEL_PAPIN_2004 = load_model(os.path.join(TESTDIR, "data/toy_model_Papin_2003.xml"))
 
+class AbstractTestFindBlockedReactions(object):
 
+    def test_find_blocked_reactions(self):
+        self.model.reactions.PGK.knock_out()  # there are no blocked reactions in EcoliCore
+        blocked_reactions = find_blocked_reactions(self.model)
+        self.assertEqual(blocked_reactions, [self.model.reactions.GAPD, self.model.reactions.PGK])
+
+class TestFindBlockedReactionsGLPK(AbstractTestFindBlockedReactions, unittest.TestCase):
+    def setUp(self):
+        self.model = CORE_MODEL.copy()
+        self.model.solver = 'glpk'
+
+@unittest.skipIf(TRAVIS, 'CPLEX not available on Travis.')
+class TestFindBlockedReactionsCPLEX(AbstractTestFindBlockedReactions, unittest.TestCase):
+    def setUp(self):
+        self.model = CORE_MODEL.copy()
+        self.model.solver = 'cplex'
+        self.model.solver.problem.parameters.lpmethod = self.model.solver.problem.parameters.lpmethod.values.dual
 
 class AbstractTestFluxVariabilityAnalysis(object):
     def test_flux_variability_sequential(self):
         fva_solution = flux_variability_analysis(self.model, remove_cycles=False, view=SequentialView())
         assert_dataframes_equal(fva_solution, REFERENCE_FVA_SOLUTION_ECOLI_CORE)
         print(REFERENCE_FVA_SOLUTION_ECOLI_CORE)
-        for key in fva_solution.index:
+        for key in fva_solution.data_frame.index:
             self.assertAlmostEqual(fva_solution['lower_bound'][key],
                                    REFERENCE_FVA_SOLUTION_ECOLI_CORE['lower_bound'][key], delta=0.000001)
             self.assertAlmostEqual(fva_solution['upper_bound'][key],
@@ -71,7 +89,7 @@ class AbstractTestFluxVariabilityAnalysis(object):
         fva_solution = flux_variability_analysis(self.model, remove_cycles=True, view=SequentialView())
         print(fva_solution.min())
         print(fva_solution.max())
-        for key in fva_solution.index:
+        for key in fva_solution.data_frame.index:
             if abs(REFERENCE_FVA_SOLUTION_ECOLI_CORE['lower_bound'][key]) < 999993:
                 self.assertAlmostEqual(fva_solution['lower_bound'][key],
                                        REFERENCE_FVA_SOLUTION_ECOLI_CORE['lower_bound'][key], delta=0.000001)
@@ -110,7 +128,7 @@ class TestFluxVariabilityAnalysisGLPK(AbstractTestFluxVariabilityAnalysis, unitt
 @unittest.skipIf(TRAVIS, 'CPLEX not available on Travis.')
 class TestFluxVariabilityAnalysisCPLEX(AbstractTestFluxVariabilityAnalysis, unittest.TestCase):
     def setUp(self):
-        self.model = CORE_MODEL
+        self.model = CORE_MODEL.copy()
         self.model.solver = 'cplex'
         self.model.solver.problem.parameters.lpmethod = self.model.solver.problem.parameters.lpmethod.values.dual
         self.biomass_flux = 0.873921
