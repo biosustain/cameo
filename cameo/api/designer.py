@@ -31,7 +31,7 @@ from cameo.strain_design.heuristic.objective_functions import biomass_product_co
 from cameo.ui import notice, searching, stop_loader
 from cameo.strain_design import pathway_prediction
 from cameo.util import TimeMachine
-from cameo.data import universal_models
+from cameo.models import universal
 
 import logging
 from cameo.visualization import visualization
@@ -100,7 +100,7 @@ class Designer(object):
         Designs
         """
         if database is None:
-            database = universal_models.metanetx_universal_model_bigg_rhea
+            database = universal.metanetx_universal_model_bigg_rhea
 
         notice("Starting searching for compound %s" % product)
         product = self.__translate_product_to_universal_reactions_model_metabolite(product, database)
