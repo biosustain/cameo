@@ -47,6 +47,7 @@ class IPythonBokehFitnessPlotter(object):
 
             renderer = self.plot.select(dict(type=GlyphRenderer))
             self.ds = renderer[0].data_source
+
             output_notebook(url=config.bokeh_url, docname=str(self.uuid), hide_banner=True)
             show(self.plot)
             self.plotted = True
@@ -109,8 +110,6 @@ class IPythonBokehParetoPlotter(object):
     def _set_plot(self):
         try:
             self.uuid = uuid1()
-            # TODO the following needs to works also with not bokeh server running.
-            output_notebook(url=config.bokeh_url, docname=str(self.uuid), hide_banner=True)
             self.plot = figure(title="Multi-objective Fitness Plot", tools='', plot_height=400, plot_width=650)
             self.plot.scatter([], [])
             self.plot.xaxis.axis_label = self.ofs[self.x].name
@@ -118,6 +117,8 @@ class IPythonBokehParetoPlotter(object):
 
             renderer = self.plot.select(dict(type=GlyphRenderer))
             self.ds = renderer[0].data_source
+
+            output_notebook(url=config.bokeh_url, docname=str(self.uuid), hide_banner=True)
             show(self.plot)
             self.plotted = True
         except ConnectionError as e:
@@ -170,9 +171,9 @@ class GeneFrequencyPlotter():
     def plot(self):
         self.uuid = uuid1()
         output_notebook(url=self.url, docname=str(self.uuid), hide_banner=True)
-        figure()
+        plot = figure()
 
-        quad(top=self.freqs[:, 1], left=self.freqs[:, 1], bottom=np.zeros(len(self.freqs[:, 1])),
-             right=self.freqs[:, 1], x_range=list(self.freqs[:, 0]))
-        xaxis().major_label_orientation = np.pi / 3
-        show()
+        plot.quad(top=self.freqs[:, 1], left=self.freqs[:, 1], bottom=np.zeros(len(self.freqs[:, 1])),
+                  right=self.freqs[:, 1], x_range=list(self.freqs[:, 0]))
+        plot.xaxis().major_label_orientation = np.pi / 3
+        show(plot)
