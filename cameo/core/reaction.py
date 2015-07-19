@@ -310,7 +310,7 @@ class Reaction(_cobrapy.core.Reaction):
                 if metabolite.id not in model.metabolites:
                     model.add_metabolites([metabolite])
                 constraint = model.solver.constraints[metabolite.id]
-                if metabolite in self.metabolites:
+                if metabolite in self.metabolites and kwargs.get("combine", True) is False:
                     # Subtract old coefficient:
                     old_coefficient = self.metabolites[metabolite]
                     constraint += -old_coefficient*self.flux_expression
