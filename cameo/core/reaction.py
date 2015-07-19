@@ -307,10 +307,11 @@ class Reaction(_cobrapy.core.Reaction):
         model = self.model
         if model is not None:
             for metabolite, coefficient in six.iteritems(metabolites):
-                # Subtract old coefficient:
-                old_coefficient = self.metabolites[metabolite]
                 constraint = model.solver.constraints[metabolite.id]
-                constraint += -old_coefficient*self.flux_expression
+                if metabolite in self.metabolites:
+                    # Subtract old coefficient:
+                    old_coefficient = self.metabolites[metabolite]
+                    constraint += -old_coefficient*self.flux_expression
                 # Add new coefficient:
                 constraint += coefficient*self.flux_expression
         super(Reaction, self).add_metabolites(metabolites, **kwargs)
