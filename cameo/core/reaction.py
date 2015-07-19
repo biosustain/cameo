@@ -307,6 +307,8 @@ class Reaction(_cobrapy.core.Reaction):
         model = self.model
         if model is not None:
             for metabolite, coefficient in six.iteritems(metabolites):
+                if metabolite.id not in model.metabolites:
+                    model.add_metabolites([metabolite])
                 constraint = model.solver.constraints[metabolite.id]
                 if metabolite in self.metabolites:
                     # Subtract old coefficient:
