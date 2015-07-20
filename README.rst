@@ -16,7 +16,8 @@ clusters using the IPython parallelization framework (see example and
 documentation for more details). The default fallback is python's
 multiprocessing library.
 
-Furthermore, it exposes a high-level API to users that just want to .
+Furthermore, it exposes a high-level API to users that just want to
+compute promising strain designs.
 
 You got curious? Head over to `try.cameo.bio <http://try.cameo.bio>`__
 and give it a try.
