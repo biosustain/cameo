@@ -303,11 +303,20 @@ class Reaction(_cobrapy.core.Reaction):
         else:
             return None
 
-    def add_metabolites(self, metabolites, **kwargs):
-        super(Reaction, self).add_metabolites(metabolites, **kwargs)
+    def add_metabolites(self, metabolites, combine=True, **kwargs):
+        if not combine:
+            old_coefficients = self.metabolites
+        super(Reaction, self).add_metabolites(metabolites, combine=combine, **kwargs)
         model = self.model
         if model is not None:
             for metabolite, coefficient in six.iteritems(metabolites):
+                if not combine:
+                    try:
+                        old_coefficient = old_coefficients[metabolite]
+                    except KeyError:
+                        pass
+                    else:
+                        coefficient = coefficient - old_coefficient
                 model.solver.constraints[metabolite.id] += coefficient*self.flux_expression
 
     def knock_out(self, time_machine=None):
