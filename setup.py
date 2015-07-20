@@ -55,7 +55,7 @@ else:
         requirements.extend(['progressbar'])
 
 dependency_links = [
-    'https://github.com/coagulant/progressbar-python3.git'
+    'git+https://github.com/coagulant/progressbar-python3.git#egg=progressbar'
 ]
 
 # Run
