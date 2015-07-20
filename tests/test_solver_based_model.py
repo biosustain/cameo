@@ -467,23 +467,33 @@ class AbstractTestReaction(object):
             reaction.upper_bound = reaction.lower_bound - 100
             self.assertEqual(reaction.lower_bound, reaction.upper_bound)
 
-    @unittest.skip("String-based comparisons not deterministic.")  #TODO: make this test work again
-    def test_add_metabolites(self):
+    def test_add_metabolites_combine_true(self):
+        test_metabolite = Metabolite('test')
         for reaction in self.model.reactions:
-            reaction.add_metabolites({Metabolite('test'):-66})
-            self.assertIn("66 test", str(reaction))
-            self.assertIn(-66.*reaction.variable, self.model.solver.constraints['test'].expression)
+            reaction.add_metabolites({test_metabolite: -66}, combine=True)
+            self.assertEqual(reaction.metabolites[test_metabolite], -66)
+            self.assertIn(-66.*reaction.forward_variable, self.model.solver.constraints['test'].expression)
+            self.assertIn(66.*reaction.reverse_variable, self.model.solver.constraints['test'].expression)
             already_included_metabolite = list(reaction.metabolites.keys())[0]
             previous_coefficient = reaction.get_coefficient(already_included_metabolite.id)
-            reaction.add_metabolites({already_included_metabolite: 10})
+            reaction.add_metabolites({already_included_metabolite: 10}, combine=True)
             new_coefficient = previous_coefficient + 10
-            new_coefficient2 = new_coefficient
-            if new_coefficient < 0:
-                new_coefficient *= -1
-            if new_coefficient % 1 == 0:
-                new_coefficient = new_coefficient
-            self.assertIn(str(new_coefficient)+" "+already_included_metabolite.id, str(reaction))
-            self.assertIn(new_coefficient2*reaction.variable, self.model.solver.constraints[already_included_metabolite.id].expression)
+            self.assertEqual(reaction.metabolites[already_included_metabolite], new_coefficient)
+            self.assertIn(new_coefficient*reaction.forward_variable, self.model.solver.constraints[already_included_metabolite.id].expression)
+            self.assertIn(-1*new_coefficient*reaction.reverse_variable, self.model.solver.constraints[already_included_metabolite.id].expression)
+
+    def test_add_metabolites_combine_false(self):
+        test_metabolite = Metabolite('test')
+        for reaction in self.model.reactions:
+            reaction.add_metabolites({test_metabolite: -66}, combine=False)
+            self.assertEqual(reaction.metabolites[test_metabolite], -66)
+            self.assertIn(-66.*reaction.forward_variable, self.model.solver.constraints['test'].expression)
+            self.assertIn(66.*reaction.reverse_variable, self.model.solver.constraints['test'].expression)
+            already_included_metabolite = list(reaction.metabolites.keys())[0]
+            reaction.add_metabolites({already_included_metabolite: 10}, combine=False)
+            self.assertEqual(reaction.metabolites[already_included_metabolite], 10)
+            self.assertIn(10*reaction.forward_variable, self.model.solver.constraints[already_included_metabolite.id].expression)
+            self.assertIn(-10*reaction.reverse_variable, self.model.solver.constraints[already_included_metabolite.id].expression)
 
     @unittest.skip('Not implemented yet.')
     def test_change_id_is_reflected_in_solver(self):
