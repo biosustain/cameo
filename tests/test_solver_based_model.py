@@ -100,6 +100,40 @@ class AbstractTestReaction(object):
     def test_str(self):
         self.assertTrue(self.model.reactions[0].__str__().startswith('ACALD'))
 
+    def test_add_metabolite(self):
+        model = self.model
+        pgi_reaction = model.reactions.PGI
+        test_met = model.metabolites[0]
+        pgi_reaction.add_metabolites({test_met: 42}, combine=False)
+        self.assertEqual(pgi_reaction.metabolites[test_met], 42)
+        self.assertEqual(
+            model.solver.constraints[test_met.id].expression.as_coefficients_dict()[pgi_reaction.forward_variable], 42)
+        self.assertEqual(
+            model.solver.constraints[test_met.id].expression.as_coefficients_dict()[pgi_reaction.reverse_variable], -42)
+
+        pgi_reaction.add_metabolites({test_met: -10}, combine=True)
+        self.assertEqual(pgi_reaction.metabolites[test_met], 32)
+        self.assertEqual(
+            model.solver.constraints[test_met.id].expression.as_coefficients_dict()[pgi_reaction.forward_variable], 32)
+        self.assertEqual(
+            model.solver.constraints[test_met.id].expression.as_coefficients_dict()[pgi_reaction.reverse_variable], -32)
+
+        pgi_reaction.add_metabolites({test_met: 0}, combine=False)
+        with self.assertRaises(KeyError):
+            pgi_reaction.metabolites[test_met]
+        self.assertEqual(
+            model.solver.constraints[test_met.id].expression.as_coefficients_dict()[pgi_reaction.forward_variable], 0)
+        self.assertEqual(
+            model.solver.constraints[test_met.id].expression.as_coefficients_dict()[pgi_reaction.reverse_variable], 0)
+
+        #test_met_2 = Metabolite("Test2", compartment="c")
+        #pgi_reaction.add_metabolites({test_met_2: 43}, combine=False)
+        #self.assertEqual(pgi_reaction.metabolites[test_met], 43)
+        #self.assertEqual(
+        #    model.solver.constraints[test_met.id].expression.as_coefficients_dict()[pgi_reaction.forward_variable], 43)
+        #self.assertEqual(
+        #    model.solver.constraints[test_met.id].expression.as_coefficients_dict()[pgi_reaction.reverse_variable], -43)
+
     def test_knockout(self):
         for reaction in self.model.reactions:
             reaction.knock_out()

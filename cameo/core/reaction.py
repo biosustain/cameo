@@ -304,11 +304,19 @@ class Reaction(_cobrapy.core.Reaction):
             return None
 
     def add_metabolites(self, metabolites, **kwargs):
-        super(Reaction, self).add_metabolites(metabolites, **kwargs)
         model = self.model
         if model is not None:
             for metabolite, coefficient in six.iteritems(metabolites):
-                model.solver.constraints[metabolite.id] += coefficient*self.forward_variable
+                if metabolite.id not in model.metabolites:
+                    model.add_metabolites([metabolite])
+                constraint = model.solver.constraints[metabolite.id]
+                if metabolite in self.metabolites and kwargs.get("combine", True) is False:
+                    # Subtract old coefficient:
+                    old_coefficient = self.metabolites[metabolite]
+                    constraint += -old_coefficient*self.flux_expression
+                # Add new coefficient:
+                constraint += coefficient*self.flux_expression
+        super(Reaction, self).add_metabolites(metabolites, **kwargs)
 
     def knock_out(self, time_machine=None):
         def _(reaction, lb, ub):
