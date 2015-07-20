@@ -18,11 +18,13 @@
 
 from __future__ import absolute_import, print_function
 
+import six
+from six.moves import range
+
 import time
 import datetime
 import csv
 from copy import copy, deepcopy
-from functools import partial
 import types
 
 import cobra as _cobrapy
@@ -41,8 +43,6 @@ from .reaction import Reaction
 from .solution import LazySolution, Solution
 
 import logging
-import six
-from six.moves import range
 logger = logging.getLogger(__name__)
 
 add = Add._from_args
