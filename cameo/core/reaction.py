@@ -308,7 +308,7 @@ class Reaction(_cobrapy.core.Reaction):
         model = self.model
         if model is not None:
             for metabolite, coefficient in six.iteritems(metabolites):
-                model.solver.constraints[metabolite.id] += coefficient*self.forward_variable
+                model.solver.constraints[metabolite.id] += coefficient*self.flux_expression
 
     def knock_out(self, time_machine=None):
         def _(reaction, lb, ub):
