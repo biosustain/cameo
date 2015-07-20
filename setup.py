@@ -45,11 +45,12 @@ else:
                     'numexpr>=2.4',
                     'networkx>=1.9.1',
                     'six>=1.9.0',
-                    'escher>=1.1.2',
-                    'progressbar'
+                    'escher>=1.1.2'
     ]
     if sys.version_info[0] < 3:
-        requirements.extend(['inspyred>=1.0', 'bashplotlib>=0.6.1'])
+        requirements.extend(['inspyred>=1.0', 'progressbar-ipython>=2.3.1', 'bashplotlib>=0.6.1'])
+    else:
+        requirements.extend(['progressbar'])
 
 dependency_links = [
     'https://github.com/coagulant/progressbar-python3.git'
