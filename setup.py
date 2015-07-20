@@ -59,8 +59,11 @@ dependency_links = [
 # Run
 # pandoc --from=markdown --to=rst README.md -o README.rst
 # from time to time, to keep README.rst updated
-with open('README.rst', 'r') as f:
-    description = f.read()
+try:
+    with open('README.rst', 'r') as f:
+        description = f.read()
+except:
+    description = ''
 
 setup(
     name='cameo',
