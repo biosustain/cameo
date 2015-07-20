@@ -48,8 +48,10 @@ else:
                     'escher>=1.1.2'
     ]
     if sys.version_info[0] < 3:
+        print('setup.py run under python 2. Installing compatible pacakges ...')
         requirements.extend(['inspyred>=1.0', 'progressbar-ipython>=2.3.1', 'bashplotlib>=0.6.1'])
     else:
+        print('setup.py run under python 3. Installing compatible pacakges ...')
         requirements.extend(['progressbar'])
 
 dependency_links = [
