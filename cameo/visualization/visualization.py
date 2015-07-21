@@ -166,7 +166,7 @@ def inchi_to_svg(inchi, file=None, debug=False, three_d=False):
     '<?xml version="1.0"?>\n<svg version="1.1" id="topsvg"\nxmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"\nxmlns:cml="http://www.xml-cml.org/schema" x="0" y="0" width="200px" height="200px" viewBox="0 0 100 100">\n<title>OBDepict</title>\n<rect x="0" y="0" width="100" height="100" fill="white"/>\n<text text-anchor="middle" font-size="6" fill ="black" font-family="sans-serif"\nx="50" y="98" ></text>\n<g transform="translate(0,0)">\n<svg width="100" height="100" x="0" y="0" viewBox="0 0 80 80"\nfont-family="sans-serif" stroke="rgb(0,0,0)" stroke-width="2"  stroke-linecap="round">\n<text x="36" y="48" fill="rgb(255,12,12)"  stroke="rgb(255,12,12)" stroke-width="1" font-size="16" >OH</text>\n<text x="60" y="51.68" fill="rgb(255,12,12)"  stroke="rgb(255,12,12)" stroke-width="1" font-size="13" >2</text>\n</svg>\n</g>\n</svg>\n\n'
     """
     in_file = tempfile.NamedTemporaryFile()
-    in_file.write(inchi)
+    in_file.write(inchi.encode('utf-8'))
     in_file.flush()
 
     out_file = None
