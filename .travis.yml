@@ -18,7 +18,7 @@ before_install:
   - sudo ln -s /run/shm /dev/shm
 install:
   - if [[ $TRAVIS_PYTHON_VERSION == "3.4" ]]; then pip install pyzmq pandas; fi
-  - if [[ $TRAVIS_PYTHON_VERSION == "3.4" ]]; then pip install -e https://github.com/aebrahim/IProgress.git#egg=IProgress; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == "3.4" ]]; then pip install git+https://github.com/aebrahim/IProgress.git#egg=IProgress; fi
   - pip install python-libsbml-experimental numpy scipy pyzmq pandas inspyred -f http://nikosonnensche.in/wheels/index.html --no-index
   - pip install coveralls coverage
   - pip install pypandoc
@@ -26,7 +26,7 @@ install:
   - pip install rednose
   # temporarily use development version of cobrapy (until 0.4 is released); cython>=0.21 needed for that
   - pip install cython>=0.21
-  - pip install -e git+https://github.com/opencobra/cobrapy.git@095d664cbbb69fcb7ae56da997240b35ea5ddb19#egg=cobra
+  - pip install git+https://github.com/opencobra/cobrapy.git@095d664cbbb69fcb7ae56da997240b35ea5ddb19#egg=cobra
   - pip install .
 # command to run tests
 script: nosetests
