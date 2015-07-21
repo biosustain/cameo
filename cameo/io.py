@@ -15,11 +15,8 @@
 from __future__ import absolute_import, print_function
 
 import pickle
-import time
-from multiprocessing import Process, Queue
 
 import requests
-import progressbar
 import optlang
 from cobra.io import read_sbml_model, load_json_model
 
