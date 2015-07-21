@@ -18,7 +18,6 @@ before_install:
   - sudo ln -s /run/shm /dev/shm
 install:
   - if [[ $TRAVIS_PYTHON_VERSION == "3.4" ]]; then pip install pyzmq pandas; fi
-  - if [[ $TRAVIS_PYTHON_VERSION == "3.4" ]]; then pip install git+https://github.com/aebrahim/IProgress.git#egg=IProgress; fi
   - pip install python-libsbml-experimental numpy scipy pyzmq pandas inspyred -f http://nikosonnensche.in/wheels/index.html --no-index
   - pip install coveralls coverage
   - pip install pypandoc

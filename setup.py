@@ -44,10 +44,11 @@ else:
                     'numexpr>=2.4',
                     'networkx>=1.9.1',
                     'six>=1.9.0',
-                    'escher>=1.1.2'
+                    'escher>=1.1.2',
+                    'IProgress>=0.2'
     ]
 if sys.version_info[0] < 3:
-    requirements.extend(['bashplotlib>=0.6.1', 'IProgress', 'inspyred>=1.0'])
+    requirements.extend(['bashplotlib>=0.6.1', 'inspyred>=1.0'])
 
 # Run
 # pandoc --from=markdown --to=rst README.md -o README.rst
