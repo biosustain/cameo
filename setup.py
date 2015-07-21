@@ -38,29 +38,25 @@ else:
                     'Jinja2>=2.7.3',
                     'pandas>=0.15.2',
                     'ordered-set>=1.2',
-                    'inspyred>=1.0',
                     'cobra>=0.3.2',
-                    'optlang>=0.2.6',
+                    'optlang>=0.2.8',
                     'requests>=2.5.0',
                     'numexpr>=2.4',
                     'networkx>=1.9.1',
                     'six>=1.9.0',
                     'escher>=1.1.2'
     ]
-    if sys.version_info[0] < 3:
-        requirements.extend(['inspyred>=1.0', 'progressbar-ipython>=2.3.1', 'bashplotlib>=0.6.1'])
-    else:
-        requirements.extend(['progressbar'])
-
-dependency_links = [
-    'https://github.com/coagulant/progressbar-python3.git'
-]
+if sys.version_info[0] < 3:
+    requirements.extend(['bashplotlib>=0.6.1', 'IProgress', 'inspyred>=1.0'])
 
 # Run
 # pandoc --from=markdown --to=rst README.md -o README.rst
 # from time to time, to keep README.rst updated
-with open('README.rst', 'r') as f:
-    description = f.read()
+try:
+    with open('README.rst', 'r') as f:
+        description = f.read()
+except:
+    description = ''
 
 setup(
     name='cameo',
@@ -68,7 +64,6 @@ setup(
     cmdclass=versioneer.get_cmdclass(),
     packages=find_packages(),
     install_requires=requirements,
-    dependency_links=dependency_links,
     include_package_data = True,
     author='Nikolaus Sonnenschein, Joao Cardoso, Emre Özdemir',
     author_email='niko.sonnenschein@gmail.com',

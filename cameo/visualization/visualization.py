@@ -313,8 +313,8 @@ try:
     ProgressBar = IPythonProgressBar
 
 except ImportError:
-    from progressbar import ProgressBar as PB
-    from progressbar import Bar, RotatingMarker, Percentage
+    from IProgress import ProgressBar as PB
+    from IProgress import Bar, RotatingMarker, Percentage
     import sys
 
     class CLIProgressBar():
@@ -343,6 +343,6 @@ except ImportError:
             self.progress_bar.finish()
 
         def __call__(self, iterable):
-            self.progress_bar(iterable)
+            return self.progress_bar(iterable)
 
     ProgressBar = CLIProgressBar
