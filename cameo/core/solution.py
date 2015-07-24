@@ -32,6 +32,11 @@ class SolutionBase(object):
     def __init__(self, model, *args, **kwargs):
         super(SolutionBase, self).__init__(*args, **kwargs)
         self.model = model
+        self.fluxes = []
+        self.reduced_costs = []
+        self.shadow_prices = []
+        self.f = None
+        self.status = None
 
     @property
     def data_frame(self):
