@@ -618,12 +618,6 @@ class AbstractTestSolverBasedModel(object):
                 self.model.solver.variables["DemandReaction_" + metabolite.id] in self.model.solver.constraints[
                     metabolite.id].expression)
 
-    def test_add_demand_for_non_existing_metabolite(self):
-        metabolite = Metabolite(id="a_metabolite")
-        self.model.add_demand(metabolite)
-        self.assertTrue(self.model.solver.variables["DM_" + metabolite.id]
-                        in self.model.solver.constraints[metabolite.id].expression)
-
     def test_objective(self):
         obj = self.model.objective
         self.assertEqual(
