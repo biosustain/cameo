@@ -25,8 +25,6 @@ from cameo.exceptions import UndefinedSolution
 
 import logging
 
-from six.moves import zip
-
 logger = logging.getLogger(__name__)
 
 
