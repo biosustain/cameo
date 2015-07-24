@@ -19,7 +19,7 @@ from pandas import DataFrame
 from cameo.data import metanetx
 
 
-def inchi_to_svg(inchi, file=None):
+def inchi_to_svg(inchi):
     try:
         import openbabel
     except ImportError as e:
