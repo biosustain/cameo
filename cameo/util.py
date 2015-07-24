@@ -162,7 +162,7 @@ class ProblemCache(object):
         self.transaction_id = None
 
 
-class RandomGenerator():
+class RandomGenerator(object):
     def __init__(self, seed=None):
         self._random = RandomState(seed=seed)
 
