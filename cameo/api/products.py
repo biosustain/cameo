@@ -36,7 +36,7 @@ def inchi_to_svg(inchi):
 
 class Compound(object):
     def __init__(self, inchi):
-        self.inchi
+        self.InChI = inchi
 
     def _repr_svg_(self):
         try:
