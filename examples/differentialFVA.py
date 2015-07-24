@@ -6,7 +6,7 @@ from cameo.basics import production_envelope
 model = load_model('../tests/data/EcoliCore.xml')
 
 solution = model.optimize()
-surrogate_experimental_fluxes = dict([(key, (val*.8, val*1.2)) for key, val in solution.x_dict.iteritems()])
+surrogate_experimental_fluxes = dict([(key, (val * .8, val * 1.2)) for key, val in solution.x_dict.iteritems()])
 
 constraint_model = copy.copy(model)
 for reaction_id, (lb, ub) in surrogate_experimental_fluxes.iteritems():

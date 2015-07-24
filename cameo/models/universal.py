@@ -23,11 +23,12 @@ from cameo import util
 
 
 class ModelFacadeUniversal(util.ModelFacade):
-
     def _load_model(self):
         return cameo.load_model(self._id)
 
+
 class ModelDB(object): pass
+
 
 universal = ModelDB()
 

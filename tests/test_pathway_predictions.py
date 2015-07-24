@@ -27,9 +27,9 @@ TRAVIS = os.getenv('TRAVIS', False)
 
 if not TRAVIS:
     class TestPathwayPredictor(unittest.TestCase):
-
         def setUp(self):
-            self.pathway_predictor = PathwayPredictor(TESTMODEL, universal_model=universal.metanetx_universal_model_bigg)
+            self.pathway_predictor = PathwayPredictor(TESTMODEL,
+                                                      universal_model=universal.metanetx_universal_model_bigg)
 
         def test_setting_incorrect_universal_model_raises(self):
             self.assertRaises(self.pathway_predictor.run, product='L-serine', universal_model='Mickey_Mouse')

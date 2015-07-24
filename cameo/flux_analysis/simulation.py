@@ -42,6 +42,7 @@ from cameo.util import TimeMachine, ProblemCache
 from cameo.exceptions import SolveError
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 add = Add._from_args
@@ -72,6 +73,7 @@ def fba(model, objective=None, *args, **kwargs):
         solution = model.solve()
         result = FluxDistributionResult(solution)
     return result
+
 
 def pfba(model, objective=None, *args, **kwargs):
     """Parsimonious Flux Balance Analysis.
@@ -179,7 +181,7 @@ def lmoma(model, reference=None, cache=None, *args, **kwargs):
             cache.add_constraint("c_%s_ub" % rid, create_upper_constraint, update_upper_constraint,
                                  cache.variables[pos_var_id], reaction, flux_value)
 
-            def update_lower_constraint(model,constraint, var, reaction, flux_value):
+            def update_lower_constraint(model, constraint, var, reaction, flux_value):
                 constraint.ub = flux_value
 
             def create_lower_constraint(model, constraint_id, var, reaction, flux_value):
@@ -232,7 +234,7 @@ def room(model, reference=None, cache=None, delta=0.03, epsilon=0.001, *args, **
         volatile = True
         cache = ProblemCache(model)
     elif not isinstance(cache, ProblemCache):
-            raise TypeError("Invalid cache object (must be a cameo.util.ProblemCache)")
+        raise TypeError("Invalid cache object (must be a cameo.util.ProblemCache)")
 
     cache.begin_transaction()
 
@@ -276,8 +278,6 @@ def room(model, reference=None, cache=None, delta=0.03, epsilon=0.001, *args, **
                 w_l = flux_value - delta * abs(flux_value) - epsilon
                 constraint._set_coefficients_low_level({variable: reaction.lower_bound - w_l})
                 constraint.lb = w_l
-
-
 
             cache.add_constraint("c_%s_lower" % rid, create_lower_constraint, update_lower_constraint,
                                  reaction, cache.variables["y_%s" % rid], flux_value, epsilon)

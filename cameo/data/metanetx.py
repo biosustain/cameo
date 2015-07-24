@@ -36,4 +36,3 @@ with gzip.open(os.path.join(cameo._cameo_data_path, 'metanetx_chem_prop.pklz'), 
         chem_prop = pickle.load(f, encoding='utf-8')
     else:
         chem_prop = pickle.load(f)
-

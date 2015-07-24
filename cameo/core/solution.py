@@ -24,12 +24,13 @@ from pandas import DataFrame, Series
 from cameo.exceptions import UndefinedSolution
 
 import logging
+
 from six.moves import zip
+
 logger = logging.getLogger(__name__)
 
 
 class SolutionBase(object):
-
     def __init__(self, model, *args, **kwargs):
         super(SolutionBase, self).__init__(*args, **kwargs)
         self.model = model

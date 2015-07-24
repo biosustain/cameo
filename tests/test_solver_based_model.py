@@ -34,7 +34,6 @@ from cameo.core.solver_based_model import Reaction
 from cameo.util import TimeMachine
 import six
 
-
 TRAVIS = os.getenv('TRAVIS', False)
 TESTDIR = os.path.dirname(__file__)
 REFERENCE_FVA_SOLUTION_ECOLI_CORE = pandas.read_csv(os.path.join(TESTDIR, 'data/REFERENCE_flux_ranges_EcoliCore.csv'),
@@ -87,7 +86,6 @@ class TestLazySolutionCPLEX(AbstractTestLazySolution, unittest.TestCase):
 
 
 class AbstractTestReaction(object):
-
     def test_clone_cobrapy_reaction(self):
         for reaction in self.cobrapy_model.reactions:
             cloned_reaction = Reaction.clone(reaction)
@@ -97,6 +95,7 @@ class AbstractTestReaction(object):
             self.assertEqual(cloned_reaction.metabolites, reaction.metabolites)
             self.assertEqual(cloned_reaction.products, reaction.products)
             self.assertEqual(cloned_reaction.reactants, reaction.reactants)
+
     def test_str(self):
         self.assertTrue(self.model.reactions[0].__str__().startswith('ACALD'))
 
@@ -126,12 +125,12 @@ class AbstractTestReaction(object):
         self.assertEqual(
             model.solver.constraints[test_met.id].expression.as_coefficients_dict()[pgi_reaction.reverse_variable], 0)
 
-        #test_met_2 = Metabolite("Test2", compartment="c")
-        #pgi_reaction.add_metabolites({test_met_2: 43}, combine=False)
-        #self.assertEqual(pgi_reaction.metabolites[test_met], 43)
-        #self.assertEqual(
+        # test_met_2 = Metabolite("Test2", compartment="c")
+        # pgi_reaction.add_metabolites({test_met_2: 43}, combine=False)
+        # self.assertEqual(pgi_reaction.metabolites[test_met], 43)
+        # self.assertEqual(
         #    model.solver.constraints[test_met.id].expression.as_coefficients_dict()[pgi_reaction.forward_variable], 43)
-        #self.assertEqual(
+        # self.assertEqual(
         #    model.solver.constraints[test_met.id].expression.as_coefficients_dict()[pgi_reaction.reverse_variable], -43)
 
     def test_knockout(self):
@@ -472,28 +471,32 @@ class AbstractTestReaction(object):
         for reaction in self.model.reactions:
             reaction.add_metabolites({test_metabolite: -66}, combine=True)
             self.assertEqual(reaction.metabolites[test_metabolite], -66)
-            self.assertIn(-66.*reaction.forward_variable, self.model.solver.constraints['test'].expression)
-            self.assertIn(66.*reaction.reverse_variable, self.model.solver.constraints['test'].expression)
+            self.assertIn(-66. * reaction.forward_variable, self.model.solver.constraints['test'].expression)
+            self.assertIn(66. * reaction.reverse_variable, self.model.solver.constraints['test'].expression)
             already_included_metabolite = list(reaction.metabolites.keys())[0]
             previous_coefficient = reaction.get_coefficient(already_included_metabolite.id)
             reaction.add_metabolites({already_included_metabolite: 10}, combine=True)
             new_coefficient = previous_coefficient + 10
             self.assertEqual(reaction.metabolites[already_included_metabolite], new_coefficient)
-            self.assertIn(new_coefficient*reaction.forward_variable, self.model.solver.constraints[already_included_metabolite.id].expression)
-            self.assertIn(-1*new_coefficient*reaction.reverse_variable, self.model.solver.constraints[already_included_metabolite.id].expression)
+            self.assertIn(new_coefficient * reaction.forward_variable,
+                          self.model.solver.constraints[already_included_metabolite.id].expression)
+            self.assertIn(-1 * new_coefficient * reaction.reverse_variable,
+                          self.model.solver.constraints[already_included_metabolite.id].expression)
 
     def test_add_metabolites_combine_false(self):
         test_metabolite = Metabolite('test')
         for reaction in self.model.reactions:
             reaction.add_metabolites({test_metabolite: -66}, combine=False)
             self.assertEqual(reaction.metabolites[test_metabolite], -66)
-            self.assertIn(-66.*reaction.forward_variable, self.model.solver.constraints['test'].expression)
-            self.assertIn(66.*reaction.reverse_variable, self.model.solver.constraints['test'].expression)
+            self.assertIn(-66. * reaction.forward_variable, self.model.solver.constraints['test'].expression)
+            self.assertIn(66. * reaction.reverse_variable, self.model.solver.constraints['test'].expression)
             already_included_metabolite = list(reaction.metabolites.keys())[0]
             reaction.add_metabolites({already_included_metabolite: 10}, combine=False)
             self.assertEqual(reaction.metabolites[already_included_metabolite], 10)
-            self.assertIn(10*reaction.forward_variable, self.model.solver.constraints[already_included_metabolite.id].expression)
-            self.assertIn(-10*reaction.reverse_variable, self.model.solver.constraints[already_included_metabolite.id].expression)
+            self.assertIn(10 * reaction.forward_variable,
+                          self.model.solver.constraints[already_included_metabolite.id].expression)
+            self.assertIn(-10 * reaction.reverse_variable,
+                          self.model.solver.constraints[already_included_metabolite.id].expression)
 
     @unittest.skip('Not implemented yet.')
     def test_change_id_is_reflected_in_solver(self):
@@ -502,7 +505,7 @@ class AbstractTestReaction(object):
             self.assertTrue(self.model.solver.variables[old_reaction_id].name, old_reaction_id)
             self.assertIn(old_reaction_id, self.model.solver.variables)
             self.assertTrue(old_reaction_id in self.model.solver)
-            new_reaction_id = reaction.id + '_' +str(i)
+            new_reaction_id = reaction.id + '_' + str(i)
             reaction.id = new_reaction_id
             self.assertEqual(reaction.id, new_reaction_id)
             self.assertFalse(old_reaction_id in self.model.solver)
@@ -555,8 +558,10 @@ class AbstractTestSolverBasedModel(object):
         self.assertEqual(self.model.reactions[-2], r1)
         self.assertEqual(self.model.reactions[-1], r2)
         self.assertTrue(isinstance(self.model.reactions[-2].reverse_variable, self.model.solver.interface.Variable))
-        self.assertEqual(self.model.objective.expression.coeff(self.model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.forward_variable), 1.)
-        self.assertEqual(self.model.objective.expression.coeff(self.model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.reverse_variable), -1.)
+        self.assertEqual(self.model.objective.expression.coeff(
+            self.model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.forward_variable), 1.)
+        self.assertEqual(self.model.objective.expression.coeff(
+            self.model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.reverse_variable), -1.)
         self.assertEqual(self.model.objective.expression.coeff(self.model.reactions.r2.forward_variable), 3.)
         self.assertEqual(self.model.objective.expression.coeff(self.model.reactions.r2.reverse_variable), -3.)
 
@@ -630,20 +635,23 @@ class AbstractTestSolverBasedModel(object):
     def test_objective(self):
         obj = self.model.objective
         self.assertEqual(
-            obj.__str__(), 'Maximize\n-1.0*Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2_reverse_9ebcd + 1.0*Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2')
+            obj.__str__(),
+            'Maximize\n-1.0*Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2_reverse_9ebcd + 1.0*Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2')
 
     def test_change_objective(self):
-        expression = 1.0*self.model.solver.variables['ENO'] + 1.0*self.model.solver.variables['PFK']
+        expression = 1.0 * self.model.solver.variables['ENO'] + 1.0 * self.model.solver.variables['PFK']
         self.model.objective = Objective(expression)
         self.assertEqual(str(self.model.objective.expression), str(expression))
 
     def test_set_reaction_objective(self):
         self.model.objective = self.model.reactions.ACALD
-        self.assertEqual(str(self.model.objective.expression), str(1.0*self.model.reactions.ACALD.variable - 1.0*self.model.reactions.ACALD.reverse_variable))
+        self.assertEqual(str(self.model.objective.expression), str(
+            1.0 * self.model.reactions.ACALD.variable - 1.0 * self.model.reactions.ACALD.reverse_variable))
 
     def test_set_reaction_objective_str(self):
         self.model.objective = self.model.reactions.ACALD.id
-        self.assertEqual(str(self.model.objective.expression), str(1.0*self.model.reactions.ACALD.variable - 1.0*self.model.reactions.ACALD.reverse_variable))
+        self.assertEqual(str(self.model.objective.expression), str(
+            1.0 * self.model.reactions.ACALD.variable - 1.0 * self.model.reactions.ACALD.reverse_variable))
 
     def test_invalid_objective_raises(self):
         self.assertRaises(Exception, setattr, self.model, 'objective', 'This is not a valid objective!')
@@ -672,7 +680,7 @@ class AbstractTestSolverBasedModel(object):
             self.assertAlmostEqual(new_solution.x_dict[key], solution[key])
 
     def test_invalid_solver_change_raises(self):
-        self.assertRaises(ValueError, setattr, self.model, 'solver', [1,2,3])
+        self.assertRaises(ValueError, setattr, self.model, 'solver', [1, 2, 3])
         self.assertRaises(ValueError, setattr, self.model, 'solver', 'ThisIsDefinitelyNotAvalidSolver')
         self.assertRaises(ValueError, setattr, self.model, 'solver', os)
 
@@ -690,7 +698,7 @@ class AbstractTestSolverBasedModel(object):
         self.assertAlmostEqual(model_copy.optimize().f, 0.8739215069684306)
 
     def test_copy_preserves_existing_solution(self):
-        self.model.solve()  #TODO: not sure why the model has to be solved here because it is already in setUp
+        self.model.solve()  # TODO: not sure why the model has to be solved here because it is already in setUp
         model_cp = copy.copy(self.model)
         primals_original = [variable.primal for variable in self.model.solver.variables]
         primals_copy = [variable.primal for variable in model_cp.solver.variables]
@@ -722,24 +730,23 @@ class AbstractTestSolverBasedModel(object):
     def test_add_ratio_constraint(self):
         solution = self.model.solve()
         self.assertAlmostEqual(solution.f, 0.873921506968)
-        self.assertNotEqual(2*solution.x_dict['PGI'], solution.x_dict['G6PDH2r'])
+        self.assertNotEqual(2 * solution.x_dict['PGI'], solution.x_dict['G6PDH2r'])
         cp = self.model.copy()
         ratio_constr = cp.add_ratio_constraint(cp.reactions.PGI, cp.reactions.G6PDH2r, 0.5)
         self.assertEqual(ratio_constr.name, 'ratio_constraint_PGI_G6PDH2r')
         solution = cp.solve()
         self.assertAlmostEqual(solution.f, 0.870407873712)
-        self.assertAlmostEqual(2*solution.x_dict['PGI'], solution.x_dict['G6PDH2r'])
+        self.assertAlmostEqual(2 * solution.x_dict['PGI'], solution.x_dict['G6PDH2r'])
         cp = self.model.copy()
 
         ratio_constr = cp.add_ratio_constraint(cp.reactions.PGI, cp.reactions.G6PDH2r, 0.5)
         self.assertEqual(ratio_constr.name, 'ratio_constraint_PGI_G6PDH2r')
         solution = cp.solve()
         self.assertAlmostEqual(solution.f, 0.870407873712)
-        self.assertAlmostEqual(2*solution.x_dict['PGI'], solution.x_dict['G6PDH2r'])
+        self.assertAlmostEqual(2 * solution.x_dict['PGI'], solution.x_dict['G6PDH2r'])
 
 
 class TestSolverBasedModelGLPK(AbstractTestSolverBasedModel, unittest.TestCase):
-
     def setUp(self):
         super(TestSolverBasedModelGLPK, self).setUp()
         self.model.solver = 'glpk'
@@ -747,10 +754,10 @@ class TestSolverBasedModelGLPK(AbstractTestSolverBasedModel, unittest.TestCase):
 
 @unittest.skipIf(TRAVIS, 'CPLEX not available on Travis.')
 class TestSolverBasedModelCPLEX(AbstractTestSolverBasedModel, unittest.TestCase):
-
     def setUp(self):
         super(TestSolverBasedModelCPLEX, self).setUp()
         self.model.solver = 'glpk'
+
 
 if __name__ == '__main__':
     import nose

@@ -14,17 +14,18 @@
 
 from __future__ import absolute_import, print_function
 
+
 def distance_based_on_molecular_formula(metabolite1, metabolite2, normalize=True):
     if len(metabolite1.formula.elements) == 0 or len(metabolite2.formula.elements) == 0:
         return ValueError('Cannot calculate distance between metabolites %s and %s' % (metabolite1, metabolite2))
     elements = set(list(metabolite1.formula.elements.keys()) + list(metabolite2.formula.elements.keys()))
     distance = 0.
     for element in elements:
-         distance += abs(metabolite1.formula.elements.get(element, 0) - metabolite2.formula.elements.get(element, 0))
+        distance += abs(metabolite1.formula.elements.get(element, 0) - metabolite2.formula.elements.get(element, 0))
     if normalize:
-        #try:
+        # try:
         return distance / sum(list(metabolite1.formula.elements.values()) + list(metabolite2.formula.elements.values()))
-        #except:
+        # except:
         #    print(metabolite1, metabolite2, metabolite1.formula.elements, metabolite2.formula.elements)
     else:
         return distance

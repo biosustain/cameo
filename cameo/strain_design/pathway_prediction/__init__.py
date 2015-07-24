@@ -32,6 +32,7 @@ from . import util
 import re
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 
@@ -86,7 +87,6 @@ class PathwayResult(Result):
 
 
 class PathwayPredictions(Result):
-
     def data_frame(self):
         raise NotImplementedError
 
@@ -106,7 +106,8 @@ class PathwayPredictions(Result):
         for i, pathway in enumerate(self.pathways):
             string += 'Pathway No. {}'.format(i + 1)
             for reaction in pathway:
-                string += '{}, {}:'.format(reaction.id, reaction.name, reaction.build_reaction_string(use_metabolite_names=True))
+                string += '{}, {}:'.format(reaction.id, reaction.name,
+                                           reaction.build_reaction_string(use_metabolite_names=True))
         return string
 
     def plot(self, grid=None, width=None, height=None, title=None):
@@ -176,7 +177,7 @@ class PathwayPredictor(object):
 
         logger.debug("Adding adapter reactions to connect model with universal model.")
         self.adpater_reactions = util.create_adaptor_reactions(model.metabolites, self.universal_model,
-                                                                self.mapping, compartment_regexp)
+                                                               self.mapping, compartment_regexp)
         self.model.add_reactions(self.adpater_reactions)
         self._add_switches(self.new_reactions)
 
@@ -205,7 +206,8 @@ class PathwayPredictor(object):
         pathways = list()
         with TimeMachine() as tm:
             tm(do=partial(setattr, self.model.solver.configuration, 'timeout', timeout),
-               undo=partial(setattr, self.model.solver.configuration, 'timeout', self.model.solver.configuration.timeout))
+               undo=partial(setattr, self.model.solver.configuration, 'timeout',
+                            self.model.solver.configuration.timeout))
             try:
                 demand_reaction = self.model.reactions.get_by_id('DM_' + product.id)
             except KeyError:
@@ -230,7 +232,9 @@ class PathwayPredictor(object):
                 logger.debug(vars_to_cut)
                 if len(vars_to_cut) == 0:
                     # no pathway found:
-                    logger.info("It seems %s is a native product in model %s. Let's see if we can find better heterologous pathways." % (product, self.model))
+                    logger.info(
+                        "It seems %s is a native product in model %s. Let's see if we can find better heterologous pathways." % (
+                        product, self.model))
                     # knockout adapter with native product
                     for adapter in self.adpater_reactions:
                         if product in adapter.metabolites:
@@ -239,7 +243,8 @@ class PathwayPredictor(object):
                     continue
 
                 pathway = [self.model.reactions.get_by_id(y_var.name[2:]) for y_var in vars_to_cut]
-                logger.debug('Pathway predicted: %s' % '\t'.join([r.build_reaction_string(use_metabolite_names=True) for r in pathway]))
+                logger.debug('Pathway predicted: %s' % '\t'.join(
+                    [r.build_reaction_string(use_metabolite_names=True) for r in pathway]))
                 # Figure out adapter reactions to include
                 adapters = [adapter for adapter in self.adpater_reactions if abs(adapter.flux) != 0]
 
@@ -253,7 +258,7 @@ class PathwayPredictor(object):
                 pathways.append(pathway)
                 integer_cut = self.model.solver.interface.Constraint(Add(*vars_to_cut),
                                                                      name="integer_cut_" + str(counter),
-                                                                     ub=len(vars_to_cut)-1)
+                                                                     ub=len(vars_to_cut) - 1)
                 logger.debug('Adding integer cut.')
                 tm(do=partial(self.model.solver._add_constraint, integer_cut),
                    undo=partial(self.model.solver._remove_constraint, integer_cut))
@@ -276,13 +281,13 @@ class PathwayPredictor(object):
                 self._exchanges.append(reaction)
                 continue
 
-            y = self.model.solver.interface.Variable('y_'+reaction.id, lb=0, ub=1, type='binary')
+            y = self.model.solver.interface.Variable('y_' + reaction.id, lb=0, ub=1, type='binary')
             y_vars.append(y)
 
             switch_lb = self.model.solver.interface.Constraint(y * reaction.lower_bound - reaction.flux_expression,
-                                                               name='switch_lb_'+reaction.id, ub=0)
+                                                               name='switch_lb_' + reaction.id, ub=0)
             switch_ub = self.model.solver.interface.Constraint(y * reaction.upper_bound - reaction.flux_expression,
-                                                               name='switch_ub_'+reaction.id, lb=0)
+                                                               name='switch_ub_' + reaction.id, lb=0)
             switches.extend([switch_lb, switch_ub])
 
         self.model.solver.add(switches)
@@ -322,7 +327,9 @@ class PathwayPredictor(object):
                     return metabolite
                 if metabolite.name == product:
                     return metabolite
-            raise ValueError("Specified product '{product}' could not be found. Try searching pathway_predictor_obj.universal_metabolites.metabolites".format(product=product))
+            raise ValueError(
+                "Specified product '{product}' could not be found. Try searching pathway_predictor_obj.universal_metabolites.metabolites".format(
+                    product=product))
         elif isinstance(product, Metabolite):
             try:
                 return self.model.metabolites.get_by_id(product.id)
@@ -333,7 +340,7 @@ class PathwayPredictor(object):
 
 
 if __name__ == '__main__':
-
     from cameo.api import hosts
+
     pathway_predictor = PathwayPredictor(hosts.ecoli.models.EcoliCore)
     print(pathway_predictor.run(product=pathway_predictor.model.metabolites.MNXM53))  # MNXM53 = L-serine

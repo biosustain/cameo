@@ -23,6 +23,7 @@ from uuid import uuid1
 from time import time
 from datetime import datetime
 import colorsys
+
 import pip
 import platform
 from itertools import islice
@@ -31,11 +32,11 @@ from functools import partial
 from numpy.random import RandomState
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 
 class ModelFacade(object):
-
     def __init__(self, id=id, *args, **kwargs):
         self._id = id
         self._model = None
@@ -202,7 +203,6 @@ class Singleton(object):
 
 
 class AutoVivification(dict):
-
     """Implementation of perl's autovivification feature. Checkout http://stackoverflow.com/a/652284/280182"""
 
     def __getitem__(self, item):
@@ -214,7 +214,6 @@ class AutoVivification(dict):
 
 
 class TimeMachine(object):
-
     """Travel back and forth in time."""
 
     def __init__(self):
@@ -231,7 +230,7 @@ class TimeMachine(object):
         # make sure that entry is added to the end of history
         self.history.pop(entry_id, None)
         self.history[entry_id] = {'unix_epoch':
-                                  current_time, 'undo': undo, 'redo': do}
+                                      current_time, 'undo': undo, 'redo': do}
         return entry_id, output
 
     def __str__(self):
@@ -371,13 +370,14 @@ def flatten(l):
 
 
 def generate_colors(n):
-    hsv_tuples = [(v*1.0/n, 0.5, 0.5) for v in range(n)]
+    hsv_tuples = [(v * 1.0 / n, 0.5, 0.5) for v in range(n)]
     color_map = {}
     for i in range(n):
         rgb = colorsys.hsv_to_rgb(*hsv_tuples[i])
-        color = tuple([rgb[0]*256, rgb[1]*256, rgb[2]*256])
+        color = tuple([rgb[0] * 256, rgb[1] * 256, rgb[2] * 256])
         color_map[i] = '#%02x%02x%02x' % color
     return color_map
+
 
 def memoize(function, memo={}):
     def wrapper(*args):
@@ -390,7 +390,9 @@ def memoize(function, memo={}):
             rv = function(*args)
             memo[args] = rv
             return rv
+
     return wrapper
+
 
 def get_system_info():
     # pip freeze (adapted from http://stackoverflow.com/a/24322465/280182)
@@ -403,12 +405,14 @@ def get_system_info():
                 machine=platform.machine(),
                 system=platform.system())
 
+
 def in_ipnb():
     """
     Check if it is running inside an IPython Notebook (updated for new notebooks)
     """
     try:
         import IPython
+
         ip = IPython.get_ipython()
 
         front_end = None
@@ -431,6 +435,7 @@ def in_ipnb():
         logger.debug("Cannot determine if running a notebook because of %s" % e)
         return False
     return False
+
 
 def str_to_valid_variable_name(s):
     """Adapted from http://stackoverflow.com/a/3303361/280182"""

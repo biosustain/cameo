@@ -25,12 +25,14 @@ import time
 import datetime
 import csv
 from copy import copy, deepcopy
+
 import types
 
 import cobra as _cobrapy
 import sympy
 from sympy import Add
 from sympy import Mul
+
 from sympy.core.singleton import S
 import optlang
 from pandas import DataFrame, pandas
@@ -43,6 +45,7 @@ from .reaction import Reaction
 from .solution import LazySolution, Solution
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 add = Add._from_args
@@ -111,7 +114,7 @@ class SolverBasedModel(_cobrapy.core.Model):
         try:
             model_copy._solver = deepcopy(self.solver)
         except:  # pragma: no cover # Cplex has an issue with deep copies
-            model_copy._solver = copy(self.solver) # pragma: no cover
+            model_copy._solver = copy(self.solver)  # pragma: no cover
         return model_copy
 
     def _repr_html_(self):  # pragma: no cover
@@ -163,7 +166,9 @@ class SolverBasedModel(_cobrapy.core.Model):
 
     @solver.setter
     def solver(self, value):
-        not_valid_interface = ValueError('%s is not a valid solver interface. Pick from %s, or specify an optlang interface (e.g. optlang.glpk_interface).' % (value, list(config.solvers.keys())))
+        not_valid_interface = ValueError(
+            '%s is not a valid solver interface. Pick from %s, or specify an optlang interface (e.g. optlang.glpk_interface).' % (
+            value, list(config.solvers.keys())))
         if isinstance(value, str):
             try:
                 interface = config.solvers[value]
@@ -175,7 +180,7 @@ class SolverBasedModel(_cobrapy.core.Model):
             raise not_valid_interface
         objective = self.solver.objective
         self._solver = interface.Model()
-        self._populate_solver(self.reactions)  #FIXME: This ignores non-reaction variables and constraints
+        self._populate_solver(self.reactions)  # FIXME: This ignores non-reaction variables and constraints
         self._solver.objective = interface.Objective.clone(objective, model=self._solver)
 
     @property
@@ -194,17 +199,22 @@ class SolverBasedModel(_cobrapy.core.Model):
         metabolites = {}
         for reaction in reaction_list:
             if reaction.reversibility:
-                forward_variable = self.solver.interface.Variable(reaction._get_forward_id(), lb=0, ub=reaction._upper_bound)
-                reverse_variable = self.solver.interface.Variable(reaction._get_reverse_id(), lb=0, ub=-1*reaction._lower_bound)
+                forward_variable = self.solver.interface.Variable(reaction._get_forward_id(), lb=0,
+                                                                  ub=reaction._upper_bound)
+                reverse_variable = self.solver.interface.Variable(reaction._get_reverse_id(), lb=0,
+                                                                  ub=-1 * reaction._lower_bound)
             elif 0 == reaction.lower_bound and reaction.upper_bound == 0:
                 forward_variable = self.solver.interface.Variable(reaction._get_forward_id(), lb=0, ub=0)
                 reverse_variable = self.solver.interface.Variable(reaction._get_reverse_id(), lb=0, ub=0)
             elif reaction.lower_bound >= 0:
-                forward_variable = self.solver.interface.Variable(reaction.id, lb=reaction._lower_bound, ub=reaction._upper_bound)
+                forward_variable = self.solver.interface.Variable(reaction.id, lb=reaction._lower_bound,
+                                                                  ub=reaction._upper_bound)
                 reverse_variable = self.solver.interface.Variable(reaction._get_reverse_id(), lb=0, ub=0)
             elif reaction.upper_bound <= 0:
                 forward_variable = self.solver.interface.Variable(reaction.id, lb=0, ub=0)
-                reverse_variable = self.solver.interface.Variable(reaction._get_reverse_id(), lb=-1*reaction._upper_bound, ub=-1*reaction._lower_bound)
+                reverse_variable = self.solver.interface.Variable(reaction._get_reverse_id(),
+                                                                  lb=-1 * reaction._upper_bound,
+                                                                  ub=-1 * reaction._lower_bound)
             self.solver._add_variable(forward_variable)
             self.solver._add_variable(reverse_variable)
 
@@ -215,7 +225,8 @@ class SolverBasedModel(_cobrapy.core.Model):
                 else:
                     constr_terms[metabolite.id] = [sympy.Mul._from_args([sympy.RealNumber(coeff), forward_variable])]
                     metabolites[metabolite.id] = metabolite
-                constr_terms[metabolite.id].append(sympy.Mul._from_args([sympy.RealNumber(-1*coeff), reverse_variable]))
+                constr_terms[metabolite.id].append(
+                    sympy.Mul._from_args([sympy.RealNumber(-1 * coeff), reverse_variable]))
 
             if reaction.objective_coefficient != 0.:
                 objective_terms.append(reaction.objective_coefficient * reaction.flux_expression)
@@ -225,7 +236,8 @@ class SolverBasedModel(_cobrapy.core.Model):
             try:
                 self.solver.constraints[met_id] += expr
             except KeyError:
-                self.solver._add_constraint(self.solver.interface.Constraint(expr, name=met_id, lb=0, ub=0), sloppy=True)
+                self.solver._add_constraint(self.solver.interface.Constraint(expr, name=met_id, lb=0, ub=0),
+                                            sloppy=True)
 
         objective_expression = sympy.Add(*objective_terms)
         if self.solver.objective is None:
@@ -302,7 +314,8 @@ class SolverBasedModel(_cobrapy.core.Model):
         else:
             term2 = reaction2.variable
 
-        ratio_constraint = self.solver.interface.Constraint(term1 - ratio * term2, lb=0, ub=0, name='ratio_constraint_'+reaction1.id+'_'+reaction2.id)
+        ratio_constraint = self.solver.interface.Constraint(term1 - ratio * term2, lb=0, ub=0,
+                                                            name='ratio_constraint_' + reaction1.id + '_' + reaction2.id)
         self.solver._add_constraint(ratio_constraint, sloppy=True)
         return ratio_constraint
 
@@ -475,7 +488,6 @@ class SolverBasedModel(_cobrapy.core.Model):
                           'lower_bound': lower_bounds,
                           'upper_bound': upper_bounds},
                          index=None, columns=['reaction_id', 'reaction_name', 'lower_bound', 'upper_bound'])
-
 
     # TODO: describe the formats in doc
     def load_medium(self, medium, copy=False):

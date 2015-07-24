@@ -44,7 +44,6 @@ SEED = 1234
 CURRENT_PATH = os.path.dirname(__file__)
 MODEL_PATH = os.path.join(CURRENT_PATH, "data/EcoliCore.xml")
 
-
 TEST_MODEL = load_model(MODEL_PATH, sanitize=False)
 
 SOLUTIONS = [
@@ -75,7 +74,7 @@ class TestBestSolutionArchiver(unittest.TestCase):
         sol2 = SolutionTuple(SOLUTIONS[1][0], SOLUTIONS[1][1])
         sol3 = SolutionTuple(SOLUTIONS[2][0], SOLUTIONS[2][1])
 
-        #test ordering
+        # test ordering
         self.assertEqual(sol1.__cmp__(sol2), -1)
         self.assertEqual(sol1.__cmp__(sol1), 0)
         self.assertEqual(sol1.__cmp__(sol3), 1)
@@ -84,7 +83,7 @@ class TestBestSolutionArchiver(unittest.TestCase):
         self.assertTrue(sol1 == sol1)
         self.assertTrue(sol1 > sol3)
 
-        #test gt and lt
+        # test gt and lt
         self.assertTrue(sol1.__lt__(sol2))
         self.assertTrue(sol1.__gt__(sol3))
         self.assertFalse(sol1.__lt__(sol1))
@@ -93,7 +92,7 @@ class TestBestSolutionArchiver(unittest.TestCase):
         self.assertFalse(sol3.__gt__(sol1))
 
 
-        #testing issubset
+        # testing issubset
         self.assertTrue(sol1.issubset(sol2), msg="Solution 1 is subset of Solution 2")
         self.assertFalse(sol2.issubset(sol1), msg="Solution 2 is not subset of Solution 1")
         self.assertTrue(sol3.issubset(sol2), msg="Solution 3 is subset of Solution 2")
@@ -101,7 +100,7 @@ class TestBestSolutionArchiver(unittest.TestCase):
         self.assertFalse(sol1.issubset(sol3), msg="Solution 1 is subset of Solution 3")
         self.assertFalse(sol2.issubset(sol3), msg="Solution 3 is not subset of Solution 1")
 
-        #test difference
+        # test difference
         l = len(sol2.symmetric_difference(sol1))
         self.assertEqual(l, 1, msg="Difference between Solution 2 and 1 is (%s)" % sol2.symmetric_difference(sol1))
         l = len(sol3.symmetric_difference(sol2))
@@ -120,7 +119,7 @@ class TestBestSolutionArchiver(unittest.TestCase):
         sol2 = SolutionTuple(SOLUTIONS[1][0], SOLUTIONS[1][1], maximize=False)
         sol3 = SolutionTuple(SOLUTIONS[2][0], SOLUTIONS[2][1], maximize=False)
 
-        #test ordering
+        # test ordering
         self.assertEqual(sol1.__cmp__(sol2), -1)
         self.assertEqual(sol1.__cmp__(sol1), 0)
         self.assertEqual(sol1.__cmp__(sol3), -1)
@@ -129,7 +128,7 @@ class TestBestSolutionArchiver(unittest.TestCase):
         self.assertTrue(sol1 == sol1)
         self.assertTrue(sol1 < sol3)
 
-        #test gt and lt
+        # test gt and lt
         self.assertTrue(sol1.__lt__(sol2))
         self.assertTrue(sol1.__lt__(sol3))
         self.assertFalse(sol1.__gt__(sol1))
@@ -137,7 +136,7 @@ class TestBestSolutionArchiver(unittest.TestCase):
         self.assertTrue(sol2.__gt__(sol1))
         self.assertFalse(sol3.__lt__(sol1))
 
-        #testing issubset
+        # testing issubset
         self.assertTrue(sol1.issubset(sol2), msg="Solution 1 is subset of Solution 2")
         self.assertFalse(sol2.issubset(sol1), msg="Solution 2 is not subset of Solution 1")
         self.assertTrue(sol3.issubset(sol2), msg="Solution 3 is subset of Solution 2")
@@ -145,7 +144,7 @@ class TestBestSolutionArchiver(unittest.TestCase):
         self.assertFalse(sol1.issubset(sol3), msg="Solution 1 is subset of Solution 3")
         self.assertFalse(sol2.issubset(sol3), msg="Solution 3 is not subset of Solution 1")
 
-        #test difference
+        # test difference
         l = len(sol2.symmetric_difference(sol1))
         self.assertEqual(l, 1, msg="Difference between Solution 2 and 1 is (%s)" % sol2.symmetric_difference(sol1))
         l = len(sol3.symmetric_difference(sol2))
@@ -265,7 +264,6 @@ class TestBestSolutionArchiver(unittest.TestCase):
 
 
 class TestObjectiveFunctions(unittest.TestCase):
-
     class _MockupSolution():
         def __init__(self):
             self._primal = {}
@@ -289,7 +287,7 @@ class TestObjectiveFunctions(unittest.TestCase):
         of = biomass_product_coupled_yield("biomass", "product", "substrate")
 
         fitness = of(None, solution, None)
-        self.assertAlmostEqual((0.6 * 2)/10, fitness)
+        self.assertAlmostEqual((0.6 * 2) / 10, fitness)
 
         solution.set_primal('substrate', 0)
 
@@ -304,14 +302,13 @@ class TestObjectiveFunctions(unittest.TestCase):
 
         of = product_yield("product", "substrate")
         fitness = of(None, solution, None)
-        self.assertAlmostEqual(2.0/10.0, fitness)
+        self.assertAlmostEqual(2.0 / 10.0, fitness)
 
         solution.set_primal('substrate', 0)
         fitness = of(None, solution, None)
         self.assertEquals(0, fitness)
 
     def test_number_of_knockouts(self):
-
         of_max = number_of_knockouts(sense='max')
         of_min = number_of_knockouts(sense='min')
 
@@ -363,7 +360,7 @@ class TestGeneratos(unittest.TestCase):
                     [2, 0, 3, 4, 5],
                     [2, 2, 3, 3, 0]]
 
-        for i in range(len(expected)-1):
+        for i in range(len(expected) - 1):
             candidate = set_generator(random, dict(representation=representation,
                                                    candidate_size=candidate_size,
                                                    variable_candidate_size=variable_candidate_size))
@@ -604,7 +601,6 @@ class TestReactionKnockoutOptimization(unittest.TestCase):
 
     @unittest.skip('Not deterministic when seeded')
     def test_run_single_objective(self):
-
         result_file = os.path.join(CURRENT_PATH, "data", "reaction_knockout_single_objective.pkl")
         objective = biomass_product_coupled_yield(
             "Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2",

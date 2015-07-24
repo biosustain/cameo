@@ -136,6 +136,7 @@ class HeuristicOptimization(object):
     *cameo.config.default_view
 
     """
+
     def __init__(self, model=None, heuristic_method=inspyred.ec.GA, objective_function=None, seed=None,
                  termination=inspyred.ec.terminators.evaluation_termination, plot=True, progress=True,
                  *args, **kwargs):
@@ -155,7 +156,6 @@ class HeuristicOptimization(object):
         self.heuristic_method = heuristic_method
         self.heuristic_method.terminator = termination
         self._generator = None
-
 
     @property
     def objective_function(self):
@@ -240,6 +240,7 @@ class KnockoutEvaluator(object):
         calling the object will evaluate a population (see inspyred)
 
     """
+
     def __init__(self, model, decoder, objective_function, simulation_method, simulation_kwargs):
         self.model = model
         self.decoder = decoder
@@ -289,6 +290,7 @@ class KnockoutOptimization(HeuristicOptimization):
     """
     Abstract class for knockout optimization.
     """
+
     def __init__(self, simulation_method=pfba, max_size=9, variable_size=True, wt_reference=None, *args, **kwargs):
         """
          Attributes
@@ -645,6 +647,7 @@ class ReactionKnockoutOptimization(KnockoutOptimization):
     *cameo.config.default_view
 
     """
+
     def __init__(self, reactions=None, essential_reactions=None, *args, **kwargs):
         super(ReactionKnockoutOptimization, self).__init__(*args, **kwargs)
         if reactions is None:
@@ -707,6 +710,7 @@ class GeneKnockoutOptimization(KnockoutOptimization):
     *cameo.config.default_view
 
     """
+
     def __init__(self, genes=None, essential_genes=None, *args, **kwargs):
         super(GeneKnockoutOptimization, self).__init__(*args, **kwargs)
         if genes is None:
@@ -767,7 +771,7 @@ class KnockinKnockoutOptimization(KnockoutOptimization):
                                                  product=kwargs.get('product', None))
 
 
-#TODO: implement a knockout knockin approach using a reaction db
+# TODO: implement a knockout knockin approach using a reaction db
 class ReactionKnockinKnockoutOptimization(ReactionKnockoutOptimization, KnockinKnockoutOptimization):
     def __init__(self, reaction_db=None, *args, **kwargs):
         KnockinKnockoutOptimization.__init__(self, *args, **kwargs)

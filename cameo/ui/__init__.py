@@ -24,7 +24,6 @@ import six
 
 from base64 import b64encode
 
-
 ASSETS = os.path.join(os.path.dirname(__file__), "assets")
 
 SEARCHING_IMAGE_FILE = os.path.join(ASSETS, "searching.gif")
@@ -34,8 +33,6 @@ with open(SEARCHING_IMAGE_FILE, "rb") as f:
     elif six.PY3:
         SEARCHING_IMAGE = str(b64encode(f.read())).replace('\n', '')
 
-
-
 LOADING_IMAGE_FILE = os.path.join(ASSETS, "searching.gif")
 with open(SEARCHING_IMAGE_FILE, "rb") as f:
     if six.PY2:
@@ -43,7 +40,6 @@ with open(SEARCHING_IMAGE_FILE, "rb") as f:
     elif six.PY3:
         s = f.read()
         LOADING_IMAGE = str(b64encode(f.read())).replace('\n', '')
-
 
 logger = logging.getLogger(__name__)
 

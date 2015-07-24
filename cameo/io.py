@@ -24,7 +24,9 @@ from cameo.core.solver_based_model import SolverBasedModel, to_solver_based_mode
 from cameo.models import webmodels
 
 import logging
+
 logger = logging.getLogger(__name__)
+
 
 def load_model(path_or_handle, solver_interface=optlang.glpk_interface, sanitize=True):
     """Read a metabolic model .
@@ -86,7 +88,9 @@ def load_model(path_or_handle, solver_interface=optlang.glpk_interface, sanitize
                 logger.error("cobrapy doesn't raise a proper exception if a file does not contain an SBML model")
                 raise e
             except Exception as e:
-                logger.error("Looks like something blow up while trying to import {} as a SBML model. Try validating the model at http://sbml.org/Facilities/Validator/ to get more information.".format(path))
+                logger.error(
+                    "Looks like something blow up while trying to import {} as a SBML model. Try validating the model at http://sbml.org/Facilities/Validator/ to get more information.".format(
+                        path))
                 raise e
     if sanitize:
         sanitize_ids(model)
@@ -103,18 +107,24 @@ def load_model(path_or_handle, solver_interface=optlang.glpk_interface, sanitize
     return model
 
 
-ID_SANITIZE_RULES_SIMPHENY = [('_DASH_', '-'), ('_FSLASH_', '/'),('_BSLASH_', "\\"), ('_LPAREN_', '('), ('_LSQBKT_', '['),
-                     ('_RSQBKT_', ']'), ('_RPAREN_', ')'), ('_COMMA_', ','), ('_PERIOD_', '.'), ('_APOS_', "'"),
-                     ('&amp;', '&'), ('&lt;', '<'), ('&gt;', '>'), ('&quot;', '"')]
+ID_SANITIZE_RULES_SIMPHENY = [('_DASH_', '-'), ('_FSLASH_', '/'), ('_BSLASH_', "\\"), ('_LPAREN_', '('),
+                              ('_LSQBKT_', '['),
+                              ('_RSQBKT_', ']'), ('_RPAREN_', ')'), ('_COMMA_', ','), ('_PERIOD_', '.'),
+                              ('_APOS_', "'"),
+                              ('&amp;', '&'), ('&lt;', '<'), ('&gt;', '>'), ('&quot;', '"')]
 
-ID_SANITIZE_RULES_TAB_COMPLETION = [('_DASH_', '_dsh_'), ('_FSLASH_', '_fsh_'),('_BSLASH_', "_bsh_"), ('_LPAREN_', '_lp_'), ('_LSQBKT_', '_lb_'),
-                     ('_RSQBKT_', '_rb_'), ('_RPAREN_', '_rp_'), ('_COMMA_', '_cm_'), ('_PERIOD_', '_prd_'), ('_APOS_', "_apo_"),
-                     ('&amp;', '_amp_'), ('&lt;', '_lt_'), ('&gt;', '_gt_'), ('&quot;', '_qot_')]
+ID_SANITIZE_RULES_TAB_COMPLETION = [('_DASH_', '_dsh_'), ('_FSLASH_', '_fsh_'), ('_BSLASH_', "_bsh_"),
+                                    ('_LPAREN_', '_lp_'), ('_LSQBKT_', '_lb_'),
+                                    ('_RSQBKT_', '_rb_'), ('_RPAREN_', '_rp_'), ('_COMMA_', '_cm_'),
+                                    ('_PERIOD_', '_prd_'), ('_APOS_', "_apo_"),
+                                    ('&amp;', '_amp_'), ('&lt;', '_lt_'), ('&gt;', '_gt_'), ('&quot;', '_qot_')]
+
 
 def _apply_sanitize_rules(id, rules):
-        for rule in rules:
-            id = id.replace(*rule)
-        return id
+    for rule in rules:
+        id = id.replace(*rule)
+    return id
+
 
 def sanitize_ids(model):
     """Makes IDs crippled by the XML specification less annoying.

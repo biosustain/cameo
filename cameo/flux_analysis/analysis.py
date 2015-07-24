@@ -39,6 +39,7 @@ from cameo.ui import notice
 from cameo.visualization import plotting
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 
@@ -57,10 +58,14 @@ def find_blocked_reactions(model):
     """
     with TimeMachine() as tm:
         for exchange in model.exchanges:
-            tm(do=partial(setattr, exchange, 'lower_bound', -999999), undo=partial(setattr, exchange, 'lower_bound', exchange.lower_bound))
-            tm(do=partial(setattr, exchange, 'upper_bound', 999999), undo=partial(setattr, exchange, 'upper_bound', exchange.upper_bound))
+            tm(do=partial(setattr, exchange, 'lower_bound', -999999),
+               undo=partial(setattr, exchange, 'lower_bound', exchange.lower_bound))
+            tm(do=partial(setattr, exchange, 'upper_bound', 999999),
+               undo=partial(setattr, exchange, 'upper_bound', exchange.upper_bound))
         fva_solution = flux_variability_analysis(model)
-    return [model.reactions.get_by_id(id) for id in fva_solution.data_frame.query('upper_bound == lower_bound == 0').index]
+    return [model.reactions.get_by_id(id) for id in
+            fva_solution.data_frame.query('upper_bound == lower_bound == 0').index]
+
 
 def flux_variability_analysis(model, reactions=None, fraction_of_optimum=0., remove_cycles=False, view=None):
     """Flux variability analysis.
@@ -89,7 +94,8 @@ def flux_variability_analysis(model, reactions=None, fraction_of_optimum=0., rem
             try:
                 obj_val = model.solve().f
             except SolveError as e:
-                logger.debug("flux_variability_analyis was not able to determine an optimal solution for objective %s" % model.objective)
+                logger.debug(
+                    "flux_variability_analyis was not able to determine an optimal solution for objective %s" % model.objective)
                 raise e
             if model.objective.direction == 'max':
                 fix_obj_constraint = model.solver.interface.Constraint(model.objective.expression,
@@ -107,6 +113,7 @@ def flux_variability_analysis(model, reactions=None, fraction_of_optimum=0., rem
         chunky_results = view.map(func_obj, reaction_chunks)
         solution = pandas.concat(chunky_results)
     return FluxVariabilityResult(solution)
+
 
 def phenotypic_phase_plane(model, variables=[], objective=None, points=20, view=None):
     """Phenotypic phase plane analysis.
@@ -228,12 +235,14 @@ def _flux_variability_analysis(model, reactions=None):
     model.objective = original_objective
     df = pandas.DataFrame.from_dict(fva_sol, orient='index')
     lb_higher_ub = df[df.lower_bound > df.upper_bound]
-    try: # this is an alternative solution to what I did above with flags
-        assert ((lb_higher_ub.lower_bound - lb_higher_ub.upper_bound) < 1e-6).all()  # Assert that these cases really only numerical artifacts
+    try:  # this is an alternative solution to what I did above with flags
+        assert ((
+                lb_higher_ub.lower_bound - lb_higher_ub.upper_bound) < 1e-6).all()  # Assert that these cases really only numerical artifacts
     except AssertionError as e:
         logger.debug(list(zip(model.reactions, (lb_higher_ub.lower_bound - lb_higher_ub.upper_bound) < 1e-6)))
     df.lower_bound[lb_higher_ub.index] = df.upper_bound[lb_higher_ub.index]
     return df
+
 
 def _cycle_free_fva(model, reactions=None, sloppy=True):
     """Cycle free flux-variability analysis. (http://cran.r-project.org/web/packages/sybilcycleFreeFlux/index.html)
@@ -349,7 +358,8 @@ def _cycle_free_fva(model, reactions=None, sloppy=True):
                             tm.reset()
         df = pandas.DataFrame.from_dict(fva_sol, orient='index')
         lb_higher_ub = df[df.lower_bound > df.upper_bound]
-        assert ((lb_higher_ub.lower_bound - lb_higher_ub.upper_bound) < 1e-6).all()  # Assert that these cases really only numerical artifacts
+        assert ((
+                lb_higher_ub.lower_bound - lb_higher_ub.upper_bound) < 1e-6).all()  # Assert that these cases really only numerical artifacts
         df.lower_bound[lb_higher_ub.index] = df.upper_bound[lb_higher_ub.index]
     finally:
         model.objective = original_objective

@@ -13,18 +13,17 @@
 # limitations under the License.
 
 import os
+
 TRAVIS = os.getenv('TRAVIS', False)
 
-if not TRAVIS:
-
+# if not TRAVIS:
+if False:
     import types
     from cobra.test import create_test_model
     from cobra.test.unit_tests import CobraTestCase, TestReactions
     from cobra.test.flux_analysis import TestCobraFluxAnalysis
 
     from cameo.core.solver_based_model import to_solver_based_model, SolverBasedModel
-
-
 
     def setUp(self):
         # Make Model pickable and then load a solver based version of test_pickle

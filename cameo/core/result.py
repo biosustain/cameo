@@ -21,8 +21,8 @@ from datetime import datetime
 
 from cameo import system_info
 
-class MetaInformation(object):
 
+class MetaInformation(object):
     def __init__(self, *args, **kwargs):
         super(MetaInformation, self).__init__(*args, **kwargs)
         self._system_info = system_info
@@ -49,7 +49,6 @@ class MetaInformation(object):
 
 
 class Result(object):
-
     def __init__(self, *args, **kwargs):
         super(Result, self).__init__(*args, **kwargs)
         self._meta_information = MetaInformation()

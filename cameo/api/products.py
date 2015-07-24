@@ -35,7 +35,6 @@ def inchi_to_svg(inchi, file=None):
 
 
 class Compound(object):
-
     def __init__(self, inchi):
         self.inchi
 
@@ -50,7 +49,6 @@ class Compound(object):
 
 
 class Products(object):
-
     def __init__(self):
         self.data_frame = metanetx.chem_prop
 

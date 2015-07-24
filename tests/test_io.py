@@ -26,8 +26,8 @@ from cameo import load_model
 from cameo.config import solvers
 from cameo.core.solver_based_model import SolverBasedModel
 
-
 TESTDIR = os.path.dirname(__file__)
+
 
 class AbstractTestModelLoading(object):
     def test_load_model_pickle_path(self):
@@ -57,18 +57,19 @@ class AbstractTestModelLoading(object):
         self.assertTrue(isinstance(model, cobra.core.Model))
         self.assertFalse(hasattr(model, 'solver'))
 
-class TestModelLoadingGLPK(AbstractTestModelLoading, unittest.TestCase):
 
+class TestModelLoadingGLPK(AbstractTestModelLoading, unittest.TestCase):
     def setUp(self):
         self.interface = optlang.glpk_interface
 
+
 @unittest.skipIf('cplex' not in solvers, "No cplex interface available")
 class TestModelLoadingCPLEX(AbstractTestModelLoading, unittest.TestCase):
-
     def setUp(self):
         self.interface = optlang.glpk_interface
 
 
 if __name__ == '__main__':
     import nose
+
     nose.runmodule()

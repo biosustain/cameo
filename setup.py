@@ -20,11 +20,12 @@ import os
 import sys
 from setuptools import setup, find_packages
 import versioneer
+
 versioneer.VCS = 'git'
 versioneer.versionfile_source = 'cameo/_version.py'
 versioneer.versionfile_build = 'cameo/_version.py'
-versioneer.tag_prefix = '' # tags are like 1.2.0
-versioneer.parentdir_prefix = 'myproject-' # dirname like 'myproject-1.2.0'
+versioneer.tag_prefix = ''  # tags are like 1.2.0
+versioneer.parentdir_prefix = 'myproject-'  # dirname like 'myproject-1.2.0'
 
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 if on_rtd:
@@ -46,7 +47,7 @@ else:
                     'six>=1.9.0',
                     'escher>=1.1.2',
                     'IProgress>=0.2'
-    ]
+                    ]
 if sys.version_info[0] < 3:
     requirements.extend(['bashplotlib>=0.6.1', 'inspyred>=1.0'])
 
@@ -65,7 +66,7 @@ setup(
     cmdclass=versioneer.get_cmdclass(),
     packages=find_packages(),
     install_requires=requirements,
-    include_package_data = True,
+    include_package_data=True,
     author='Nikolaus Sonnenschein, Joao Cardoso, Emre Özdemir',
     author_email='niko.sonnenschein@gmail.com',
     description='cameo - computer aided metabolic engineering & optimziation',

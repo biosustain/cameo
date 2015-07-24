@@ -38,6 +38,7 @@ from cameo import util
 from cameo.core.solver_based_model import to_solver_based_model
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 
@@ -48,13 +49,11 @@ class NotFoundException(Exception):
 
 
 class ModelFacadeBigg(util.ModelFacade):
-
     def _load_model(self):
         return get_model_from_bigg(self._id)
 
 
 class ModelFacadeMinho(util.ModelFacade):
-
     def _load_model(self):
         return get_model_from_uminho(self._id)
 
@@ -108,6 +107,7 @@ def get_sbml_file(index, host="http://darwin.di.uminho.pt/models"):
     else:
         raise NotFoundException("sbml", index)
 
+
 def index_models_bigg():
     try:
         response = requests.get('http://bigg.ucsd.edu/api/v2/models')
@@ -117,7 +117,9 @@ def index_models_bigg():
     if response.ok:
         return DataFrame.from_dict(response.json()['results'])
     else:
-        raise Exception("Could not index available models. bigg.ucsd.edu returned status code {}".format(response.status_code))
+        raise Exception(
+            "Could not index available models. bigg.ucsd.edu returned status code {}".format(response.status_code))
+
 
 def get_model_from_bigg(id):
     try:
@@ -129,9 +131,12 @@ def get_model_from_bigg(id):
         with io.StringIO(response.text) as f:
             return to_solver_based_model(load_json_model(f))
     else:
-        raise Exception("Could not download model {}. bigg.ucsd.edu returned status code {}".format(id, response.status_code))
+        raise Exception(
+            "Could not download model {}. bigg.ucsd.edu returned status code {}".format(id, response.status_code))
+
 
 class ModelDB(object): pass
+
 
 bigg = ModelDB()
 try:
@@ -153,9 +158,9 @@ else:
     for index, id in zip(model_indices, model_ids):
         setattr(minho, str_to_valid_variable_name(id), ModelFacadeMinho(index))
 
-
 if __name__ == "__main__":
     print(index_models_minho())
     from cameo import load_model
+
     model = load_model(get_sbml_file(2))
     print(model.objective)

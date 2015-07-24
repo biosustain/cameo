@@ -15,6 +15,7 @@
 from __future__ import absolute_import, print_function
 
 import os
+
 import cameo
 from cameo import util
 from cameo import load_model
@@ -24,7 +25,6 @@ MODEL_DIRECTORY = os.path.join(os.path.join(os.path.split(cameo.__path__[0])[0])
 
 
 class Host(object):
-
     def __init__(self, name='', models=[], biomass=[], carbon_sources=[]):
         self.name = name
         self.models = util.IntelliContainer()
@@ -36,7 +36,6 @@ class Host(object):
 
 
 class ModelFacade(util.ModelFacade):
-
     def _load_model(self):
         return load_model(os.path.join(MODEL_DIRECTORY, self._id + '.xml'))
 
@@ -47,7 +46,6 @@ class ModelFacade(util.ModelFacade):
 
 
 class Hosts(object):
-
     def __init__(self, host_spec):
         self._host_spec = host_spec
         self._hosts = list()
@@ -74,7 +72,7 @@ HOST_SPECS = {
     # 'iND750',
     'scerevisiae': {
         'name': 'Saccharomyces cerevisiae',
-        'models': ('iMM904', ),
+        'models': ('iMM904',),
         'biomass': ('biomass_SC5_notrace',),
         'carbon_sources': ('EX_glc_e_',)
 

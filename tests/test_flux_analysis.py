@@ -53,17 +53,19 @@ iJO_MODEL_COBRAPY = load_model(os.path.join(TESTDIR, 'data/iJO1366.xml'), solver
 
 TOY_MODEL_PAPIN_2004 = load_model(os.path.join(TESTDIR, "data/toy_model_Papin_2003.xml"))
 
-class AbstractTestFindBlockedReactions(object):
 
+class AbstractTestFindBlockedReactions(object):
     def test_find_blocked_reactions(self):
         self.model.reactions.PGK.knock_out()  # there are no blocked reactions in EcoliCore
         blocked_reactions = find_blocked_reactions(self.model)
         self.assertEqual(blocked_reactions, [self.model.reactions.GAPD, self.model.reactions.PGK])
 
+
 class TestFindBlockedReactionsGLPK(AbstractTestFindBlockedReactions, unittest.TestCase):
     def setUp(self):
         self.model = CORE_MODEL.copy()
         self.model.solver = 'glpk'
+
 
 @unittest.skipIf(TRAVIS, 'CPLEX not available on Travis.')
 class TestFindBlockedReactionsCPLEX(AbstractTestFindBlockedReactions, unittest.TestCase):
@@ -71,6 +73,7 @@ class TestFindBlockedReactionsCPLEX(AbstractTestFindBlockedReactions, unittest.T
         self.model = CORE_MODEL.copy()
         self.model.solver = 'cplex'
         self.model.solver.problem.parameters.lpmethod = self.model.solver.problem.parameters.lpmethod.values.dual
+
 
 class AbstractTestFluxVariabilityAnalysis(object):
     def test_flux_variability_sequential(self):
@@ -199,7 +202,6 @@ class AbstractTestSimulationMethods(object):
         print(pfba_flux_sum)
         self.assertTrue((pfba_flux_sum - fba_flux_sum) < 1e-6,
                         msg="FBA sum is suppose to be lower than PFBA (was %f)" % (pfba_flux_sum - fba_flux_sum))
-
 
     @unittest.skip('quadratic moma not implemented yet.')
     def test_moma(self):

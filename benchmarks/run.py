@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#!/usr/bin/env python
+# !/usr/bin/env python
 from vbench.api import BenchmarkRunner
 from suite import *
 
@@ -27,6 +27,7 @@ def run_process():
                              run_option='eod', start_date=START_DATE,
                              module_dependencies=dependencies)
     runner.run()
+
 
 if __name__ == '__main__':
     run_process()

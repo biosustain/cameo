@@ -34,6 +34,7 @@ def model_to_network(model):
     """
     return reactions_to_network(model.reactions)
 
+
 def reactions_to_network(reactions):
     """Convert a list of reactions into a networkx graph.
 
@@ -60,6 +61,7 @@ def reactions_to_network(reactions):
                         edges.append((product, substrate, dict(reaction=reaction)))
     multi_graph = nx.MultiDiGraph(edges)
     return multi_graph
+
 
 def remove_highly_connected_nodes(network, max_degree=10, ignore=[]):
     """Remove highly connected nodes.

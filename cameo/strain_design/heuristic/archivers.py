@@ -15,7 +15,6 @@ from __future__ import absolute_import, print_function
 
 __all__ = ['BestSolutionArchiver']
 
-
 from bisect import insort
 
 
@@ -68,73 +67,73 @@ class BestSolutionArchiver(object):
 
 
 class SolutionTuple(object):
-        def __init__(self, candidate, fitness, maximize=True):
-            self.candidate = set(candidate)
-            self.fitness = fitness
-            self.maximize = maximize
+    def __init__(self, candidate, fitness, maximize=True):
+        self.candidate = set(candidate)
+        self.fitness = fitness
+        self.maximize = maximize
 
-        def __eq__(self, other):
-            return self.candidate == other.candidate and self.fitness == other.fitness
+    def __eq__(self, other):
+        return self.candidate == other.candidate and self.fitness == other.fitness
 
-        def __cmp__(self, other):
-            if self.fitness > other.fitness:
-                return -1 if self.maximize else 1
-            elif self.fitness == other.fitness:
-                if self.improves(other):
-                    return -1
-                elif self == other:
-                    return 0
-                else:
-                    return 1
+    def __cmp__(self, other):
+        if self.fitness > other.fitness:
+            return -1 if self.maximize else 1
+        elif self.fitness == other.fitness:
+            if self.improves(other):
+                return -1
+            elif self == other:
+                return 0
             else:
-                return 1 if self.maximize else -1
+                return 1
+        else:
+            return 1 if self.maximize else -1
 
-        def __lt__(self, other):
-            if self.fitness > other.fitness:
-                return self.maximize
-            elif self.fitness == other.fitness:
-                if self.improves(other):
-                    return True
-                elif self == other:
-                    return False
-                else:
-                    return False
+    def __lt__(self, other):
+        if self.fitness > other.fitness:
+            return self.maximize
+        elif self.fitness == other.fitness:
+            if self.improves(other):
+                return True
+            elif self == other:
+                return False
             else:
-                return not self.maximize
+                return False
+        else:
+            return not self.maximize
 
-        def __gt__(self, other):
-            if self.fitness > other.fitness:
-                return not self.maximize
-            elif self.fitness == other.fitness:
-                if self.improves(other):
-                    return False
-                elif self == other:
-                    return False
-                else:
-                    return True
+    def __gt__(self, other):
+        if self.fitness > other.fitness:
+            return not self.maximize
+        elif self.fitness == other.fitness:
+            if self.improves(other):
+                return False
+            elif self == other:
+                return False
             else:
-                return self.maximize
+                return True
+        else:
+            return self.maximize
 
-        def __str__(self):
-            sense = "max" if self.maximize else "min"
-            return "%s - %s sense: %s" % (list(self.candidate), self.fitness, sense)
+    def __str__(self):
+        sense = "max" if self.maximize else "min"
+        return "%s - %s sense: %s" % (list(self.candidate), self.fitness, sense)
 
-        def __repr__(self):
-            return "SolutionTuple #%s: %s" % (id(self), self.__str__())
+    def __repr__(self):
+        return "SolutionTuple #%s: %s" % (id(self), self.__str__())
 
-        def issubset(self, other):
-            return self.candidate.issubset(other.candidate)
+    def issubset(self, other):
+        return self.candidate.issubset(other.candidate)
 
-        def symmetric_difference(self, other):
-            return self.candidate.symmetric_difference(other.candidate)
+    def symmetric_difference(self, other):
+        return self.candidate.symmetric_difference(other.candidate)
 
-        def improves(self, other):
-            assert isinstance(other, SolutionTuple)
-            if self.maximize:
-                return self.issubset(other) and \
-                       len(self.symmetric_difference(other)) > 0 and \
-                       self.fitness >= other.fitness
-            else:
-                return self.issubset(other) and \
-                       len(self.symmetric_difference(other)) > 0 and \
-                       self.fitness <= other.fitness
+    def improves(self, other):
+        assert isinstance(other, SolutionTuple)
+        if self.maximize:
+            return self.issubset(other) and \
+                   len(self.symmetric_difference(other)) > 0 and \
+                   self.fitness >= other.fitness
+        else:
+            return self.issubset(other) and \
+                   len(self.symmetric_difference(other)) > 0 and \
+                   self.fitness <= other.fitness

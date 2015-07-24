@@ -19,6 +19,7 @@ non_zero_flux_threshold = 1e-6
 ndecimals = 6
 
 import logging
+
 log = logging.getLogger(__name__)
 
 # Determine available solver interfaces
@@ -41,6 +42,7 @@ except ImportError:
 # TODO: This should also check if a bokeh server is actually running.
 try:
     from bokeh.plotting import output_notebook
+
     if in_ipnb():
         output_notebook(hide_banner=True)
     use_bokeh = True
@@ -51,19 +53,22 @@ bokeh_url = 'default'
 
 try:
     import matplotlib
+
     use_matplotlib = True
 except ImportError:
     use_matplotlib = False
 
-#Determine a default parallelization view
+# Determine a default parallelization view
 try:
     from IPython import parallel
     from IPython.kernel.zmq import serialize
+
     client = parallel.Client()
     client.block = True
     default_view = client.direct_view()
 except Exception:
     from .parallel import SequentialView
+
     default_view = SequentialView()
     # try:
     #     from .parallel import MultiprocessingView

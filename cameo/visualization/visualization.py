@@ -146,6 +146,7 @@ def draw_knockout_result(model, map_name, simulation_method, knockouts, *args, *
         tm.reset()
         raise e
 
+
 def inchi_to_svg(inchi, file=None, debug=False, three_d=False):
     """Generate an SVG drawing from an InChI string.
 
@@ -233,8 +234,9 @@ def inchi_to_ascii(inchi, file=None, debug=False):
 def graph_to_svg(g, layout=nx.spring_layout):
     """return the SVG of a matplotlib figure generated from a graph"""
     import matplotlib.pyplot as plt
+
     layout = layout(g)
-    fig=plt.figure(figsize=(8, 8))
+    fig = plt.figure(figsize=(8, 8))
     ax = fig.add_subplot(111)
     # draw reaction nodes
     rxn_nodes = [node for node in g.nodes() if isinstance(node, cameo.Reaction)]
@@ -256,6 +258,7 @@ def graph_to_svg(g, layout=nx.spring_layout):
 
 try:
     import uuid
+
     if not in_ipnb():
         raise ImportError
 
@@ -272,8 +275,9 @@ try:
             style = "width:%s;" % width
             if self.color is not None:
                 style += "color: %s;" % self.color
-            html = HTML("%s<progress id='%s' value='0' max='%i' style='%s'></progress>&nbsp;<span id='perc-%s'>0&#37;</span>"
-                        % (self.label, self.id, self.size, style, self.id))
+            html = HTML(
+                "%s<progress id='%s' value='0' max='%i' style='%s'></progress>&nbsp;<span id='perc-%s'>0&#37;</span>"
+                % (self.label, self.id, self.size, style, self.id))
             display(html)
 
         def increment(self, i=1):

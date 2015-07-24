@@ -41,6 +41,7 @@ import cameo
 
 import logging
 import six
+
 logger = logging.getLogger(__name__)
 
 
@@ -92,7 +93,6 @@ class DifferentialFVA(StrainDesignMethod):
 
         self.design_space_model = design_space_model
         self.reference_model = reference_model
-
 
         if isinstance(objective, Reaction):
             self.objective = objective.id
@@ -248,7 +248,8 @@ class DifferentialFVA(StrainDesignMethod):
             df['flux_reversal'][flux_reversal_selection.index] = True
 
         for df in six.itervalues(solutions):
-            flux_reversal_selection = df[((self.reference_flux_ranges.lower_bound <= 0) & (df.lower_bound > 0)) | ((self.reference_flux_ranges.upper_bound >= 0) & (df.upper_bound <= 0))]
+            flux_reversal_selection = df[((self.reference_flux_ranges.lower_bound <= 0) & (df.lower_bound > 0)) | (
+            (self.reference_flux_ranges.upper_bound >= 0) & (df.upper_bound <= 0))]
             df['suddenly_essential'] = False
             df['suddenly_essential'][flux_reversal_selection.index] = True
 
@@ -277,9 +278,9 @@ class DifferentialFVAResult(PhenotypicPhasePlaneResult):
 
     def _repr_html_(self):
         def _data_frame(solution):
-            notice("%s: %f" % self.solutions.axes[0][solution-1][0])
-            notice("%s: %f" % self.solutions.axes[0][solution-1][1])
-            display(self.solutions.iloc[solution-1])
+            notice("%s: %f" % self.solutions.axes[0][solution - 1][0])
+            notice("%s: %f" % self.solutions.axes[0][solution - 1][1])
+            display(self.solutions.iloc[solution - 1])
 
         return interact(_data_frame, solution=[1, len(self.solutions)])
 
@@ -298,13 +299,13 @@ class _MapView(object):
         self.builder = None
 
     def __call__(self, index):
-        reaction_data = dict(self.solutions.iloc[index-1].gaps)
+        reaction_data = dict(self.solutions.iloc[index - 1].gaps)
         axis = self.solutions.axes[0]
         if self.builder is None:
-            self._init_builder(reaction_data, axis[index-1][0], axis[index-1][1])
+            self._init_builder(reaction_data, axis[index - 1][0], axis[index - 1][1])
         else:
             self.builder.update(reaction_data)
-            self.update_header(axis[index-1][0], axis[index-1][1])
+            self.update_header(axis[index - 1][0], axis[index - 1][1])
 
     def update_header(self, objective, variable):
         display(Javascript("""
@@ -353,7 +354,8 @@ class _DifferentialFvaEvaluator(object):
         target_reaction.lower_bound, target_reaction.upper_bound = target_bound, target_bound
 
 
-def fseof(model, enforced_reaction, max_enforced_flux=0.9, granularity=10, primary_objective=None, solution_method=fba, exclude=[]):
+def fseof(model, enforced_reaction, max_enforced_flux=0.9, granularity=10, primary_objective=None, solution_method=fba,
+          exclude=[]):
     """
     Performs a Flux Scanning based on Enforced Objective Flux (FSEOF) analysis.
     :param model: SolverBasedModel
@@ -398,7 +400,7 @@ def fseof(model, enforced_reaction, max_enforced_flux=0.9, granularity=10, prima
         max_flux = max_theoretical_flux * max_enforced_flux
 
         # Calculate enforcement levels
-        enforcements = [initial_flux + (i+1)*(max_flux - initial_flux)/granularity for i in range(granularity)]
+        enforcements = [initial_flux + (i + 1) * (max_flux - initial_flux) / granularity for i in range(granularity)]
 
         # FSEOF results
         results = {reaction.id: [round(initial_fluxes[reaction.id], config.ndecimals)] for reaction in model.reactions}
@@ -415,7 +417,7 @@ def fseof(model, enforced_reaction, max_enforced_flux=0.9, granularity=10, prima
     # Test each reaction
     fseof_reactions = []
     for reaction_id, fluxes in results.items():
-        if reaction_id not in exclude_ids and abs(fluxes[-1]) > abs(fluxes[0]) and min(fluxes)*max(fluxes) >= 0:
+        if reaction_id not in exclude_ids and abs(fluxes[-1]) > abs(fluxes[0]) and min(fluxes) * max(fluxes) >= 0:
             fseof_reactions.append(model.reactions.get_by_id(reaction_id))
 
     return FseofResult(fseof_reactions, enforced_reaction, model)
@@ -425,6 +427,7 @@ class FseofResult(cameo.core.result.Result):
     """
     Object for holding FSEOF results.
     """
+
     def __init__(self, reactions, objective, model, *args, **kwargs):
         super(FseofResult, self).__init__(*args, **kwargs)
         self._reactions = reactions
@@ -435,7 +438,8 @@ class FseofResult(cameo.core.result.Result):
         return iter(self.reactions)
 
     def __eq__(self, other):
-        return isinstance(other, self.__class__) and self.objective == other.objective and self.reactions == other.reactions
+        return isinstance(other,
+                          self.__class__) and self.objective == other.objective and self.reactions == other.reactions
 
     @property
     def reactions(self):
@@ -461,7 +465,8 @@ class FseofResult(cameo.core.result.Result):
         <td>%(reactions)s</td>
     <tr>
 </table>"""
-        return template % {'objective': self.objective.nice_id, 'reactions': "<br>".join(reaction.id for reaction in self.reactions)}
+        return template % {'objective': self.objective.nice_id,
+                           'reactions': "<br>".join(reaction.id for reaction in self.reactions)}
 
     @property
     def data_frame(self):
@@ -490,7 +495,7 @@ if __name__ == '__main__':
                                          'EX_o2_LPAREN_e_RPAREN_'],
                               normalize_ranges_by='Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2',
                               points=10
-    )
+                              )
     result = diffFVA.run(surface_only=True, view=SequentialView())
 
     with Timer('Sequential'):
@@ -530,5 +535,3 @@ if __name__ == '__main__':
         #         result = diffFVA.run(surface_only=True, view=())
         # except:
         #     pass
-
-

@@ -27,6 +27,7 @@ from cameo.parallel import SequentialView
 
 import logging
 import six
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
@@ -60,7 +61,9 @@ class Reaction(_cobrapy.core.Reaction):
             try:
                 setattr(new_reaction, attribute, value)
             except AttributeError:
-                logger.info("Can't set attribute %s for reaction %s (while cloning it to a cameo style reaction). Skipping it ..." % (attribute, reaction))
+                logger.info(
+                    "Can't set attribute %s for reaction %s (while cloning it to a cameo style reaction). Skipping it ..." % (
+                    attribute, reaction))
         if not isinstance(reaction.model, cameo.core.solver_based_model.SolverBasedModel):
             new_reaction._model = None
         if model is not None:
@@ -107,7 +110,7 @@ class Reaction(_cobrapy.core.Reaction):
         Representing the net flux if model.reversible_encoding == 'unsplit'"""
         model = self.model
         if model is not None:
-            return 1.*self.forward_variable - 1.*self.reverse_variable
+            return 1. * self.forward_variable - 1. * self.reverse_variable
         else:
             return None
 
@@ -154,9 +157,9 @@ class Reaction(_cobrapy.core.Reaction):
         if model is not None:
 
             forward_variable, reverse_variable = self.forward_variable, self.reverse_variable
-            if self._lower_bound < 0 and self._upper_bound > 0: # reversible
+            if self._lower_bound < 0 and self._upper_bound > 0:  # reversible
                 if value < 0:
-                    reverse_variable.ub = -1*value
+                    reverse_variable.ub = -1 * value
                 elif value >= 0:
                     reverse_variable.ub = 0
                     try:
@@ -165,15 +168,15 @@ class Reaction(_cobrapy.core.Reaction):
                         forward_variable.ub = value
                         self._upper_bound = value
                         forward_variable.lb = value
-            elif self._lower_bound == 0 and self._upper_bound == 0: # knockout
+            elif self._lower_bound == 0 and self._upper_bound == 0:  # knockout
                 if value < 0:
-                    reverse_variable.ub = -1*value
+                    reverse_variable.ub = -1 * value
                 elif value >= 0:
                     forward_variable.ub = value
                     forward_variable.lb = value
-            elif self._lower_bound >= 0: # forward irreversible
+            elif self._lower_bound >= 0:  # forward irreversible
                 if value < 0:
-                    reverse_variable.ub = -1*value
+                    reverse_variable.ub = -1 * value
                     forward_variable.lb = 0
                 else:
                     try:
@@ -183,7 +186,7 @@ class Reaction(_cobrapy.core.Reaction):
                         self._upper_bound = value
                         forward_variable.lb = value
 
-            elif self._upper_bound <= 0: # reverse irreversible
+            elif self._upper_bound <= 0:  # reverse irreversible
                 if value > 0:
                     reverse_variable.lb = 0
                     reverse_variable.ub = 0
@@ -192,11 +195,11 @@ class Reaction(_cobrapy.core.Reaction):
                     forward_variable.lb = value
                 else:
                     try:
-                        reverse_variable.ub = -1*value
+                        reverse_variable.ub = -1 * value
                     except ValueError:
-                        reverse_variable.lb = -1*value
+                        reverse_variable.lb = -1 * value
                         self._upper_bound = value
-                        reverse_variable.ub = -1*value
+                        reverse_variable.ub = -1 * value
             else:
                 print({'value': value, 'self._lower_bound': self._lower_bound, 'self._upper_bound': self._upper_bound})
                 raise ValueError('lower_bound issue')
@@ -213,23 +216,23 @@ class Reaction(_cobrapy.core.Reaction):
         if model is not None:
 
             forward_variable, reverse_variable = self.forward_variable, self.reverse_variable
-            if self._lower_bound < 0 and self._upper_bound > 0: # reversible
+            if self._lower_bound < 0 and self._upper_bound > 0:  # reversible
                 if value > 0:
                     forward_variable.ub = value
                 elif value <= 0:
                     forward_variable.ub = 0
                     try:
-                        reverse_variable.lb = -1*value
+                        reverse_variable.lb = -1 * value
                     except ValueError:
-                        reverse_variable.ub = -1*value
+                        reverse_variable.ub = -1 * value
                         self._lower_bound = value
-                        reverse_variable.lb = -1*value
-            elif self._lower_bound == 0 and self._upper_bound == 0: # knockout
+                        reverse_variable.lb = -1 * value
+            elif self._lower_bound == 0 and self._upper_bound == 0:  # knockout
                 if value > 0:
                     forward_variable.ub = value
                 elif value <= 0:
-                    reverse_variable.ub = -1*value
-            elif self._lower_bound >= 0: # forward irreversible
+                    reverse_variable.ub = -1 * value
+            elif self._lower_bound >= 0:  # forward irreversible
                 if value > 0:
                     try:
                         forward_variable.ub = value
@@ -240,18 +243,18 @@ class Reaction(_cobrapy.core.Reaction):
                 else:
                     forward_variable.lb = 0
                     forward_variable.ub = 0
-                    reverse_variable.ub = -1*value
+                    reverse_variable.ub = -1 * value
                     self._lower_bound = value
-                    reverse_variable.lb = -1*value
+                    reverse_variable.lb = -1 * value
 
-            elif self._upper_bound <= 0: # reverse irreversible
+            elif self._upper_bound <= 0:  # reverse irreversible
                 if value < 0:
                     try:
-                        reverse_variable.lb = -1*value
+                        reverse_variable.lb = -1 * value
                     except ValueError:
-                        reverse_variable.ub = -1*value
+                        reverse_variable.ub = -1 * value
                         self._lower_bound = value
-                        reverse_variable.lb = -1*value
+                        reverse_variable.lb = -1 * value
                 else:
                     forward_variable.ub = value
                     reverse_variable.lb = 0
@@ -270,14 +273,15 @@ class Reaction(_cobrapy.core.Reaction):
         model = self.model
         if model is not None:
             model.solver._set_linear_objective_term(self.forward_variable, value)
-            model.solver._set_linear_objective_term(self.reverse_variable, -1*value)
+            model.solver._set_linear_objective_term(self.reverse_variable, -1 * value)
         self._objective_coefficient = value
 
     @property
     def effective_lower_bound(self):
         model = self.model
         return \
-            flux_analysis.flux_variability_analysis(model, reactions=[self], view=SequentialView(), remove_cycles=False)[
+            flux_analysis.flux_variability_analysis(model, reactions=[self], view=SequentialView(),
+                                                    remove_cycles=False)[
                 'lower_bound'][
                 self.id]
 
@@ -285,7 +289,8 @@ class Reaction(_cobrapy.core.Reaction):
     def effective_upper_bound(self):
         model = self.model
         return \
-            flux_analysis.flux_variability_analysis(model, reactions=[self], view=SequentialView(), remove_cycles=False)[
+            flux_analysis.flux_variability_analysis(model, reactions=[self], view=SequentialView(),
+                                                    remove_cycles=False)[
                 'upper_bound'][
                 self.id]
 
@@ -317,12 +322,13 @@ class Reaction(_cobrapy.core.Reaction):
                         pass
                     else:
                         coefficient = coefficient - old_coefficient
-                model.solver.constraints[metabolite.id] += coefficient*self.flux_expression
+                model.solver.constraints[metabolite.id] += coefficient * self.flux_expression
 
     def knock_out(self, time_machine=None):
         def _(reaction, lb, ub):
             reaction.upper_bound = ub
             reaction.lower_bound = lb
+
         if time_machine is not None:
             time_machine(do=super(Reaction, self).knock_out, undo=partial(_, self, self.lower_bound, self.upper_bound))
         else:

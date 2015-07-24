@@ -23,10 +23,11 @@ import logging
 import six
 from six.moves import map
 from six.moves import range
+
 logger = logging.getLogger(__name__)
 
-class MultiprocessingView(Singleton):
 
+class MultiprocessingView(Singleton):
     """Provides a parallel view (similar to IPython)"""
 
     def __init__(self, *args, **kwargs):
