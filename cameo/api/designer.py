@@ -107,7 +107,8 @@ class Designer(object):
         optimization_reports = self.optimize_strains(pathways, view)
         return optimization_reports
 
-    def optimize_strains(self, pathways, view):
+    @staticmethod
+    def optimize_strains(pathways, view):
         runner = _OptimizationRunner()
         designs = [(host, model, pathway) for (host, model) in pathways for pathway in pathways[host, model]]
         return view.map(runner, designs)
