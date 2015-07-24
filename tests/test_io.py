@@ -51,7 +51,7 @@ class AbstractTestModelLoading(object):
         self.assertAlmostEqual(model.optimize().f, 0.9823718127269768)
 
     @unittest.skipIf(six.PY3, 'cobra.io.read_sbml_model broken in py3.')
-    def test_load_model_sbml_path_set_None_interface(self):
+    def test_load_model_sbml_path_set_none_interface(self):
         model = load_model(os.path.join(TESTDIR, 'data/EcoliCore.xml'), solver_interface=None)
         self.assertAlmostEqual(model.optimize().f, 0.8739215069684306)
         self.assertTrue(isinstance(model, cobra.core.Model))

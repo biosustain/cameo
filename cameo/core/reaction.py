@@ -93,7 +93,7 @@ class Reaction(_cobrapy.core.Reaction):
 
     @property
     def reversibility(self):
-        return self._lower_bound < 0 and self._upper_bound > 0
+        return self._lower_bound < 0 < self._upper_bound
 
     def _get_reverse_id(self):
         """Generate the id of reverse_variable from the reaction's id."""
@@ -157,7 +157,7 @@ class Reaction(_cobrapy.core.Reaction):
         if model is not None:
 
             forward_variable, reverse_variable = self.forward_variable, self.reverse_variable
-            if self._lower_bound < 0 and self._upper_bound > 0:  # reversible
+            if self._lower_bound < 0 < self._upper_bound:  # reversible
                 if value < 0:
                     reverse_variable.ub = -1 * value
                 elif value >= 0:
@@ -216,7 +216,7 @@ class Reaction(_cobrapy.core.Reaction):
         if model is not None:
 
             forward_variable, reverse_variable = self.forward_variable, self.reverse_variable
-            if self._lower_bound < 0 and self._upper_bound > 0:  # reversible
+            if self._lower_bound < 0 < self._upper_bound:  # reversible
                 if value > 0:
                     forward_variable.ub = value
                 elif value <= 0:
