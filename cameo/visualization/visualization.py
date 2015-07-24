@@ -14,7 +14,7 @@
 
 from __future__ import absolute_import, print_function
 
-__all__ = ['memoized', 'graph_to_svg', 'draw_knockout_result', 'inchi_to_svg', 'ProgressBar']
+__all__ = ['graph_to_svg', 'draw_knockout_result', 'inchi_to_svg', 'ProgressBar']
 
 import os
 import six
@@ -22,9 +22,7 @@ import json
 import cameo
 import logging
 import tempfile
-import functools
 import subprocess
-import collections
 
 import networkx as nx
 
@@ -36,36 +34,6 @@ from cameo.util import TimeMachine, in_ipnb
 log = logging.getLogger(__name__)
 
 from IPython.display import HTML, SVG, Javascript, display
-
-
-class memoized(object):
-    '''Decorator. Caches a function's return value each time it is called.
-    If called later with the same arguments, the cached value is returned
-    (not reevaluated).
-    '''
-
-    def __init__(self, func):
-        self.func = func
-        self.cache = {}
-
-    def __call__(self, *args):
-        if not isinstance(args, collections.Hashable):
-            # uncachen blow up.
-            return self.func(*args)
-        if args in self.cache:
-            return self.cache[args]
-        else:
-            value = self.func(*args)
-            self.cache[args] = value
-            return value
-
-    def __repr__(self):
-        '''Return the function's docstring.'''
-        return self.func.__doc__
-
-    def __get__(self, obj, objtype):
-        '''Support instance methods.'''
-        return functools.partial(self.__call__, obj)
 
 
 def pathviz_maps():
