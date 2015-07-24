@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 
 
 class ModelFacade(object):
-    def __init__(self, id=id, *args, **kwargs):
+    def __init__(self, id=id):
         self._id = id
         self._model = None
 
