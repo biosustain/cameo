@@ -230,7 +230,7 @@ try:
     if not in_ipnb():
         raise ImportError
 
-    class IPythonProgressBar():
+    class IPythonProgressBar(object):
         def __init__(self, size=100, label="", color=None, fd=None):
             self.progress = 0
             self.size = size
@@ -289,7 +289,7 @@ except ImportError:
     from IProgress import Bar, RotatingMarker, Percentage
     import sys
 
-    class CLIProgressBar():
+    class CLIProgressBar(object):
         widgets = [' ', Bar(marker=RotatingMarker()), ' ', Percentage()]
 
         def __init__(self, size=100, label="", color=None, fd=sys.stdout):

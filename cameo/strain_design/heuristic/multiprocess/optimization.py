@@ -34,7 +34,7 @@ from cameo.strain_design.heuristic.multiprocess.plotters import IPythonNotebookB
 from cameo.strain_design.heuristic.multiprocess.migrators import MultiprocessingMigrator
 
 
-class MultiprocessRunner():
+class MultiprocessRunner(object):
     """
     Runner for multiprocessing model. It generates the non-pickable
     objects on the beginning of the process.

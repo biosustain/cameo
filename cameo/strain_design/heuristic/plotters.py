@@ -156,7 +156,7 @@ class IPythonBokehParetoPlotter(object):
             show(plot)
 
 
-class GeneFrequencyPlotter():
+class GeneFrequencyPlotter(object):
     def __init__(self, solutions, url='default'):
         self.solutions = solutions
         self.url = url
