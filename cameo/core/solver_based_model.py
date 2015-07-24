@@ -18,8 +18,9 @@
 
 from __future__ import absolute_import, print_function
 
+__all__ = ['to_solver_based_model', 'SolverBasedModel']
+
 import six
-from six.moves import range
 
 import time
 import datetime
@@ -28,7 +29,7 @@ from copy import copy, deepcopy
 
 import types
 
-import cobra as _cobrapy
+import cobra
 import sympy
 from sympy import Add
 from sympy import Mul
@@ -68,7 +69,7 @@ def to_solver_based_model(cobrapy_model, solver_interface=optlang):
     return solver_based_model
 
 
-class SolverBasedModel(_cobrapy.core.Model):
+class SolverBasedModel(cobra.core.Model):
     """Implements a model with an attached optlang solver instance.
 
     Every model manipulation is immediately reflected in the solver instance.
@@ -76,7 +77,7 @@ class SolverBasedModel(_cobrapy.core.Model):
 
     def __init__(self, description=None, solver_interface=optlang, **kwargs):
         super(SolverBasedModel, self).__init__(description, **kwargs)
-        cleaned_reactions = _cobrapy.core.DictList()
+        cleaned_reactions = cobra.core.DictList()
         for reaction in self.reactions:
             if isinstance(reaction, Reaction):
                 cleaned_reactions.append(reaction)
@@ -455,7 +456,7 @@ class SolverBasedModel(_cobrapy.core.Model):
             if abs(flux) > 0:
                 genes_to_check.update(self.reactions.get_by_id(reaction_id).genes)
         for gene in genes_to_check:
-            reactions = _cobrapy.manipulation.delete.find_gene_knockout_reactions(self, [gene])
+            reactions = cobra.manipulation.delete.find_gene_knockout_reactions(self, [gene])
             with TimeMachine() as tm:
                 for reaction in reactions:
                     reaction.knock_out(time_machine=tm)
@@ -547,7 +548,7 @@ class SolverBasedModel(_cobrapy.core.Model):
 
     @staticmethod
     def _load_medium_from_dataframe(model, medium):
-        for i in range(len(medium) - 1):
+        for i in six.moves.range(len(medium) - 1):
             rid = medium['reaction_id'][i]
             if model.reactions.has_id(rid):
                 model.reactions.get_by_id(rid).lower_bound = medium['lower_bound'][i]
