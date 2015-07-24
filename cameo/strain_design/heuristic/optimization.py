@@ -733,7 +733,7 @@ class KnockinKnockoutEvaluator(KnockoutEvaluator):
         pass
 
 
-class KnockinKnockoutOptimizationResult():
+class KnockinKnockoutOptimizationResult:
     pass
 
 

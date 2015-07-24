@@ -133,14 +133,6 @@ class AbstractTestReaction(object):
         # self.assertEqual(
         #    model.solver.constraints[test_met.id].expression.as_coefficients_dict()[pgi_reaction.reverse_variable], -43)
 
-    def test_knockout(self):
-        for reaction in self.model.reactions:
-            reaction.knock_out()
-            self.assertEqual(reaction.lower_bound, 0)
-            self.assertEqual(reaction.upper_bound, 0)
-            self.assertEqual(self.model.solver.variables[reaction.id].lb, 0)
-            self.assertEqual(self.model.solver.variables[reaction.id].ub, 0)
-
     def test_removal_from_model_retains_bounds(self):
         model_cp = self.model.copy()
         reaction = model_cp.reactions.ACALD
