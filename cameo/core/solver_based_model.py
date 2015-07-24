@@ -358,8 +358,6 @@ class SolverBasedModel(cobra.core.Model):
             if objective_formula != 0:
                 self.solver.objective = self.solver.interface.Objective(
                     objective_formula, direction={'minimize': 'min', 'maximize': 'max'}[objective_sense])
-        timestamp_formatter = lambda timestamp: datetime.datetime.fromtimestamp(timestamp).strftime(
-            "%Y-%m-%d %H:%M:%S:%f")
         self._timestamp_last_optimization = time.time()
         if objective_sense is not None:
             original_direction = self.objective.direction
