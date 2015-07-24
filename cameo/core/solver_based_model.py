@@ -23,7 +23,6 @@ __all__ = ['to_solver_based_model', 'SolverBasedModel']
 import six
 
 import time
-import datetime
 import csv
 from copy import copy, deepcopy
 
