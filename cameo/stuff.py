@@ -27,7 +27,7 @@ def gene_knockout_growth(gene_id, model, threshold=10 ** -6, simulation_method=f
     if biomass_flux is None:
         s = model.solve()
         biomass_flux = s.f
-    if not 'reference' in kwargs:
+    if 'reference' not in kwargs:
         kwargs['reference'] = s.x_dict
     gene = model.genes.get_by_id(gene_id)
     knockouts = find_gene_knockout_reactions(model, [gene])

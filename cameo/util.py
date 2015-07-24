@@ -60,7 +60,7 @@ class ModelFacade(object):
         return dir(self.model)
 
     def __setattr__(self, key, value):
-        if '_model' in self.__dict__ and not self._model is None:
+        if '_model' in self.__dict__ and self._model is not None:
             setattr(self.model, key, value)
         else:
             self.__dict__[key] = value
@@ -229,8 +229,7 @@ class TimeMachine(object):
             entry_id = bookmark
         # make sure that entry is added to the end of history
         self.history.pop(entry_id, None)
-        self.history[entry_id] = {'unix_epoch':
-                                      current_time, 'undo': undo, 'redo': do}
+        self.history[entry_id] = {'unix_epoch': current_time, 'undo': undo, 'redo': do}
         return entry_id, output
 
     def __str__(self):

@@ -27,7 +27,8 @@ class ModelFacadeUniversal(util.ModelFacade):
         return cameo.load_model(self._id)
 
 
-class ModelDB(object): pass
+class ModelDB(object):
+    pass
 
 
 universal = ModelDB()

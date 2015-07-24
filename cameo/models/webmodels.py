@@ -135,7 +135,8 @@ def get_model_from_bigg(id):
             "Could not download model {}. bigg.ucsd.edu returned status code {}".format(id, response.status_code))
 
 
-class ModelDB(object): pass
+class ModelDB(object):
+    pass
 
 
 bigg = ModelDB()

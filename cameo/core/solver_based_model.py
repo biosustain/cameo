@@ -169,7 +169,7 @@ class SolverBasedModel(cobra.core.Model):
     def solver(self, value):
         not_valid_interface = ValueError(
             '%s is not a valid solver interface. Pick from %s, or specify an optlang interface (e.g. optlang.glpk_interface).' % (
-            value, list(config.solvers.keys())))
+                value, list(config.solvers.keys())))
         if isinstance(value, str):
             try:
                 interface = config.solvers[value]
@@ -337,12 +337,10 @@ class SolverBasedModel(cobra.core.Model):
                             the_reaction = the_reaction.id
                         the_reaction = self.reactions.get_by_id(the_reaction)
                     the_reaction.objective_coefficient = the_coefficient
-                    objective_formula += the_coefficient * \
-                                         self.solver.variables[the_reaction.id]
+                    objective_formula += the_coefficient * self.solver.variables[the_reaction.id]
             else:
                 # Allow for objectives to be constructed from multiple reactions
-                if not isinstance(new_objective, list) and \
-                        not isinstance(new_objective, tuple):
+                if not isinstance(new_objective, list) and not isinstance(new_objective, tuple):
                     new_objective = [new_objective]
                 for the_reaction in new_objective:
                     if isinstance(the_reaction, int):
@@ -352,8 +350,7 @@ class SolverBasedModel(cobra.core.Model):
                             the_reaction = the_reaction.id
                         the_reaction = self.reactions.get_by_id(the_reaction)
                     the_reaction.objective_coefficient = 1.
-                    objective_formula += 1. * \
-                                         self.solver.variables[the_reaction.id]
+                    objective_formula += 1. * self.solver.variables[the_reaction.id]
 
             if objective_formula != 0:
                 self.solver.objective = self.solver.interface.Objective(

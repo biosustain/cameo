@@ -223,7 +223,7 @@ class Designer(object):
             row = search_result.loc[index]
             name = row["name"]
             formula = row["formula"]
-            rows[i,] = [index, name, formula]
+            rows[i, ] = [index, name, formula]
             i += 1
 
         display(DataFrame(rows, columns=["Id", "Name", "Formula"]))
