@@ -274,7 +274,7 @@ class SolverBasedModel(cobra.core.Model):
         self.add_reactions([demand_reaction])
         return demand_reaction
 
-    def add_ratio_constraint(self, reaction1, reaction2, ratio, prefix='ratio_constraint'):
+    def add_ratio_constraint(self, reaction1, reaction2, ratio, prefix='ratio_constraint_'):
         """Adds a ratio constraint (reaction1/reaction2 = ratio) to the model.
 
         Parameters
@@ -316,7 +316,7 @@ class SolverBasedModel(cobra.core.Model):
             term2 = reaction2.variable
 
         ratio_constraint = self.solver.interface.Constraint(term1 - ratio * term2, lb=0, ub=0,
-                                                            name='ratio_constraint_' + reaction1.id + '_' + reaction2.id)
+                                                            name=prefix + reaction1.id + '_' + reaction2.id)
         self.solver._add_constraint(ratio_constraint, sloppy=True)
         return ratio_constraint
 
