@@ -68,7 +68,7 @@ setup(
     packages=find_packages(),
     install_requires=requirements,
     include_package_data=True,
-    author='Nikolaus Sonnenschein, Joao Cardoso, Emre Özdemir',
+    author='Nikolaus Sonnenschein, Joao Cardoso, Emre Özdemir, Kristian Jensen',
     author_email='niko.sonnenschein@gmail.com',
     description='cameo - computer aided metabolic engineering & optimziation',
     license='Apache License Version 2.0',
