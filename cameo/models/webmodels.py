@@ -21,20 +21,23 @@ http://darwin.di.uminho.pt/models and http://bigg.ucsd.edu databases
 """
 
 from __future__ import absolute_import, print_function
-from cameo.util import str_to_valid_variable_name
+
 
 __all__ = ['index_models_minho', 'index_models_bigg', 'bigg', 'minho']
 
 import io
 import tempfile
 import json
+from functools import partial
 
 import requests
 from pandas import DataFrame
+import lazy_object_proxy
+
 
 from cobra.io import load_json_model, read_sbml_model
 
-from cameo import util
+from cameo.util import str_to_valid_variable_name
 from cameo.core.solver_based_model import to_solver_based_model
 
 import logging
@@ -46,16 +49,6 @@ class NotFoundException(Exception):
     def __init__(self, type, index, *args, **kwargs):
         message = "Could not retrieve %s for entry with index %i" % (type, index)
         Exception.__init__(self, message, *args, **kwargs)
-
-
-class ModelFacadeBigg(util.ModelFacade):
-    def _load_model(self):
-        return get_model_from_bigg(self._id)
-
-
-class ModelFacadeMinho(util.ModelFacade):
-    def _load_model(self):
-        return get_model_from_uminho(self._id)
 
 
 def index_models_minho(host="http://darwin.di.uminho.pt/models"):
@@ -146,7 +139,7 @@ except requests.ConnectionError:
     pass
 else:
     for id in model_ids:
-        setattr(bigg, str_to_valid_variable_name(id), ModelFacadeBigg(id))
+        setattr(bigg, str_to_valid_variable_name(id), lazy_object_proxy.Proxy(partial(get_model_from_bigg, id)))
 
 minho = ModelDB()
 try:
@@ -157,7 +150,7 @@ except requests.ConnectionError:
     pass
 else:
     for index, id in zip(model_indices, model_ids):
-        setattr(minho, str_to_valid_variable_name(id), ModelFacadeMinho(index))
+        setattr(minho, str_to_valid_variable_name(id), lazy_object_proxy.Proxy(partial(get_model_from_uminho, index)))
 
 if __name__ == "__main__":
     print(index_models_minho())

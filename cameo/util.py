@@ -36,36 +36,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class ModelFacade(object):
-    def __init__(self, id=id):
-        self._id = id
-        self._model = None
-
-    def _load_model(self):
-        raise NotImplementedError("You forgot to implement this method!")
-
-    @property
-    def model(self):
-        if self._model is None:
-            self._model = self._load_model()
-        return self._model
-
-    def __getattr__(self, value):
-        try:
-            return getattr(self.model, value)
-        except AttributeError:
-            return getattr(super(ModelFacade, self), value, self)
-
-    def __dir__(self):
-        return dir(self.model)
-
-    def __setattr__(self, key, value):
-        if '_model' in self.__dict__ and self._model is not None:
-            setattr(self.model, key, value)
-        else:
-            self.__dict__[key] = value
-
-
 class ProblemCache(object):
     def __init__(self, model):
         self.time_machine = None

@@ -47,7 +47,8 @@ else:
                     'six>=1.9.0',
                     'escher>=1.1.2',
                     'IProgress>=0.2',
-                    'inspyred>=1.0'
+                    'inspyred>=1.0',
+                    'lazy-object-proxy>=1.2.0'
                     ]
 if sys.version_info[0] < 3:
     requirements.extend(['bashplotlib>=0.6.1', ])
