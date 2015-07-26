@@ -14,24 +14,12 @@
 
 from __future__ import absolute_import, print_function
 
+__all__ = ['products']
+
 import difflib
 from pandas import DataFrame
 from cameo.data import metanetx
-
-
-def inchi_to_svg(inchi):
-    try:
-        import openbabel
-    except ImportError as e:
-        print(e)
-        raise ImportError("OpenBabel seems to be not installed.")
-    convert = openbabel.OBConversion()
-    convert.SetInFormat("inchi")
-    convert.SetOutFormat("svg")
-    mol = openbabel.OBMol()
-    if not convert.ReadString(mol, inchi):
-        raise Exception("%s could not be parsed as an inchi string.")
-    return convert.WriteString(mol)
+from cameo.visualization import inchi_to_svg
 
 
 class Compound(object):

@@ -13,13 +13,15 @@
 # limitations under the License.
 
 from __future__ import absolute_import, print_function
-from IPython.core.display import display
-from IPython.core.display import HTML
 
-from pandas import DataFrame
+__all__ = ['design']
+
 import re
 
 import numpy as np
+from IPython.core.display import display
+from IPython.core.display import HTML
+from pandas import DataFrame
 
 from cameo import Metabolite, Model, phenotypic_phase_plane, fba
 from cameo import config, util
@@ -34,12 +36,12 @@ from cameo.strain_design import pathway_prediction
 from cameo.util import TimeMachine
 from cameo.models import universal
 
-import logging
 from cameo.visualization import visualization
 from cameo.visualization.plotting import Grid
 
+import logging
+
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 # TODO: implement cplex preference (if available)
 

@@ -14,6 +14,8 @@
 
 from __future__ import absolute_import, print_function
 
+__all__ = ['hosts']
+
 import os
 
 import cameo
@@ -21,7 +23,7 @@ from cameo import util
 from cameo import load_model
 import six
 
-MODEL_DIRECTORY = os.path.join(os.path.join(os.path.split(cameo.__path__[0])[0]), 'tests/data')
+MODEL_DIRECTORY = os.path.join(os.path.join(cameo.__path__[0]), 'models/sbml')
 
 
 class Host(object):
