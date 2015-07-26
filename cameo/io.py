@@ -20,8 +20,8 @@ import requests
 import optlang
 from cobra.io import read_sbml_model, load_json_model
 
+import cameo
 from cameo.core.solver_based_model import SolverBasedModel, to_solver_based_model
-from cameo.models import webmodels
 
 import logging
 
@@ -51,11 +51,11 @@ def load_model(path_or_handle, solver_interface=optlang.glpk_interface, sanitize
         except IOError:
             logger.debug('%s not a file path. Querying webmodels ... trying http://bigg.ucsd.edu first' % path)
             try:
-                return webmodels.get_model_from_bigg(path)
+                return cameo.models.webmodels.get_model_from_bigg(path)
             except:
                 logger.debug('%s not a file path. Querying webmodels ... trying minho next' % path)
                 try:
-                    df = webmodels.index_models_minho()
+                    df = cameo.models.webmodels.index_models_minho()
                 except requests.ConnectionError as e:
                     logger.error("You need to be connected to the internet to load an online model.")
                     raise e
@@ -64,7 +64,7 @@ def load_model(path_or_handle, solver_interface=optlang.glpk_interface, sanitize
                     raise e
                 try:
                     index = df.query('name == "%s"' % path_or_handle).id.values[0]
-                    handle = webmodels.get_sbml_file(index)
+                    handle = cameo.models.webmodels.get_sbml_file(index)
                     path = handle.name
                 except IndexError:
                     raise ValueError("%s is neither a file nor a model ID." % path)

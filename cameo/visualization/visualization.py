@@ -177,7 +177,7 @@ def inchi_to_ascii(inchi, file=None, debug=False):
     """
 
     in_file = tempfile.NamedTemporaryFile()
-    in_file.write(inchi)
+    in_file.write(inchi.encode('utf-8'))
     in_file.flush()
 
     out_file = None

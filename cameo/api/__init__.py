@@ -18,6 +18,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from cameo.api.hosts import hosts
-from cameo.api.designer import design
-from cameo.api.products import products
+from cameo.api.hosts import *
+from cameo.api.designer import *
+from cameo.api.products import *
