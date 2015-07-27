@@ -154,7 +154,7 @@ class PathwayPredictor(object):
             compartment_regexp = re.compile(".*")
 
         if universal_model is None:
-            logger.debug("Loading default universal model.")
+            logger.info("Loading default universal model.")
             self.universal_model = models.universal.metanetx_universal_model_bigg_rhea
         elif isinstance(universal_model, Model):
             self.universal_model = universal_model
@@ -168,14 +168,14 @@ class PathwayPredictor(object):
         self.model = model.copy()
 
         try:
-            logger.debug('Trying to set solver to cplex to speed up pathway predictions.')
+            logger.info('Trying to set solver to cplex to speed up pathway predictions.')
             self.model.solver = 'cplex'
         except ValueError:
-            logger.debug('cplex not available for pathway predictions.')
+            logger.info('cplex not available for pathway predictions.')
 
         self.new_reactions = self._extend_model(model.exchanges)
 
-        logger.debug("Adding adapter reactions to connect model with universal model.")
+        logger.info("Adding adapter reactions to connect model with universal model.")
         self.adpater_reactions = util.create_adaptor_reactions(model.metabolites, self.universal_model,
                                                                self.mapping, compartment_regexp)
         self.model.add_reactions(self.adpater_reactions)
@@ -216,11 +216,11 @@ class PathwayPredictor(object):
             demand_reaction.lower_bound = min_production
             counter = 1
             while counter <= max_predictions:
-                logger.debug('Predicting pathway No. %d' % counter)
+                logger.info('Predicting pathway No. %d' % counter)
                 try:
                     solution = self.model.solve()
                 except SolveError as e:
-                    logger.debug('No pathway could be predicted. Terminating pathway predictions.')
+                    logger.info('No pathway could be predicted. Terminating pathway predictions.')
                     logger.error(e)
                     break
 
@@ -229,7 +229,7 @@ class PathwayPredictor(object):
                     y_var = self.model.solver.variables[y_var_id]
                     if y_var.primal == 1.0:
                         vars_to_cut.append(y_var)
-                logger.debug(vars_to_cut)
+                logger.info(vars_to_cut)
                 if len(vars_to_cut) == 0:
                     # no pathway found:
                     logger.info(
@@ -238,12 +238,12 @@ class PathwayPredictor(object):
                     # knockout adapter with native product
                     for adapter in self.adpater_reactions:
                         if product in adapter.metabolites:
-                            logger.debug('Knocking out adapter reaction %s containing native product.' % adapter)
+                            logger.info('Knocking out adapter reaction %s containing native product.' % adapter)
                             adapter.knock_out(time_machine=tm)
                     continue
 
                 pathway = [self.model.reactions.get_by_id(y_var.name[2:]) for y_var in vars_to_cut]
-                logger.debug('Pathway predicted: %s' % '\t'.join(
+                logger.info('Pathway predicted: %s' % '\t'.join(
                     [r.build_reaction_string(use_metabolite_names=True) for r in pathway]))
                 # Figure out adapter reactions to include
                 adapters = [adapter for adapter in self.adpater_reactions if abs(adapter.flux) != 0]
@@ -259,7 +259,7 @@ class PathwayPredictor(object):
                 integer_cut = self.model.solver.interface.Constraint(Add(*vars_to_cut),
                                                                      name="integer_cut_" + str(counter),
                                                                      ub=len(vars_to_cut) - 1)
-                logger.debug('Adding integer cut.')
+                logger.info('Adding integer cut.')
                 tm(do=partial(self.model.solver._add_constraint, integer_cut),
                    undo=partial(self.model.solver._remove_constraint, integer_cut))
                 counter += 1
@@ -271,7 +271,7 @@ class PathwayPredictor(object):
         pass
 
     def _add_switches(self, reactions):
-        logger.debug("Adding switches.")
+        logger.info("Adding switches.")
         y_vars = list()
         switches = list()
         self._exchanges = list()
@@ -291,7 +291,7 @@ class PathwayPredictor(object):
             switches.extend([switch_lb, switch_ub])
 
         self.model.solver.add(switches)
-        logger.debug("Setting minimization of switch variables as objective.")
+        logger.info("Setting minimization of switch variables as objective.")
         self.model.objective = self.model.solver.interface.Objective(Add(*y_vars), direction='min')
         self._y_vars_ids = [var.name for var in y_vars]
 
@@ -300,7 +300,7 @@ class PathwayPredictor(object):
             if len(exchange.reactants) > 0 >= exchange.lower_bound:
                 exchange.upper_bound = 999999.
 
-        logger.debug("Adding reactions from universal model to host model.")
+        logger.info("Adding reactions from universal model to host model.")
         new_reactions = list()
         original_model_metabolites = [self.mapping.get(m.id[0:-2], m.id) for
                                       r in original_exchanges for m, coeff in six.iteritems(r.metabolites)
