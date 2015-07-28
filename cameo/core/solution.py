@@ -33,13 +33,13 @@ logger = logging.getLogger(__name__)
 
 class SolutionBase(object):
     def __new__(cls, *args, **kwargs):
-        # this is a compatibility hack
+        # this is a cobrapy compatibility hack
         if len(args) == 1 and not isinstance(args[0], cameo.core.solver_based_model.SolverBasedModel):
             cobrapy_solution = super(SolutionBase, cls).__new__(cobra.core.Solution)
             cobrapy_solution.__init__(*args, **kwargs)
             return cobrapy_solution
         else:
-            return super(SolutionBase, cls).__new__(cls, *args, **kwargs)
+            return super(SolutionBase, cls).__new__(cls)
 
     def __init__(self, model):
         self.model = model
