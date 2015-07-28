@@ -1,21 +1,19 @@
 language: python
+sudo: false
 python:
  - "2.7"
  - "3.4"
-before_install:
-  - sudo apt-get install swig redis-server libzmq3-dev libgmp-dev libglpk-dev glpk-utils pandoc
-  - sudo service redis-server start
-  - sudo rm -rf /dev/shm
-  - wget https://ftp.gnu.org/gnu/glpk/glpk-4.45.tar.gz
-  - tar xvf glpk-4.45.tar.gz
-  - mkdir glpk
-  - cd glpk-4.45
-  - ./configure --prefix=/
-  - make
-  - sudo make install
-  - cd ..
-  - sudo ldconfig
-  - sudo ln -s /run/shm /dev/shm
+cache: pip
+addons:
+  apt:
+    packages:
+    - swig
+    - redis-server
+    - libzmq3-dev
+    - libgmp-dev
+    - libglp
+    - glpk-utils
+    - pandoc
 install:
   - if [[ $TRAVIS_PYTHON_VERSION == "3.4" ]]; then pip install pyzmq pandas; fi
   - pip install python-libsbml-experimental numpy scipy pyzmq pandas -f http://nikosonnensche.in/wheels/index.html --no-index
