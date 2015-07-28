@@ -21,6 +21,9 @@ import time
 import datetime
 from pandas import DataFrame, Series
 
+import cobra
+
+import cameo
 from cameo.exceptions import UndefinedSolution
 
 import logging
@@ -29,9 +32,21 @@ logger = logging.getLogger(__name__)
 
 
 class SolutionBase(object):
-    def __init__(self, model, *args, **kwargs):
-        super(SolutionBase, self).__init__(*args, **kwargs)
+    def __new__(cls, *args, **kwargs):
+        # this is a compatibility hack
+        if len(args) == 1 and not isinstance(args[0], cameo.core.solver_based_model.SolverBasedModel):
+            cobrapy_solution = super(SolutionBase, cls).__new__(cobra.core.Solution)
+            cobrapy_solution.__init__(*args, **kwargs)
+            return cobrapy_solution
+        else:
+            return super(SolutionBase, cls).__new__(cls, *args, **kwargs)
+
+    def __init__(self, model):
         self.model = model
+        self._x = None
+        self._y = None
+        self._x_dict = None
+        self._y_dict = None
 
     @property
     def data_frame(self):
@@ -72,19 +87,47 @@ class SolutionBase(object):
 
     @property
     def x_dict(self):
-        return self.fluxes
+        if self._x_dict is None:
+            return self.fluxes
+        else:
+            return self._x_dict
+
+    @x_dict.setter
+    def x_dict(self, value):
+        self._x_dict = value
 
     @property
     def x(self):
-        return self.fluxes.values()
+        if self._x is None:
+            return self.fluxes.values()
+        else:
+            return self._x
+
+    @x.setter
+    def x(self, value):
+        self._x = value
 
     @property
     def y_dict(self):
-        return self.shadow_prices
+        if self._y_dict is None:
+            return self.reduced_costs
+        else:
+            return self._y_dict
+
+    @y_dict.setter
+    def y_dict(self, value):
+        self._y_dict = value
 
     @property
     def y(self):
-        return self.shadow_prices.values()
+        if self._y is None:
+            return self.reduced_costs.values()
+        else:
+            return self._y
+
+    @y.setter
+    def y(self, value):
+        self._y = value
 
 
 class Solution(SolutionBase):
@@ -115,9 +158,9 @@ class Solution(SolutionBase):
         self.reduced_costs = OrderedDict()
         for reaction in model.reactions:
             self.fluxes[reaction.id] = reaction.flux
-            self.reduced_costs[reaction.id] = reaction.variable.dual
+            self.reduced_costs[reaction.id] = reaction.reduced_cost
         for metabolite in model.metabolites:
-            self.reduced_costs[metabolite.id] = self.model.solver.constraints[metabolite.id].dual
+            self.shadow_prices[metabolite.id] = self.model.solver.constraints[metabolite.id].dual
         self.status = model.solver.status
         self._reaction_ids = [r.id for r in self.model.reactions]
         self._metabolite_ids = [m.id for m in self.model.metabolites]

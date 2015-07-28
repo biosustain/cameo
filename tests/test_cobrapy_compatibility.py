@@ -16,8 +16,7 @@ import os
 
 TRAVIS = os.getenv('TRAVIS', False)
 
-# if not TRAVIS:
-if False:
+if not TRAVIS:
     import types
     from cobra.test import create_test_model
     from cobra.test.unit_tests import CobraTestCase, TestReactions
