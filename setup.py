@@ -21,12 +21,6 @@ import sys
 from setuptools import setup, find_packages
 import versioneer
 
-versioneer.VCS = 'git'
-versioneer.versionfile_source = 'cameo/_version.py'
-versioneer.versionfile_build = 'cameo/_version.py'
-versioneer.tag_prefix = ''  # tags are like 1.2.0
-versioneer.parentdir_prefix = 'myproject-'  # dirname like 'myproject-1.2.0'
-
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 if on_rtd:
     requirements = []
