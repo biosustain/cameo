@@ -71,8 +71,13 @@ def index_models_minho(host="http://darwin.di.uminho.pt/models"):
         logger.error("Cannot reach %s. Are you sure that you are connected to the internet?" % host)
         raise e
     if response.ok:
-        response = json.loads(response.text)
-        return DataFrame(response, columns=["id", "name", "doi", "author", "year", "formats", "organism", "taxonomy"])
+        try:
+            json = response.json()
+        except Exception as e:
+            logger.error('No json could be decoded from server response coming from http://bigg.ucsd.edu.')
+            raise e
+        else:
+            return DataFrame(json, columns=["id", "name", "doi", "author", "year", "formats", "organism", "taxonomy"])
     else:
         raise Exception("Could not index available models. %s returned status code %d" % (host, response.status_code))
 
@@ -108,7 +113,13 @@ def index_models_bigg():
         logger.error("Cannot reach http://bigg.ucsd.edu. Are you sure that you are connected to the internet?")
         raise e
     if response.ok:
-        return DataFrame.from_dict(response.json()['results'])
+        try:
+            json = response.json()
+        except Exception as e:
+            logger.error('No json could be decoded from server response coming from http://bigg.ucsd.edu.')
+            raise e
+        else:
+            return DataFrame.from_dict(json['results'])
     else:
         raise Exception(
             "Could not index available models. bigg.ucsd.edu returned status code {}".format(response.status_code))
@@ -136,7 +147,10 @@ bigg = ModelDB()
 try:
     model_ids = index_models_bigg().bigg_id
 except requests.ConnectionError:
-    pass
+    bigg.no_models_available = "Cameo couldn't reach http://bigg.ucsd.edu at initialization time. Are you connected to the internet?"
+except Exception as e:
+    bigg.no_models_available = "Cameo could reach http://bigg.ucsd.edu at initialization time but something went wrong while decoding the server response."
+    logger.debug(e)
 else:
     for id in model_ids:
         setattr(bigg, str_to_valid_variable_name(id), lazy_object_proxy.Proxy(partial(get_model_from_bigg, id)))
@@ -144,11 +158,15 @@ else:
 minho = ModelDB()
 try:
     minho_models = index_models_minho()
+except requests.ConnectionError as e:
+    minho.no_models_available = "Cameo couldn't reach http://darwin.di.uminho.pt/models at initialization time. Are you connected to the internet?"
+    logger.debug(e)
+except Exception as e:
+    minho.no_models_available = "Cameo could reach http://darwin.di.uminho.pt/models at initialization time but something went wrong while decoding the server response."
+    logger.debug(e)
+else:
     model_indices = minho_models.id
     model_ids = minho_models.name
-except requests.ConnectionError:
-    pass
-else:
     for index, id in zip(model_indices, model_ids):
         setattr(minho, str_to_valid_variable_name(id), lazy_object_proxy.Proxy(partial(get_model_from_uminho, index)))
 
