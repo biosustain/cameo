@@ -477,6 +477,7 @@ class AbstractTestReaction(object):
             self.assertIn(-1 * new_coefficient * reaction.reverse_variable,
                           self.model.solver.constraints[already_included_metabolite.id].expression)
 
+    @unittest.skipIf(TRAVIS, 'This test behaves non-deterministic on travis-ci')
     def test_add_metabolites_combine_false(self):
         test_metabolite = Metabolite('test')
         for reaction in self.model.reactions:
