@@ -1,7 +1,7 @@
 ## Cameo—Computer Aided Metabolic Engineering and Optimization
 
 [![Documentation Status](https://readthedocs.org/projects/cameo/badge/?version=devel)](https://readthedocs.org/projects/cameo/?badge=devel)
-[![Build Status](https://travis-ci.org/biosustain/cameo.svg?branch=devel)](https://travis-ci.org/biosustain/cameo)
+[![Build Status](https://travis-ci.org/biosustain/cameo.svg?branch=master)](https://travis-ci.org/biosustain/cameo)
 [![Coverage Status](https://coveralls.io/repos/biosustain/cameo/badge.svg?branch=devel)](https://coveralls.io/r/biosustain/cameo?branch=devel)
 [![DOI](https://zenodo.org/badge/doi/10.5281/zenodo.19827.svg)](http://dx.doi.org/10.5281/zenodo.19827)
 
