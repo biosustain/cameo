@@ -37,7 +37,7 @@ from sympy.core.singleton import S
 import optlang
 from pandas import DataFrame, pandas
 
-from cameo.util import TimeMachine
+from cameo.util import TimeMachine, doc_inherit
 from cameo import config
 from cameo import exceptions
 from cameo.exceptions import SolveError, Infeasible, UndefinedSolution
@@ -108,6 +108,7 @@ class SolverBasedModel(cobra.core.Model):
     def __deepcopy__(self):
         return self.copy()
 
+    @doc_inherit
     def copy(self):
         """Needed for compatibility with cobrapy."""
         model_copy = super(SolverBasedModel, self).copy()
@@ -142,6 +143,7 @@ class SolverBasedModel(cobra.core.Model):
 
     @property
     def objective(self):
+        """The model objective."""
         return self.solver.objective
 
     @objective.setter
@@ -162,6 +164,17 @@ class SolverBasedModel(cobra.core.Model):
 
     @property
     def solver(self):
+        """Attached solver instance.
+
+        Very useful for accessing the optimization problem directly. Furthermore, can be used to define additional
+        non-metabolic constraints.
+
+        Examples
+        --------
+        >>> new_constraint_from_objective = model.solver.interface.Constraint(model.objective.expression, lb=0.99)
+        >>> model.solver.add(new_constraint)
+
+        """
         return self._solver
 
     @solver.setter
@@ -185,8 +198,13 @@ class SolverBasedModel(cobra.core.Model):
 
     @property
     def exchanges(self):
+        """Exchange reactions in model.
+
+        Reactions that either don't have products or substrates.
+        """
         return [reaction for reaction in self.reactions if len(reaction.reactants) == 0 or len(reaction.products) == 0]
 
+    @doc_inherit
     def add_metabolites(self, metabolite_list):
         super(SolverBasedModel, self).add_metabolites(metabolite_list)
         for met in metabolite_list:
@@ -194,6 +212,7 @@ class SolverBasedModel(cobra.core.Model):
                 self.solver.add(self.solver.interface.Constraint(S.Zero, name=met.id, lb=0, ub=0))
 
     def _populate_solver(self, reaction_list):
+        """Populate attached solver with constraints and variables that model the provided reactions."""
         constr_terms = dict()
         objective_terms = list()
         metabolites = {}
@@ -246,6 +265,7 @@ class SolverBasedModel(cobra.core.Model):
             self.solver.objective.variables  # TODO: remove this weird hack. Looks like some weird issue with lazy objective expressions in CPLEX and GLPK interface in optlang.
             self.solver.objective += objective_expression
 
+    @doc_inherit
     def add_reactions(self, reaction_list):
         cloned_reaction_list = list()
         for reaction in reaction_list:  # this is necessary for cobrapy compatibility
@@ -259,6 +279,7 @@ class SolverBasedModel(cobra.core.Model):
 
         self._populate_solver(cloned_reaction_list)
 
+    @doc_inherit
     def remove_reactions(self, the_reactions, delete=True, remove_orphans=False):
         for reaction in the_reactions:
             self.solver.remove(reaction.forward_variable)
@@ -266,12 +287,36 @@ class SolverBasedModel(cobra.core.Model):
         super(SolverBasedModel, self).remove_reactions(the_reactions, delete=delete, remove_orphans=remove_orphans)
 
     def add_demand(self, metabolite, prefix="DM_"):
+        """Add a demand reaction for a metabolite (metabolite --> Ø)
+
+        Parameters
+        ----------
+        metabolite : Metabolite
+        prefix : str, optional
+            A prefix that will be added to the metabolite ID to be used as the demand reaction's ID (defaults to 'DM_').
+
+        Returns
+        -------
+        Reaction
+            The created demand reaction.
+        """
         demand_reaction = Reaction(prefix + metabolite.id)
         demand_reaction.add_metabolites({metabolite: -1})
         demand_reaction.lower_bound = 0
         demand_reaction.upper_bound = 1000
         self.add_reactions([demand_reaction])
         return demand_reaction
+
+    def fix_objective_as_constraint(self):
+        """Fix current objective as an additional constraint.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
+        """
 
     def add_ratio_constraint(self, reaction1, reaction2, ratio, prefix='ratio_constraint_'):
         """Adds a ratio constraint (reaction1/reaction2 = ratio) to the model.
@@ -285,7 +330,7 @@ class SolverBasedModel(cobra.core.Model):
         ratio : float
             The ratio in reaction1/reaction2 = ratio
         prefix : str
-            The prefix that will be added to the constraint ID.
+            The prefix that will be added to the constraint ID (defaults to 'ratio_constraint_').
 
         Returns
         -------
@@ -319,8 +364,12 @@ class SolverBasedModel(cobra.core.Model):
         self.solver._add_constraint(ratio_constraint, sloppy=True)
         return ratio_constraint
 
+    @doc_inherit
     def optimize(self, new_objective=None, objective_sense=None, solution_type=Solution, **kwargs):
-        """OptlangBasedModel implementation of optimize. Returns lazy solution object. Exists for compatibility reasons. Uses model.solve() instead."""
+        """OptlangBasedModel implementation of optimize.
+
+        Exists only for compatibility reasons. Uses model.solve() instead.
+        """
         if new_objective is None or new_objective == 0:
             pass
         else:
@@ -367,7 +416,17 @@ class SolverBasedModel(cobra.core.Model):
         return solution
 
     def solve(self, solution_type=LazySolution, *args, **kwargs):
-        """Optimize model."""
+        """Optimize model.
+
+        Parameters
+        ----------
+        solution_type : Solution or LazySolution, optional
+            The type of solution that should be returned (defaults to LazySolution).
+
+        Returns
+        -------
+        Solution or LazySolution
+        """
         solution = self.optimize(solution_type=solution_type, *args, **kwargs)
         if solution.status is not 'optimal':
             logger.debug('No optimal solution found. Turning on presolve.')
@@ -465,6 +524,7 @@ class SolverBasedModel(cobra.core.Model):
 
     @property
     def medium(self):
+        """Current medium."""
         reaction_ids = []
         reaction_names = []
         lower_bounds = []
