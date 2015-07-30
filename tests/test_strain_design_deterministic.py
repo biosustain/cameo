@@ -14,12 +14,14 @@
 
 from __future__ import absolute_import, print_function
 
+import six
+
 import os
 import unittest
 
 from cameo import load_model
 from cameo.strain_design.deterministic.flux_variability_based import fseof, FseofResult, DifferentialFVA
-from six.moves import range
+
 from pandas import DataFrame, pandas
 from pandas.util.testing import assert_frame_equal
 
@@ -51,25 +53,25 @@ class TestFSEOF(unittest.TestCase):
         self.assertIs(fseof_result.model, self.model)
         self.assertEqual(list(fseof_result), list(fseof_result.reactions))
 
+if six.PY2:  # Make these test cases work with PY3 as well
+    class TestDifferentialFVA(unittest.TestCase):
+        def setUp(self):
+            self.model = ECOLICORE
 
-class TestDifferentialFVA(unittest.TestCase):
-    def setUp(self):
-        self.model = ECOLICORE
+        def test_minimal_input(self):
+            result = DifferentialFVA(self.model, self.model.reactions.EX_succ_lp_e_rp_, points=5).run()
+            # result.data_frame.iloc[0].to_pickle(os.path.join(TESTDIR, 'data/REFERENCE_DiffFVA1.pickle'))
+            pandas.util.testing.assert_frame_equal(result.data_frame.iloc[0], pandas.read_pickle(os.path.join(TESTDIR, 'data/REFERENCE_DiffFVA1.pickle')))
 
-    def test_minimal_input(self):
-        result = DifferentialFVA(self.model, self.model.reactions.EX_succ_lp_e_rp_, points=5).run()
-        # result.data_frame.iloc[0].to_pickle(os.path.join(TESTDIR, 'data/REFERENCE_DiffFVA1.pickle'))
-        pandas.util.testing.assert_frame_equal(result.data_frame.iloc[0], pandas.read_pickle(os.path.join(TESTDIR, 'data/REFERENCE_DiffFVA1.pickle')))
-
-    def test_with_reference_model(self):
-        reference_model = self.model.copy()
-        biomass_rxn = reference_model.reactions.Biomass_Ecoli_core_N_lp_w_fsh_GAM_rp__Nmet2
-        biomass_rxn.lower_bound = 0.3
-        target = reference_model.reactions.EX_succ_lp_e_rp_
-        target.lower_bound = 2
-        result = DifferentialFVA(self.model, target, reference_model=reference_model, points=5).run()
-        # result.data_frame.iloc[0].to_pickle(os.path.join(TESTDIR, 'data/REFERENCE_DiffFVA2.pickle'))
-        pandas.util.testing.assert_frame_equal(result.data_frame.iloc[0], pandas.read_pickle(os.path.join(TESTDIR, 'data/REFERENCE_DiffFVA2.pickle')))
+        def test_with_reference_model(self):
+            reference_model = self.model.copy()
+            biomass_rxn = reference_model.reactions.Biomass_Ecoli_core_N_lp_w_fsh_GAM_rp__Nmet2
+            biomass_rxn.lower_bound = 0.3
+            target = reference_model.reactions.EX_succ_lp_e_rp_
+            target.lower_bound = 2
+            result = DifferentialFVA(self.model, target, reference_model=reference_model, points=5).run()
+            # result.data_frame.iloc[0].to_pickle(os.path.join(TESTDIR, 'data/REFERENCE_DiffFVA2.pickle'))
+            pandas.util.testing.assert_frame_equal(result.data_frame.iloc[0], pandas.read_pickle(os.path.join(TESTDIR, 'data/REFERENCE_DiffFVA2.pickle')))
 
 if __name__ == "__main__":
     import nose
