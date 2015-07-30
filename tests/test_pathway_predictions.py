@@ -35,7 +35,7 @@ class TestPathwayPredictor(unittest.TestCase):
 
     def test_setting_incorrect_universal_model_raises(self):
         with self.assertRaisesRegexp(ValueError, 'Provided universal_model.*'):
-            PathwayPredictor(universal_model='Mickey_Mouse')
+            PathwayPredictor(TESTMODEL, universal_model='Mickey_Mouse')
 
     # def test_predict_native_compound_returns_shorter_alternatives(self):
     #     result = self.pathway_predictor.run(product='Phosphoenolpyruvate', max_predictions=1)
