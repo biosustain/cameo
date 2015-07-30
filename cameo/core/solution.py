@@ -129,6 +129,10 @@ class SolutionBase(object):
     def y(self, value):
         self._y = value
 
+    @property
+    def objective_value(self):
+        return self.f
+
 
 class Solution(SolutionBase):
     """This class mimicks the cobrapy Solution class.
