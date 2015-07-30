@@ -17,6 +17,7 @@
 """
 
 from __future__ import absolute_import, print_function
+from functools import partial
 
 __all__ = ['to_solver_based_model', 'SolverBasedModel']
 
@@ -307,16 +308,30 @@ class SolverBasedModel(cobra.core.Model):
         self.add_reactions([demand_reaction])
         return demand_reaction
 
-    def fix_objective_as_constraint(self):
-        """Fix current objective as an additional constraint.
+    def fix_objective_as_constraint(self, time_machine=None):
+        """Fix current objective as an additional constraint (e.g., ..math`c^T v >= max c^T v`).
 
         Parameters
         ----------
+        time_machine : TimeMachine, optional
+            A TimeMachine instance can be provided, making it easy to undo this modification.
 
         Returns
         -------
-
+        None
         """
+        objective_value = self.solve().objective_value
+        constraint = self.solver.interface.Constraint(self.objective.expression, lb=objective_value,
+                                                      name='Fixed_objective_{}'.format(self.objective.name))
+        if self.objective.direction == 'max':
+            constraint.lb = objective_value
+        else:
+            constraint.ub = objective_value
+        if time_machine is None:
+            self.solver._add_constraint(constraint, sloppy=True)
+        else:
+            time_machine(do=partial(self.solver._add_constraint, constraint, sloppy=True),
+                         undo=partial(self.solver.remove, constraint))
 
     def add_ratio_constraint(self, reaction1, reaction2, ratio, prefix='ratio_constraint_'):
         """Adds a ratio constraint (reaction1/reaction2 = ratio) to the model.
