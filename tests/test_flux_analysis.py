@@ -81,10 +81,10 @@ class Wrapper:
             for key in fva_solution.data_frame.index:
                 if abs(REFERENCE_FVA_SOLUTION_ECOLI_CORE['lower_bound'][key]) < 1000:
                     self.assertAlmostEqual(fva_solution['lower_bound'][key],
-                                           REFERENCE_FVA_SOLUTION_ECOLI_CORE['lower_bound'][key], delta=0.00001)
+                                           REFERENCE_FVA_SOLUTION_ECOLI_CORE['lower_bound'][key], delta=0.0001)
                 if abs(REFERENCE_FVA_SOLUTION_ECOLI_CORE['upper_bound'][key]) < 1000:
                     self.assertAlmostEqual(fva_solution['upper_bound'][key],
-                                           REFERENCE_FVA_SOLUTION_ECOLI_CORE['upper_bound'][key], delta=0.00001)
+                                           REFERENCE_FVA_SOLUTION_ECOLI_CORE['upper_bound'][key], delta=0.0001)
 
 
         def test_flux_variability_sequential(self):
