@@ -21,9 +21,10 @@ addons:
     - pandoc
 before_install:
 - if [ ! -d "cplex/python/$TRAVIS_PYTHON_VERSION/x86-64_linux/" ]; then curl -L SECRET_CPLEX_LINK -o cplex.tar.gz && tar xvf cplex.tar.gz; fi
-install:
 - cd "cplex/python/$TRAVIS_PYTHON_VERSION/x86-64_linux/"
+- ls -la
 - pip install .
+install:
 - if [[ $TRAVIS_PYTHON_VERSION == "3.4" ]]; then pip install pyzmq pandas; fi
 - pip install python-libsbml-experimental numpy scipy pyzmq pandas -f http://nikosonnensche.in/wheels/index.html
   --no-index
