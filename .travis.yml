@@ -27,6 +27,7 @@ before_install:
 - if [[ $TRAVIS_PYTHON_VERSION == "3.4" ]]; then cd "cplex/python/3.4/x86-64_linux/"; fi
 - if [[ $TRAVIS_PYTHON_VERSION == "2.7" ]]; then cd "cplex/python/2.6/x86-64_linux/"; fi
 - pip install .
+- cd $TRAVIS_BUILD_DIR/biosustain/cameo
 install:
 - if [[ $TRAVIS_PYTHON_VERSION == "3.4" ]]; then pip install pyzmq pandas; fi
 - pip install python-libsbml-experimental numpy scipy pyzmq pandas -f http://nikosonnensche.in/wheels/index.html --trusted-host nikosonnensche.in
