@@ -5,8 +5,8 @@ python:
 - '3.4'
 cache:
 - pip: true
-- directories:
-  - cplex/python/$TRAVIS_PYTHON_VERSION/x86-64_linux/
+#- directories:
+#  - cplex/python/$TRAVIS_PYTHON_VERSION/x86-64_linux/
 services:
 - redis-server
 addons:
@@ -20,8 +20,11 @@ addons:
     - glpk-utils
     - pandoc
 before_install:
-- if [ ! -d "cplex/python/$TRAVIS_PYTHON_VERSION/x86-64_linux/" ]; then curl -L SECRET_CPLEX_LINK -o cplex.tar.gz && tar xvf cplex.tar.gz; fi
+#- if [ ! -d "cplex/python/$TRAVIS_PYTHON_VERSION/x86-64_linux/" ]; then curl -L SECRET_CPLEX_LINK -o cplex.tar.gz && tar xvf cplex.tar.gz; fi
+- curl -L SECRET_CPLEX_LINK -o cplex.tar.gz
+= tar xvf cplex.tar.gz
 - cd "cplex/python/$TRAVIS_PYTHON_VERSION/x86-64_linux/"
+- pwd
 - ls -la
 - pip install .
 install:
