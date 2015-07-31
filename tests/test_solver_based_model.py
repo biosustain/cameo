@@ -340,6 +340,20 @@ class WrappedAbstractTestReaction:
                 self.assertEqual(reaction.lower_bound, original_bounds[reaction.id][0])
                 self.assertEqual(reaction.upper_bound, original_bounds[reaction.id][1])
 
+        def test__repr_html_(self):
+            self.assertIn('<table>', self.model.reactions[0]._repr_html_())
+
+        def test_reaction_without_model(self):
+            r = Reaction('blub')
+            self.assertEqual(r.flux_expression, None)
+            self.assertEqual(r.forward_variable, None)
+            self.assertEqual(r.reverse_variable, None)
+
+        def test_clone_cobrapy_reaction(self):
+            from cobra.core import Reaction as CobrapyReaction
+            reaction = CobrapyReaction('blug')
+            self.assertEqual(Reaction.clone(reaction).id, 'blug')
+
         def test_weird_left_to_right_reaction_issue(self):
 
             model = Model("Toy Model")

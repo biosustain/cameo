@@ -27,6 +27,7 @@ from cameo.parallel import SequentialView
 
 import logging
 import six
+from cameo.util import doc_inherit
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -63,7 +64,7 @@ class Reaction(_cobrapy.core.Reaction):
             except AttributeError:
                 logger.info(
                     "Can't set attribute %s for reaction %s (while cloning it to a cameo style reaction). Skipping it ..." % (
-                    attribute, reaction))
+                        attribute, reaction))
         if not isinstance(reaction.model, cameo.core.solver_based_model.SolverBasedModel):
             new_reaction._model = None
         if model is not None:
@@ -126,10 +127,8 @@ class Reaction(_cobrapy.core.Reaction):
         model = self.model
         if model is not None:
             aux_id = self._get_forward_id()
-            try:
-                return model.solver.variables[aux_id]
-            except KeyError:
-                return None
+            return model.solver.variables[aux_id]
+
         else:
             return None
 
@@ -139,10 +138,7 @@ class Reaction(_cobrapy.core.Reaction):
         model = self.model
         if model is not None:
             aux_id = self._get_reverse_id()
-            try:
-                return model.solver.variables[aux_id]
-            except KeyError:
-                return None
+            return model.solver.variables[aux_id]
         else:
             return None
 
@@ -279,20 +275,16 @@ class Reaction(_cobrapy.core.Reaction):
     @property
     def effective_lower_bound(self):
         model = self.model
-        return \
-            flux_analysis.flux_variability_analysis(model, reactions=[self], view=SequentialView(),
-                                                    remove_cycles=False)[
-                'lower_bound'][
-                self.id]
+        fva_result = flux_analysis.flux_variability_analysis(model, reactions=[self], view=SequentialView(),
+                                                             remove_cycles=False)
+        return fva_result['lower_bound'][self.id]
 
     @property
     def effective_upper_bound(self):
         model = self.model
-        return \
-            flux_analysis.flux_variability_analysis(model, reactions=[self], view=SequentialView(),
-                                                    remove_cycles=False)[
-                'upper_bound'][
-                self.id]
+        fva_result = flux_analysis.flux_variability_analysis(model, reactions=[self], view=SequentialView(),
+                                                             remove_cycles=False)
+        return fva_result['upper_bound'][self.id]
 
     @property
     def flux(self):
@@ -308,6 +300,7 @@ class Reaction(_cobrapy.core.Reaction):
         else:
             return None
 
+    @doc_inherit
     def add_metabolites(self, metabolites, combine=True, **kwargs):
         if not combine:
             old_coefficients = self.metabolites
@@ -325,6 +318,18 @@ class Reaction(_cobrapy.core.Reaction):
                 model.solver.constraints[metabolite.id] += coefficient * self.flux_expression
 
     def knock_out(self, time_machine=None):
+        """Knockout reaction by setting its bounds to zero.
+
+        Parameters
+        ----------
+        time_machine = TimeMachine
+            A time TimeMachine instance can be provided to undo the knockout eventually.
+
+        Returns
+        -------
+        None
+        """
+
         def _(reaction, lb, ub):
             reaction.upper_bound = ub
             reaction.lower_bound = lb
