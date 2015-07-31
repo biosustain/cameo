@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from __future__ import absolute_import, print_function
+from math import sqrt
 
 import os
 import unittest
@@ -23,6 +24,7 @@ from ordered_set import OrderedSet
 from pandas.util.testing import assert_frame_equal
 
 from cameo import load_model, fba, config
+from cameo.strain_design.heuristic.metrics import euclidean_distance, manhattan_distance
 from cameo.strain_design.heuristic.variators import _do_set_n_point_crossover
 from cameo.util import RandomGenerator as Random
 from cameo.strain_design.heuristic.optimization import HeuristicOptimization, ReactionKnockoutOptimization, \
@@ -59,6 +61,14 @@ SOLUTIONS = [
     [[52, 22, 4, 11], 0.0]
 ]
 
+class TestMetrics(unittest.TestCase):
+    def test_euclidean_distance(self):
+        distance = euclidean_distance({'a': 9}, {'a': 3})
+        self.assertEqual(distance, sqrt((9-3)**2))
+
+    def test_manhattan_distance(self):
+        distance = manhattan_distance({'a': 9}, {'a': 3})
+        self.assertEqual(distance, abs(9-3))
 
 class TestBestSolutionArchiver(unittest.TestCase):
     def test_solution_string(self):
@@ -341,7 +351,7 @@ class TestDecoders(unittest.TestCase):
         self.assertTrue(sorted(reactions1, key=lambda x: x.id) == sorted(reactions2, key=lambda x: x.id))
 
 
-class TestGeneratos(unittest.TestCase):
+class TestGenerators(unittest.TestCase):
     def setUp(self):
         self.model = TEST_MODEL
         self.args = {}

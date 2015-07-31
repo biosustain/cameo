@@ -5,9 +5,9 @@ source = cameo
 omit =
     cameo/strain_design/heuristic/plotters.py
     cameo/strain_design/heuristic/multiprocess/plotters.py
-    cameo/visualization/visualization.py
+    cameo/visualization/*
     cameo/_version.py
-    cameo/stuff
+    cameo/stuff.py
 
 [report]
 # Regexes for lines to exclude from consideration
