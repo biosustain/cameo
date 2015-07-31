@@ -25,6 +25,7 @@ before_install:
 = tar xvf cplex.tar.gz
 - cd "cplex/python/$TRAVIS_PYTHON_VERSION/x86-64_linux/"
 - pwd
+- pwd
 - ls -la
 - pip install .
 install:
