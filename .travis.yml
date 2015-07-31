@@ -21,7 +21,7 @@ addons:
     - pandoc
 before_install:
 #- if [ ! -d "cplex/python/$TRAVIS_PYTHON_VERSION/x86-64_linux/" ]; then curl -L SECRET_CPLEX_LINK -o cplex.tar.gz && tar xvf cplex.tar.gz; fi
-- curl -L SECRET_CPLEX_LINK -o cplex.tar.gz
+- curl -L $SECRET_CPLEX_LINK -o cplex.tar.gz
 - tar xvf cplex.tar.gz
 - cd "cplex/python/$TRAVIS_PYTHON_VERSION/x86-64_linux/"
 - pwd
