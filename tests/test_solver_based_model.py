@@ -81,7 +81,6 @@ class TestLazySolutionGLPK(AbstractTestLazySolution):
         self.solution = self.model.optimize()
 
 
-@unittest.skipIf(TRAVIS, 'CPLEX not available on Travis.')
 class TestLazySolutionCPLEX(AbstractTestLazySolution):
     def setUp(self):
         super(TestLazySolutionCPLEX, self).setUp()
