@@ -300,66 +300,6 @@ def room(model, reference=None, cache=None, delta=0.03, epsilon=0.001, *args, **
             cache.reset()
 
 
-def _cycle_free_flux(model, fluxes, fix=[]):
-    """Remove cycles from a flux-distribution (http://cran.r-project.org/web/packages/sybilcycleFreeFlux/index.html)."""
-    # import time
-    tm = TimeMachine()
-    try:
-        exchange_reactions = model.exchanges
-        exchange_ids = [exchange.id for exchange in exchange_reactions]
-        internal_reactions = [reaction for reaction in model.reactions if reaction.id not in exchange_ids]
-        for exchange in exchange_reactions:
-            exchange_flux = fluxes[exchange.id]
-            tm(do=partial(setattr, exchange, 'lower_bound', exchange_flux),
-               undo=partial(setattr, exchange, 'lower_bound', exchange.lower_bound))
-            tm(do=partial(setattr, exchange, 'upper_bound', exchange_flux),
-               undo=partial(setattr, exchange, 'upper_bound', exchange.upper_bound))
-        obj_terms = list()
-        # tic = time.time()
-        for internal_reaction in internal_reactions:
-            internal_flux = fluxes[internal_reaction.id]
-            if internal_flux >= 0:
-                obj_terms.append(mul([sympy.S.One, internal_reaction.variable]))
-                tm(do=partial(setattr, internal_reaction, 'lower_bound', 0),
-                   undo=partial(setattr, internal_reaction, 'lower_bound', internal_reaction.lower_bound))
-                tm(do=partial(setattr, internal_reaction, 'upper_bound', internal_flux),
-                   undo=partial(setattr, internal_reaction, 'upper_bound', internal_reaction.upper_bound))
-            elif internal_flux < 0:
-                obj_terms.append(mul([sympy.S.NegativeOne, internal_reaction.variable]))
-                tm(do=partial(setattr, internal_reaction, 'lower_bound', internal_flux),
-                   undo=partial(setattr, internal_reaction, 'lower_bound', internal_reaction.lower_bound))
-                tm(do=partial(setattr, internal_reaction, 'upper_bound', 0),
-                   undo=partial(setattr, internal_reaction, 'upper_bound', internal_reaction.upper_bound))
-            else:
-                pass
-        # print 'bounds', time.time() - tic
-        for reaction_id in fix:
-            reaction_to_fix = model.reactions.get_by_id(reaction_id)
-            tm(do=partial(setattr, reaction_to_fix, 'lower_bound', fluxes[reaction_id]),
-               undo=partial(setattr, reaction_to_fix, 'lower_bound', reaction_to_fix.lower_bound))
-            tm(do=partial(setattr, reaction_to_fix, 'upper_bound', fluxes[reaction_id]),
-               undo=partial(setattr, reaction_to_fix, 'upper_bound', reaction_to_fix.upper_bound))
-        # tic = time.time()
-        tm(do=partial(setattr, model, 'objective',
-                      model.solver.interface.Objective(add(obj_terms), name='Flux minimization',
-                                                       direction='min', sloppy=True)),
-           undo=partial(setattr, model, 'objective', model.objective))
-        # print 'blub', time.time() - tic
-        try:
-            # model.solver.configuration.verbosity = 3
-            solution = model.solve()
-            # model.solver.configuration.verbosity = 0
-        except SolveError as e:
-            logger.warning("Couldn't remove cycles from reference flux distribution.")
-            raise e
-        # print 'returning'
-        return solution.x_dict
-    finally:
-        # tic = time.time()
-        # print 'resetting'
-        tm.reset()
-
-
 if __name__ == '__main__':
     import time
     from cobra.io import read_sbml_model
