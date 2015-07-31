@@ -40,7 +40,7 @@ else:
                     'pandas>=0.15.2',
                     'ordered-set>=1.2',
                     'cobra>=0.3.2',
-                    'optlang>=0.2.8',
+                    'optlang>=0.2.9',
                     'requests>=2.5.0',
                     'numexpr>=2.4',
                     'networkx>=1.9.1',
