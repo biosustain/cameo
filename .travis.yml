@@ -20,8 +20,7 @@ addons:
     - glpk-utils
     - pandoc
 before_install:
-- if [ ! -d "cplex/python/$TRAVIS_PYTHON_VERSION/x86-64_linux/" ]; then then curl
-  -L SECRET_CPLEX_LINK -o cplex.tar.gz && tar xvf cplex.tar.gz; fi
+- if [ ! -d "cplex/python/$TRAVIS_PYTHON_VERSION/x86-64_linux/" ]; then curl -L SECRET_CPLEX_LINK -o cplex.tar.gz && tar xvf cplex.tar.gz; fi
 install:
 - cd "cplex/python/$TRAVIS_PYTHON_VERSION/x86-64_linux/"
 - pip install .
