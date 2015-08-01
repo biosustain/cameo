@@ -8,7 +8,7 @@ cache:
 - directories:
   - cplex/
 services:
-  - redis-server
+- redis-server
 addons:
   apt:
     packages:
@@ -41,7 +41,7 @@ install:
 - pip install .
 script: nosetests
 after_success:
-  - coveralls
+- coveralls
 notifications:
   slack: biosustain:UGm09rOjMCgXko3rS3wUivoX
 deploy:
@@ -49,7 +49,10 @@ deploy:
   user: Nikolaus.Sonnenschein
   password:
     secure: nxjszXtUzQfnLlfg0cmFjd9gRekXDog6dkkN1rMc7CIWH2gZ1gAX4sNETVChnuSmu9egzhuIkviHstRrdyGoEZ7ZkHlTXmpVAs9AY96eMSejnwHHODhYno0jB7DjGcfejodLF+lo6lWz7S7mXXwML6YLM3xxG+AOjLHlHbPTaKc=
-  distributions: "sdist bdist_wheel" # Your distributions here
+  distributions: sdist bdist_wheel
   on:
     tags: true
     repo: biosustain/cameo
+env:
+  global:
+    secure: QgrOXEgpcH6xgToVfWIX6j6CPvycKMPtNnoYAxPrZjkMzd2aCHHeokv0FZkCn3uePO0I8W8TkKBxilGZbWYoseDq+Snds18sBTG9u2NHvYHnDQb4Oki7+NoxhlnGIOj/8ADONOpc0n7PyFDPK8zmKVZvv9p78OHZO5CmV/ktOeg=
