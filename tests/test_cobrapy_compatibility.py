@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import types
+
 from cobra.test import create_test_model
 from cobra.test.unit_tests import CobraTestCase, TestReactions
 from cobra.test.flux_analysis import TestCobraFluxAnalysis
@@ -26,3 +27,5 @@ def setUp(self):
 
 for cls in (CobraTestCase, TestReactions, TestCobraFluxAnalysis):
     cls.setUp = types.MethodType(setUp, cls)
+
+del TestCobraFluxAnalysis.test_single_deletion

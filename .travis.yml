@@ -1,9 +1,12 @@
 language: python
 sudo: false
 python:
- - "2.7"
- - "3.4"
-cache: pip
+- '2.7'
+- '3.4'
+cache:
+- pip: true
+- directories:
+  - cplex/
 services:
   - redis-server
 addons:
@@ -16,18 +19,26 @@ addons:
     - libglpk-dev
     - glpk-utils
     - pandoc
+before_install:
+#- if [ ! -d "cplex/python/$TRAVIS_PYTHON_VERSION/x86-64_linux/" ]; then curl -L SECRET_CPLEX_LINK -o cplex.tar.gz && tar xvf cplex.tar.gz; fi
+- pip install pip --upgrade
+- curl -L $SECRET_CPLEX_LINK -o cplex.tar.gz
+- tar xvf cplex.tar.gz
+- if [[ $TRAVIS_PYTHON_VERSION == "3.4" ]]; then cd "cplex/python/3.4/x86-64_linux/"; fi
+- if [[ $TRAVIS_PYTHON_VERSION == "2.7" ]]; then cd "cplex/python/2.6/x86-64_linux/"; fi
+- pip install .
+- cd $TRAVIS_BUILD_DIR
 install:
-  - if [[ $TRAVIS_PYTHON_VERSION == "3.4" ]]; then pip install pyzmq pandas; fi
-  - pip install python-libsbml-experimental numpy scipy pyzmq pandas -f http://nikosonnensche.in/wheels/index.html --no-index
-  - pip install coveralls coverage
-  - pip install pypandoc
-  - pip install redis
-  - pip install rednose
-  # temporarily use development version of cobrapy (until 0.4 is released); cython>=0.21 needed for that
-  - pip install cython>=0.21
-  - pip install git+https://github.com/opencobra/cobrapy.git@095d664cbbb69fcb7ae56da997240b35ea5ddb19#egg=cobra
-  - pip install .
-# command to run tests
+- if [[ $TRAVIS_PYTHON_VERSION == "3.4" ]]; then pip install pyzmq pandas; fi
+- pip install python-libsbml-experimental numpy scipy pyzmq pandas -f http://nikosonnensche.in/wheels/index.html --trusted-host nikosonnensche.in
+  --no-index
+- pip install coveralls coverage
+- pip install pypandoc
+- pip install redis
+- pip install rednose
+- pip install cython>=0.21
+- pip install git+https://github.com/opencobra/cobrapy.git@095d664cbbb69fcb7ae56da997240b35ea5ddb19#egg=cobra
+- pip install .
 script: nosetests
 after_success:
   - coveralls
