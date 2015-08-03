@@ -158,8 +158,8 @@ class WrappedAbstractTestReaction:
             acald_reaction = model.reactions.ACALD
             self.assertEqual(acald_reaction.lower_bound, -999999.)
             self.assertEqual(acald_reaction.upper_bound, 999999.)
-            self.assertEqual(acald_reaction.variable.lb, 0.)
-            self.assertEqual(acald_reaction.variable.ub, 999999.)
+            self.assertEqual(acald_reaction.forward_variable.lb, 0.)
+            self.assertEqual(acald_reaction.forward_variable.ub, 999999.)
             self.assertEqual(acald_reaction.reverse_variable.lb, 0)
             self.assertEqual(acald_reaction.reverse_variable.ub, 999999.)
             acald_reaction.upper_bound = acald_reaction.lower_bound - 100

@@ -363,19 +363,9 @@ class SolverBasedModel(cobra.core.Model):
             reaction1 = self.reactions.get_by_id(reaction1)
         if isinstance(reaction2, bytes):
             reaction2 = self.reactions.get_by_id(reaction2)
-
-        if reaction1.reverse_variable is not None:
-            term1 = reaction1.variable - reaction1.reverse_variable
-        else:
-            term1 = reaction1.variable
-
-        if reaction2.reverse_variable is not None:
-            term2 = reaction2.variable - reaction2.reverse_variable
-        else:
-            term2 = reaction2.variable
-
-        ratio_constraint = self.solver.interface.Constraint(term1 - ratio * term2, lb=0, ub=0,
-                                                            name=prefix + reaction1.id + '_' + reaction2.id)
+        ratio_constraint = self.solver.interface.Constraint(
+            reaction1.flux_expression - ratio * reaction2.flux_expression, lb=0, ub=0,
+            name=prefix + reaction1.id + '_' + reaction2.id)
         self.solver._add_constraint(ratio_constraint, sloppy=True)
         return ratio_constraint
 
