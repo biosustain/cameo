@@ -16,7 +16,6 @@ from __future__ import absolute_import
 
 __all__ = ['ReactionKnockoutDecoder', 'GeneKnockoutDecoder']
 
-
 from cobra.manipulation.delete import find_gene_knockout_reactions
 
 
@@ -42,6 +41,7 @@ class ReactionKnockoutDecoder(KnockoutDecoder):
     model : SolverBasedModel
 
     """
+
     def __init__(self, representation, model, *args, **kwargs):
         super(ReactionKnockoutDecoder, self).__init__(representation, model, *args, **kwargs)
 
@@ -73,6 +73,7 @@ class GeneKnockoutDecoder(KnockoutDecoder):
         genes to knockout
     model : SolverBasedModel
     """
+
     def __init__(self, representation, model, *args, **kwargs):
         super(GeneKnockoutDecoder, self).__init__(representation, model, *args, **kwargs)
 

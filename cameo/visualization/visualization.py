@@ -14,7 +14,7 @@
 
 from __future__ import absolute_import, print_function
 
-__all__ = ['memoized', 'graph_to_svg', 'draw_knockout_result', 'inchi_to_svg', 'ProgressBar']
+__all__ = ['graph_to_svg', 'draw_knockout_result', 'inchi_to_svg', 'ProgressBar']
 
 import os
 import six
@@ -22,9 +22,7 @@ import json
 import cameo
 import logging
 import tempfile
-import functools
 import subprocess
-import collections
 
 import networkx as nx
 
@@ -36,36 +34,6 @@ from cameo.util import TimeMachine, in_ipnb
 log = logging.getLogger(__name__)
 
 from IPython.display import HTML, SVG, Javascript, display
-
-
-class memoized(object):
-    '''Decorator. Caches a function's return value each time it is called.
-    If called later with the same arguments, the cached value is returned
-    (not reevaluated).
-    '''
-
-    def __init__(self, func):
-        self.func = func
-        self.cache = {}
-
-    def __call__(self, *args):
-        if not isinstance(args, collections.Hashable):
-            # uncachen blow up.
-            return self.func(*args)
-        if args in self.cache:
-            return self.cache[args]
-        else:
-            value = self.func(*args)
-            self.cache[args] = value
-            return value
-
-    def __repr__(self):
-        '''Return the function's docstring.'''
-        return self.func.__doc__
-
-    def __get__(self, obj, objtype):
-        '''Support instance methods.'''
-        return functools.partial(self.__call__, obj)
 
 
 def pathviz_maps():
@@ -146,6 +114,7 @@ def draw_knockout_result(model, map_name, simulation_method, knockouts, *args, *
         tm.reset()
         raise e
 
+
 def inchi_to_svg(inchi, file=None, debug=False, three_d=False):
     """Generate an SVG drawing from an InChI string.
 
@@ -166,7 +135,7 @@ def inchi_to_svg(inchi, file=None, debug=False, three_d=False):
     '<?xml version="1.0"?>\n<svg version="1.1" id="topsvg"\nxmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"\nxmlns:cml="http://www.xml-cml.org/schema" x="0" y="0" width="200px" height="200px" viewBox="0 0 100 100">\n<title>OBDepict</title>\n<rect x="0" y="0" width="100" height="100" fill="white"/>\n<text text-anchor="middle" font-size="6" fill ="black" font-family="sans-serif"\nx="50" y="98" ></text>\n<g transform="translate(0,0)">\n<svg width="100" height="100" x="0" y="0" viewBox="0 0 80 80"\nfont-family="sans-serif" stroke="rgb(0,0,0)" stroke-width="2"  stroke-linecap="round">\n<text x="36" y="48" fill="rgb(255,12,12)"  stroke="rgb(255,12,12)" stroke-width="1" font-size="16" >OH</text>\n<text x="60" y="51.68" fill="rgb(255,12,12)"  stroke="rgb(255,12,12)" stroke-width="1" font-size="13" >2</text>\n</svg>\n</g>\n</svg>\n\n'
     """
     in_file = tempfile.NamedTemporaryFile()
-    in_file.write(inchi)
+    in_file.write(inchi.encode('utf-8'))
     in_file.flush()
 
     out_file = None
@@ -208,7 +177,7 @@ def inchi_to_ascii(inchi, file=None, debug=False):
     """
 
     in_file = tempfile.NamedTemporaryFile()
-    in_file.write(inchi)
+    in_file.write(inchi.encode('utf-8'))
     in_file.flush()
 
     out_file = None
@@ -233,8 +202,9 @@ def inchi_to_ascii(inchi, file=None, debug=False):
 def graph_to_svg(g, layout=nx.spring_layout):
     """return the SVG of a matplotlib figure generated from a graph"""
     import matplotlib.pyplot as plt
+
     layout = layout(g)
-    fig=plt.figure(figsize=(8, 8))
+    fig = plt.figure(figsize=(8, 8))
     ax = fig.add_subplot(111)
     # draw reaction nodes
     rxn_nodes = [node for node in g.nodes() if isinstance(node, cameo.Reaction)]
@@ -256,10 +226,11 @@ def graph_to_svg(g, layout=nx.spring_layout):
 
 try:
     import uuid
+
     if not in_ipnb():
         raise ImportError
 
-    class IPythonProgressBar():
+    class IPythonProgressBar(object):
         def __init__(self, size=100, label="", color=None, fd=None):
             self.progress = 0
             self.size = size
@@ -272,8 +243,9 @@ try:
             style = "width:%s;" % width
             if self.color is not None:
                 style += "color: %s;" % self.color
-            html = HTML("%s<progress id='%s' value='0' max='%i' style='%s'></progress>&nbsp;<span id='perc-%s'>0&#37;</span>"
-                        % (self.label, self.id, self.size, style, self.id))
+            html = HTML(
+                "%s<progress id='%s' value='0' max='%i' style='%s'></progress>&nbsp;<span id='perc-%s'>0&#37;</span>"
+                % (self.label, self.id, self.size, style, self.id))
             display(html)
 
         def increment(self, i=1):
@@ -313,11 +285,11 @@ try:
     ProgressBar = IPythonProgressBar
 
 except ImportError:
-    from progressbar import ProgressBar as PB
-    from progressbar import Bar, RotatingMarker, Percentage
+    from IProgress import ProgressBar as PB
+    from IProgress import Bar, RotatingMarker, Percentage
     import sys
 
-    class CLIProgressBar():
+    class CLIProgressBar(object):
         widgets = [' ', Bar(marker=RotatingMarker()), ' ', Percentage()]
 
         def __init__(self, size=100, label="", color=None, fd=sys.stdout):
@@ -343,6 +315,6 @@ except ImportError:
             self.progress_bar.finish()
 
         def __call__(self, iterable):
-            self.progress_bar(iterable)
+            return self.progress_bar(iterable)
 
     ProgressBar = CLIProgressBar

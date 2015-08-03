@@ -132,8 +132,8 @@ of Minho <http://darwin.di.uminho.pt/models>`__.
 
 .. code:: python
 
-    from cameo.webmodels import index_models
-    index_models()
+    from cameo.webmodels import index_models_minho
+    index_models_minho()
 
 
 

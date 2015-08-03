@@ -26,7 +26,6 @@ def _builders_var():
 
 
 class NotebookBuilder(escher.Builder):
-
     def __init__(self, *args, **kwargs):
         kwargs['id'] = "escher_" + str(uuid4()).replace("-", "_")
         super(NotebookBuilder, self).__init__(*args, **kwargs)
@@ -44,11 +43,11 @@ class NotebookBuilder(escher.Builder):
                         'builder.set_reaction_data(reaction_data_{the_id});'
                         'builder.set_metabolite_data(metabolite_data_{the_id});'
                         'builder.set_gene_data(gene_data_{the_id});'.format(
-                            the_id=self.the_id,
-                            reaction_data=(json.dumps(self.reaction_data) if self.reaction_data else 'null'),
-                            metabolite_data=(json.dumps(self.metabolite_data) if self.metabolite_data else 'null'),
-                            gene_data=(json.dumps(self.gene_data) if self.gene_data else 'null')
-                        ))
+            the_id=self.the_id,
+            reaction_data=(json.dumps(self.reaction_data) if self.reaction_data else 'null'),
+            metabolite_data=(json.dumps(self.metabolite_data) if self.metabolite_data else 'null'),
+            gene_data=(json.dumps(self.gene_data) if self.gene_data else 'null')
+        ))
         display(js)
 
     def _draw_js(self, the_id, enable_editing, menu, enable_keys, dev,
@@ -64,13 +63,13 @@ class NotebookBuilder(escher.Builder):
                 "\tmetabolite_data: metabolite_data_{the_id},\n"
                 "\tgene_data: gene_data_{the_id},\n"
                 "\tnever_ask_before_quit: {never_ask_before_quit}\n").format(
-                    the_id=the_id,
-                    enable_editing=json.dumps(enable_editing),
-                    menu=json.dumps(menu),
-                    enable_keys=json.dumps(enable_keys),
-                    scroll_behavior=json.dumps(scroll_behavior),
-                    fill_screen=json.dumps(fill_screen),
-                    never_ask_before_quit=json.dumps(never_ask_before_quit))
+            the_id=the_id,
+            enable_editing=json.dumps(enable_editing),
+            menu=json.dumps(menu),
+            enable_keys=json.dumps(enable_keys),
+            scroll_behavior=json.dumps(scroll_behavior),
+            fill_screen=json.dumps(fill_screen),
+            never_ask_before_quit=json.dumps(never_ask_before_quit))
         # Add the specified options
         for option in self.options:
             val = getattr(self, option)

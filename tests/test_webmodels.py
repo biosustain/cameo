@@ -19,7 +19,6 @@ from cameo.models.webmodels import index_models_minho, get_sbml_file, NotFoundEx
 
 
 class WebmodelsTestCase(TestCase):
-
     def test_invalid_host(self):
         self.assertRaises(requests.ConnectionError, index_models_minho, host="http://blabla")
         self.assertRaises(requests.ConnectionError, get_sbml_file, 1, host="http://blabla")
@@ -34,4 +33,3 @@ class WebmodelsTestCase(TestCase):
         tmp = get_sbml_file(1)
         self.assertIsInstance(tmp, _TemporaryFileWrapper)
         self.assertRaises(NotFoundException, get_sbml_file, -1)
-

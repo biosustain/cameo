@@ -34,6 +34,7 @@ class ObjectiveFunction(object):
         Calculates the fitness of the solution
 
     """
+
     def __init__(self, *args, **kwargs):
         super(ObjectiveFunction, self).__init__(*args, **kwargs)
 
@@ -97,11 +98,13 @@ class biomass_product_coupled_yield(ObjectiveFunction):
             return 0.0
 
     def _repr_latex_(self):
-        return "$$bpcy = \\frac{(%s * %s)}{%s}$$" % (self.biomass.replace("_", "\\_"), self.product.replace("_", "\\_"), self.substrate.replace("_", "\\_"))
+        return "$$bpcy = \\frac{(%s * %s)}{%s}$$" % (
+        self.biomass.replace("_", "\\_"), self.product.replace("_", "\\_"), self.substrate.replace("_", "\\_"))
 
     @property
     def name(self):
         return "bpcy = (%s * %s) / %s" % (self.biomass, self.product, self.substrate)
+
 
 class product_yield(ObjectiveFunction):
     """
@@ -119,6 +122,7 @@ class product_yield(ObjectiveFunction):
     float
         fitness value
     """
+
     def __init__(self, product, substrate, *args, **kwargs):
         super(product_yield, self).__init__(*args, **kwargs)
         if isinstance(product, Reaction):

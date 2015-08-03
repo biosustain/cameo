@@ -13,12 +13,15 @@
 # limitations under the License.
 
 from __future__ import absolute_import, print_function
-from IPython.core.display import display
-from IPython.core.display import HTML
-from pandas import DataFrame
+
+__all__ = ['design']
+
 import re
 
 import numpy as np
+from IPython.core.display import display
+from IPython.core.display import HTML
+from pandas import DataFrame
 
 from cameo import Metabolite, Model, phenotypic_phase_plane, fba
 from cameo import config, util
@@ -31,20 +34,19 @@ from cameo.strain_design.heuristic.objective_functions import biomass_product_co
 from cameo.ui import notice, searching, stop_loader
 from cameo.strain_design import pathway_prediction
 from cameo.util import TimeMachine
-from cameo.data import universal_models
+from cameo.models import universal
 
-import logging
 from cameo.visualization import visualization
 from cameo.visualization.plotting import Grid
 
+import logging
+
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 # TODO: implement cplex preference (if available)
 
 
 class _OptimizationRunner(object):
-
     def __call__(self, strategy, *args, **kwargs):
         (host, model, pathway) = (strategy[0], strategy[1], strategy[2])
         with TimeMachine() as tm:
@@ -57,7 +59,6 @@ class _OptimizationRunner(object):
 
 
 class StrainDesigns(Result):
-
     def __init__(self, *args, **kwargs):
         super(StrainDesigns, self).__init__(*args, **kwargs)
 
@@ -100,7 +101,7 @@ class Designer(object):
         Designs
         """
         if database is None:
-            database = universal_models.metanetx_universal_model_bigg_rhea
+            database = universal.metanetx_universal_model_bigg_rhea
 
         notice("Starting searching for compound %s" % product)
         product = self.__translate_product_to_universal_reactions_model_metabolite(product, database)
@@ -108,12 +109,13 @@ class Designer(object):
         optimization_reports = self.optimize_strains(pathways, view)
         return optimization_reports
 
-    def optimize_strains(self, pathways, view):
+    @staticmethod
+    def optimize_strains(pathways, view):
         runner = _OptimizationRunner()
         designs = [(host, model, pathway) for (host, model) in pathways for pathway in pathways[host, model]]
         return view.map(runner, designs)
 
-    def predict_pathways(self, product, hosts=None, database=None):  #TODO: make this work with a single host or model
+    def predict_pathways(self, product, hosts=None, database=None):  # TODO: make this work with a single host or model
         """Predict production routes for a desired product and host spectrum.
         Parameters
         ----------
@@ -147,7 +149,7 @@ class Designer(object):
                                                                         universal_model=database,
                                                                         compartment_regexp=re.compile(".*_c$"))
                 # TODO adjust these numbers to something reasonable
-                predicted_pathways = pathway_predictor.run(product, max_predictions=4, timeout=3*60, silent=True)
+                predicted_pathways = pathway_predictor.run(product, max_predictions=4, timeout=3 * 60, silent=True)
                 pathways[(host, model)] = predicted_pathways
                 stop_loader(identifier)
                 self.__display_pathways_information(predicted_pathways, host, model)
@@ -247,7 +249,7 @@ class Designer(object):
         # TODO: remove copy hack.
         with Grid(nrows=2, title="Production envelopes for %s (%s)" % (host.name, original_model.id)) as grid:
             for i, pathway in enumerate(predicted_pathways):
-                pathway_id = "Pathway %i" % (i+1)
+                pathway_id = "Pathway %i" % (i + 1)
                 with TimeMachine() as tm:
                     pathway.plug_model(original_model, tm)
                     production_envelope = phenotypic_phase_plane(original_model,
@@ -259,8 +261,9 @@ class Designer(object):
     def calculate_yield(model, source, product):
         try:
             flux_dist = fba(model, objective=product)
-            return flux_dist[product.id]/abs(flux_dist[source.id])
+            return flux_dist[product.id] / abs(flux_dist[source.id])
         except SolveError:
             return 0.0
+
 
 design = Designer()

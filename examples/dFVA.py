@@ -28,10 +28,9 @@ reference_model.reactions.get_by_id('Ec_biomass_iJO1366_core_53p95M').lower_boun
 
 
 dFVA = DifferentialFVA(design_space_model=model,
-        reference_model=reference_model,
-        target='EX_succ_e',
-        variables=['Ec_biomass_iJO1366_core_53p95M']
-        )
+                       reference_model=reference_model,
+                       target='EX_succ_e',
+                       variables=['Ec_biomass_iJO1366_core_53p95M']
+                       )
 
 dFVA.run()
-    

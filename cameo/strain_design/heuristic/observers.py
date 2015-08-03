@@ -17,7 +17,7 @@ from __future__ import absolute_import, print_function
 from cameo.visualization import ProgressBar
 
 
-class ProgressObserver():
+class ProgressObserver(object):
     """
     Progress bar to in command line
     """

@@ -34,7 +34,7 @@ from cameo.strain_design.heuristic.multiprocess.plotters import IPythonNotebookB
 from cameo.strain_design.heuristic.multiprocess.migrators import MultiprocessingMigrator
 
 
-class MultiprocessRunner():
+class MultiprocessRunner(object):
     """
     Runner for multiprocessing model. It generates the non-pickable
     objects on the beginning of the process.
@@ -121,6 +121,7 @@ class MultiprocessKnockoutOptimization(MultiprocessHeuristicOptimization):
     simulation_method: a function from flux_analysis.simulation
         The method to simulate the model (default: pfba).
     """
+
     def __init__(self, simulation_method=pfba, *args, **kwargs):
         super(MultiprocessKnockoutOptimization, self).__init__(*args, **kwargs)
         self.simulation_method = simulation_method

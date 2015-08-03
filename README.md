@@ -1,7 +1,7 @@
 ## Cameo—Computer Aided Metabolic Engineering and Optimization
 
 [![Documentation Status](https://readthedocs.org/projects/cameo/badge/?version=devel)](https://readthedocs.org/projects/cameo/?badge=devel)
-[![Build Status](https://travis-ci.org/biosustain/cameo.svg?branch=devel)](https://travis-ci.org/biosustain/cameo)
+[![Build Status](https://travis-ci.org/biosustain/cameo.svg?branch=master)](https://travis-ci.org/biosustain/cameo)
 [![Coverage Status](https://coveralls.io/repos/biosustain/cameo/badge.svg?branch=devel)](https://coveralls.io/r/biosustain/cameo?branch=devel)
 [![DOI](https://zenodo.org/badge/doi/10.5281/zenodo.19827.svg)](http://dx.doi.org/10.5281/zenodo.19827)
 
@@ -11,7 +11,7 @@
 
 Computationally heavy methods have been parallelized and can be run on a clusters using the IPython parallelization framework (see example and documentation for more details). The default fallback is python's multiprocessing library.
 
-Furthermore, it exposes a high-level API to users that just want to . 
+Furthermore, it exposes a high-level API to users that just want to compute promising strain designs. 
 
 You got curious? Head over to [try.cameo.bio](http://try.cameo.bio) and give it a try.
 

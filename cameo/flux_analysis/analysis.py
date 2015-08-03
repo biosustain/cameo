@@ -33,12 +33,13 @@ from cameo import config
 from cameo.exceptions import Infeasible, Unbounded, SolveError
 from cameo.util import TimeMachine, partition
 from cameo.parallel import SequentialView
-from cameo.flux_analysis.simulation import _cycle_free_flux
 from cameo.core.result import Result
 from cameo.ui import notice
 from cameo.visualization import plotting
+from cameo.flux_analysis.util import remove_infeasible_cycles
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 
@@ -57,10 +58,14 @@ def find_blocked_reactions(model):
     """
     with TimeMachine() as tm:
         for exchange in model.exchanges:
-            tm(do=partial(setattr, exchange, 'lower_bound', -999999), undo=partial(setattr, exchange, 'lower_bound', exchange.lower_bound))
-            tm(do=partial(setattr, exchange, 'upper_bound', 999999), undo=partial(setattr, exchange, 'upper_bound', exchange.upper_bound))
+            tm(do=partial(setattr, exchange, 'lower_bound', -999999),
+               undo=partial(setattr, exchange, 'lower_bound', exchange.lower_bound))
+            tm(do=partial(setattr, exchange, 'upper_bound', 999999),
+               undo=partial(setattr, exchange, 'upper_bound', exchange.upper_bound))
         fva_solution = flux_variability_analysis(model)
-    return [model.reactions.get_by_id(id) for id in fva_solution.data_frame.query('upper_bound == lower_bound == 0').index]
+    return [model.reactions.get_by_id(id) for id in
+            fva_solution.data_frame.query('upper_bound == lower_bound == 0').index]
+
 
 def flux_variability_analysis(model, reactions=None, fraction_of_optimum=0., remove_cycles=False, view=None):
     """Flux variability analysis.
@@ -89,7 +94,8 @@ def flux_variability_analysis(model, reactions=None, fraction_of_optimum=0., rem
             try:
                 obj_val = model.solve().f
             except SolveError as e:
-                logger.debug("flux_variability_analyis was not able to determine an optimal solution for objective %s" % model.objective)
+                logger.debug(
+                    "flux_variability_analyis was not able to determine an optimal solution for objective %s" % model.objective)
                 raise e
             if model.objective.direction == 'max':
                 fix_obj_constraint = model.solver.interface.Constraint(model.objective.expression,
@@ -107,6 +113,7 @@ def flux_variability_analysis(model, reactions=None, fraction_of_optimum=0., rem
         chunky_results = view.map(func_obj, reaction_chunks)
         solution = pandas.concat(chunky_results)
     return FluxVariabilityResult(solution)
+
 
 def phenotypic_phase_plane(model, variables=[], objective=None, points=20, view=None):
     """Phenotypic phase plane analysis.
@@ -228,25 +235,27 @@ def _flux_variability_analysis(model, reactions=None):
     model.objective = original_objective
     df = pandas.DataFrame.from_dict(fva_sol, orient='index')
     lb_higher_ub = df[df.lower_bound > df.upper_bound]
-    try: # this is an alternative solution to what I did above with flags
-        assert ((lb_higher_ub.lower_bound - lb_higher_ub.upper_bound) < 1e-6).all()  # Assert that these cases really only numerical artifacts
+    try:  # this is an alternative solution to what I did above with flags
+        assert ((
+                lb_higher_ub.lower_bound - lb_higher_ub.upper_bound) < 1e-6).all()  # Assert that these cases really only numerical artifacts
     except AssertionError as e:
         logger.debug(list(zip(model.reactions, (lb_higher_ub.lower_bound - lb_higher_ub.upper_bound) < 1e-6)))
     df.lower_bound[lb_higher_ub.index] = df.upper_bound[lb_higher_ub.index]
     return df
 
-def _cycle_free_fva(model, reactions=None, sloppy=True):
+
+def _cycle_free_fva(model, reactions=None, sloppy=True, sloppy_bound=666):
     """Cycle free flux-variability analysis. (http://cran.r-project.org/web/packages/sybilcycleFreeFlux/index.html)
 
     Parameters
     ----------
-    model: SolverBasedModel
-    reactions: list
+    model : SolverBasedModel
+    reactions : list
         List of reactions whose flux-ranges should be determined.
-    sloppy: boolean
-        If true, only abs(v) > 100 are checked to be futile cycles.
-
-    Rer
+    sloppy : boolean, optional
+        If true, only fluxes v with abs(v) > sloppy_bound are checked to be futile cycles (defaults to True).
+    sloppy_bound : int, optional
+        The threshold bound used by sloppy (defaults to the number of the beast).
     """
     cycle_count = 0
     try:
@@ -271,16 +280,18 @@ def _cycle_free_fva(model, reactions=None, sloppy=True):
             except Exception as e:
                 raise e
             bound = solution.f
-            if sloppy and bound > -100:
+            if sloppy and abs(bound) < sloppy_bound:
                 fva_sol[reaction.id]['lower_bound'] = bound
             else:
+                logger.debug('Determine if {} with bound {} is a cycle'.format(reaction.id, bound))
                 v0_fluxes = solution.x_dict
-                v1_cycle_free_fluxes = _cycle_free_flux(model, v0_fluxes)
+                v1_cycle_free_fluxes = remove_infeasible_cycles(model, v0_fluxes)
                 if abs(v1_cycle_free_fluxes[reaction.id] - bound) < 10 ** -6:
                     fva_sol[reaction.id]['lower_bound'] = bound
                 else:
+                    logger.debug('Cycle detected: {}'.format(reaction.id))
                     cycle_count += 1
-                    v2_one_cycle_fluxes = _cycle_free_flux(model, v0_fluxes, fix=[reaction.id])
+                    v2_one_cycle_fluxes = remove_infeasible_cycles(model, v0_fluxes, fix=[reaction.id])
                     tm = TimeMachine()
                     for key, v1_flux in six.iteritems(v1_cycle_free_fluxes):
                         if v1_flux == 0 and v2_one_cycle_fluxes[key] != 0:
@@ -315,17 +326,19 @@ def _cycle_free_fva(model, reactions=None, sloppy=True):
                 raise e
             else:
                 bound = solution.f
-                if sloppy and bound < 100:
+                if sloppy and abs(bound) < sloppy_bound:
                     fva_sol[reaction.id]['upper_bound'] = bound
                 else:
+                    logger.debug('Determine if {} with bound {} is a cycle'.format(reaction.id, bound))
                     v0_fluxes = solution.x_dict
-                    v1_cycle_free_fluxes = _cycle_free_flux(model, v0_fluxes)
+                    v1_cycle_free_fluxes = remove_infeasible_cycles(model, v0_fluxes)
 
                     if abs(v1_cycle_free_fluxes[reaction.id] - bound) < 10 ** -6:
                         fva_sol[reaction.id]['upper_bound'] = v0_fluxes[reaction.id]
                     else:
+                        logger.debug('Cycle detected: {}'.format(reaction.id))
                         cycle_count += 1
-                        v2_one_cycle_fluxes = _cycle_free_flux(model, v0_fluxes, fix=[reaction.id])
+                        v2_one_cycle_fluxes = remove_infeasible_cycles(model, v0_fluxes, fix=[reaction.id])
                         tm = TimeMachine()
                         for key, v1_flux in six.iteritems(v1_cycle_free_fluxes):
                             if v1_flux == 0 and v2_one_cycle_fluxes[key] != 0:
@@ -349,7 +362,8 @@ def _cycle_free_fva(model, reactions=None, sloppy=True):
                             tm.reset()
         df = pandas.DataFrame.from_dict(fva_sol, orient='index')
         lb_higher_ub = df[df.lower_bound > df.upper_bound]
-        assert ((lb_higher_ub.lower_bound - lb_higher_ub.upper_bound) < 1e-6).all()  # Assert that these cases really only numerical artifacts
+        assert ((
+                lb_higher_ub.lower_bound - lb_higher_ub.upper_bound) < 1e-6).all()  # Assert that these cases really only numerical artifacts
         df.lower_bound[lb_higher_ub.index] = df.upper_bound[lb_higher_ub.index]
     finally:
         model.objective = original_objective

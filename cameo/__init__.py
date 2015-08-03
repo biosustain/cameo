@@ -70,6 +70,8 @@ try:
 except ImportError:
     pass
 
+from cameo import models
+
 from cameo.core.solver_based_model import SolverBasedModel as Model
 from cameo.core.reaction import Reaction
 from cobra.core import Metabolite

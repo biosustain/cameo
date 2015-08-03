@@ -11,14 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from functools import partial
+
+from __future__ import absolute_import, print_function
+
+__all__ = ['create_adapter_reactions', 'display_pathway']
+
 from cameo import Reaction
 from cameo.ui import notice
-from cameo.util import in_ipnb, TimeMachine
+from cameo.util import in_ipnb
 from IPython.display import display
 
 
-def create_adaptor_reactions(original_metabolites, database, mapping, compartment_regexp):
+def create_adapter_reactions(original_metabolites, database, mapping, compartment_regexp):
     adapter_reactions = []
     for metabolite in original_metabolites:  # model is the original host model
         if not compartment_regexp.match(metabolite.id):

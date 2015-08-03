@@ -15,19 +15,18 @@
 from __future__ import absolute_import, print_function
 
 import pickle
-import time
-from multiprocessing import Process, Queue
 
 import requests
-import progressbar
 import optlang
 from cobra.io import read_sbml_model, load_json_model
 
+import cameo
 from cameo.core.solver_based_model import SolverBasedModel, to_solver_based_model
-from cameo.models import webmodels
 
 import logging
+
 logger = logging.getLogger(__name__)
+
 
 def load_model(path_or_handle, solver_interface=optlang.glpk_interface, sanitize=True):
     """Read a metabolic model .
@@ -52,11 +51,11 @@ def load_model(path_or_handle, solver_interface=optlang.glpk_interface, sanitize
         except IOError:
             logger.debug('%s not a file path. Querying webmodels ... trying http://bigg.ucsd.edu first' % path)
             try:
-                return webmodels.get_model_from_bigg(path)
+                return cameo.models.webmodels.get_model_from_bigg(path)
             except:
                 logger.debug('%s not a file path. Querying webmodels ... trying minho next' % path)
                 try:
-                    df = webmodels.index_models_minho()
+                    df = cameo.models.webmodels.index_models_minho()
                 except requests.ConnectionError as e:
                     logger.error("You need to be connected to the internet to load an online model.")
                     raise e
@@ -65,7 +64,7 @@ def load_model(path_or_handle, solver_interface=optlang.glpk_interface, sanitize
                     raise e
                 try:
                     index = df.query('name == "%s"' % path_or_handle).id.values[0]
-                    handle = webmodels.get_sbml_file(index)
+                    handle = cameo.models.webmodels.get_sbml_file(index)
                     path = handle.name
                 except IndexError:
                     raise ValueError("%s is neither a file nor a model ID." % path)
@@ -89,7 +88,9 @@ def load_model(path_or_handle, solver_interface=optlang.glpk_interface, sanitize
                 logger.error("cobrapy doesn't raise a proper exception if a file does not contain an SBML model")
                 raise e
             except Exception as e:
-                logger.error("Looks like something blow up while trying to import {} as a SBML model. Try validating the model at http://sbml.org/Facilities/Validator/ to get more information.".format(path))
+                logger.error(
+                    "Looks like something blow up while trying to import {} as a SBML model. Try validating the model at http://sbml.org/Facilities/Validator/ to get more information.".format(
+                        path))
                 raise e
     if sanitize:
         sanitize_ids(model)
@@ -106,18 +107,24 @@ def load_model(path_or_handle, solver_interface=optlang.glpk_interface, sanitize
     return model
 
 
-ID_SANITIZE_RULES_SIMPHENY = [('_DASH_', '-'), ('_FSLASH_', '/'),('_BSLASH_', "\\"), ('_LPAREN_', '('), ('_LSQBKT_', '['),
-                     ('_RSQBKT_', ']'), ('_RPAREN_', ')'), ('_COMMA_', ','), ('_PERIOD_', '.'), ('_APOS_', "'"),
-                     ('&amp;', '&'), ('&lt;', '<'), ('&gt;', '>'), ('&quot;', '"')]
+ID_SANITIZE_RULES_SIMPHENY = [('_DASH_', '-'), ('_FSLASH_', '/'), ('_BSLASH_', "\\"), ('_LPAREN_', '('),
+                              ('_LSQBKT_', '['),
+                              ('_RSQBKT_', ']'), ('_RPAREN_', ')'), ('_COMMA_', ','), ('_PERIOD_', '.'),
+                              ('_APOS_', "'"),
+                              ('&amp;', '&'), ('&lt;', '<'), ('&gt;', '>'), ('&quot;', '"')]
 
-ID_SANITIZE_RULES_TAB_COMPLETION = [('_DASH_', '_dsh_'), ('_FSLASH_', '_fsh_'),('_BSLASH_', "_bsh_"), ('_LPAREN_', '_lp_'), ('_LSQBKT_', '_lb_'),
-                     ('_RSQBKT_', '_rb_'), ('_RPAREN_', '_rp_'), ('_COMMA_', '_cm_'), ('_PERIOD_', '_prd_'), ('_APOS_', "_apo_"),
-                     ('&amp;', '_amp_'), ('&lt;', '_lt_'), ('&gt;', '_gt_'), ('&quot;', '_qot_')]
+ID_SANITIZE_RULES_TAB_COMPLETION = [('_DASH_', '_dsh_'), ('_FSLASH_', '_fsh_'), ('_BSLASH_', "_bsh_"),
+                                    ('_LPAREN_', '_lp_'), ('_LSQBKT_', '_lb_'),
+                                    ('_RSQBKT_', '_rb_'), ('_RPAREN_', '_rp_'), ('_COMMA_', '_cm_'),
+                                    ('_PERIOD_', '_prd_'), ('_APOS_', "_apo_"),
+                                    ('&amp;', '_amp_'), ('&lt;', '_lt_'), ('&gt;', '_gt_'), ('&quot;', '_qot_')]
+
 
 def _apply_sanitize_rules(id, rules):
-        for rule in rules:
-            id = id.replace(*rule)
-        return id
+    for rule in rules:
+        id = id.replace(*rule)
+    return id
+
 
 def sanitize_ids(model):
     """Makes IDs crippled by the XML specification less annoying.
@@ -145,14 +152,14 @@ def sanitize_ids(model):
 
     for reaction in model.reactions:
         if isinstance(model, SolverBasedModel):
-            variable = reaction.variable
+            forward_variable = reaction.forward_variable
             reverse_variable = reaction.reverse_variable
         rxn_id = reaction.id
         reaction.id = _apply_sanitize_rules(rxn_id, ID_SANITIZE_RULES_TAB_COMPLETION)
         reaction.nice_id = _apply_sanitize_rules(rxn_id, ID_SANITIZE_RULES_SIMPHENY)
         reaction.name = _apply_sanitize_rules(reaction.name, ID_SANITIZE_RULES_SIMPHENY)
         if isinstance(model, SolverBasedModel):
-            variable.name = reaction.id
+            forward_variable.name = reaction.id
             if reverse_variable is not None:
                 reverse_variable.name = reaction._get_reverse_id()
 

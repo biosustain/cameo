@@ -59,6 +59,7 @@ def parse_reaction(formula, irrev_arrow='-->', rev_arrow='<=>'):
     stoichiometry.update(parse_rhs_side(rhs))
     return stoichiometry
 
+
 def construct_universal_model(list_of_db_prefixes):
     # Select which reactions to include in universal reaction database
 
@@ -172,18 +173,22 @@ if __name__ == '__main__':
         pickle.dump(metanetx, f)
 
     # generate universal reaction models
-    db_combinations = [('bigg',), ('rhea',) , ('bigg', 'rhea'), ('bigg', 'rhea', 'kegg'), ('bigg', 'rhea', 'kegg', 'brenda')]
+    db_combinations = [('bigg',), ('rhea',), ('bigg', 'rhea'), ('bigg', 'rhea', 'kegg'),
+                       ('bigg', 'rhea', 'kegg', 'brenda')]
     for db_combination in db_combinations:
         universal_model = construct_universal_model(db_combination)
         # The following is a hack; uncomment the following
         import json
         from cobra.io.json import _to_dict, _DEFAULT_REACTION_ATTRIBUTES
+
         _DEFAULT_REACTION_ATTRIBUTES.add('annotation')
         d_model = _to_dict(universal_model)
         with open('../cameo/models/universal_models/{model_name}.json'.format(model_name=universal_model.id), 'w') as f:
             json.dump(d_model, f)
-        # save_json_model(universal_model, '../cameo/models/universal_models/{model_name}.json'.format(model_name=universal_model.id))
-    chem_prop_filtered = chem_prop[[any([source.startswith(db) for db in ('bigg', 'rhea', 'kegg', 'brenda', 'chebi')]) for source in chem_prop.source]]
+            # save_json_model(universal_model, '../cameo/models/universal_models/{model_name}.json'.format(model_name=universal_model.id))
+    chem_prop_filtered = chem_prop[
+        [any([source.startswith(db) for db in ('bigg', 'rhea', 'kegg', 'brenda', 'chebi')]) for source in
+         chem_prop.source]]
     chem_prop_filtered = chem_prop_filtered.dropna(subset=['name'])
-    with gzip.open('../cameo/data/metanetx_chem_prop.pklz','wb') as f:
+    with gzip.open('../cameo/data/metanetx_chem_prop.pklz', 'wb') as f:
         pickle.dump(chem_prop_filtered, f)

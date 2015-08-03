@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Copyright 2014 Novo Nordisk Foundation Center for Biosustainability, DTU.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,11 +14,18 @@
 # limitations under the License.
 
 from __future__ import absolute_import, print_function
+import re
+
+__all__ = ['DifferentialFVA', 'fseof']
 
 from functools import partial
 from uuid import uuid4
 from IPython.core.display import display, HTML, Javascript
-from IPython.html.widgets import interact, IntSlider
+import warnings
+
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore")
+    from IPython.html.widgets import interact, IntSlider
 import six
 from cameo.ui import notice
 from cameo.visualization.escher_ext import NotebookBuilder
@@ -27,12 +35,13 @@ if six.PY2:
 else:
     my_zip = zip
 
+from IProgress import ProgressBar
 from pandas import DataFrame, pandas
-from cameo.visualization import ProgressBar, plotting
+from cameo.visualization import plotting
 
 from cameo import config, flux_variability_analysis, fba
 
-from cameo.parallel import SequentialView, MultiprocessingView
+from cameo.parallel import SequentialView
 from cameo.core.solver_based_model import Reaction
 from cameo.strain_design import StrainDesignMethod
 from cameo.flux_analysis.analysis import phenotypic_phase_plane, PhenotypicPhasePlaneResult
@@ -41,6 +50,7 @@ import cameo
 
 import logging
 import six
+
 logger = logging.getLogger(__name__)
 
 
@@ -56,9 +66,9 @@ class DifferentialFVA(StrainDesignMethod):
         ^
         |---------.          * reference_model
         | . . . . .\         . design_space_model
-        | . . . . . \\
-        | . . . . . .\\
-        | . . . . . . \\
+        | . . . . . \
+        | . . . . . .\
+        | . . . . . . \
         o--------------*- >
                      growth
 
@@ -69,13 +79,14 @@ class DifferentialFVA(StrainDesignMethod):
     ----------
     design_space_model : SolverBasedModel
         A model whose flux ranges will be scanned.
-    reference_model : SolverBasedModel
-        A model whose flux ranges represent the reference state and all calculates
-        flux ranges will be compared to.
     objective : str or Reaction
         The reaction to be maximized.
-    variables : iterable
-        A iterable of n reactions (or IDs) to be scanned.
+    variables : iterable, optional
+        A iterable of n reactions (or IDs) to be scanned (defaults to current objective in design_space_model).
+    reference_model : SolverBasedModel, optional
+        A model whose flux ranges represent the reference state and all calculated
+        flux ranges will be compared to. Defaults to design_space_model constrained
+        to its maximum objective value.
     exclude : iterable
         An iterable of reactions (or IDs) to be excluded in the analysis (exchange
         reactions will not be analyzed automatically).
@@ -83,28 +94,58 @@ class DifferentialFVA(StrainDesignMethod):
         A reaction ID that specifies a flux by whom all calculated flux ranges
         will be normalized by.
     points : int, optional
-        Number of points to lay on the surface of the n-dimensional production envelope.
+        Number of points to lay on the surface of the n-dimensional production envelope (defaults to 10).
+
+    Examples
+    --------
+    >>> from cameo import models
+    >>> from cameo.strain_design.deterministic import DifferentialFVA
+    >>> model = models.bigg.e_coli_core
+    >>> reference_model = model.copy()
+    >>> reference_model.reactions.Biomass_Ecoli_core_w_GAM.lower_bound = reference_model.solve().objective_value
+    >>> diffFVA = DifferentialFVA(design_space_model=model,
+                          reference_model=reference_model,
+                          objective=model.reactions.EX_succ_e,
+                          variables=[model.reactions.Biomass_Ecoli_core_w_GAM],
+                          normalize_ranges_by=model.reactions.Biomass_Ecoli_core_w_GAM,
+                          points=10)
+    >>> result = diffFVA.run(surface_only=True)
+    >>> result.plot()
     """
 
-    def __init__(self, design_space_model, reference_model, objective, variables=[],
-                 exclude=[], normalize_ranges_by=None, points=20):
+    def __init__(self, design_space_model, objective, variables=None, reference_model=None,
+                 exclude=(), normalize_ranges_by=None, points=10):
         super(DifferentialFVA, self).__init__()
 
         self.design_space_model = design_space_model
-        self.reference_model = reference_model
-
+        if reference_model is None:
+            self.reference_model = self.design_space_model.copy()
+            self.reference_model.fix_objective_as_constraint()
+        else:
+            self.reference_model = reference_model
 
         if isinstance(objective, Reaction):
             self.objective = objective.id
-        else:
+        elif isinstance(objective, str):
             self.objective = objective
+        else:
+            raise ValueError('...')
 
-        self.variables = list()
-        for variable in variables:
-            if isinstance(variable, Reaction):
-                self.variables.append(variable.id)
+        if variables is None:
+            # try to establish the current objective reaction
+            obj_var_ids = [variable.name for variable in self.design_space_model.objective.expression.free_symbols]
+            obj_var_ids = [re.sub('_reverse.*', '', id) for id in obj_var_ids]
+            if len(set(obj_var_ids)) != 1:
+                raise ValueError("The current objective in design_space_model is not a single reaction objective. DifferentialFVA does not support composite objectives.")
             else:
-                self.variables.append(variable)
+                self.variables = [self.design_space_model.reactions.get_by_id(obj_var_ids[0]).id]
+        else:
+            self.variables = list()
+            for variable in variables:
+                if isinstance(variable, Reaction):
+                    self.variables.append(variable.id)
+                else:
+                    self.variables.append(variable)
 
         self.exclude = list()
         for elem in exclude:
@@ -112,8 +153,8 @@ class DifferentialFVA(StrainDesignMethod):
                 self.exclude.append(elem.id)
             else:
                 self.exclude.append(elem)
-        self.exclude += [reaction.id for reaction in design_space_model.exchanges]
-        self.exclude += [reaction.id for reaction in reference_model.exchanges]
+        self.exclude += [reaction.id for reaction in self.design_space_model.exchanges]
+        self.exclude += [reaction.id for reaction in self.reference_model.exchanges]
         self.exclude = set(self.exclude).difference(set([self.objective] + self.variables))
 
         self.points = points
@@ -173,20 +214,18 @@ class DifferentialFVA(StrainDesignMethod):
         columns = self.variables + [self.objective]
         self.grid = DataFrame(grid, columns=columns)
 
-    def run(self, surface_only=False, improvements_only=True, view=None):
+    def run(self, surface_only=True, improvements_only=True, view=None):
         """Run the differential flux variability analysis.
 
         Parameters
         ----------
         surface_only : bool, optional
-            If only the optimal surface should be scanned.
-        view : SequentialView or MultiprocessingView or ipython.cluster.DirectView, optional
-            A parallelization view.
-        surface_only : bool, optional
-            If only the surface of the n-dimensional production envelope should be scanned.
+            If only the surface of the n-dimensional production envelope should be scanned (defaults to True).
         improvements_only : bool, optional
             If only grid points should should be scanned that constitute and improvement in production
-            over the reference state.
+            over the reference state (defaults to True).
+        view : SequentialView or MultiprocessingView or ipython.cluster.DirectView, optional
+            A parallelization view (defaults to SequentialView).
 
         Returns
         -------
@@ -209,17 +248,17 @@ class DifferentialFVA(StrainDesignMethod):
                 view = view
 
             included_reactions = [reaction.id for reaction in self.reference_model.reactions if
-                                  not reaction.id in self.exclude]
+                                  reaction.id not in self.exclude]
             self.reference_flux_ranges = flux_variability_analysis(self.reference_model, reactions=included_reactions,
-                                                                   view=view, remove_cycles=False)
+                                                                   view=view, remove_cycles=False).data_frame
             self._init_search_grid(surface_only=surface_only, improvements_only=improvements_only)
 
-            progress = ProgressBar(len(self.grid), label='Scanning grid points ')
+            progress = ProgressBar(len(self.grid))
             func_obj = _DifferentialFvaEvaluator(self.design_space_model, self.variables, self.objective,
                                                  included_reactions)
             results = list(progress(view.imap(func_obj, self.grid.iterrows())))
 
-        solutions = dict((tuple(point.to_dict().items()), fva_result) for (point, fva_result) in results)
+        solutions = dict((tuple(point.iteritems()), fva_result.data_frame) for (point, fva_result) in results)
         reference_intervals = self.reference_flux_ranges[['lower_bound', 'upper_bound']].values
         for sol in six.itervalues(solutions):
             intervals = sol[['lower_bound', 'upper_bound']].values
@@ -239,18 +278,19 @@ class DifferentialFVA(StrainDesignMethod):
                               (self.reference_flux_ranges.lower_bound != 0) &
                               self.reference_flux_ranges.upper_bound != 0]
             df['KO'] = False
-            df['KO'][ko_selection.index] = True
+            df.loc[ko_selection.index]['KO'] = True
 
         for df in six.itervalues(solutions):
             flux_reversal_selection = df[((self.reference_flux_ranges.upper_bound < 0) & (df.lower_bound > 0) |
                                           ((self.reference_flux_ranges.lower_bound > 0) & (df.upper_bound < 0)))]
             df['flux_reversal'] = False
-            df['flux_reversal'][flux_reversal_selection.index] = True
+            df.loc[flux_reversal_selection.index]['flux_reversal'] = True
 
         for df in six.itervalues(solutions):
-            flux_reversal_selection = df[((self.reference_flux_ranges.lower_bound <= 0) & (df.lower_bound > 0)) | ((self.reference_flux_ranges.upper_bound >= 0) & (df.upper_bound <= 0))]
+            flux_reversal_selection = df[((self.reference_flux_ranges.lower_bound <= 0) & (df.lower_bound > 0)) | (
+                (self.reference_flux_ranges.upper_bound >= 0) & (df.upper_bound <= 0))]
             df['suddenly_essential'] = False
-            df['suddenly_essential'][flux_reversal_selection.index] = True
+            df.loc[flux_reversal_selection.index]['suddenly_essential'] = True
 
         # solutions['reference_flux_ranges'] = self.reference_flux_ranges
         return DifferentialFVAResult(pandas.Panel(solutions), self.envelope, self.variables, self.objective)
@@ -277,11 +317,15 @@ class DifferentialFVAResult(PhenotypicPhasePlaneResult):
 
     def _repr_html_(self):
         def _data_frame(solution):
-            notice("%s: %f" % self.solutions.axes[0][solution-1][0])
-            notice("%s: %f" % self.solutions.axes[0][solution-1][1])
-            display(self.solutions.iloc[solution-1])
+            notice("%s: %f" % self.solutions.axes[0][solution - 1][0])
+            notice("%s: %f" % self.solutions.axes[0][solution - 1][1])
+            display(self.solutions.iloc[solution - 1])
 
         return interact(_data_frame, solution=[1, len(self.solutions)])
+
+    @property
+    def data_frame(self):
+        return self.solutions
 
     def display_on_map(self, map_name=None):
         view = _MapView(self.solutions, map_name)
@@ -298,13 +342,13 @@ class _MapView(object):
         self.builder = None
 
     def __call__(self, index):
-        reaction_data = dict(self.solutions.iloc[index-1].gaps)
+        reaction_data = dict(self.solutions.iloc[index - 1].gaps)
         axis = self.solutions.axes[0]
         if self.builder is None:
-            self._init_builder(reaction_data, axis[index-1][0], axis[index-1][1])
+            self._init_builder(reaction_data, axis[index - 1][0], axis[index - 1][1])
         else:
             self.builder.update(reaction_data)
-            self.update_header(axis[index-1][0], axis[index-1][1])
+            self.update_header(axis[index - 1][0], axis[index - 1][1])
 
     def update_header(self, objective, variable):
         display(Javascript("""
@@ -353,16 +397,34 @@ class _DifferentialFvaEvaluator(object):
         target_reaction.lower_bound, target_reaction.upper_bound = target_bound, target_bound
 
 
-def fseof(model, enforced_reaction, max_enforced_flux=0.9, granularity=10, primary_objective=None, solution_method=fba, exclude=[]):
+def fseof(model, enforced_reaction, max_enforced_flux=0.9, granularity=10, primary_objective=None, solution_method=fba,
+          exclude=()):
     """
     Performs a Flux Scanning based on Enforced Objective Flux (FSEOF) analysis.
-    :param model: SolverBasedModel
-    :param enforced_reaction: The flux that will be enforced.
-    :param max_enforced_flux: The maximal flux of secondary_objective that will be enforced, relative to the theoretical maximum.
-    :param granularity: The number of enforced flux levels.
-    :param primary_objective: The primary objective flux (defaults to model.objective)
-    :param exclude: Iterable of reactions or reaction ids that will not be included in the output.
-    :return: List of reactions that correlate with enforced flux.
+
+    Parameters
+    ----------
+    model : SolverBasedModel
+    enforced_reaction : Reaction
+        The flux that will be enforced.
+    max_enforced_flux : float, optional
+        The maximal flux of secondary_objective that will be enforced, relative to the theoretical maximum.
+    granularity : int, optional (defaults to 0.9).
+        The number of enforced flux levels (defaults to 10).
+    primary_objective : Reaction
+        The primary objective flux (defaults to model.objective).
+    exclude : Iterable of reactions or reaction ids that will not be included in the output.
+
+    Returns
+    -------
+    FseofResult
+        List of reactions that correlate with enforced flux.
+
+    References
+    ----------
+    .. [1] H. S. Choi, S. Y. Lee, T. Y. Kim, and H. M. Woo, 'In silico identification of gene amplification targets
+    for improvement of lycopene production.,' Appl Environ Microbiol, vol. 76, no. 10, pp. 3097–3105, May 2010.
+
     """
     ndecimals = config.ndecimals
     with TimeMachine() as tm:
@@ -373,7 +435,7 @@ def fseof(model, enforced_reaction, max_enforced_flux=0.9, granularity=10, prima
         primary_objective = primary_objective or model.objective
 
         # Exclude list
-        exclude += model.exchanges
+        exclude += tuple(model.exchanges)
         exclude_ids = [enforced_reaction.id]
         for reaction in exclude:
             if isinstance(reaction, Reaction):
@@ -398,7 +460,7 @@ def fseof(model, enforced_reaction, max_enforced_flux=0.9, granularity=10, prima
         max_flux = max_theoretical_flux * max_enforced_flux
 
         # Calculate enforcement levels
-        enforcements = [initial_flux + (i+1)*(max_flux - initial_flux)/granularity for i in range(granularity)]
+        enforcements = [initial_flux + (i + 1) * (max_flux - initial_flux) / granularity for i in range(granularity)]
 
         # FSEOF results
         results = {reaction.id: [round(initial_fluxes[reaction.id], config.ndecimals)] for reaction in model.reactions}
@@ -415,7 +477,7 @@ def fseof(model, enforced_reaction, max_enforced_flux=0.9, granularity=10, prima
     # Test each reaction
     fseof_reactions = []
     for reaction_id, fluxes in results.items():
-        if reaction_id not in exclude_ids and abs(fluxes[-1]) > abs(fluxes[0]) and min(fluxes)*max(fluxes) >= 0:
+        if reaction_id not in exclude_ids and abs(fluxes[-1]) > abs(fluxes[0]) and min(fluxes) * max(fluxes) >= 0:
             fseof_reactions.append(model.reactions.get_by_id(reaction_id))
 
     return FseofResult(fseof_reactions, enforced_reaction, model)
@@ -423,8 +485,9 @@ def fseof(model, enforced_reaction, max_enforced_flux=0.9, granularity=10, prima
 
 class FseofResult(cameo.core.result.Result):
     """
-    Object for holding FSEOF results.
+    Object for storing a FSEOF result.
     """
+
     def __init__(self, reactions, objective, model, *args, **kwargs):
         super(FseofResult, self).__init__(*args, **kwargs)
         self._reactions = reactions
@@ -435,7 +498,8 @@ class FseofResult(cameo.core.result.Result):
         return iter(self.reactions)
 
     def __eq__(self, other):
-        return isinstance(other, self.__class__) and self.objective == other.objective and self.reactions == other.reactions
+        return isinstance(other,
+                          self.__class__) and self.objective == other.objective and self.reactions == other.reactions
 
     @property
     def reactions(self):
@@ -461,42 +525,43 @@ class FseofResult(cameo.core.result.Result):
         <td>%(reactions)s</td>
     <tr>
 </table>"""
-        return template % {'objective': self.objective.nice_id, 'reactions': "<br>".join(reaction.id for reaction in self.reactions)}
+        return template % {'objective': self.objective.nice_id,
+                           'reactions': "<br>".join(reaction.id for reaction in self.reactions)}
 
     @property
     def data_frame(self):
         return pandas.DataFrame((r.id for r in self.reactions), columns=["Reaction id"])
 
 
-if __name__ == '__main__':
-    from cameo.io import load_model
-    from cameo.util import Timer
-
-    model = load_model(
-        '/Users/niko/Arbejder/Dev/cameo/tests/data/EcoliCore.xml')
-
-    solution = model.solve()
-    max_growth = solution.f
-
-    reference_model = model.copy()
-    biomass_rxn = model.reactions.get_by_id('Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2')
-    reference_model.reactions.get_by_id(
-        'Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2').lower_bound = max_growth
-
-    diffFVA = DifferentialFVA(design_space_model=model,
-                              reference_model=reference_model,
-                              objective='EX_succ_LPAREN_e_RPAREN_',
-                              variables=['Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2',
-                                         'EX_o2_LPAREN_e_RPAREN_'],
-                              normalize_ranges_by='Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2',
-                              points=10
-    )
-    result = diffFVA.run(surface_only=True, view=SequentialView())
-
-    with Timer('Sequential'):
-        result = diffFVA.run(surface_only=True, view=SequentialView())
-    with Timer('Multiprocessing'):
-        result = diffFVA.run(surface_only=True, view=MultiprocessingView())
+# if __name__ == '__main__':
+#     from cameo.io import load_model
+#     from cameo.util import Timer
+#
+#     model = load_model(
+#         '/Users/niko/Arbejder/Dev/cameo/tests/data/EcoliCore.xml')
+#
+#     solution = model.solve()
+#     max_growth = solution.f
+#
+#     reference_model = model.copy()
+#     biomass_rxn = model.reactions.get_by_id('Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2')
+#     reference_model.reactions.get_by_id(
+#         'Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2').lower_bound = max_growth
+#
+#     diffFVA = DifferentialFVA(design_space_model=model,
+#                               reference_model=reference_model,
+#                               objective='EX_succ_LPAREN_e_RPAREN_',
+#                               variables=['Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2',
+#                                          'EX_o2_LPAREN_e_RPAREN_'],
+#                               normalize_ranges_by='Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2',
+#                               points=10
+#                               )
+#     result = diffFVA.run(surface_only=True, view=SequentialView())
+#
+#     with Timer('Sequential'):
+#         result = diffFVA.run(surface_only=True, view=SequentialView())
+#     with Timer('Multiprocessing'):
+#         result = diffFVA.run(surface_only=True, view=MultiprocessingView())
         # try:
         # from IPython.parallel import Client
         #     client = Client()
@@ -530,5 +595,3 @@ if __name__ == '__main__':
         #         result = diffFVA.run(surface_only=True, view=())
         # except:
         #     pass
-
-

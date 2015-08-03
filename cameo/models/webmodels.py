@@ -21,23 +21,27 @@ http://darwin.di.uminho.pt/models and http://bigg.ucsd.edu databases
 """
 
 from __future__ import absolute_import, print_function
-from cameo.util import str_to_valid_variable_name
+
 
 __all__ = ['index_models_minho', 'index_models_bigg', 'bigg', 'minho']
 
 import io
 import tempfile
 import json
+from functools import partial
 
 import requests
 from pandas import DataFrame
+import lazy_object_proxy
+
 
 from cobra.io import load_json_model, read_sbml_model
 
-from cameo import util
+from cameo.util import str_to_valid_variable_name
 from cameo.core.solver_based_model import to_solver_based_model
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 
@@ -45,18 +49,6 @@ class NotFoundException(Exception):
     def __init__(self, type, index, *args, **kwargs):
         message = "Could not retrieve %s for entry with index %i" % (type, index)
         Exception.__init__(self, message, *args, **kwargs)
-
-
-class ModelFacadeBigg(util.ModelFacade):
-
-    def _load_model(self):
-        return get_model_from_bigg(self._id)
-
-
-class ModelFacadeMinho(util.ModelFacade):
-
-    def _load_model(self):
-        return get_model_from_uminho(self._id)
 
 
 def index_models_minho(host="http://darwin.di.uminho.pt/models"):
@@ -79,8 +71,13 @@ def index_models_minho(host="http://darwin.di.uminho.pt/models"):
         logger.error("Cannot reach %s. Are you sure that you are connected to the internet?" % host)
         raise e
     if response.ok:
-        response = json.loads(response.text)
-        return DataFrame(response, columns=["id", "name", "doi", "author", "year", "formats", "organism", "taxonomy"])
+        try:
+            json = response.json()
+        except Exception as e:
+            logger.error('No json could be decoded from server response coming from {}.'.format(host))
+            raise e
+        else:
+            return DataFrame(json, columns=["id", "name", "doi", "author", "year", "formats", "organism", "taxonomy"])
     else:
         raise Exception("Could not index available models. %s returned status code %d" % (host, response.status_code))
 
@@ -92,8 +89,7 @@ def get_model_from_uminho(index, host="http://darwin.di.uminho.pt/models"):
 
 
 def get_sbml_file(index, host="http://darwin.di.uminho.pt/models"):
-    temp = tempfile.NamedTemporaryFile()
-    temp.delete = False
+    temp = tempfile.NamedTemporaryFile(delete=False)
     uri = host + "/models/%i.sbml" % index
     try:
         response = requests.get(uri)
@@ -108,6 +104,7 @@ def get_sbml_file(index, host="http://darwin.di.uminho.pt/models"):
     else:
         raise NotFoundException("sbml", index)
 
+
 def index_models_bigg():
     try:
         response = requests.get('http://bigg.ucsd.edu/api/v2/models')
@@ -115,9 +112,17 @@ def index_models_bigg():
         logger.error("Cannot reach http://bigg.ucsd.edu. Are you sure that you are connected to the internet?")
         raise e
     if response.ok:
-        return DataFrame.from_dict(response.json()['results'])
+        try:
+            json = response.json()
+        except Exception as e:
+            logger.error('No json could be decoded from server response coming from http://bigg.ucsd.edu.')
+            raise e
+        else:
+            return DataFrame.from_dict(json['results'])
     else:
-        raise Exception("Could not index available models. bigg.ucsd.edu returned status code {}".format(response.status_code))
+        raise Exception(
+            "Could not index available models. bigg.ucsd.edu returned status code {}".format(response.status_code))
+
 
 def get_model_from_bigg(id):
     try:
@@ -129,33 +134,44 @@ def get_model_from_bigg(id):
         with io.StringIO(response.text) as f:
             return to_solver_based_model(load_json_model(f))
     else:
-        raise Exception("Could not download model {}. bigg.ucsd.edu returned status code {}".format(id, response.status_code))
+        raise Exception(
+            "Could not download model {}. bigg.ucsd.edu returned status code {}".format(id, response.status_code))
 
-class ModelDB(object): pass
+
+class ModelDB(object):
+    pass
+
 
 bigg = ModelDB()
 try:
     model_ids = index_models_bigg().bigg_id
 except requests.ConnectionError:
-    pass
+    bigg.no_models_available = "Cameo couldn't reach http://bigg.ucsd.edu at initialization time. Are you connected to the internet?"
+except Exception as e:
+    bigg.no_models_available = "Cameo could reach http://bigg.ucsd.edu at initialization time but something went wrong while decoding the server response."
+    logger.debug(e)
 else:
     for id in model_ids:
-        setattr(bigg, str_to_valid_variable_name(id), ModelFacadeBigg(id))
+        setattr(bigg, str_to_valid_variable_name(id), lazy_object_proxy.Proxy(partial(get_model_from_bigg, id)))
 
 minho = ModelDB()
 try:
     minho_models = index_models_minho()
+except requests.ConnectionError as e:
+    minho.no_models_available = "Cameo couldn't reach http://darwin.di.uminho.pt/models at initialization time. Are you connected to the internet?"
+    logger.debug(e)
+except Exception as e:
+    minho.no_models_available = "Cameo could reach http://darwin.di.uminho.pt/models at initialization time but something went wrong while decoding the server response."
+    logger.debug(e)
+else:
     model_indices = minho_models.id
     model_ids = minho_models.name
-except requests.ConnectionError:
-    pass
-else:
     for index, id in zip(model_indices, model_ids):
-        setattr(minho, str_to_valid_variable_name(id), ModelFacadeMinho(index))
-
+        setattr(minho, str_to_valid_variable_name(id), lazy_object_proxy.Proxy(partial(get_model_from_uminho, index)))
 
 if __name__ == "__main__":
     print(index_models_minho())
     from cameo import load_model
+
     model = load_model(get_sbml_file(2))
     print(model.objective)

@@ -13,7 +13,6 @@
 # limitations under the License.
 from cameo.util import partition
 
-
 __all__ = ['plot_production_envelope']
 
 from cameo import config, util
@@ -86,12 +85,12 @@ try:
     from bashplotlib import scatterplot
 
     def plot_production_envelope_cli(envelope, objective, key, grid=None, width=None, height=None,
-                                               title=None, points=None, points_colors=None, axis_font_size=None):
+                                     title=None, points=None, points_colors=None, axis_font_size=None):
         scatterplot.plot_scatter(None, envelope[key], envelope["objective_upper_bound"], "*")
 
 except:
     def plot_production_envelope_cli(envelope, objective, key, grid=None, width=None, height=None,
-                                               title=None, points=None, points_colors=None, axis_font_size=None):
+                                     title=None, points=None, points_colors=None, axis_font_size=None):
         pass
 
 
@@ -112,7 +111,6 @@ def plot_production_envelope(envelope, objective, key, grid=None, width=None, he
 
 
 class Grid(object):
-
     def __init__(self, nrows=1, title=None):
         self.plots = []
         if nrows <= 1:
@@ -142,4 +140,3 @@ class Grid(object):
         if len(self.plots) > 0:
             grid = GridPlot(children=partition(self.plots, self.nrows), title=self.title)
             plotting.show(grid)
-

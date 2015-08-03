@@ -13,13 +13,16 @@
 # limitations under the License.
 
 from __future__ import absolute_import, print_function
+
 from .util import in_ipnb
+from .parallel import SequentialView
+
+import logging
+
+log = logging.getLogger(__name__)
 
 non_zero_flux_threshold = 1e-6
 ndecimals = 6
-
-import logging
-log = logging.getLogger(__name__)
 
 # Determine available solver interfaces
 solvers = {}
@@ -41,6 +44,7 @@ except ImportError:
 # TODO: This should also check if a bokeh server is actually running.
 try:
     from bokeh.plotting import output_notebook
+
     if in_ipnb():
         output_notebook(hide_banner=True)
     use_bokeh = True
@@ -49,25 +53,13 @@ except ImportError:
 
 bokeh_url = 'default'
 
+# Determine if matplotlib is available
 try:
     import matplotlib
+
     use_matplotlib = True
 except ImportError:
     use_matplotlib = False
 
-#Determine a default parallelization view
-try:
-    from IPython import parallel
-    from IPython.kernel.zmq import serialize
-    client = parallel.Client()
-    client.block = True
-    default_view = client.direct_view()
-except Exception:
-    from .parallel import SequentialView
-    default_view = SequentialView()
-    # try:
-    #     from .parallel import MultiprocessingView
-    #     default_view = MultiprocessingView()
-    # except ImportError:
-    #     from .parallel import SequentialView
-    #     default_view = SequentialView()
+# Set default parallelization view
+default_view = SequentialView()

@@ -48,7 +48,7 @@ help:
 	@echo "  ipy2rst    to convert ipython notebooks in to rst files"
 
 ipy2rst:
-	for i in *.ipynb; do ipython nbconvert $$i --to rst; done
+	for i in notebooks/*.ipynb; do ipython nbconvert $$i --to rst; done
 
 clean:
 	rm -rf $(BUILDDIR)/*

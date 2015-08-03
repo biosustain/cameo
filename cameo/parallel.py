@@ -16,17 +16,17 @@ from __future__ import absolute_import, print_function
 
 import six.moves.queue
 from multiprocessing import Pool, cpu_count
-import itertools
 from cameo.util import Singleton
 
 import logging
 import six
 from six.moves import map
 from six.moves import range
+
 logger = logging.getLogger(__name__)
 
-class MultiprocessingView(Singleton):
 
+class MultiprocessingView(Singleton):
     """Provides a parallel view (similar to IPython)"""
 
     def __init__(self, *args, **kwargs):
@@ -234,7 +234,7 @@ class SequentialView(object):
         return func(*args, **kwargs)
 
     def imap(self, func, *args, **kwargs):
-        return itertools.imap(func, *args, **kwargs)
+        return map(func, *args, **kwargs)
 
     def __len__(self):
         return 1

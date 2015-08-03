@@ -14,40 +14,36 @@
 
 from __future__ import absolute_import, print_function
 
+__all__ = ['hosts']
+
 import os
+from functools import partial
+
+from lazy_object_proxy import Proxy
+
 import cameo
 from cameo import util
 from cameo import load_model
 import six
 
-MODEL_DIRECTORY = os.path.join(os.path.join(os.path.split(cameo.__path__[0])[0]), 'tests/data')
+MODEL_DIRECTORY = os.path.join(os.path.join(cameo.__path__[0]), 'models/sbml')
 
 
 class Host(object):
-
     def __init__(self, name='', models=[], biomass=[], carbon_sources=[]):
         self.name = name
         self.models = util.IntelliContainer()
         for id, biomass, carbon_source in zip(models, biomass, carbon_sources):
-            self.models[id] = ModelFacade(id, biomass, carbon_source)
+            model = Proxy(partial(load_model, os.path.join(MODEL_DIRECTORY, id + '.xml')))
+            model.biomass = biomass
+            model.carbon_source = carbon_source
+            self.models[id] = model
 
     def __str__(self):
         return self.name
 
 
-class ModelFacade(util.ModelFacade):
-
-    def _load_model(self):
-        return load_model(os.path.join(MODEL_DIRECTORY, self._id + '.xml'))
-
-    def __init__(self, id, biomass=None, carbon_source=None):
-        super(ModelFacade, self).__init__(id)
-        self.biomass = biomass
-        self.carbon_source = carbon_source
-
-
 class Hosts(object):
-
     def __init__(self, host_spec):
         self._host_spec = host_spec
         self._hosts = list()
@@ -74,7 +70,7 @@ HOST_SPECS = {
     # 'iND750',
     'scerevisiae': {
         'name': 'Saccharomyces cerevisiae',
-        'models': ('iMM904', ),
+        'models': ('iMM904',),
         'biomass': ('biomass_SC5_notrace',),
         'carbon_sources': ('EX_glc_e_',)
 

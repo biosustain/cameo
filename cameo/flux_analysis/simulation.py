@@ -42,6 +42,7 @@ from cameo.util import TimeMachine, ProblemCache
 from cameo.exceptions import SolveError
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 add = Add._from_args
@@ -72,6 +73,7 @@ def fba(model, objective=None, *args, **kwargs):
         solution = model.solve()
         result = FluxDistributionResult(solution)
     return result
+
 
 def pfba(model, objective=None, *args, **kwargs):
     """Parsimonious Flux Balance Analysis.
@@ -179,7 +181,7 @@ def lmoma(model, reference=None, cache=None, *args, **kwargs):
             cache.add_constraint("c_%s_ub" % rid, create_upper_constraint, update_upper_constraint,
                                  cache.variables[pos_var_id], reaction, flux_value)
 
-            def update_lower_constraint(model,constraint, var, reaction, flux_value):
+            def update_lower_constraint(model, constraint, var, reaction, flux_value):
                 constraint.ub = flux_value
 
             def create_lower_constraint(model, constraint_id, var, reaction, flux_value):
@@ -232,7 +234,7 @@ def room(model, reference=None, cache=None, delta=0.03, epsilon=0.001, *args, **
         volatile = True
         cache = ProblemCache(model)
     elif not isinstance(cache, ProblemCache):
-            raise TypeError("Invalid cache object (must be a cameo.util.ProblemCache)")
+        raise TypeError("Invalid cache object (must be a cameo.util.ProblemCache)")
 
     cache.begin_transaction()
 
@@ -277,8 +279,6 @@ def room(model, reference=None, cache=None, delta=0.03, epsilon=0.001, *args, **
                 constraint._set_coefficients_low_level({variable: reaction.lower_bound - w_l})
                 constraint.lb = w_l
 
-
-
             cache.add_constraint("c_%s_lower" % rid, create_lower_constraint, update_lower_constraint,
                                  reaction, cache.variables["y_%s" % rid], flux_value, epsilon)
 
@@ -298,66 +298,6 @@ def room(model, reference=None, cache=None, delta=0.03, epsilon=0.001, *args, **
     finally:
         if volatile:
             cache.reset()
-
-
-def _cycle_free_flux(model, fluxes, fix=[]):
-    """Remove cycles from a flux-distribution (http://cran.r-project.org/web/packages/sybilcycleFreeFlux/index.html)."""
-    # import time
-    tm = TimeMachine()
-    try:
-        exchange_reactions = model.exchanges
-        exchange_ids = [exchange.id for exchange in exchange_reactions]
-        internal_reactions = [reaction for reaction in model.reactions if reaction.id not in exchange_ids]
-        for exchange in exchange_reactions:
-            exchange_flux = fluxes[exchange.id]
-            tm(do=partial(setattr, exchange, 'lower_bound', exchange_flux),
-               undo=partial(setattr, exchange, 'lower_bound', exchange.lower_bound))
-            tm(do=partial(setattr, exchange, 'upper_bound', exchange_flux),
-               undo=partial(setattr, exchange, 'upper_bound', exchange.upper_bound))
-        obj_terms = list()
-        # tic = time.time()
-        for internal_reaction in internal_reactions:
-            internal_flux = fluxes[internal_reaction.id]
-            if internal_flux >= 0:
-                obj_terms.append(mul([sympy.S.One, internal_reaction.variable]))
-                tm(do=partial(setattr, internal_reaction, 'lower_bound', 0),
-                   undo=partial(setattr, internal_reaction, 'lower_bound', internal_reaction.lower_bound))
-                tm(do=partial(setattr, internal_reaction, 'upper_bound', internal_flux),
-                   undo=partial(setattr, internal_reaction, 'upper_bound', internal_reaction.upper_bound))
-            elif internal_flux < 0:
-                obj_terms.append(mul([sympy.S.NegativeOne, internal_reaction.variable]))
-                tm(do=partial(setattr, internal_reaction, 'lower_bound', internal_flux),
-                   undo=partial(setattr, internal_reaction, 'lower_bound', internal_reaction.lower_bound))
-                tm(do=partial(setattr, internal_reaction, 'upper_bound', 0),
-                   undo=partial(setattr, internal_reaction, 'upper_bound', internal_reaction.upper_bound))
-            else:
-                pass
-        # print 'bounds', time.time() - tic
-        for reaction_id in fix:
-            reaction_to_fix = model.reactions.get_by_id(reaction_id)
-            tm(do=partial(setattr, reaction_to_fix, 'lower_bound', fluxes[reaction_id]),
-               undo=partial(setattr, reaction_to_fix, 'lower_bound', reaction_to_fix.lower_bound))
-            tm(do=partial(setattr, reaction_to_fix, 'upper_bound', fluxes[reaction_id]),
-               undo=partial(setattr, reaction_to_fix, 'upper_bound', reaction_to_fix.upper_bound))
-        # tic = time.time()
-        tm(do=partial(setattr, model, 'objective',
-                      model.solver.interface.Objective(add(obj_terms), name='Flux minimization',
-                                                       direction='min', sloppy=True)),
-           undo=partial(setattr, model, 'objective', model.objective))
-        # print 'blub', time.time() - tic
-        try:
-            # model.solver.configuration.verbosity = 3
-            solution = model.solve()
-            # model.solver.configuration.verbosity = 0
-        except SolveError as e:
-            logger.warning("Couldn't remove cycles from reference flux distribution.")
-            raise e
-        # print 'returning'
-        return solution.x_dict
-    finally:
-        # tic = time.time()
-        # print 'resetting'
-        tm.reset()
 
 
 if __name__ == '__main__':

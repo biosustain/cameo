@@ -40,7 +40,7 @@ class IPythonBokehFitnessPlotter(object):
     def _set_plot(self):
         self.uuid = uuid1()
         try:
-            self.plot = figure(title="Fitness plot",  tools='', plot_height=400, plot_width=650)
+            self.plot = figure(title="Fitness plot", tools='', plot_height=400, plot_width=650)
             self.plot.scatter([], [])
             self.plot.xaxis.axis_label = "Iteration"
             self.plot.yaxis.axis_label = "Fitness"
@@ -53,6 +53,7 @@ class IPythonBokehFitnessPlotter(object):
             self.plotted = True
         except ConnectionError:
             from bokeh import io
+
             io._state._session = None
             output_notebook(url=None, docname=None, hide_banner=True)
             logger.info("Bokeh-server is not running. Skipping plotting.")
@@ -87,7 +88,7 @@ class IPythonBokehFitnessPlotter(object):
 
     def end(self):
         if not self.can_plot:
-            plot = figure(title="Fitness plot",  tools='', plot_height=400, plot_width=650)
+            plot = figure(title="Fitness plot", tools='', plot_height=400, plot_width=650)
             plot.xaxis.axis_label = "Iteration"
             plot.yaxis.axis_label = "Fitness"
             plot.scatter(self.ds.data['x'], self.ds.data['y'])
@@ -124,6 +125,7 @@ class IPythonBokehParetoPlotter(object):
         except ConnectionError as e:
             logger.info("Bokeh-server is not running. Skipping plotting.")
             from bokeh import io
+
             io._state._session = None
             self.can_plot = False
 
@@ -147,14 +149,14 @@ class IPythonBokehParetoPlotter(object):
 
     def end(self):
         if not self.can_plot:
-            plot = figure(title="Fitness plot",  tools='', plot_height=400, plot_width=650)
+            plot = figure(title="Fitness plot", tools='', plot_height=400, plot_width=650)
             plot.xaxis.axis_label = "Iteration"
             plot.yaxis.axis_label = "Fitness"
             plot.scatter(self.ds.data['x'], self.ds.data['y'])
             show(plot)
 
 
-class GeneFrequencyPlotter():
+class GeneFrequencyPlotter(object):
     def __init__(self, solutions, url='default'):
         self.solutions = solutions
         self.url = url

@@ -16,7 +16,8 @@ clusters using the IPython parallelization framework (see example and
 documentation for more details). The default fallback is python's
 multiprocessing library.
 
-Furthermore, it exposes a high-level API to users that just want to .
+Furthermore, it exposes a high-level API to users that just want to
+compute promising strain designs.
 
 You got curious? Head over to `try.cameo.bio <http://try.cameo.bio>`__
 and give it a try.
@@ -123,7 +124,7 @@ Furthermore, the following dependencies are needed:
 
 .. |Documentation Status| image:: https://readthedocs.org/projects/cameo/badge/?version=devel
    :target: https://readthedocs.org/projects/cameo/?badge=devel
-.. |Build Status| image:: https://travis-ci.org/biosustain/cameo.svg?branch=devel
+.. |Build Status| image:: https://travis-ci.org/biosustain/cameo.svg?branch=master
    :target: https://travis-ci.org/biosustain/cameo
 .. |Coverage Status| image:: https://coveralls.io/repos/biosustain/cameo/badge.svg?branch=devel
    :target: https://coveralls.io/r/biosustain/cameo?branch=devel

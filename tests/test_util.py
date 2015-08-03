@@ -43,9 +43,11 @@ class TimeMachineTestCase(unittest.TestCase):
         partial_function = partial(str, 1)
         self.tm(do=normal_function, undo=partial_function)
         if six.PY2:
-            self.assertEqual(self.tm.__str__().split('\n')[2:-1], ["undo: <type 'str'> (1,) None", 'redo: normal_function'])
+            self.assertEqual(self.tm.__str__().split('\n')[2:-1],
+                             ["undo: <type 'str'> (1,) None", 'redo: normal_function'])
         elif six.PY3:
-            self.assertEqual(self.tm.__str__().split('\n')[2:-1], ["undo: <class 'str'> (1,) None", 'redo: normal_function'])
+            self.assertEqual(self.tm.__str__().split('\n')[2:-1],
+                             ["undo: <class 'str'> (1,) None", 'redo: normal_function'])
 
     def test_with_statement(self):
         l = [1, 2, 3, 4]
@@ -88,13 +90,13 @@ class TestUtils(unittest.TestCase):
         met3 = Metabolite("C6H12O6", formula="C6H12O6")
 
         self.assertEqual(distance_based_on_molecular_formula(met1, met2, normalize=False), 1)
-        self.assertEqual(distance_based_on_molecular_formula(met1, met2, normalize=True), 1./7)
+        self.assertEqual(distance_based_on_molecular_formula(met1, met2, normalize=True), 1. / 7)
 
         self.assertEqual(distance_based_on_molecular_formula(met2, met3, normalize=False), 20)
-        self.assertEqual(distance_based_on_molecular_formula(met2, met3, normalize=True), 20./28)
+        self.assertEqual(distance_based_on_molecular_formula(met2, met3, normalize=True), 20. / 28)
 
         self.assertEqual(distance_based_on_molecular_formula(met1, met3, normalize=False), 21)
-        self.assertEqual(distance_based_on_molecular_formula(met1, met3, normalize=True), 21./27)
+        self.assertEqual(distance_based_on_molecular_formula(met1, met3, normalize=True), 21. / 27)
 
 
 class TestSingleton(unittest.TestCase):
@@ -106,4 +108,5 @@ class TestSingleton(unittest.TestCase):
 
 if __name__ == "__main__":
     import nose
+
     nose.runmodule()
