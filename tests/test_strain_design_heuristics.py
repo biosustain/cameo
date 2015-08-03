@@ -346,7 +346,7 @@ class TestDecoders(unittest.TestCase):
         self.assertTrue(sorted(reactions1, key=lambda x: x.id) == sorted(reactions2, key=lambda x: x.id))
 
 
-class TestGeneratos(unittest.TestCase):
+class TestGenerators(unittest.TestCase):
     def setUp(self):
         self.model = TEST_MODEL
         self.args = {}
@@ -358,14 +358,13 @@ class TestGeneratos(unittest.TestCase):
         representation = ["a", "b", "c", "d", "e", "f"]
         candidate_size = 5
         variable_candidate_size = False
-        expected = [[3, 5, 4, 4, 0],
-                    [1, 1, 1, 2, 3],
-                    [4, 4, 2, 2, 0],
-                    [0, 4, 5, 0, 1],
-                    [2, 0, 3, 4, 5],
-                    [2, 2, 3, 3, 0]]
+        expected = [[2, 1, 5, 0, 4],
+                    [0, 4, 3, 2, 5],
+                    [1, 0, 3, 2, 5],
+                    [2, 3, 1, 4, 5],
+                    [4, 5, 3, 0, 2]]
 
-        for i in range(len(expected)-1):
+        for i in range(len(expected)):
             candidate = set_generator(random, dict(representation=representation,
                                                    candidate_size=candidate_size,
                                                    variable_candidate_size=variable_candidate_size))
