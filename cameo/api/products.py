@@ -57,7 +57,7 @@ class Products(object):
             raise Exception("No compound matches found for query %s" % query)
 
     def _search_by_name_fuzzy(self, name):
-        matches = difflib.get_close_matches(name, self.data_frame.name, n=5, cutoff=.6)
+        matches = difflib.get_close_matches(name, self.data_frame.name.dropna(), n=5, cutoff=.8)
         ranks = dict([(match, i) for i, match in enumerate(matches)])
         selection = DataFrame(self.data_frame[self.data_frame.name.isin(matches)])
         selection['search_rank'] = selection.name.map(ranks)
@@ -71,7 +71,7 @@ class Products(object):
 
     def _search_by_inchi_fuzzy(self, inchi):
         # TODO: use openbabel if available
-        matches = difflib.get_close_matches(inchi, self.data_frame.InChI, n=5, cutoff=.6)
+        matches = difflib.get_close_matches(inchi, self.data_frame.InChI.dropna(), n=5, cutoff=.8)
         ranks = dict([(match, i) for i, match in enumerate(matches)])
         selection = DataFrame(self.data_frame[self.data_frame.InChI.isin(matches)])
         selection['search_rank'] = selection.name.map(ranks)
