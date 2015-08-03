@@ -7,7 +7,7 @@ omit =
     cameo/strain_design/heuristic/multiprocess/plotters.py
     cameo/visualization/*
     cameo/_version.py
-    cameo/stuff.py
+    cameo/stuff/*
 
 [report]
 # Regexes for lines to exclude from consideration
