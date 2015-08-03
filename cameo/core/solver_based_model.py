@@ -451,7 +451,7 @@ class SolverBasedModel(cobra.core.Model):
         try:
             solution = self.solve()
         except SolveError as e:
-            print('Cannot determine essential reactions for un-optimal model.')
+            logger.error('Cannot determine essential reactions for un-optimal model.')
             raise e
         for reaction_id, flux in six.iteritems(solution.fluxes):
             if abs(flux) > 0:
@@ -484,7 +484,7 @@ class SolverBasedModel(cobra.core.Model):
         try:
             solution = self.solve()
         except SolveError as e:
-            print('Cannot determine essential genes for un-optimal model.')
+            logger.error('Cannot determine essential genes for un-optimal model.')
             raise e
         genes_to_check = set()
         for reaction_id, flux in six.iteritems(solution.fluxes):

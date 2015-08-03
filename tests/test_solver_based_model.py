@@ -19,6 +19,7 @@ from __future__ import absolute_import, print_function
 import os
 import copy
 import unittest
+import cameo
 
 from cobra import Metabolite
 import numpy
@@ -706,10 +707,16 @@ class WrappedAbstractTestSolverBasedModel:
         def test_essential_genes(self):
             essential_genes = [g.id for g in self.model.essential_genes()]
             self.assertTrue(sorted(essential_genes) == sorted(ESSENTIAL_GENES))
+            with self.assertRaises(cameo.exceptions.SolveError):
+                self.model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = 999999.
+                self.model.essential_genes()
 
         def test_essential_reactions(self):
             essential_reactions = [r.id for r in self.model.essential_reactions()]
             self.assertTrue(sorted(essential_reactions) == sorted(ESSENTIAL_REACTIONS))
+            with self.assertRaises(cameo.exceptions.SolveError):
+                self.model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = 999999.
+                self.model.essential_reactions()
 
         def test_effective_bounds(self):
             self.model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = 0.873921
@@ -761,6 +768,9 @@ class TestSolverBasedModelGLPK(WrappedAbstractTestSolverBasedModel.AbstractTestS
     def setUp(self):
         super(TestSolverBasedModelGLPK, self).setUp()
         self.model.solver = 'glpk'
+
+    def test_cobrapy_attributes_not_in_dir(self):
+        self.assertNotIn('optimize', dir(self.model))
 
 
 @unittest.skipIf(TRAVIS, 'CPLEX not available on Travis.')
