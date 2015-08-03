@@ -133,7 +133,7 @@ def set_indel(random, individual, args):
     if random.random() < indel_rate:
         if random.random() > 0.5:
             if len(individual) > 1:
-                new_individual.pop(random.randint(0, len(new_individual) - 1))
+                new_individual = random.sample(new_individual, len(new_individual) - 1)
         else:
             new_individual.append(random.sample(range(len(representation)), 1)[0])
 
@@ -146,8 +146,8 @@ def multiple_chromosome_set_mutation(random, individual, args):
 
     for key in individual.keys:
         representation = args.get('%s_representation' % key)
-        for index in individual:
-            mutation_rate = float(args.get('%s_mutation_rate' % key, .1))
+        mutation_rate = args.get('%s_mutation_rate' % key, .1)
+        for index in individual[key]:
             if random.random() < mutation_rate:
                 new_individual[key].append(random.randint(0, len(representation) - 1))
             else:
@@ -162,21 +162,21 @@ def multiple_chromosome_set_indel(random, individual, args):
 
     for key in individual.keys:
         representation = args.get('%s_representation' % key)
-        indel_rate = float(args.get('%s_indel_rate' % key, .1))
+        indel_rate = args.get('%s_indel_rate' % key, .1)
         if random.random() < indel_rate:
-            if random.random() > float(0.5):
-                if len(individual) > 1:
-                    new_individual[key].pop(random.randint(0, len(new_individual) - 1))
+            if random.random() > 0.5:
+                if len(individual[key]) > 1:
+                    new_individual[key] = random.sample(new_individual[key], len(new_individual[key]) - 1)
             else:
                 new_individual[key].append(random.sample(range(len(representation)), 1)[0])
 
-    return individual
+    return new_individual
 
 
 @crossover
 def multiple_chromosome_n_point_crossover(random, mom, dad, args):
     children = MultipleChromosomeGenome(keys=mom.keys)
     for key in children.keys:
-        children[key] = set_n_point_crossover(random, mom[key], dad[key], args)
+        children[key] = set_n_point_crossover(random, [mom[key], dad[key]], args)
 
     return children
