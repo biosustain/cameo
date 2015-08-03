@@ -141,6 +141,24 @@ def set_indel(random, individual, args):
 
 @mutator
 def multiple_chromosome_set_mutation(random, individual, args):
+    """
+    Mutates a given set based on the entries available on the representation.
+
+    Parameters
+    ----------
+
+    random: Random
+    individual: MultipleChromosomeGenome
+        with unique integers in each chromosome
+    args: dict
+        must contain the representation of each chromosome
+
+    Returns
+    -------
+    MultipleChromosomeGenome
+        A mutated individual
+
+    """
     new_individual = MultipleChromosomeGenome(keys=individual.keys)
 
     for key in individual.keys:
@@ -157,6 +175,23 @@ def multiple_chromosome_set_mutation(random, individual, args):
 
 @mutator
 def multiple_chromosome_set_indel(random, individual, args):
+    """
+    Creates a random insertion or deletion in the individual.
+
+    Parameters
+    ----------
+
+    random: Random
+    individual: MultipleChromosomeGenome
+        with unique integers in each chromosome
+    args: dict
+        must contain the representation of each chromosome
+
+    Returns
+    -------
+    MultipleChromosomeGenome
+        A mutated individual
+    """
     new_individual = individual.copy()
 
     for key in individual.keys:
