@@ -24,8 +24,12 @@ from ordered_set import OrderedSet
 from pandas.util.testing import assert_frame_equal
 
 from cameo import load_model, fba, config
-from cameo.strain_design.heuristic.metrics import euclidean_distance, manhattan_distance
-from cameo.strain_design.heuristic.variators import _do_set_n_point_crossover
+from cameo.strain_design.heuristic.genomes import MultipleChromosomeGenome
+from cameo.strain_design.heuristic.metrics import euclidean_distance
+from cameo.strain_design.heuristic.metrics import manhattan_distance
+from cameo.strain_design.heuristic.variators import _do_set_n_point_crossover, set_n_point_crossover, set_mutation, \
+    set_indel, multiple_chromosome_set_mutation, multiple_chromosome_set_indel
+
 from cameo.util import RandomGenerator as Random
 from cameo.strain_design.heuristic.optimization import HeuristicOptimization, ReactionKnockoutOptimization, \
     set_distance_function, KnockoutOptimizationResult
@@ -61,6 +65,7 @@ SOLUTIONS = [
     [[52, 22, 4, 11], 0.0]
 ]
 
+
 class TestMetrics(unittest.TestCase):
     def test_euclidean_distance(self):
         distance = euclidean_distance({'a': 9}, {'a': 3})
@@ -69,6 +74,7 @@ class TestMetrics(unittest.TestCase):
     def test_manhattan_distance(self):
         distance = manhattan_distance({'a': 9}, {'a': 3})
         self.assertEqual(distance, abs(9-3))
+
 
 class TestBestSolutionArchiver(unittest.TestCase):
     def test_solution_string(self):
@@ -363,14 +369,13 @@ class TestGenerators(unittest.TestCase):
         representation = ["a", "b", "c", "d", "e", "f"]
         candidate_size = 5
         variable_candidate_size = False
-        expected = [[3, 5, 4, 4, 0],
-                    [1, 1, 1, 2, 3],
-                    [4, 4, 2, 2, 0],
-                    [0, 4, 5, 0, 1],
-                    [2, 0, 3, 4, 5],
-                    [2, 2, 3, 3, 0]]
+        expected = [[2, 1, 5, 0, 4],
+                    [0, 4, 3, 2, 5],
+                    [1, 0, 3, 2, 5],
+                    [2, 3, 1, 4, 5],
+                    [4, 5, 3, 0, 2]]
 
-        for i in range(len(expected) - 1):
+        for i in range(len(expected)):
             candidate = set_generator(random, dict(representation=representation,
                                                    candidate_size=candidate_size,
                                                    variable_candidate_size=variable_candidate_size))
@@ -385,7 +390,6 @@ class TestGenerators(unittest.TestCase):
                     test_key_2_candidate_size=5,
                     variable_candidate_size=False)
         candidate = multiple_chromosome_set_generator(random, args)
-
         self.assertEqual(len(candidate['test_key_1']), 3)
         self.assertEqual(len(candidate['test_key_2']), 5)
 
@@ -667,8 +671,43 @@ class TestReactionKnockoutOptimization(unittest.TestCase):
         pass
 
 
-class TestVariators(unittest.TestCase):
+class VariatorsTestCase(unittest.TestCase):
+
     def test_set_n_point_crossover(self):
+        mom = OrderedSet([1, 3, 5, 9, 10])
+        dad = OrderedSet([2, 3, 7, 8])
+        args = {
+            "crossover_rate": 1.0,
+            "num_crossover_points": 1,
+            "candidate_size": 10
+        }
+        children = set_n_point_crossover(Random(SEED), [mom, dad], args)
+        bro = OrderedSet([1, 3, 5, 8])
+        sis = OrderedSet([2, 3, 7, 9, 10])
+        self.assertEqual(bro, children[0])
+        self.assertEqual(sis, children[1])
+
+    def test_set_mutation(self):
+        individual = OrderedSet([1, 3, 5, 9, 10])
+        representation = list(range(10))
+        args = {
+            "representation": representation,
+            "mutation_rate": 1
+        }
+        new_individuals = set_mutation(Random(SEED), [individual], args)
+        self.assertEqual(new_individuals[0], [6, 4, 1, 0])
+
+    def test_set_indel(self):
+        individual = OrderedSet([1, 3, 5, 9, 10])
+        representation = list(range(10))
+        args = {
+            "representation": representation,
+            "indel_rate": 1
+        }
+        new_individuals = set_indel(Random(SEED), [individual], args)
+        self.assertEqual(new_individuals[0], [5, 3, 9, 1])
+
+    def test_do_set_n_point_crossover(self):
         representation = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N"]
         int_representation = [representation.index(v) for v in representation]
         mom = OrderedSet([representation.index(v) for v in ["A", "B", "E", "K", "L", "M"]])
@@ -679,3 +718,59 @@ class TestVariators(unittest.TestCase):
         sis = OrderedSet([0, 2, 4, 10, 11, 12])
         self.assertEqual(children[0], bro)
         self.assertEqual(children[1], sis)
+
+    def test_multiple_chromosome_set_mutation(self):
+        genome = MultipleChromosomeGenome(["A", "B"])
+        genome["A"] = [1, 2, 3, 4]
+        genome["B"] = [1, 5, 7, 10]
+        representation = list(range(10))
+        args = {
+            "A_representation": representation,
+            "B_representation": representation,
+            "A_mutation_rate": 1,
+            "B_mutation_rate": 1
+        }
+
+        new_individuals = multiple_chromosome_set_mutation(Random(SEED), [genome], args)
+        self.assertEqual(new_individuals[0]["A"], OrderedSet([6, 4, 1]))
+        self.assertEqual(new_individuals[0]["B"], OrderedSet([0, 6, 2]))
+
+    def test_multiple_chromosome_set_indel(self):
+        genome = MultipleChromosomeGenome(["A", "B"])
+        genome["A"] = [1, 2, 3, 4]
+        genome["B"] = [1, 5, 7, 10]
+        representation = list(range(10))
+        args = {
+            "A_representation": representation,
+            "B_representation": representation,
+            "A_indel_rate": 1,
+            "B_indel_rate": 1
+        }
+
+        random = Random(SEED)
+        new_individuals = multiple_chromosome_set_indel(random, [genome for _ in range(5)], args)
+        self.assertEqual(new_individuals[0]["A"], OrderedSet([2, 3, 4]))
+        self.assertEqual(new_individuals[0]["B"], OrderedSet([10, 1, 7]))
+        self.assertEqual(new_individuals[1]["A"], OrderedSet([2, 1, 4]))
+        self.assertEqual(new_individuals[1]["B"], OrderedSet([1, 5, 7, 10]))
+        self.assertEqual(new_individuals[2]["A"], OrderedSet([1, 2, 3, 4, 8]))
+        self.assertEqual(new_individuals[2]["B"], OrderedSet([5, 1, 10]))
+        self.assertEqual(new_individuals[3]["A"], OrderedSet([1, 2, 3, 4]))
+        self.assertEqual(new_individuals[3]["B"], OrderedSet([1, 5, 7, 10]))
+        self.assertEqual(new_individuals[4]["A"], OrderedSet([1, 4, 3]))
+        self.assertEqual(new_individuals[4]["B"], OrderedSet([5, 1, 7]))
+
+
+class GenomesTestCase(unittest.TestCase):
+    def test_two_chromosomes(self):
+        genome = MultipleChromosomeGenome(["A", "B"])
+        self.assertIsInstance(genome["A"], OrderedSet)
+        self.assertIsInstance(genome["B"], OrderedSet)
+        genome["A"] = [1, 2, 3, 4]
+        genome["B"] = ["A", "B", "C"]
+
+        self.assertEqual(genome["A"], OrderedSet([1, 2, 3, 4]))
+        self.assertEqual(genome["B"], OrderedSet(["A", "B", "C"]))
+
+        del genome["A"]
+        self.assertRaises(KeyError, genome.__getitem__, "A")

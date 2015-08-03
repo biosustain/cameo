@@ -144,12 +144,13 @@ class RandomGenerator(object):
         if b is None:
             b = a
             a = 0
-        return self._random.randint(a, b)
+        r = self._random.randint(a, high=b, size=1)
+        return r[0]
 
     def sample(self, population, k):
         if k == 0:
             return []
-        return self._random.choice(population, size=k, replace=True)
+        return self._random.choice(population, size=k, replace=False)
 
     def __getattr__(self, attr):
         return getattr(self._random, attr)

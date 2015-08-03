@@ -15,15 +15,14 @@
 from __future__ import absolute_import, print_function
 
 from ordered_set import OrderedSet
+import six
 
 
 class MultipleChromosomeGenome(object):
     def __init__(self, keys=[], *args, **kwargs):
         super(MultipleChromosomeGenome, self).__init__(*args, **kwargs)
-        self.chromosomes = {}
+        self.chromosomes = {k: OrderedSet() for k in keys}
         self.keys = keys
-        for key in keys:
-            self.chromosomes[key] = OrderedSet()
 
     def __getitem__(self, key):
         return self.chromosomes[key]
@@ -32,4 +31,14 @@ class MultipleChromosomeGenome(object):
         del self.chromosomes[key]
 
     def __setitem__(self, key, value):
-        self.chromosomes[key] = value
+        self.chromosomes[key] = OrderedSet(value)
+
+    def copy(self):
+        new_genome = MultipleChromosomeGenome(self.keys)
+        for key in self.keys:
+            new_genome[key] = self[key]
+        return new_genome
+
+    def __repr__(self):
+        return "| ".join(["%s: %s" % (k, list(v)) for k, v in six.iteritems(self.chromosomes)])
+
