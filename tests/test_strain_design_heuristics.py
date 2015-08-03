@@ -631,7 +631,7 @@ class TestReactionKnockoutOptimization(unittest.TestCase):
 
         self.assertEqual(rko.random.random(), 0.9268454219291495)
 
-        with open(result_file, 'r') as in_file:
+        with open(result_file, 'rb') as in_file:
             expected_results = pickle.load(in_file)
 
         assert_frame_equal(results.solutions, expected_results.solutions)
@@ -654,7 +654,7 @@ class TestReactionKnockoutOptimization(unittest.TestCase):
 
         results = rko.run(max_evaluations=3000, pop_size=10, view=SequentialView())
 
-        with open(result_file, 'r') as in_file:
+        with open(result_file, 'rb') as in_file:
             expected_results = pickle.load(in_file)
 
         assert_frame_equal(results.solutions, expected_results.solutions)
