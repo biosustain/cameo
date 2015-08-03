@@ -28,4 +28,4 @@ def setUp(self):
 for cls in (CobraTestCase, TestReactions, TestCobraFluxAnalysis):
     cls.setUp = types.MethodType(setUp, cls)
 
-del TestCobraFluxAnalysis.test_single_deletion
+del TestCobraFluxAnalysis.test_single_gene_deletion
