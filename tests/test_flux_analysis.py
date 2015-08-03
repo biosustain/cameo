@@ -232,11 +232,11 @@ class TestRemoveCycles(unittest.TestCase):
             self.model.objective = self.model.solver.interface.Objective(Add(*self.model.solver.variables.values()),
                                                                          name='Max all fluxes')
             solution = self.model.solve()
-            self.assertAlmostEqual(solution.data_frame.fluxes.abs().sum(), 2000506.2933342019)
+            self.assertAlmostEqual(solution.data_frame.fluxes.abs().sum(), 2000506.2933342019, delta=1e-6)
             self.model.objective = original_objective
             fluxes = solution.fluxes
         clean_fluxes = remove_infeasible_cycles(self.model, fluxes)
-        self.assertAlmostEqual(pandas.Series(clean_fluxes).abs().sum(), 518.42208550050827)
+        self.assertAlmostEqual(pandas.Series(clean_fluxes).abs().sum(), 518.42208550050827, delta=1e-6)
 
 
 class TestPhenotypicPhasePlaneGLPK(Wrapper.AbstractTestPhenotypicPhasePlane):
