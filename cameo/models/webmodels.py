@@ -74,7 +74,7 @@ def index_models_minho(host="http://darwin.di.uminho.pt/models"):
         try:
             json = response.json()
         except Exception as e:
-            logger.error('No json could be decoded from server response coming from http://bigg.ucsd.edu.')
+            logger.error('No json could be decoded from server response coming from {}.'.format(host))
             raise e
         else:
             return DataFrame(json, columns=["id", "name", "doi", "author", "year", "formats", "organism", "taxonomy"])
@@ -89,8 +89,7 @@ def get_model_from_uminho(index, host="http://darwin.di.uminho.pt/models"):
 
 
 def get_sbml_file(index, host="http://darwin.di.uminho.pt/models"):
-    temp = tempfile.NamedTemporaryFile()
-    temp.delete = False
+    temp = tempfile.NamedTemporaryFile(delete=False)
     uri = host + "/models/%i.sbml" % index
     try:
         response = requests.get(uri)

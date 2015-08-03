@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from __future__ import absolute_import, print_function
+import cameo
 
 import six
 
@@ -39,23 +40,31 @@ class AbstractTestModelLoading(object):
             model = load_model(handle, solver_interface=self.interface)
         self.assertAlmostEqual(model.optimize().f, 0.9823718127269768)
 
-    @unittest.skipIf(six.PY3, 'cobra.io.read_sbml_model broken in py3.')
+    # @unittest.skipIf(six.PY3, 'cobra.io.read_sbml_model broken in py3.')
     def test_load_model_sbml_path(self):
         model = load_model(os.path.join(TESTDIR, 'data/iJO1366.xml'), solver_interface=self.interface)
         self.assertAlmostEqual(model.optimize().f, 0.9823718127269768)
 
-    @unittest.skipIf(six.PY3, 'cobra.io.read_sbml_model broken in py3.')
+    # @unittest.skipIf(six.PY3, 'cobra.io.read_sbml_model broken in py3.')
     def test_load_model_sbml_handle(self):
         with open(os.path.join(TESTDIR, 'data/iJO1366.xml')) as handle:
             model = load_model(handle, solver_interface=self.interface)
         self.assertAlmostEqual(model.optimize().f, 0.9823718127269768)
 
-    @unittest.skipIf(six.PY3, 'cobra.io.read_sbml_model broken in py3.')
+    # @unittest.skipIf(six.PY3, 'cobra.io.read_sbml_model broken in py3.')
     def test_load_model_sbml_path_set_none_interface(self):
         model = load_model(os.path.join(TESTDIR, 'data/EcoliCore.xml'), solver_interface=None)
         self.assertAlmostEqual(model.optimize().f, 0.8739215069684306)
         self.assertTrue(isinstance(model, cobra.core.Model))
         self.assertFalse(hasattr(model, 'solver'))
+
+    def test_import_model_bigg(self):
+        model = cameo.models.bigg.e_coli_core
+        self.assertEqual(model.id, 'e_coli_core')
+
+    def test_import_model_minho(self):
+        model = cameo.models.bigg.e_coli_core
+        self.assertEqual(model.id, 'e_coli_core')
 
 
 class TestModelLoadingGLPK(AbstractTestModelLoading, unittest.TestCase):
