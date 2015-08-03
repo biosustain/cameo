@@ -613,7 +613,6 @@ class TestReactionKnockoutOptimization(unittest.TestCase):
         self.assertEqual(rko._ko_type, "reaction")
         self.assertTrue(isinstance(rko._decoder, ReactionKnockoutDecoder))
 
-    @unittest.skip('Not deterministic when seeded')
     def test_run_single_objective(self):
         result_file = os.path.join(CURRENT_PATH, "data", "reaction_knockout_single_objective.pkl")
         objective = biomass_product_coupled_yield(
@@ -630,17 +629,13 @@ class TestReactionKnockoutOptimization(unittest.TestCase):
 
         results = rko.run(max_evaluations=3000, pop_size=10, view=SequentialView())
 
-        self.assertEqual(rko.random.random(), 0.04225378600400298)
-
-        # with open(result_file, 'w') as out_file:
-        #     pickle.dump(results, out_file)
+        self.assertEqual(rko.random.random(), 0.9268454219291495)
 
         with open(result_file, 'r') as in_file:
             expected_results = pickle.load(in_file)
 
         assert_frame_equal(results.solutions, expected_results.solutions)
 
-    @unittest.skip('Not deterministic when seeded')
     def test_run_multiobjective(self):
         result_file = os.path.join(CURRENT_PATH, "data", "reaction_knockout_multi_objective.pkl")
         objective1 = biomass_product_coupled_yield(
@@ -658,9 +653,6 @@ class TestReactionKnockoutOptimization(unittest.TestCase):
                                            seed=SEED)
 
         results = rko.run(max_evaluations=3000, pop_size=10, view=SequentialView())
-
-        with open(result_file, 'w') as out_file:
-            pickle.dump(results, out_file)
 
         with open(result_file, 'r') as in_file:
             expected_results = pickle.load(in_file)
