@@ -178,7 +178,7 @@ class RandomGenerator():
     def sample(self, population, k):
         if k == 0:
             return []
-        return self._random.choice(population, size=k, replace=True)
+        return self._random.choice(population, size=k, replace=False)
 
     def __getattr__(self, attr):
         return getattr(self._random, attr)
