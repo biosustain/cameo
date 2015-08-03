@@ -13,13 +13,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+import re
 import nose
 from nose.tools import assert_equal, assert_raises_regexp
+from nose.plugins.skip import SkipTest
 from cameo import api
 from cameo.api.products import Compound
 
 
-def test_compount():
+def test_compound_repr():
+    if not re.match('Open Babel!.*', os.popen('obabel').read()):
+        raise SkipTest('Skipping because OpenBabel is not installed.')
     compound = Compound('InChI=1S/H2O/h1H2')
     reference_output = '''<?xml version="1.0"?>
 <svg xmlns="http://www.w3.org/2000/svg"
@@ -35,10 +40,12 @@ x="10" y="20" ></text>
     assert_equal(compound._repr_svg_(), reference_output)
     assert_equal(compound._repr_html_(), compound._repr_svg_())
 
+
 def test_products():
     assert_equal(api.products.search('3-hydroxy propionate').index[0], 'MNXM872')
     with assert_raises_regexp(Exception, "No compound matches found for query.*"):
         api.products.search('old spice')
+
 
 def test_hosts():
     assert_equal(api.hosts.ecoli.models.iJO1366.id, 'iJO1366')
