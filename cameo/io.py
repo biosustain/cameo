@@ -152,14 +152,14 @@ def sanitize_ids(model):
 
     for reaction in model.reactions:
         if isinstance(model, SolverBasedModel):
-            variable = reaction.variable
+            forward_variable = reaction.forward_variable
             reverse_variable = reaction.reverse_variable
         rxn_id = reaction.id
         reaction.id = _apply_sanitize_rules(rxn_id, ID_SANITIZE_RULES_TAB_COMPLETION)
         reaction.nice_id = _apply_sanitize_rules(rxn_id, ID_SANITIZE_RULES_SIMPHENY)
         reaction.name = _apply_sanitize_rules(reaction.name, ID_SANITIZE_RULES_SIMPHENY)
         if isinstance(model, SolverBasedModel):
-            variable.name = reaction.id
+            forward_variable.name = reaction.id
             if reverse_variable is not None:
                 reverse_variable.name = reaction._get_reverse_id()
 

@@ -116,11 +116,6 @@ class Reaction(_cobrapy.core.Reaction):
             return None
 
     @property
-    def variable(self):
-        warnings.warn('reaction.variable is deprecated. Please use reaction.forward_variable.', DeprecationWarning)
-        return self.forward_variable
-
-    @property
     def forward_variable(self):
         """An optlang variable representing the forward flux (if associated with model), otherwise None.
         Representing the net flux if model.reversible_encoding == 'unsplit'"""
