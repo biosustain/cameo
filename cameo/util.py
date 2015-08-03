@@ -173,7 +173,8 @@ class RandomGenerator():
         if b is None:
             b = a
             a = 0
-        return self._random.randint(a, b)
+        r = self._random.randint(a, high=b, size=1)
+        return r[0]
 
     def sample(self, population, k):
         if k == 0:
