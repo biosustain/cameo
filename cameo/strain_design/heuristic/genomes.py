@@ -32,4 +32,4 @@ class MultipleChromosomeGenome(object):
         del self.chromosomes[key]
 
     def __setitem__(self, key, value):
-        self.chromosomes[key] = value
+        self.chromosomes[key] = OrderedSet(value)
