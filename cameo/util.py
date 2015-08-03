@@ -401,12 +401,9 @@ def generate_colors(n):
 
 def memoize(function, memo={}):
     def wrapper(*args):
-        logger.debug("key = %s" % str(args))
         if args in memo:
-            logger.debug("Key found")
             return memo[args]
         else:
-            logger.debug("Key not found")
             rv = function(*args)
             memo[args] = rv
             return rv
