@@ -380,44 +380,11 @@ class SolverBasedModel(cobra.core.Model):
         return ratio_constraint
 
     @doc_inherit
-    def optimize(self, new_objective=None, objective_sense=None, solution_type=Solution, **kwargs):
+    def optimize(self, objective_sense=None, solution_type=Solution, **kwargs):
         """OptlangBasedModel implementation of optimize.
 
         Exists only for compatibility reasons. Uses model.solve() instead.
         """
-        if new_objective is None or new_objective == 0:
-            pass
-        else:
-            # TODO: This i going to be deprecated soon anyway ...
-            objective_formula = sympy.Add()
-            [setattr(x, 'objective_coefficient', 0.) for x in self.reactions]
-            if isinstance(new_objective, dict):
-                for the_reaction, the_coefficient in six.iteritems(new_objective):
-                    if isinstance(the_reaction, int):
-                        the_reaction = self.reactions[the_reaction]
-                    else:
-                        if hasattr(the_reaction, 'id'):
-                            the_reaction = the_reaction.id
-                        the_reaction = self.reactions.get_by_id(the_reaction)
-                    the_reaction.objective_coefficient = the_coefficient
-                    objective_formula += the_coefficient * self.solver.variables[the_reaction.id]
-            else:
-                # Allow for objectives to be constructed from multiple reactions
-                if not isinstance(new_objective, list) and not isinstance(new_objective, tuple):
-                    new_objective = [new_objective]
-                for the_reaction in new_objective:
-                    if isinstance(the_reaction, int):
-                        the_reaction = self.reactions[the_reaction]
-                    else:
-                        if hasattr(the_reaction, 'id'):
-                            the_reaction = the_reaction.id
-                        the_reaction = self.reactions.get_by_id(the_reaction)
-                    the_reaction.objective_coefficient = 1.
-                    objective_formula += 1. * self.solver.variables[the_reaction.id]
-
-            if objective_formula != 0:
-                self.solver.objective = self.solver.interface.Objective(
-                    objective_formula, direction={'minimize': 'min', 'maximize': 'max'}[objective_sense])
         self._timestamp_last_optimization = time.time()
         if objective_sense is not None:
             original_direction = self.objective.direction
