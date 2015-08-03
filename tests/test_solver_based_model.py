@@ -165,15 +165,15 @@ class WrappedAbstractTestReaction:
             acald_reaction.upper_bound = acald_reaction.lower_bound - 100
             self.assertEqual(acald_reaction.lower_bound, -1000099.0)
             self.assertEqual(acald_reaction.upper_bound, -1000099.0)
-            self.assertEqual(acald_reaction.variable.lb, 0)
-            self.assertEqual(acald_reaction.variable.ub, 0)
+            self.assertEqual(acald_reaction.forward_variable.lb, 0)
+            self.assertEqual(acald_reaction.forward_variable.ub, 0)
             self.assertEqual(acald_reaction.reverse_variable.lb, 1000099.)
             self.assertEqual(acald_reaction.reverse_variable.ub, 1000099.)
             acald_reaction.upper_bound = 100
             self.assertEqual(acald_reaction.lower_bound, -1000099.0)
             self.assertEqual(acald_reaction.upper_bound, 100)
-            self.assertEqual(acald_reaction.variable.lb, 0)
-            self.assertEqual(acald_reaction.variable.ub, 100)
+            self.assertEqual(acald_reaction.forward_variable.lb, 0)
+            self.assertEqual(acald_reaction.forward_variable.ub, 100)
             self.assertEqual(acald_reaction.reverse_variable.lb, 0)
             self.assertEqual(acald_reaction.reverse_variable.ub, 1000099.0)
 
@@ -183,8 +183,8 @@ class WrappedAbstractTestReaction:
             model.reactions.GAPD.lower_bound = 0
             self.assertEqual(model.reactions.GAPD.lower_bound, 0)
             self.assertEqual(model.reactions.GAPD.upper_bound, 0)
-            self.assertEqual(model.reactions.GAPD.variable.lb, 0)
-            self.assertEqual(model.reactions.GAPD.variable.ub, 0)
+            self.assertEqual(model.reactions.GAPD.forward_variable.lb, 0)
+            self.assertEqual(model.reactions.GAPD.forward_variable.ub, 0)
             self.assertEqual(model.reactions.GAPD.reverse_variable.lb, 0)
             self.assertEqual(model.reactions.GAPD.reverse_variable.ub, 0)
 
@@ -193,22 +193,22 @@ class WrappedAbstractTestReaction:
             acald_reaction = model.reactions.ACALD
             self.assertEqual(acald_reaction.lower_bound, -999999.)
             self.assertEqual(acald_reaction.upper_bound, 999999.)
-            self.assertEqual(acald_reaction.variable.lb, 0.)
-            self.assertEqual(acald_reaction.variable.ub, 999999.)
+            self.assertEqual(acald_reaction.forward_variable.lb, 0.)
+            self.assertEqual(acald_reaction.forward_variable.ub, 999999.)
             self.assertEqual(acald_reaction.reverse_variable.lb, 0)
             self.assertEqual(acald_reaction.reverse_variable.ub, 999999.)
             acald_reaction.lower_bound = acald_reaction.upper_bound + 100
             self.assertEqual(acald_reaction.lower_bound, 1000099.0)
             self.assertEqual(acald_reaction.upper_bound, 1000099.0)
-            self.assertEqual(acald_reaction.variable.lb, 1000099.0)
-            self.assertEqual(acald_reaction.variable.ub, 1000099.0)
+            self.assertEqual(acald_reaction.forward_variable.lb, 1000099.0)
+            self.assertEqual(acald_reaction.forward_variable.ub, 1000099.0)
             self.assertEqual(acald_reaction.reverse_variable.lb, 0)
             self.assertEqual(acald_reaction.reverse_variable.ub, 0)
             acald_reaction.lower_bound = -100
             self.assertEqual(acald_reaction.lower_bound, -100.)
             self.assertEqual(acald_reaction.upper_bound, 1000099.)
-            self.assertEqual(acald_reaction.variable.lb, 0)
-            self.assertEqual(acald_reaction.variable.ub, 1000099.)
+            self.assertEqual(acald_reaction.forward_variable.lb, 0)
+            self.assertEqual(acald_reaction.forward_variable.ub, 1000099.)
             self.assertEqual(acald_reaction.reverse_variable.lb, 0)
             self.assertEqual(acald_reaction.reverse_variable.ub, 100)
 
@@ -217,22 +217,22 @@ class WrappedAbstractTestReaction:
             acald_reaction = model.reactions.ACALD
             self.assertEqual(acald_reaction.lower_bound, -999999.)
             self.assertEqual(acald_reaction.upper_bound, 999999.)
-            self.assertEqual(acald_reaction.variable.lb, 0.)
-            self.assertEqual(acald_reaction.variable.ub, 999999.)
+            self.assertEqual(acald_reaction.forward_variable.lb, 0.)
+            self.assertEqual(acald_reaction.forward_variable.ub, 999999.)
             self.assertEqual(acald_reaction.reverse_variable.lb, 0)
             self.assertEqual(acald_reaction.reverse_variable.ub, 999999.)
             acald_reaction.lower_bound = 0
             self.assertEqual(acald_reaction.lower_bound, 0)
             self.assertEqual(acald_reaction.upper_bound, 999999.)
-            self.assertEqual(acald_reaction.variable.lb, 0)
-            self.assertEqual(acald_reaction.variable.ub, 999999.0)
+            self.assertEqual(acald_reaction.forward_variable.lb, 0)
+            self.assertEqual(acald_reaction.forward_variable.ub, 999999.0)
             self.assertEqual(acald_reaction.reverse_variable.lb, 0)
             self.assertEqual(acald_reaction.reverse_variable.ub, 0)
             acald_reaction.lower_bound = -100
             self.assertEqual(acald_reaction.lower_bound, -100.)
             self.assertEqual(acald_reaction.upper_bound, 999999.)
-            self.assertEqual(acald_reaction.variable.lb, 0)
-            self.assertEqual(acald_reaction.variable.ub, 999999.)
+            self.assertEqual(acald_reaction.forward_variable.lb, 0)
+            self.assertEqual(acald_reaction.forward_variable.ub, 999999.)
             self.assertEqual(acald_reaction.reverse_variable.lb, 0)
             self.assertEqual(acald_reaction.reverse_variable.ub, 100)
 
@@ -241,22 +241,22 @@ class WrappedAbstractTestReaction:
             pfk_reaction = model.reactions.PFK
             self.assertEqual(pfk_reaction.lower_bound, 0.)
             self.assertEqual(pfk_reaction.upper_bound, 999999.)
-            self.assertEqual(pfk_reaction.variable.lb, 0.)
-            self.assertEqual(pfk_reaction.variable.ub, 999999.)
+            self.assertEqual(pfk_reaction.forward_variable.lb, 0.)
+            self.assertEqual(pfk_reaction.forward_variable.ub, 999999.)
             self.assertEqual(pfk_reaction.reverse_variable.lb, 0)
             self.assertEqual(pfk_reaction.reverse_variable.ub, 0)
             pfk_reaction.lower_bound = -100.
             self.assertEqual(pfk_reaction.lower_bound, -100.)
             self.assertEqual(pfk_reaction.upper_bound, 999999.)
-            self.assertEqual(pfk_reaction.variable.lb, 0)
-            self.assertEqual(pfk_reaction.variable.ub, 999999.0)
+            self.assertEqual(pfk_reaction.forward_variable.lb, 0)
+            self.assertEqual(pfk_reaction.forward_variable.ub, 999999.0)
             self.assertEqual(pfk_reaction.reverse_variable.lb, 0)
             self.assertEqual(pfk_reaction.reverse_variable.ub, 100.)
             pfk_reaction.lower_bound = 0
             self.assertEqual(pfk_reaction.lower_bound, 0)
             self.assertEqual(pfk_reaction.upper_bound, 999999.)
-            self.assertEqual(pfk_reaction.variable.lb, 0)
-            self.assertEqual(pfk_reaction.variable.ub, 999999.)
+            self.assertEqual(pfk_reaction.forward_variable.lb, 0)
+            self.assertEqual(pfk_reaction.forward_variable.ub, 999999.)
             self.assertEqual(pfk_reaction.reverse_variable.lb, 0)
             self.assertEqual(pfk_reaction.reverse_variable.ub, 0)
 
@@ -265,8 +265,8 @@ class WrappedAbstractTestReaction:
             pfk_reaction = model.reactions.PFK
             self.assertEqual(pfk_reaction.lower_bound, 0.)
             self.assertEqual(pfk_reaction.upper_bound, 999999.)
-            self.assertEqual(pfk_reaction.variable.lb, 0.)
-            self.assertEqual(pfk_reaction.variable.ub, 999999.)
+            self.assertEqual(pfk_reaction.forward_variable.lb, 0.)
+            self.assertEqual(pfk_reaction.forward_variable.ub, 999999.)
             self.assertEqual(pfk_reaction.reverse_variable.lb, 0)
             self.assertEqual(pfk_reaction.reverse_variable.ub, 0)
             pfk_reaction.upper_bound = -100.
@@ -277,8 +277,8 @@ class WrappedAbstractTestReaction:
             pfk_reaction.lower_bound = -999999.
             self.assertEqual(pfk_reaction.lower_bound, -999999.)
             self.assertEqual(pfk_reaction.upper_bound, -100.)
-            self.assertEqual(pfk_reaction.variable.lb, 0)
-            self.assertEqual(pfk_reaction.variable.ub, 0)
+            self.assertEqual(pfk_reaction.forward_variable.lb, 0)
+            self.assertEqual(pfk_reaction.forward_variable.ub, 0)
             self.assertEqual(pfk_reaction.reverse_variable.lb, 100)
             self.assertEqual(pfk_reaction.reverse_variable.ub, 999999.)
             # self.assertEqual(pfk_reaction.reverse_variable.lb, 0.)
@@ -293,15 +293,15 @@ class WrappedAbstractTestReaction:
             model.add_reaction(rxn)
             self.assertEqual(rxn.lower_bound, -999999.)
             self.assertEqual(rxn.upper_bound, -100.)
-            self.assertEqual(rxn.variable.lb, 0.)
-            self.assertEqual(rxn.variable.ub, 0.)
+            self.assertEqual(rxn.forward_variable.lb, 0.)
+            self.assertEqual(rxn.forward_variable.ub, 0.)
             self.assertEqual(rxn.reverse_variable.lb, 100.)
             self.assertEqual(rxn.reverse_variable.ub, 999999.)
             rxn.upper_bound = 666.
             self.assertEqual(rxn.lower_bound, -999999.)
             self.assertEqual(rxn.upper_bound, 666.)
-            self.assertEqual(rxn.variable.lb, 0.)
-            self.assertEqual(rxn.variable.ub, 666)
+            self.assertEqual(rxn.forward_variable.lb, 0.)
+            self.assertEqual(rxn.forward_variable.ub, 666)
             self.assertEqual(rxn.reverse_variable.lb, 0.)
             self.assertEqual(rxn.reverse_variable.ub, 999999.)
 
@@ -397,11 +397,11 @@ class WrappedAbstractTestReaction:
             self.assertEqual(d1.lower_bound, -1000)
             self.assertEqual(d1._upper_bound, 0)
             self.assertEqual(d1.upper_bound, 0)
-            self.assertEqual(d1.variable.lb, 0)
-            self.assertEqual(d1.variable.ub, 0)
+            self.assertEqual(d1.forward_variable.lb, 0)
+            self.assertEqual(d1.forward_variable.ub, 0)
             d1.upper_bound = .1
-            self.assertEqual(d1.variable.lb, 0)
-            self.assertEqual(d1.variable.ub, .1)
+            self.assertEqual(d1.forward_variable.lb, 0)
+            self.assertEqual(d1.forward_variable.ub, .1)
             self.assertEqual(d1.reverse_variable.lb, 0)
             self.assertEqual(d1.reverse_variable.ub, 1000)
             self.assertEqual(d1._lower_bound, -1000)
@@ -413,15 +413,15 @@ class WrappedAbstractTestReaction:
             self.assertFalse(self.model.reactions.PFK.reversibility)
             self.assertEqual(self.model.reactions.PFK.lower_bound, 0)
             self.assertEqual(self.model.reactions.PFK.upper_bound, 999999.0)
-            self.assertEqual(self.model.reactions.PFK.variable.lb, 0)
-            self.assertEqual(self.model.reactions.PFK.variable.ub, 999999.0)
+            self.assertEqual(self.model.reactions.PFK.forward_variable.lb, 0)
+            self.assertEqual(self.model.reactions.PFK.forward_variable.ub, 999999.0)
             self.assertEqual(self.model.reactions.PFK.reverse_variable.lb, 0)
             self.assertEqual(self.model.reactions.PFK.reverse_variable.ub, 0)
             self.model.reactions.PFK.lower_bound = -1000000000
             self.assertEqual(self.model.reactions.PFK.lower_bound, -1000000000)
             self.assertEqual(self.model.reactions.PFK.upper_bound, 999999.0)
-            self.assertEqual(self.model.reactions.PFK.variable.lb, 0)
-            self.assertEqual(self.model.reactions.PFK.variable.ub, 999999.0)
+            self.assertEqual(self.model.reactions.PFK.forward_variable.lb, 0)
+            self.assertEqual(self.model.reactions.PFK.forward_variable.ub, 999999.0)
             self.assertEqual(self.model.reactions.PFK.reverse_variable.lb, 0)
             self.assertEqual(self.model.reactions.PFK.reverse_variable.ub, 1000000000)
 
@@ -429,16 +429,16 @@ class WrappedAbstractTestReaction:
             self.assertFalse(self.model.reactions.PFK.reversibility)
             self.assertEqual(self.model.reactions.PFK.lower_bound, 0)
             self.assertEqual(self.model.reactions.PFK.upper_bound, 999999.0)
-            self.assertEqual(self.model.reactions.PFK.variable.lb, 0)
-            self.assertEqual(self.model.reactions.PFK.variable.ub, 999999.0)
+            self.assertEqual(self.model.reactions.PFK.forward_variable.lb, 0)
+            self.assertEqual(self.model.reactions.PFK.forward_variable.ub, 999999.0)
             self.assertEqual(self.model.reactions.PFK.reverse_variable.lb, 0)
             self.assertEqual(self.model.reactions.PFK.reverse_variable.ub, 0)
             self.model.reactions.PFK.lower_bound = -1000000000
             self.model.reactions.PFK.upper_bound = 0
             self.assertEqual(self.model.reactions.PFK.lower_bound, -1000000000)
             self.assertEqual(self.model.reactions.PFK.upper_bound, 0)
-            self.assertEqual(self.model.reactions.PFK.variable.lb, 0)
-            self.assertEqual(self.model.reactions.PFK.variable.ub, 0)
+            self.assertEqual(self.model.reactions.PFK.forward_variable.lb, 0)
+            self.assertEqual(self.model.reactions.PFK.forward_variable.ub, 0)
             self.assertEqual(self.model.reactions.PFK.reverse_variable.lb, 0)
             self.assertEqual(self.model.reactions.PFK.reverse_variable.ub, 1000000000)
 
@@ -532,7 +532,6 @@ class TestReactionGLPK(WrappedAbstractTestReaction.AbstractTestReaction):
         self.model.solver = 'glpk'
 
 
-@unittest.skipIf(TRAVIS, 'CPLEX not available on Travis.')
 class TestReactionCPLEX(WrappedAbstractTestReaction.AbstractTestReaction):
     def setUp(self):
         self.cobrapy_model = COBRAPYTESTMODEL.copy()
@@ -645,12 +644,12 @@ class WrappedAbstractTestSolverBasedModel:
         def test_set_reaction_objective(self):
             self.model.objective = self.model.reactions.ACALD
             self.assertEqual(str(self.model.objective.expression), str(
-                1.0 * self.model.reactions.ACALD.variable - 1.0 * self.model.reactions.ACALD.reverse_variable))
+                1.0 * self.model.reactions.ACALD.forward_variable - 1.0 * self.model.reactions.ACALD.reverse_variable))
 
         def test_set_reaction_objective_str(self):
             self.model.objective = self.model.reactions.ACALD.id
             self.assertEqual(str(self.model.objective.expression), str(
-                1.0 * self.model.reactions.ACALD.variable - 1.0 * self.model.reactions.ACALD.reverse_variable))
+                1.0 * self.model.reactions.ACALD.forward_variable - 1.0 * self.model.reactions.ACALD.reverse_variable))
 
         def test_invalid_objective_raises(self):
             self.assertRaises(Exception, setattr, self.model, 'objective', 'This is not a valid objective!')
@@ -773,7 +772,6 @@ class TestSolverBasedModelGLPK(WrappedAbstractTestSolverBasedModel.AbstractTestS
         self.assertNotIn('optimize', dir(self.model))
 
 
-@unittest.skipIf(TRAVIS, 'CPLEX not available on Travis.')
 class TestSolverBasedModelCPLEX(WrappedAbstractTestSolverBasedModel.AbstractTestSolverBasedModel):
     def setUp(self):
         super(TestSolverBasedModelCPLEX, self).setUp()
