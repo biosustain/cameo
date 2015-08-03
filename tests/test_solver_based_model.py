@@ -532,7 +532,6 @@ class TestReactionGLPK(WrappedAbstractTestReaction.AbstractTestReaction):
         self.model.solver = 'glpk'
 
 
-@unittest.skipIf(TRAVIS, 'CPLEX not available on Travis.')
 class TestReactionCPLEX(WrappedAbstractTestReaction.AbstractTestReaction):
     def setUp(self):
         self.cobrapy_model = COBRAPYTESTMODEL.copy()
@@ -773,7 +772,6 @@ class TestSolverBasedModelGLPK(WrappedAbstractTestSolverBasedModel.AbstractTestS
         self.assertNotIn('optimize', dir(self.model))
 
 
-@unittest.skipIf(TRAVIS, 'CPLEX not available on Travis.')
 class TestSolverBasedModelCPLEX(WrappedAbstractTestSolverBasedModel.AbstractTestSolverBasedModel):
     def setUp(self):
         super(TestSolverBasedModelCPLEX, self).setUp()

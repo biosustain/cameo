@@ -72,10 +72,9 @@ class TestModelLoadingGLPK(AbstractTestModelLoading, unittest.TestCase):
         self.interface = optlang.glpk_interface
 
 
-@unittest.skipIf('cplex' not in solvers, "No cplex interface available")
 class TestModelLoadingCPLEX(AbstractTestModelLoading, unittest.TestCase):
     def setUp(self):
-        self.interface = optlang.glpk_interface
+        self.interface = optlang.cplex_interface
 
 
 if __name__ == '__main__':

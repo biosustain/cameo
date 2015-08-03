@@ -195,7 +195,6 @@ class TestFindBlockedReactionsGLPK(Wrapper.AbstractTestFindBlockedReactions):
         self.model.solver = 'glpk'
 
 
-@unittest.skipIf(TRAVIS, 'CPLEX not available on Travis.')
 class TestFindBlockedReactionsCPLEX(Wrapper.AbstractTestFindBlockedReactions):
     def setUp(self):
         self.model = CORE_MODEL.copy()
@@ -211,7 +210,6 @@ class TestFluxVariabilityAnalysisGLPK(Wrapper.AbstractTestFluxVariabilityAnalysi
         self.model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = self.biomass_flux
 
 
-@unittest.skipIf(TRAVIS, 'CPLEX not available on Travis.')
 class TestFluxVariabilityAnalysisCPLEX(Wrapper.AbstractTestFluxVariabilityAnalysis):
     def setUp(self):
         self.model = CORE_MODEL.copy()
@@ -245,7 +243,6 @@ class TestPhenotypicPhasePlaneGLPK(Wrapper.AbstractTestPhenotypicPhasePlane):
         self.model.solver = 'glpk'
 
 
-@unittest.skipIf(TRAVIS, 'CPLEX not available on Travis.')
 class TestPhenotypicPhasePlaneCPLEX(Wrapper.AbstractTestPhenotypicPhasePlane):
     def setUp(self):
         self.model = CORE_MODEL.copy()
@@ -258,7 +255,6 @@ class TestSimulationMethodsGLPK(Wrapper.AbstractTestSimulationMethods):
         self.model.solver = 'glpk'
 
 
-@unittest.skipIf(TRAVIS, 'CPLEX not available on Travis.')
 class TestSimulationMethodsCPLEX(Wrapper.AbstractTestSimulationMethods):
     def setUp(self):
         self.model = CORE_MODEL
