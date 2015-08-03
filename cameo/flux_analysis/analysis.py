@@ -14,7 +14,8 @@
 
 from __future__ import absolute_import, print_function
 
-__all__ = ['find_blocked_reactions', 'flux_variability_analysis', 'phenotypic_phase_plane', 'fbid']
+__all__ = ['find_blocked_reactions', 'flux_variability_analysis', 'phenotypic_phase_plane',
+           'flux_balance_impact_degree']
 
 from cobra.core import Reaction
 
@@ -405,15 +406,24 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
         return point + tuple(interval)
 
 
-def fbid(model, knockouts, view=config.default_view, method="fva"):
+def flux_balance_impact_degree(model, knockouts, view=config.default_view, method="fva"):
     """
     Flux balance impact degree by Zhao et al 2013
 
-    :param model: wild-type model
-    :param knockouts: list of reaction knockouts
-    :param method: the method to compute the perturbation. default is "fva" - Flux Variability Analysis.
+    Parameters
+    ----------
+    model: SolverBasedModel
+        Wild-type model
+    knockouts: list
+        Reactions to knockout
+    method: str
+        The method to compute the perturbation. default is "fva" - Flux Variability Analysis.
         It can also be computed with "em" - Elementary modes
-    :return: perturbation
+
+    Returns
+    -------
+    int: perturbation
+        The number of changes in reachable reactions (reactions that can carry flux)
     """
 
     if method == "fva":
@@ -421,7 +431,7 @@ def fbid(model, knockouts, view=config.default_view, method="fva"):
     elif method == "em":
         raise NotImplementedError("Elementary modes approach is not implemented")
     else:
-        raise ValueError("%s method is not valid to compute FBIP" % method)
+        raise ValueError("%s method is not valid to compute Flux Balance Impact Degree" % method)
 
 
 def _fbid_fva(model, knockouts, view):
