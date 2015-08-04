@@ -19,6 +19,7 @@ import copy
 
 import os
 import unittest
+import six
 from sympy import Add
 from cameo.flux_analysis import remove_infeasible_cycles
 
@@ -194,7 +195,7 @@ class TestFindBlockedReactionsGLPK(Wrapper.AbstractTestFindBlockedReactions):
         self.model = CORE_MODEL.copy()
         self.model.solver = 'glpk'
 
-@unittest.skipIf(TRAVIS, 'Skip for now')
+@unittest.skipIf(six.PY2, 'Build stalling in python 2.7.')
 class TestFindBlockedReactionsCPLEX(Wrapper.AbstractTestFindBlockedReactions):
     def setUp(self):
         self.model = CORE_MODEL.copy()
@@ -209,7 +210,7 @@ class TestFluxVariabilityAnalysisGLPK(Wrapper.AbstractTestFluxVariabilityAnalysi
         self.biomass_flux = 0.873921
         self.model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = self.biomass_flux
 
-@unittest.skipIf(TRAVIS, 'Skip for now')
+@unittest.skipIf(six.PY2, 'Build stalling in python 2.7.')
 class TestFluxVariabilityAnalysisCPLEX(Wrapper.AbstractTestFluxVariabilityAnalysis):
     def setUp(self):
         self.model = CORE_MODEL.copy()
@@ -243,7 +244,7 @@ class TestPhenotypicPhasePlaneGLPK(Wrapper.AbstractTestPhenotypicPhasePlane):
         self.model.solver = 'glpk'
 
 
-@unittest.skipIf(TRAVIS, 'Skip for now')
+@unittest.skipIf(six.PY2, 'Build stalling in python 2.7.')
 class TestPhenotypicPhasePlaneCPLEX(Wrapper.AbstractTestPhenotypicPhasePlane):
     def setUp(self):
         self.model = CORE_MODEL.copy()
@@ -256,7 +257,7 @@ class TestSimulationMethodsGLPK(Wrapper.AbstractTestSimulationMethods):
         self.model.solver = 'glpk'
 
 
-@unittest.skipIf(TRAVIS, 'Skip for now')
+@unittest.skipIf(six.PY2, 'Build stalling in python 2.7.')
 class TestSimulationMethodsCPLEX(Wrapper.AbstractTestSimulationMethods):
     def setUp(self):
         self.model = CORE_MODEL
