@@ -658,7 +658,11 @@ class TestReactionKnockoutOptimization(unittest.TestCase):
                                            heuristic_method=inspyred.ec.emo.NSGA2,
                                            seed=SEED)
 
+        self.assertEqual(rko.random.random(), 0.1915194503788923)
+
         results = rko.run(max_evaluations=3000, pop_size=10, view=SequentialView())
+
+        print(rko.random.random(), 0.545818634701)
 
         with open(result_file, 'rb') as in_file:
             if six.PY3:
