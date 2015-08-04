@@ -614,7 +614,7 @@ class TestReactionKnockoutOptimization(unittest.TestCase):
         self.assertEqual(rko._ko_type, "reaction")
         self.assertTrue(isinstance(rko._decoder, ReactionKnockoutDecoder))
 
-    @unittest.skipIf(six.PY3, "Reference result doesn't fit python 3 result")
+    @unittest.skipIf(True, "Reference result doesn't fit python 3 result")
     def test_run_single_objective(self):
         result_file = os.path.join(CURRENT_PATH, "data", "reaction_knockout_single_objective.pkl")
         objective = biomass_product_coupled_yield(
@@ -641,7 +641,7 @@ class TestReactionKnockoutOptimization(unittest.TestCase):
 
         assert_frame_equal(results.solutions, expected_results.solutions)
 
-    @unittest.skipIf(six.PY3, "Reference result doesn't fit python 3 result")
+    @unittest.skipIf(True, "Reference result doesn't fit python 3 result")
     def test_run_multiobjective(self):
         result_file = os.path.join(CURRENT_PATH, "data", "reaction_knockout_multi_objective.pkl")
         objective1 = biomass_product_coupled_yield(
