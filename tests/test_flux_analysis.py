@@ -256,7 +256,6 @@ class TestSimulationMethodsGLPK(Wrapper.AbstractTestSimulationMethods):
         self.model.solver = 'glpk'
 
 
-@unittest.skipIf(TRAVIS, 'Skip for now')
 class TestSimulationMethodsCPLEX(Wrapper.AbstractTestSimulationMethods):
     def setUp(self):
         self.model = CORE_MODEL
