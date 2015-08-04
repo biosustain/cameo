@@ -28,7 +28,7 @@ from cameo.config import solvers
 from cameo.core.solver_based_model import SolverBasedModel
 
 TESTDIR = os.path.dirname(__file__)
-
+TRAVIS = os.getenv('TRAVIS', False)
 
 class AbstractTestModelLoading(object):
     def test_load_model_pickle_path(self):
@@ -71,7 +71,7 @@ class TestModelLoadingGLPK(AbstractTestModelLoading, unittest.TestCase):
     def setUp(self):
         self.interface = optlang.glpk_interface
 
-
+@unittest.skipIf(TRAVIS, 'Skip for now')
 class TestModelLoadingCPLEX(AbstractTestModelLoading, unittest.TestCase):
     def setUp(self):
         self.interface = optlang.cplex_interface
