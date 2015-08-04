@@ -532,6 +532,7 @@ class TestReactionGLPK(WrappedAbstractTestReaction.AbstractTestReaction):
         self.model.solver = 'glpk'
 
 
+@unittest.skipIf(TRAVIS, 'Skip for now')
 class TestReactionCPLEX(WrappedAbstractTestReaction.AbstractTestReaction):
     def setUp(self):
         self.cobrapy_model = COBRAPYTESTMODEL.copy()

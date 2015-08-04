@@ -28,6 +28,7 @@ from cameo.config import solvers
 from cameo.core.solver_based_model import SolverBasedModel
 
 TESTDIR = os.path.dirname(__file__)
+TRAVIS = os.getenv('TRAVIS', False)
 
 
 class AbstractTestModelLoading(object):
