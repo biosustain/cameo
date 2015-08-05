@@ -44,7 +44,6 @@ Table of Contents
     8-high-level-AP
     parallelization
     cobrapy_difference
-    How_to
     API
 
 Indices and tables

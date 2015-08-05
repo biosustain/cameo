@@ -6,11 +6,8 @@
     from cameo import load_model
     model = load_model("iJO1366")
 
-Simulating models with
-======================
-
-**c**\ omputer **a**\ ided **m**\ etabolic **e**\ ngineering and
-**o**\ ptimization
+Simulate models
+===============
 
 **cameo** uses and extends the model data structures defined by
 `cobrapy <https://opencobra.github.io/cobrapy/>`__, our favorite
@@ -72,17 +69,17 @@ Flux Balance Analysis
 ---------------------
 
 In **cameo**, flux balance analysis can be performed with the function
-``fba``.
+`fba`.
 
 .. code:: python
 
     from cameo import fba
     fba_result = fba(model)
 
-Basically, ``fba`` calls ``model.solve()`` and wraps the optimization
-solution in a ``FluxDistributionResult`` object. The maximum objective
+Basically, `fba` calls `model.solve()` and wraps the optimization
+solution in a `FluxDistributionResult` object. The maximum objective
 values (corresponding to a maximum growth rate) can obtained throug
-``result.objective_value``.
+`result.objective_value`.
 
 .. code:: python
 
@@ -120,14 +117,14 @@ low.
     ~ & ~ \mathbf{v}_{lb} \leq \mathbf{v} \leq \mathbf{v}_{ub} \,.
    \end{align}
 
-In **cameo**, pFBA can be performed with the function ``pfba``.
+In **cameo**, pFBA can be performed with the function `pfba`.
 
 .. code:: python
 
     from cameo import pfba
     pfba_result = pfba(model)
 
-The ``objective_function`` value is :math:`\lvert \mathbf{v} \rvert` ...
+The `objective_function` value is :math:`\lvert \mathbf{v} \rvert` ...
 
 .. code:: python
 

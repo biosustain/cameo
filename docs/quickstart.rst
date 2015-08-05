@@ -7,16 +7,20 @@ Quickstart
     import pandas
     pandas.options.display.max_rows = 15
     from cameo import load_model
+
 .. code:: python
 
     # model = load_model('Ecoli core Model')
     model = load_model('iJO1366')
+
 .. code:: python
 
     solution = model.solve()
+
 .. code:: python
 
     solution.to_frame()
+
 
 
 

@@ -49,6 +49,7 @@ help:
 
 ipy2rst:
 	for i in notebooks/*.ipynb; do ipython nbconvert $$i --to rst; done
+	sed -i '' 's/``/`/g' *.rst
 
 clean:
 	rm -rf $(BUILDDIR)/*
