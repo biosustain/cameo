@@ -128,7 +128,8 @@ class DifferentialFVA(StrainDesignMethod):
         if isinstance(objective, Reaction):
             self.objective = objective.id
         elif isinstance(objective, Metabolite):
-            self.objective = objective
+            self.reference_model.add_demand(objective)
+            self.objective = self.design_space_model.add_demand(objective).id
         elif isinstance(objective, str):
             self.objective = objective
         else:
