@@ -287,7 +287,7 @@ class SolverBasedModel(cobra.core.Model):
             self.solver.remove(reaction.reverse_variable)
         super(SolverBasedModel, self).remove_reactions(the_reactions, delete=delete, remove_orphans=remove_orphans)
 
-    def add_demand(self, metabolite, prefix="DM_"):
+    def add_demand(self, metabolite, prefix="DM_", time_machine=None):
         """Add a demand reaction for a metabolite (metabolite --> Ø)
 
         Parameters
@@ -295,6 +295,8 @@ class SolverBasedModel(cobra.core.Model):
         metabolite : Metabolite
         prefix : str, optional
             A prefix that will be added to the metabolite ID to be used as the demand reaction's ID (defaults to 'DM_').
+        time_machine : TimeMachine, optional
+            A TimeMachine instance that enables undoing.
 
         Returns
         -------
@@ -305,7 +307,11 @@ class SolverBasedModel(cobra.core.Model):
         demand_reaction.add_metabolites({metabolite: -1})
         demand_reaction.lower_bound = 0
         demand_reaction.upper_bound = 1000
-        self.add_reactions([demand_reaction])
+        if time_machine is not None:
+            time_machine(do=partial(self.add_reactions, [demand_reaction]),
+                         undo=partial(self.remove_reactions, [demand_reaction]))
+        else:
+            self.add_reactions([demand_reaction])
         return demand_reaction
 
     def fix_objective_as_constraint(self, time_machine=None):

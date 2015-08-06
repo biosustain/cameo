@@ -632,6 +632,19 @@ class WrappedAbstractTestSolverBasedModel:
                     self.model.solver.variables["DemandReaction_" + metabolite.id] in self.model.solver.constraints[
                         metabolite.id].expression)
 
+        def test_add_demand_time_machine(self):
+            with TimeMachine() as tm:
+                for metabolite in self.model.metabolites:
+                    demand_reaction = self.model.add_demand(metabolite, time_machine=tm)
+                    self.assertEqual(self.model.reactions.get_by_id(demand_reaction.id), demand_reaction)
+                    self.assertEqual(demand_reaction.reactants, [metabolite])
+                    self.assertTrue(
+                        self.model.solver.variables["DM_" + metabolite.id] in self.model.solver.constraints[
+                            metabolite.id].expression)
+            for metabolite in self.model.metabolites:
+                self.assertNotIn("DM_" + metabolite.id, self.model.reactions)
+                self.assertNotIn("DM_" + metabolite.id, self.model.solver.variables.keys())
+
         def test_objective(self):
             obj = self.model.objective
             self.assertEqual(
