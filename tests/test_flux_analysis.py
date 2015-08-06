@@ -137,6 +137,8 @@ class Wrapper:
                                            view=SequentialView())
             assert_dataframes_equal(ppp2d, REFERENCE_PPP_o2_glc_EcoliCore)
 
+
+
     class AbstractTestSimulationMethods(unittest.TestCase):
         def setUp(self):
             self.model = CORE_MODEL
@@ -242,6 +244,10 @@ class TestPhenotypicPhasePlaneGLPK(Wrapper.AbstractTestPhenotypicPhasePlane):
     def setUp(self):
         self.model = CORE_MODEL.copy()
         self.model.solver = 'glpk'
+
+    def test_one_variable_sequential_metabolite(self):
+        ppp = phenotypic_phase_plane(self.model, ['EX_o2_LPAREN_e_RPAREN_'], self.model.metabolites.o2_c, view=SequentialView())
+        assert_dataframes_equal(ppp, REFERENCE_PPP_o2_EcoliCore)
 
 
 @unittest.skipIf(six.PY2, 'Build stalling in python 2.7.')

@@ -17,7 +17,7 @@ from __future__ import absolute_import, print_function
 __all__ = ['find_blocked_reactions', 'flux_variability_analysis', 'phenotypic_phase_plane',
            'flux_balance_impact_degree']
 
-from cobra.core import Reaction
+from cobra.core import Reaction, Metabolite
 
 import six
 from six.moves import zip
@@ -124,8 +124,9 @@ def phenotypic_phase_plane(model, variables=[], objective=None, points=20, view=
     model: SolverBasedModel
     variables: str or reaction or iterable
         A reaction ID, reaction, or list of reactions to be varied.
-    objective: str or reaction or optlang.Objective
-        An objective to be minimized/maximized for
+    objective: str or reaction or optlang.Objective or Metabolite, optional
+        An objective, a reaction's flux, or a metabolite's production to be minimized/maximized
+        (defaults to the current model objective).
     points: int or iterable
         Number of points to be interspersed between the variable bounds.
         A list of same same dimensions as `variables` can be used to specify
@@ -148,6 +149,8 @@ def phenotypic_phase_plane(model, variables=[], objective=None, points=20, view=
         view = config.default_view
     with TimeMachine() as tm:
         if objective is not None:
+            if isinstance(objective, Metabolite):
+                objective = model.add_demand(objective, time_machine=tm)
             tm(do=partial(setattr, model, 'objective', objective),
                undo=partial(setattr, model, 'objective', model.objective))
 

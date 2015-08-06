@@ -41,6 +41,7 @@ from cameo.visualization import plotting
 
 from cameo import config, flux_variability_analysis, fba
 
+from cameo import Metabolite
 from cameo.parallel import SequentialView
 from cameo.core.solver_based_model import Reaction
 from cameo.strain_design import StrainDesignMethod
@@ -79,8 +80,8 @@ class DifferentialFVA(StrainDesignMethod):
     ----------
     design_space_model : SolverBasedModel
         A model whose flux ranges will be scanned.
-    objective : str or Reaction
-        The reaction to be maximized.
+    objective : str or Reaction or Metabolite
+        A reaction whose flux or a metabolite whose production should be maximized.
     variables : iterable, optional
         A iterable of n reactions (or IDs) to be scanned (defaults to current objective in design_space_model).
     reference_model : SolverBasedModel, optional
@@ -126,10 +127,12 @@ class DifferentialFVA(StrainDesignMethod):
 
         if isinstance(objective, Reaction):
             self.objective = objective.id
+        elif isinstance(objective, Metabolite):
+            self.objective = objective
         elif isinstance(objective, str):
             self.objective = objective
         else:
-            raise ValueError('...')
+            raise ValueError('You need to either provide ')
 
         if variables is None:
             # try to establish the current objective reaction
