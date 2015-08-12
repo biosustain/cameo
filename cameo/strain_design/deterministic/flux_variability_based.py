@@ -26,7 +26,9 @@ import warnings
 with warnings.catch_warnings():
     warnings.simplefilter("ignore")
     try:
-        from IPython.html.widgets import interact, IntSlider
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            from IPython.html.widgets import interact, IntSlider
     except ImportError:
         from ipywidgets import interact, IntSlider
 import six

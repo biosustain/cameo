@@ -17,13 +17,16 @@ from __future__ import absolute_import, print_function
 import six.moves.queue
 
 import unittest
+import warnings
 from cameo.parallel import SequentialView
 import subprocess
 from time import sleep
 from multiprocessing import cpu_count
 
 try:
-    from IPython.parallel import Client, interactive
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        from IPython.parallel import Client, interactive
 except ImportError:
     from ipyparallel import Client, interactive
 from six.moves import range
