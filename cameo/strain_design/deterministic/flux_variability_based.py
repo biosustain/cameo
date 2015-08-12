@@ -25,7 +25,10 @@ import warnings
 
 with warnings.catch_warnings():
     warnings.simplefilter("ignore")
-    from IPython.html.widgets import interact, IntSlider
+    try:
+        from IPython.html.widgets import interact, IntSlider
+    except ImportError:
+        from ipywidgets import interact, IntSlider
 import six
 from cameo.ui import notice
 from cameo.visualization.escher_ext import NotebookBuilder

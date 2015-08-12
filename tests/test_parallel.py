@@ -22,7 +22,10 @@ import subprocess
 from time import sleep
 from multiprocessing import cpu_count
 
-from IPython.parallel import Client, interactive
+try:
+    from IPython.parallel import Client, interactive
+except ImportError:
+    from ipyparallel import Client, interactive
 from six.moves import range
 
 SOLUTION = [x ** 2 for x in range(100)]
