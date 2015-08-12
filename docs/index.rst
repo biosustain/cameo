@@ -33,6 +33,7 @@ Table of Contents
 .. toctree::
     :maxdepth: 2
 
+    dependencies
     installation
     1-quick-start
     2-import-models
