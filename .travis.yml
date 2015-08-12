@@ -33,6 +33,7 @@ install:
 - if [[ $TRAVIS_PYTHON_VERSION == "3.4" ]]; then pip install pyzmq pandas; fi
 - pip install python-libsbml-experimental numpy scipy pyzmq pandas -f http://nikosonnensche.in/wheels/index.html --trusted-host nikosonnensche.in
   --no-index
+- pip install ipython[all]
 - pip install coveralls coverage
 - pip install pypandoc
 - pip install redis
