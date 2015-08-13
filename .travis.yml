@@ -47,9 +47,10 @@ after_success:
 - coveralls
 notifications:
   slack: biosustain:UGm09rOjMCgXko3rS3wUivoX
+before_deploy:
+  - pip install twine
 deploy:
   provider: pypi
-  docs_dir: docs/_build/html
   user: Nikolaus.Sonnenschein
   password:
     secure: nxjszXtUzQfnLlfg0cmFjd9gRekXDog6dkkN1rMc7CIWH2gZ1gAX4sNETVChnuSmu9egzhuIkviHstRrdyGoEZ7ZkHlTXmpVAs9AY96eMSejnwHHODhYno0jB7DjGcfejodLF+lo6lWz7S7mXXwML6YLM3xxG+AOjLHlHbPTaKc=
