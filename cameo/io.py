@@ -129,9 +129,9 @@ def _apply_sanitize_rules(id, rules):
 def sanitize_ids(model):
     """Makes IDs crippled by the XML specification less annoying.
 
-    For example, 'EX_glc_LPAREN_e_RPAREN_' will be converted to 'EX_glc_lp_e_rp_'.
-    Furthermore, reactions and metabolites will be equipped with a `nice_id` attribute
-    that provides the original ID, i.e., 'EX_glc(d)'.
+    For example, EX_glc_LPAREN_e_RPAREN_ will be converted to EX_glc_lp_e_rp_.
+    Furthermore, reactions and metabolites will be equipped with a nice_id attribute
+    that provides the original ID, i.e., EX_glc(d).
 
     Parameters
     ----------
