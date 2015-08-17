@@ -29,30 +29,33 @@ class NotebookBuilder(escher.Builder):
     def __init__(self, *args, **kwargs):
         kwargs['id'] = "escher_" + str(uuid4()).replace("-", "_")
         super(NotebookBuilder, self).__init__(*args, **kwargs)
-        _builders_var()
 
-    def update(self, reaction_data=None, metabolite_data=None, gene_data=None):
+    def update(self, reaction_data=None, metabolite_data=None, gene_data=None, reaction_scale=None):
         self.gene_data = gene_data if gene_data is not None else self.gene_data
         self.reaction_data = reaction_data if reaction_data is not None else self.reaction_data
         self.metabolite_data = metabolite_data if metabolite_data is not None else self.metabolite_data
 
-        js = Javascript('var builder = window.escher_builders["{the_id}"];\n'
-                        'var reaction_data_{the_id} = {reaction_data};\n'
+        js = Javascript('var reaction_data_{the_id} = {reaction_data};\n'
                         'var metabolite_data_{the_id} = {metabolite_data};\n'
-                        'var gene_data_{the_id} = {gene_data};'
-                        'builder.set_reaction_data(reaction_data_{the_id});'
-                        'builder.set_metabolite_data(metabolite_data_{the_id});'
-                        'builder.set_gene_data(gene_data_{the_id});'.format(
-            the_id=self.the_id,
-            reaction_data=(json.dumps(self.reaction_data) if self.reaction_data else 'null'),
-            metabolite_data=(json.dumps(self.metabolite_data) if self.metabolite_data else 'null'),
-            gene_data=(json.dumps(self.gene_data) if self.gene_data else 'null')
-        ))
+                        'var gene_data_{the_id} = {gene_data};\n'
+                        'var builder = window.escher_builders["{the_id}"];\n'
+                        'if(builder) {{\n'
+                        '\tbuilder.options.reaction_scale = {reaction_scale}\n'
+                        '\tbuilder.set_reaction_data(reaction_data_{the_id});\n'
+                        '\tbuilder.set_metabolite_data(metabolite_data_{the_id});\n'
+                        '\tbuilder.set_gene_data(gene_data_{the_id});\n'
+                        '}}'.format(
+                            the_id=self.the_id,
+                            reaction_data=(json.dumps(self.reaction_data) if self.reaction_data else 'null'),
+                            metabolite_data=(json.dumps(self.metabolite_data) if self.metabolite_data else 'null'),
+                            gene_data=(json.dumps(self.gene_data) if self.gene_data else 'null'),
+                            reaction_scale=json.dumps(reaction_scale) if reaction_scale else 'builder.options.reaction_scale'))
         display(js)
 
     def _draw_js(self, the_id, enable_editing, menu, enable_keys, dev,
                  fill_screen, scroll_behavior, never_ask_before_quit,
                  static_site_index_json):
+        _builders_var()
         draw = ("options = {{\n"
                 "\tenable_editing: {enable_editing},\n"
                 "\tmenu: {menu},\n"
