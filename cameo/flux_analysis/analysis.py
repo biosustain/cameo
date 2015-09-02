@@ -21,6 +21,7 @@ from cobra.core import Reaction, Metabolite
 
 import six
 from six.moves import zip
+from numpy import trapz
 
 import itertools
 from copy import copy
@@ -493,6 +494,18 @@ class PhenotypicPhasePlaneResult(Result):
 
     def iterrows(self):
         return self._phase_plane.iterrows()
+
+    @property
+    def area(self):
+        area = 0
+        for variable_id in self.variable_ids:
+            area += self.area_for(variable_id)
+        return area
+
+    def area_for(self, variable_id):
+        auc_max = trapz(self._phase_plane.objective_upper_bound.values, x=self._phase_plane[variable_id])
+        auc_min = trapz(self._phase_plane.objective_lower_bound.values, x=self._phase_plane[variable_id])
+        return auc_max - auc_min
 
 
 class FluxVariabilityResult(Result):
