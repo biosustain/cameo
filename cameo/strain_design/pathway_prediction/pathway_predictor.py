@@ -13,6 +13,8 @@
 # limitations under the License.
 
 from __future__ import absolute_import, print_function
+from math import ceil
+from cameo.visualization.plotting import Grid
 
 __all__ = ['PathwayPredictor']
 
@@ -24,7 +26,7 @@ from functools import partial
 from pandas import DataFrame
 
 from cameo.core.result import Result
-from cameo import models
+from cameo import models, phenotypic_phase_plane
 from cameo.exceptions import SolveError
 from cameo import Model, Metabolite
 from cameo.data import metanetx
@@ -53,6 +55,14 @@ class PathwayResult(Result):
 
     def plot(self, **kwargs):
         pass
+
+    def needs_optimization(self, model, objective=None):
+        return self.production_envelope(model, objective).area > 1e-5
+
+    def production_envelope(self, model, objective=None):
+        with TimeMachine() as tm:
+            self.plug_model(model, tm)
+            return phenotypic_phase_plane(model, variables=[objective or model.objective], objective=self.product)
 
     def plug_model(self, model, tm=None, adapters=True, exchanges=True):
         if tm is not None:
@@ -115,6 +125,13 @@ class PathwayPredictions(Result):
         # TODO: small pathway visualizations would be great.
         raise NotImplementedError
 
+    def plot_production_envelopes(self, model, objective=None):
+        grid = Grid(nrows=ceil(len(self.pathways))/2, title="Production envelops for %s" % self.pathways[0].product.name)
+        with grid:
+            for pathway in self.pathways:
+                ppp = pathway.production_envelop(model, objective)
+                ppp.plot(grid, width=400, height=300)
+
     def __iter__(self):
         for p in self.pathways:
             yield p
@@ -155,7 +172,7 @@ class PathwayPredictor(object):
             compartment_regexp = re.compile(".*")
 
         if universal_model is None:
-            logger.info("Loading default universal model.")
+            logger.debug("Loading default universal model.")
             self.universal_model = models.universal.metanetx_universal_model_bigg_rhea
         elif isinstance(universal_model, Model):
             self.universal_model = universal_model
@@ -183,7 +200,7 @@ class PathwayPredictor(object):
 
         self.new_reactions = self._extend_model(model.exchanges)
 
-        logger.info("Adding adapter reactions to connect model with universal model.")
+        logger.debug("Adding adapter reactions to connect model with universal model.")
         self.adpater_reactions = util.create_adapter_reactions(model.metabolites, self.universal_model,
                                                                self.mapping, compartment_regexp)
         self.model.add_reactions(self.adpater_reactions)
@@ -224,11 +241,11 @@ class PathwayPredictor(object):
             demand_reaction.lower_bound = min_production
             counter = 1
             while counter <= max_predictions:
-                logger.info('Predicting pathway No. %d' % counter)
+                logger.debug('Predicting pathway No. %d' % counter)
                 try:
                     solution = self.model.solve()
                 except SolveError as e:
-                    logger.info('No pathway could be predicted. Terminating pathway predictions.')
+                    logger.error('No pathway could be predicted. Terminating pathway predictions.')
                     logger.error(e)
                     break
 
@@ -267,7 +284,7 @@ class PathwayPredictor(object):
                 integer_cut = self.model.solver.interface.Constraint(Add(*vars_to_cut),
                                                                      name="integer_cut_" + str(counter),
                                                                      ub=len(vars_to_cut) - 1)
-                logger.info('Adding integer cut.')
+                logger.debug('Adding integer cut.')
                 tm(do=partial(self.model.solver._add_constraint, integer_cut),
                    undo=partial(self.model.solver._remove_constraint, integer_cut))
                 counter += 1
