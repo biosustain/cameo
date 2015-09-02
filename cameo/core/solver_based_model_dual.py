@@ -68,12 +68,16 @@ class SolverBasedModelDual(SolverBasedModel):
 
     def _update_dual_reaction_constraint(self, reaction, coefficient, maximization, prefix):
         constraint = self.solver.constraints["r_%s_%s" % (reaction.id, prefix)]
-        if maximization:
-            constraint.lb = coefficient
+        if coefficient == 0:
+            constraint.lb = None
             constraint.ub = None
         else:
-            constraint.lb = None
-            constraint.ub = coefficient
+            if maximization:
+                constraint.lb = coefficient
+                constraint.ub = None
+            else:
+                constraint.lb = None
+                constraint.ub = coefficient
 
     def _populate_metabolites(self, metabolites):
         for met in metabolites:
