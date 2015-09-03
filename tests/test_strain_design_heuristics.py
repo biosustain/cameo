@@ -13,12 +13,14 @@
 # limitations under the License.
 
 from __future__ import absolute_import, print_function
+from collections import namedtuple
 from math import sqrt
 
 import os
 import unittest
 import inspyred
 import pickle
+from inspyred.ec import Bounder
 from ordered_set import OrderedSet
 
 from pandas.util.testing import assert_frame_equal
@@ -37,7 +39,7 @@ from cameo.strain_design.heuristic.optimization import HeuristicOptimization, Re
 from cameo.strain_design.heuristic.archivers import SolutionTuple, BestSolutionArchiver
 from cameo.strain_design.heuristic.decoders import ReactionKnockoutDecoder, KnockoutDecoder, GeneKnockoutDecoder
 from cameo.strain_design.heuristic.generators import set_generator, unique_set_generator, \
-    multiple_chromosome_set_generator
+    multiple_chromosome_set_generator, linear_set_generator
 from cameo.strain_design.heuristic.objective_functions import biomass_product_coupled_yield, product_yield, \
     number_of_knockouts
 from cobra.manipulation.delete import find_gene_knockout_reactions
@@ -140,6 +142,7 @@ class TestBestSolutionArchiver(unittest.TestCase):
         self.assertEqual(sol1.__cmp__(sol2), -1)
         self.assertEqual(sol1.__cmp__(sol1), 0)
         self.assertEqual(sol1.__cmp__(sol3), -1)
+        self.assertEqual(sol3.__cmp__(sol1), 1)
 
         self.assertTrue(sol1 < sol2)
         self.assertTrue(sol1 == sol1)
@@ -359,6 +362,8 @@ class TestDecoders(unittest.TestCase):
 
 
 class TestGenerators(unittest.TestCase):
+    mockup_evolutionary_algorithm = namedtuple("EA", ["bounder"])
+
     def setUp(self):
         self.model = TEST_MODEL
         self.args = {}
@@ -394,7 +399,7 @@ class TestGenerators(unittest.TestCase):
         self.assertEqual(len(candidate['test_key_1']), 3)
         self.assertEqual(len(candidate['test_key_2']), 5)
 
-    def test_fixed_size_generator(self):
+    def test_fixed_size_set_generator(self):
         self.args.setdefault('variable_candidate_size', False)
 
         self.args['candidate_size'] = 10
@@ -411,7 +416,7 @@ class TestGenerators(unittest.TestCase):
             candidate = unique_set_generator(self.random, self.args)
             self.assertEqual(len(candidate), 20)
 
-    def test_variable_size_generator(self):
+    def test_variable_size_set_generator(self):
         self.args.setdefault('variable_candidate_size', True)
 
         self.args['candidate_size'] = 10
@@ -427,6 +432,16 @@ class TestGenerators(unittest.TestCase):
             self.assertLessEqual(len(candidate), 20)
             candidate = unique_set_generator(self.random, self.args)
             self.assertLessEqual(len(candidate), 20)
+
+    def test_fixed_size_linear_set_generator(self):
+        ec = self.mockup_evolutionary_algorithm(Bounder(-10, 10))
+        self.args.setdefault('variable_candidate_size', True)
+        self.args['candidate_size'] = 10
+        self.args['_ec'] = ec
+        for _ in range(10000):
+            candidate = linear_set_generator(self.random, self.args)
+            self.assertTrue(all(isinstance(c[0], int) and isinstance(c[1], float) for c in candidate))
+            self.assertLessEqual(len(candidate), 10)
 
 
 class TestHeuristicOptimization(unittest.TestCase):
