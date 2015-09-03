@@ -20,7 +20,7 @@ import os
 import unittest
 
 from cameo import load_model
-from cameo.strain_design.deterministic.flux_variability_based import fseof, FseofResult, DifferentialFVA
+from cameo.strain_design.deterministic.flux_variability_based import Fseof, FseofResult, DifferentialFVA
 
 from pandas import DataFrame, pandas
 from pandas.util.testing import assert_frame_equal
@@ -42,14 +42,16 @@ class TestFSEOF(unittest.TestCase):
 
     def test_fseof(self):
         objective = self.model.objective
-        fseof_result = fseof(self.model, enforced_reaction="EX_succ_lp_e_rp_")
+        fseof = Fseof(self.model, enforced_reaction="EX_succ_lp_e_rp_")
+        fseof_result = fseof.run()
         self.assertIsInstance(fseof_result, FseofResult)
         self.assertIs(objective, self.model.objective)
 
     def test_fseof_result(self):
-        fseof_result = fseof(self.model, self.model.reactions.EX_ac_lp_e_rp_, 0.8, exclude=["PGI"])
+        fseof = Fseof(self.model, self.model.reactions.EX_ac_lp_e_rp_)
+        fseof_result = fseof.run()
         self.assertIsInstance(fseof_result.data_frame, DataFrame)
-        self.assertIs(fseof_result.objective, self.model.reactions.EX_ac_lp_e_rp_)
+        self.assertIs(fseof_result.enforced_reaction, self.model.reactions.EX_ac_lp_e_rp_)
         self.assertIs(fseof_result.model, self.model)
         self.assertEqual(list(fseof_result), list(fseof_result.reactions))
 
