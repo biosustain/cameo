@@ -303,7 +303,7 @@ class SolverBasedModel(cobra.core.Model):
         Reaction
             The created demand reaction.
         """
-        demand_reaction = Reaction(prefix + metabolite.id)
+        demand_reaction = Reaction(str(prefix + metabolite.id))
         demand_reaction.add_metabolites({metabolite: -1})
         demand_reaction.lower_bound = 0
         demand_reaction.upper_bound = 1000
