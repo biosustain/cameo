@@ -35,7 +35,7 @@ class BestSolutionArchiver(object):
         if self.worst_fitness is None:
             self.worst_fitness = fitness
 
-        if fitness >= self.worst_fitness:
+        if (maximize and fitness >= self.worst_fitness) or (not maximize and fitness <= self.worst_fitness):
 
             candidate = SolutionTuple(candidate, fitness, maximize)
             add = True
