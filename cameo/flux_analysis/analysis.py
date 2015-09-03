@@ -1,3 +1,4 @@
+# coding=utf-8
 # Copyright 2014 Novo Nordisk Foundation Center for Biosustainability, DTU.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -118,7 +119,7 @@ def flux_variability_analysis(model, reactions=None, fraction_of_optimum=0., rem
 
 
 def phenotypic_phase_plane(model, variables=[], objective=None, points=20, view=None):
-    """Phenotypic phase plane analysis.
+    """Phenotypic phase plane analysis [1].
 
     Parameters
     ----------
@@ -140,6 +141,10 @@ def phenotypic_phase_plane(model, variables=[], objective=None, points=20, view=
     PhenotypicPhasePlaneResult
         The phenotypic phase plane.
 
+    References
+    ----------
+    [1] Edwards, J. S., Ramakrishna, R. and Palsson, B. O. (2002). Characterizing the metabolic phenotype: a phenotype
+    phase plane analysis. Biotechnology and Bioengineering, 77(1), 27–36. doi:10.1002/bit.10047
     """
     if isinstance(variables, str):
         variables = [variables]
@@ -151,7 +156,10 @@ def phenotypic_phase_plane(model, variables=[], objective=None, points=20, view=
     with TimeMachine() as tm:
         if objective is not None:
             if isinstance(objective, Metabolite):
-                objective = model.add_demand(objective, time_machine=tm)
+                try:
+                    objective = model.add_demand(objective, time_machine=tm)
+                except:
+                    objective = model.reactions.get_by_id("DM_%s" % objective.id)
             tm(do=partial(setattr, model, 'objective', objective),
                undo=partial(setattr, model, 'objective', model.objective))
 
@@ -367,8 +375,8 @@ def _cycle_free_fva(model, reactions=None, sloppy=True, sloppy_bound=666):
                             tm.reset()
         df = pandas.DataFrame.from_dict(fva_sol, orient='index')
         lb_higher_ub = df[df.lower_bound > df.upper_bound]
-        assert ((
-                lb_higher_ub.lower_bound - lb_higher_ub.upper_bound) < 1e-6).all()  # Assert that these cases really only numerical artifacts
+        # Assert that these cases really only numerical artifacts
+        assert ((lb_higher_ub.lower_bound - lb_higher_ub.upper_bound) < 1e-6).all()
         df.lower_bound[lb_higher_ub.index] = df.upper_bound[lb_higher_ub.index]
     finally:
         model.objective = original_objective
@@ -481,13 +489,13 @@ class PhenotypicPhasePlaneResult(Result):
     def data_frame(self):
         return pandas.DataFrame(self._phase_plane)
 
-    def plot(self, grid=None, width=None, height=None, title=None, axis_font_size=None):
+    def plot(self, grid=None, width=None, height=None, title=None, axis_font_size=None, **kwargs):
         if len(self.variable_ids) > 1:
             notice("Multi-dimensional plotting is not supported")
             return
         plotting.plot_production_envelope(self._phase_plane, objective=self.objective, key=self.variable_ids[0],
                                           grid=grid, width=width, height=height, title=title,
-                                          axis_font_size=axis_font_size)
+                                          axis_font_size=axis_font_size, **kwargs)
 
     def __getitem__(self, item):
         return self._phase_plane[item]
