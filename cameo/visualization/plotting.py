@@ -68,7 +68,7 @@ try:
             p.yaxis.axis_label_text_font_size = axis_font_size
 
         if points is not None:
-            p.scatter(*points, color="green" if points_colors is None else points_colors)
+            p.scatter(*zip(*points), color="green" if points_colors is None else points_colors)
 
         if grid is not None:
             grid.append(p)
