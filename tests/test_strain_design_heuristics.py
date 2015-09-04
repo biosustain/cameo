@@ -440,7 +440,10 @@ class TestGenerators(unittest.TestCase):
         self.args['_ec'] = ec
         for _ in range(10000):
             candidate = linear_set_generator(self.random, self.args)
-            self.assertTrue(all(isinstance(c[0], int) and isinstance(c[1], float) for c in candidate))
+            for c in candidate:
+                self.assertIsInstance(c[0], six.integer_types)
+                self.assertIsInstance(c[1], float)
+
             self.assertLessEqual(len(candidate), 10)
 
 
