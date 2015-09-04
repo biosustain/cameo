@@ -21,6 +21,7 @@ import unittest
 import inspyred
 import pickle
 from inspyred.ec import Bounder
+import numpy
 from ordered_set import OrderedSet
 
 from pandas.util.testing import assert_frame_equal
@@ -440,7 +441,10 @@ class TestGenerators(unittest.TestCase):
         self.args['_ec'] = ec
         for _ in range(10000):
             candidate = linear_set_generator(self.random, self.args)
-            self.assertTrue(all(isinstance(c[0], int) and isinstance(c[1], float) for c in candidate))
+            for c in candidate:
+                self.assertIsInstance(c[0], (int, numpy.int64, numpy.int32))
+                self.assertIsInstance(c[1], float)
+
             self.assertLessEqual(len(candidate), 10)
 
 
