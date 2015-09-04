@@ -30,6 +30,7 @@ from cameo import load_model, fba, config
 from cameo.strain_design.heuristic.genomes import MultipleChromosomeGenome
 from cameo.strain_design.heuristic.metrics import euclidean_distance
 from cameo.strain_design.heuristic.metrics import manhattan_distance
+from cameo.strain_design.heuristic.multiprocess.migrators import MultiprocessingMigrator
 from cameo.strain_design.heuristic.variators import _do_set_n_point_crossover, set_n_point_crossover, set_mutation, \
     set_indel, multiple_chromosome_set_mutation, multiple_chromosome_set_indel
 
@@ -43,7 +44,7 @@ from cameo.strain_design.heuristic.generators import set_generator, unique_set_g
 from cameo.strain_design.heuristic.objective_functions import biomass_product_coupled_yield, product_yield, \
     number_of_knockouts
 from cobra.manipulation.delete import find_gene_knockout_reactions
-from cameo.parallel import SequentialView, MultiprocessingView
+from cameo.parallel import SequentialView, MultiprocessingView, RedisQueue
 from six.moves import range
 
 TRAVIS = os.getenv('TRAVIS', False)
@@ -305,6 +306,7 @@ class TestObjectiveFunctions(unittest.TestCase):
         solution.set_primal('substrate', -10)
 
         of = biomass_product_coupled_yield("biomass", "product", "substrate")
+        self.assertEqual(of.name, "bpcy = (biomass * product) / substrate")
 
         fitness = of(None, solution, None)
         self.assertAlmostEqual((0.6 * 2) / 10, fitness)
@@ -321,6 +323,7 @@ class TestObjectiveFunctions(unittest.TestCase):
         solution.set_primal('substrate', -10)
 
         of = product_yield("product", "substrate")
+        self.assertEqual(of.name, "yield = (product / substrate)")
         fitness = of(None, solution, None)
         self.assertAlmostEqual(2.0 / 10.0, fitness)
 
@@ -330,7 +333,9 @@ class TestObjectiveFunctions(unittest.TestCase):
 
     def test_number_of_knockouts(self):
         of_max = number_of_knockouts(sense='max')
+        self.assertEqual(of_max.name, "max knockouts")
         of_min = number_of_knockouts(sense='min')
+        self.assertEqual(of_min.name, "min knockouts")
 
         f1 = of_max(None, None, [['a', 'b'], ['a', 'b']])
         f2 = of_max(None, None, [['a', 'b'], ['a', 'b', 'c']])
@@ -579,6 +584,36 @@ class TestHeuristicOptimization(unittest.TestCase):
         self.assertEqual(d, 2)
         d = set_distance_function(s3, s2)
         self.assertEqual(d, 1)
+
+
+class TestMigrators(unittest.TestCase):
+    def setUp(self):
+        self.population = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+        self.random = Random(SEED)
+
+    def test_migrator_constructor(self):
+        migrator = MultiprocessingMigrator(max_migrants=1)
+        self.assertIsInstance(migrator.migrants, RedisQueue)
+        self.assertEqual(migrator.max_migrants, 1)
+
+        migrator = MultiprocessingMigrator(max_migrants=2)
+        self.assertIsInstance(migrator.migrants, RedisQueue)
+        self.assertEqual(migrator.max_migrants, 2)
+
+        migrator = MultiprocessingMigrator(max_migrants=3)
+        self.assertIsInstance(migrator.migrants, RedisQueue)
+        self.assertEqual(migrator.max_migrants, 3)
+
+    def test_migrate_individuals_without_evaluation(self):
+        migrator = MultiprocessingMigrator(max_migrants=1)
+        self.assertIsInstance(migrator.migrants, RedisQueue)
+        self.assertEqual(migrator.max_migrants, 1)
+
+        migrator(self.random, self.population, {})
+        self.assertEqual(len(migrator.migrants), 1)
+
+        migrator(self.random, self.population, {})
+        self.assertEqual(len(migrator.migrants), 1)
 
 
 class TestKnockoutOptimizationResult(unittest.TestCase):
