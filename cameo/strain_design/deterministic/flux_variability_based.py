@@ -456,7 +456,7 @@ class Fseof(StrainDesignMethod):
         elif isinstance(primary_objective, type(model.objective)):
             self.primary_objective = primary_objective
         else:
-            raise TypeError("Primary objective")
+            raise TypeError("Primary objective must be an Objective, Reaction or a string")
 
     def run(self, max_enforced_flux=0.9, granularity=10, exclude=(), solution_method=fba):
         """
@@ -537,25 +537,35 @@ class Fseof(StrainDesignMethod):
                     and min(fluxes) * max(fluxes) >= 0:
                 fseof_reactions.append(model.reactions.get_by_id(reaction_id))
 
+        reaction_results = {rea.id: results[rea.id] for rea in fseof_reactions}
         run_args = dict(max_enforced_flux=max_enforced_flux,
                         granularity=granularity,
                         solution_method=solution_method,
                         exclude=exclude)
-        return FseofResult(fseof_reactions, enforced_reaction, model, primary_objective, run_args)
+        return FseofResult(fseof_reactions, enforced_reaction, model, primary_objective, [initial_flux]+enforcements, reaction_results, run_args)
 
 
 class FseofResult(cameo.core.result.Result):
     """
     Object for storing a FSEOF result.
+
+    Attributes:
+    reactions: A list of the reactions that are found to increase with product formation.
+    enforced_levels: A list of the fluxes that the enforced reaction was constrained to.
+    data_frame: A pandas DataFrame containing the fluxes for every reaction for each enforced flux.
+    run_args: The arguments that the analysis was run with. To repeat do 'Fseof.run(**FseofResult.run_args)'.
+
     """
 
-    def __init__(self, reactions, enforced_reaction, model, primary_objective, run_args, *args, **kwargs):
+    def __init__(self, reactions, enforced_reaction, model, primary_objective, enforced_levels, reaction_results, run_args, *args, **kwargs):
         super(FseofResult, self).__init__(*args, **kwargs)
         self._reactions = reactions
         self._enforced_reaction = enforced_reaction
         self._model = model
         self._primary_objective = primary_objective
         self._run_args = run_args
+        self._enforced_levels = enforced_levels
+        self._reaction_results = reaction_results
 
     def __len__(self):
         return len(self.reactions)
@@ -587,24 +597,30 @@ class FseofResult(cameo.core.result.Result):
     def run_args(self):
         return self._run_args
 
+    @property
+    def enforced_levels(self):
+        return self._enforced_levels
+
     def _repr_html_(self):
         template = """
-<table>
-     <tr>
-        <td><b>Enforced objective</b></td>
-        <td>%(objective)s</td>
-    </tr>
-    <tr>
-        <td><b>Reactions</b></td>
-        <td>%(reactions)s</td>
-    <tr>
-</table>"""
+<strong>Model:</strong> %(model)s</br>
+<strong>Enforced objective:</strong> %(objective)s</br>
+<strong>Primary objective:</strong> %(primary)s</br>
+<br>
+<strong>Reaction fluxes</strong><br><br>
+%(df)s
+"""
         return template % {'objective': str(self.enforced_reaction),
-                           'reactions': "<br>".join(reaction.id for reaction in self.reactions)}
+                           'reactions': "<br>".join(reaction.id for reaction in self.reactions),
+                           'model': self.model.id,
+                           'primary': str(self._primary_objective),
+                           'df': self.data_frame._repr_html_()}
 
     @property
     def data_frame(self):
-        return pandas.DataFrame((r.id for r in self.reactions), columns=["Reaction id"])
+        df = pandas.DataFrame(self._reaction_results).transpose()
+        df.columns = (str(enf) for enf in self._enforced_levels)
+        return df
 
 
 # if __name__ == '__main__':
