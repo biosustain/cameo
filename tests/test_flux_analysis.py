@@ -222,6 +222,7 @@ class TestFluxVariabilityAnalysisCPLEX(Wrapper.AbstractTestFluxVariabilityAnalys
         self.model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = self.biomass_flux
 
 
+@unittest.skipIf(six.PY3, "Test temporarily skipped")
 class TestRemoveCycles(unittest.TestCase):
     def setUp(self):
         self.model = CORE_MODEL.copy()
