@@ -26,6 +26,7 @@ from functools import partial
 from pandas import DataFrame
 
 from cameo.core.result import Result
+from cameo.core.pathway import Pathway
 from cameo import models, phenotypic_phase_plane
 from cameo.exceptions import SolveError
 from cameo import Model, Metabolite
@@ -39,16 +40,10 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class PathwayResult(Result):
-    @property
-    def data_frame(self):
-        return DataFrame([[r.id, r.build_reaction_string(use_metabolite_names=True), r.lower_bound, r.upper_bound]
-                          for r in self.pathway if not (r.id.startswith("adapter") or r.id.startswith("DM_"))],
-                         columns=["id", "equation", "lower_bound", "upper_bound"])
-
-    def __init__(self, pathway, exchanges, adapters, product, *args, **kwargs):
-        super(Result, self).__init__(*args, **kwargs)
-        self.pathway = pathway
+class PathwayResult(Result, Pathway):
+    def __init__(self, reactions, exchanges, adapters, product, *args, **kwargs):
+        Result.__init__(*args, **kwargs)
+        Pathway.__init__(reactions)
         self.exchanges = exchanges
         self.adapters = adapters
         self.product = product
@@ -66,8 +61,8 @@ class PathwayResult(Result):
 
     def plug_model(self, model, tm=None, adapters=True, exchanges=True):
         if tm is not None:
-            tm(do=partial(model.add_reactions, self.pathway),
-               undo=partial(model.remove_reactions, self.pathway, delete=False))
+            tm(do=partial(model.add_reactions, self.reactions),
+               undo=partial(model.remove_reactions, self.reactions, delete=False))
             if adapters:
                 tm(do=partial(model.add_reactions, self.adapters),
                    undo=partial(model.remove_reactions, self.adapters, delete=False))
@@ -83,7 +78,7 @@ class PathwayResult(Result):
                 logger.warning("Exchange %s already in model" % self.product.id)
                 pass
         else:
-            model.add_reactions(self.pathway)
+            model.add_reactions(self.reactions)
             if adapters:
                 model.add_reactions(self.adapters)
             if exchanges:
