@@ -23,8 +23,6 @@ import six
 import re
 from functools import partial
 
-from pandas import DataFrame
-
 from cameo.core.result import Result
 from cameo.core.pathway import Pathway
 from cameo import models, phenotypic_phase_plane
@@ -40,10 +38,10 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class PathwayResult(Result, Pathway):
+class PathwayResult(Pathway, Result):
     def __init__(self, reactions, exchanges, adapters, product, *args, **kwargs):
-        Result.__init__(*args, **kwargs)
-        Pathway.__init__(reactions)
+        Result.__init__(self, *args, **kwargs)
+        Pathway.__init__(self, reactions, *args, **kwargs)
         self.exchanges = exchanges
         self.adapters = adapters
         self.product = product
