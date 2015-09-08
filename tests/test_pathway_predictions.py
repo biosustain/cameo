@@ -46,5 +46,5 @@ class TestPathwayPredictor(unittest.TestCase):
     def test_predict_non_native_compound(self):
         result = self.pathway_predictor.run(product='L-Serine', max_predictions=1)
         self.assertTrue(len(result.pathways) == 1)
-        self.assertTrue(len(result.pathways[0].pathway) == 3)
+        self.assertTrue(len(result.pathways[0].reactions) == 3)
         self.assertTrue(len(result.pathways[0].adapters) == 0)
