@@ -122,7 +122,7 @@ def multiple_chromosome_set_generator(random, args):
     return candidate
 
 
-def linear_representation(random, args):
+def linear_set_generator(random, args):
     """
     Generates a list continuous values of the size of a representation.
     This function requires that a bounder is defined on the EvolutionaryAlgorithm.
@@ -157,5 +157,5 @@ def linear_representation(random, args):
         size = max_size
 
     indices = random.sample(range(len(representation)), size)
-    values = [random.uniform(bounder.lower_bound, bounder.upper_bound) for _ in indices]
+    values = random.uniform(next(bounder.lower_bound), next(bounder.upper_bound), len(indices))
     return [(i, v) for i, v in zip(indices, values)]

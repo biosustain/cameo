@@ -161,6 +161,9 @@ class RandomGenerator(object):
     def __setstate__(self, d):
         self._random = d['_random']
 
+    def uniform(self, low=0.0, high=1.0, size=None):
+        return self._random.uniform(low, high, size)
+
 
 class Singleton(object):
     """
