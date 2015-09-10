@@ -30,6 +30,7 @@ import platform
 from itertools import islice
 from functools import partial
 
+import pandas
 from numpy.random import RandomState
 
 import logging
@@ -430,31 +431,7 @@ def in_ipnb():
     """
     Check if it is running inside an IPython Notebook (updated for new notebooks)
     """
-    try:
-        import IPython
-
-        ip = IPython.get_ipython()
-
-        front_end = None
-        if "IPKernelApp" in ip.config:
-            front_end = ip.config.get('IPKernelApp').get("parent_appname")
-        elif "KernelApp" in ip.config:
-            front_end = ip.config.get('KernelApp').get("parent_appname")
-
-        if isinstance(front_end, IPython.config.loader.LazyConfigValue) or front_end is None:
-            if isinstance(ip, IPython.kernel.zmq.zmqshell.ZMQInteractiveShell):
-                return True
-            else:
-                return False
-        elif isinstance(front_end, six.string_types):
-            if 'ipython-notebook' in front_end.lower():
-                return True
-            elif 'notebook' in front_end.lower():
-                return True
-    except Exception as e:
-        logger.debug("Cannot determine if running a notebook because of %s" % e)
-        return False
-    return False
+    return pandas.core.common.in_ipython_frontend()
 
 
 def str_to_valid_variable_name(s):

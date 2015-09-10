@@ -12,18 +12,18 @@ cameo.flux_analysis.analysis module
     :undoc-members:
     :show-inheritance:
 
-cameo.flux_analysis.distance module
------------------------------------
-
-.. automodule:: cameo.flux_analysis.distance
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 cameo.flux_analysis.simulation module
 -------------------------------------
 
 .. automodule:: cameo.flux_analysis.simulation
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+cameo.flux_analysis.util module
+-------------------------------
+
+.. automodule:: cameo.flux_analysis.util
     :members:
     :undoc-members:
     :show-inheritance:
