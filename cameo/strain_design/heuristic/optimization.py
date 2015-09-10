@@ -658,7 +658,7 @@ class ReactionKnockoutOptimization(KnockoutOptimization):
         if essential_reactions is None:
             self.essential_reactions = set([r.id for r in self.model.essential_reactions()])
         else:
-            self.essential_reactions = essential_reactions
+            self.essential_reactions = set([r.id for r in self.model.essential_reactions()] + essential_reactions)
 
         exchange_reactions = set([r.id for r in self.model.exchanges])
         self.representation = list(self.reactions.difference(self.essential_reactions).difference(exchange_reactions))
@@ -721,7 +721,7 @@ class GeneKnockoutOptimization(KnockoutOptimization):
         if essential_genes is None:
             self.essential_genes = set([g.id for g in self.model.essential_genes()])
         else:
-            self.essential_genes = essential_genes
+            self.essential_genes = set([g.id for g in self.model.essential_genes()] + essential_genes)
 
         self.representation = list(self.genes.difference(self.essential_genes))
         self._ko_type = GENE_KNOCKOUT_TYPE
