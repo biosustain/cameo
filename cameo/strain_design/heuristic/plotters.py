@@ -149,9 +149,9 @@ class IPythonBokehParetoPlotter(object):
 
     def end(self):
         if not self.can_plot:
-            plot = figure(title="Fitness plot", tools='', plot_height=400, plot_width=650)
-            plot.xaxis.axis_label = "Iteration"
-            plot.yaxis.axis_label = "Fitness"
+            plot = figure(title="Multi-objective Fitness Plot", tools='', plot_height=400, plot_width=650)
+            plot.xaxis.axis_label = self.ofs[self.x].name
+            plot.yaxis.axis_label = self.ofs[self.y].name
             plot.scatter(self.ds.data['x'], self.ds.data['y'])
             show(plot)
 

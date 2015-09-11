@@ -34,7 +34,7 @@ def create_adapter_reactions(original_metabolites, database, mapping, compartmen
         except KeyError:
             continue
             # print name, 'N/A'
-        adapter_reaction = Reaction('adapter_' + metabolite.id + '_' + mapped_name)
+        adapter_reaction = Reaction(str('adapter_' + metabolite.id + '_' + mapped_name))
         adapter_reaction.lower_bound = -1000
         try:
             adapter_reaction.add_metabolites({metabolite: -1,

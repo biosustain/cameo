@@ -52,10 +52,10 @@ class PathwayResult(Pathway, Result):
     def needs_optimization(self, model, objective=None):
         return self.production_envelope(model, objective).area > 1e-5
 
-    def production_envelope(self, model, objective=None):
+    def production_envelope(self, model, variables=None):
         with TimeMachine() as tm:
             self.plug_model(model, tm)
-            return phenotypic_phase_plane(model, variables=[objective or model.objective], objective=self.product)
+            return phenotypic_phase_plane(model, variables=variables, objective=self.product)
 
     def plug_model(self, model, tm=None, adapters=True, exchanges=True):
         if tm is not None:
@@ -118,12 +118,12 @@ class PathwayPredictions(Result):
         # TODO: small pathway visualizations would be great.
         raise NotImplementedError
 
-    def plot_production_envelopes(self, model, objective=None):
-        grid = Grid(nrows=ceil(len(self.pathways))/2, title="Production envelops for %s" % self.pathways[0].product.name)
+    def plot_production_envelopes(self, model, variables=None):
+        grid = Grid(nrows=int(ceil(len(self.pathways)/2.0)), title="Production envelops for %s" % self.pathways[0].product.name)
         with grid:
-            for pathway in self.pathways:
-                ppp = pathway.production_envelop(model, objective)
-                ppp.plot(grid, width=400, height=300)
+            for i, pathway in enumerate(self.pathways):
+                ppp = pathway.production_envelope(model, variables)
+                ppp.plot(grid, width=400, height=300, title="Pathway %i" % i)
 
     def __iter__(self):
         for p in self.pathways:
