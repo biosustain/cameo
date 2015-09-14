@@ -42,4 +42,4 @@ class ProgressObserver(object):
         self.progress = None
 
     def end(self):
-        self.progress.end()
+        self.progress.finish()
