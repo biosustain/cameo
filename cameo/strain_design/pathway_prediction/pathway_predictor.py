@@ -30,8 +30,9 @@ from cameo.exceptions import SolveError
 from cameo import Model, Metabolite
 from cameo.data import metanetx
 from cameo.util import TimeMachine
+from cameo.strain_design.pathway_prediction import util
+
 from sympy import Add
-from . import util
 
 import logging
 
