@@ -14,8 +14,7 @@
 
 from __future__ import absolute_import, print_function
 
-__all__ = ['KnockoutOptimizationResult', 'GeneOptimizationResult',
-           'ReactionKnockoutOptimization', 'GeneKnockoutOptimization']
+__all__ = ['ReactionKnockoutOptimization', 'GeneKnockoutOptimization']
 
 from six.moves import range
 
@@ -646,6 +645,19 @@ class ReactionKnockoutOptimization(KnockoutOptimization):
     *inspyred.ec
     *cameo.config.default_view
 
+    Examples
+    --------
+    >>> from cameo import models
+    >>> model = models.bigg.iJO1366
+    >>> from cameo.strain_design.heuristic.objective_functions import biomass_product_coupled_yield
+    >>> bpcy = biomass_product_coupled_yield(model.reactions.Ec_biomass_iJO1366_core_53p95,
+    >>>                                      model.reactions.EX_succ_e),
+    >>>                                      model.reactions.EX_glc__D_e)
+    >>> knockout_optimization = ReactionKnockoutOptimization(model=model, objective_function=bpcy,
+    >>>                                                      essential_reactions=["ATPM"])
+    >>> knockout_optimization.run(max_evaluations=50000)
+
+
     """
 
     def __init__(self, reactions=None, essential_reactions=None, *args, **kwargs):
@@ -708,6 +720,17 @@ class GeneKnockoutOptimization(KnockoutOptimization):
     --------
     *inspyred.ec
     *cameo.config.default_view
+
+    Examples
+    --------
+    >>> from cameo import models
+    >>> model = models.bigg.iJO1366
+    >>> from cameo.strain_design.heuristic.objective_functions import biomass_product_coupled_yield
+    >>> bpcy = biomass_product_coupled_yield(model.reactions.Ec_biomass_iJO1366_core_53p95,
+    >>>                                      model.reactions.EX_succ_e),
+    >>>                                      model.reactions.EX_glc__D_e)
+    >>> knockout_optimization = GeneKnockoutOptimization(model=model, objective_function=bpcy)
+    >>> knockout_optimization.run(max_evaluations=50000)
 
     """
 
