@@ -14,7 +14,7 @@
 
 from __future__ import absolute_import, print_function
 
-from IProgress import ProgressBar
+from cameo.visualization import ProgressBar
 
 
 class ProgressObserver(object):
@@ -42,4 +42,4 @@ class ProgressObserver(object):
         self.progress = None
 
     def end(self):
-        self.progress.finish()
+        self.progress.end()
