@@ -20,6 +20,7 @@ from inspyred.ec.generators import diversify
 from cameo.strain_design.heuristic.genomes import MultipleChromosomeGenome
 from six.moves import range
 from six.moves import zip
+from ordered_set import OrderedSet
 
 
 def set_generator(random, args):
@@ -45,14 +46,14 @@ def set_generator(random, args):
         size equals candidate_size
     """
     representation = args.get('representation')
-    max_size = args.get('candidate_size', 9)
-    variable_size = args.get('variable_candidate_size', True)
+    max_size = args.get('max_size', 9)
+    variable_size = args.get('variable_size', True)
     if variable_size:
         size = random.randint(1, max_size)
     else:
         size = max_size
     candidate = random.sample(range(len(representation)), size)
-    return list(candidate)
+    return OrderedSet(candidate)
 
 
 @diversify
@@ -82,14 +83,14 @@ def unique_set_generator(random, args):
         size equals candidate_size
     """
     representation = args.get('representation')
-    max_size = args.get('candidate_size', 9)
-    variable_size = args.get('variable_candidate_size', True)
+    max_size = args.get('max_size', 9)
+    variable_size = args.get('variable_size', True)
     if variable_size:
         size = random.randint(1, max_size)
     else:
         size = max_size
     candidate = random.sample(range(len(representation)), size)
-    return list(candidate)
+    return OrderedSet(candidate)
 
 
 def multiple_chromosome_set_generator(random, args):
@@ -114,8 +115,8 @@ def multiple_chromosome_set_generator(random, args):
     for key in keys:
         key_args = {
             'representation': args.get("%s_representation" % key),
-            'candidate_size': args.get("%s_candidate_size" % key),
-            'variable_candidate_size': args.get('variable_candidate_size')
+            'max_size': args.get("%s_max_size" % key),
+            'variable_size': args.get('variable_size')
         }
         candidate[key] = unique_set_generator(random, key_args)
 
@@ -149,8 +150,8 @@ def linear_set_generator(random, args):
     """
     bounder = args.get("_ec").bounder
     representation = args.get('representation')
-    max_size = args.get('candidate_size', 9)
-    variable_size = args.get('variable_candidate_size', True)
+    max_size = args.get('max_size', 9)
+    variable_size = args.get('variable__size', True)
     if variable_size:
         size = random.randint(1, max_size)
     else:
