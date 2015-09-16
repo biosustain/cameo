@@ -679,7 +679,7 @@ class ReactionKnockoutOptimization(KnockoutOptimization):
 
 class GeneKnockoutOptimization(KnockoutOptimization):
     """
-    Knockout optimization using reactions.
+    Knockout optimization using genes.
 
     Attributes
     ----------
