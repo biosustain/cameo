@@ -98,8 +98,7 @@ class IPythonBokehFitnessPlotter(object):
 class IPythonBokehParetoPlotter(object):
     __name__ = "IPython Bokeh Pareto Plotter"
 
-    def __init__(self, ofs=None, x=0, y=1, url='default'):
-        self.url = url
+    def __init__(self, ofs=None, x=0, y=1):
         self.x = x
         self.y = y
         self.ofs = ofs

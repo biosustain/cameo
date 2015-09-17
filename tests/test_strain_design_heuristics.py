@@ -379,8 +379,8 @@ class TestGenerators(unittest.TestCase):
     def test_set_generator(self):
         random = Random(SEED)
         representation = ["a", "b", "c", "d", "e", "f"]
-        candidate_size = 5
-        variable_candidate_size = False
+        max_size = 5
+        variable_size = False
         expected = [[2, 1, 5, 0, 4],
                     [0, 4, 3, 2, 5],
                     [1, 0, 3, 2, 5],
@@ -389,8 +389,8 @@ class TestGenerators(unittest.TestCase):
 
         for i in range(len(expected)):
             candidate = set_generator(random, dict(representation=representation,
-                                                   candidate_size=candidate_size,
-                                                   variable_candidate_size=variable_candidate_size))
+                                                   max_size=max_size,
+                                                   variable_size=variable_size))
             self.assertEqual(candidate, expected[i])
 
     def test_multiple_chromossome_set_generator(self):
@@ -398,42 +398,42 @@ class TestGenerators(unittest.TestCase):
         args = dict(keys=["test_key_1", "test_key_2"],
                     test_key_1_representation=["a1", "a2", "a3", "a4", "a5"],
                     test_key_2_representation=["b1", "b2", "b3", "b4", "b5", "b6", "b7"],
-                    test_key_1_candidate_size=3,
-                    test_key_2_candidate_size=5,
-                    variable_candidate_size=False)
+                    test_key_1_max_size=3,
+                    test_key_2_max_size=5,
+                    variable_size=False)
         candidate = multiple_chromosome_set_generator(random, args)
         self.assertEqual(len(candidate['test_key_1']), 3)
         self.assertEqual(len(candidate['test_key_2']), 5)
 
     def test_fixed_size_set_generator(self):
-        self.args.setdefault('variable_candidate_size', False)
+        self.args.setdefault('variable_size', False)
 
-        self.args['candidate_size'] = 10
-        for _ in range(10000):
+        self.args['max_size'] = 10
+        for _ in range(1000):
             candidate = set_generator(self.random, self.args)
             self.assertEqual(len(candidate), 10)
             candidate = unique_set_generator(self.random, self.args)
             self.assertEqual(len(candidate), 10)
 
-        self.args['candidate_size'] = 20
-        for _ in range(10000):
+        self.args['max_size'] = 20
+        for _ in range(1000):
             candidate = set_generator(self.random, self.args)
             self.assertEqual(len(candidate), 20)
             candidate = unique_set_generator(self.random, self.args)
             self.assertEqual(len(candidate), 20)
 
     def test_variable_size_set_generator(self):
-        self.args.setdefault('variable_candidate_size', True)
+        self.args.setdefault('variable_size', True)
 
-        self.args['candidate_size'] = 10
-        for _ in range(10000):
+        self.args['max_size'] = 10
+        for _ in range(1000):
             candidate = set_generator(self.random, self.args)
             self.assertLessEqual(len(candidate), 10)
             candidate = unique_set_generator(self.random, self.args)
             self.assertLessEqual(len(candidate), 10)
 
-        self.args['candidate_size'] = 20
-        for _ in range(10000):
+        self.args['max_size'] = 20
+        for _ in range(1000):
             candidate = set_generator(self.random, self.args)
             self.assertLessEqual(len(candidate), 20)
             candidate = unique_set_generator(self.random, self.args)
@@ -441,14 +441,14 @@ class TestGenerators(unittest.TestCase):
 
     def test_fixed_size_linear_set_generator(self):
         ec = self.mockup_evolutionary_algorithm(Bounder(-10, 10))
-        self.args.setdefault('variable_candidate_size', True)
-        self.args['candidate_size'] = 10
+        self.args.setdefault('variable_size', True)
+        self.args['max_size'] = 10
         self.args['_ec'] = ec
-        for _ in range(10000):
+        for _ in range(1000):
             candidate = linear_set_generator(self.random, self.args)
-            for c in candidate:
-                self.assertIsInstance(c[0], (int, numpy.int64, numpy.int32))
-                self.assertIsInstance(c[1], float)
+            for i, v in six.iteritems(candidate):
+                self.assertIsInstance(i, (int, numpy.int64, numpy.int32))
+                self.assertIsInstance(v, float)
 
             self.assertLessEqual(len(candidate), 10)
 

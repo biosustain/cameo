@@ -296,16 +296,12 @@ class KnockoutOptimization(HeuristicOptimization):
         ----------
         same as HeuristicOptimization
         simulation_method: see flux_analysis.simulation
-        max_size: int
-        variable_size: boolean
         wt_reference: dict
         """
         super(KnockoutOptimization, self).__init__(*args, **kwargs)
         self.wt_reference = wt_reference
         self._simulation_method = None
         self.simulation_method = simulation_method
-        self.max_size = max_size
-        self.variable_size = variable_size
         self.representation = None
         self._ko_type = None
         self._decoder = None
@@ -384,12 +380,20 @@ class KnockoutOptimization(HeuristicOptimization):
             self.observers.append(observers.ProgressObserver())
 
     def run(self, **kwargs):
+        """
+        Parameters
+        ----------
+        max_size: int
+            Maximum size of a solution.
+        variable_size: boolean
+            If true, the solution size can change meaning that the combination of knockouts can have different sizes up to
+            max_size. Otherwise it only produces knockout solutions with a fixed number of knockouts.
+
+        """
         self.heuristic_method.observer = self.observers
         super(KnockoutOptimization, self).run(
             distance_function=set_distance_function,
             representation=self.representation,
-            candidate_size=self.max_size,
-            variable_candidate_size=self.variable_size,
             **kwargs)
         return KnockoutOptimizationResult(model=self.model,
                                           heuristic_method=self.heuristic_method,
@@ -527,7 +531,6 @@ class KnockoutOptimizationResult(core.result.Result):
             assert len(biomass) == len(knockouts)
             data_frame[BIOMASS] = biomass
         if isinstance(self.product, str):
-            assert len(biomass) == len(products)
             data_frame[self.product] = products
         elif isinstance(self.product, (list, tuple, set)):
             for i in range(self.product):
@@ -620,11 +623,6 @@ class ReactionKnockoutOptimization(KnockoutOptimization):
         A termination criteria for the algorithm. The default is inspyred.ec.terminators.evaluation_termination.
     simulation_method: flux_analysis.simulation
         The method used to simulate the model.
-    max_size: int
-        Maximum size of a solution.
-    variable_size: boolean
-        If true, the solution size can change meaning that the combination of knockouts can have different sizes up to
-        max_size. Otherwise it only produces knockout solutions with a fixed number of knockouts.
     wt_reference: dict
         A reference initial state for the optimization. It is required for flux_analysis.simulation.lmoma and
         flux_analysis.simulation.room. If not given, it will be computed using flux_analysis.simulation.pfba
@@ -680,7 +678,7 @@ class ReactionKnockoutOptimization(KnockoutOptimization):
 
 class GeneKnockoutOptimization(KnockoutOptimization):
     """
-    Knockout optimization using reactions.
+    Knockout optimization using genes.
 
     Attributes
     ----------
@@ -696,11 +694,6 @@ class GeneKnockoutOptimization(KnockoutOptimization):
         A termination criteria for the algorithm. The default is inspyred.ec.terminators.evaluation_termination.
     simulation_method: flux_analysis.simulation
         The method used to simulate the model.
-    max_size: int
-        Maximum size of a solution.
-    variable_size: boolean
-        If true, the solution size can change meaning that the combination of knockouts can have different sizes up to
-        max_size. Otherwise it only produces knockout solutions with a fixed number of knockouts.
     wt_reference: dict
         A reference initial state for the optimization. It is required for flux_analysis.simulation.lmoma and
         flux_analysis.simulation.room. If not given, it will be computed using flux_analysis.simulation.pfba
