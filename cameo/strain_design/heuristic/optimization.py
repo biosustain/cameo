@@ -531,7 +531,6 @@ class KnockoutOptimizationResult(core.result.Result):
             assert len(biomass) == len(knockouts)
             data_frame[BIOMASS] = biomass
         if isinstance(self.product, str):
-            assert len(biomass) == len(products)
             data_frame[self.product] = products
         elif isinstance(self.product, (list, tuple, set)):
             for i in range(self.product):
