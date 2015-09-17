@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from __future__ import absolute_import, print_function
+from collections import OrderedDict
 
 __all__ = ['set_generator', 'unique_set_generator']
 
@@ -20,7 +21,6 @@ from inspyred.ec.generators import diversify
 from cameo.strain_design.heuristic.genomes import MultipleChromosomeGenome
 from six.moves import range
 from six.moves import zip
-from ordered_set import OrderedSet
 
 
 def set_generator(random, args):
@@ -53,7 +53,7 @@ def set_generator(random, args):
     else:
         size = max_size
     candidate = random.sample(range(len(representation)), size)
-    return OrderedSet(candidate)
+    return list(candidate)
 
 
 @diversify
@@ -90,7 +90,7 @@ def unique_set_generator(random, args):
     else:
         size = max_size
     candidate = random.sample(range(len(representation)), size)
-    return OrderedSet(candidate)
+    return list(candidate)
 
 
 def multiple_chromosome_set_generator(random, args):
@@ -159,4 +159,4 @@ def linear_set_generator(random, args):
 
     indices = random.sample(range(len(representation)), size)
     values = random.uniform(next(bounder.lower_bound), next(bounder.upper_bound), len(indices))
-    return [(i, v) for i, v in zip(indices, values)]
+    return OrderedDict({i: v for i, v in zip(indices, values)})
