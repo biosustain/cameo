@@ -409,14 +409,14 @@ class TestGenerators(unittest.TestCase):
         self.args.setdefault('variable_size', False)
 
         self.args['max_size'] = 10
-        for _ in range(10000):
+        for _ in range(1000):
             candidate = set_generator(self.random, self.args)
             self.assertEqual(len(candidate), 10)
             candidate = unique_set_generator(self.random, self.args)
             self.assertEqual(len(candidate), 10)
 
         self.args['max_size'] = 20
-        for _ in range(10000):
+        for _ in range(1000):
             candidate = set_generator(self.random, self.args)
             self.assertEqual(len(candidate), 20)
             candidate = unique_set_generator(self.random, self.args)
@@ -426,14 +426,14 @@ class TestGenerators(unittest.TestCase):
         self.args.setdefault('variable_size', True)
 
         self.args['max_size'] = 10
-        for _ in range(10000):
+        for _ in range(1000):
             candidate = set_generator(self.random, self.args)
             self.assertLessEqual(len(candidate), 10)
             candidate = unique_set_generator(self.random, self.args)
             self.assertLessEqual(len(candidate), 10)
 
         self.args['max_size'] = 20
-        for _ in range(10000):
+        for _ in range(1000):
             candidate = set_generator(self.random, self.args)
             self.assertLessEqual(len(candidate), 20)
             candidate = unique_set_generator(self.random, self.args)
@@ -444,11 +444,11 @@ class TestGenerators(unittest.TestCase):
         self.args.setdefault('variable_size', True)
         self.args['max_size'] = 10
         self.args['_ec'] = ec
-        for _ in range(10000):
+        for _ in range(1000):
             candidate = linear_set_generator(self.random, self.args)
-            for c in candidate:
-                self.assertIsInstance(c[0], (int, numpy.int64, numpy.int32))
-                self.assertIsInstance(c[1], float)
+            for i, v in six.iteritems(candidate):
+                self.assertIsInstance(i, (int, numpy.int64, numpy.int32))
+                self.assertIsInstance(v, float)
 
             self.assertLessEqual(len(candidate), 10)
 
