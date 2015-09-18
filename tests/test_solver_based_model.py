@@ -19,6 +19,7 @@ from __future__ import absolute_import, print_function
 import os
 import copy
 import unittest
+import pickle
 import cameo
 
 from cobra import Metabolite
@@ -681,11 +682,6 @@ class WrappedAbstractTestSolverBasedModel:
             for key in list(solution.keys()):
                 self.assertAlmostEqual(new_solution.x_dict[key], solution[key])
 
-    def test_solver_change_preserves_non_metabolic_constraints(self):
-        all_constraint_ids = self.model.solver.constraints.keys()
-        self.model.solver = 'glpk'
-        self.assertEqual(self.model.solver.constraints.keys(), all_constraint_ids)
-
     def test_solver_change_with_optlang_interface(self):
         solver_id = id(self.model.solver)
         problem_id = id(self.model.solver.problem)
@@ -790,6 +786,13 @@ class TestSolverBasedModelGLPK(WrappedAbstractTestSolverBasedModel.AbstractTestS
 
     def test_cobrapy_attributes_not_in_dir(self):
         self.assertNotIn('optimize', dir(self.model))
+
+    def test_solver_change_preserves_non_metabolic_constraints(self):
+        self.model.add_ratio_constraint(self.model.reactions.PGK, self.model.reactions.PFK, 1/2)
+        all_constraint_ids = self.model.solver.constraints.keys()
+        self.assertTrue(all_constraint_ids[-1], 'ratio_constraint_PGK_PFK')
+        resurrected = pickle.loads(pickle.dumps(self.model))
+        self.assertEqual(resurrected.solver.constraints.keys(), all_constraint_ids)
 
 
 @unittest.skipIf(six.PY2, 'Build stalling in python 2.7.')
