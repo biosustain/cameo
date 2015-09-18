@@ -17,9 +17,9 @@ from __future__ import absolute_import
 from math import sqrt
 
 
-def wild_type_euclidean_distance(wt, mutant):
-    return sqrt(sum([(wt[r] - mutant[r])**2 for r in list(wt.keys())]))
+def euclidean_distance(wt, mutant):
+    return sqrt(sum([(wt[r] - mutant[r]) ** 2 for r in list(wt.keys())]))
 
 
-def wild_type_manhattan_distance(wt, mutant):
+def manhattan_distance(wt, mutant):
     return sum([(wt[r] - mutant[r]) for r in list(wt.keys())])

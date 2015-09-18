@@ -21,15 +21,13 @@ from cameo.strain_design.heuristic.objective_functions import biomass_product_co
 from cameo.flux_analysis.simulation import fba
 from cameo.core.solver_based_model import to_solver_based_model
 
-
 model = read_sbml_model("../tests/data/iJO1366.xml")
 model = to_solver_based_model(model, solver_interface=glpk_interface)
 
-of = biomass_product_coupled_yield("Ec_biomass_iJO1366_core_53p95M", "EX_ac_LPAREN_e_RPAREN_", "EX_glc_LPAREN_e_RPAREN_")
+of = biomass_product_coupled_yield("Ec_biomass_iJO1366_core_53p95M", "EX_ac_LPAREN_e_RPAREN_",
+                                   "EX_glc_LPAREN_e_RPAREN_")
 
 mp = MultiprocessReactionKnockoutOptimization(model=model, heuristic_method=inspyred.ec.GA,
                                               objective_function=of, simulation_method=fba)
 
-
 mp.run(max_evaluations=300, n=2)
-

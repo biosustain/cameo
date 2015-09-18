@@ -17,9 +17,9 @@ from __future__ import absolute_import, print_function
 from cameo.visualization import ProgressBar
 
 
-class ProgressObserver():
+class ProgressObserver(object):
     """
-    Progress bar to in command line
+    Progress bar to in command line. It keeps track of the progress during heuristic optimization.
     """
     __name__ = "Progress Observer"
 
@@ -28,11 +28,15 @@ class ProgressObserver():
 
     def __call__(self, population, num_generations, num_evaluations, args):
         if self.progress is None:
-            self.progress = ProgressBar(args.get('max_evaluations', 50000))
+            self.max_evaluations = args.get('max_evaluations', 50000)
+            self.progress = ProgressBar(self.max_evaluations)
             self.progress.start()
 
         if num_evaluations % args.get('n', 1) == 0:
-            self.progress.update(num_evaluations)
+            if num_evaluations > self.max_evaluations:
+                self.progress.update(self.max_evaluations)
+            else:
+                self.progress.update(num_evaluations)
 
     def reset(self):
         self.progress = None

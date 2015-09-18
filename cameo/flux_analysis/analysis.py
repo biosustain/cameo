@@ -1,3 +1,4 @@
+# coding=utf-8
 # Copyright 2014 Novo Nordisk Foundation Center for Biosustainability, DTU.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,32 +14,63 @@
 # limitations under the License.
 
 from __future__ import absolute_import, print_function
-from cameo.core.result import PhenotypicPhasePlaneResult
 
-__all__ = ['flux_variability_analysis', 'phenotypic_phase_plane', 'fbid']
+__all__ = ['find_blocked_reactions', 'flux_variability_analysis', 'phenotypic_phase_plane',
+           'flux_balance_impact_degree']
+
+from cobra.core import Reaction, Metabolite
 
 import six
 from six.moves import zip
-from functools import reduce
+from numpy import trapz
 
 import itertools
 from copy import copy
 from collections import OrderedDict
-from functools import partial
+from functools import partial, reduce
 import numpy
-import cameo
-from cameo import config
-from cameo.exceptions import UndefinedSolution, Infeasible, Unbounded, SolveError
-from cameo.util import TimeMachine, partition
-from cameo.parallel import SequentialView
-from cameo.flux_analysis.simulation import _cycle_free_flux
 import pandas
 
+import cameo
+from cameo import config
+from cameo.exceptions import Infeasible, Unbounded, SolveError
+from cameo.util import TimeMachine, partition
+from cameo.parallel import SequentialView
+from cameo.core.result import Result
+from cameo.ui import notice
+from cameo.visualization import plotting
+from cameo.flux_analysis.util import remove_infeasible_cycles
+
 import logging
+
 logger = logging.getLogger(__name__)
 
 
-def flux_variability_analysis(model, reactions=None, fraction_of_optimum=0., remove_cycles=True, view=None):
+def find_blocked_reactions(model):
+    """Determine reactions that cannot carry steady-state flux.
+
+    Parameters
+    ----------
+    model: SolverBasedModel
+
+    Returns
+    -------
+    list
+        A list of reactions.
+
+    """
+    with TimeMachine() as tm:
+        for exchange in model.exchanges:
+            tm(do=partial(setattr, exchange, 'lower_bound', -999999),
+               undo=partial(setattr, exchange, 'lower_bound', exchange.lower_bound))
+            tm(do=partial(setattr, exchange, 'upper_bound', 999999),
+               undo=partial(setattr, exchange, 'upper_bound', exchange.upper_bound))
+        fva_solution = flux_variability_analysis(model)
+    return [model.reactions.get_by_id(id) for id in
+            fva_solution.data_frame.query('upper_bound == lower_bound == 0').index]
+
+
+def flux_variability_analysis(model, reactions=None, fraction_of_optimum=0., remove_cycles=False, view=None):
     """Flux variability analysis.
 
     Parameters
@@ -65,7 +97,8 @@ def flux_variability_analysis(model, reactions=None, fraction_of_optimum=0., rem
             try:
                 obj_val = model.solve().f
             except SolveError as e:
-                logger.debug("flux_variability_analyis was not able to determine an optimal solution for objective %s" % model.objective)
+                logger.debug(
+                    "flux_variability_analyis was not able to determine an optimal solution for objective %s" % model.objective)
                 raise e
             if model.objective.direction == 'max':
                 fix_obj_constraint = model.solver.interface.Constraint(model.objective.expression,
@@ -82,19 +115,20 @@ def flux_variability_analysis(model, reactions=None, fraction_of_optimum=0., rem
             func_obj = _FvaFunctionObject(model, _flux_variability_analysis)
         chunky_results = view.map(func_obj, reaction_chunks)
         solution = pandas.concat(chunky_results)
-    return solution
+    return FluxVariabilityResult(solution)
 
 
 def phenotypic_phase_plane(model, variables=[], objective=None, points=20, view=None):
-    """Phenotypic phase plane analysis.
+    """Phenotypic phase plane analysis [1].
 
     Parameters
     ----------
     model: SolverBasedModel
     variables: str or reaction or iterable
         A reaction ID, reaction, or list of reactions to be varied.
-    objective: str or reaction or optlang.Objective
-        An objective to be minimized/maximized for
+    objective: str or reaction or optlang.Objective or Metabolite, optional
+        An objective, a reaction's flux, or a metabolite's production to be minimized/maximized
+        (defaults to the current model objective).
     points: int or iterable
         Number of points to be interspersed between the variable bounds.
         A list of same same dimensions as `variables` can be used to specify
@@ -107,15 +141,25 @@ def phenotypic_phase_plane(model, variables=[], objective=None, points=20, view=
     PhenotypicPhasePlaneResult
         The phenotypic phase plane.
 
+    References
+    ----------
+    [1] Edwards, J. S., Ramakrishna, R. and Palsson, B. O. (2002). Characterizing the metabolic phenotype: a phenotype
+    phase plane analysis. Biotechnology and Bioengineering, 77(1), 27–36. doi:10.1002/bit.10047
     """
     if isinstance(variables, str):
         variables = [variables]
     elif isinstance(variables, cameo.core.reaction.Reaction):
         variables = [variables]
+
     if view is None:
         view = config.default_view
     with TimeMachine() as tm:
         if objective is not None:
+            if isinstance(objective, Metabolite):
+                try:
+                    objective = model.add_demand(objective, time_machine=tm)
+                except:
+                    objective = model.reactions.get_by_id("DM_%s" % objective.id)
             tm(do=partial(setattr, model, 'objective', objective),
                undo=partial(setattr, model, 'objective', model.objective))
 
@@ -123,7 +167,7 @@ def phenotypic_phase_plane(model, variables=[], objective=None, points=20, view=
         variables_min_max = flux_variability_analysis(model, reactions=variable_reactions, view=SequentialView())
         grid = [numpy.linspace(lower_bound, upper_bound, points, endpoint=True) for
                 reaction_id, lower_bound, upper_bound in
-                variables_min_max.itertuples()]
+                variables_min_max.data_frame.itertuples()]
         grid_generator = itertools.product(*grid)
         original_bounds = dict([(reaction, (reaction.lower_bound, reaction.upper_bound))
                                 for reaction in variable_reactions])
@@ -141,7 +185,15 @@ def phenotypic_phase_plane(model, variables=[], objective=None, points=20, view=
         phase_plane = pandas.DataFrame(envelope, columns=(variable_reactions_ids +
                                                           ['objective_lower_bound', 'objective_upper_bound']))
 
-        return PhenotypicPhasePlaneResult(phase_plane, variable_reactions_ids)
+        if objective is None:
+            objective = model.objective
+
+        if isinstance(objective, Reaction):
+            objective = objective.id
+        else:
+            objective = str(objective)
+
+        return PhenotypicPhasePlaneResult(phase_plane, variable_reactions_ids, objective)
 
 
 class _FvaFunctionObject(object):
@@ -193,30 +245,30 @@ def _flux_variability_analysis(model, reactions=None):
             fva_sol[reaction.id]['upper_bound'] = fva_sol[reaction.id]['lower_bound']
             ub_flag = False
 
-
     model.objective = original_objective
     df = pandas.DataFrame.from_dict(fva_sol, orient='index')
     lb_higher_ub = df[df.lower_bound > df.upper_bound]
-    try: # this is an alternative solution to what I did above with flags
-        assert ((lb_higher_ub.lower_bound - lb_higher_ub.upper_bound) < 1e-6).all()  # Assert that these cases really only numerical artifacts
+    try:  # this is an alternative solution to what I did above with flags
+        assert ((
+                lb_higher_ub.lower_bound - lb_higher_ub.upper_bound) < 1e-6).all()  # Assert that these cases really only numerical artifacts
     except AssertionError as e:
         logger.debug(list(zip(model.reactions, (lb_higher_ub.lower_bound - lb_higher_ub.upper_bound) < 1e-6)))
     df.lower_bound[lb_higher_ub.index] = df.upper_bound[lb_higher_ub.index]
     return df
 
 
-def _cycle_free_fva(model, reactions=None, sloppy=True):
+def _cycle_free_fva(model, reactions=None, sloppy=True, sloppy_bound=666):
     """Cycle free flux-variability analysis. (http://cran.r-project.org/web/packages/sybilcycleFreeFlux/index.html)
 
     Parameters
     ----------
-    model: SolverBasedModel
-    reactions: list
+    model : SolverBasedModel
+    reactions : list
         List of reactions whose flux-ranges should be determined.
-    sloppy: boolean
-        If true, only abs(v) > 100 are checked to be futile cycles.
-
-    Rer
+    sloppy : boolean, optional
+        If true, only fluxes v with abs(v) > sloppy_bound are checked to be futile cycles (defaults to True).
+    sloppy_bound : int, optional
+        The threshold bound used by sloppy (defaults to the number of the beast).
     """
     cycle_count = 0
     try:
@@ -241,16 +293,18 @@ def _cycle_free_fva(model, reactions=None, sloppy=True):
             except Exception as e:
                 raise e
             bound = solution.f
-            if sloppy and bound > -100:
+            if sloppy and abs(bound) < sloppy_bound:
                 fva_sol[reaction.id]['lower_bound'] = bound
             else:
+                logger.debug('Determine if {} with bound {} is a cycle'.format(reaction.id, bound))
                 v0_fluxes = solution.x_dict
-                v1_cycle_free_fluxes = _cycle_free_flux(model, v0_fluxes)
+                v1_cycle_free_fluxes = remove_infeasible_cycles(model, v0_fluxes)
                 if abs(v1_cycle_free_fluxes[reaction.id] - bound) < 10 ** -6:
                     fva_sol[reaction.id]['lower_bound'] = bound
                 else:
+                    logger.debug('Cycle detected: {}'.format(reaction.id))
                     cycle_count += 1
-                    v2_one_cycle_fluxes = _cycle_free_flux(model, v0_fluxes, fix=[reaction.id])
+                    v2_one_cycle_fluxes = remove_infeasible_cycles(model, v0_fluxes, fix=[reaction.id])
                     tm = TimeMachine()
                     for key, v1_flux in six.iteritems(v1_cycle_free_fluxes):
                         if v1_flux == 0 and v2_one_cycle_fluxes[key] != 0:
@@ -285,17 +339,19 @@ def _cycle_free_fva(model, reactions=None, sloppy=True):
                 raise e
             else:
                 bound = solution.f
-                if sloppy and bound < 100:
+                if sloppy and abs(bound) < sloppy_bound:
                     fva_sol[reaction.id]['upper_bound'] = bound
                 else:
+                    logger.debug('Determine if {} with bound {} is a cycle'.format(reaction.id, bound))
                     v0_fluxes = solution.x_dict
-                    v1_cycle_free_fluxes = _cycle_free_flux(model, v0_fluxes)
+                    v1_cycle_free_fluxes = remove_infeasible_cycles(model, v0_fluxes)
 
                     if abs(v1_cycle_free_fluxes[reaction.id] - bound) < 10 ** -6:
                         fva_sol[reaction.id]['upper_bound'] = v0_fluxes[reaction.id]
                     else:
+                        logger.debug('Cycle detected: {}'.format(reaction.id))
                         cycle_count += 1
-                        v2_one_cycle_fluxes = _cycle_free_flux(model, v0_fluxes, fix=[reaction.id])
+                        v2_one_cycle_fluxes = remove_infeasible_cycles(model, v0_fluxes, fix=[reaction.id])
                         tm = TimeMachine()
                         for key, v1_flux in six.iteritems(v1_cycle_free_fluxes):
                             if v1_flux == 0 and v2_one_cycle_fluxes[key] != 0:
@@ -319,7 +375,8 @@ def _cycle_free_fva(model, reactions=None, sloppy=True):
                             tm.reset()
         df = pandas.DataFrame.from_dict(fva_sol, orient='index')
         lb_higher_ub = df[df.lower_bound > df.upper_bound]
-        assert ((lb_higher_ub.lower_bound - lb_higher_ub.upper_bound) < 1e-6).all()  # Assert that these cases really only numerical artifacts
+        # Assert that these cases really only numerical artifacts
+        assert ((lb_higher_ub.lower_bound - lb_higher_ub.upper_bound) < 1e-6).all()
         df.lower_bound[lb_higher_ub.index] = df.upper_bound[lb_higher_ub.index]
     finally:
         model.objective = original_objective
@@ -361,15 +418,24 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
         return point + tuple(interval)
 
 
-def fbid(model, knockouts, view=config.default_view, method="fva"):
+def flux_balance_impact_degree(model, knockouts, view=config.default_view, method="fva"):
     """
     Flux balance impact degree by Zhao et al 2013
 
-    :param model: wild-type model
-    :param knockouts: list of reaction knockouts
-    :param method: the method to compute the perturbation. default is "fva" - Flux Variability Analysis.
+    Parameters
+    ----------
+    model: SolverBasedModel
+        Wild-type model
+    knockouts: list
+        Reactions to knockout
+    method: str
+        The method to compute the perturbation. default is "fva" - Flux Variability Analysis.
         It can also be computed with "em" - Elementary modes
-    :return: perturbation
+
+    Returns
+    -------
+    int: perturbation
+        The number of changes in reachable reactions (reactions that can carry flux)
     """
 
     if method == "fva":
@@ -377,7 +443,7 @@ def fbid(model, knockouts, view=config.default_view, method="fva"):
     elif method == "em":
         raise NotImplementedError("Elementary modes approach is not implemented")
     else:
-        raise ValueError("%s method is not valid to compute FBIP" % method)
+        raise ValueError("%s method is not valid to compute Flux Balance Impact Degree" % method)
 
 
 def _fbid_fva(model, knockouts, view):
@@ -412,27 +478,58 @@ def _fbid_fva(model, knockouts, view):
     return perturbation
 
 
-if __name__ == '__main__':
-    import time
-    from cameo import load_model
-    from cameo.parallel import MultiprocessingView
+class PhenotypicPhasePlaneResult(Result):
+    def __init__(self, phase_plane, variable_ids, objective, *args, **kwargs):
+        super(PhenotypicPhasePlaneResult, self).__init__(*args, **kwargs)
+        self._phase_plane = phase_plane
+        self.variable_ids = variable_ids
+        self.objective = objective
 
-    model = load_model('../../tests/data/EcoliCore.xml')
-    flux_variability_analysis(model, reactions=model.reactions, fraction_of_optimum=1., remove_cycles=True,
-                              view=SequentialView())
-    # model.solver = 'cplex'
-    view = MultiprocessingView()
-    tic = time.time()
-    ppp = phenotypic_phase_plane(model,
-                                 ['EX_o2_LPAREN_e_RPAREN_', 'EX_glc_LPAREN_e_RPAREN_', 'EX_nh4_LPAREN_e_RPAREN_'],
-                                 view=view, points=30)
-    # print ppp
-    # print ppp.describe()
-    print(time.time() - tic)
+    @property
+    def data_frame(self):
+        return pandas.DataFrame(self._phase_plane)
 
-    view = SequentialView()
-    tic = time.time()
-    ppp = phenotypic_phase_plane(model,
-                                 ['EX_o2_LPAREN_e_RPAREN_', 'EX_glc_LPAREN_e_RPAREN_', 'EX_nh4_LPAREN_e_RPAREN_'],
-                                 view=view, points=30)
-    print(time.time() - tic)
+    def plot(self, grid=None, width=None, height=None, title=None, axis_font_size=None, **kwargs):
+        if len(self.variable_ids) > 1:
+            notice("Multi-dimensional plotting is not supported")
+            return
+        plotting.plot_production_envelope(self._phase_plane, objective=self.objective, key=self.variable_ids[0],
+                                          grid=grid, width=width, height=height, title=title,
+                                          axis_font_size=axis_font_size, **kwargs)
+
+    def __getitem__(self, item):
+        return self._phase_plane[item]
+
+    def iterrows(self):
+        return self._phase_plane.iterrows()
+
+    @property
+    def area(self):
+        area = 0
+        for variable_id in self.variable_ids:
+            area += self.area_for(variable_id)
+        return area
+
+    def area_for(self, variable_id):
+        auc_max = trapz(self._phase_plane.objective_upper_bound.values, x=self._phase_plane[variable_id])
+        auc_min = trapz(self._phase_plane.objective_lower_bound.values, x=self._phase_plane[variable_id])
+        return auc_max - auc_min
+
+
+class FluxVariabilityResult(Result):
+    def __init__(self, data_frame, *args, **kwargs):
+        super(FluxVariabilityResult, self).__init__(*args, **kwargs)
+        self._data_frame = data_frame
+
+    @property
+    def data_frame(self):
+        return self._data_frame
+
+    def plot(self, grid=None, width=None, height=None, title=None, axis_font_size=None):
+        raise NotImplementedError('Plotting of flux variability results has not been implemented yet.')
+
+    def __getitem__(self, item):
+        return self._data_frame[item]
+
+    def iterrows(self):
+        return self._data_frame.iterrows()

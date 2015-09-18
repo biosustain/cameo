@@ -4,20 +4,28 @@
 cameo
 =====
 
-|BuildStatus| |CoverageStatus|
+|Documentation Status| |Build Status| |Coverage Status| |DOI|
 
-**cameo** is a python library for computer-aided metabolic engineering and optimization
-of microbes. It caters to different audiences as it provides a high-level interface
-that allows computer savvy bench biologists to predict heterologous pathways and enumerate engineering strategies
-and a modular framework for computational modelers that facilitates methods development and the construction
-of custom analysis workflows and prediction tools.
+**Cameo** is a high-level python library developed to aid the strain
+design process in metabolic engineering projects. The library provides a
+modular framework of simulation methods, strain design methods, access
+to models, that targets developers that want custom analysis workflows.
 
-cameo is based on `cobrapy <http://opencobra.github.io/cobrapy/>`_, the community standard for
-constraint-based modeling of genome-scale metabolic models, and uses and extends the same data structures. For
-efficiency reasons, however, it differs quite significantly from cobrapy in the way optimization
-problems are solved and defined. Nevertheless, cameo models remain 100% compatible with cobrapy.
-If you are already a cobrapy user you might want to start reading :doc:`here <cobrapy_difference>` to get an overview of the main differences.
+Computationally heavy methods have been parallelized and can be run on a
+clusters using the IPython parallelization framework (see example and
+documentation for more details). The default fallback is python's
+multiprocessing library.
 
+Furthermore, it exposes a high-level API to users that just want to compute
+promising strain designs.
+
+::
+
+    from cameo.api import design
+    design(product='L-Serine')
+
+You got curious? Head over to `try.cameo.bio <http://try.cameo.bio>`__
+and give it a try.
 
 Table of Contents
 -----------------
@@ -25,13 +33,18 @@ Table of Contents
 .. toctree::
     :maxdepth: 2
 
+    dependencies
     installation
-    quickstart
-    cameo_high_level_interface
-    cameo_low_level_interface
+    1-quick-start
+    2-import-models
+    3-simulate-models
+    4-analyze-models
+    5-predict-expression-modulation-targets
+    6-predict-gene-knockout-strategies
+    7-predict-heterologous-pathways
+    8-high-level-AP
     parallelization
     cobrapy_difference
-    How_to
     API
 
 Indices and tables
@@ -42,7 +55,11 @@ Indices and tables
 * :ref:`search`
 
 
-.. |BuildStatus| image:: https://travis-ci.org/biosustain/cameo.svg?branch=devel
-    :target: https://travis-ci.org/biosustain/cameo
-.. |CoverageStatus| image:: https://coveralls.io/repos/biosustain/cameo/badge.png?branch=devel
-    :target: https://coveralls.io/r/biosustain/cameo?branch=devel
+.. |Documentation Status| image:: https://readthedocs.org/projects/cameo/badge/?version=devel
+   :target: https://readthedocs.org/projects/cameo/?badge=devel
+.. |Build Status| image:: https://travis-ci.org/biosustain/cameo.svg?branch=master
+   :target: https://travis-ci.org/biosustain/cameo
+.. |Coverage Status| image:: https://coveralls.io/repos/biosustain/cameo/badge.svg?branch=devel
+   :target: https://coveralls.io/r/biosustain/cameo?branch=devel
+.. |DOI| image:: https://zenodo.org/badge/doi/10.5281/zenodo.19827.svg
+   :target: http://dx.doi.org/10.5281/zenodo.19827

@@ -14,17 +14,32 @@
 
 from __future__ import absolute_import, print_function
 
+__all__ = ['distance_based_on_molecular_formula']
+
 def distance_based_on_molecular_formula(metabolite1, metabolite2, normalize=True):
+    """Calculate the distance of two metabolites bases on the molecular formula
+
+    Arguments
+    ---------
+    metabolite1 : Metabolite
+        The first metabolite.
+    metabolite2 : Metabolite
+        The second metabolite.
+    normalize : bool, optional
+        If the distance should be normalized by the total number of elements in both metabolites (defaults to True).
+
+    Returns
+    -------
+    float
+        The distance between metabolite1 and metabolite2.
+    """
     if len(metabolite1.formula.elements) == 0 or len(metabolite2.formula.elements) == 0:
-        return ValueError('Cannot calculate distance between metabolites %s and %s' % (metabolite1, metabolite2))
+        raise ValueError('Cannot calculate distance between metabolites %s and %s' % (metabolite1, metabolite2))
     elements = set(list(metabolite1.formula.elements.keys()) + list(metabolite2.formula.elements.keys()))
     distance = 0.
     for element in elements:
-         distance += abs(metabolite1.formula.elements.get(element, 0) - metabolite2.formula.elements.get(element, 0))
+        distance += abs(metabolite1.formula.elements.get(element, 0) - metabolite2.formula.elements.get(element, 0))
     if normalize:
-        try:
-            return distance / sum(list(metabolite1.formula.elements.values()) + list(metabolite2.formula.elements.values()))
-        except:
-            print(metabolite1, metabolite2, metabolite1.formula.elements, metabolite2.formula.elements)
+        return distance / sum(list(metabolite1.formula.elements.values()) + list(metabolite2.formula.elements.values()))
     else:
         return distance

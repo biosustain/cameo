@@ -27,6 +27,8 @@ from cameo.parallel import SequentialView
 
 import logging
 import six
+from cameo.util import doc_inherit
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
@@ -60,7 +62,9 @@ class Reaction(_cobrapy.core.Reaction):
             try:
                 setattr(new_reaction, attribute, value)
             except AttributeError:
-                logger.info("Can't set attribute %s for reaction %s (while cloning it to a cameo style reaction). Skipping it ..." % (attribute, reaction))
+                logger.info(
+                    "Can't set attribute %s for reaction %s (while cloning it to a cameo style reaction). Skipping it ..." % (
+                        attribute, reaction))
         if not isinstance(reaction.model, cameo.core.solver_based_model.SolverBasedModel):
             new_reaction._model = None
         if model is not None:
@@ -90,7 +94,7 @@ class Reaction(_cobrapy.core.Reaction):
 
     @property
     def reversibility(self):
-        return self._lower_bound < 0 and self._upper_bound > 0
+        return self._lower_bound < 0 < self._upper_bound
 
     def _get_reverse_id(self):
         """Generate the id of reverse_variable from the reaction's id."""
@@ -107,14 +111,9 @@ class Reaction(_cobrapy.core.Reaction):
         Representing the net flux if model.reversible_encoding == 'unsplit'"""
         model = self.model
         if model is not None:
-            return 1.*self.forward_variable - 1.*self.reverse_variable
+            return 1. * self.forward_variable - 1. * self.reverse_variable
         else:
             return None
-
-    @property
-    def variable(self):
-        warnings.warn('reaction.variable is deprecated. Please use reaction.forward_variable.', DeprecationWarning)
-        return self.forward_variable
 
     @property
     def forward_variable(self):
@@ -123,10 +122,8 @@ class Reaction(_cobrapy.core.Reaction):
         model = self.model
         if model is not None:
             aux_id = self._get_forward_id()
-            try:
-                return model.solver.variables[aux_id]
-            except KeyError:
-                return None
+            return model.solver.variables[aux_id]
+
         else:
             return None
 
@@ -136,10 +133,7 @@ class Reaction(_cobrapy.core.Reaction):
         model = self.model
         if model is not None:
             aux_id = self._get_reverse_id()
-            try:
-                return model.solver.variables[aux_id]
-            except KeyError:
-                return None
+            return model.solver.variables[aux_id]
         else:
             return None
 
@@ -154,9 +148,9 @@ class Reaction(_cobrapy.core.Reaction):
         if model is not None:
 
             forward_variable, reverse_variable = self.forward_variable, self.reverse_variable
-            if self._lower_bound < 0 and self._upper_bound > 0: # reversible
+            if self._lower_bound < 0 < self._upper_bound:  # reversible
                 if value < 0:
-                    reverse_variable.ub = -1*value
+                    reverse_variable.ub = -1 * value
                 elif value >= 0:
                     reverse_variable.ub = 0
                     try:
@@ -165,15 +159,15 @@ class Reaction(_cobrapy.core.Reaction):
                         forward_variable.ub = value
                         self._upper_bound = value
                         forward_variable.lb = value
-            elif self._lower_bound == 0 and self._upper_bound == 0: # knockout
+            elif self._lower_bound == 0 and self._upper_bound == 0:  # knockout
                 if value < 0:
-                    reverse_variable.ub = -1*value
+                    reverse_variable.ub = -1 * value
                 elif value >= 0:
                     forward_variable.ub = value
                     forward_variable.lb = value
-            elif self._lower_bound >= 0: # forward irreversible
+            elif self._lower_bound >= 0:  # forward irreversible
                 if value < 0:
-                    reverse_variable.ub = -1*value
+                    reverse_variable.ub = -1 * value
                     forward_variable.lb = 0
                 else:
                     try:
@@ -183,15 +177,20 @@ class Reaction(_cobrapy.core.Reaction):
                         self._upper_bound = value
                         forward_variable.lb = value
 
-            elif self._upper_bound <= 0: # reverse irreversible
+            elif self._upper_bound <= 0:  # reverse irreversible
                 if value > 0:
-                    reverse_variable.ub = 0
+                    reverse_variable.lb = 0
                     reverse_variable.ub = 0
                     forward_variable.ub = value
                     self._upper_bound = value
                     forward_variable.lb = value
                 else:
-                    reverse_variable.ub = -1*value
+                    try:
+                        reverse_variable.ub = -1 * value
+                    except ValueError:
+                        reverse_variable.lb = -1 * value
+                        self._upper_bound = value
+                        reverse_variable.ub = -1 * value
             else:
                 print({'value': value, 'self._lower_bound': self._lower_bound, 'self._upper_bound': self._upper_bound})
                 raise ValueError('lower_bound issue')
@@ -208,40 +207,45 @@ class Reaction(_cobrapy.core.Reaction):
         if model is not None:
 
             forward_variable, reverse_variable = self.forward_variable, self.reverse_variable
-            if self._lower_bound < 0 and self._upper_bound > 0: # reversible
+            if self._lower_bound < 0 < self._upper_bound:  # reversible
                 if value > 0:
                     forward_variable.ub = value
                 elif value <= 0:
                     forward_variable.ub = 0
                     try:
-                        reverse_variable.lb = -1*value
+                        reverse_variable.lb = -1 * value
                     except ValueError:
-                        reverse_variable.ub = -1*value
+                        reverse_variable.ub = -1 * value
                         self._lower_bound = value
-                        reverse_variable.lb = -1*value
-            elif self._lower_bound == 0 and self._upper_bound == 0: # knockout
+                        reverse_variable.lb = -1 * value
+            elif self._lower_bound == 0 and self._upper_bound == 0:  # knockout
                 if value > 0:
                     forward_variable.ub = value
                 elif value <= 0:
-                    reverse_variable.ub = -1*value
-            elif self._lower_bound >= 0: # forward irreversible
+                    reverse_variable.ub = -1 * value
+            elif self._lower_bound >= 0:  # forward irreversible
                 if value > 0:
-                    forward_variable.ub = value
+                    try:
+                        forward_variable.ub = value
+                    except ValueError:
+                        forward_variable.lb = value
+                        self._lower_bound = value
+                        forward_variable.ub = value
                 else:
                     forward_variable.lb = 0
                     forward_variable.ub = 0
-                    reverse_variable.ub = -1*value
+                    reverse_variable.ub = -1 * value
                     self._lower_bound = value
-                    reverse_variable.lb = -1*value
+                    reverse_variable.lb = -1 * value
 
-            elif self._upper_bound <= 0: # reverse irreversible
+            elif self._upper_bound <= 0:  # reverse irreversible
                 if value < 0:
                     try:
-                        reverse_variable.lb = -1*value
+                        reverse_variable.lb = -1 * value
                     except ValueError:
-                        reverse_variable.ub = -1*value
+                        reverse_variable.ub = -1 * value
                         self._lower_bound = value
-                        reverse_variable.lb = -1*value
+                        reverse_variable.lb = -1 * value
                 else:
                     forward_variable.ub = value
                     reverse_variable.lb = 0
@@ -259,59 +263,72 @@ class Reaction(_cobrapy.core.Reaction):
     def objective_coefficient(self, value):
         model = self.model
         if model is not None:
-            model.solver._set_linear_objective_term(self.variable, value)
-
+            model.solver._set_linear_objective_term(self.forward_variable, value)
+            model.solver._set_linear_objective_term(self.reverse_variable, -1 * value)
         self._objective_coefficient = value
 
     @property
     def effective_lower_bound(self):
         model = self.model
-        return \
-            flux_analysis.flux_variability_analysis(model, reactions=[self], view=SequentialView(), remove_cycles=False)[
-                'lower_bound'][
-                self.id]
+        fva_result = flux_analysis.flux_variability_analysis(model, reactions=[self], view=SequentialView(),
+                                                             remove_cycles=False)
+        return fva_result['lower_bound'][self.id]
 
     @property
     def effective_upper_bound(self):
         model = self.model
-        return \
-            flux_analysis.flux_variability_analysis(model, reactions=[self], view=SequentialView(), remove_cycles=False)[
-                'upper_bound'][
-                self.id]
+        fva_result = flux_analysis.flux_variability_analysis(model, reactions=[self], view=SequentialView(),
+                                                             remove_cycles=False)
+        return fva_result['upper_bound'][self.id]
 
     @property
     def flux(self):
-        if self.variable is not None:
-            primal = self.variable.primal
-            if self.reversibility:
-                primal -= self.reverse_variable.primal
-            return primal
+        if self.model is not None:
+            return self.forward_variable.primal - self.reverse_variable.primal
         else:
             return None
 
     @property
     def reduced_cost(self):
-        if self.variable is not None:
-            dual = self.variable.dual
-            if dual is None:  # cplex cannot determine reduced costs for MILP problems
-                return None
-            if self.reversibility:
-                dual -= self.reverse_variable.dual
-            return dual
+        if self.model is not None:
+            return self.forward_variable.dual - self.reverse_variable.dual
         else:
             return None
 
-    def add_metabolites(self, metabolites, **kwargs):
-        super(Reaction, self).add_metabolites(metabolites, **kwargs)
+    @doc_inherit
+    def add_metabolites(self, metabolites, combine=True, **kwargs):
+        if not combine:
+            old_coefficients = self.metabolites
+        super(Reaction, self).add_metabolites(metabolites, combine=combine, **kwargs)
         model = self.model
         if model is not None:
             for metabolite, coefficient in six.iteritems(metabolites):
-                model.solver.constraints[metabolite.id] += coefficient*self.variable
+                if not combine:
+                    try:
+                        old_coefficient = old_coefficients[metabolite]
+                    except KeyError:
+                        pass
+                    else:
+                        coefficient = coefficient - old_coefficient
+                model.solver.constraints[metabolite.id] += coefficient * self.flux_expression
 
     def knock_out(self, time_machine=None):
+        """Knockout reaction by setting its bounds to zero.
+
+        Parameters
+        ----------
+        time_machine = TimeMachine
+            A time TimeMachine instance can be provided to undo the knockout eventually.
+
+        Returns
+        -------
+        None
+        """
+
         def _(reaction, lb, ub):
             reaction.upper_bound = ub
             reaction.lower_bound = lb
+
         if time_machine is not None:
             time_machine(do=super(Reaction, self).knock_out, undo=partial(_, self, self.lower_bound, self.upper_bound))
         else:
@@ -324,6 +341,9 @@ class Reaction(_cobrapy.core.Reaction):
                 <td><strong>Id</strong></td><td>%s</td>
             </tr>
             <tr>
+                <td><strong>Name</strong></td><td>%s</td>
+            </tr>
+            <tr>
                 <td><strong>Stoichiometry</strong></td><td>%s</td>
             </tr>
             <tr>
@@ -333,4 +353,4 @@ class Reaction(_cobrapy.core.Reaction):
                 <td><strong>Upper bound</strong></td><td>%f</td>
             </tr>
         </table>
-        """ % (self.id, self.reaction, self.lower_bound, self.upper_bound)
+        """ % (self.id, self.name, self.reaction, self.lower_bound, self.upper_bound)

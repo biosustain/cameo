@@ -29,7 +29,7 @@ for modname in modules:
     benchmarks.extend(by_module[modname])
 
 for bm in benchmarks:
-    assert(bm.name is not None)
+    assert (bm.name is not None)
 
 import getpass
 import sys
@@ -72,6 +72,7 @@ RST_BASE = 'rts_source'
 
 def generate_rst_files(benchmarks):
     import matplotlib as mpl
+
     mpl.use('Agg')
     import matplotlib.pyplot as plt
 

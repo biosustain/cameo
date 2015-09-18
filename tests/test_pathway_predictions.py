@@ -18,22 +18,33 @@ import os
 import unittest
 from cameo import load_model
 from cameo.strain_design.pathway_prediction import PathwayPredictor
+from cameo.models import universal
 
 TESTDIR = os.path.dirname(__file__)
-TESTMODEL = load_model(os.path.join(TESTDIR, 'data/iJO1366.xml'))
+TESTMODEL = load_model(os.path.join(TESTDIR, 'data/EcoliCore.xml'))
+UNIVERSALMODEL = load_model(os.path.join(TESTDIR, 'data/iJO1366.xml'))
 
 TRAVIS = os.getenv('TRAVIS', False)
 
-# if not TRAVIS:
-if False:
-    class TestPathwayPredictor(unittest.TestCase):
+PATHWAYPREDICTOR = PathwayPredictor(TESTMODEL, universal_model=UNIVERSALMODEL)
 
-        def setUp(self):
-            self.pathway_predictor = PathwayPredictor(TESTMODEL)
 
-        def test_setting_incorrect_universal_model_raises(self):
-            self.assertRaises(self.pathway_predictor.run, product='L-serine', universal_model='Mickey_Mouse')
+class TestPathwayPredictor(unittest.TestCase):
+    def setUp(self):
+        self.pathway_predictor = PATHWAYPREDICTOR
 
-        def test_predict_native_compound_returns_shorter_alternatives(self):
-            result = self.pathway_predictor.run(product='L-serine')
-            self.assertTrue(len(result) > 0)
+    def test_setting_incorrect_universal_model_raises(self):
+        with self.assertRaisesRegexp(ValueError, 'Provided universal_model.*'):
+            PathwayPredictor(TESTMODEL, universal_model='Mickey_Mouse')
+
+    # def test_predict_native_compound_returns_shorter_alternatives(self):
+    #     result = self.pathway_predictor.run(product='Phosphoenolpyruvate', max_predictions=1)
+    #     self.assertTrue(len(result.pathways) == 1)
+    #     self.assertTrue(len(result.pathways[0].pathway) == 3)
+    #     self.assertTrue(len(result.pathways[0].adapters) == 0)
+
+    def test_predict_non_native_compound(self):
+        result = self.pathway_predictor.run(product='L-Serine', max_predictions=1)
+        self.assertTrue(len(result.pathways) == 1)
+        self.assertTrue(len(result.pathways[0].reactions) == 3)
+        self.assertTrue(len(result.pathways[0].adapters) == 0)

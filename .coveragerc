@@ -4,6 +4,11 @@ branch = True
 source = cameo
 omit =
     cameo/strain_design/heuristic/plotters.py
+    cameo/strain_design/heuristic/multiprocess/plotters.py
+    cameo/visualization/*
+    cameo/_version.py
+    cameo/stuff/*
+    cameo/ui/*
 
 [report]
 # Regexes for lines to exclude from consideration

@@ -9,7 +9,7 @@ pandas>=0.15.2
 ordered-set==1.2
 inspyred==1.0
 cobra==0.3.2
--e git+https://github.com/biosustain/optlang.git@700ff4264ef772ddd8401c48f33800d2add415b9#egg=optlang
+optlang==0.2.9
 sphinx>=1.2.2
 sphinx-rtd-theme>=0.1.6
 escher==1.0.0
@@ -18,3 +18,5 @@ redis>=2.10.3
 numexpr==2.4
 networkx==1.9.1
 six>=1.9.0
+lazy-object-proxy==1.2.0
+IProgress==0.2

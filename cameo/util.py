@@ -17,22 +17,126 @@ from __future__ import absolute_import, print_function
 import six
 from six.moves import range
 
+import re
 from collections import OrderedDict
 from uuid import uuid1
 from time import time
 from datetime import datetime
 import colorsys
+from functools import wraps
+import numpy as np
+from numpy.linalg import svd
+
 import pip
 import platform
+from itertools import islice
+from functools import partial
 
-import progressbar
+import pandas
 from numpy.random import RandomState
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 
-class RandomGenerator():
+class ProblemCache(object):
+    def __init__(self, model):
+        self.time_machine = None
+        self._model = model
+        self.variables = {}
+        self.constraints = {}
+        self.original_objective = model.objective.expression
+        self.time_machine = TimeMachine()
+        self.transaction_id = None
+
+    def begin_transaction(self):
+        self.transaction_id = uuid1()
+        self.time_machine(do=int, undo=int, bookmark=self.transaction_id)
+
+    @property
+    def model(self):
+        return self._model
+
+    def _rebuild_constraint(self, constraint):
+        (expression, lb, ub, name) = constraint.expression, constraint.lb, constraint.ub, constraint.name
+
+        def rebuild():
+            self.model.solver._remove_constraint(constraint)
+            new_constraint = self.model.solver.interface.Constraint(expression, lb=lb, ub=ub, name=name)
+            self.constraints[name] = new_constraint
+            self.model.solver._add_constraint(new_constraint, sloppy=True)
+
+        return rebuild
+
+    def _append_constraint(self, constraint_id, create, *args, **kwargs):
+        self.constraints[constraint_id] = create(self.model, constraint_id, *args, **kwargs)
+        self.model.solver._add_constraint(self.constraints[constraint_id])
+
+    def _remove_constraint(self, constraint_id):
+        constraint = self.constraints.pop(constraint_id)
+        self.model.solver._remove_constraint(constraint)
+
+    def _append_variable(self, variable_id, create, *args, **kwargs):
+        self.variables[variable_id] = create(self.model, variable_id, *args, **kwargs)
+        self.model.solver._add_variable(self.variables[variable_id])
+
+    def _remove_variable(self, variable_id):
+        variable = self.variables.pop(variable_id)
+        self.model.solver._remove_variable(variable)
+
+    def _rebuild_variable(self, variable):
+        (type, lb, ub, name) = variable.type, variable.lb, variable.ub, variable.name
+
+        def rebuild():
+            self.model.solver._remove_variable(variable)
+            new_variable = self.model.solver.interface.Variable(name, lb=lb, ub=ub, type=type)
+            self.variables[name] = variable
+            self.model.solver._add_variable(new_variable, sloppy=True)
+
+        return rebuild
+
+    def add_constraint(self, constraint_id, create, update, *args, **kwargs):
+        if constraint_id in self.constraints:
+            if update is not None:
+                self.time_machine(
+                    do=partial(update, self.model, self.constraints[constraint_id], *args, **kwargs),
+                    undo=self._rebuild_constraint(self.constraints[constraint_id]))
+        else:
+            self.time_machine(
+                do=partial(self._append_constraint, constraint_id, create, *args, **kwargs),
+                undo=partial(self._remove_constraint, constraint_id)
+            )
+
+    def add_variable(self, variable_id, create, update, *args, **kwargs):
+        if variable_id in self.variables:
+            if update is not None:
+                self.time_machine(
+                    do=partial(update, self.model, self.variables[variable_id], *args, **kwargs),
+                    undo=self._rebuild_variable(self.variables[variable_id]))
+        else:
+            self.time_machine(
+                do=partial(self._append_variable, variable_id, create, *args, **kwargs),
+                undo=partial(self._remove_variable, variable_id)
+            )
+
+    def reset(self):
+        self.model.solver._remove_constraints(self.constraints.values())
+        self.model.solver._remove_variables(self.variables.values())
+        self.model.objective = self.original_objective
+        self.variables = {}
+        self.constraints = {}
+        self.transaction_id = None
+        self.time_machine.history.clear()
+
+    def rollback(self):
+        if self.transaction_id is None:
+            raise RuntimeError("Start transaction must be called before rollback")
+        self.time_machine.undo(self.transaction_id)
+        self.transaction_id = None
+
+
+class RandomGenerator(object):
     def __init__(self, seed=None):
         self._random = RandomState(seed=seed)
 
@@ -43,12 +147,13 @@ class RandomGenerator():
         if b is None:
             b = a
             a = 0
-        return self._random.randint(a, b)
+        r = self._random.randint(a, high=b, size=1)
+        return r[0]
 
     def sample(self, population, k):
         if k == 0:
             return []
-        return self._random.choice(population, size=k, replace=True)
+        return self._random.choice(population, size=k, replace=False)
 
     def __getattr__(self, attr):
         return getattr(self._random, attr)
@@ -58,6 +163,9 @@ class RandomGenerator():
 
     def __setstate__(self, d):
         self._random = d['_random']
+
+    def uniform(self, low=0.0, high=1.0, size=None):
+        return self._random.uniform(low, high, size)
 
 
 class Singleton(object):
@@ -73,7 +181,6 @@ class Singleton(object):
 
 
 class AutoVivification(dict):
-
     """Implementation of perl's autovivification feature. Checkout http://stackoverflow.com/a/652284/280182"""
 
     def __getitem__(self, item):
@@ -85,7 +192,6 @@ class AutoVivification(dict):
 
 
 class TimeMachine(object):
-
     """Travel back and forth in time."""
 
     def __init__(self):
@@ -101,8 +207,7 @@ class TimeMachine(object):
             entry_id = bookmark
         # make sure that entry is added to the end of history
         self.history.pop(entry_id, None)
-        self.history[entry_id] = {'unix_epoch':
-                                  current_time, 'undo': undo, 'redo': do}
+        self.history[entry_id] = {'unix_epoch': current_time, 'undo': undo, 'redo': do}
         return entry_id, output
 
     def __str__(self):
@@ -161,22 +266,6 @@ class TimeMachine(object):
             self.undo(bookmark=list(self.history.keys())[0])
 
 
-def partition(lst, n):
-    """Partition a list into n bite size chunks."""
-    division = len(lst) / float(n)
-    return [lst[int(round(division * i)): int(round(division * (i + 1)))] for i in range(n)]
-
-
-def generate_colors(n):
-    hsv_tuples = [(v*1.0/n, 0.5, 0.5) for v in range(n)]
-    color_map = {}
-    for i in range(n):
-        rgb = colorsys.hsv_to_rgb(*hsv_tuples[i])
-        color = tuple([rgb[0]*256, rgb[1]*256, rgb[2]*256])
-        color_map[i] = '#%02x%02x%02x' % color
-    return color_map
-
-
 class Timer(object):
     """Taken from http://stackoverflow.com/a/5849861/280182"""
 
@@ -190,20 +279,6 @@ class Timer(object):
         if self.name:
             print('[%s]' % self.name, end=' ')
         print('Elapsed: %s' % (time() - self.tstart))
-
-
-def memoize(function, memo={}):
-    def wrapper(*args):
-        logger.debug("key = %s" % str(args))
-        if args in memo:
-            logger.debug("Key found")
-            return memo[args]
-        else:
-            logger.debug("Key not found")
-            rv = function(*args)
-            memo[args] = rv
-            return rv
-    return wrapper
 
 
 class IntelliContainer(object):
@@ -223,30 +298,166 @@ class IntelliContainer(object):
         return list(self._dict.keys())
 
 
-class DisplayItemsWidget(progressbar.widgets.Widget):
-    """Display an items[pbar.currval]
+class DocInherit(object):
+    """
+    Adapted from http://code.activestate.com/recipes/576862/ (licensed under MIT)
+    Docstring inheriting method descriptor
 
-    Examples
-    --------
-    import time
-    from progressbar import Progressbar, widges
-    pbar = ProgressBar(widgets=[DisplayItemsWidget(["asdf"+str(i) for i in range(10)]), widgets.Bar()])
-    pbar.maxval = 10
-    pbar.start()
-    for i in range(10):
-        time.sleep(.2)
-        pbar.update(i)
-    pbar.finish()
+    The class itself is also used as a decorator
     """
 
-    def __init__(self, items):
-        self.items = items
+    def __init__(self, mthd):
+        self.mthd = mthd
+        self.name = mthd.__name__
 
-    def update(self, pbar):
-        try:
-            return "%s" % self.items[pbar.currval]
-        except IndexError:
-            return ""
+    def __get__(self, obj, cls):
+        if obj:
+            return self.get_with_inst(obj, cls)
+        else:
+            return self.get_no_inst(cls)
+
+    def get_with_inst(self, obj, cls):
+
+        overridden = getattr(super(cls, obj), self.name, None)
+
+        @wraps(self.mthd, assigned=('__name__','__module__'))
+        def f(*args, **kwargs):
+            return self.mthd(obj, *args, **kwargs)
+
+        return self.use_parent_doc(f, overridden)
+
+    def get_no_inst(self, cls):
+
+        for parent in cls.__mro__[1:]:
+            overridden = getattr(parent, self.name, None)
+            if overridden: break
+
+        @wraps(self.mthd, assigned=('__name__','__module__'))
+        def f(*args, **kwargs):
+            return self.mthd(*args, **kwargs)
+
+        return self.use_parent_doc(f, overridden)
+
+    def use_parent_doc(self, func, source):
+        if source is None:
+            raise NameError("Can't find '%s' in parents" % self.name)
+        func.__doc__ = source.__doc__
+        return func
+
+doc_inherit = DocInherit
+
+
+# class DisplayItemsWidget(progressbar.widgets.Widget):
+#     """Display an items[pbar.currval]
+#
+#     Examples
+#     --------
+#     import time
+#     from progressbar import Progressbar, widges
+#     pbar = ProgressBar(widgets=[DisplayItemsWidget(["asdf"+str(i) for i in range(10)]), widgets.Bar()])
+#     pbar.maxval = 10
+#     pbar.start()
+#     for i in range(10):
+#         time.sleep(.2)
+#         pbar.update(i)
+#     pbar.finish()
+#     """
+#
+#     def __init__(self, items):
+#         self.items = items
+#
+#     def update(self, pbar):
+#         try:
+#             return "%s" % self.items[pbar.currval]
+#         except IndexError:
+#             return ""
+
+
+def partition_(lst, n):
+    """Partition a list into n bite size chunks."""
+    division = len(lst) / float(n)
+    return [lst[int(round(division * i)): int(round(division * (i + 1)))] for i in range(n)]
+
+
+def partition(ite, n):
+    """Partition an iterable into n bite size chunks."""
+    try:
+        length = len(ite)
+    except TypeError:
+        ite = list(ite)
+        length = len(ite)
+    division = length / float(n)
+    iterator = iter(ite)
+    return [list(islice(iterator, 0, round(division * (i + 1)) - round(division * i))) for i in range(n)]
+
+
+def flatten(l):
+    return [item for sublist in l for item in sublist]
+
+
+def generate_colors(n):
+    hsv_tuples = [(v * 1.0 / n, 0.5, 0.5) for v in range(n)]
+    color_map = {}
+    for i in range(n):
+        rgb = colorsys.hsv_to_rgb(*hsv_tuples[i])
+        color = tuple([rgb[0] * 256, rgb[1] * 256, rgb[2] * 256])
+        color_map[i] = '#%02x%02x%02x' % color
+    return color_map
+
+
+# Taken from http://wiki.scipy.org/Cookbook/RankNullspace
+def nullspace(A, atol=1e-13, rtol=0):
+    """Compute an approximate basis for the nullspace of A.
+
+    The algorithm used by this function is based on the singular value
+    decomposition of `A`.
+
+    Parameters
+    ----------
+    A : ndarray
+        A should be at most 2-D.  A 1-D array with length k will be treated
+        as a 2-D with shape (1, k)
+    atol : float
+        The absolute tolerance for a zero singular value.  Singular values
+        smaller than `atol` are considered to be zero.
+    rtol : float
+        The relative tolerance.  Singular values less than rtol*smax are
+        considered to be zero, where smax is the largest singular value.
+
+    If both `atol` and `rtol` are positive, the combined tolerance is the
+    maximum of the two; that is::
+        tol = max(atol, rtol * smax)
+    Singular values smaller than `tol` are considered to be zero.
+
+    Return value
+    ------------
+    ns : ndarray
+        If `A` is an array with shape (m, k), then `ns` will be an array
+        with shape (k, n), where n is the estimated dimension of the
+        nullspace of `A`.  The columns of `ns` are a basis for the
+        nullspace; each element in numpy.dot(A, ns) will be approximately
+        zero.
+    """
+
+    A = np.atleast_2d(A)
+    u, s, vh = svd(A)
+    tol = max(atol, rtol * s[0])
+    nnz = (s >= tol).sum()
+    ns = vh[nnz:].conj().T
+    return ns
+
+
+def memoize(function, memo={}):
+    def wrapper(*args):
+        if args in memo:
+            return memo[args]
+        else:
+            rv = function(*args)
+            memo[args] = rv
+            return rv
+
+    return wrapper
+
 
 def get_system_info():
     # pip freeze (adapted from http://stackoverflow.com/a/24322465/280182)
@@ -264,27 +475,16 @@ def in_ipnb():
     """
     Check if it is running inside an IPython Notebook (updated for new notebooks)
     """
-    try:
-        import IPython
-        ip = IPython.get_ipython()
+    return pandas.core.common.in_ipython_frontend()
 
-        front_end = None
-        if "IPKernelApp" in ip.config:
-            front_end = ip.config.get('IPKernelApp').get("parent_appname")
-        elif "KernelApp" in ip.config:
-            front_end = ip.config.get('KernelApp').get("parent_appname")
 
-        if isinstance(front_end, IPython.config.loader.LazyConfigValue) or front_end is None:
-            if isinstance(ip, IPython.kernel.zmq.zmqshell.ZMQInteractiveShell):
-                return True
-            else:
-                return False
-        elif isinstance(front_end, six.string_types):
-            if 'ipython-notebook' in front_end.lower():
-                return True
-            elif 'notebook' in front_end.lower():
-                return True
-    except Exception as e:
-        logger.debug("Cannot determine if running a notebook because of %s" % e)
-        return False
-    return False
+def str_to_valid_variable_name(s):
+    """Adapted from http://stackoverflow.com/a/3303361/280182"""
+
+    # Remove invalid characters
+    s = re.sub('[^0-9a-zA-Z_]', '_', s)
+
+    # Remove leading characters until we find a letter or underscore
+    s = re.sub('^[^a-zA-Z_]+', '', s)
+
+    return s
