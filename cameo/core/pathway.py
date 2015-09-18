@@ -57,7 +57,7 @@ class Pathway(object):
                                   reaction.notes.get("pathway_note", "") + "\n")
 
     def plug_model(self, model, tm=None):
-        metabolites = reduce(lambda x, y: x+y, [r.metabolites.keys() for r in self.reactions], [])
+        metabolites = reduce(lambda x, y: x+y, [list(r.metabolites.keys()) for r in self.reactions], [])
         exchanges = [model.add_demand(m, prefix="EX_", time_machine=tm) for m in metabolites if m not in model.metabolites]
         for exchange in exchanges:
             exchange.lower_bound = 0
