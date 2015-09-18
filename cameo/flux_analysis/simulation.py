@@ -1,4 +1,5 @@
-# Copyright 2014 Novo Nordisk Foundation Center for Biosustainability, DTU.
+# -*- coding: utf-8 -*-
+#  Copyright 2014 Novo Nordisk Foundation Center for Biosustainability, DTU.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -126,7 +127,7 @@ def moma(model, reference=None, *args, **kwargs):
 
 
 def lmoma(model, reference=None, cache=None, *args, **kwargs):
-    """Linear Minimization Of Metabolic Adjustment.
+    """Linear Minimization Of Metabolic Adjustment [1].
 
     Parameters
     ----------
@@ -141,6 +142,12 @@ def lmoma(model, reference=None, cache=None, *args, **kwargs):
     -------
     FluxDistributionResult
         Contains the result of the linear solver.
+
+    References
+    ----------
+    .. [1] Becker, S. A., Feist, A. M., Mo, M. L., Hannum, G., Palsson, B. Ø., & Herrgard, M. J. (2007).
+    Quantitative prediction of cellular metabolism with constraint-based models: the COBRA Toolbox.
+    Nature Protocols, 2(3), 727–38. doi:10.1038/nprot.2007.99
 
     """
     volatile = False
@@ -226,7 +233,7 @@ def room(model, reference=None, cache=None, delta=0.03, epsilon=0.001, *args, **
 
     References
     ----------
-    [1] Tomer Shlomi, Omer Berkman and Eytan Ruppin, "Regulatory on/off minimization of metabolic
+    .. [1] Tomer Shlomi, Omer Berkman and Eytan Ruppin, "Regulatory on/off minimization of metabolic
     flux changes after genetic perturbations", PNAS 2005 102 (21) 7695-7700; doi:10.1073/pnas.0406346102
     """
     volatile = False
