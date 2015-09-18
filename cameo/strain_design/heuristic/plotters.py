@@ -10,23 +10,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import absolute_import, print_function
+
+from uuid import uuid1
+from requests import ConnectionError
+
 import scipy
 import numpy as np
 
-from uuid import uuid1
 from cameo import config
 
 if config.use_bokeh:
     from bokeh.plotting import *
+    from bokeh.models import GlyphRenderer
 
 
 class IPythonBokehFitnessPlotter(object):
     __name__ = "IPython Bokeh Fitness Plot"
 
-    def __init__(self, window_size=1000, url='default'):
+    def __init__(self, window_size=1000):
         self.iteration = 0
         self.window_size = window_size
-        self.url = url
         self.iterations = []
         self.fitness = []
         self.uuid = None
@@ -36,20 +40,23 @@ class IPythonBokehFitnessPlotter(object):
     def _set_plot(self):
         self.uuid = uuid1()
         try:
-            output_notebook(url=self.url, docname=str(self.uuid))
-            hold()
-            figure()
-            scatter([], [], tools='', title="Best solution fitness plot")
-            xaxis()[0].axis_label = "Iteration"
-            yaxis()[0].axis_label = "Fitness"
-            self.plot = curplot()
-            renderer = [r for r in self.plot.renderers if isinstance(r, Glyph)][0]
-            self.ds = renderer.data_source
-            show()
+            self.plot = figure(title="Fitness plot", tools='', plot_height=400, plot_width=650)
+            self.plot.scatter([], [])
+            self.plot.xaxis.axis_label = "Iteration"
+            self.plot.yaxis.axis_label = "Fitness"
+
+            renderer = self.plot.select(dict(type=GlyphRenderer))
+            self.ds = renderer[0].data_source
+
+            output_notebook(url=config.bokeh_url, docname=str(self.uuid), hide_banner=True)
+            show(self.plot)
             self.plotted = True
-        except SystemExit as e:
+        except ConnectionError:
+            from bokeh import io
+
+            io._state._session = None
+            output_notebook(url=None, docname=None, hide_banner=True)
             logger.info("Bokeh-server is not running. Skipping plotting.")
-            logger.error(e)
             self.can_plot = False
 
     def __call__(self, population, num_generations, num_evaluations, args):
@@ -68,10 +75,10 @@ class IPythonBokehFitnessPlotter(object):
             self._update_plot()
 
     def _update_plot(self):
+        self.ds.data['x'] = self.iterations[-self.window_size:]
+        self.ds.data['y'] = self.fitness[-self.window_size:]
         if self.can_plot:
-            self.ds.data['x'] = self.iterations[-self.window_size:]
-            self.ds.data['y'] = self.fitness[-self.window_size:]
-            session().store_obj(self.ds)
+            cursession().store_objects(self.ds)
 
     def reset(self):
         self.iteration = 0
@@ -79,12 +86,19 @@ class IPythonBokehFitnessPlotter(object):
         self.fitness = []
         self.plotted = False
 
+    def end(self):
+        if not self.can_plot:
+            plot = figure(title="Fitness plot", tools='', plot_height=400, plot_width=650)
+            plot.xaxis.axis_label = "Iteration"
+            plot.yaxis.axis_label = "Fitness"
+            plot.scatter(self.ds.data['x'], self.ds.data['y'])
+            show(plot)
+
 
 class IPythonBokehParetoPlotter(object):
     __name__ = "IPython Bokeh Pareto Plotter"
 
-    def __init__(self, ofs=None, x=0, y=1, url='default'):
-        self.url = url
+    def __init__(self, ofs=None, x=0, y=1):
         self.x = x
         self.y = y
         self.ofs = ofs
@@ -96,20 +110,22 @@ class IPythonBokehParetoPlotter(object):
     def _set_plot(self):
         try:
             self.uuid = uuid1()
-            output_notebook(url=self.url, docname=str(self.uuid))
-            hold()
-            figure()
-            scatter([], [], tools='', title="Multi-objective Pareto Fitness Plot")
-            xaxis()[0].axis_label = self.ofs[self.x].name
-            yaxis()[0].axis_label = self.ofs[self.y].name
-            self.plot = curplot()
-            renderer = [r for r in self.plot.renderers if isinstance(r, Glyph)][0]
-            self.ds = renderer.data_source
-            show()
+            self.plot = figure(title="Multi-objective Fitness Plot", tools='', plot_height=400, plot_width=650)
+            self.plot.scatter([], [])
+            self.plot.xaxis.axis_label = self.ofs[self.x].name
+            self.plot.yaxis.axis_label = self.ofs[self.y].name
+
+            renderer = self.plot.select(dict(type=GlyphRenderer))
+            self.ds = renderer[0].data_source
+
+            output_notebook(url=config.bokeh_url, docname=str(self.uuid), hide_banner=True)
+            show(self.plot)
             self.plotted = True
-        except SystemExit as e:
+        except ConnectionError as e:
             logger.info("Bokeh-server is not running. Skipping plotting.")
-            logger.error(e)
+            from bokeh import io
+
+            io._state._session = None
             self.can_plot = False
 
     def __call__(self, population, num_generations, num_evaluations, args):
@@ -121,17 +137,25 @@ class IPythonBokehParetoPlotter(object):
             self._update()
 
     def _update(self):
+        self.ds.data['x'] = [e[self.x] for e in self.fitness]
+        self.ds.data['y'] = [e[self.y] for e in self.fitness]
         if self.can_plot:
-            self.ds.data['x'] = [e[self.x] for e in self.fitness]
-            self.ds.data['y'] = [e[self.y] for e in self.fitness]
-            session().store_obj(self.ds)
+            cursession().store_objects(self.ds)
 
     def reset(self):
         self.fitness = []
         self.plotted = False
 
+    def end(self):
+        if not self.can_plot:
+            plot = figure(title="Multi-objective Fitness Plot", tools='', plot_height=400, plot_width=650)
+            plot.xaxis.axis_label = self.ofs[self.x].name
+            plot.yaxis.axis_label = self.ofs[self.y].name
+            plot.scatter(self.ds.data['x'], self.ds.data['y'])
+            show(plot)
 
-class GeneFrequencyPlotter():
+
+class GeneFrequencyPlotter(object):
     def __init__(self, solutions, url='default'):
         self.solutions = solutions
         self.url = url
@@ -147,10 +171,10 @@ class GeneFrequencyPlotter():
 
     def plot(self):
         self.uuid = uuid1()
-        output_notebook(url=self.url, docname=str(self.uuid))
-        figure()
+        output_notebook(url=self.url, docname=str(self.uuid), hide_banner=True)
+        plot = figure()
 
-        quad(top=self.freqs[:, 1], left=self.freqs[:, 1], bottom=np.zeros(len(self.freqs[:, 1])),
-             right=self.freqs[:, 1], x_range=list(self.freqs[:, 0]))
-        xaxis().major_label_orientation = np.pi / 3
-        show()
+        plot.quad(top=self.freqs[:, 1], left=self.freqs[:, 1], bottom=np.zeros(len(self.freqs[:, 1])),
+                  right=self.freqs[:, 1], x_range=list(self.freqs[:, 0]))
+        plot.xaxis().major_label_orientation = np.pi / 3
+        show(plot)

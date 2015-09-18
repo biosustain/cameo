@@ -12,33 +12,50 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import absolute_import, print_function
+from collections import namedtuple
+from math import sqrt
+
 import os
 import unittest
 import inspyred
 import pickle
+from inspyred.ec import Bounder
+import numpy
+from ordered_set import OrderedSet
 
 from pandas.util.testing import assert_frame_equal
+import six
 
 from cameo import load_model, fba, config
+from cameo.strain_design.heuristic.genomes import MultipleChromosomeGenome
+from cameo.strain_design.heuristic.metrics import euclidean_distance
+from cameo.strain_design.heuristic.metrics import manhattan_distance
+from cameo.strain_design.heuristic.multiprocess.migrators import MultiprocessingMigrator
+from cameo.strain_design.heuristic.variators import _do_set_n_point_crossover, set_n_point_crossover, set_mutation, \
+    set_indel, multiple_chromosome_set_mutation, multiple_chromosome_set_indel
+
 from cameo.util import RandomGenerator as Random
-from cameo.strain_design.heuristic.optimization import HeuristicOptimization, ReactionKnockoutOptimization, set_distance_function
+from cameo.strain_design.heuristic.optimization import HeuristicOptimization, ReactionKnockoutOptimization, \
+    set_distance_function, KnockoutOptimizationResult
 from cameo.strain_design.heuristic.archivers import SolutionTuple, BestSolutionArchiver
 from cameo.strain_design.heuristic.decoders import ReactionKnockoutDecoder, KnockoutDecoder, GeneKnockoutDecoder
-from cameo.strain_design.heuristic.generators import set_generator, unique_set_generator
+from cameo.strain_design.heuristic.generators import set_generator, unique_set_generator, \
+    multiple_chromosome_set_generator, linear_set_generator
 from cameo.strain_design.heuristic.objective_functions import biomass_product_coupled_yield, product_yield, \
     number_of_knockouts
 from cobra.manipulation.delete import find_gene_knockout_reactions
-from cameo.parallel import SequentialView, MultiprocessingView
+from cameo.parallel import SequentialView, MultiprocessingView, RedisQueue
+from six.moves import range
 
-config.default_view = MultiprocessingView(processes=2)
+TRAVIS = os.getenv('TRAVIS', False)
 
 SEED = 1234
 
 CURRENT_PATH = os.path.dirname(__file__)
 MODEL_PATH = os.path.join(CURRENT_PATH, "data/EcoliCore.xml")
 
-
-TEST_MODEL = load_model(MODEL_PATH)
+TEST_MODEL = load_model(MODEL_PATH, sanitize=False)
 
 SOLUTIONS = [
     [[1, 2, 3], 0.1],
@@ -54,26 +71,49 @@ SOLUTIONS = [
 ]
 
 
+class TestMetrics(unittest.TestCase):
+    def test_euclidean_distance(self):
+        distance = euclidean_distance({'a': 9}, {'a': 3})
+        self.assertEqual(distance, sqrt((9-3)**2))
+
+    def test_manhattan_distance(self):
+        distance = manhattan_distance({'a': 9}, {'a': 3})
+        self.assertEqual(distance, abs(9-3))
+
+
 class TestBestSolutionArchiver(unittest.TestCase):
     def test_solution_string(self):
         sol1 = SolutionTuple(SOLUTIONS[0][0], SOLUTIONS[0][1])
         sol2 = SolutionTuple(SOLUTIONS[1][0], SOLUTIONS[1][1])
         sol3 = SolutionTuple(SOLUTIONS[2][0], SOLUTIONS[2][1])
-        self.assertEqual(sol1.__str__(), "[1, 2, 3] - 0.1")
-        self.assertEqual(sol2.__str__(), "[1, 2, 3, 4] - 0.1")
-        self.assertEqual(sol3.__str__(), "[2, 3, 4] - 0.45")
+        self.assertEqual(sol1.__str__(), "[1, 2, 3] - 0.1 sense: max")
+        self.assertEqual(sol2.__str__(), "[1, 2, 3, 4] - 0.1 sense: max")
+        self.assertEqual(sol3.__str__(), "[2, 3, 4] - 0.45 sense: max")
 
-    def test_solution_comparison(self):
+    def test_solution_comparison_maximization(self):
         sol1 = SolutionTuple(SOLUTIONS[0][0], SOLUTIONS[0][1])
         sol2 = SolutionTuple(SOLUTIONS[1][0], SOLUTIONS[1][1])
         sol3 = SolutionTuple(SOLUTIONS[2][0], SOLUTIONS[2][1])
 
-        #test ordering
+        # test ordering
         self.assertEqual(sol1.__cmp__(sol2), -1)
         self.assertEqual(sol1.__cmp__(sol1), 0)
         self.assertEqual(sol1.__cmp__(sol3), 1)
 
-        #testing issubset
+        self.assertTrue(sol1 < sol2)
+        self.assertTrue(sol1 == sol1)
+        self.assertTrue(sol1 > sol3)
+
+        # test gt and lt
+        self.assertTrue(sol1.__lt__(sol2))
+        self.assertTrue(sol1.__gt__(sol3))
+        self.assertFalse(sol1.__lt__(sol1))
+        self.assertFalse(sol1.__gt__(sol1))
+        self.assertFalse(sol2.__lt__(sol1))
+        self.assertFalse(sol3.__gt__(sol1))
+
+
+        # testing issubset
         self.assertTrue(sol1.issubset(sol2), msg="Solution 1 is subset of Solution 2")
         self.assertFalse(sol2.issubset(sol1), msg="Solution 2 is not subset of Solution 1")
         self.assertTrue(sol3.issubset(sol2), msg="Solution 3 is subset of Solution 2")
@@ -81,7 +121,7 @@ class TestBestSolutionArchiver(unittest.TestCase):
         self.assertFalse(sol1.issubset(sol3), msg="Solution 1 is subset of Solution 3")
         self.assertFalse(sol2.issubset(sol3), msg="Solution 3 is not subset of Solution 1")
 
-        #test difference
+        # test difference
         l = len(sol2.symmetric_difference(sol1))
         self.assertEqual(l, 1, msg="Difference between Solution 2 and 1 is (%s)" % sol2.symmetric_difference(sol1))
         l = len(sol3.symmetric_difference(sol2))
@@ -91,6 +131,51 @@ class TestBestSolutionArchiver(unittest.TestCase):
 
         self.assertTrue(sol1.improves(sol2), msg="Solution 1 is better than Solution 2")
         self.assertTrue(sol3.improves(sol2), msg="Solution 3 is better than Solution 2")
+        self.assertFalse(sol3.improves(sol1), msg="Solution 3 does not improve Solution 1")
+        self.assertFalse(sol2.improves(sol1), msg="Solution 2 does not improve Solution 1")
+        self.assertFalse(sol2.improves(sol3), msg="Solution 2 does not improve Solution 3")
+
+    def test_solution_comparison_minimization(self):
+        sol1 = SolutionTuple(SOLUTIONS[0][0], SOLUTIONS[0][1], maximize=False)
+        sol2 = SolutionTuple(SOLUTIONS[1][0], SOLUTIONS[1][1], maximize=False)
+        sol3 = SolutionTuple(SOLUTIONS[2][0], SOLUTIONS[2][1], maximize=False)
+
+        # test ordering
+        self.assertEqual(sol1.__cmp__(sol2), -1)
+        self.assertEqual(sol1.__cmp__(sol1), 0)
+        self.assertEqual(sol1.__cmp__(sol3), -1)
+        self.assertEqual(sol3.__cmp__(sol1), 1)
+
+        self.assertTrue(sol1 < sol2)
+        self.assertTrue(sol1 == sol1)
+        self.assertTrue(sol1 < sol3)
+
+        # test gt and lt
+        self.assertTrue(sol1.__lt__(sol2))
+        self.assertTrue(sol1.__lt__(sol3))
+        self.assertFalse(sol1.__gt__(sol1))
+        self.assertFalse(sol1.__lt__(sol1))
+        self.assertTrue(sol2.__gt__(sol1))
+        self.assertFalse(sol3.__lt__(sol1))
+
+        # testing issubset
+        self.assertTrue(sol1.issubset(sol2), msg="Solution 1 is subset of Solution 2")
+        self.assertFalse(sol2.issubset(sol1), msg="Solution 2 is not subset of Solution 1")
+        self.assertTrue(sol3.issubset(sol2), msg="Solution 3 is subset of Solution 2")
+        self.assertFalse(sol2.issubset(sol3), msg="Solution 2 is not subset of Solution 3")
+        self.assertFalse(sol1.issubset(sol3), msg="Solution 1 is subset of Solution 3")
+        self.assertFalse(sol2.issubset(sol3), msg="Solution 3 is not subset of Solution 1")
+
+        # test difference
+        l = len(sol2.symmetric_difference(sol1))
+        self.assertEqual(l, 1, msg="Difference between Solution 2 and 1 is (%s)" % sol2.symmetric_difference(sol1))
+        l = len(sol3.symmetric_difference(sol2))
+        self.assertEqual(l, 1, msg="Difference between Solution 3 and 1 is (%s)" % sol3.symmetric_difference(sol2))
+        l = len(sol3.symmetric_difference(sol1))
+        self.assertEqual(l, 2, msg="Difference between Solution 1 and 3 is (%s)" % sol3.symmetric_difference(sol1))
+
+        self.assertTrue(sol1.improves(sol2), msg="Solution 1 is better than Solution 2")
+        self.assertFalse(sol3.improves(sol2), msg="Solution 3 is not better than Solution 2")
         self.assertFalse(sol3.improves(sol1), msg="Solution 3 does not improve Solution 1")
         self.assertFalse(sol2.improves(sol1), msg="Solution 2 does not improve Solution 1")
         self.assertFalse(sol2.improves(sol3), msg="Solution 2 does not improve Solution 3")
@@ -118,6 +203,14 @@ class TestBestSolutionArchiver(unittest.TestCase):
         sol = pool.get(0)
         self.assertEqual(sol.candidate, solution, msg="Best solution must be the first (%s)" % sol.candidate)
         self.assertEqual(sol.fitness, fitness, msg="Best fitness must be the first (%s)" % sol.fitness)
+
+    def test_uniqueness_of_solutions(self):
+        size = 2
+        pool = BestSolutionArchiver()
+        pool.add(SOLUTIONS[1][0], SOLUTIONS[1][1], size)
+        pool.add(SOLUTIONS[1][0], SOLUTIONS[1][1], size)
+
+        self.assertEqual(pool.length(), 1, "Added repeated solution")
 
     def test_pool_size_limit(self):
         size = 1
@@ -193,7 +286,6 @@ class TestBestSolutionArchiver(unittest.TestCase):
 
 
 class TestObjectiveFunctions(unittest.TestCase):
-
     class _MockupSolution():
         def __init__(self):
             self._primal = {}
@@ -204,6 +296,10 @@ class TestObjectiveFunctions(unittest.TestCase):
         def get_primal_by_id(self, k):
             return self._primal[k]
 
+        @property
+        def fluxes(self):
+            return self._primal
+
     def test_biomass_product_coupled_yield(self):
         solution = self._MockupSolution()
         solution.set_primal('biomass', 0.6)
@@ -211,9 +307,10 @@ class TestObjectiveFunctions(unittest.TestCase):
         solution.set_primal('substrate', -10)
 
         of = biomass_product_coupled_yield("biomass", "product", "substrate")
+        self.assertEqual(of.name, "bpcy = (biomass * product) / substrate")
 
         fitness = of(None, solution, None)
-        self.assertAlmostEqual((0.6 * 2)/10, fitness)
+        self.assertAlmostEqual((0.6 * 2) / 10, fitness)
 
         solution.set_primal('substrate', 0)
 
@@ -227,17 +324,19 @@ class TestObjectiveFunctions(unittest.TestCase):
         solution.set_primal('substrate', -10)
 
         of = product_yield("product", "substrate")
+        self.assertEqual(of.name, "yield = (product / substrate)")
         fitness = of(None, solution, None)
-        self.assertAlmostEqual(2.0/10.0, fitness)
+        self.assertAlmostEqual(2.0 / 10.0, fitness)
 
         solution.set_primal('substrate', 0)
         fitness = of(None, solution, None)
         self.assertEquals(0, fitness)
 
     def test_number_of_knockouts(self):
-
         of_max = number_of_knockouts(sense='max')
+        self.assertEqual(of_max.name, "max knockouts")
         of_min = number_of_knockouts(sense='min')
+        self.assertEqual(of_min.name, "min knockouts")
 
         f1 = of_max(None, None, [['a', 'b'], ['a', 'b']])
         f2 = of_max(None, None, [['a', 'b'], ['a', 'b', 'c']])
@@ -259,60 +358,104 @@ class TestDecoders(unittest.TestCase):
     def test_reaction_knockout_decoder(self):
         decoder = ReactionKnockoutDecoder([r.id for r in self.model.reactions], self.model)
         reactions1, reactions2 = decoder([1, 2, 3, 4])
-        self.assertItemsEqual(reactions1, reactions2)
+        self.assertTrue(sorted(reactions1, key=lambda x: x.id) == sorted(reactions2, key=lambda x: x.id))
 
     def test_gene_knockout_decoder(self):
         decoder = GeneKnockoutDecoder([g.id for g in self.model.genes], self.model)
         reactions1, genes = decoder([1, 2, 3, 4])
         reactions2 = find_gene_knockout_reactions(self.model, genes)
-        self.assertItemsEqual(reactions1, reactions2)
+        self.assertTrue(sorted(reactions1, key=lambda x: x.id) == sorted(reactions2, key=lambda x: x.id))
 
 
-class TestGeneratos(unittest.TestCase):
+class TestGenerators(unittest.TestCase):
+    mockup_evolutionary_algorithm = namedtuple("EA", ["bounder"])
+
     def setUp(self):
         self.model = TEST_MODEL
         self.args = {}
         self.args.setdefault('representation', [r.id for r in self.model.reactions])
         self.random = Random()
 
-    def test_fixed_size_generator(self):
-        self.args.setdefault('variable_candidate_size', False)
+    def test_set_generator(self):
+        random = Random(SEED)
+        representation = ["a", "b", "c", "d", "e", "f"]
+        max_size = 5
+        variable_size = False
+        expected = [[2, 1, 5, 0, 4],
+                    [0, 4, 3, 2, 5],
+                    [1, 0, 3, 2, 5],
+                    [2, 3, 1, 4, 5],
+                    [4, 5, 3, 0, 2]]
 
-        self.args['candidate_size'] = 10
-        for _ in xrange(10000):
+        for i in range(len(expected)):
+            candidate = set_generator(random, dict(representation=representation,
+                                                   max_size=max_size,
+                                                   variable_size=variable_size))
+            self.assertEqual(candidate, expected[i])
+
+    def test_multiple_chromossome_set_generator(self):
+        random = Random(SEED)
+        args = dict(keys=["test_key_1", "test_key_2"],
+                    test_key_1_representation=["a1", "a2", "a3", "a4", "a5"],
+                    test_key_2_representation=["b1", "b2", "b3", "b4", "b5", "b6", "b7"],
+                    test_key_1_max_size=3,
+                    test_key_2_max_size=5,
+                    variable_size=False)
+        candidate = multiple_chromosome_set_generator(random, args)
+        self.assertEqual(len(candidate['test_key_1']), 3)
+        self.assertEqual(len(candidate['test_key_2']), 5)
+
+    def test_fixed_size_set_generator(self):
+        self.args.setdefault('variable_size', False)
+
+        self.args['max_size'] = 10
+        for _ in range(1000):
             candidate = set_generator(self.random, self.args)
             self.assertEqual(len(candidate), 10)
             candidate = unique_set_generator(self.random, self.args)
             self.assertEqual(len(candidate), 10)
 
-        self.args['candidate_size'] = 20
-        for _ in xrange(10000):
+        self.args['max_size'] = 20
+        for _ in range(1000):
             candidate = set_generator(self.random, self.args)
             self.assertEqual(len(candidate), 20)
             candidate = unique_set_generator(self.random, self.args)
             self.assertEqual(len(candidate), 20)
 
-    def test_variable_size_generator(self):
-        self.args.setdefault('variable_candidate_size', True)
+    def test_variable_size_set_generator(self):
+        self.args.setdefault('variable_size', True)
 
-        self.args['candidate_size'] = 10
-        for _ in xrange(10000):
+        self.args['max_size'] = 10
+        for _ in range(1000):
             candidate = set_generator(self.random, self.args)
             self.assertLessEqual(len(candidate), 10)
             candidate = unique_set_generator(self.random, self.args)
             self.assertLessEqual(len(candidate), 10)
 
-        self.args['candidate_size'] = 20
-        for _ in xrange(10000):
+        self.args['max_size'] = 20
+        for _ in range(1000):
             candidate = set_generator(self.random, self.args)
             self.assertLessEqual(len(candidate), 20)
             candidate = unique_set_generator(self.random, self.args)
             self.assertLessEqual(len(candidate), 20)
+
+    def test_fixed_size_linear_set_generator(self):
+        ec = self.mockup_evolutionary_algorithm(Bounder(-10, 10))
+        self.args.setdefault('variable_size', True)
+        self.args['max_size'] = 10
+        self.args['_ec'] = ec
+        for _ in range(1000):
+            candidate = linear_set_generator(self.random, self.args)
+            for i, v in six.iteritems(candidate):
+                self.assertIsInstance(i, (int, numpy.int64, numpy.int32))
+                self.assertIsInstance(v, float)
+
+            self.assertLessEqual(len(candidate), 10)
 
 
 class TestHeuristicOptimization(unittest.TestCase):
     def setUp(self):
-        self.model = TEST_MODEL.copy()
+        self.model = TEST_MODEL
         self.single_objective_function = product_yield('product', 'substrate')
         self.multiobjective_function = [
             product_yield('product', 'substrate'),
@@ -433,15 +576,82 @@ class TestHeuristicOptimization(unittest.TestCase):
         self.assertFalse(multiobjective_heuristic.is_mo())
 
     def test_set_distance_function(self):
-        s1 = set([1, 2, 3])
-        s2 = set([1, 2, 3, 4])
+        s1 = {1, 2, 3}
+        s2 = {1, 2, 3, 4}
         d = set_distance_function(s1, s2)
         self.assertEqual(d, 1)
-        s3 = set([2, 3, 4])
+        s3 = {2, 3, 4}
         d = set_distance_function(s1, s3)
         self.assertEqual(d, 2)
         d = set_distance_function(s3, s2)
         self.assertEqual(d, 1)
+
+
+class TestMigrators(unittest.TestCase):
+    def setUp(self):
+        self.population = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+        self.random = Random(SEED)
+
+    def test_migrator_constructor(self):
+        migrator = MultiprocessingMigrator(max_migrants=1)
+        self.assertIsInstance(migrator.migrants, RedisQueue)
+        self.assertEqual(migrator.max_migrants, 1)
+
+        migrator = MultiprocessingMigrator(max_migrants=2)
+        self.assertIsInstance(migrator.migrants, RedisQueue)
+        self.assertEqual(migrator.max_migrants, 2)
+
+        migrator = MultiprocessingMigrator(max_migrants=3)
+        self.assertIsInstance(migrator.migrants, RedisQueue)
+        self.assertEqual(migrator.max_migrants, 3)
+
+    def test_migrate_individuals_without_evaluation(self):
+        migrator = MultiprocessingMigrator(max_migrants=1)
+        self.assertIsInstance(migrator.migrants, RedisQueue)
+        self.assertEqual(migrator.max_migrants, 1)
+
+        migrator(self.random, self.population, {})
+        self.assertEqual(len(migrator.migrants), 1)
+
+        migrator(self.random, self.population, {})
+        self.assertEqual(len(migrator.migrants), 1)
+
+
+class TestKnockoutOptimizationResult(unittest.TestCase):
+    def setUp(self):
+        self.model = TEST_MODEL
+        self.representation = [r.id for r in self.model.reactions]
+        random = Random(SEED)
+        args = {"representation": self.representation}
+        self.solutions = BestSolutionArchiver()
+        for _ in range(10000):
+            self.solutions.add(set_generator(random, args), random.random(), 100)
+        self.decoder = ReactionKnockoutDecoder(self.representation, self.model)
+
+    def test_result(self):
+        result = KnockoutOptimizationResult(
+            model=self.model,
+            heuristic_method=None,
+            simulation_method=fba,
+            solutions=self.solutions,
+            objective_function=None,
+            ko_type="reaction",
+            decoder=self.decoder,
+            product="EX_ac_LPAREN_e_RPAREN_",
+            biomass="Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2",
+            seed=SEED,
+            reference=None)
+
+        self.assertEqual(result.ko_type, "reaction")
+
+        individuals = []
+        for index, row in result.solutions.iterrows():
+            individual = SolutionTuple(set(self.representation.index(r) for r in row["Knockouts"]), row["Fitness"])
+            self.assertNotIn(individual, individuals, msg="%s is repeated on result")
+            individuals.append(individual)
+            self.assertIn(individual, self.solutions.archive)
+            self.assertEqual(len(row["Knockouts"]), row["Size"])
+            self.assertEqual(self.solutions.archive.count(individual), 1, msg="%s is unique in archive" % individual)
 
 
 class TestReactionKnockoutOptimization(unittest.TestCase):
@@ -454,42 +664,39 @@ class TestReactionKnockoutOptimization(unittest.TestCase):
                                            simulation_method=fba,
                                            seed=SEED)
 
-        self.assertItemsEqual(self.essential_reactions, rko.essential_reactions)
+        self.assertTrue(sorted(self.essential_reactions) == sorted(rko.essential_reactions))
         self.assertEqual(rko._ko_type, "reaction")
         self.assertTrue(isinstance(rko._decoder, ReactionKnockoutDecoder))
 
-    @unittest.skip('Not deterministic when seeded')
+    @unittest.skipIf(True, 'Broken ..')
     def test_run_single_objective(self):
-
-        model = load_model(MODEL_PATH)
         result_file = os.path.join(CURRENT_PATH, "data", "reaction_knockout_single_objective.pkl")
         objective = biomass_product_coupled_yield(
             "Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2",
             "EX_ac_LPAREN_e_RPAREN_",
             "EX_glc_LPAREN_e_RPAREN_")
 
-        rko = ReactionKnockoutOptimization(model=model,
+        rko = ReactionKnockoutOptimization(model=self.model,
                                            simulation_method=fba,
                                            objective_function=objective,
                                            seed=SEED)
 
-        print rko.random.random()
+        # self.assertEqual(rko.random.random(), 0.1915194503788923)
 
         results = rko.run(max_evaluations=3000, pop_size=10, view=SequentialView())
 
-        print rko.random.random()
+        # self.assertEqual(rko.random.random(), 0.9268454219291495)
 
-        with open(result_file, 'r') as f:
-            expected_results = pickle.load(f)
-
-        # with open(result_file, 'w') as f:
-        #     pickle.dump(results, f)
+        with open(result_file, 'rb') as in_file:
+            if six.PY3:
+                expected_results = pickle.load(in_file, encoding="latin1")
+            else:
+                expected_results = pickle.load(in_file)
 
         assert_frame_equal(results.solutions, expected_results.solutions)
 
-    @unittest.skip('Not deterministic when seeded')
+    @unittest.skipIf(True, 'Broken ..')
     def test_run_multiobjective(self):
-        model = load_model(MODEL_PATH)
         result_file = os.path.join(CURRENT_PATH, "data", "reaction_knockout_multi_objective.pkl")
         objective1 = biomass_product_coupled_yield(
             "Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2",
@@ -499,21 +706,130 @@ class TestReactionKnockoutOptimization(unittest.TestCase):
         objective2 = number_of_knockouts()
         objective = [objective1, objective2]
 
-        rko = ReactionKnockoutOptimization(model=model,
+        rko = ReactionKnockoutOptimization(model=self.model,
                                            simulation_method=fba,
                                            objective_function=objective,
                                            heuristic_method=inspyred.ec.emo.NSGA2,
                                            seed=SEED)
 
+        # self.assertEqual(rko.random.random(), 0.1915194503788923)
+
         results = rko.run(max_evaluations=3000, pop_size=10, view=SequentialView())
 
-        with open(result_file, 'r') as file:
-            expected_results = pickle.load(file)
+        # print(rko.random.random(), 0.545818634701)
 
-        # with open(result_file, 'w') as file:
-        #     pickle.dump(results, file)
+        with open(result_file, 'rb') as in_file:
+            if six.PY3:
+                expected_results = pickle.load(in_file, encoding="latin1")
+            else:
+                expected_results = pickle.load(in_file)
 
         assert_frame_equal(results.solutions, expected_results.solutions)
 
     def test_evaluator(self):
         pass
+
+
+class VariatorsTestCase(unittest.TestCase):
+
+    def test_set_n_point_crossover(self):
+        mom = OrderedSet([1, 3, 5, 9, 10])
+        dad = OrderedSet([2, 3, 7, 8])
+        args = {
+            "crossover_rate": 1.0,
+            "num_crossover_points": 1,
+            "candidate_size": 10
+        }
+        children = set_n_point_crossover(Random(SEED), [mom, dad], args)
+        bro = OrderedSet([1, 3, 5, 8])
+        sis = OrderedSet([2, 3, 7, 9, 10])
+        self.assertEqual(bro, children[0])
+        self.assertEqual(sis, children[1])
+
+    def test_set_mutation(self):
+        individual = OrderedSet([1, 3, 5, 9, 10])
+        representation = list(range(10))
+        args = {
+            "representation": representation,
+            "mutation_rate": 1
+        }
+        new_individuals = set_mutation(Random(SEED), [individual], args)
+        self.assertEqual(new_individuals[0], [6, 4, 1, 0])
+
+    def test_set_indel(self):
+        individual = OrderedSet([1, 3, 5, 9, 10])
+        representation = list(range(10))
+        args = {
+            "representation": representation,
+            "indel_rate": 1
+        }
+        new_individuals = set_indel(Random(SEED), [individual], args)
+        self.assertEqual(new_individuals[0], [5, 3, 9, 1])
+
+    def test_do_set_n_point_crossover(self):
+        representation = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N"]
+        int_representation = [representation.index(v) for v in representation]
+        mom = OrderedSet([representation.index(v) for v in ["A", "B", "E", "K", "L", "M"]])
+        dad = OrderedSet([representation.index(v) for v in ["A", "C", "I", "J", "K", "L"]])
+        points = [4]
+        children = _do_set_n_point_crossover(int_representation, mom, dad, points, Random(), len(mom))
+        bro = OrderedSet([0, 1, 8, 9, 10, 11])
+        sis = OrderedSet([0, 2, 4, 10, 11, 12])
+        self.assertEqual(children[0], bro)
+        self.assertEqual(children[1], sis)
+
+    def test_multiple_chromosome_set_mutation(self):
+        genome = MultipleChromosomeGenome(["A", "B"])
+        genome["A"] = [1, 2, 3, 4]
+        genome["B"] = [1, 5, 7, 10]
+        representation = list(range(10))
+        args = {
+            "A_representation": representation,
+            "B_representation": representation,
+            "A_mutation_rate": 1,
+            "B_mutation_rate": 1
+        }
+
+        new_individuals = multiple_chromosome_set_mutation(Random(SEED), [genome], args)
+        self.assertEqual(new_individuals[0]["A"], OrderedSet([6, 4, 1]))
+        self.assertEqual(new_individuals[0]["B"], OrderedSet([0, 6, 2]))
+
+    def test_multiple_chromosome_set_indel(self):
+        genome = MultipleChromosomeGenome(["A", "B"])
+        genome["A"] = [1, 2, 3, 4]
+        genome["B"] = [1, 5, 7, 10]
+        representation = list(range(10))
+        args = {
+            "A_representation": representation,
+            "B_representation": representation,
+            "A_indel_rate": 1,
+            "B_indel_rate": 1
+        }
+
+        random = Random(SEED)
+        new_individuals = multiple_chromosome_set_indel(random, [genome for _ in range(5)], args)
+        self.assertEqual(new_individuals[0]["A"], OrderedSet([2, 3, 4]))
+        self.assertEqual(new_individuals[0]["B"], OrderedSet([10, 1, 7]))
+        self.assertEqual(new_individuals[1]["A"], OrderedSet([2, 1, 4]))
+        self.assertEqual(new_individuals[1]["B"], OrderedSet([1, 5, 7, 10]))
+        self.assertEqual(new_individuals[2]["A"], OrderedSet([1, 2, 3, 4, 8]))
+        self.assertEqual(new_individuals[2]["B"], OrderedSet([5, 1, 10]))
+        self.assertEqual(new_individuals[3]["A"], OrderedSet([1, 2, 3, 4]))
+        self.assertEqual(new_individuals[3]["B"], OrderedSet([1, 5, 7, 10]))
+        self.assertEqual(new_individuals[4]["A"], OrderedSet([1, 4, 3]))
+        self.assertEqual(new_individuals[4]["B"], OrderedSet([5, 1, 7]))
+
+
+class GenomesTestCase(unittest.TestCase):
+    def test_two_chromosomes(self):
+        genome = MultipleChromosomeGenome(["A", "B"])
+        self.assertIsInstance(genome["A"], OrderedSet)
+        self.assertIsInstance(genome["B"], OrderedSet)
+        genome["A"] = [1, 2, 3, 4]
+        genome["B"] = ["A", "B", "C"]
+
+        self.assertEqual(genome["A"], OrderedSet([1, 2, 3, 4]))
+        self.assertEqual(genome["B"], OrderedSet(["A", "B", "C"]))
+
+        del genome["A"]
+        self.assertRaises(KeyError, genome.__getitem__, "A")

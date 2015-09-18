@@ -12,6 +12,14 @@ cameo.core.reaction module
     :undoc-members:
     :show-inheritance:
 
+cameo.core.result module
+------------------------
+
+.. automodule:: cameo.core.result
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 cameo.core.solution module
 --------------------------
 

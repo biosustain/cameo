@@ -8,8 +8,14 @@ Subpackages
 
     cameo.api
     cameo.core
+    cameo.data
     cameo.flux_analysis
+    cameo.models
+    cameo.network_analysis
     cameo.strain_design
+    cameo.stuff
+    cameo.ui
+    cameo.visualization
 
 Submodules
 ----------
@@ -46,34 +52,10 @@ cameo.parallel module
     :undoc-members:
     :show-inheritance:
 
-cameo.stuff module
-------------------
-
-.. automodule:: cameo.stuff
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 cameo.util module
 -----------------
 
 .. automodule:: cameo.util
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-cameo.visualization module
---------------------------
-
-.. automodule:: cameo.visualization
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-cameo.webmodels module
-----------------------
-
-.. automodule:: cameo.webmodels
     :members:
     :undoc-members:
     :show-inheritance:

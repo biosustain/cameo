@@ -12,29 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import absolute_import, print_function
+
+__all__ = ['products']
+
 import difflib
+from pandas import DataFrame
 from cameo.data import metanetx
-
-
-def inchi_to_svg(inchi, file=None):
-    try:
-        import openbabel
-    except ImportError, e:
-        print e
-        raise ImportError("OpenBabel seems to be not installed.")
-    convert = openbabel.OBConversion()
-    convert.SetInFormat("inchi")
-    convert.SetOutFormat("svg")
-    mol = openbabel.OBMol()
-    if not convert.ReadString(mol, inchi):
-        raise Exception("%s could not be parsed as an inchi string.")
-    return convert.WriteString(mol)
+from cameo.visualization import inchi_to_svg
 
 
 class Compound(object):
-
     def __init__(self, inchi):
-        self.inchi
+        self.InChI = inchi
 
     def _repr_svg_(self):
         try:
@@ -47,7 +37,6 @@ class Compound(object):
 
 
 class Products(object):
-
     def __init__(self):
         self.data_frame = metanetx.chem_prop
 
@@ -68,9 +57,9 @@ class Products(object):
             raise Exception("No compound matches found for query %s" % query)
 
     def _search_by_name_fuzzy(self, name):
-        matches = difflib.get_close_matches(name, self.data_frame.name, n=5, cutoff=.6)
+        matches = difflib.get_close_matches(name, self.data_frame.name.dropna(), n=5, cutoff=.8)
         ranks = dict([(match, i) for i, match in enumerate(matches)])
-        selection = self.data_frame[self.data_frame.name.isin(matches)]
+        selection = DataFrame(self.data_frame[self.data_frame.name.isin(matches)])
         selection['search_rank'] = selection.name.map(ranks)
         return selection.sort('search_rank')
 
@@ -82,12 +71,11 @@ class Products(object):
 
     def _search_by_inchi_fuzzy(self, inchi):
         # TODO: use openbabel if available
-        matches = difflib.get_close_matches(inchi, self.data_frame.InChI, n=5, cutoff=.6)
+        matches = difflib.get_close_matches(inchi, self.data_frame.InChI.dropna(), n=5, cutoff=.8)
         ranks = dict([(match, i) for i, match in enumerate(matches)])
-        selection = self.data_frame[self.data_frame.InChI.isin(matches)]
+        selection = DataFrame(self.data_frame[self.data_frame.InChI.isin(matches)])
         selection['search_rank'] = selection.name.map(ranks)
         return selection.sort('search_rank')
-        return self.data_frame[self.data_frame.InChI == inchi]
 
 
 products = Products()

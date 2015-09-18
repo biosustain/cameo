@@ -12,11 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__all__ = ['KnockoutOptimizationResult', 'GeneOptimizationResult']
+from __future__ import absolute_import, print_function
+
+__all__ = ['ReactionKnockoutOptimization', 'GeneKnockoutOptimization']
+
+from six.moves import range
+
+import time
+from functools import reduce
 
 from cobra.manipulation.delete import find_gene_knockout_reactions
 from inspyred.ec.emo import Pareto
-import time
 
 from cameo.exceptions import SolveError
 from cameo.strain_design.heuristic import archivers
@@ -27,18 +33,17 @@ from cameo.strain_design.heuristic import generators
 from cameo.strain_design.heuristic import decoders
 from cameo.strain_design.heuristic import stats
 from cameo import config
-from cameo.flux_analysis.simulation import pfba, lmoma, moma, room, reset_model
-from cameo.strain_design.heuristic.plotters import GeneFrequencyPlotter
-from cameo.util import partition, TimeMachine, memoize
+from cameo.flux_analysis.simulation import pfba, lmoma, moma, room
+from cameo.util import partition, TimeMachine, memoize, ProblemCache
 from pandas import DataFrame
 
 import inspyred
 import logging
 
-from functools import partial
 from cameo.util import RandomGenerator as Random
-from pandas.core.common import in_ipnb
+from cameo.util import in_ipnb
 from cameo.visualization import draw_knockout_result
+from cameo import core
 
 REACTION_KNOCKOUT_TYPE = "reaction"
 GENE_KNOCKOUT_TYPE = "gene"
@@ -49,15 +54,15 @@ BIOMASS = 'Biomass'
 KNOCKOUTS = 'Knockouts'
 REACTIONS = 'Reactions'
 
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger('cameo')
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 PRE_CONFIGURED = {
     inspyred.ec.GA: [
         [
-            inspyred.ec.variators.crossovers.n_point_crossover,
             variators.set_mutation,
-            variators.set_indel
+            variators.set_indel,
+            variators.set_n_point_crossover
         ],
         inspyred.ec.selectors.tournament_selection,
         inspyred.ec.replacers.generational_replacement,
@@ -77,7 +82,7 @@ PRE_CONFIGURED = {
         [
             variators.set_mutation,
             variators.set_indel,
-            inspyred.ec.variators.crossovers.n_point_crossover
+            variators.set_n_point_crossover
         ],
         inspyred.ec.selectors.tournament_selection,
         inspyred.ec.replacers.nsga_replacement,
@@ -87,7 +92,7 @@ PRE_CONFIGURED = {
         [
             variators.set_mutation,
             variators.set_indel,
-            inspyred.ec.variators.crossovers.n_point_crossover
+            variators.set_n_point_crossover
         ],
         inspyred.ec.selectors.default_selection,
         inspyred.ec.replacers.paes_replacement,
@@ -130,18 +135,23 @@ class HeuristicOptimization(object):
     *cameo.config.default_view
 
     """
-    def __init__(self, model=None, heuristic_method=inspyred.ec.GA, objective_function=None, seed=None,
-                 termination=inspyred.ec.terminators.evaluation_termination, *args, **kwargs):
 
+    def __init__(self, model=None, heuristic_method=inspyred.ec.GA, objective_function=None, seed=None,
+                 termination=inspyred.ec.terminators.evaluation_termination, plot=True, progress=True,
+                 *args, **kwargs):
         super(HeuristicOptimization, self).__init__(*args, **kwargs)
         logger.debug("Seed: %s" % seed)
+        self.plot = plot
+        self.progress = progress
         if seed is None:
             seed = int(time.time())
         self.seed = seed
+        self.observers = []
         self.random = Random(seed=seed)
         self.model = model
         self.termination = termination
         self._objective_function = objective_function
+        self._heuristic_method = None
         self.heuristic_method = heuristic_method
         self.heuristic_method.terminator = termination
         self._generator = None
@@ -181,15 +191,19 @@ class HeuristicOptimization(object):
         raise NotImplementedError
 
     def run(self, view=config.default_view, maximize=True, **kwargs):
+        for observer in self.observers:
+            observer.reset()
         t = time.time()
-        print time.strftime("Starting optimization at %a, %d %b %Y %H:%M:%S", time.localtime(t))
+        print(time.strftime("Starting optimization at %a, %d %b %Y %H:%M:%S", time.localtime(t)))
         res = self.heuristic_method.evolve(generator=self._generator,
                                            maximize=maximize,
                                            view=view,
                                            evaluator=self._evaluator,
                                            **kwargs)
+        for observer in self.observers:
+            observer.end()
         runtime = time.time() - t
-        print time.strftime("Finished after %H:%M:%S", time.localtime(runtime))
+        print(time.strftime("Finished after %H:%M:%S", time.gmtime(runtime)))
 
         return res
 
@@ -225,23 +239,18 @@ class KnockoutEvaluator(object):
         calling the object will evaluate a population (see inspyred)
 
     """
-    def __init__(self, model, decoder, objective_function, simulation_method, simulation_kwargs):
 
+    def __init__(self, model, decoder, objective_function, simulation_method, simulation_kwargs):
         self.model = model
         self.decoder = decoder
         self.objective_function = objective_function
         self.simulation_method = simulation_method
         self.simulation_kwargs = simulation_kwargs
-        self.cache = {
-            'first_run': True,
-            'original_objective': self.model.objective,
-            'variables': {},
-            'constraints': {}
-        }
+        self.cache = ProblemCache(model)
 
     def __call__(self, population):
         res = [self.evaluate_individual(frozenset(i)) for i in population]
-        reset_model(self.model, self.cache)
+        self.cache.reset()
         return res
 
     @memoize
@@ -250,13 +259,13 @@ class KnockoutEvaluator(object):
         reactions = decoded[0]
         with TimeMachine() as tm:
             for reaction in reactions:
-                tm(do=partial(setattr, reaction, 'lower_bound', 0),
-                   undo=partial(setattr, reaction, 'lower_bound', reaction.lower_bound))
-                tm(do=partial(setattr, reaction, 'upper_bound', 0),
-                   undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
-
+                reaction.knock_out(time_machine=tm)
             try:
-                solution = self.simulation_method(self.model, cache=self.cache, volatile=False, **self.simulation_kwargs)
+                solution = self.simulation_method(self.model,
+                                                  cache=self.cache,
+                                                  volatile=False,
+                                                  raw=True,
+                                                  **self.simulation_kwargs)
                 fitness = self._calculate_fitness(solution, decoded)
             except SolveError as e:
                 logger.debug(e)
@@ -280,22 +289,19 @@ class KnockoutOptimization(HeuristicOptimization):
     """
     Abstract class for knockout optimization.
     """
+
     def __init__(self, simulation_method=pfba, max_size=9, variable_size=True, wt_reference=None, *args, **kwargs):
         """
          Attributes
         ----------
         same as HeuristicOptimization
         simulation_method: see flux_analysis.simulation
-        max_size: int
-        variable_size: boolean
         wt_reference: dict
         """
         super(KnockoutOptimization, self).__init__(*args, **kwargs)
         self.wt_reference = wt_reference
         self._simulation_method = None
         self.simulation_method = simulation_method
-        self.max_size = max_size
-        self.variable_size = variable_size
         self.representation = None
         self._ko_type = None
         self._decoder = None
@@ -309,7 +315,7 @@ class KnockoutOptimization(HeuristicOptimization):
     def simulation_method(self, simulation_method):
         if simulation_method in [lmoma, moma, room] and self.wt_reference is None:
             logger.info("No WT reference found, generating using pfba.")
-            self.wt_reference = pfba(self.model).x_dict
+            self.wt_reference = pfba(self.model).fluxes
         self._simulation_method = simulation_method
 
     def _evaluator(self, candidates, args):
@@ -352,36 +358,42 @@ class KnockoutOptimization(HeuristicOptimization):
         self._set_observer()
 
     def _set_observer(self):
-        self.observer = []
+        self.observers = []
 
-        if in_ipnb():
+        if in_ipnb() and self.plot:
             if config.use_bokeh:
                 if self.is_mo():
-                    self.observer.append(plotters.IPythonBokehParetoPlotter(self.objective_function))
+                    self.observers.append(plotters.IPythonBokehParetoPlotter(self.objective_function))
                 else:
-                    self.observer.append(plotters.IPythonBokehFitnessPlotter())
+                    self.observers.append(plotters.IPythonBokehFitnessPlotter())
             elif config.use_matplotlib:
                 pass
             else:
                 pass
-            self.observer.append(observers.IPythonNotebookProgressObserver())
 
         else:
             if config.use_bokeh:
                 pass
             else:
                 pass
-            self.observer.append(observers.CLIProgressObserver())
+        if self.progress:
+            self.observers.append(observers.ProgressObserver())
 
     def run(self, **kwargs):
-        for observer in self.observer:
-            observer.reset()
-        self.heuristic_method.observer = self.observer
+        """
+        Parameters
+        ----------
+        max_size: int
+            Maximum size of a solution.
+        variable_size: boolean
+            If true, the solution size can change meaning that the combination of knockouts can have different sizes up to
+            max_size. Otherwise it only produces knockout solutions with a fixed number of knockouts.
+
+        """
+        self.heuristic_method.observer = self.observers
         super(KnockoutOptimization, self).run(
             distance_function=set_distance_function,
             representation=self.representation,
-            candidate_size=self.max_size,
-            variable_candidate_size=self.variable_size,
             **kwargs)
         return KnockoutOptimizationResult(model=self.model,
                                           heuristic_method=self.heuristic_method,
@@ -397,7 +409,7 @@ class KnockoutOptimization(HeuristicOptimization):
 
 
 # TODO: Figure out a way to provide generic parameters for different simulation methods
-class KnockoutOptimizationResult(object):
+class KnockoutOptimizationResult(core.result.Result):
     @staticmethod
     def merge(a, b):
         return a._merge(b)
@@ -488,56 +500,51 @@ class KnockoutOptimizationResult(object):
         reactions = []
         for solution in solutions:
             mo = isinstance(solution.fitness, Pareto)
-            if mo:
-                proceed = True
-            else:
-                proceed = solution.fitness > 0
-
+            proceed = True if mo else solution.fitness > 0
             if proceed:
                 decoded_solution = self.decoder(solution.candidate)
-                simulation_result = self._simulate(decoded_solution[0])
+                try:
+                    simulation_result = self._simulate(decoded_solution[0])
+                except SolveError as e:
+                    logger.debug(e)
+                    continue
                 size = len(decoded_solution[1])
 
                 if self.biomass:
-                    biomass.append(simulation_result.get_primal_by_id(self.biomass))
+                    biomass.append(simulation_result[self.biomass])
                 fitness.append(solution.fitness)
                 knockouts.append(frozenset([v.id for v in decoded_solution[1]]))
                 reactions.append(frozenset([v.id for v in decoded_solution[0]]))
                 sizes.append(size)
+                if isinstance(self.product, (list, tuple, set)):
+                    products.append([simulation_result[p] for p in self.product])
+                elif self.product is not None:
+                    products.append(simulation_result[self.product])
 
-                if isinstance(self.product, (list, tuple)):
-                    products.append([simulation_result.get_primal_by_id(p) for p in self.product])
-                elif not self.product is None:
-                    products.append(simulation_result.get_primal_by_id(self.product))
+        assert len(knockouts) == len(fitness)
+        assert len(sizes) == len(knockouts)
         if self.ko_type == REACTION_KNOCKOUT_TYPE:
             data_frame = DataFrame({KNOCKOUTS: knockouts, FITNESS: fitness, SIZE: sizes})
         else:
             data_frame = DataFrame({KNOCKOUTS: knockouts, REACTIONS: reactions, FITNESS: fitness, SIZE: sizes})
-        if not self.biomass is None:
+        if self.biomass is not None:
+            assert len(biomass) == len(knockouts)
             data_frame[BIOMASS] = biomass
         if isinstance(self.product, str):
             data_frame[self.product] = products
-        elif isinstance(self.product, (list, tuple)):
-            for i in xrange(self.product):
+        elif isinstance(self.product, (list, tuple, set)):
+            for i in range(self.product):
+                assert len(biomass) == len(products[i:])
                 data_frame[self.product[i]] = products[i:]
 
         return data_frame
 
     def _simulate(self, reactions):
-        tm = TimeMachine()
-        for reaction in reactions:
-            tm(do=partial(setattr, reaction, 'lower_bound', 0),
-               undo=partial(setattr, reaction, 'lower_bound', reaction.lower_bound))
-            tm(do=partial(setattr, reaction, 'upper_bound', 0),
-               undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
-
-        try:
+        with TimeMachine() as tm:
+            for reaction in reactions:
+                reaction.knock_out(time_machine=tm)
             solution = self.simulation_method(self.model, reference=self.reference)
-        except Exception as e:
-            logger.exception(e)
-
-        tm.reset()
-        return solution
+            return solution
 
     def _repr_html_(self):
 
@@ -616,11 +623,6 @@ class ReactionKnockoutOptimization(KnockoutOptimization):
         A termination criteria for the algorithm. The default is inspyred.ec.terminators.evaluation_termination.
     simulation_method: flux_analysis.simulation
         The method used to simulate the model.
-    max_size: int
-        Maximum size of a solution.
-    variable_size: boolean
-        If true, the solution size can change meaning that the combination of knockouts can have different sizes up to
-        max_size. Otherwise it only produces knockout solutions with a fixed number of knockouts.
     wt_reference: dict
         A reference initial state for the optimization. It is required for flux_analysis.simulation.lmoma and
         flux_analysis.simulation.room. If not given, it will be computed using flux_analysis.simulation.pfba
@@ -641,7 +643,21 @@ class ReactionKnockoutOptimization(KnockoutOptimization):
     *inspyred.ec
     *cameo.config.default_view
 
+    Examples
+    --------
+    >>> from cameo import models
+    >>> model = models.bigg.iJO1366
+    >>> from cameo.strain_design.heuristic.objective_functions import biomass_product_coupled_yield
+    >>> bpcy = biomass_product_coupled_yield(model.reactions.Ec_biomass_iJO1366_core_53p95,
+    >>>                                      model.reactions.EX_succ_e),
+    >>>                                      model.reactions.EX_glc__D_e)
+    >>> knockout_optimization = ReactionKnockoutOptimization(model=model, objective_function=bpcy,
+    >>>                                                      essential_reactions=["ATPM"])
+    >>> knockout_optimization.run(max_evaluations=50000)
+
+
     """
+
     def __init__(self, reactions=None, essential_reactions=None, *args, **kwargs):
         super(ReactionKnockoutOptimization, self).__init__(*args, **kwargs)
         if reactions is None:
@@ -652,7 +668,7 @@ class ReactionKnockoutOptimization(KnockoutOptimization):
         if essential_reactions is None:
             self.essential_reactions = set([r.id for r in self.model.essential_reactions()])
         else:
-            self.essential_reactions = essential_reactions
+            self.essential_reactions = set([r.id for r in self.model.essential_reactions()] + essential_reactions)
 
         exchange_reactions = set([r.id for r in self.model.exchanges])
         self.representation = list(self.reactions.difference(self.essential_reactions).difference(exchange_reactions))
@@ -662,7 +678,7 @@ class ReactionKnockoutOptimization(KnockoutOptimization):
 
 class GeneKnockoutOptimization(KnockoutOptimization):
     """
-    Knockout optimization using reactions.
+    Knockout optimization using genes.
 
     Attributes
     ----------
@@ -678,11 +694,6 @@ class GeneKnockoutOptimization(KnockoutOptimization):
         A termination criteria for the algorithm. The default is inspyred.ec.terminators.evaluation_termination.
     simulation_method: flux_analysis.simulation
         The method used to simulate the model.
-    max_size: int
-        Maximum size of a solution.
-    variable_size: boolean
-        If true, the solution size can change meaning that the combination of knockouts can have different sizes up to
-        max_size. Otherwise it only produces knockout solutions with a fixed number of knockouts.
     wt_reference: dict
         A reference initial state for the optimization. It is required for flux_analysis.simulation.lmoma and
         flux_analysis.simulation.room. If not given, it will be computed using flux_analysis.simulation.pfba
@@ -703,7 +714,19 @@ class GeneKnockoutOptimization(KnockoutOptimization):
     *inspyred.ec
     *cameo.config.default_view
 
+    Examples
+    --------
+    >>> from cameo import models
+    >>> model = models.bigg.iJO1366
+    >>> from cameo.strain_design.heuristic.objective_functions import biomass_product_coupled_yield
+    >>> bpcy = biomass_product_coupled_yield(model.reactions.Ec_biomass_iJO1366_core_53p95,
+    >>>                                      model.reactions.EX_succ_e),
+    >>>                                      model.reactions.EX_glc__D_e)
+    >>> knockout_optimization = GeneKnockoutOptimization(model=model, objective_function=bpcy)
+    >>> knockout_optimization.run(max_evaluations=50000)
+
     """
+
     def __init__(self, genes=None, essential_genes=None, *args, **kwargs):
         super(GeneKnockoutOptimization, self).__init__(*args, **kwargs)
         if genes is None:
@@ -714,7 +737,7 @@ class GeneKnockoutOptimization(KnockoutOptimization):
         if essential_genes is None:
             self.essential_genes = set([g.id for g in self.model.essential_genes()])
         else:
-            self.essential_genes = essential_genes
+            self.essential_genes = set([g.id for g in self.model.essential_genes()] + essential_genes)
 
         self.representation = list(self.genes.difference(self.essential_genes))
         self._ko_type = GENE_KNOCKOUT_TYPE
@@ -726,7 +749,7 @@ class KnockinKnockoutEvaluator(KnockoutEvaluator):
         pass
 
 
-class KnockinKnockoutOptimizationResult():
+class KnockinKnockoutOptimizationResult:
     pass
 
 
@@ -744,9 +767,9 @@ class KnockinKnockoutOptimization(KnockoutOptimization):
         return fitness
 
     def run(self, **kwargs):
-        for observer in self.observer:
+        for observer in self.observers:
             observer.reset()
-        self.heuristic_method.observer = self.observer
+        self.heuristic_method.observer = self.observers
         super(KnockoutOptimization, self).run(
             keys=['knockout', 'knockin'],
             knockout_representation=self.representation,
@@ -764,7 +787,7 @@ class KnockinKnockoutOptimization(KnockoutOptimization):
                                                  product=kwargs.get('product', None))
 
 
-#TODO: implement a knockout knockin approach using a reaction db
+# TODO: implement a knockout knockin approach using a reaction db
 class ReactionKnockinKnockoutOptimization(ReactionKnockoutOptimization, KnockinKnockoutOptimization):
     def __init__(self, reaction_db=None, *args, **kwargs):
         KnockinKnockoutOptimization.__init__(self, *args, **kwargs)

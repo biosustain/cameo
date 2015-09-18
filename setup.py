@@ -14,15 +14,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import absolute_import, print_function
 
 import os
+import sys
 from setuptools import setup, find_packages
 import versioneer
+
 versioneer.VCS = 'git'
 versioneer.versionfile_source = 'cameo/_version.py'
 versioneer.versionfile_build = 'cameo/_version.py'
-versioneer.tag_prefix = '' # tags are like 1.2.0
-versioneer.parentdir_prefix = 'myproject-' # dirname like 'myproject-1.2.0'
+versioneer.tag_prefix = ''  # tags are like 1.2.0
+versioneer.parentdir_prefix = 'myproject-'  # dirname like 'myproject-1.2.0'
 
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 if on_rtd:
@@ -31,31 +34,32 @@ else:
     requirements = ['numpy>=1.9.1',
                     'pyzmq>=14.3.1',
                     'ipython>=2.1.0',
-                    'scipy>=0.9.0',
+                    'scipy>=0.14.0',
                     'blessings>=1.5.1',
-                    'progressbar-ipython>=2.3.1',
                     'Jinja2>=2.7.3',
                     'pandas>=0.15.2',
                     'ordered-set>=1.2',
-                    'inspyred>=1.0',
-                    'cobra>=0.3.1',
-                    'optlang>=0.0.3',
+                    'cobra>=0.3.2',
+                    'optlang>=0.2.9',
                     'requests>=2.5.0',
-                    'bashplotlib>=0.6.1',
                     'numexpr>=2.4',
-                    'networkx>=1.9.1'
-    ]
+                    'networkx>=1.9.1',
+                    'six>=1.9.0',
+                    'escher>=1.1.2',
+                    'IProgress>=0.2',
+                    'inspyred>=1.0',
+                    'lazy-object-proxy>=1.2.0'
+                    ]
+if sys.version_info[0] < 3:
+    requirements.extend(['bashplotlib>=0.6.1', ])
 
-dependency_links = [
-    'https://github.com/biosustain/optlang/tarball/devel#egg=optlang-0.0.3'
-]
-
-# from https://coderwall.com/p/qawuyq
+# Run
+# pandoc --from=markdown --to=rst README.md -o README.rst
+# from time to time, to keep README.rst updated
 try:
-    import pypandoc
-
-    description = pypandoc.convert('README.md', 'rst')
-except (IOError, ImportError):
+    with open('README.rst', 'r') as f:
+        description = f.read()
+except:
     description = ''
 
 setup(
@@ -64,11 +68,10 @@ setup(
     cmdclass=versioneer.get_cmdclass(),
     packages=find_packages(),
     install_requires=requirements,
-    dependency_links=dependency_links,
-    include_package_data = True,
-    author='Nikolaus Sonnenschein, Joao Cardoso, Emre Özdemir',
+    include_package_data=True,
+    author='Nikolaus Sonnenschein, Joao Cardoso, Emre Özdemir, Kristian Jensen',
     author_email='niko.sonnenschein@gmail.com',
-    description='cameo - computer assisted metabolic engineering & optimziation',
+    description='cameo - computer aided metabolic engineering & optimziation',
     license='Apache License Version 2.0',
     keywords='biology metabolism bioinformatics',
     url='TBD',

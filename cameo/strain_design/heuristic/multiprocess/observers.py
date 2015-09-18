@@ -11,10 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from Queue import Empty
-import traceback
+
+from __future__ import absolute_import, print_function
+
+import six
+from six.moves.queue import Empty
 from uuid import uuid4
 from cameo.parallel import RedisQueue
+from six.moves import range
 
 
 class AbstractParallelObserver(object):
@@ -24,14 +28,14 @@ class AbstractParallelObserver(object):
         self.queue = RedisQueue(name=str(uuid4()), namespace=self.__name__)
         self.clients = {}
         self.run = True
-        for i in xrange(number_of_islands):
+        for i in range(number_of_islands):
             self._create_client(i)
 
     def _create_client(self, i):
         raise NotImplementedError
 
     def _listen(self):
-        print "Start %s" % self.__name__
+        print("Start %s" % self.__name__)
         while self.run:
             try:
                 message = self.queue.get_nowait()
@@ -39,9 +43,9 @@ class AbstractParallelObserver(object):
             except Empty:
                 pass
             except Exception as e:
-                print e
+                print(e)
 
-        print "Exit %s" % self.__name__
+        print("Exit %s" % self.__name__)
 
     def _process_message(self, message):
         raise NotImplementedError
@@ -70,15 +74,16 @@ class AbstractParallelObserverClient(object):
 
 
 from threading import Thread
-from ipython_notebook_utils import ProgressBar as IPythonProgressBar
 from blessings import Terminal
-from progressbar import ProgressBar as CLIProgressBar, Percentage, Bar, RotatingMarker
+from cameo.visualization import ProgressBar
 
 
 class CliMultiprocessProgressObserver(AbstractParallelObserver):
     """
     Command line progress display for multiprocess run
     """
+
+    __name__ = "CLI Multiprocess Progress Observer"
 
     def __init__(self, *args, **kwargs):
         self.progress = {}
@@ -91,20 +96,18 @@ class CliMultiprocessProgressObserver(AbstractParallelObserver):
     def _process_message(self, message):
         i = message['index']
         if not i in self.progress:
-            print ""
+            print("")
             label = "Island %i: " % (i + 1)
             pos = abs(len(self.clients) - i)
             writer = self.TerminalWriter((self.terminal.height or 1) - pos, self.terminal)
-            self.progress[i] = CLIProgressBar(fd=writer,
-                                              maxval=message['max_evaluations'],
-                                              widgets=[label, Percentage(), Bar(marker=RotatingMarker())])
+            self.progress[i] = ProgressBar(label=label, fd=writer, size=message['max_evaluations'])
             self.progress[i].start()
 
         self.progress[i].update(message['num_evaluations'])
 
     def _listen(self):
         AbstractParallelObserver._listen(self)
-        for i, progress in self.progress.iteritems():
+        for i, progress in six.iteritems(self.progress):
             progress.finish()
 
     class TerminalWriter(object):
@@ -143,6 +146,8 @@ class IPythonNotebookMultiprocessProgressObserver(AbstractParallelObserver):
     IPython Notebook Progress Observer for multiprocess run
     """
 
+    __name__ = "IPython Notebook Multiprocess Progress Observer"
+
     def __init__(self, color_map=None, *args, **kwargs):
         self.progress = {}
         self.color_map = color_map
@@ -150,8 +155,8 @@ class IPythonNotebookMultiprocessProgressObserver(AbstractParallelObserver):
 
     def _create_client(self, i):
         self.clients[i] = IPythonNotebookMultiprocessProgressObserverClient(queue=self.queue, index=i)
-        label = "<span style='color:%s;'>Island %i </span>" % (self.color_map[i], i + 1)
-        self.progress[i] = IPythonProgressBar(label=label)
+        label = "Island %i" % (i + 1)
+        self.progress[i] = ProgressBar(label=label, color=self.color_map[i])
 
     def _process_message(self, message):
         if self.progress[message['index']].id is None:

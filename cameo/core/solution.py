@@ -13,23 +13,44 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import absolute_import, print_function
+
 from collections import OrderedDict
 
 import time
 import datetime
 from pandas import DataFrame, Series
 
+import cobra
+
+import cameo
 from cameo.exceptions import UndefinedSolution
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 
 class SolutionBase(object):
+    def __new__(cls, *args, **kwargs):
+        # this is a cobrapy compatibility hack
+        if len(args) == 1 and not isinstance(args[0], cameo.core.solver_based_model.SolverBasedModel):
+            cobrapy_solution = super(SolutionBase, cls).__new__(cobra.core.Solution)
+            cobrapy_solution.__init__(*args, **kwargs)
+            return cobrapy_solution
+        else:
+            return super(SolutionBase, cls).__new__(cls)
 
-    def __init__(self, model, *args, **kwargs):
-        super(SolutionBase, self).__init__(*args, **kwargs)
+    def __init__(self, model):
         self.model = model
+        self._x = None
+        self._y = None
+        self._x_dict = None
+        self._y_dict = None
+
+    @property
+    def data_frame(self):
+        return DataFrame({'fluxes': Series(self.fluxes), 'reduced_costs': Series(self.reduced_costs)})
 
     def __str__(self):
         """A pandas DataFrame representation of the solution.
@@ -38,7 +59,10 @@ class SolutionBase(object):
         -------
         pandas.DataFrame
         """
-        return str(self.to_frame())
+        return str(self.data_frame)
+
+    def _repr_html_(self):
+        return self.data_frame._repr_html_()
 
     def as_cobrapy_solution(self):
         """Convert into a cobrapy Solution.
@@ -51,16 +75,6 @@ class SolutionBase(object):
                         x_dict=self.x_dict, y=self.y, y_dict=self.y_dict,
                         the_solver=None, the_time=0, status=self.status)
 
-    def to_frame(self):
-        """Return the solution as a pandas DataFrame.
-
-        Returns
-        -------
-        pandas.DataFrame
-        """
-        return DataFrame({'fluxes': Series(self.x_dict), 'reduced_costs': Series(self.y_dict)})
-
-
     def get_primal_by_id(self, reaction_id):
         """Return a flux/primal value for a reaction.
 
@@ -70,6 +84,54 @@ class SolutionBase(object):
             A reaction ID.
         """
         return self.x_dict[reaction_id]
+
+    @property
+    def x_dict(self):
+        if self._x_dict is None:
+            return self.fluxes
+        else:
+            return self._x_dict
+
+    @x_dict.setter
+    def x_dict(self, value):
+        self._x_dict = value
+
+    @property
+    def x(self):
+        if self._x is None:
+            return self.fluxes.values()
+        else:
+            return self._x
+
+    @x.setter
+    def x(self, value):
+        self._x = value
+
+    @property
+    def y_dict(self):
+        if self._y_dict is None:
+            return self.reduced_costs
+        else:
+            return self._y_dict
+
+    @y_dict.setter
+    def y_dict(self, value):
+        self._y_dict = value
+
+    @property
+    def y(self):
+        if self._y is None:
+            return self.reduced_costs.values()
+        else:
+            return self._y
+
+    @y.setter
+    def y(self, value):
+        self._y = value
+
+    @property
+    def objective_value(self):
+        return self.f
 
 
 class Solution(SolutionBase):
@@ -95,38 +157,29 @@ class Solution(SolutionBase):
         """
         super(Solution, self).__init__(model, *args, **kwargs)
         self.f = model.solver.objective.value
-        self.x = []
-        self.y = []
+        self.fluxes = OrderedDict()
+        self.shadow_prices = OrderedDict()
+        self.reduced_costs = OrderedDict()
         for reaction in model.reactions:
-            self.x.append(reaction.flux)
-            self.y.append(reaction.reduced_cost)
+            self.fluxes[reaction.id] = reaction.flux
+            self.reduced_costs[reaction.id] = reaction.reduced_cost
+        for metabolite in model.metabolites:
+            self.shadow_prices[metabolite.id] = self.model.solver.constraints[metabolite.id].dual
         self.status = model.solver.status
         self._reaction_ids = [r.id for r in self.model.reactions]
-
-    @property
-    def x_dict(self):
-        return dict(zip(self._reaction_ids, self.x))
-
-    @property
-    def y_dict(self):
-        return dict(zip(self._reaction_ids, self.y))
-
-    @property
-    def fluxes(self):
-        return self.x_dict
-
-    @property
-    def reduced_costs(self):
-        return self.y_dict
+        self._metabolite_ids = [m.id for m in self.model.metabolites]
 
     def __dir__(self):
         # Hide 'cobrapy' attributes and methods from user.
-        fields = sorted(dir(type(self)) + self.__dict__.keys())
+        fields = sorted(dir(type(self)) + list(self.__dict__.keys()))
         fields.remove('x')
         fields.remove('y')
         fields.remove('x_dict')
         fields.remove('y_dict')
         return fields
+
+    def _repr_html_(self):
+        return "%s: %f" % (self.model.objective.expression, self.f)
 
 
 class LazySolution(SolutionBase):
@@ -176,6 +229,11 @@ class LazySolution(SolutionBase):
             )
 
     @property
+    def status(self):
+        self._check_freshness()
+        return self.model.solver.status
+
+    @property
     def f(self):
         self._check_freshness()
         if self._f is None:
@@ -188,13 +246,7 @@ class LazySolution(SolutionBase):
         self._f = value
 
     @property
-    def x(self):
-        self._check_freshness()
-        return self.x_dict.values()
-
-    @property
-    def x_dict(self):
-        # TODO: this could be even lazier by returning a lazy dict
+    def fluxes(self):
         self._check_freshness()
         primals = OrderedDict()
         for reaction in self.model.reactions:
@@ -202,12 +254,7 @@ class LazySolution(SolutionBase):
         return primals
 
     @property
-    def y(self):
-        self._check_freshness()
-        return self.y_dict.values()
-
-    @property
-    def y_dict(self):
+    def reduced_costs(self):
         self._check_freshness()
         duals = OrderedDict()
         for reaction in self.model.reactions:
@@ -215,21 +262,16 @@ class LazySolution(SolutionBase):
         return duals
 
     @property
-    def status(self):
+    def shadow_prices(self):
         self._check_freshness()
-        return self.model.solver.status
-
-    @property
-    def fluxes(self):
-        return self.x_dict
-
-    @property
-    def reduced_costs(self):
-        return self.y_dict
+        duals = OrderedDict()
+        for metabolite in self.model.metabolites:
+            duals[metabolite.id] = self.model.solver.constraints[metabolite.id].dual
+        return duals
 
     def __dir__(self):
         # Hide 'cobrapy' attributes and methods from user.
-        fields = sorted(dir(type(self)) + self.__dict__.keys())
+        fields = sorted(dir(type(self)) + list(self.__dict__.keys()))
         fields.remove('x')
         fields.remove('y')
         fields.remove('x_dict')

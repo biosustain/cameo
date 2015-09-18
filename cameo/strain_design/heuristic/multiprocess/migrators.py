@@ -12,24 +12,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import Queue
+from __future__ import absolute_import, print_function
+
+import six.moves.queue
 from cameo.parallel import RedisQueue
 from uuid import uuid4
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 class MultiprocessingMigrator(object):
-    """Migrate among processes on the same machine.
+    """Migrate among processes on multiple machines. This is possible by
+    having a Queue implemented on redis.
 
     This callable class allows individuals to migrate from one process
-    to another on the same machine. It maintains a queue of migrants
-    whose maximum length can be fixed via the ``max_migrants``
-    parameter in the constructor. If the number of migrants in the queue
-    reaches this value, new migrants are not added until earlier ones
-    are consumed. The unreliability of a multiprocessing environment
-    makes it difficult to provide guarantees. However, migrants are
-    theoretically added and consumed at the same rate, so this value
-    should determine the "freshness" of individuals, where smaller
-    queue sizes provide more recency.
+    to another. It maintains a queue of migrants whose maximum length
+    can be fixed via the ``max_migrants`` parameter in the constructor.
+    If the number of migrants in the queue reaches this value, new migrants
+    are not added until earlier ones are consumed. The unreliability of a
+    multiprocessing environment makes it difficult to provide guarantees.
+    However, migrants are theoretically added and consumed at the same rate,
+    so this value should determine the "freshness" of individuals, where
+    smaller queue sizes provide more recency.
 
     An optional keyword argument in ``args`` requires the migrant to be
     evaluated by the current evolutionary computation before being inserted
@@ -66,10 +71,10 @@ class MultiprocessingMigrator(object):
                 migrant.fitness = fit[0]
                 args["_ec"].num_evaluations += 1
             population[migrant_index] = migrant
-        except Queue.Empty:
-            pass
+        except six.moves.queue.Empty:
+            logger.debug("Empty queue")
         try:
-            self.migrants.put(old_migrant, block=False)
-        except Queue.Full:
-            pass
+            self.migrants.put_nowait(old_migrant)
+        except six.moves.queue.Full:
+            logger.debug("Full queue")
         return population

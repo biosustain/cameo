@@ -11,8 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+from __future__ import absolute_import, print_function
+from collections import OrderedDict
+
+__all__ = ['set_generator', 'unique_set_generator']
+
 from inspyred.ec.generators import diversify
 from cameo.strain_design.heuristic.genomes import MultipleChromosomeGenome
+from six.moves import range
+from six.moves import zip
 
 
 def set_generator(random, args):
@@ -38,13 +46,13 @@ def set_generator(random, args):
         size equals candidate_size
     """
     representation = args.get('representation')
-    max_size = args.get('candidate_size', 9)
-    variable_size = args.get('variable_candidate_size', True)
+    max_size = args.get('max_size', 9)
+    variable_size = args.get('variable_size', True)
     if variable_size:
         size = random.randint(1, max_size)
     else:
         size = max_size
-    candidate = random.sample(xrange(len(representation)), size)
+    candidate = random.sample(range(len(representation)), size)
     return list(candidate)
 
 
@@ -75,13 +83,13 @@ def unique_set_generator(random, args):
         size equals candidate_size
     """
     representation = args.get('representation')
-    max_size = args.get('candidate_size', 9)
-    variable_size = args.get('variable_candidate_size', True)
+    max_size = args.get('max_size', 9)
+    variable_size = args.get('variable_size', True)
     if variable_size:
         size = random.randint(1, max_size)
     else:
         size = max_size
-    candidate = random.sample(xrange(len(representation)), size)
+    candidate = random.sample(range(len(representation)), size)
     return list(candidate)
 
 
@@ -106,16 +114,16 @@ def multiple_chromosome_set_generator(random, args):
     candidate = MultipleChromosomeGenome(keys=keys)
     for key in keys:
         key_args = {
-            'representation': args.get("%s_representation"),
-            'candidate_size': args.get("%s_candidate_size"),
-            'variable_candidate_size': args.get('variable_candidate_size')
+            'representation': args.get("%s_representation" % key),
+            'max_size': args.get("%s_max_size" % key),
+            'variable_size': args.get('variable_size')
         }
         candidate[key] = unique_set_generator(random, key_args)
 
     return candidate
 
 
-def linear_representation(random, args):
+def linear_set_generator(random, args):
     """
     Generates a list continuous values of the size of a representation.
     This function requires that a bounder is defined on the EvolutionaryAlgorithm.
@@ -142,13 +150,13 @@ def linear_representation(random, args):
     """
     bounder = args.get("_ec").bounder
     representation = args.get('representation')
-    max_size = args.get('candidate_size', 9)
-    variable_size = args.get('variable_candidate_size', True)
+    max_size = args.get('max_size', 9)
+    variable_size = args.get('variable__size', True)
     if variable_size:
         size = random.randint(1, max_size)
     else:
         size = max_size
 
-    indices = random.sample(xrange(len(representation)), size)
-    values = [random.uniform(bounder.lower_bound, bounder.upper_bound) for _ in indices]
-    return [(i, v) for i, v in zip(indices, values)]
+    indices = random.sample(range(len(representation)), size)
+    values = random.uniform(next(bounder.lower_bound), next(bounder.upper_bound), len(indices))
+    return OrderedDict({i: v for i, v in zip(indices, values)})

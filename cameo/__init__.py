@@ -14,7 +14,7 @@
 
 
 """
-CAMEO: Computer Assisted Metabolic Engineering & Optimization
+CAMEO: Computer Aided Metabolic Engineering & Optimization
 
 Cameo is a high-level python library developed to aid the in silico
 strain design process in metabolic engineering projects. The library
@@ -47,11 +47,18 @@ optimization.run(max_evaluations=2000, n=1,
        mutation_rate=0.3, view=cameo.parallel.SequentialView(),
        product="EX_succ_lp_e_rp_", num_elites=1)
 """
+from __future__ import absolute_import, print_function
 
 import os
 
 _cameo_path = __path__[0]
 _cameo_data_path = os.path.join(_cameo_path, 'data')
+
+from cameo import config
+
+from .util import get_system_info
+
+system_info = get_system_info()
 
 from ._version import get_versions
 
@@ -63,7 +70,7 @@ try:
 except ImportError:
     pass
 
-import config
+from cameo import models
 
 from cameo.core.solver_based_model import SolverBasedModel as Model
 from cameo.core.reaction import Reaction

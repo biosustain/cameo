@@ -11,11 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+from __future__ import absolute_import, print_function
+
 __all__ = ['MultiprocessReactionKnockoutOptimization', 'MultiprocessGeneKnockoutOptimization']
+
+from six.moves import range
+from functools import reduce
 
 import inspyred
 
-from pandas.core.common import in_ipnb
 from cameo import util
 from cameo import config
 from cameo import parallel
@@ -29,7 +34,7 @@ from cameo.strain_design.heuristic.multiprocess.plotters import IPythonNotebookB
 from cameo.strain_design.heuristic.multiprocess.migrators import MultiprocessingMigrator
 
 
-class MultiprocessRunner():
+class MultiprocessRunner(object):
     """
     Runner for multiprocessing model. It generates the non-pickable
     objects on the beginning of the process.
@@ -50,6 +55,22 @@ class MultiprocessRunner():
 
 
 class MultiprocessHeuristicOptimization(StrainDesignMethod):
+    """
+    Heuristic Optimization abstract implementation.
+
+    Arguments
+    =========
+
+    model: SolverBasedModel
+        A model to simulate.
+    objective_function: a list of or one objective_function
+        The objective for the algorithm to optimize.
+    heuristic_method: inspyred.ec instance
+        The method using for search (default: inspyred.ec.GA).
+    max_migrants: int
+        The number of individuals travelling between islands (different processes) at the same time (default: 1).
+
+    """
     _island_class = None
 
     def __init__(self, model=None, objective_function=None, heuristic_method=inspyred.ec.GA, max_migrants=1, *args,
@@ -73,7 +94,7 @@ class MultiprocessHeuristicOptimization(StrainDesignMethod):
             number_of_islands = len(view)
         run_kwargs['view'] = parallel.SequentialView()
         runner = MultiprocessRunner(self._island_class, self._init_kwargs(), self.migrator, run_kwargs)
-        clients = [[o.clients[i] for o in self.observers] for i in xrange(number_of_islands)]
+        clients = [[o.clients[i] for o in self.observers] for i in range(number_of_islands)]
         try:
             results = view.map(runner, clients)
         except KeyboardInterrupt as e:
@@ -83,6 +104,24 @@ class MultiprocessHeuristicOptimization(StrainDesignMethod):
 
 
 class MultiprocessKnockoutOptimization(MultiprocessHeuristicOptimization):
+    """
+    Heuristic Knockout Optimization Abstract implementation.
+
+    Arguments
+    =========
+
+    model: SolverBasedModel
+        A model to simulate.
+    objective_function: a list of or one objective_function
+        The objective for the algorithm to optimize.
+    heuristic_method: inspyred.ec instance
+        The method using for search (default: inspyred.ec.GA).
+    max_migrants: int
+        The number of individuals travelling between islands (different processes) at the same time (default: 1).
+    simulation_method: a function from flux_analysis.simulation
+        The method to simulate the model (default: pfba).
+    """
+
     def __init__(self, simulation_method=pfba, *args, **kwargs):
         super(MultiprocessKnockoutOptimization, self).__init__(*args, **kwargs)
         self.simulation_method = simulation_method
@@ -96,7 +135,7 @@ class MultiprocessKnockoutOptimization(MultiprocessHeuristicOptimization):
         observers = []
         progress_observer = None
         plotting_observer = None
-        if in_ipnb():
+        if util.in_ipnb():
             color_map = util.generate_colors(number_of_islands)
             progress_observer = IPythonNotebookMultiprocessProgressObserver(number_of_islands=number_of_islands,
                                                                             color_map=color_map)
@@ -131,6 +170,23 @@ class MultiprocessKnockoutOptimization(MultiprocessHeuristicOptimization):
 
 
 class MultiprocessReactionKnockoutOptimization(MultiprocessKnockoutOptimization):
+    """
+    Heuristic Knockout Optimization Abstract implementation.
+
+    Arguments
+    =========
+
+    model: SolverBasedModel
+        A model to simulate.
+    objective_function: a list of or one objective_function
+        The objective for the algorithm to optimize.
+    heuristic_method: inspyred.ec instance
+        The method using for search (default: inspyred.ec.GA).
+    max_migrants: int
+        The number of individuals travelling between islands (different processes) at the same time (default: 1).
+    simulation_method: a function from flux_analysis.simulation
+        The method to simulate the model (default: pfba).
+    """
     _island_class = ReactionKnockoutOptimization
 
     def __init__(self, reactions=None, essential_reactions=None, *args, **kwargs):

@@ -30,30 +30,29 @@ sequential_fva_statement = """
 flux_variability_analysis(model, view=SequentialView())
 """
 
-#GLPK
+# GLPK
 glpk_sequential_fva_benchmark = Benchmark(sequential_fva_statement,
-                               common_setup + fva_setup + glpk_model_setup,
-                               start_date=datetime(2014, 7, 15))
+                                          common_setup + fva_setup + glpk_model_setup,
+                                          start_date=datetime(2014, 7, 15))
 
-#CPLEX
+# CPLEX
 cplex_sequential_fva_benchmark = Benchmark(sequential_fva_statement,
-                                common_setup + fva_setup + cplex_model_setup,
-                                start_date=datetime(2014, 7, 15))
-
+                                           common_setup + fva_setup + cplex_model_setup,
+                                           start_date=datetime(2014, 7, 15))
 
 multiprocessing_fva_statement = """
 flux_variability_analysis(model, view=MultiprocessingView())
 """
 
-#GLPK
+# GLPK
 glpk_multiprocessing_fva_benchmark = Benchmark(multiprocessing_fva_statement,
-                               common_setup + fva_setup + glpk_model_setup,
-                               start_date=datetime(2014, 7, 15))
+                                               common_setup + fva_setup + glpk_model_setup,
+                                               start_date=datetime(2014, 7, 15))
 
-#CPLEX
+# CPLEX
 cplex_multiprocessing_fva_benchmark = Benchmark(multiprocessing_fva_statement,
-                                common_setup + fva_setup + cplex_model_setup,
-                                start_date=datetime(2014, 7, 15))
+                                                common_setup + fva_setup + cplex_model_setup,
+                                                start_date=datetime(2014, 7, 15))
 
 
 ######################
@@ -64,17 +63,17 @@ simulation_setup = """
 from cameo.flux_analysis.simulation import *
 """
 
-#FBA
+# FBA
 fba_statement = """
 fba(model)
 """
 
-#GLPK
+# GLPK
 glpk_fba_benchmark = Benchmark(fba_statement,
                                common_setup + simulation_setup + glpk_model_setup,
                                start_date=datetime(2014, 7, 15))
 
-#CPLEX
+# CPLEX
 cplex_fba_benchmark = Benchmark(fba_statement,
                                 common_setup + simulation_setup + cplex_model_setup,
                                 start_date=datetime(2014, 7, 15))

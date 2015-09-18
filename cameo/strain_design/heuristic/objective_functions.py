@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 # Copyright 2014 Novo Nordisk Foundation Center for Biosustainability, DTU.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,6 +12,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+from __future__ import absolute_import, print_function
 
 __all__ = ['biomass_product_coupled_yield', 'product_yield', 'number_of_knockouts']
 
@@ -33,11 +34,19 @@ class ObjectiveFunction(object):
         Calculates the fitness of the solution
 
     """
+
     def __init__(self, *args, **kwargs):
         super(ObjectiveFunction, self).__init__(*args, **kwargs)
 
     def __call__(self, model, solution, decoded_representation):
         raise NotImplementedError
+
+    def _repr_latex_(self):
+        return self.name
+
+    @property
+    def name(self):
+        return self.__class__.__name__
 
 
 class biomass_product_coupled_yield(ObjectiveFunction):
@@ -46,11 +55,11 @@ class biomass_product_coupled_yield(ObjectiveFunction):
 
     Parameters
     ----------
-    biomass: str
+    biomass: str or Reaction
         biomass reaction identifier
-    product: str
+    product: str or Reaction
         product reaction identifier
-    substrate: str
+    substrate: str or Reaction
         substrate reaction identifier
 
     Returns
@@ -65,7 +74,8 @@ class biomass_product_coupled_yield(ObjectiveFunction):
     doi:10.1186/1471-2105-6-308
     """
 
-    def __init__(self, biomass, product, substrate):
+    def __init__(self, biomass, product, substrate, *args, **kwargs):
+        super(biomass_product_coupled_yield, self).__init__(*args, **kwargs)
         if isinstance(biomass, Reaction):
             biomass = biomass.id
         self.biomass = biomass
@@ -75,21 +85,25 @@ class biomass_product_coupled_yield(ObjectiveFunction):
         if isinstance(substrate, Reaction):
             substrate = substrate.id
         self.substrate = substrate
-        self.name = "bpcy = (%s * %s) / %s" % (biomass, product, substrate)
         self.__name__ = self.__class__.__name__
 
     def __call__(self, model, solution, decoded_representation):
         try:
-            biomass_flux = round(solution.get_primal_by_id(self.biomass), config.ndecimals)
-            product_flux = round(solution.get_primal_by_id(self.product), config.ndecimals)
-            substrate_flux = round(abs(solution.get_primal_by_id(self.substrate)), config.ndecimals)
+            biomass_flux = round(solution.fluxes[self.biomass], config.ndecimals)
+            product_flux = round(solution.fluxes[self.product], config.ndecimals)
+            substrate_flux = round(abs(solution.fluxes[self.substrate]), config.ndecimals)
             return round((biomass_flux * product_flux) / substrate_flux, config.ndecimals)
 
         except ZeroDivisionError:
             return 0.0
 
     def _repr_latex_(self):
-        return "$$bpcy = \\frac{(%s * %s)}{%s}$$" % (self.biomass.replace("_", "\\_"), self.product.replace("_", "\\_"), self.substrate.replace("_", "\\_"))
+        return "$$bpcy = \\frac{(%s * %s)}{%s}$$" % (
+        self.biomass.replace("_", "\\_"), self.product.replace("_", "\\_"), self.substrate.replace("_", "\\_"))
+
+    @property
+    def name(self):
+        return "bpcy = (%s * %s) / %s" % (self.biomass, self.product, self.substrate)
 
 
 class product_yield(ObjectiveFunction):
@@ -98,9 +112,9 @@ class product_yield(ObjectiveFunction):
 
     Parameters
     ----------
-    product: str
+    product: str or Reaction
         product reaction identifier
-    substrate: str
+    substrate: str or Reaction
         substrate reaction identifier
 
     Returns
@@ -108,21 +122,30 @@ class product_yield(ObjectiveFunction):
     float
         fitness value
     """
-    def __init__(self, product, substrate):
+
+    def __init__(self, product, substrate, *args, **kwargs):
+        super(product_yield, self).__init__(*args, **kwargs)
+        if isinstance(product, Reaction):
+            product = product.id
         self.product = product
+        if isinstance(substrate, Reaction):
+            substrate = substrate.id
         self.substrate = substrate
-        self.name = "yield = (%s / %s)" % (product, substrate)
 
     def __call__(self, model, solution, decoded_representation):
         try:
-            product_flux = round(solution.get_primal_by_id(self.product), config.ndecimals)
-            substrate_flux = round(abs(solution.get_primal_by_id(self.substrate)), config.ndecimals)
+            product_flux = round(solution.fluxes[self.product], config.ndecimals)
+            substrate_flux = round(abs(solution.fluxes[self.substrate]), config.ndecimals)
             return round(product_flux / substrate_flux, config.ndecimals)
         except ZeroDivisionError:
             return 0.0
 
     def _repr_latex_(self):
         return "$$yield = \\frac{%s}{%s}$$" % (self.product, self.substrate)
+
+    @property
+    def name(self):
+        return "yield = (%s / %s)" % (self.product, self.substrate)
 
 
 class number_of_knockouts(ObjectiveFunction):
@@ -141,12 +164,9 @@ class number_of_knockouts(ObjectiveFunction):
         fitness value
     """
 
-    def __init__(self, sense='min'):
+    def __init__(self, sense='min', *args, **kwargs):
+        super(number_of_knockouts, self).__init__(*args, **kwargs)
         self.sense = sense
-        if sense == 'max':
-            self.name = "max #knockouts"
-        else:
-            self.name = "min #knockouts"
 
     def __call__(self, model, solution, decoded_representation):
         if self.sense == 'max':
@@ -156,3 +176,10 @@ class number_of_knockouts(ObjectiveFunction):
 
     def _repr_latex_(self):
         return "$$ %s\\:\\#knockouts $$" % self.sense
+
+    @property
+    def name(self):
+        if self.sense == 'max':
+            return "max knockouts"
+        else:
+            return "min knockouts"
