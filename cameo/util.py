@@ -193,6 +193,9 @@ class RandomGenerator(object):
     def __init__(self, seed=None):
         self._random = RandomState(seed=seed)
 
+    def seed(self, seed):
+        self._random.seed(seed)
+
     def random(self):
         return self._random.rand()
 
@@ -206,7 +209,7 @@ class RandomGenerator(object):
     def sample(self, population, k):
         if k == 0:
             return []
-        return self._random.choice(population, size=k, replace=False)
+        return list(self._random.choice(population, size=k, replace=False))
 
     def __getattr__(self, attr):
         return getattr(self._random, attr)
