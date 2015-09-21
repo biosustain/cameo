@@ -39,6 +39,16 @@ logger = logging.getLogger(__name__)
 
 
 class ProblemCache(object):
+    """
+    Variable and constraint cache for models.
+
+    To be used in complex methods that require many extra variables when one must run
+    multiple simulations.
+
+    It allows rollback to the previous state in case one iteration fails to build the problem or
+    generates an invalid state.
+
+    """
     def __init__(self, model):
         self.time_machine = None
         self._model = model
@@ -49,6 +59,9 @@ class ProblemCache(object):
         self.transaction_id = None
 
     def begin_transaction(self):
+        """
+        Creates a time point. If rollback is called, the variables and constrains will be reverted to this point.
+        """
         self.transaction_id = uuid1()
         self.time_machine(do=int, undo=int, bookmark=self.transaction_id)
 
@@ -95,6 +108,24 @@ class ProblemCache(object):
         return rebuild
 
     def add_constraint(self, constraint_id, create, update, *args, **kwargs):
+        """
+        Adds a new cached constraint.
+
+        The create and update functions must have the following signatures:
+        >>> create(model, constraint_id, *args)
+        >>> update(model, constraint, *args)
+
+        "args" in the first example must match args on the second example.
+
+        Arguments
+        ---------
+        constraint_id: str
+            The identifier of the constraint
+        create: function
+            A function that creates an optlang.interface.Constraint
+        update: function
+            a function that updates an optlang.interface.Constraint
+        """
         if constraint_id in self.constraints:
             if update is not None:
                 self.time_machine(
@@ -107,6 +138,24 @@ class ProblemCache(object):
             )
 
     def add_variable(self, variable_id, create, update, *args, **kwargs):
+        """
+        Adds a new cached variable.
+
+        The create and update functions must have the following signatures:
+        >>> create(model, variable_id, *args)
+        >>> update(model, variable, *args)
+
+        "args" in the first example must match args on the second example.
+
+        Arguments
+        ---------
+        constraint_id: str
+            The identifier of the constraint
+        create: function
+            A function that creates an optlang.interface.Variable
+        update: function
+            a function that updates an optlang.interface.Variable
+        """
         if variable_id in self.variables:
             if update is not None:
                 self.time_machine(
@@ -119,6 +168,9 @@ class ProblemCache(object):
             )
 
     def reset(self):
+        """
+        Removes all constraints and variables from the cache.
+        """
         self.model.solver._remove_constraints(self.constraints.values())
         self.model.solver._remove_variables(self.variables.values())
         self.model.objective = self.original_objective
@@ -128,6 +180,9 @@ class ProblemCache(object):
         self.time_machine.history.clear()
 
     def rollback(self):
+        """
+        Returns to the previous transaction start point.
+        """
         if self.transaction_id is None:
             raise RuntimeError("Start transaction must be called before rollback")
         self.time_machine.undo(self.transaction_id)
@@ -318,7 +373,7 @@ class DocInherit(object):
 
         overridden = getattr(super(cls, obj), self.name, None)
 
-        @wraps(self.mthd, assigned=('__name__','__module__'))
+        @wraps(self.mthd, assigned=('__name__', '__module__'))
         def f(*args, **kwargs):
             return self.mthd(obj, *args, **kwargs)
 
