@@ -130,7 +130,7 @@ class TestUtils(unittest.TestCase):
         chunks = 3
         iterables = [
             [1, 2, 3, 4, 5, 6, 7, 8, 9],
-            set([5, 3, 8, 3, 8, 5, 8, 0, 10, 11, 15]),
+            {5, 3, 8, 3, 8, 5, 8, 0, 10, 11, 15},
             range(29)
         ]
         for fixture in iterables:
