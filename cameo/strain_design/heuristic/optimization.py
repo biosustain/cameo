@@ -536,6 +536,7 @@ class KnockoutOptimizationResult(core.result.Result):
 
         if self.biomass is not None:
             data_frame[BIOMASS] = biomass
+            aggregation_functions[BIOMASS] = lambda x: x.values[0]
 
         for j in range(len(self.product)):
             data_frame[self.product[j]] = products[:, j]
@@ -546,7 +547,9 @@ class KnockoutOptimizationResult(core.result.Result):
             aggregation_functions["Fitness %i" % (j+1)] = lambda x: x.values[0]
 
         if aggregate:
-            data_frame = data_frame.groupby(REACTIONS, as_index=False).aggregate(aggregation_functions)
+            columns = data_frame.columns
+            data_frame = data_frame.groupby([REACTIONS, SIZE], as_index=False).aggregate(aggregation_functions)
+            data_frame = data_frame[columns]
 
         return data_frame
 
