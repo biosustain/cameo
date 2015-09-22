@@ -39,13 +39,13 @@ class SolverBasedModelDual(SolverBasedModel):
     def _add_reaction_dual_constraint(self, reaction, coefficient, maximization, prefix):
         stoichiometry = {self.solver.variables[m.id + "_u"]: c for m, c in six.iteritems(reaction.metabolites)}
         if maximization:
-            constraint = self._dual_solver.interface.Constrain(sum([v * c for v, c in six.iteritems(stoichiometry)]),
-                                                               name="r_%s_%s" % (reaction.id, prefix),
-                                                               lb=coefficient)
+            constraint = self._dual_solver.interface.Constraint(sum([c * v for v, c in six.iteritems(stoichiometry)]),
+                                                                name="r_%s_%s" % (reaction.id, prefix),
+                                                                lb=coefficient)
         else:
-            constraint = self._dual_solver.interface.Constrain(sum([v * c for v, c in six.iteritems(stoichiometry)]),
-                                                               name="r_%s_%s" % (reaction.id, prefix),
-                                                               ub=coefficient)
+            constraint = self._dual_solver.interface.Constraint(sum([c * v for v, c in six.iteritems(stoichiometry)]),
+                                                                name="r_%s_%s" % (reaction.id, prefix),
+                                                                ub=coefficient)
         self._dual_solver._add_constraint(constraint)
 
     @property
