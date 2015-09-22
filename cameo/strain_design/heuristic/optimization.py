@@ -13,12 +13,14 @@
 # limitations under the License.
 
 from __future__ import absolute_import, print_function
+from sympy import And, Or, Symbol
 
 __all__ = ['ReactionKnockoutOptimization', 'GeneKnockoutOptimization']
 
 from six.moves import range
 
 import time
+import numpy as np
 from functools import reduce
 
 from cobra.manipulation.delete import find_gene_knockout_reactions
@@ -49,7 +51,6 @@ REACTION_KNOCKOUT_TYPE = "reaction"
 GENE_KNOCKOUT_TYPE = "gene"
 
 SIZE = 'Size'
-FITNESS = 'Fitness'
 BIOMASS = 'Biomass'
 KNOCKOUTS = 'Knockouts'
 REACTIONS = 'Reactions'
@@ -418,12 +419,16 @@ class KnockoutOptimizationResult(core.result.Result):
                  objective_function=None, ko_type=None, decoder=None, product=None, biomass=None,
                  seed=None, reference=None, *args, **kwargs):
         super(KnockoutOptimizationResult, self).__init__(*args, **kwargs)
-        self.product = None
         self.biomass = biomass
         self.seed = seed
         self.reference = reference
-        if not product is None:
+        if product is None:
+            self.product = []
+        elif isinstance(product, str):
+            self.product = [product]
+        else:
             self.product = product
+
         self.model = model
         self.heuristic_method = heuristic_method
         self.simulation_method = simulation_method
@@ -439,33 +444,30 @@ class KnockoutOptimizationResult(core.result.Result):
         self.solutions[column].apply(function, *args, **kwargs)
 
     def __getstate__(self):
-        return {
-            'product': self.product,
-            'model': self.model,
-            'biomass': self.biomass,
-            'reference': self.reference,
-            'simulation_method': self.simulation_method,
-            'heuristic_method.__class__': self.heuristic_method.__class__,
-            'heuristic_method.maximize': self.heuristic_method.maximize,
-            'heuristic_method.variator': self.heuristic_method.variator,
-            'heuristic_method.terminator': self.heuristic_method.terminator,
-            'heuristic_method.archiver': self.heuristic_method.archiver,
-            'heuristic_method.termination_cause': self.heuristic_method.termination_cause,
-            'heuristic_method._random': self.heuristic_method._random,
-            'seed': self.seed,
-            'heuristic_method.generator': self.heuristic_method.generator,
-            'heuristic_method._kwargs.representation': self.heuristic_method._kwargs.get('representation'),
-            'heuristic_method._kwargs.max_candidate_size': self.heuristic_method._kwargs.get('max_candidate_size'),
-            'heuristic_method._kwargs.variable_candidate_size': self.heuristic_method._kwargs.get(
-                'variable_candidate_size'),
-            'heuristic_method._kwargs.pop_size': self.heuristic_method._kwargs.get('pop_size'),
-            'heuristic_method._kwargs.mutation_rate': self.heuristic_method._kwargs.get('mutation_rate'),
-            'heuristic_method._kwargs.crossover_rate': self.heuristic_method._kwargs.get('crossover_rate'),
-            'heuristic_method._kwargs.num_elites': self.heuristic_method._kwargs.get('num_elites'),
-            'objective_functions': self.objective_functions,
-            'ko_type': self.ko_type,
-            'solutions': self.solutions,
-        }
+        return {'product': self.product,
+                'model': self.model,
+                'biomass': self.biomass,
+                'reference': self.reference,
+                'simulation_method': self.simulation_method,
+                'heuristic_method.__class__': self.heuristic_method.__class__,
+                'heuristic_method.maximize': self.heuristic_method.maximize,
+                'heuristic_method.variator': self.heuristic_method.variator,
+                'heuristic_method.terminator': self.heuristic_method.terminator,
+                'heuristic_method.archiver': self.heuristic_method.archiver,
+                'heuristic_method.termination_cause': self.heuristic_method.termination_cause,
+                'heuristic_method._random': self.heuristic_method._random,
+                'heuristic_method.generator': self.heuristic_method.generator,
+                'heuristic_method._kwargs.representation': self.heuristic_method._kwargs.get('representation'),
+                'heuristic_method._kwargs.max_size': self.heuristic_method._kwargs.get('max_size'),
+                'heuristic_method._kwargs.variable_size': self.heuristic_method._kwargs.get('variable_size'),
+                'heuristic_method._kwargs.pop_size': self.heuristic_method._kwargs.get('pop_size'),
+                'heuristic_method._kwargs.mutation_rate': self.heuristic_method._kwargs.get('mutation_rate'),
+                'heuristic_method._kwargs.crossover_rate': self.heuristic_method._kwargs.get('crossover_rate'),
+                'heuristic_method._kwargs.num_elites': self.heuristic_method._kwargs.get('num_elites'),
+                'objective_functions': self.objective_functions,
+                'ko_type': self.ko_type,
+                'solutions': self.solutions,
+                'seed': self.seed}
 
     def __setstate__(self, d):
         self.product = d['product']
@@ -481,8 +483,8 @@ class KnockoutOptimizationResult(core.result.Result):
         self.heuristic_method.termination_cause = d['heuristic_method.termination_cause']
         self.heuristic_method.archiver = d['heuristic_method.archiver']
         self.heuristic_method._kwargs['representation'] = d['heuristic_method._kwargs.representation']
-        self.heuristic_method._kwargs['max_candidate_size'] = d['heuristic_method._kwargs.max_candidate_size']
-        self.heuristic_method._kwargs['variable_candidate_size'] = d['heuristic_method._kwargs.variable_candidate_size']
+        self.heuristic_method._kwargs['max_size'] = d['heuristic_method._kwargs.max_size']
+        self.heuristic_method._kwargs['variable_size'] = d['heuristic_method._kwargs.variable_size']
         self.heuristic_method._kwargs['pop_size'] = d['heuristic_method._kwargs.pop_size']
         self.heuristic_method._kwargs['mutation_rate'] = d['heuristic_method._kwargs.mutation_rate']
         self.heuristic_method._kwargs['crossover_rate'] = d['heuristic_method._kwargs.crossover_rate']
@@ -492,13 +494,15 @@ class KnockoutOptimizationResult(core.result.Result):
         self.solutions = d['solutions']
 
     def _build_solutions(self, solutions):
+        aggregate = False
+        aggregation_functions = {}
         knockouts = []
         biomass = []
-        fitness = []
-        products = []
         sizes = []
         reactions = []
-        for solution in solutions:
+        fitness = np.zeros((len(solutions), len(self.objective_functions)))
+        products = np.zeros((len(solutions), len(self.product)))
+        for i, solution in enumerate(solutions):
             mo = isinstance(solution.fitness, Pareto)
             proceed = True if mo else solution.fitness > 0
             if proceed:
@@ -512,30 +516,37 @@ class KnockoutOptimizationResult(core.result.Result):
 
                 if self.biomass:
                     biomass.append(simulation_result[self.biomass])
-                fitness.append(solution.fitness)
-                knockouts.append(frozenset([v.id for v in decoded_solution[1]]))
-                reactions.append(frozenset([v.id for v in decoded_solution[0]]))
-                sizes.append(size)
-                if isinstance(self.product, (list, tuple, set)):
-                    products.append([simulation_result[p] for p in self.product])
-                elif self.product is not None:
-                    products.append(simulation_result[self.product])
 
-        assert len(knockouts) == len(fitness)
-        assert len(sizes) == len(knockouts)
+                if not mo:
+                    fitness[i] = [solution.fitness]
+                else:
+                    fitness[i] = solution.fitness
+
+                knockouts.append(And(*[Symbol(v.id) for v in decoded_solution[1]]))
+                reactions.append(And(*[Symbol(v.id) for v in decoded_solution[0]]))
+                sizes.append(size)
+                products[i] = [simulation_result[p] for p in self.product]
+
         if self.ko_type == REACTION_KNOCKOUT_TYPE:
-            data_frame = DataFrame({KNOCKOUTS: knockouts, FITNESS: fitness, SIZE: sizes})
+            data_frame = DataFrame({KNOCKOUTS: knockouts, SIZE: sizes})
         else:
-            data_frame = DataFrame({KNOCKOUTS: knockouts, REACTIONS: reactions, FITNESS: fitness, SIZE: sizes})
+            data_frame = DataFrame({KNOCKOUTS: knockouts, REACTIONS: reactions, SIZE: sizes})
+            aggregation_functions[KNOCKOUTS] = lambda x: Or(*x.values)
+            aggregate = True
+
         if self.biomass is not None:
-            assert len(biomass) == len(knockouts)
             data_frame[BIOMASS] = biomass
-        if isinstance(self.product, str):
-            data_frame[self.product] = products
-        elif isinstance(self.product, (list, tuple, set)):
-            for i in range(self.product):
-                assert len(biomass) == len(products[i:])
-                data_frame[self.product[i]] = products[i:]
+
+        for j in range(len(self.product)):
+            data_frame[self.product[j]] = products[:, j]
+            aggregation_functions[self.product[j]] = lambda x: x.values[0]
+
+        for j in range(len(self.objective_functions)):
+            data_frame["Fitness %i" % (j+1)] = fitness[:, j]
+            aggregation_functions["Fitness %i" % (j+1)] = lambda x: x.values[0]
+
+        if aggregate:
+            data_frame = data_frame.groupby(REACTIONS, as_index=False).aggregate(aggregation_functions)
 
         return data_frame
 
