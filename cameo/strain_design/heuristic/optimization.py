@@ -14,6 +14,7 @@
 
 from __future__ import absolute_import, print_function
 from sympy import And, Or, Symbol
+from cameo.strain_design import StrainDesignResult, StrainDesignMethod, StrainDesign
 
 __all__ = ['ReactionKnockoutOptimization', 'GeneKnockoutOptimization']
 
@@ -27,6 +28,7 @@ from cobra.manipulation.delete import find_gene_knockout_reactions
 from inspyred.ec.emo import Pareto
 
 from cameo.exceptions import SolveError
+from cameo.visualization import sympy_ext
 from cameo.strain_design.heuristic import archivers
 from cameo.strain_design.heuristic import plotters
 from cameo.strain_design.heuristic import observers
@@ -106,7 +108,7 @@ def set_distance_function(candidate1, candidate2):
     return len(set(candidate1).symmetric_difference(set(candidate2)))
 
 
-class HeuristicOptimization(object):
+class HeuristicOptimization(StrainDesignMethod):
     """
     Blueprint for any model optimization based on heuristic methods.
 
@@ -410,7 +412,7 @@ class KnockoutOptimization(HeuristicOptimization):
 
 
 # TODO: Figure out a way to provide generic parameters for different simulation methods
-class KnockoutOptimizationResult(core.result.Result):
+class KnockoutOptimizationResult(StrainDesignResult):
     @staticmethod
     def merge(a, b):
         return a._merge(b)
@@ -423,11 +425,11 @@ class KnockoutOptimizationResult(core.result.Result):
         self.seed = seed
         self.reference = reference
         if product is None:
-            self.product = []
+            self.products = []
         elif isinstance(product, str):
-            self.product = [product]
+            self.products = [product]
         else:
-            self.product = product
+            self.products = product
 
         self.model = model
         self.heuristic_method = heuristic_method
@@ -444,7 +446,7 @@ class KnockoutOptimizationResult(core.result.Result):
         self.solutions[column].apply(function, *args, **kwargs)
 
     def __getstate__(self):
-        return {'product': self.product,
+        return {'product': self.products,
                 'model': self.model,
                 'biomass': self.biomass,
                 'reference': self.reference,
@@ -470,7 +472,7 @@ class KnockoutOptimizationResult(core.result.Result):
                 'seed': self.seed}
 
     def __setstate__(self, d):
-        self.product = d['product']
+        self.products = d['product']
         self.model = d['model']
         self.biomass = d['biomass']
         self.simulation_method = d['simulation_method']
@@ -501,7 +503,7 @@ class KnockoutOptimizationResult(core.result.Result):
         sizes = []
         reactions = []
         fitness = np.zeros((len(solutions), len(self.objective_functions)))
-        products = np.zeros((len(solutions), len(self.product)))
+        products = np.zeros((len(solutions), len(self.products)))
         for i, solution in enumerate(solutions):
             mo = isinstance(solution.fitness, Pareto)
             proceed = True if mo else solution.fitness > 0
@@ -511,6 +513,8 @@ class KnockoutOptimizationResult(core.result.Result):
                     simulation_result = self._simulate(decoded_solution[0])
                 except SolveError as e:
                     logger.debug(e)
+                    products[i] = [np.nan for _ in self.products]
+                    fitness[i] = [np.nan for _ in self.objective_functions]
                     continue
                 size = len(decoded_solution[1])
 
@@ -525,7 +529,10 @@ class KnockoutOptimizationResult(core.result.Result):
                 knockouts.append(And(*[Symbol(v.id) for v in decoded_solution[1]]))
                 reactions.append(And(*[Symbol(v.id) for v in decoded_solution[0]]))
                 sizes.append(size)
-                products[i] = [simulation_result[p] for p in self.product]
+                products[i] = [simulation_result[p] for p in self.products]
+
+        products = products[~np.isnan(products).any(axis=1)]
+        fitness = fitness[~np.isnan(fitness).any(axis=1)]
 
         if self.ko_type == REACTION_KNOCKOUT_TYPE:
             data_frame = DataFrame({KNOCKOUTS: knockouts, SIZE: sizes})
@@ -538,11 +545,11 @@ class KnockoutOptimizationResult(core.result.Result):
             data_frame[BIOMASS] = biomass
             aggregation_functions[BIOMASS] = lambda x: x.values[0]
 
-        for j in range(len(self.product)):
-            data_frame[self.product[j]] = products[:, j]
-            aggregation_functions[self.product[j]] = lambda x: x.values[0]
+        for j, product in enumerate(self.products):
+            data_frame[product] = products[:, j]
+            aggregation_functions[product] = lambda x: x.values[0]
 
-        for j in range(len(self.objective_functions)):
+        for j, of in enumerate(self.objective_functions):
             data_frame["Fitness %i" % (j+1)] = fitness[:, j]
             aggregation_functions["Fitness %i" % (j+1)] = lambda x: x.values[0]
 
@@ -617,6 +624,37 @@ class KnockoutOptimizationResult(core.result.Result):
 
         builder = draw_knockout_result(self.model, map_name, self.simulation_method, knockouts)
         return builder.display_in_notebook()
+
+    def individuals(self):
+        for index, row in self.solutions.iterrows():
+            if len(self.objective_functions) == 1:
+                fitness = row["Fitness 1"]
+            else:
+                fitness = Pareto(values=[row["Fitness %i"] % (i+1) for i in range(len(self.objective_functions))])
+            if self.ko_type == GENE_KNOCKOUT_TYPE:
+                for knockout in row["Knockouts"].args:
+                    if isinstance(knockout, Symbol):
+                        yield [str(knockout)], fitness
+                    else:
+                        yield [str(s) for s in knockout.args], fitness
+            else:
+                if isinstance(row["Knockouts"], Symbol):
+                    yield [str(row["Knockouts"])], fitness
+                else:
+                    yield [str(s) for s in row["Knockouts"].args], fitness
+
+    def plot(self, grid=None, width=None, height=None, title=None):
+        pass
+
+    def __iter__(self):
+        for index, row in self.solutions.iterrows():
+            if self.ko_type == GENE_KNOCKOUT_TYPE:
+                yield StrainDesign(knockouts=row["Reactions"].args)
+            else:
+                yield StrainDesign(knockouts=row["Knockouts"].args)
+
+    def data_frame(self):
+        return DataFrame(self.solutions)
 
 
 class ReactionKnockoutOptimization(KnockoutOptimization):
