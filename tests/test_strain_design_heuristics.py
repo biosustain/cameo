@@ -628,7 +628,7 @@ class TestKnockoutOptimizationResult(unittest.TestCase):
             self.solutions.add(set_generator(random, args), random.random(), 100)
         self.decoder = ReactionKnockoutDecoder(self.representation, self.model)
 
-    def test_result(self):
+    def test_reaction_result(self):
         result = KnockoutOptimizationResult(
             model=self.model,
             heuristic_method=None,
@@ -645,12 +645,12 @@ class TestKnockoutOptimizationResult(unittest.TestCase):
         self.assertEqual(result.ko_type, "reaction")
 
         individuals = []
-        for index, row in result.solutions.iterrows():
-            individual = SolutionTuple(set(self.representation.index(r) for r in row["Knockouts"]), row["Fitness"])
+        for row in result.individuals():
+            encoded = set(self.representation.index(v) for v in row[0])
+            individual = SolutionTuple(encoded, row[1])
             self.assertNotIn(individual, individuals, msg="%s is repeated on result")
             individuals.append(individual)
             self.assertIn(individual, self.solutions.archive)
-            self.assertEqual(len(row["Knockouts"]), row["Size"])
             self.assertEqual(self.solutions.archive.count(individual), 1, msg="%s is unique in archive" % individual)
 
 
