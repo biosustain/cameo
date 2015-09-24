@@ -124,7 +124,7 @@ class PathwayPredictions(Result):
         with grid:
             for i, pathway in enumerate(self.pathways):
                 ppp = pathway.production_envelope(model, variables)
-                ppp.plot(grid, width=400, height=300, title="Pathway %i" % i)
+                ppp.plot(grid, width=450, title="Pathway %i" % i)
 
     def __iter__(self):
         for p in self.pathways:

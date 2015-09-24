@@ -65,6 +65,9 @@ class BestSolutionArchiver(object):
         for solution in self.archive:
             yield solution
 
+    def __len__(self):
+        return self.length()
+
 
 class SolutionTuple(object):
     def __init__(self, candidate, fitness, maximize=True):
