@@ -11,11 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from cameo.util import partition
+
 
 __all__ = ['plot_production_envelope']
-
+from cameo.util import partition
 from cameo import config, util
+
+GOLDEN_RATIO = 1.618033988
+
 
 try:
     # import matplotlib.pyplot as plt
@@ -27,7 +30,7 @@ try:
         # plt.xlabel("growth")
         # plt.ylabel(key)
 
-except:
+except ImportError:
 
     def plot_production_envelope_ipython_matplotlib(envelope, objective, key, grid=None, width=None, height=None,
                                                     title=None, points=None, points_colors=None, axis_font_size=None):
@@ -75,7 +78,7 @@ try:
         else:
             plotting.show(p)
 
-except:
+except ImportError:
 
     def plot_production_envelope_ipython_bokeh(envelope, objective, key, grid=None, width=None, height=None,
                                                title=None, points=None, points_colors=None, axis_font_size=None):
@@ -88,7 +91,7 @@ try:
                                      title=None, points=None, points_colors=None, axis_font_size=None):
         scatterplot.plot_scatter(None, envelope[key], envelope["objective_upper_bound"], "*")
 
-except:
+except ImportError:
     def plot_production_envelope_cli(envelope, objective, key, grid=None, width=None, height=None,
                                      title=None, points=None, points_colors=None, axis_font_size=None):
         pass
@@ -96,6 +99,11 @@ except:
 
 def plot_production_envelope(envelope, objective, key, grid=None, width=None, height=None, title=None,
                              points=None, points_colors=None, axis_font_size=None):
+
+    if width is None and height is None:
+        width = 700
+    if width is None or height is None:
+        width, height = _golden_ratio(width, height)
     if util.in_ipnb():
         if config.use_bokeh:
             plot_production_envelope_ipython_bokeh(envelope, objective, key, grid=grid, width=width, height=height,
@@ -140,3 +148,13 @@ class Grid(object):
         if len(self.plots) > 0:
             grid = GridPlot(children=partition(self.plots, self.nrows), title=self.title)
             plotting.show(grid)
+
+
+def _golden_ratio(width, height):
+    if width is None:
+        width = int(height + height/GOLDEN_RATIO)
+
+    elif height is None:
+        height = int(width/GOLDEN_RATIO)
+
+    return width, height

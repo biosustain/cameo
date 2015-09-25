@@ -137,8 +137,6 @@ class Wrapper:
                                            view=SequentialView())
             assert_dataframes_equal(ppp2d, REFERENCE_PPP_o2_glc_EcoliCore)
 
-
-
     class AbstractTestSimulationMethods(unittest.TestCase):
         def setUp(self):
             self.model = CORE_MODEL
@@ -146,6 +144,12 @@ class Wrapper:
         def test_fba(self):
             solution = fba(self.model)
             self.assertAlmostEqual(solution.objective_value, 0.873921, delta=0.000001)
+            self.assertEqual(len(solution.fluxes), len(self.model.reactions))
+
+        def test_fba_with_reaction_filter(self):
+            solution = fba(self.model, reactions=['EX_o2_LPAREN_e_RPAREN_', 'EX_glc_LPAREN_e_RPAREN_'])
+            self.assertAlmostEqual(solution.objective_value, 0.873921, delta=0.000001)
+            self.assertEqual(len(solution.fluxes), 2)
 
         def test_pfba(self):
             fba_solution = fba(self.model)
@@ -155,6 +159,11 @@ class Wrapper:
             # looks like GLPK finds a parsimonious solution without the flux minimization objective
             self.assertTrue((pfba_flux_sum - fba_flux_sum) < 1e-6,
                             msg="FBA sum is suppose to be lower than PFBA (was %f)" % (pfba_flux_sum - fba_flux_sum))
+
+        def test_pfba_with_reaction_filter(self):
+            fba_solution = fba(self.model)
+            pfba_solution = pfba(self.model, reactions=['EX_o2_LPAREN_e_RPAREN_', 'EX_glc_LPAREN_e_RPAREN_'])
+            self.assertEqual(len(pfba_solution.fluxes), 2)
 
         def test_pfba_iJO(self):
             fba_solution = fba(iJO_MODEL)
@@ -173,12 +182,22 @@ class Wrapper:
                                    delta=1e-6,
                                    msg="lmoma distance without knockouts must be 0 (was %f)" % distance)
 
+        def test_lmoma_with_reaction_filter(self):
+            pfba_solution = pfba(self.model)
+            solution = lmoma(self.model, reference=pfba_solution, reactions=['EX_o2_LPAREN_e_RPAREN_', 'EX_glc_LPAREN_e_RPAREN_'])
+            self.assertEqual(len(solution.fluxes), 2)
+
         def test_room(self):
             pfba_solution = pfba(self.model)
             solution = room(self.model, reference=pfba_solution)
             self.assertAlmostEqual(0, solution.objective_value,
                                    delta=1e-6,
                                    msg="room objective without knockouts must be 0 (was %f)" % solution.objective_value)
+
+        def test_room_with_reaction_filter(self):
+            pfba_solution = pfba(self.model)
+            solution = room(self.model, reference=pfba_solution, reactions=['EX_o2_LPAREN_e_RPAREN_', 'EX_glc_LPAREN_e_RPAREN_'])
+            self.assertEqual(len(solution.fluxes), 2)
 
         def test_room_shlomi_2005(self):
             reference = {"b1": -10, "v1": 10, "v2": 5, "v3": 0, "v4": 0, "v5": 0, "v6": 5, "b2": 5, "b3": 5}

@@ -430,7 +430,7 @@ def flux_balance_impact_degree(model, knockouts, view=config.default_view, metho
         Reactions to knockout
     method: str
         The method to compute the perturbation. default is "fva" - Flux Variability Analysis.
-        It can also be computed with "em" - Elementary modes
+        It can also be computed with "em" - Elementary modes (not implemented)
 
     Returns
     -------

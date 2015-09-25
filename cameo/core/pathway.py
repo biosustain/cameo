@@ -19,7 +19,20 @@ import six
 from cameo.core.reaction import Reaction
 
 
+# TODO: Load pathways from SBML and JSON
+# TODO: Define the product
+# TODO: Visualization with ESCHER
 class Pathway(object):
+    """
+    Representation of a pathway (a set of reactions)
+
+    Attributes
+    ----------
+
+    reactions: list o Reaction
+        The list of reactions in the pathway.
+
+    """
     def __init__(self, reactions, *args, **kwargs):
         super(Pathway, self).__init__(*args, **kwargs)
         self.reactions = reactions
@@ -31,6 +44,25 @@ class Pathway(object):
 
     @classmethod
     def from_file(cls, file_path, sep="\t"):
+        """
+        Read a pathway from a file. The file format is:
+        reaction_id<sep>equation<sep>lower_limit<sep>upper_limit<sep>name<sep>comments\n
+
+        The equation is defined by:
+        coefficient * substrate_name#substrate_id + ... <=> coefficient * product_name#product_id
+
+        Arguments
+        ---------
+
+        file_path: str
+            The path to the file containing the pathway
+        sep: str
+            The separator between elements in the file (default: "\t")
+
+        Returns
+        -------
+        Pathway
+        """
         reactions = []
         with open(file_path, "r") as pathway:
             for line in pathway:
@@ -46,6 +78,22 @@ class Pathway(object):
         return cls(reactions)
 
     def to_file(self, file_path, sep="\t"):
+        """
+        Writes the pathway to a file.
+
+        Arguments
+        ---------
+
+        file_path: str
+            The path to the file where the pathway will be written
+        sep: str
+            The separator between elements in the file (default: "\t")
+
+
+        See Also
+        --------
+        Pathway.from_file
+        """
         with open(file_path, "w") as output_file:
             for reaction in self.reactions:
                 equation = _build_equation(reaction.metabolites)
@@ -57,8 +105,24 @@ class Pathway(object):
                                   reaction.notes.get("pathway_note", "") + "\n")
 
     def plug_model(self, model, tm=None):
-        metabolites = reduce(lambda x, y: x+y, [list(r.metabolites.keys()) for r in self.reactions], [])
-        exchanges = [model.add_demand(m, prefix="EX_", time_machine=tm) for m in metabolites if m not in model.metabolites]
+        """
+        Plugs the pathway to a model.
+        If a TimeMachine is provided, the reactions will be removed after reverting the TimeMachine.
+
+        Metabolites are matched in the model by id. For metabolites with no ID in the model, an exchange reaction
+        is added to the model
+
+        Arguments
+        ---------
+        model: SolverBasedModel
+            The model to plug in the pathway
+        tm: TimeMachine
+            Optionally, a TimeMachine object can be added to the operation
+
+        """
+        metabolites = reduce(lambda x, y: x+y, [r.metabolites.keys() for r in self.reactions], [])
+        exchanges = [model.add_demand(m, prefix="EX_", time_machine=tm) for m in metabolites
+                     if m not in model.metabolites]
         for exchange in exchanges:
             exchange.lower_bound = 0
         if tm is not None:

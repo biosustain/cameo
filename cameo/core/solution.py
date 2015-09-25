@@ -269,6 +269,17 @@ class LazySolution(SolutionBase):
             duals[metabolite.id] = self.model.solver.constraints[metabolite.id].dual
         return duals
 
+    def get_primal_by_id(self, reaction_id):
+        """Return a flux/primal value for a reaction.
+
+        Parameters
+        ----------
+        reaction_id : str
+            A reaction ID.
+        """
+        self._check_freshness()
+        return self.model.reactions.get_by_id(reaction_id).flux
+
     def __dir__(self):
         # Hide 'cobrapy' attributes and methods from user.
         fields = sorted(dir(type(self)) + list(self.__dict__.keys()))
