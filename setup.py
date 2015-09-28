@@ -45,6 +45,7 @@ else:
                     'numexpr>=2.4',
                     'networkx>=1.9.1',
                     'six>=1.9.0',
+                    'future>=0.15.2',
                     'escher>=1.1.2',
                     'IProgress>=0.2',
                     'inspyred>=1.0',
