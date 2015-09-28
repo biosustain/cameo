@@ -483,17 +483,15 @@ class WrappedAbstractTestReaction:
             for reaction in self.model.reactions:
                 reaction.add_metabolites({test_metabolite: -66}, combine=True)
                 self.assertEqual(reaction.metabolites[test_metabolite], -66)
-                self.assertIn(-66. * reaction.forward_variable, self.model.solver.constraints['test'].expression)
-                self.assertIn(66. * reaction.reverse_variable, self.model.solver.constraints['test'].expression)
+                self.assertTrue(self.model.solver.constraints['test'].expression.has(-66. * reaction.forward_variable))
+                self.assertTrue(self.model.solver.constraints['test'].expression.has(66. * reaction.reverse_variable))
                 already_included_metabolite = list(reaction.metabolites.keys())[0]
                 previous_coefficient = reaction.get_coefficient(already_included_metabolite.id)
                 reaction.add_metabolites({already_included_metabolite: 10}, combine=True)
                 new_coefficient = previous_coefficient + 10
                 self.assertEqual(reaction.metabolites[already_included_metabolite], new_coefficient)
-                self.assertIn(new_coefficient * reaction.forward_variable,
-                              self.model.solver.constraints[already_included_metabolite.id].expression)
-                self.assertIn(-1 * new_coefficient * reaction.reverse_variable,
-                              self.model.solver.constraints[already_included_metabolite.id].expression)
+                self.assertTrue(self.model.solver.constraints[already_included_metabolite.id].expression.has(new_coefficient * reaction.forward_variable))
+                self.assertTrue(self.model.solver.constraints[already_included_metabolite.id].expression.has(-1 * new_coefficient * reaction.reverse_variable))
 
         @unittest.skipIf(TRAVIS, 'This test behaves non-deterministic on travis-ci')
         def test_add_metabolites_combine_false(self):
@@ -501,15 +499,13 @@ class WrappedAbstractTestReaction:
             for reaction in self.model.reactions:
                 reaction.add_metabolites({test_metabolite: -66}, combine=False)
                 self.assertEqual(reaction.metabolites[test_metabolite], -66)
-                self.assertIn(-66. * reaction.forward_variable, self.model.solver.constraints['test'].expression)
-                self.assertIn(66. * reaction.reverse_variable, self.model.solver.constraints['test'].expression)
+                self.assertTrue(self.model.solver.constraints['test'].expression.has(-66. * reaction.forward_variable))
+                self.assertTrue(self.model.solver.constraints['test'].expression.has(66. * reaction.reverse_variable))
                 already_included_metabolite = list(reaction.metabolites.keys())[0]
                 reaction.add_metabolites({already_included_metabolite: 10}, combine=False)
                 self.assertEqual(reaction.metabolites[already_included_metabolite], 10)
-                self.assertIn(10 * reaction.forward_variable,
-                              self.model.solver.constraints[already_included_metabolite.id].expression)
-                self.assertIn(-10 * reaction.reverse_variable,
-                              self.model.solver.constraints[already_included_metabolite.id].expression)
+                self.assertTrue(self.model.solver.constraints[already_included_metabolite.id].expression.has(10 * reaction.forward_variable))
+                self.assertTrue(self.model.solver.constraints[already_included_metabolite.id].expression.has(-10 * reaction.reverse_variable))
 
         @unittest.skip('Not implemented yet.')
         def test_change_id_is_reflected_in_solver(self):
@@ -628,9 +624,7 @@ class WrappedAbstractTestSolverBasedModel:
                 demand_reaction = self.model.add_demand(metabolite, prefix="DemandReaction_")
                 self.assertEqual(self.model.reactions.get_by_id(demand_reaction.id), demand_reaction)
                 self.assertEqual(demand_reaction.reactants, [metabolite])
-                self.assertTrue(
-                    self.model.solver.variables["DemandReaction_" + metabolite.id] in self.model.solver.constraints[
-                        metabolite.id].expression)
+                self.assertTrue(self.model.solver.constraints[metabolite.id].expression.has(self.model.solver.variables["DemandReaction_" + metabolite.id]))
 
         def test_add_demand_time_machine(self):
             with TimeMachine() as tm:
@@ -638,9 +632,7 @@ class WrappedAbstractTestSolverBasedModel:
                     demand_reaction = self.model.add_demand(metabolite, time_machine=tm)
                     self.assertEqual(self.model.reactions.get_by_id(demand_reaction.id), demand_reaction)
                     self.assertEqual(demand_reaction.reactants, [metabolite])
-                    self.assertTrue(
-                        self.model.solver.variables["DM_" + metabolite.id] in self.model.solver.constraints[
-                            metabolite.id].expression)
+                    self.assertTrue(-self.model.solver.constraints[metabolite.id].expression.has(self.model.solver.variables["DM_" + metabolite.id]))
             for metabolite in self.model.metabolites:
                 self.assertNotIn("DM_" + metabolite.id, self.model.reactions)
                 self.assertNotIn("DM_" + metabolite.id, self.model.solver.variables.keys())
@@ -743,8 +735,7 @@ class WrappedAbstractTestSolverBasedModel:
         def test_add_demand_for_non_existing_metabolite(self):
             metabolite = Metabolite(id="a_metabolite")
             self.model.add_demand(metabolite)
-            self.assertTrue(self.model.solver.variables["DM_" + metabolite.id]
-                            in self.model.solver.constraints[metabolite.id].expression)
+            self.assertTrue(self.model.solver.constraints[metabolite.id].expression.has(self.model.solver.variables["DM_" + metabolite.id]))
 
         def test_add_ratio_constraint(self):
             solution = self.model.solve()
@@ -769,12 +760,12 @@ class WrappedAbstractTestSolverBasedModel:
             with TimeMachine() as tm:
                 self.model.fix_objective_as_constraint(time_machine=tm)
                 constraint_name = self.model.solver.constraints[-1]
-                self.assertTrue(Eq(self.model.solver.constraints[-1].expression, self.model.objective.expression))
+                self.assertEqual(self.model.solver.constraints[-1].expression - self.model.objective.expression, 0)
             self.assertNotIn(constraint_name, self.model.solver.constraints)
             # without TimeMachine
             self.model.fix_objective_as_constraint()
             constraint_name = self.model.solver.constraints[-1]
-            self.assertTrue(Eq(self.model.solver.constraints[-1].expression, self.model.objective.expression))
+            self.assertEqual(self.model.solver.constraints[-1].expression - self.model.objective.expression, 0)
             self.assertIn(constraint_name, self.model.solver.constraints)
 
 
