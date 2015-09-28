@@ -13,12 +13,15 @@
 # limitations under the License.
 
 from __future__ import absolute_import, print_function
+from collections import namedtuple
 from math import sqrt
 
 import os
 import unittest
 import inspyred
 import pickle
+from inspyred.ec import Bounder
+import numpy
 from ordered_set import OrderedSet
 
 from pandas.util.testing import assert_frame_equal
@@ -28,6 +31,7 @@ from cameo import load_model, fba, config
 from cameo.strain_design.heuristic.genomes import MultipleChromosomeGenome
 from cameo.strain_design.heuristic.metrics import euclidean_distance
 from cameo.strain_design.heuristic.metrics import manhattan_distance
+from cameo.strain_design.heuristic.multiprocess.migrators import MultiprocessingMigrator
 from cameo.strain_design.heuristic.variators import _do_set_n_point_crossover, set_n_point_crossover, set_mutation, \
     set_indel, multiple_chromosome_set_mutation, multiple_chromosome_set_indel
 
@@ -37,11 +41,11 @@ from cameo.strain_design.heuristic.optimization import HeuristicOptimization, Re
 from cameo.strain_design.heuristic.archivers import SolutionTuple, BestSolutionArchiver
 from cameo.strain_design.heuristic.decoders import ReactionKnockoutDecoder, KnockoutDecoder, GeneKnockoutDecoder
 from cameo.strain_design.heuristic.generators import set_generator, unique_set_generator, \
-    multiple_chromosome_set_generator
+    multiple_chromosome_set_generator, linear_set_generator
 from cameo.strain_design.heuristic.objective_functions import biomass_product_coupled_yield, product_yield, \
     number_of_knockouts
 from cobra.manipulation.delete import find_gene_knockout_reactions
-from cameo.parallel import SequentialView, MultiprocessingView
+from cameo.parallel import SequentialView, MultiprocessingView, RedisQueue
 from six.moves import range
 
 TRAVIS = os.getenv('TRAVIS', False)
@@ -140,6 +144,7 @@ class TestBestSolutionArchiver(unittest.TestCase):
         self.assertEqual(sol1.__cmp__(sol2), -1)
         self.assertEqual(sol1.__cmp__(sol1), 0)
         self.assertEqual(sol1.__cmp__(sol3), -1)
+        self.assertEqual(sol3.__cmp__(sol1), 1)
 
         self.assertTrue(sol1 < sol2)
         self.assertTrue(sol1 == sol1)
@@ -302,6 +307,7 @@ class TestObjectiveFunctions(unittest.TestCase):
         solution.set_primal('substrate', -10)
 
         of = biomass_product_coupled_yield("biomass", "product", "substrate")
+        self.assertEqual(of.name, "bpcy = (biomass * product) / substrate")
 
         fitness = of(None, solution, None)
         self.assertAlmostEqual((0.6 * 2) / 10, fitness)
@@ -318,6 +324,7 @@ class TestObjectiveFunctions(unittest.TestCase):
         solution.set_primal('substrate', -10)
 
         of = product_yield("product", "substrate")
+        self.assertEqual(of.name, "yield = (product / substrate)")
         fitness = of(None, solution, None)
         self.assertAlmostEqual(2.0 / 10.0, fitness)
 
@@ -327,7 +334,9 @@ class TestObjectiveFunctions(unittest.TestCase):
 
     def test_number_of_knockouts(self):
         of_max = number_of_knockouts(sense='max')
+        self.assertEqual(of_max.name, "max knockouts")
         of_min = number_of_knockouts(sense='min')
+        self.assertEqual(of_min.name, "min knockouts")
 
         f1 = of_max(None, None, [['a', 'b'], ['a', 'b']])
         f2 = of_max(None, None, [['a', 'b'], ['a', 'b', 'c']])
@@ -359,6 +368,8 @@ class TestDecoders(unittest.TestCase):
 
 
 class TestGenerators(unittest.TestCase):
+    mockup_evolutionary_algorithm = namedtuple("EA", ["bounder"])
+
     def setUp(self):
         self.model = TEST_MODEL
         self.args = {}
@@ -368,8 +379,8 @@ class TestGenerators(unittest.TestCase):
     def test_set_generator(self):
         random = Random(SEED)
         representation = ["a", "b", "c", "d", "e", "f"]
-        candidate_size = 5
-        variable_candidate_size = False
+        max_size = 5
+        variable_size = False
         expected = [[2, 1, 5, 0, 4],
                     [0, 4, 3, 2, 5],
                     [1, 0, 3, 2, 5],
@@ -378,8 +389,8 @@ class TestGenerators(unittest.TestCase):
 
         for i in range(len(expected)):
             candidate = set_generator(random, dict(representation=representation,
-                                                   candidate_size=candidate_size,
-                                                   variable_candidate_size=variable_candidate_size))
+                                                   max_size=max_size,
+                                                   variable_size=variable_size))
             self.assertEqual(candidate, expected[i])
 
     def test_multiple_chromossome_set_generator(self):
@@ -387,46 +398,59 @@ class TestGenerators(unittest.TestCase):
         args = dict(keys=["test_key_1", "test_key_2"],
                     test_key_1_representation=["a1", "a2", "a3", "a4", "a5"],
                     test_key_2_representation=["b1", "b2", "b3", "b4", "b5", "b6", "b7"],
-                    test_key_1_candidate_size=3,
-                    test_key_2_candidate_size=5,
-                    variable_candidate_size=False)
+                    test_key_1_max_size=3,
+                    test_key_2_max_size=5,
+                    variable_size=False)
         candidate = multiple_chromosome_set_generator(random, args)
         self.assertEqual(len(candidate['test_key_1']), 3)
         self.assertEqual(len(candidate['test_key_2']), 5)
 
-    def test_fixed_size_generator(self):
-        self.args.setdefault('variable_candidate_size', False)
+    def test_fixed_size_set_generator(self):
+        self.args.setdefault('variable_size', False)
 
-        self.args['candidate_size'] = 10
-        for _ in range(10000):
+        self.args['max_size'] = 10
+        for _ in range(1000):
             candidate = set_generator(self.random, self.args)
             self.assertEqual(len(candidate), 10)
             candidate = unique_set_generator(self.random, self.args)
             self.assertEqual(len(candidate), 10)
 
-        self.args['candidate_size'] = 20
-        for _ in range(10000):
+        self.args['max_size'] = 20
+        for _ in range(1000):
             candidate = set_generator(self.random, self.args)
             self.assertEqual(len(candidate), 20)
             candidate = unique_set_generator(self.random, self.args)
             self.assertEqual(len(candidate), 20)
 
-    def test_variable_size_generator(self):
-        self.args.setdefault('variable_candidate_size', True)
+    def test_variable_size_set_generator(self):
+        self.args.setdefault('variable_size', True)
 
-        self.args['candidate_size'] = 10
-        for _ in range(10000):
+        self.args['max_size'] = 10
+        for _ in range(1000):
             candidate = set_generator(self.random, self.args)
             self.assertLessEqual(len(candidate), 10)
             candidate = unique_set_generator(self.random, self.args)
             self.assertLessEqual(len(candidate), 10)
 
-        self.args['candidate_size'] = 20
-        for _ in range(10000):
+        self.args['max_size'] = 20
+        for _ in range(1000):
             candidate = set_generator(self.random, self.args)
             self.assertLessEqual(len(candidate), 20)
             candidate = unique_set_generator(self.random, self.args)
             self.assertLessEqual(len(candidate), 20)
+
+    def test_fixed_size_linear_set_generator(self):
+        ec = self.mockup_evolutionary_algorithm(Bounder(-10, 10))
+        self.args.setdefault('variable_size', True)
+        self.args['max_size'] = 10
+        self.args['_ec'] = ec
+        for _ in range(1000):
+            candidate = linear_set_generator(self.random, self.args)
+            for i, v in six.iteritems(candidate):
+                self.assertIsInstance(i, (int, numpy.int64, numpy.int32))
+                self.assertIsInstance(v, float)
+
+            self.assertLessEqual(len(candidate), 10)
 
 
 class TestHeuristicOptimization(unittest.TestCase):
@@ -563,6 +587,36 @@ class TestHeuristicOptimization(unittest.TestCase):
         self.assertEqual(d, 1)
 
 
+class TestMigrators(unittest.TestCase):
+    def setUp(self):
+        self.population = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+        self.random = Random(SEED)
+
+    def test_migrator_constructor(self):
+        migrator = MultiprocessingMigrator(max_migrants=1)
+        self.assertIsInstance(migrator.migrants, RedisQueue)
+        self.assertEqual(migrator.max_migrants, 1)
+
+        migrator = MultiprocessingMigrator(max_migrants=2)
+        self.assertIsInstance(migrator.migrants, RedisQueue)
+        self.assertEqual(migrator.max_migrants, 2)
+
+        migrator = MultiprocessingMigrator(max_migrants=3)
+        self.assertIsInstance(migrator.migrants, RedisQueue)
+        self.assertEqual(migrator.max_migrants, 3)
+
+    def test_migrate_individuals_without_evaluation(self):
+        migrator = MultiprocessingMigrator(max_migrants=1)
+        self.assertIsInstance(migrator.migrants, RedisQueue)
+        self.assertEqual(migrator.max_migrants, 1)
+
+        migrator(self.random, self.population, {})
+        self.assertEqual(len(migrator.migrants), 1)
+
+        migrator(self.random, self.population, {})
+        self.assertEqual(len(migrator.migrants), 1)
+
+
 class TestKnockoutOptimizationResult(unittest.TestCase):
     def setUp(self):
         self.model = TEST_MODEL
@@ -574,7 +628,7 @@ class TestKnockoutOptimizationResult(unittest.TestCase):
             self.solutions.add(set_generator(random, args), random.random(), 100)
         self.decoder = ReactionKnockoutDecoder(self.representation, self.model)
 
-    def test_result(self):
+    def test_reaction_result(self):
         result = KnockoutOptimizationResult(
             model=self.model,
             heuristic_method=None,
@@ -591,12 +645,12 @@ class TestKnockoutOptimizationResult(unittest.TestCase):
         self.assertEqual(result.ko_type, "reaction")
 
         individuals = []
-        for index, row in result.solutions.iterrows():
-            individual = SolutionTuple(set(self.representation.index(r) for r in row["Knockouts"]), row["Fitness"])
+        for row in result.individuals():
+            encoded = set(self.representation.index(v) for v in row[0])
+            individual = SolutionTuple(encoded, row[1])
             self.assertNotIn(individual, individuals, msg="%s is repeated on result")
             individuals.append(individual)
             self.assertIn(individual, self.solutions.archive)
-            self.assertEqual(len(row["Knockouts"]), row["Size"])
             self.assertEqual(self.solutions.archive.count(individual), 1, msg="%s is unique in archive" % individual)
 
 

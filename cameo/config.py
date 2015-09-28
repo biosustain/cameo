@@ -18,6 +18,7 @@ from .util import in_ipnb
 from .parallel import SequentialView
 
 import logging
+logging.getLogger().setLevel(logging.ERROR)
 
 log = logging.getLogger(__name__)
 

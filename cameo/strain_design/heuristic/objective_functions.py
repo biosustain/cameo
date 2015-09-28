@@ -41,6 +41,13 @@ class ObjectiveFunction(object):
     def __call__(self, model, solution, decoded_representation):
         raise NotImplementedError
 
+    @property
+    def reactions(self):
+        """
+        Returns the reactions ids that require flux data for this evaluation function.
+        """
+        return []
+
     def _repr_latex_(self):
         return self.name
 
@@ -105,6 +112,10 @@ class biomass_product_coupled_yield(ObjectiveFunction):
     def name(self):
         return "bpcy = (%s * %s) / %s" % (self.biomass, self.product, self.substrate)
 
+    @property
+    def reactions(self):
+        return [self.biomass, self.product, self.substrate]
+
 
 class product_yield(ObjectiveFunction):
     """
@@ -146,6 +157,11 @@ class product_yield(ObjectiveFunction):
     @property
     def name(self):
         return "yield = (%s / %s)" % (self.product, self.substrate)
+
+    @property
+    def reactions(self):
+        return [self.product, self.substrate]
+
 
 
 class number_of_knockouts(ObjectiveFunction):

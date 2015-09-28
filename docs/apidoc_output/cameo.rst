@@ -13,6 +13,7 @@ Subpackages
     cameo.models
     cameo.network_analysis
     cameo.strain_design
+    cameo.stuff
     cameo.ui
     cameo.visualization
 
@@ -47,14 +48,6 @@ cameo.parallel module
 ---------------------
 
 .. automodule:: cameo.parallel
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-cameo.stuff module
-------------------
-
-.. automodule:: cameo.stuff
     :members:
     :undoc-members:
     :show-inheritance:

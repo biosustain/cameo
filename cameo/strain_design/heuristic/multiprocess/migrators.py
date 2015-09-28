@@ -18,20 +18,23 @@ import six.moves.queue
 from cameo.parallel import RedisQueue
 from uuid import uuid4
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 class MultiprocessingMigrator(object):
-    """Migrate among processes on the same machine.
+    """Migrate among processes on multiple machines. This is possible by
+    having a Queue implemented on redis.
 
     This callable class allows individuals to migrate from one process
-    to another on the same machine. It maintains a queue of migrants
-    whose maximum length can be fixed via the ``max_migrants``
-    parameter in the constructor. If the number of migrants in the queue
-    reaches this value, new migrants are not added until earlier ones
-    are consumed. The unreliability of a multiprocessing environment
-    makes it difficult to provide guarantees. However, migrants are
-    theoretically added and consumed at the same rate, so this value
-    should determine the "freshness" of individuals, where smaller
-    queue sizes provide more recency.
+    to another. It maintains a queue of migrants whose maximum length
+    can be fixed via the ``max_migrants`` parameter in the constructor.
+    If the number of migrants in the queue reaches this value, new migrants
+    are not added until earlier ones are consumed. The unreliability of a
+    multiprocessing environment makes it difficult to provide guarantees.
+    However, migrants are theoretically added and consumed at the same rate,
+    so this value should determine the "freshness" of individuals, where
+    smaller queue sizes provide more recency.
 
     An optional keyword argument in ``args`` requires the migrant to be
     evaluated by the current evolutionary computation before being inserted
@@ -69,9 +72,9 @@ class MultiprocessingMigrator(object):
                 args["_ec"].num_evaluations += 1
             population[migrant_index] = migrant
         except six.moves.queue.Empty:
-            pass
+            logger.debug("Empty queue")
         try:
-            self.migrants.put(old_migrant, block=False)
+            self.migrants.put_nowait(old_migrant)
         except six.moves.queue.Full:
-            pass
+            logger.debug("Full queue")
         return population

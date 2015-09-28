@@ -58,9 +58,18 @@ class _OptimizationRunner(object):
             return opt.run(product=pathway.product.id, max_evaluations=10000)
 
 
-class StrainDesigns(Result):
-    def __init__(self, *args, **kwargs):
-        super(StrainDesigns, self).__init__(*args, **kwargs)
+class DesignerResult(Result):
+    def __init__(self, designs, *args, **kwargs):
+        super(DesignerResult, self).__init__(*args, **kwargs)
+        self.designs = designs
+
+    def _repr_latex_(self):
+        pass
+
+
+class StrainDesings(Result):
+    def __init__(self, organism, designs, *args, **kwargs):
+        super(StrainDesings, self).__init__(*args, **kwargs)
 
 
 class Designer(object):
@@ -112,7 +121,8 @@ class Designer(object):
     @staticmethod
     def optimize_strains(pathways, view):
         runner = _OptimizationRunner()
-        designs = [(host, model, pathway) for (host, model) in pathways for pathway in pathways[host, model]]
+        designs = [(host, model, pathway) for (host, model) in pathways for pathway in pathways[host, model]
+                   if pathway.needs_optimization(model, objective=model.biomass)]
         return view.map(runner, designs)
 
     def predict_pathways(self, product, hosts=None, database=None):  # TODO: make this work with a single host or model

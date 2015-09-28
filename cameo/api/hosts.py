@@ -35,8 +35,8 @@ class Host(object):
         self.models = util.IntelliContainer()
         for id, biomass, carbon_source in zip(models, biomass, carbon_sources):
             model = Proxy(partial(load_model, os.path.join(MODEL_DIRECTORY, id + '.xml')))
-            model.biomass = biomass
-            model.carbon_source = carbon_source
+            setattr(model, "biomass", biomass)
+            setattr(model, "carbon_source", carbon_source)
             self.models[id] = model
 
     def __str__(self):
@@ -72,7 +72,7 @@ HOST_SPECS = {
         'name': 'Saccharomyces cerevisiae',
         'models': ('iMM904',),
         'biomass': ('biomass_SC5_notrace',),
-        'carbon_sources': ('EX_glc_e_',)
+        'carbon_sources': ('EX_glc_lp_e_rp_',)
 
     }
 }

@@ -18,7 +18,7 @@ import unittest
 from functools import partial
 from itertools import chain
 
-from cameo.util import TimeMachine, generate_colors, Singleton, partition
+from cameo.util import TimeMachine, generate_colors, Singleton, partition, RandomGenerator
 from cameo.network_analysis.util import distance_based_on_molecular_formula
 import six
 from six.moves import range
@@ -58,6 +58,67 @@ class TimeMachineTestCase(unittest.TestCase):
         self.assertEqual(l, [1, 2, 3, 4])
 
 
+class TestRandomGenerator(unittest.TestCase):
+    def setUp(self):
+        self.seed = 1234
+
+    def test_random(self):
+        random = RandomGenerator()
+        for _ in range(1000):
+            self.assertGreaterEqual(random.random(), 0)
+            self.assertLessEqual(random.random(), 1)
+
+    def test_randint(self):
+        random = RandomGenerator()
+        lower = 0
+        upper = 10
+        for _ in range(10000):
+            self.assertGreaterEqual(random.randint(lower, upper), lower)
+            self.assertLessEqual(random.randint(lower, upper), upper)
+
+        lower = -10
+        upper = 100
+        for _ in range(10000):
+            self.assertGreaterEqual(random.randint(lower, upper), lower)
+            self.assertLessEqual(random.randint(lower, upper), upper)
+
+        lower = 5
+        upper = 21
+        for _ in range(10000):
+            self.assertGreaterEqual(random.randint(lower, upper), lower)
+            self.assertLessEqual(random.randint(lower, upper), upper)
+
+        lower = -5
+        upper = 5
+        for _ in range(10000):
+            self.assertGreaterEqual(random.randint(lower, upper), lower)
+            self.assertLessEqual(random.randint(lower, upper), upper)
+
+    def test_seeded_methods(self):
+        random = RandomGenerator()
+
+        random.seed(self.seed)
+        value = random.random()
+        random.seed(self.seed)
+        self.assertEqual(value, random.random())
+
+        random.seed(self.seed)
+        value = random.randint(1, 10)
+        random.seed(self.seed)
+        self.assertEqual(value, random.randint(1, 10))
+
+        random.seed(self.seed)
+        population = [1, 2, 3, 4, 5]
+        value = random.sample(population, 2)
+        random.seed(self.seed)
+        self.assertEqual(value, random.sample(population, 2))
+
+        random.seed(self.seed)
+        value = random.uniform()
+        random.seed(self.seed)
+        self.assertEqual(value, random.uniform())
+
+
 class TestUtils(unittest.TestCase):
     def test_color_generation(self):
         for i in range(1, 100):
@@ -69,7 +130,7 @@ class TestUtils(unittest.TestCase):
         chunks = 3
         iterables = [
             [1, 2, 3, 4, 5, 6, 7, 8, 9],
-            set([5, 3, 8, 3, 8, 5, 8, 0, 10, 11, 15]),
+            {5, 3, 8, 3, 8, 5, 8, 0, 10, 11, 15},
             range(29)
         ]
         for fixture in iterables:

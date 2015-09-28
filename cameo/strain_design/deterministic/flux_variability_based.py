@@ -133,9 +133,13 @@ class DifferentialFVA(StrainDesignMethod):
         if isinstance(objective, Reaction):
             self.objective = objective.id
         elif isinstance(objective, Metabolite):
-            self.reference_model.add_demand(objective)
-            self.objective = self.design_space_model.add_demand(objective).id
-            self.objective = objective
+            try:
+                self.reference_model.add_demand(objective)
+                self.objective = self.design_space_model.add_demand(objective).id
+            except:
+                logger.debug("Demand reaction for metabolite %s already exists" % objective.id)
+                self.objective = self.design_space_model.reactions.get_by_id("DM_%s" % objective.id).id
+
         elif isinstance(objective, str):
             self.objective = objective
         else:
@@ -318,12 +322,11 @@ class DifferentialFVAResult(PhenotypicPhasePlaneResult):
             notice("Multi-dimensional plotting is not supported")
             return
         title = "DifferentialFVA Result" if title is None else title
-        x = [elem[0][1] for elem in list(self.solutions.items)]
-        y = [elem[1][1] for elem in list(self.solutions.items)]
-        colors = ["red" for _ in x]
+        points = [(elem[0][1], elem[1][1]) for elem in list(self.solutions.items)]
+        colors = ["red" for _ in points]
         plotting.plot_production_envelope(self._phase_plane, objective=self.objective, key=self.variable_ids[0],
                                           grid=grid, width=width, height=height, title=title,
-                                          points=[x, y], points_colors=colors)
+                                          points=points, points_colors=colors)
 
     def _repr_html_(self):
         def _data_frame(solution):
