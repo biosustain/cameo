@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from __future__ import absolute_import, print_function
-from sympy import And, Or, Symbol
 from cameo.strain_design import StrainDesignResult, StrainDesignMethod, StrainDesign
 
 __all__ = ['ReactionKnockoutOptimization', 'GeneKnockoutOptimization']
@@ -22,13 +21,15 @@ from six.moves import range
 
 import time
 import numpy as np
+
 from functools import reduce
+from sympy import Symbol
 
 from cobra.manipulation.delete import find_gene_knockout_reactions
 from inspyred.ec.emo import Pareto
 
 from cameo.exceptions import SolveError
-from cameo.visualization import sympy_ext
+from cameo.visualization.sympy_ext import And, Or
 from cameo.strain_design.heuristic import archivers
 from cameo.strain_design.heuristic import plotters
 from cameo.strain_design.heuristic import observers
@@ -47,7 +48,6 @@ import logging
 from cameo.util import RandomGenerator as Random
 from cameo.util import in_ipnb
 from cameo.visualization import draw_knockout_result
-from cameo import core
 
 REACTION_KNOCKOUT_TYPE = "reaction"
 GENE_KNOCKOUT_TYPE = "gene"
@@ -190,7 +190,7 @@ class HeuristicOptimization(StrainDesignMethod):
                 raise TypeError("single objective heuristics do not support multiple objective functions")
         self._heuristic_method = heuristic_method(self.random)
 
-    def _evaluator(self):
+    def _evaluator(self, candidates, args):
         raise NotImplementedError
 
     def run(self, view=config.default_view, maximize=True, **kwargs):
@@ -268,6 +268,7 @@ class KnockoutEvaluator(object):
                                                   cache=self.cache,
                                                   volatile=False,
                                                   raw=True,
+                                                  reactions=self._reactions2filter(),
                                                   **self.simulation_kwargs)
                 fitness = self._calculate_fitness(solution, decoded)
             except SolveError as e:
@@ -278,6 +279,14 @@ class KnockoutEvaluator(object):
                     fitness = 0
 
             return fitness
+
+    def _reactions2filter(self):
+        if isinstance(self.objective_function, list):
+            reactions = []
+            [reactions.extend(of.reactions) for of in self.objective_function]
+        else:
+            reactions = self.objective_function.reactions
+        return set(reactions)
 
     def _calculate_fitness(self, solution, decoded):
         if isinstance(self.objective_function, list):
@@ -293,7 +302,7 @@ class KnockoutOptimization(HeuristicOptimization):
     Abstract class for knockout optimization.
     """
 
-    def __init__(self, simulation_method=pfba, max_size=9, variable_size=True, wt_reference=None, *args, **kwargs):
+    def __init__(self, simulation_method=pfba, wt_reference=None, *args, **kwargs):
         """
          Attributes
         ----------
