@@ -23,6 +23,9 @@ from ordered_set import OrderedSet
 from cameo.strain_design.heuristic.genomes import MultipleChromosomeGenome
 from numpy import float32 as float
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 def _do_set_n_point_crossover(representation, mom, dad, points, random, candidate_size):
     chunks = []
@@ -131,10 +134,11 @@ def set_indel(random, individual, args):
     indel_rate = float(args.get('indel_rate', .1))
     new_individual = list(individual)
     if random.random() < indel_rate:
+        logger.info("Applying indel mutation")
         if random.random() > 0.5 and len(new_individual) < max_size:
             new_individual.append(random.sample(range(len(representation)), 1)[0])
         else:
-            if len(individual) > 1:
+            if len(new_individual) > 1:
                 new_individual = random.sample(new_individual, len(new_individual) - 1)
 
     return list(OrderedSet(new_individual))
