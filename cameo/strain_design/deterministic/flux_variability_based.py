@@ -576,7 +576,7 @@ class FSEOFResult(StrainDesignResult):
 
     # TODO: Make an iterator that returns designs from the different enforced levels
     def __iter__(self):
-        pass
+        return iter(self.reactions)
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) and \
