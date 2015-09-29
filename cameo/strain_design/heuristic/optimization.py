@@ -422,6 +422,12 @@ class KnockoutOptimization(HeuristicOptimization):
 
 # TODO: Figure out a way to provide generic parameters for different simulation methods
 class KnockoutOptimizationResult(StrainDesignResult):
+
+    __aggregation_function = {
+        KNOCKOUTS: lambda x: Or(*x.values),
+        BIOMASS: lambda x: x.values[0]
+    }
+
     @staticmethod
     def merge(a, b):
         return a._merge(b)
@@ -449,10 +455,10 @@ class KnockoutOptimizationResult(StrainDesignResult):
             self.objective_functions = [objective_function]
         self.ko_type = ko_type
         self.decoder = decoder
-        self.solutions = self._build_solutions(solutions)
+        self._solutions = self._build_solutions(solutions)
 
     def apply(self, column, function, *args, **kwargs):
-        self.solutions[column].apply(function, *args, **kwargs)
+        self._solutions[column].apply(function, *args, **kwargs)
 
     def __getstate__(self):
         return {'product': self.products,
@@ -477,7 +483,7 @@ class KnockoutOptimizationResult(StrainDesignResult):
                 'heuristic_method._kwargs.num_elites': self.heuristic_method._kwargs.get('num_elites'),
                 'objective_functions': self.objective_functions,
                 'ko_type': self.ko_type,
-                'solutions': self.solutions,
+                'solutions': self._solutions,
                 'seed': self.seed}
 
     def __setstate__(self, d):
@@ -502,11 +508,10 @@ class KnockoutOptimizationResult(StrainDesignResult):
         self.heuristic_method._kwargs['num_elites'] = d['heuristic_method._kwargs.num_elites']
         self.objective_functions = d['objective_functions']
         self.ko_type = d['ko_type']
-        self.solutions = d['solutions']
+        self._solutions = d['solutions']
+
 
     def _build_solutions(self, solutions):
-        aggregate = False
-        aggregation_functions = {}
         knockouts = []
         biomass = []
         sizes = []
@@ -547,25 +552,15 @@ class KnockoutOptimizationResult(StrainDesignResult):
             data_frame = DataFrame({KNOCKOUTS: knockouts, SIZE: sizes})
         else:
             data_frame = DataFrame({KNOCKOUTS: knockouts, REACTIONS: reactions, SIZE: sizes})
-            aggregation_functions[KNOCKOUTS] = lambda x: Or(*x.values)
-            aggregate = True
 
         if self.biomass is not None:
             data_frame[BIOMASS] = biomass
-            aggregation_functions[BIOMASS] = lambda x: x.values[0]
 
         for j, product in enumerate(self.products):
             data_frame[product] = products[:, j]
-            aggregation_functions[product] = lambda x: x.values[0]
 
         for j, of in enumerate(self.objective_functions):
             data_frame["Fitness %i" % (j+1)] = fitness[:, j]
-            aggregation_functions["Fitness %i" % (j+1)] = lambda x: x.values[0]
-
-        if aggregate:
-            columns = data_frame.columns
-            data_frame = data_frame.groupby([REACTIONS, SIZE], as_index=False).aggregate(aggregation_functions)
-            data_frame = data_frame[columns]
 
         return data_frame
 
@@ -592,22 +587,22 @@ class KnockoutOptimizationResult(StrainDesignResult):
         heuristic = self.heuristic_method.__class__.__name__
         of_string = "<br/>".join([o._repr_latex_() for o in self.objective_functions])
         simulation = self.simulation_method.__name__
-        solutions = self.solutions._repr_html_()
+        solutions = self.data_frame._repr_html_()
 
         results = template % (model_id, heuristic, of_string, simulation, self.ko_type)
         return results + solutions
 
-    def _merge(self, other_result):
-        assert isinstance(other_result, self.__class__), "Cannot merge result with %s" % type(other_result)
-        assert self.model.id == other_result.model.id, "Cannot merge results from different models"
+    def __iadd__(self, other):
+        assert isinstance(other, self.__class__), "Cannot merge result with %s" % type(other)
+        assert self.model.id == other.model.id, "Cannot merge results from different models"
         # assert self.objective_functions == other_result.objective_functions, \
         # "Cannot merge results with different objective functions"
-        assert self.ko_type == other_result.ko_type, "Cannot merge results with resulting from different strategies"
-        assert self.heuristic_method.__class__.__name__ == other_result.heuristic_method.__class__.__name__, \
+        assert self.ko_type == other.ko_type, "Cannot merge results with resulting from different strategies"
+        assert self.heuristic_method.__class__.__name__ == other.heuristic_method.__class__.__name__, \
             "Cannot merge results from different heuristic methods"
 
-        self.solutions = self.solutions.append(other_result.solutions, ignore_index=True)
-        self.solutions.drop_duplicates(subset=KNOCKOUTS, take_last=True, inplace=False)
+        self._solutions = self._solutions.append(other._solutions, ignore_index=True)
+        self._solutions.drop_duplicates(subset=KNOCKOUTS, take_last=True, inplace=True)
 
         return self
 
@@ -626,51 +621,56 @@ class KnockoutOptimizationResult(StrainDesignResult):
 
     def visualize(self, index, map_name):
         if type == REACTION_KNOCKOUT_TYPE:
-            knockouts = self.solutions[KNOCKOUTS][index]
+            knockouts = self._solutions[KNOCKOUTS][index]
         else:
-            genes = [self.model.genes.get_by_id(g) for g in self.solutions[KNOCKOUTS][index]]
+            genes = [self.model.genes.get_by_id(g) for g in self._solutions[KNOCKOUTS][index]]
             knockouts = find_gene_knockout_reactions(self.model, genes)
 
         builder = draw_knockout_result(self.model, map_name, self.simulation_method, knockouts)
         return builder.display_in_notebook()
 
     def individuals(self):
-        for index, row in self.solutions.iterrows():
+        for index, row in self._solutions.iterrows():
             if len(self.objective_functions) == 1:
                 fitness = row["Fitness 1"]
             else:
                 fitness = Pareto(values=[row["Fitness %i"] % (i+1) for i in range(len(self.objective_functions))])
-            if self.ko_type == GENE_KNOCKOUT_TYPE:
-                for knockout in row["Knockouts"].args:
-                    if isinstance(knockout, Symbol):
-                        yield [str(knockout)], fitness
-                    else:
-                        yield [str(s) for s in knockout.args], fitness
+
+            if isinstance(row[KNOCKOUTS], Symbol):
+                knockouts = [str(row[KNOCKOUTS])]
             else:
-                if isinstance(row["Knockouts"], Symbol):
-                    yield [str(row["Knockouts"])], fitness
-                else:
-                    yield [str(s) for s in row["Knockouts"].args], fitness
+                knockouts = [str(r) for r in row[KNOCKOUTS].args]
+
+            yield knockouts, fitness
 
     def plot(self, grid=None, width=None, height=None, title=None):
         pass
 
     def __iter__(self):
-        for index, row in self.solutions.iterrows():
+        for index, row in self._solutions.iterrows():
             if self.ko_type == GENE_KNOCKOUT_TYPE:
-                for knockout in row["Knockouts"].args:
-                    if isinstance(knockout, Symbol):
-                        yield StrainDesign(knockouts=[knockout])
-                    else:
-                        yield StrainDesign(knockouts=knockout)
-            else:
-                if isinstance(row["Knockouts"], Symbol):
-                    yield StrainDesign(knockouts=[row["Knockouts"]])
+                if isinstance(row[REACTIONS], Symbol):
+                    knockouts = [row[REACTIONS]]
                 else:
-                    yield StrainDesign(knockouts=row["Knockouts"])
+                    knockouts = row[REACTIONS].args
+            else:
+                if isinstance(row[KNOCKOUTS], Symbol):
+                    knockouts = [row[KNOCKOUTS]]
+                else:
+                    knockouts = row[KNOCKOUTS].args
 
+            yield StrainDesign(knockouts=knockouts)
+
+    @property
     def data_frame(self):
-        return DataFrame(self.solutions)
+        if self.ko_type == GENE_KNOCKOUT_TYPE:
+            columns = self._solutions.columns.difference([REACTIONS, SIZE])
+            aggregation_functions = {k: self.__aggregation_function.get(k, lambda x: x.values[0]) for k in columns}
+            data_frame = self._solutions.groupby([REACTIONS, SIZE], as_index=False).aggregate(aggregation_functions)
+            return data_frame[self._solutions.columns]
+
+        else:
+            return DataFrame(self._solutions)
 
 
 class ReactionKnockoutOptimization(KnockoutOptimization):
