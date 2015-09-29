@@ -23,32 +23,26 @@ import six
 import re
 from functools import partial
 
-from pandas import DataFrame
-
 from cameo.core.result import Result
+from cameo.core.pathway import Pathway
 from cameo import models, phenotypic_phase_plane
 from cameo.exceptions import SolveError
 from cameo import Model, Metabolite
 from cameo.data import metanetx
 from cameo.util import TimeMachine
+from cameo.strain_design.pathway_prediction import util
+
 from sympy import Add
-from . import util
 
 import logging
 
 logger = logging.getLogger(__name__)
 
 
-class PathwayResult(Result):
-    @property
-    def data_frame(self):
-        return DataFrame([[r.id, r.build_reaction_string(use_metabolite_names=True), r.lower_bound, r.upper_bound]
-                          for r in self.pathway if not (r.id.startswith("adapter") or r.id.startswith("DM_"))],
-                         columns=["id", "equation", "lower_bound", "upper_bound"])
-
-    def __init__(self, pathway, exchanges, adapters, product, *args, **kwargs):
-        super(Result, self).__init__(*args, **kwargs)
-        self.pathway = pathway
+class PathwayResult(Pathway, Result):
+    def __init__(self, reactions, exchanges, adapters, product, *args, **kwargs):
+        Result.__init__(self, *args, **kwargs)
+        Pathway.__init__(self, reactions, *args, **kwargs)
         self.exchanges = exchanges
         self.adapters = adapters
         self.product = product
@@ -59,15 +53,15 @@ class PathwayResult(Result):
     def needs_optimization(self, model, objective=None):
         return self.production_envelope(model, objective).area > 1e-5
 
-    def production_envelope(self, model, objective=None):
+    def production_envelope(self, model, variables=None):
         with TimeMachine() as tm:
             self.plug_model(model, tm)
-            return phenotypic_phase_plane(model, variables=[objective or model.objective], objective=self.product)
+            return phenotypic_phase_plane(model, variables=variables, objective=self.product)
 
     def plug_model(self, model, tm=None, adapters=True, exchanges=True):
         if tm is not None:
-            tm(do=partial(model.add_reactions, self.pathway),
-               undo=partial(model.remove_reactions, self.pathway, delete=False))
+            tm(do=partial(model.add_reactions, self.reactions),
+               undo=partial(model.remove_reactions, self.reactions, delete=False))
             if adapters:
                 tm(do=partial(model.add_reactions, self.adapters),
                    undo=partial(model.remove_reactions, self.adapters, delete=False))
@@ -83,7 +77,7 @@ class PathwayResult(Result):
                 logger.warning("Exchange %s already in model" % self.product.id)
                 pass
         else:
-            model.add_reactions(self.pathway)
+            model.add_reactions(self.reactions)
             if adapters:
                 model.add_reactions(self.adapters)
             if exchanges:
@@ -125,12 +119,12 @@ class PathwayPredictions(Result):
         # TODO: small pathway visualizations would be great.
         raise NotImplementedError
 
-    def plot_production_envelopes(self, model, objective=None):
-        grid = Grid(nrows=ceil(len(self.pathways))/2, title="Production envelops for %s" % self.pathways[0].product.name)
+    def plot_production_envelopes(self, model, variables=None):
+        grid = Grid(nrows=int(ceil(len(self.pathways)/2.0)), title="Production envelops for %s" % self.pathways[0].product.name)
         with grid:
-            for pathway in self.pathways:
-                ppp = pathway.production_envelop(model, objective)
-                ppp.plot(grid, width=400, height=300)
+            for i, pathway in enumerate(self.pathways):
+                ppp = pathway.production_envelope(model, variables)
+                ppp.plot(grid, width=450, title="Pathway %i" % i)
 
     def __iter__(self):
         for p in self.pathways:

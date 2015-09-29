@@ -24,12 +24,15 @@ from time import time
 from datetime import datetime
 import colorsys
 from functools import wraps
+import numpy as np
+from numpy.linalg import svd
 
 import pip
 import platform
 from itertools import islice
 from functools import partial
 
+import pandas
 from numpy.random import RandomState
 
 import logging
@@ -38,6 +41,16 @@ logger = logging.getLogger(__name__)
 
 
 class ProblemCache(object):
+    """
+    Variable and constraint cache for models.
+
+    To be used in complex methods that require many extra variables when one must run
+    multiple simulations.
+
+    It allows rollback to the previous state in case one iteration fails to build the problem or
+    generates an invalid state.
+
+    """
     def __init__(self, model):
         self.time_machine = None
         self._model = model
@@ -48,6 +61,9 @@ class ProblemCache(object):
         self.transaction_id = None
 
     def begin_transaction(self):
+        """
+        Creates a time point. If rollback is called, the variables and constrains will be reverted to this point.
+        """
         self.transaction_id = uuid1()
         self.time_machine(do=int, undo=int, bookmark=self.transaction_id)
 
@@ -94,6 +110,24 @@ class ProblemCache(object):
         return rebuild
 
     def add_constraint(self, constraint_id, create, update, *args, **kwargs):
+        """
+        Adds a new cached constraint.
+
+        The create and update functions must have the following signatures:
+        >>> create(model, constraint_id, *args)
+        >>> update(model, constraint, *args)
+
+        "args" in the first example must match args on the second example.
+
+        Arguments
+        ---------
+        constraint_id: str
+            The identifier of the constraint
+        create: function
+            A function that creates an optlang.interface.Constraint
+        update: function
+            a function that updates an optlang.interface.Constraint
+        """
         if constraint_id in self.constraints:
             if update is not None:
                 self.time_machine(
@@ -106,6 +140,24 @@ class ProblemCache(object):
             )
 
     def add_variable(self, variable_id, create, update, *args, **kwargs):
+        """
+        Adds a new cached variable.
+
+        The create and update functions must have the following signatures:
+        >>> create(model, variable_id, *args)
+        >>> update(model, variable, *args)
+
+        "args" in the first example must match args on the second example.
+
+        Arguments
+        ---------
+        constraint_id: str
+            The identifier of the constraint
+        create: function
+            A function that creates an optlang.interface.Variable
+        update: function
+            a function that updates an optlang.interface.Variable
+        """
         if variable_id in self.variables:
             if update is not None:
                 self.time_machine(
@@ -118,6 +170,9 @@ class ProblemCache(object):
             )
 
     def reset(self):
+        """
+        Removes all constraints and variables from the cache.
+        """
         self.model.solver._remove_constraints(self.constraints.values())
         self.model.solver._remove_variables(self.variables.values())
         self.model.objective = self.original_objective
@@ -127,6 +182,9 @@ class ProblemCache(object):
         self.time_machine.history.clear()
 
     def rollback(self):
+        """
+        Returns to the previous transaction start point.
+        """
         if self.transaction_id is None:
             raise RuntimeError("Start transaction must be called before rollback")
         self.time_machine.undo(self.transaction_id)
@@ -136,6 +194,9 @@ class ProblemCache(object):
 class RandomGenerator(object):
     def __init__(self, seed=None):
         self._random = RandomState(seed=seed)
+
+    def seed(self, seed):
+        self._random.seed(seed)
 
     def random(self):
         return self._random.rand()
@@ -150,7 +211,7 @@ class RandomGenerator(object):
     def sample(self, population, k):
         if k == 0:
             return []
-        return self._random.choice(population, size=k, replace=False)
+        return list(self._random.choice(population, size=k, replace=False))
 
     def __getattr__(self, attr):
         return getattr(self._random, attr)
@@ -317,7 +378,7 @@ class DocInherit(object):
 
         overridden = getattr(super(cls, obj), self.name, None)
 
-        @wraps(self.mthd, assigned=('__name__','__module__'))
+        @wraps(self.mthd, assigned=('__name__', '__module__'))
         def f(*args, **kwargs):
             return self.mthd(obj, *args, **kwargs)
 
@@ -402,6 +463,48 @@ def generate_colors(n):
     return color_map
 
 
+# Taken from http://wiki.scipy.org/Cookbook/RankNullspace
+def nullspace(A, atol=1e-13, rtol=0):
+    """Compute an approximate basis for the nullspace of A.
+
+    The algorithm used by this function is based on the singular value
+    decomposition of `A`.
+
+    Parameters
+    ----------
+    A : ndarray
+        A should be at most 2-D.  A 1-D array with length k will be treated
+        as a 2-D with shape (1, k)
+    atol : float
+        The absolute tolerance for a zero singular value.  Singular values
+        smaller than `atol` are considered to be zero.
+    rtol : float
+        The relative tolerance.  Singular values less than rtol*smax are
+        considered to be zero, where smax is the largest singular value.
+
+    If both `atol` and `rtol` are positive, the combined tolerance is the
+    maximum of the two; that is::
+        tol = max(atol, rtol * smax)
+    Singular values smaller than `tol` are considered to be zero.
+
+    Return value
+    ------------
+    ns : ndarray
+        If `A` is an array with shape (m, k), then `ns` will be an array
+        with shape (k, n), where n is the estimated dimension of the
+        nullspace of `A`.  The columns of `ns` are a basis for the
+        nullspace; each element in numpy.dot(A, ns) will be approximately
+        zero.
+    """
+
+    A = np.atleast_2d(A)
+    u, s, vh = svd(A)
+    tol = max(atol, rtol * s[0])
+    nnz = (s >= tol).sum()
+    ns = vh[nnz:].conj().T
+    return ns
+
+
 def memoize(function, memo={}):
     def wrapper(*args):
         if args in memo:
@@ -430,31 +533,7 @@ def in_ipnb():
     """
     Check if it is running inside an IPython Notebook (updated for new notebooks)
     """
-    try:
-        import IPython
-
-        ip = IPython.get_ipython()
-
-        front_end = None
-        if "IPKernelApp" in ip.config:
-            front_end = ip.config.get('IPKernelApp').get("parent_appname")
-        elif "KernelApp" in ip.config:
-            front_end = ip.config.get('KernelApp').get("parent_appname")
-
-        if isinstance(front_end, IPython.config.loader.LazyConfigValue) or front_end is None:
-            if isinstance(ip, IPython.kernel.zmq.zmqshell.ZMQInteractiveShell):
-                return True
-            else:
-                return False
-        elif isinstance(front_end, six.string_types):
-            if 'ipython-notebook' in front_end.lower():
-                return True
-            elif 'notebook' in front_end.lower():
-                return True
-    except Exception as e:
-        logger.debug("Cannot determine if running a notebook because of %s" % e)
-        return False
-    return False
+    return pandas.core.common.in_ipython_frontend()
 
 
 def str_to_valid_variable_name(s):

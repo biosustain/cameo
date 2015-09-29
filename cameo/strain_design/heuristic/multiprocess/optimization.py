@@ -147,9 +147,9 @@ class MultiprocessKnockoutOptimization(MultiprocessHeuristicOptimization):
         else:
             progress_observer = CliMultiprocessProgressObserver(number_of_islands=number_of_islands)
 
-        if not progress_observer is None:
+        if progress_observer is not None:
             observers.append(progress_observer)
-        if not plotting_observer is None:
+        if plotting_observer is not None:
             observers.append(plotting_observer)
 
         return observers
@@ -171,7 +171,7 @@ class MultiprocessKnockoutOptimization(MultiprocessHeuristicOptimization):
 
 class MultiprocessReactionKnockoutOptimization(MultiprocessKnockoutOptimization):
     """
-    Heuristic Knockout Optimization Abstract implementation.
+    Heuristic Knockout Optimization Reaction implementation.
 
     Arguments
     =========
@@ -186,6 +186,10 @@ class MultiprocessReactionKnockoutOptimization(MultiprocessKnockoutOptimization)
         The number of individuals travelling between islands (different processes) at the same time (default: 1).
     simulation_method: a function from flux_analysis.simulation
         The method to simulate the model (default: pfba).
+    reactions: list
+        Optionally, on can set the reactions to knockout (default is None)
+    essential_reaction: list
+        Optionally, on can set the reactions to that cannot be knocked out (default is None)
     """
     _island_class = ReactionKnockoutOptimization
 
@@ -209,6 +213,27 @@ class MultiprocessReactionKnockoutOptimization(MultiprocessKnockoutOptimization)
 
 
 class MultiprocessGeneKnockoutOptimization(MultiprocessKnockoutOptimization):
+    """
+    Heuristic Knockout Optimization Gene implementation.
+
+    Arguments
+    =========
+
+    model: SolverBasedModel
+        A model to simulate.
+    objective_function: a list of or one objective_function
+        The objective for the algorithm to optimize.
+    heuristic_method: inspyred.ec instance
+        The method using for search (default: inspyred.ec.GA).
+    max_migrants: int
+        The number of individuals travelling between islands (different processes) at the same time (default: 1).
+    simulation_method: a function from flux_analysis.simulation
+        The method to simulate the model (default: pfba).
+    gene: list
+        Optionally, on can set the genes to knockout (default is None)
+    essential_genes: list
+        Optionally, on can set the genes to that cannot be knocked out (default is None)
+    """
     _island_class = GeneKnockoutOptimization
 
     def __init__(self, genes=None, essential_genes=None, *args, **kwargs):

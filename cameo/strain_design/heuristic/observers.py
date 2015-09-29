@@ -19,7 +19,7 @@ from cameo.visualization import ProgressBar
 
 class ProgressObserver(object):
     """
-    Progress bar to in command line
+    Progress bar to in command line. It keeps track of the progress during heuristic optimization.
     """
     __name__ = "Progress Observer"
 

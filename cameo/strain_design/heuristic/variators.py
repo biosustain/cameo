@@ -23,6 +23,9 @@ from ordered_set import OrderedSet
 from cameo.strain_design.heuristic.genomes import MultipleChromosomeGenome
 from numpy import float32 as float
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 def _do_set_n_point_crossover(representation, mom, dad, points, random, candidate_size):
     chunks = []
@@ -126,15 +129,17 @@ def set_indel(random, individual, args):
         created based on an ordered set
 
     """
+    max_size = args.get("max_size", 9)
     representation = args.get('representation')
     indel_rate = float(args.get('indel_rate', .1))
     new_individual = list(individual)
     if random.random() < indel_rate:
-        if random.random() > 0.5:
-            if len(individual) > 1:
-                new_individual = random.sample(new_individual, len(new_individual) - 1)
-        else:
+        logger.info("Applying indel mutation")
+        if random.random() > 0.5 and len(new_individual) < max_size:
             new_individual.append(random.sample(range(len(representation)), 1)[0])
+        else:
+            if len(new_individual) > 1:
+                new_individual = random.sample(new_individual, len(new_individual) - 1)
 
     return list(OrderedSet(new_individual))
 
@@ -193,16 +198,16 @@ def multiple_chromosome_set_indel(random, individual, args):
         A mutated individual
     """
     new_individual = individual.copy()
-
+    max_size = args.get("max_size", 9)
     for key in individual.keys:
         representation = args.get('%s_representation' % key)
         indel_rate = args.get('%s_indel_rate' % key, .1)
         if random.random() < indel_rate:
-            if random.random() > 0.5:
+            if random.random() > 0.5 and len(new_individual[key]) < max_size:
+                new_individual[key].append(random.sample(range(len(representation)), 1)[0])
+            else:
                 if len(individual[key]) > 1:
                     new_individual[key] = random.sample(new_individual[key], len(new_individual[key]) - 1)
-            else:
-                new_individual[key].append(random.sample(range(len(representation)), 1)[0])
 
     return new_individual
 
