@@ -16,7 +16,7 @@
 from __future__ import absolute_import, print_function
 import re
 
-__all__ = ['DifferentialFVA', 'Fseof']
+__all__ = ['DifferentialFVA', 'FSEOF']
 
 from functools import partial
 from uuid import uuid4
@@ -49,7 +49,7 @@ from cameo import config, flux_variability_analysis, fba
 from cameo import Metabolite
 from cameo.parallel import SequentialView
 from cameo.core.solver_based_model import Reaction
-from cameo.strain_design import StrainDesignMethod
+from cameo.strain_design import StrainDesignMethod, StrainDesignResult
 from cameo.flux_analysis.analysis import phenotypic_phase_plane, PhenotypicPhasePlaneResult
 from cameo.util import TimeMachine
 import cameo
@@ -407,7 +407,7 @@ class _DifferentialFvaEvaluator(object):
         target_reaction.lower_bound, target_reaction.upper_bound = target_bound, target_bound
 
 
-class Fseof(StrainDesignMethod):
+class FSEOF(StrainDesignMethod):
     """
     Performs a Flux Scanning based on Enforced Objective Flux (FSEOF) analysis.
 
@@ -425,7 +425,8 @@ class Fseof(StrainDesignMethod):
     for improvement of lycopene production.,' Appl Environ Microbiol, vol. 76, no. 10, pp. 3097–3105, May 2010.
 
     """
-    def __init__(self, model, enforced_reaction, primary_objective=None):
+    def __init__(self, model, enforced_reaction, primary_objective=None, *args, **kwargs):
+        super(FSEOF, self).__init__(*args, **kwargs)
         self.model = model
 
         if isinstance(enforced_reaction, Reaction):
@@ -542,10 +543,10 @@ class Fseof(StrainDesignMethod):
                         granularity=granularity,
                         solution_method=solution_method,
                         exclude=exclude)
-        return FseofResult(fseof_reactions, enforced_reaction, model, primary_objective, [initial_flux]+enforcements, reaction_results, run_args)
+        return FSEOFResult(fseof_reactions, enforced_reaction, model, primary_objective, [initial_flux]+enforcements, reaction_results, run_args)
 
 
-class FseofResult(cameo.core.result.Result):
+class FSEOFResult(StrainDesignResult):
     """
     Object for storing a FSEOF result.
 
@@ -553,12 +554,15 @@ class FseofResult(cameo.core.result.Result):
     reactions: A list of the reactions that are found to increase with product formation.
     enforced_levels: A list of the fluxes that the enforced reaction was constrained to.
     data_frame: A pandas DataFrame containing the fluxes for every reaction for each enforced flux.
-    run_args: The arguments that the analysis was run with. To repeat do 'Fseof.run(**FseofResult.run_args)'.
+    run_args: The arguments that the analysis was run with. To repeat do 'FSEOF.run(**FSEOFResult.run_args)'.
 
     """
 
+    def plot(self, grid=None, width=None, height=None, title=None):
+        pass
+
     def __init__(self, reactions, enforced_reaction, model, primary_objective, enforced_levels, reaction_results, run_args, *args, **kwargs):
-        super(FseofResult, self).__init__(*args, **kwargs)
+        super(FSEOFResult, self).__init__(*args, **kwargs)
         self._reactions = reactions
         self._enforced_reaction = enforced_reaction
         self._model = model
@@ -570,12 +574,13 @@ class FseofResult(cameo.core.result.Result):
     def __len__(self):
         return len(self.reactions)
 
+    # TODO: Make an iterator that returns designs from the different enforced levels
     def __iter__(self):
-        return iter(self.reactions)
+        pass
 
     def __eq__(self, other):
-        return isinstance(other,
-                          self.__class__) and self.objective == other.objective and self.reactions == other.reactions
+        return isinstance(other, self.__class__) and \
+            self.enforced_reaction == other.enforced_reaction and self.reactions == other.reactions
 
     @property
     def reactions(self):
