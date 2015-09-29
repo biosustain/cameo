@@ -658,9 +658,16 @@ class KnockoutOptimizationResult(StrainDesignResult):
     def __iter__(self):
         for index, row in self.solutions.iterrows():
             if self.ko_type == GENE_KNOCKOUT_TYPE:
-                yield StrainDesign(knockouts=row["Reactions"].args)
+                for knockout in row["Knockouts"].args:
+                    if isinstance(knockout, Symbol):
+                        yield StrainDesign(knockouts=[knockout])
+                    else:
+                        yield StrainDesign(knockouts=knockout)
             else:
-                yield StrainDesign(knockouts=row["Knockouts"].args)
+                if isinstance(row["Knockouts"], Symbol):
+                    yield StrainDesign(knockouts=[row["Knockouts"]])
+                else:
+                    yield StrainDesign(knockouts=row["Knockouts"])
 
     def data_frame(self):
         return DataFrame(self.solutions)
