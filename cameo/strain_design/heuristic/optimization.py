@@ -510,7 +510,6 @@ class KnockoutOptimizationResult(StrainDesignResult):
         self.ko_type = d['ko_type']
         self._solutions = d['solutions']
 
-
     def _build_solutions(self, solutions):
         knockouts = []
         biomass = []
@@ -518,19 +517,21 @@ class KnockoutOptimizationResult(StrainDesignResult):
         reactions = []
         fitness = np.zeros((len(solutions), len(self.objective_functions)))
         products = np.zeros((len(solutions), len(self.products)))
+        mo = len(self.objective_functions) > 1
+        success = np.zeros((len(solutions), 1))
         for i, solution in enumerate(solutions):
-            mo = isinstance(solution.fitness, Pareto)
-            proceed = True if mo else solution.fitness > 0
+            proceed = mo or solution.fitness > 0
             if proceed:
                 decoded_solution = self.decoder(solution.candidate)
                 try:
                     simulation_result = self._simulate(decoded_solution[0])
+                    success[i] = [True]
                 except SolveError as e:
                     logger.debug(e)
                     products[i] = [np.nan for _ in self.products]
                     fitness[i] = [np.nan for _ in self.objective_functions]
+                    success[i] = [False]
                     continue
-                size = len(decoded_solution[1])
 
                 if self.biomass:
                     biomass.append(simulation_result[self.biomass])
@@ -542,11 +543,11 @@ class KnockoutOptimizationResult(StrainDesignResult):
 
                 knockouts.append(And(*[Symbol(v.id) for v in decoded_solution[1]]))
                 reactions.append(And(*[Symbol(v.id) for v in decoded_solution[0]]))
-                sizes.append(size)
+                sizes.append(len(decoded_solution[1]))
                 products[i] = [simulation_result[p] for p in self.products]
 
-        products = products[~np.isnan(products).any(axis=1)]
-        fitness = fitness[~np.isnan(fitness).any(axis=1)]
+        products = products[success.all(axis=1)]
+        fitness = fitness[success.all(axis=1)]
 
         if self.ko_type == REACTION_KNOCKOUT_TYPE:
             data_frame = DataFrame({KNOCKOUTS: knockouts, SIZE: sizes})
@@ -595,8 +596,6 @@ class KnockoutOptimizationResult(StrainDesignResult):
     def __iadd__(self, other):
         assert isinstance(other, self.__class__), "Cannot merge result with %s" % type(other)
         assert self.model.id == other.model.id, "Cannot merge results from different models"
-        # assert self.objective_functions == other_result.objective_functions, \
-        # "Cannot merge results with different objective functions"
         assert self.ko_type == other.ko_type, "Cannot merge results with resulting from different strategies"
         assert self.heuristic_method.__class__.__name__ == other.heuristic_method.__class__.__name__, \
             "Cannot merge results from different heuristic methods"
