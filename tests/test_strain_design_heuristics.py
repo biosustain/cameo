@@ -38,7 +38,7 @@ from cameo.strain_design.heuristic.variators import _do_set_n_point_crossover, s
 from cameo.util import RandomGenerator as Random
 from cameo.strain_design.heuristic.optimization import HeuristicOptimization, ReactionKnockoutOptimization, \
     set_distance_function, KnockoutOptimizationResult
-from cameo.strain_design.heuristic.archivers import SolutionTuple, BestSolutionArchiver
+from cameo.strain_design.heuristic.archivers import Individual, BestSolutionArchiver
 from cameo.strain_design.heuristic.decoders import ReactionKnockoutDecoder, KnockoutDecoder, GeneKnockoutDecoder
 from cameo.strain_design.heuristic.generators import set_generator, unique_set_generator, \
     multiple_chromosome_set_generator, linear_set_generator
@@ -83,17 +83,17 @@ class TestMetrics(unittest.TestCase):
 
 class TestBestSolutionArchiver(unittest.TestCase):
     def test_solution_string(self):
-        sol1 = SolutionTuple(SOLUTIONS[0][0], SOLUTIONS[0][1])
-        sol2 = SolutionTuple(SOLUTIONS[1][0], SOLUTIONS[1][1])
-        sol3 = SolutionTuple(SOLUTIONS[2][0], SOLUTIONS[2][1])
+        sol1 = Individual(SOLUTIONS[0][0], SOLUTIONS[0][1])
+        sol2 = Individual(SOLUTIONS[1][0], SOLUTIONS[1][1])
+        sol3 = Individual(SOLUTIONS[2][0], SOLUTIONS[2][1])
         self.assertEqual(sol1.__str__(), "[1, 2, 3] - 0.1 sense: max")
         self.assertEqual(sol2.__str__(), "[1, 2, 3, 4] - 0.1 sense: max")
         self.assertEqual(sol3.__str__(), "[2, 3, 4] - 0.45 sense: max")
 
     def test_solution_comparison_maximization(self):
-        sol1 = SolutionTuple(SOLUTIONS[0][0], SOLUTIONS[0][1])
-        sol2 = SolutionTuple(SOLUTIONS[1][0], SOLUTIONS[1][1])
-        sol3 = SolutionTuple(SOLUTIONS[2][0], SOLUTIONS[2][1])
+        sol1 = Individual(SOLUTIONS[0][0], SOLUTIONS[0][1])
+        sol2 = Individual(SOLUTIONS[1][0], SOLUTIONS[1][1])
+        sol3 = Individual(SOLUTIONS[2][0], SOLUTIONS[2][1])
 
         # test ordering
         self.assertEqual(sol1.__cmp__(sol2), -1)
@@ -136,9 +136,9 @@ class TestBestSolutionArchiver(unittest.TestCase):
         self.assertFalse(sol2.improves(sol3), msg="Solution 2 does not improve Solution 3")
 
     def test_solution_comparison_minimization(self):
-        sol1 = SolutionTuple(SOLUTIONS[0][0], SOLUTIONS[0][1], maximize=False)
-        sol2 = SolutionTuple(SOLUTIONS[1][0], SOLUTIONS[1][1], maximize=False)
-        sol3 = SolutionTuple(SOLUTIONS[2][0], SOLUTIONS[2][1], maximize=False)
+        sol1 = Individual(SOLUTIONS[0][0], SOLUTIONS[0][1], maximize=False)
+        sol2 = Individual(SOLUTIONS[1][0], SOLUTIONS[1][1], maximize=False)
+        sol3 = Individual(SOLUTIONS[2][0], SOLUTIONS[2][1], maximize=False)
 
         # test ordering
         self.assertEqual(sol1.__cmp__(sol2), -1)
@@ -183,8 +183,8 @@ class TestBestSolutionArchiver(unittest.TestCase):
     def test_add_greater_solution_with_same_fitness(self):
         size = 1
         pool = BestSolutionArchiver()
-        pool.add(SOLUTIONS[0][0], SOLUTIONS[0][1], size)
-        pool.add(SOLUTIONS[1][0], SOLUTIONS[1][1], size)
+        pool.add(SOLUTIONS[0][0], SOLUTIONS[0][1], None, True, size)
+        pool.add(SOLUTIONS[1][0], SOLUTIONS[1][1], None, True, size)
         self.assertEqual(pool.length(), 1, msg="Pool must keep one solution (length=%s)" % pool.length())
         best_solution = set(SOLUTIONS[0][0])
         best_fitness = SOLUTIONS[0][1]
@@ -195,8 +195,8 @@ class TestBestSolutionArchiver(unittest.TestCase):
     def test_add_smaller_solution_with_same_fitness(self):
         size = 1
         pool = BestSolutionArchiver()
-        pool.add(SOLUTIONS[1][0], SOLUTIONS[1][1], size)
-        pool.add(SOLUTIONS[0][0], SOLUTIONS[0][1], size)
+        pool.add(SOLUTIONS[1][0], SOLUTIONS[1][1], None, True, size)
+        pool.add(SOLUTIONS[0][0], SOLUTIONS[0][1], None, True, size)
         self.assertEqual(pool.length(), 1, msg="Pool must keep one solution (length=%s)" % pool.length())
         solution = set(SOLUTIONS[0][0])
         fitness = SOLUTIONS[0][1]
@@ -207,77 +207,77 @@ class TestBestSolutionArchiver(unittest.TestCase):
     def test_uniqueness_of_solutions(self):
         size = 2
         pool = BestSolutionArchiver()
-        pool.add(SOLUTIONS[1][0], SOLUTIONS[1][1], size)
-        pool.add(SOLUTIONS[1][0], SOLUTIONS[1][1], size)
+        pool.add(SOLUTIONS[1][0], SOLUTIONS[1][1], None, True, size)
+        pool.add(SOLUTIONS[1][0], SOLUTIONS[1][1], None, True, size)
 
         self.assertEqual(pool.length(), 1, "Added repeated solution")
 
     def test_pool_size_limit(self):
         size = 1
         pool = BestSolutionArchiver()
-        pool.add(SOLUTIONS[0][0], SOLUTIONS[0][1], size)
-        pool.add(SOLUTIONS[1][0], SOLUTIONS[1][1], size)
-        pool.add(SOLUTIONS[2][0], SOLUTIONS[2][1], size)
-        pool.add(SOLUTIONS[3][0], SOLUTIONS[3][1], size)
-        pool.add(SOLUTIONS[4][0], SOLUTIONS[4][1], size)
-        pool.add(SOLUTIONS[5][0], SOLUTIONS[5][1], size)
-        pool.add(SOLUTIONS[6][0], SOLUTIONS[6][1], size)
-        pool.add(SOLUTIONS[7][0], SOLUTIONS[7][1], size)
-        pool.add(SOLUTIONS[8][0], SOLUTIONS[8][1], size)
-        pool.add(SOLUTIONS[9][0], SOLUTIONS[9][1], size)
+        pool.add(SOLUTIONS[0][0], SOLUTIONS[0][1], None, True, size)
+        pool.add(SOLUTIONS[1][0], SOLUTIONS[1][1], None, True, size)
+        pool.add(SOLUTIONS[2][0], SOLUTIONS[2][1], None, True, size)
+        pool.add(SOLUTIONS[3][0], SOLUTIONS[3][1], None, True, size)
+        pool.add(SOLUTIONS[4][0], SOLUTIONS[4][1], None, True, size)
+        pool.add(SOLUTIONS[5][0], SOLUTIONS[5][1], None, True, size)
+        pool.add(SOLUTIONS[6][0], SOLUTIONS[6][1], None, True, size)
+        pool.add(SOLUTIONS[7][0], SOLUTIONS[7][1], None, True, size)
+        pool.add(SOLUTIONS[8][0], SOLUTIONS[8][1], None, True, size)
+        pool.add(SOLUTIONS[9][0], SOLUTIONS[9][1], None, True, size)
         self.assertLessEqual(pool.length(), 1, msg="Pool must keep one solution (length=%s)" % pool.length())
         size = 2
         pool = BestSolutionArchiver()
-        pool.add(SOLUTIONS[0][0], SOLUTIONS[0][1], size)
-        pool.add(SOLUTIONS[1][0], SOLUTIONS[1][1], size)
-        pool.add(SOLUTIONS[2][0], SOLUTIONS[2][1], size)
-        pool.add(SOLUTIONS[3][0], SOLUTIONS[3][1], size)
-        pool.add(SOLUTIONS[4][0], SOLUTIONS[4][1], size)
-        pool.add(SOLUTIONS[5][0], SOLUTIONS[5][1], size)
-        pool.add(SOLUTIONS[6][0], SOLUTIONS[6][1], size)
-        pool.add(SOLUTIONS[7][0], SOLUTIONS[7][1], size)
-        pool.add(SOLUTIONS[8][0], SOLUTIONS[8][1], size)
-        pool.add(SOLUTIONS[9][0], SOLUTIONS[9][1], size)
+        pool.add(SOLUTIONS[0][0], SOLUTIONS[0][1], None, True, size)
+        pool.add(SOLUTIONS[1][0], SOLUTIONS[1][1], None, True, size)
+        pool.add(SOLUTIONS[2][0], SOLUTIONS[2][1], None, True, size)
+        pool.add(SOLUTIONS[3][0], SOLUTIONS[3][1], None, True, size)
+        pool.add(SOLUTIONS[4][0], SOLUTIONS[4][1], None, True, size)
+        pool.add(SOLUTIONS[5][0], SOLUTIONS[5][1], None, True, size)
+        pool.add(SOLUTIONS[6][0], SOLUTIONS[6][1], None, True, size)
+        pool.add(SOLUTIONS[7][0], SOLUTIONS[7][1], None, True, size)
+        pool.add(SOLUTIONS[8][0], SOLUTIONS[8][1], None, True, size)
+        pool.add(SOLUTIONS[9][0], SOLUTIONS[9][1], None, True, size)
         self.assertLessEqual(pool.length(), 2, msg="Pool must keep one solution (length=%s)" % pool.length())
         size = 3
         pool = BestSolutionArchiver()
-        pool.add(SOLUTIONS[0][0], SOLUTIONS[0][1], size)
-        pool.add(SOLUTIONS[1][0], SOLUTIONS[1][1], size)
-        pool.add(SOLUTIONS[2][0], SOLUTIONS[2][1], size)
-        pool.add(SOLUTIONS[3][0], SOLUTIONS[3][1], size)
-        pool.add(SOLUTIONS[4][0], SOLUTIONS[4][1], size)
-        pool.add(SOLUTIONS[5][0], SOLUTIONS[5][1], size)
-        pool.add(SOLUTIONS[6][0], SOLUTIONS[6][1], size)
-        pool.add(SOLUTIONS[7][0], SOLUTIONS[7][1], size)
-        pool.add(SOLUTIONS[8][0], SOLUTIONS[8][1], size)
-        pool.add(SOLUTIONS[9][0], SOLUTIONS[9][1], size)
+        pool.add(SOLUTIONS[0][0], SOLUTIONS[0][1], None, True, size)
+        pool.add(SOLUTIONS[1][0], SOLUTIONS[1][1], None, True, size)
+        pool.add(SOLUTIONS[2][0], SOLUTIONS[2][1], None, True, size)
+        pool.add(SOLUTIONS[3][0], SOLUTIONS[3][1], None, True, size)
+        pool.add(SOLUTIONS[4][0], SOLUTIONS[4][1], None, True, size)
+        pool.add(SOLUTIONS[5][0], SOLUTIONS[5][1], None, True, size)
+        pool.add(SOLUTIONS[6][0], SOLUTIONS[6][1], None, True, size)
+        pool.add(SOLUTIONS[7][0], SOLUTIONS[7][1], None, True, size)
+        pool.add(SOLUTIONS[8][0], SOLUTIONS[8][1], None, True, size)
+        pool.add(SOLUTIONS[9][0], SOLUTIONS[9][1], None, True, size)
         self.assertLessEqual(pool.length(), 3, msg="Pool must keep one solution (length=%s)" % pool.length())
         size = 4
         pool = BestSolutionArchiver()
-        pool.add(SOLUTIONS[0][0], SOLUTIONS[0][1], size)
-        pool.add(SOLUTIONS[1][0], SOLUTIONS[1][1], size)
-        pool.add(SOLUTIONS[2][0], SOLUTIONS[2][1], size)
-        pool.add(SOLUTIONS[3][0], SOLUTIONS[3][1], size)
-        pool.add(SOLUTIONS[4][0], SOLUTIONS[4][1], size)
-        pool.add(SOLUTIONS[5][0], SOLUTIONS[5][1], size)
-        pool.add(SOLUTIONS[6][0], SOLUTIONS[6][1], size)
-        pool.add(SOLUTIONS[7][0], SOLUTIONS[7][1], size)
-        pool.add(SOLUTIONS[8][0], SOLUTIONS[8][1], size)
-        pool.add(SOLUTIONS[9][0], SOLUTIONS[9][1], size)
+        pool.add(SOLUTIONS[0][0], SOLUTIONS[0][1], None, True, size)
+        pool.add(SOLUTIONS[1][0], SOLUTIONS[1][1], None, True, size)
+        pool.add(SOLUTIONS[2][0], SOLUTIONS[2][1], None, True, size)
+        pool.add(SOLUTIONS[3][0], SOLUTIONS[3][1], None, True, size)
+        pool.add(SOLUTIONS[4][0], SOLUTIONS[4][1], None, True, size)
+        pool.add(SOLUTIONS[5][0], SOLUTIONS[5][1], None, True, size)
+        pool.add(SOLUTIONS[6][0], SOLUTIONS[6][1], None, True, size)
+        pool.add(SOLUTIONS[7][0], SOLUTIONS[7][1], None, True, size)
+        pool.add(SOLUTIONS[8][0], SOLUTIONS[8][1], None, True, size)
+        pool.add(SOLUTIONS[9][0], SOLUTIONS[9][1], None, True, size)
         self.assertLessEqual(pool.length(), 4, msg="Pool must keep one solution (length=%s)" % pool.length())
 
     def test_callable_pool(self):
         pool = BestSolutionArchiver()
         size = 3
         args = {}
-        args.setdefault('max_archive_size', size)
-        population = [SolutionTuple(SOLUTIONS[0][0], SOLUTIONS[0][1]),
-                      SolutionTuple(SOLUTIONS[1][0], SOLUTIONS[1][1]),
-                      SolutionTuple(SOLUTIONS[2][0], SOLUTIONS[2][1]),
-                      SolutionTuple(SOLUTIONS[3][0], SOLUTIONS[3][1]),
-                      SolutionTuple(SOLUTIONS[4][0], SOLUTIONS[4][1]),
-                      SolutionTuple(SOLUTIONS[5][0], SOLUTIONS[5][1]),
-                      SolutionTuple(SOLUTIONS[6][0], SOLUTIONS[6][1])]
+        args['max_archive_size'] = size
+        population = [Individual(SOLUTIONS[0][0], SOLUTIONS[0][1]),
+                      Individual(SOLUTIONS[1][0], SOLUTIONS[1][1]),
+                      Individual(SOLUTIONS[2][0], SOLUTIONS[2][1]),
+                      Individual(SOLUTIONS[3][0], SOLUTIONS[3][1]),
+                      Individual(SOLUTIONS[4][0], SOLUTIONS[4][1]),
+                      Individual(SOLUTIONS[5][0], SOLUTIONS[5][1]),
+                      Individual(SOLUTIONS[6][0], SOLUTIONS[6][1])]
         archive = pool(None, population, [], args)
         self.assertEqual(pool.length(), size)
 
@@ -625,7 +625,7 @@ class TestKnockoutOptimizationResult(unittest.TestCase):
         args = {"representation": self.representation}
         self.solutions = BestSolutionArchiver()
         for _ in range(10000):
-            self.solutions.add(set_generator(random, args), random.random(), 100)
+            self.solutions.add(set_generator(random, args), random.random(), None, True, 100)
         self.decoder = ReactionKnockoutDecoder(self.representation, self.model)
 
     def test_reaction_result(self):
@@ -647,7 +647,7 @@ class TestKnockoutOptimizationResult(unittest.TestCase):
         individuals = []
         for row in result.individuals():
             encoded = set(self.representation.index(v) for v in row[0])
-            individual = SolutionTuple(encoded, row[1])
+            individual = Individual(encoded, row[1])
             self.assertNotIn(individual, individuals, msg="%s is repeated on result")
             individuals.append(individual)
             self.assertIn(individual, self.solutions.archive)
