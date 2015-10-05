@@ -841,8 +841,6 @@ class KnockinKnockoutOptimization(KnockoutOptimization):
             keys=['knockout', 'knockin'],
             knockout_representation=self.representation,
             knockin_representation=self.knockin_representaion,
-            candidate_size=self.max_size,
-            variable_candidate_size=self.variable_size,
             **kwargs)
         return KnockinKnockoutOptimizationResult(model=self.model,
                                                  heuristic_method=self.heuristic_method,
