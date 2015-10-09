@@ -39,6 +39,16 @@ class MultiprocessRunner(object):
     Runner for multiprocessing model. It generates the non-pickable
     objects on the beginning of the process.
 
+    Attributes
+    ----------
+    island_class: class
+        The class to be used when building the island process
+    init_kwargs: dict
+        The island_class constructor arguments.
+    migrator: Queue (supporting multiprocess)
+        The queue used to migrate individuals between islands
+    run_kwargs: dict
+        The arguments necessary to run the island
     """
 
     def __init__(self, island_class, init_kwargs, migrator, run_kwargs):
@@ -59,7 +69,7 @@ class MultiprocessHeuristicOptimization(StrainDesignMethod):
     Heuristic Optimization abstract implementation.
 
     Arguments
-    =========
+    ---------
 
     model: SolverBasedModel
         A model to simulate.
@@ -108,7 +118,7 @@ class MultiprocessKnockoutOptimization(MultiprocessHeuristicOptimization):
     Heuristic Knockout Optimization Abstract implementation.
 
     Arguments
-    =========
+    ---------
 
     model: SolverBasedModel
         A model to simulate.
@@ -166,7 +176,7 @@ class MultiprocessKnockoutOptimization(MultiprocessHeuristicOptimization):
         for observer in self.observers:
             observer.finish()
 
-        return reduce(KnockoutOptimizationResult.merge, results)
+        return reduce(KnockoutOptimizationResult.__iadd__, results)
 
 
 class MultiprocessReactionKnockoutOptimization(MultiprocessKnockoutOptimization):
@@ -174,7 +184,7 @@ class MultiprocessReactionKnockoutOptimization(MultiprocessKnockoutOptimization)
     Heuristic Knockout Optimization Reaction implementation.
 
     Arguments
-    =========
+    ---------
 
     model: SolverBasedModel
         A model to simulate.
@@ -217,7 +227,7 @@ class MultiprocessGeneKnockoutOptimization(MultiprocessKnockoutOptimization):
     Heuristic Knockout Optimization Gene implementation.
 
     Arguments
-    =========
+    ---------
 
     model: SolverBasedModel
         A model to simulate.

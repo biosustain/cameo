@@ -763,8 +763,8 @@ class VariatorsTestCase(unittest.TestCase):
             "representation": representation,
             "indel_rate": 1
         }
-        new_individuals = set_indel(Random(SEED), [individual], args)
-        self.assertEqual(new_individuals[0], [5, 3, 9, 1])
+        new_individuals = set_indel(Random(SEED + 10), [individual], args)
+        self.assertEqual(new_individuals[0], [1, 3, 5, 9, 10, 8])
 
     def test_do_set_n_point_crossover(self):
         representation = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N"]
@@ -808,16 +808,16 @@ class VariatorsTestCase(unittest.TestCase):
 
         random = Random(SEED)
         new_individuals = multiple_chromosome_set_indel(random, [genome for _ in range(5)], args)
-        self.assertEqual(new_individuals[0]["A"], OrderedSet([2, 3, 4]))
-        self.assertEqual(new_individuals[0]["B"], OrderedSet([10, 1, 7]))
-        self.assertEqual(new_individuals[1]["A"], OrderedSet([2, 1, 4]))
-        self.assertEqual(new_individuals[1]["B"], OrderedSet([1, 5, 7, 10]))
+        self.assertEqual(new_individuals[0]["A"], OrderedSet([1, 2, 3, 4, 5]))
+        self.assertEqual(new_individuals[0]["B"], OrderedSet([5, 7, 10]))
+        self.assertEqual(new_individuals[1]["A"], OrderedSet([1, 2, 3, 4, 7]))
+        self.assertEqual(new_individuals[1]["B"], OrderedSet([1, 5, 7, 10, 9]))
         self.assertEqual(new_individuals[2]["A"], OrderedSet([1, 2, 3, 4, 8]))
-        self.assertEqual(new_individuals[2]["B"], OrderedSet([5, 1, 10]))
-        self.assertEqual(new_individuals[3]["A"], OrderedSet([1, 2, 3, 4]))
-        self.assertEqual(new_individuals[3]["B"], OrderedSet([1, 5, 7, 10]))
-        self.assertEqual(new_individuals[4]["A"], OrderedSet([1, 4, 3]))
-        self.assertEqual(new_individuals[4]["B"], OrderedSet([5, 1, 7]))
+        self.assertEqual(new_individuals[2]["B"], OrderedSet([1, 5, 7, 10]))
+        self.assertEqual(new_individuals[3]["A"], OrderedSet([1, 2, 3, 4, 6]))
+        self.assertEqual(new_individuals[3]["B"], OrderedSet([1, 5, 7, 10, 0]))
+        self.assertEqual(new_individuals[4]["A"], OrderedSet([1, 2, 3, 4, 7]))
+        self.assertEqual(new_individuals[4]["B"], OrderedSet([1, 10, 7]))
 
 
 class GenomesTestCase(unittest.TestCase):

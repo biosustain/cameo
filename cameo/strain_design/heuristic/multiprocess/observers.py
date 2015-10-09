@@ -14,6 +14,8 @@
 
 from __future__ import absolute_import, print_function
 
+__all__ = ['CliMultiprocessProgressObserver', 'IPythonNotebookMultiprocessProgressObserver']
+
 import six
 from six.moves.queue import Empty
 from uuid import uuid4

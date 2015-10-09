@@ -14,6 +14,8 @@
 
 from __future__ import absolute_import, print_function
 
+__all__ = ['MultiprocessingMigrator']
+
 import six.moves.queue
 from cameo.parallel import RedisQueue
 from uuid import uuid4
