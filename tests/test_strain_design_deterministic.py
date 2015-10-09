@@ -21,10 +21,12 @@ import unittest
 
 from cameo import load_model
 from cameo.strain_design.deterministic.flux_variability_based import fseof, FseofResult, DifferentialFVA
+from cameo.strain_design.deterministic.linear_programming import OptKnock
 
 from pandas import DataFrame, pandas
 from pandas.util.testing import assert_frame_equal
 
+TRAVIS = os.getenv('TRAVIS', False)
 TESTDIR = os.path.dirname(__file__)
 ECOLICORE = load_model(os.path.join(TESTDIR, 'data/EcoliCore.xml'))
 
@@ -72,6 +74,17 @@ if six.PY2:  # Make these test cases work with PY3 as well
             result = DifferentialFVA(self.model, target, reference_model=reference_model, points=5).run()
             # result.data_frame.iloc[0].to_pickle(os.path.join(TESTDIR, 'data/REFERENCE_DiffFVA2.pickle'))
             pandas.util.testing.assert_frame_equal(result.data_frame.iloc[0], pandas.read_pickle(os.path.join(TESTDIR, 'data/REFERENCE_DiffFVA2.pickle')))
+
+
+@unittest.skipIf(TRAVIS, "OptKnock takes too long for Travis")
+class TestOptKnock(unittest.TestCase):
+    def setUp(self):
+        self.model = ECOLICORE.copy()
+        self.model.solver = "cplex"
+        self.optknock = OptKnock(ECOLICORE)
+
+
+
 
 if __name__ == "__main__":
     import nose
