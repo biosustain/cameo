@@ -29,8 +29,7 @@ from pandas.util.testing import assert_frame_equal
 
 TRAVIS = os.getenv('TRAVIS', False)
 TESTDIR = os.path.dirname(__file__)
-#ECOLICORE = load_model(os.path.join(TESTDIR, 'data/EcoliCore.xml'))
-ECOLICORE = load_model("e_coli_core")
+ECOLICORE = load_model(os.path.join(TESTDIR, 'data/EcoliCore.xml'))
 
 def assert_dataframes_equal(df, expected):
     try:
