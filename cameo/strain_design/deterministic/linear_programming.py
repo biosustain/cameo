@@ -14,30 +14,64 @@
 
 from __future__ import print_function
 
+import warnings
 from cameo.util import TimeMachine
-from cobra import Metabolite
-from cameo import Reaction
-from cameo.core.solver_based_model_dual import SolverBasedModel, to_dual_model, convert_to_dual
-from cameo.strain_design import StrainDesignMethod, StrainDesignResult
-from sympy import Add, Mul
+from cameo import config
+from cameo.core.solver_based_model_dual import convert_to_dual
+from cameo.strain_design import StrainDesignMethod, StrainDesignResult, StrainDesign
+from sympy import Add
+from cameo import flux_variability_analysis
 import pandas as pd
 import logging
+from functools import partial
 
 logger = logging.getLogger(__name__)
 
 
-# TODO: Implement integer cuts to return multiple knockout strategies
 class OptKnock(StrainDesignMethod):
-    def __init__(self, model, exclude_reactions=None, *args, **kwargs):
+    """
+    OptKnock solves a bilevel optimization problem, finding the set of knockouts that allows maximal
+    target production under optimal growth.
+    Add a lower bound on growth to avoid solutions that cannot grow.
+
+    :param model: SolverBasedModel
+    :param exclude_reactions: Reaction that will not be knocked out. Essentials and exchanges are always excluded.
+    :param remove_blocked: Remove reactions that can carry no flux. Reduces running time.
+    :return: OptKnock object
+        Call run() to perform the analysis.
+    """
+    def __init__(self, model, exclude_reactions=None, remove_blocked=True, *args, **kwargs):
         super(OptKnock, self).__init__(*args, **kwargs)
         self._model = model.copy()
 
+        if "cplex" in config.solvers:
+            logger.debug("Changing solver to cplex and tweaking some parameters.")
+            self._model.solver = "cplex"
+            self._model.solver.configuration.presolve = True
+            problem = self._model.solver.problem
+            problem.parameters.simplex.tolerances.feasibility.set(1e-8)
+            problem.parameters.simplex.tolerances.optimality.set(1e-8)
+            problem.parameters.mip.tolerances.integrality.set(1e-8)
+            problem.parameters.mip.tolerances.absmipgap.set(1e-8)
+            problem.parameters.mip.tolerances.mipgap.set(1e-8)
+        else:
+            warnings.warn("You are trying to run OptKnock with %s. This might not end well." %
+                          self._model.solver.interface.__name__.split(".")[-1]
+                          )
+
+        if remove_blocked:
+            self._remove_blocked_reactions()
+
         self._build_problem(exclude_reactions)
 
-    def _make_dual(self):
-        dual_problem = convert_to_dual(self._model.solver)
-        self._dual_problem = dual_problem
-        logger.debug("Dual problem successfully created")
+    def _remove_blocked_reactions(self):
+        fva_res = flux_variability_analysis(self._model, fraction_of_optimum=0)
+        blocked = [
+            self._model.reactions.get_by_id(reaction) for reaction, row in fva_res.data_frame.iterrows()
+            if (round(row["lower_bound"], config.ndecimals) ==
+                round(row["upper_bound"], config.ndecimals) == 0)
+        ]
+        self._model.remove_reactions(blocked)
 
     def _build_problem(self, essential_reactions):
         logger.debug("Starting to formulate OptKnock problem")
@@ -81,6 +115,11 @@ class OptKnock(StrainDesignMethod):
         self._model.solver.add(knockout_number_constraint)
         self._number_of_knockouts_constraint = knockout_number_constraint
 
+    def _make_dual(self):
+        dual_problem = convert_to_dual(self._model.solver)
+        self._dual_problem = dual_problem
+        logger.debug("Dual problem successfully created")
+
     def _combine_primal_and_dual(self):
         primal_problem = self._model.solver
         dual_problem = self._dual_problem
@@ -112,31 +151,57 @@ class OptKnock(StrainDesignMethod):
 
         return y_var, constrained_vars
 
-    def run(self, k, target, *args, **kwargs):
+    def run(self, k, target, max_results=1, *args, **kwargs):
         """
         Perform the OptKnock simulation
         :param k: The maximal allowed number of knockouts
         :param target: The reaction to be optimized
-        :return: KnockoutResult
+        :param max_results: The number of distinct solutions desired.
+        :return: OptKnockResult
         """
-        self._model.objective = target
-        self._number_of_knockouts_constraint.lb = self._number_of_knockouts_constraint.ub - k
-        solution = self._model.solve()
+        knockout_list = []
+        fluxes_list = []
+        production_list = []
 
-        knockouts = set(reac for y, reac in self._y_vars.items() if round(y.primal, 3) == 0)
-        fluxes = solution.fluxes
-        production = solution.f
+        with TimeMachine() as tm:
+            self._model.objective = target
+            self._number_of_knockouts_constraint.lb = self._number_of_knockouts_constraint.ub - k
+            count = 0
+            while count < max_results:
+                solution = self._model.solve()
 
-        return KnockoutResult(knockouts, fluxes, production, target)
+                knockouts = set(reac for y, reac in self._y_vars.items() if round(y.primal, 3) == 0)
+                assert len(knockouts) <= k
+
+                fluxes = solution.fluxes
+                production = solution.f
+
+                knockout_list.append(knockouts)
+                fluxes_list.append(fluxes)
+                production_list.append(production)
+
+                if len(knockouts) < k:
+                    self._number_of_knockouts_constraint.lb = self._number_of_knockouts_constraint.ub - len(knockouts)
+
+                # Add an integer cut
+                y_vars_to_cut = [y for y in self._y_vars if round(y.primal, 3) == 0]
+                integer_cut = self._model.solver.interface.Constraint(Add(*y_vars_to_cut),
+                                                                      lb=1,
+                                                                      name="integer_cut_"+str(count))
+                tm(do=partial(self._model.solver.add, integer_cut),
+                   undo=partial(self._model.solver.remove, integer_cut))
+                count += 1
+
+        return OptKnockResult(knockout_list, fluxes_list, production_list, target)
 
 
 class RobustKnock(StrainDesignMethod):
     pass
 
 
-class KnockoutResult(StrainDesignResult):
+class OptKnockResult(StrainDesignResult):
     def __init__(self, knockouts, fluxes, production, target, *args, **kwargs):
-        super(KnockoutResult, self).__init__(*args, **kwargs)
+        super(OptKnockResult, self).__init__(*args, **kwargs)
         self._knockouts = knockouts
         self._fluxes = fluxes
         self._production = production
@@ -160,10 +225,20 @@ class KnockoutResult(StrainDesignResult):
 
     @property
     def data_frame(self):
-        return pd.DataFrame((self. knockouts, self.production), names=["Knockouts", "Production"])
+        return pd.DataFrame(
+            {"Knockouts": [tuple(k.id for k in design) for design in self.knockouts], "Production": self.production}
+        )
 
     def _repr_html_(self):
         html_string = """
-<b>Target:</b> %s</br>
-%s""" % (self._production, self.data_frame._repr_html_())
+<h3>OptKnock knockout optimization:</h3>
+<p><b>Target:</b> %s</p></br>
+%s""" % (self._target, self.data_frame._repr_html_())
         return html_string
+
+    def __len__(self):
+        return len(self.knockouts)
+
+    def __iter__(self):
+        for design in self.knockouts:
+            yield StrainDesign(knockouts=design)

@@ -19,6 +19,7 @@ import six
 import os
 import unittest
 
+import cameo
 from cameo import load_model
 from cameo.strain_design.deterministic.flux_variability_based import fseof, FseofResult, DifferentialFVA
 from cameo.strain_design.deterministic.linear_programming import OptKnock
@@ -28,7 +29,8 @@ from pandas.util.testing import assert_frame_equal
 
 TRAVIS = os.getenv('TRAVIS', False)
 TESTDIR = os.path.dirname(__file__)
-ECOLICORE = load_model(os.path.join(TESTDIR, 'data/EcoliCore.xml'))
+#ECOLICORE = load_model(os.path.join(TESTDIR, 'data/EcoliCore.xml'))
+ECOLICORE = load_model("e_coli_core")
 
 def assert_dataframes_equal(df, expected):
     try:
@@ -36,6 +38,7 @@ def assert_dataframes_equal(df, expected):
         return True
     except AssertionError:
         return False
+
 
 class TestFSEOF(unittest.TestCase):
     def setUp(self):
@@ -83,6 +86,21 @@ class TestOptKnock(unittest.TestCase):
         self.model.solver = "cplex"
         self.optknock = OptKnock(ECOLICORE)
 
+    def test_optknock_runs(self):
+        result = self.optknock.run(0, "EX_ac_lp_e_rp_", max_results=1)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(len(result.knockouts[0]), 0)
+        self.assertEqual(len(list(result)), 1)
+        self.assertIsInstance(result.data_frame, DataFrame)
+
+    def test_result_is_correct(self):
+        result = self.optknock.run(1, "EX_ac_lp_e_rp_", max_results=1)
+        production = result.production[0]
+        knockouts = result.knockouts[0]
+        for knockout in knockouts:
+            self.model.reactions.get_by_id(knockout.id).knock_out()
+        fva = cameo.flux_variability_analysis(self.model, fraction_of_optimum=1, remove_cycles=False, reactions=["EX_ac_lp_e_rp_"])
+        self.assertAlmostEqual(fva["upper_bound"][0], production)
 
 
 

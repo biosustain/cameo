@@ -18,7 +18,6 @@ import optlang
 
 
 def convert_to_dual(model):
-    assert isinstance(model, optlang.interface.Model)
     dual_model = model.interface.Model()
     maximization = model.objective.direction == "max"
 
@@ -32,6 +31,8 @@ def convert_to_dual(model):
 
     # Add dual variables from primal constraints:
     for constraint in model.constraints:
+        if constraint.expression == 0:
+            continue
         if not constraint.is_Linear:
             raise NotImplementedError("Non-linear problems are currently not supported: "+str(constraint))
         if constraint.lb is None and constraint.ub is None:
