@@ -15,6 +15,8 @@
 from __future__ import print_function
 
 import warnings
+import cameo
+from cameo.exceptions import SolveError
 from cameo.util import TimeMachine
 from cameo import config
 from cameo.core.solver_based_model_dual import convert_to_dual
@@ -29,16 +31,32 @@ logger = logging.getLogger(__name__)
 
 
 class OptKnock(StrainDesignMethod):
-    """
-    OptKnock solves a bilevel optimization problem, finding the set of knockouts that allows maximal
-    target production under optimal growth.
-    Add a lower bound on growth to avoid solutions that cannot grow.
+    """OptKnock.
 
-    :param model: SolverBasedModel
-    :param exclude_reactions: Reaction that will not be knocked out. Essentials and exchanges are always excluded.
-    :param remove_blocked: Remove reactions that can carry no flux. Reduces running time.
-    :return: OptKnock object
-        Call run() to perform the analysis.
+    OptKnock solves a bi-level optimization problem, finding the set of knockouts that allows maximal
+    target production under optimal growth.
+
+    Parameters
+    ----------
+    model : SolverBasedModel
+        A model to be used for finding optimal knockouts. Always set a non-zero lower bound on
+        biomass reaction before using OptKnock.
+    exclude_reactions : iterable of str or Reaction objects
+        Reactions that will not be knocked out. Excluding reactions can give more realistic results
+        and decrease running time. Essential reactions and exchanges are always excluded.
+    remove_blocked : boolean (default True)
+        If True, reactions that cannot carry flux (determined by FVA) will be removed from the model.
+        This reduces running time significantly.
+
+    Examples
+    --------
+    >>> from cameo import models
+    >>> from cameo.strain_design.deterministic import OptKnock
+    >>> model = models.bigg.e_coli_core
+    >>> model.reactions.Biomass_Ecoli_core_w_GAM.lower_bound = 0.1
+    >>> model.solver = "cplex" # Using cplex is recommended
+    >>> optknock = OptKnock(model)
+    >>> result = optknock.run(k=2, target="EX_ac_e", max_results=3)
     """
     def __init__(self, model, exclude_reactions=None, remove_blocked=True, *args, **kwargs):
         super(OptKnock, self).__init__(*args, **kwargs)
@@ -47,8 +65,8 @@ class OptKnock(StrainDesignMethod):
         if "cplex" in config.solvers:
             logger.debug("Changing solver to cplex and tweaking some parameters.")
             self._model.solver = "cplex"
-            self._model.solver.configuration.presolve = True
             problem = self._model.solver.problem
+            problem.parameters.mip.strategy.startalgorithm.set(1)
             problem.parameters.simplex.tolerances.feasibility.set(1e-8)
             problem.parameters.simplex.tolerances.optimality.set(1e-8)
             problem.parameters.mip.tolerances.integrality.set(1e-8)
@@ -78,6 +96,16 @@ class OptKnock(StrainDesignMethod):
 
         self.essential_reactions = self._model.essential_reactions() + self._model.exchanges
         if essential_reactions:
+            for ess_reac in essential_reactions:
+                if isinstance(ess_reac, cameo.Reaction):
+                    essential_reactions.append(self._model.reactions.get_by_id(ess_reac.id))
+                elif isinstance(essential_reactions, str):
+                    essential_reactions.append(self._model.reactions.get_by_id(ess_reac))
+                else:
+                    raise TypeError(
+                        "Excluded reactions must be an iterable of reactions or strings. Got object of type " +
+                        str(type(ess_reac))
+                    )
             self.essential_reactions += essential_reactions
 
         self._make_dual()
@@ -168,7 +196,12 @@ class OptKnock(StrainDesignMethod):
             self._number_of_knockouts_constraint.lb = self._number_of_knockouts_constraint.ub - k
             count = 0
             while count < max_results:
-                solution = self._model.solve()
+                try:
+                    solution = self._model.solve()
+                except SolveError as e:
+                    logger.debug("Problem could not be solved. Terminating and returning "+count+" solutions")
+                    logger.debug(str(e))
+                    break
 
                 knockouts = set(reac for y, reac in self._y_vars.items() if round(y.primal, 3) == 0)
                 assert len(knockouts) <= k
