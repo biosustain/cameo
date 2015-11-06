@@ -19,12 +19,15 @@ import six
 import os
 import unittest
 
+import cameo
 from cameo import load_model
 from cameo.strain_design.deterministic.flux_variability_based import fseof, FseofResult, DifferentialFVA
+from cameo.strain_design.deterministic.linear_programming import OptKnock
 
 from pandas import DataFrame, pandas
 from pandas.util.testing import assert_frame_equal
 
+TRAVIS = os.getenv('TRAVIS', False)
 TESTDIR = os.path.dirname(__file__)
 ECOLICORE = load_model(os.path.join(TESTDIR, 'data/EcoliCore.xml'))
 
@@ -34,6 +37,7 @@ def assert_dataframes_equal(df, expected):
         return True
     except AssertionError:
         return False
+
 
 class TestFSEOF(unittest.TestCase):
     def setUp(self):
@@ -72,6 +76,32 @@ if six.PY2:  # Make these test cases work with PY3 as well
             result = DifferentialFVA(self.model, target, reference_model=reference_model, points=5).run()
             # result.data_frame.iloc[0].to_pickle(os.path.join(TESTDIR, 'data/REFERENCE_DiffFVA2.pickle'))
             pandas.util.testing.assert_frame_equal(result.data_frame.iloc[0], pandas.read_pickle(os.path.join(TESTDIR, 'data/REFERENCE_DiffFVA2.pickle')))
+
+
+@unittest.skipIf(TRAVIS, "OptKnock takes too long for Travis")
+class TestOptKnock(unittest.TestCase):
+    def setUp(self):
+        self.model = ECOLICORE.copy()
+        self.model.solver = "cplex"
+        self.optknock = OptKnock(ECOLICORE)
+
+    def test_optknock_runs(self):
+        result = self.optknock.run(0, "EX_ac_lp_e_rp_", max_results=1)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(len(result.knockouts[0]), 0)
+        self.assertEqual(len(list(result)), 1)
+        self.assertIsInstance(result.data_frame, DataFrame)
+
+    def test_result_is_correct(self):
+        result = self.optknock.run(1, "EX_ac_lp_e_rp_", max_results=1)
+        production = result.production[0]
+        knockouts = result.knockouts[0]
+        for knockout in knockouts:
+            self.model.reactions.get_by_id(knockout.id).knock_out()
+        fva = cameo.flux_variability_analysis(self.model, fraction_of_optimum=1, remove_cycles=False, reactions=["EX_ac_lp_e_rp_"])
+        self.assertAlmostEqual(fva["upper_bound"][0], production)
+
+
 
 if __name__ == "__main__":
     import nose
