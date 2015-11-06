@@ -41,6 +41,8 @@ class OptKnock(StrainDesignMethod):
     model : SolverBasedModel
         A model to be used for finding optimal knockouts. Always set a non-zero lower bound on
         biomass reaction before using OptKnock.
+    inner_objective_constraint :
+        Constraint for the inner objective (e.g. growth), specified as a fraction of the optimum.
     exclude_reactions : iterable of str or Reaction objects
         Reactions that will not be knocked out. Excluding reactions can give more realistic results
         and decrease running time. Essential reactions and exchanges are always excluded.
@@ -58,7 +60,7 @@ class OptKnock(StrainDesignMethod):
     >>> optknock = OptKnock(model)
     >>> result = optknock.run(k=2, target="EX_ac_e", max_results=3)
     """
-    def __init__(self, model, exclude_reactions=None, remove_blocked=True, *args, **kwargs):
+    def __init__(self, model, inner_objective_constraint=0.1, exclude_reactions=None, remove_blocked=True, *args, **kwargs):
         super(OptKnock, self).__init__(*args, **kwargs)
         self._model = model.copy()
 
@@ -80,7 +82,7 @@ class OptKnock(StrainDesignMethod):
         if remove_blocked:
             self._remove_blocked_reactions()
 
-        self._build_problem(exclude_reactions)
+        self._build_problem(exclude_reactions, inner_objective_constraint)
 
     def _remove_blocked_reactions(self):
         fva_res = flux_variability_analysis(self._model, fraction_of_optimum=0)
@@ -91,7 +93,7 @@ class OptKnock(StrainDesignMethod):
         ]
         self._model.remove_reactions(blocked)
 
-    def _build_problem(self, essential_reactions):
+    def _build_problem(self, essential_reactions, inner_obj_constraint):
         logger.debug("Starting to formulate OptKnock problem")
 
         self.essential_reactions = self._model.essential_reactions() + self._model.exchanges
@@ -108,6 +110,17 @@ class OptKnock(StrainDesignMethod):
                     )
             self.essential_reactions += essential_reactions
 
+        logger.debug("Constraining inner objective (growth)")
+        primal_objective = self._model.solver.objective
+        original_obj_val = self._model.solve().f
+        growth_constraint = self._model.solver.interface.Constraint(
+            primal_objective.expression, name="inner_objective_constraint"
+        )
+        if primal_objective.direction == "max":
+            growth_constraint.lb = inner_obj_constraint * original_obj_val
+        else:
+            growth_constraint.ub = inner_obj_constraint * original_obj_val
+
         self._make_dual()
 
         self._combine_primal_and_dual()
@@ -122,7 +135,6 @@ class OptKnock(StrainDesignMethod):
                 constrained_dual_vars.update(constrained_vars)
         self._y_vars = y_vars
 
-        primal_objective = self._model.solver.objective
         dual_objective = self._model.solver.interface.Objective.clone(
             self._dual_problem.objective, model=self._model.solver)
 
@@ -142,6 +154,13 @@ class OptKnock(StrainDesignMethod):
         )
         self._model.solver.add(knockout_number_constraint)
         self._number_of_knockouts_constraint = knockout_number_constraint
+
+        logger.debug("Adding inner objective auxiliary variable")
+        inner_obj_aux = self._model.solver.interface.Variable("inner_objective_auxiliary")
+        self._model.solver.add(inner_obj_aux)
+        self._model.solver.add(
+            self._model.solver.interface.Constraint(inner_obj_aux - primal_objective.expression, lb=0, ub=0)
+        )
 
     def _make_dual(self):
         dual_problem = convert_to_dual(self._model.solver)
@@ -190,6 +209,7 @@ class OptKnock(StrainDesignMethod):
         knockout_list = []
         fluxes_list = []
         production_list = []
+        growth_list = []
 
         with TimeMachine() as tm:
             self._model.objective = target
@@ -208,10 +228,12 @@ class OptKnock(StrainDesignMethod):
 
                 fluxes = solution.fluxes
                 production = solution.f
+                growth = self._model.solver.variables["inner_objective_auxiliary"].primal
 
                 knockout_list.append(knockouts)
                 fluxes_list.append(fluxes)
                 production_list.append(production)
+                growth_list.append(growth)
 
                 if len(knockouts) < k:
                     self._number_of_knockouts_constraint.lb = self._number_of_knockouts_constraint.ub - len(knockouts)
@@ -225,7 +247,7 @@ class OptKnock(StrainDesignMethod):
                    undo=partial(self._model.solver.remove, integer_cut))
                 count += 1
 
-        return OptKnockResult(knockout_list, fluxes_list, production_list, target)
+        return OptKnockResult(knockout_list, fluxes_list, production_list, growth_list, target)
 
 
 class RobustKnock(StrainDesignMethod):
@@ -233,11 +255,12 @@ class RobustKnock(StrainDesignMethod):
 
 
 class OptKnockResult(StrainDesignResult):
-    def __init__(self, knockouts, fluxes, production, target, *args, **kwargs):
+    def __init__(self, knockouts, fluxes, production, growth, target, *args, **kwargs):
         super(OptKnockResult, self).__init__(*args, **kwargs)
         self._knockouts = knockouts
         self._fluxes = fluxes
         self._production = production
+        self._growth = growth
         self._target = target
 
     @property
@@ -253,14 +276,20 @@ class OptKnockResult(StrainDesignResult):
         return self._production
 
     @property
+    def growth(self):
+        return self._growth
+
+    @property
     def target(self):
         return self._target
 
     @property
     def data_frame(self):
         return pd.DataFrame(
-            {"Knockouts": [tuple(k.id for k in design) for design in self.knockouts], "Production": self.production}
-        )
+            {"Knockouts": [tuple(k.id for k in design) for design in self.knockouts],
+             "Production": self.production,
+             "Growth": self.growth}
+        )[["Knockouts", "Production", "Growth"]]
 
     def _repr_html_(self):
         html_string = """
