@@ -128,6 +128,21 @@ def pfba(model, objective=None, reactions=None, *args, **kwargs):
             logger.error("pfba could not determine an optimal solution for objective %s" % model.objective)
             raise e
 
+        pfba_obj = model.solver.interface.Objective(add(
+            [mul((sympy.singleton.S.One, variable)) for variable in model.solver.variables.values()]),
+            direction='min', sloppy=True)
+        # tic = time.time()
+        tm(do=partial(setattr, model, 'objective', pfba_obj),
+           undo=partial(setattr, model, 'objective', original_objective))
+        # print "obj: ", time.time() - tic
+        try:
+            solution = model.solve()
+            logger.debug("PFBA z=%f" % solution.f)
+            return solution
+        except SolveError as e:
+            print "pfba could not determine an optimal solution for objective %s" % model.objective
+            raise e
+
 
 def moma(model, reference=None, *args, **kwargs):
     raise NotImplementedError('Quadratic MOMA not yet implemented.')
@@ -388,7 +403,9 @@ if __name__ == '__main__':
     from cobra.io import read_sbml_model
     from cobra.flux_analysis.parsimonious import optimize_minimal_flux
     from cameo import load_model
+    import logging
 
+    logging.getLogger("cameo").setLevel(logging.DEBUG)
     # sbml_path = '../../tests/data/EcoliCore.xml'
     sbml_path = '../../tests/data/iJO1366.xml'
 

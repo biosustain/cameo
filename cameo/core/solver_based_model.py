@@ -30,6 +30,14 @@ from copy import copy, deepcopy
 import types
 
 import cobra
+from collections import OrderedDict
+import csv
+import hashlib
+import numpy as np
+from numpy import all
+from numpy.linalg import svd
+import scipy as sp
+
 import sympy
 from sympy import Add
 from sympy import Mul
@@ -313,6 +321,50 @@ class SolverBasedModel(cobra.core.Model):
         else:
             self.add_reactions([demand_reaction])
         return demand_reaction
+
+    @property
+    def S(self):
+        return self.to_array_based_model().S
+
+    @property
+    def intS(self):
+        matrix = self.S
+        for j, reaction in enumerate(self.reactions):
+            col = matrix.getcol(j)
+            while not all([int(coeff) == coeff for coeff in col[0].toarray()]):
+                col *= 10
+
+            for i in xrange(len(self.metabolites)):
+                matrix[i, j] = col[i, 0]
+
+        return matrix
+
+    def nullspace(self, atol=1e-13, rtol=0):
+        """
+        Adopted from: http://wiki.scipy.org/Cookbook/RankNullspace
+
+        Parameters
+        ----------
+        A : ndarray
+            A should be at most 2-D.  A 1-D array with length k will be treated
+            as a 2-D with shape (1, k)
+        atol : float
+            The absolute tolerance for a zero singular value.  Singular values
+            smaller than `atol` are considered to be zero.
+        rtol : float
+            The relative tolerance.  Singular values less than rtol*smax are
+            considered to be zero, where smax is the largest singular value.
+
+        Returns
+        -------
+        The nullspace matrix
+        """
+
+        u, s, vh = svd(self.S)
+        tol = max(atol, rtol * s[0])
+        nnz = (s >= tol).sum()
+        ns = vh[nnz:].conj().T
+        return ns
 
     def fix_objective_as_constraint(self, time_machine=None):
         """Fix current objective as an additional constraint (e.g., ..math`c^T v >= max c^T v`).

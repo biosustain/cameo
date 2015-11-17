@@ -88,6 +88,8 @@ class Reaction(_cobrapy.core.Reaction):
         self._lower_bound = 0
         self._upper_bound = 1000.
         self._objective_coefficient = 0.
+        self._switch_constraints = None
+        self._switch_variable = None
 
     def __str__(self):
         return ''.join((self.id, ": ", self.build_reaction_string()))
@@ -195,6 +197,11 @@ class Reaction(_cobrapy.core.Reaction):
                 print({'value': value, 'self._lower_bound': self._lower_bound, 'self._upper_bound': self._upper_bound})
                 raise ValueError('lower_bound issue')
 
+            # Deal with switches ...
+            if self._switch_constraints is not None:
+                self.remove_binary_switch()
+                self.add_binary_switch()
+
         self._lower_bound = value
 
     @property
@@ -252,6 +259,11 @@ class Reaction(_cobrapy.core.Reaction):
             else:
                 print({'value': value, 'self._lower_bound': self._lower_bound, 'self._upper_bound': self._upper_bound})
                 raise ValueError('upper_bound issue')
+
+            # Deal with switches ...
+            if self._switch_constraints is not None:
+                self.remove_binary_switch()
+                self.add_binary_switch()
 
         self._upper_bound = value
 
@@ -333,6 +345,56 @@ class Reaction(_cobrapy.core.Reaction):
             time_machine(do=super(Reaction, self).knock_out, undo=partial(_, self, self.lower_bound, self.upper_bound))
         else:
             super(Reaction, self).knock_out()
+
+    def add_binary_switch(self, active_when=1):
+        if self.model is None:
+            raise Exception('...')
+
+        y = self.model.solver.interface.Variable('y_'+self.id, type='binary')
+        if self.reverse_variable is not None:
+            variable_term = self.variable - self.reverse_variable
+        else:
+            variable_term = self.variable
+        try:
+            switch_lb = self.model.solver.interface.Constraint(variable_term,
+                                                               indicator_variable=y,
+                                                               active_when=active_when,
+                                                               name='switch_lb_'+self.id,
+                                                               lb=self.lower_bound)
+            switch_ub = self.model.solver.interface.Constraint(variable_term,
+                                                               indicator_variable=y,
+                                                               active_when=active_when,
+                                                               name='switch_ub_'+self.id,
+                                                               ub=self.upper_bound)
+        except Exception as e:  # Solver interface does not support indicator constraints
+            if 'does not support indicator constraints' in str(e):
+                if active_when == 1:
+                    switch_term = y
+                elif active_when == 0:
+                    switch_term = (1-y)
+                else:
+                    raise ValueError('active_when needs be either 1 or 0.')
+                switch_lb = self.model.solver.interface.Constraint(variable_term - switch_term*self.lower_bound,
+                                                                   name='switch_lb_'+self.id,
+                                                                   lb=0)
+                switch_ub = self.model.solver.interface.Constraint(variable_term - switch_term*self.upper_bound,
+                                                                   name='switch_ub_'+self.id,
+                                                                   ub=0)
+            else:
+                raise e
+        self.model.solver._add_variable(y)
+        self.model.solver._add_constraint(switch_lb, sloppy=True)
+        self.model.solver._add_constraint(switch_ub, sloppy=True)
+        self._switch_constraints = [switch_lb, switch_ub]
+        self._switch_variable = y
+        return (y, [switch_lb, switch_ub])
+
+    def remove_binary_switch(self):
+        if self.model is not None and self._switch_constraints is not None:
+            self.model.solver.remove(self._switch_constraints)
+            self.model.solver.remove(self._switch_variable)
+            self._switch_variable = None
+            self._switch_constraints = None
 
     def _repr_html_(self):
         return """

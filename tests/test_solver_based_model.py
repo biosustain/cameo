@@ -36,6 +36,10 @@ from cameo.core.solver_based_model import Reaction
 from cameo.util import TimeMachine
 import six
 
+from sympy import Add
+add = Add._from_args
+
+
 TRAVIS = os.getenv('TRAVIS', False)
 TESTDIR = os.path.dirname(__file__)
 REFERENCE_FVA_SOLUTION_ECOLI_CORE = pandas.read_csv(os.path.join(TESTDIR, 'data/REFERENCE_flux_ranges_EcoliCore.csv'),
@@ -355,6 +359,20 @@ class WrappedAbstractTestReaction:
             reaction = CobrapyReaction('blug')
             self.assertEqual(Reaction.clone(reaction).id, 'blug')
 
+        @unittest.skip('Not implemented yet.')
+        def test_change_id_is_reflected_in_solver(self):
+            for i, reaction in enumerate(self.model.reactions):
+                old_reaction_id = reaction.id
+                self.assertTrue(self.model.solver.variables[old_reaction_id].name, old_reaction_id)
+                self.assertIn(old_reaction_id, self.model.solver.variables)
+                self.assertTrue(self.model.solver.has_key(old_reaction_id))
+                new_reaction_id = reaction.id + '_' +str(i)
+                reaction.id = new_reaction_id
+                self.assertEqual(reaction.id, new_reaction_id)
+                self.assertFalse(self.model.solver.has_key(old_reaction_id))
+                self.assertTrue(self.model.solver.has_key(new_reaction_id))
+                self.assertTrue(self.model.solver.variables[new_reaction_id].name, new_reaction_id)
+
         def test_weird_left_to_right_reaction_issue(self):
 
             model = Model("Toy Model")
@@ -381,6 +399,44 @@ class WrappedAbstractTestReaction:
             self.assertEqual(d1._lower_bound, -1000)
             self.assertEqual(d1.upper_bound, 0)
             self.assertEqual(d1._upper_bound, 0)
+
+        def test_binary_switches(self):
+            for reaction in self.model.reactions:
+                if reaction.upper_bound > 1000:
+                    reaction.upper_bound = 1000.
+                if reaction.lower_bound < -1000:
+                    reaction.lower_bound = -1000.
+    
+            for reaction in self.model.reactions:
+                self.assertTrue(reaction._switch_constraints is None)
+                self.assertTrue(reaction._switch_variable is None)
+    
+                (y, switch_constraints) = reaction.add_binary_switch()
+    
+                self.assertEqual(reaction._switch_constraints, switch_constraints)
+                self.assertEqual(reaction._switch_variable, y)
+    
+                self.assertEqual(y.name, 'y_' + reaction.id)
+                self.assertEqual(switch_constraints[0].name, 'switch_lb_' + reaction.id)
+                self.assertEqual(switch_constraints[1].name, 'switch_ub_' + reaction.id)
+                self.assertTrue(y.name in reaction.get_model().solver.variables.keys())
+                self.assertTrue(switch_constraints[0].name in reaction.get_model().solver.constraints.keys())
+                self.assertTrue(switch_constraints[1].name in reaction.get_model().solver.constraints.keys())
+    
+            self.model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = self.model.solve().f
+            self.model.objective = self.model.solver.interface.Objective(add([reaction._switch_variable for reaction in self.model.reactions]), direction='min')
+            self.model.solve()
+            for reaction in self.model.reactions:
+                if abs(reaction.flux) > 1:
+                    self.assertAlmostEqual(reaction._switch_variable.primal, 1.)
+    
+            for reaction in self.model.reactions:
+                reaction.remove_binary_switch()
+                self.assertTrue(reaction._switch_constraints is None)
+                self.assertTrue(reaction._switch_variable is None)
+                self.assertFalse('y_' + reaction.id in reaction.get_model().solver.variables.keys())
+                self.assertFalse('switch_lb_' + reaction.id in reaction.get_model().solver.constraints.keys())
+                self.assertFalse('switch_ub_' + reaction.id in reaction.get_model().solver.constraints.keys())
 
         def test_one_left_to_right_reaction_set_positive_ub(self):
 

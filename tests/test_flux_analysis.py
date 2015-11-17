@@ -23,6 +23,8 @@ import six
 from sympy import Add
 from cameo.flux_analysis import remove_infeasible_cycles
 
+import os
+
 from cameo.flux_analysis.simulation import fba, pfba, lmoma, room
 from cameo.parallel import SequentialView, MultiprocessingView
 from cameo.io import load_model
@@ -268,6 +270,19 @@ class TestPhenotypicPhasePlaneGLPK(Wrapper.AbstractTestPhenotypicPhasePlane):
         ppp = phenotypic_phase_plane(self.model, ['EX_o2_LPAREN_e_RPAREN_'], self.model.metabolites.o2_c, view=SequentialView())
         assert_dataframes_equal(ppp, REFERENCE_PPP_o2_EcoliCore)
 
+    def test_lmoma(self):
+        pfba_solution = pfba(self.model)
+        ref = pfba_solution.x_dict
+        lmoma_solution = lmoma(self.model, reference=ref)
+        res = lmoma_solution.x_dict
+        distance = sum([abs(res[v] - ref[v]) for v in res.keys()])
+        self.assertAlmostEqual(0, distance, delta=0.000001, msg="moma distance without knockouts must be 0")
+
+    def test_room(self):
+        pfba_solution = pfba(self.model)
+        ref = pfba_solution.x_dict
+        room_solution = room(self.model, reference=ref)
+        self.assertEqual(0, room_solution.f, msg="room objective without knockouts must be 0")
 
 @unittest.skipIf(six.PY2, 'Build stalling in python 2.7.')
 class TestPhenotypicPhasePlaneCPLEX(Wrapper.AbstractTestPhenotypicPhasePlane):

@@ -19,6 +19,7 @@ from six.moves import range
 
 import re
 from collections import OrderedDict
+from itertools import product, combinations
 from uuid import uuid1
 from time import time
 from datetime import datetime

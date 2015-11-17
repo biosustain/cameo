@@ -441,9 +441,13 @@ def flux_balance_impact_degree(model, knockouts, view=config.default_view, metho
     if method == "fva":
         _fbid_fva(model, knockouts, view)
     elif method == "em":
-        raise NotImplementedError("Elementary modes approach is not implemented")
+        _fbid_em(model, knockouts, view)
     else:
         raise ValueError("%s method is not valid to compute Flux Balance Impact Degree" % method)
+
+
+def _fbid_em(model, knockouts, view):
+    raise NotImplementedError("Elementary modes approach is not implemented")
 
 
 def _fbid_fva(model, knockouts, view):
