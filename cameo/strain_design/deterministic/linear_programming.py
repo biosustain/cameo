@@ -206,26 +206,24 @@ class OptKnock(StrainDesignMethod):
                 knockouts = set(reac for y, reac in self._y_vars.items() if round(y.primal, 3) == 0)
                 assert len(knockouts) <= k
 
-                fluxes = solution.fluxes
-                production = solution.f
-
                 knockout_list.append(knockouts)
-                fluxes_list.append(fluxes)
-                production_list.append(production)
-
-                if len(knockouts) < k:
-                    self._number_of_knockouts_constraint.lb = self._number_of_knockouts_constraint.ub - len(knockouts)
+                fluxes_list.append(solution.fluxes)
+                production_list.append(solution.f)
 
                 # Add an integer cut
                 y_vars_to_cut = [y for y in self._y_vars if round(y.primal, 3) == 0]
                 integer_cut = self._model.solver.interface.Constraint(Add(*y_vars_to_cut),
                                                                       lb=1,
                                                                       name="integer_cut_"+str(count))
+
+                if len(knockouts) < k:
+                    self._number_of_knockouts_constraint.lb = self._number_of_knockouts_constraint.ub - len(knockouts)
+
                 tm(do=partial(self._model.solver.add, integer_cut),
                    undo=partial(self._model.solver.remove, integer_cut))
                 count += 1
 
-        return OptKnockResult(knockout_list, fluxes_list, production_list, target)
+            return OptKnockResult(knockout_list, fluxes_list, production_list, target)
 
 
 class RobustKnock(StrainDesignMethod):
