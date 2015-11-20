@@ -22,6 +22,7 @@ import unittest
 import cameo
 from cameo import load_model
 from cameo.strain_design.deterministic.flux_variability_based import FSEOF, FSEOFResult, DifferentialFVA
+from cameo.strain_design.deterministic.linear_programming import OptKnock
 
 
 from pandas import DataFrame, pandas
