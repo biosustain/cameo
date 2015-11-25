@@ -15,17 +15,22 @@
 from __future__ import print_function
 
 import warnings
+
+import six
+
 import cameo
 from cameo.exceptions import SolveError
 from cameo.util import TimeMachine
 from cameo import config
 from cameo.core.solver_based_model_dual import convert_to_dual
 from cameo.strain_design import StrainDesignMethod, StrainDesignResult, StrainDesign
+from cameo.flux_analysis.analysis import flux_variability_analysis, flux_balance_impact_degree
 from sympy import Add
 from cameo import flux_variability_analysis
 import pandas as pd
 import logging
 from functools import partial
+from numpy import nan as NaN
 
 logger = logging.getLogger(__name__)
 
@@ -62,10 +67,11 @@ class OptKnock(StrainDesignMethod):
     """
     def __init__(self, model, inner_objective_constraint=0.1, exclude_reactions=None, remove_blocked=True, *args, **kwargs):
         super(OptKnock, self).__init__(*args, **kwargs)
+        self._original_model = model
         self._model = model.copy()
 
         if "cplex" in config.solvers:
-            logger.debug("Changing solver to cplex and tweaking some parameters.")
+            logger.debug("Changing solver to cplex and optimize parameters.")
             self._model.solver = "cplex"
             problem = self._model.solver.problem
             problem.parameters.mip.strategy.startalgorithm.set(1)
@@ -208,8 +214,11 @@ class OptKnock(StrainDesignMethod):
         """
         knockout_list = []
         fluxes_list = []
-        production_list = []
-        growth_list = []
+        production_fluxes = []
+        objective_fluxes = []
+        min_production_list = []
+        max_production_list = []
+        fbid_list = []
 
         with TimeMachine() as tm:
             self._model.objective = target
@@ -223,17 +232,23 @@ class OptKnock(StrainDesignMethod):
                     logger.debug(str(e))
                     break
 
-                knockouts = set(reac for y, reac in self._y_vars.items() if round(y.primal, 3) == 0)
+                knockouts = set(reac.id for y, reac in six.iteritems(self._y_vars) if round(y.primal, 3) == 0)
                 assert len(knockouts) <= k
 
                 fluxes = solution.fluxes
                 production = solution.f
-                growth = self._model.solver.variables["inner_objective_auxiliary"].primal
+                original_objective_value = self._model.solver.variables["inner_objective_auxiliary"].primal
 
                 knockout_list.append(knockouts)
                 fluxes_list.append(fluxes)
-                production_list.append(production)
-                growth_list.append(growth)
+                production_fluxes.append(production)
+                objective_fluxes.append(original_objective_value)
+
+                fva_min, fva_max = self._fva(target, knockouts)
+                min_production_list.append(fva_min)
+                max_production_list.append(fva_max)
+                fbid_list.append(self._fbid(target, knockouts))
+
 
                 if len(knockouts) < k:
                     self._number_of_knockouts_constraint.lb = self._number_of_knockouts_constraint.ub - len(knockouts)
@@ -247,7 +262,26 @@ class OptKnock(StrainDesignMethod):
                    undo=partial(self._model.solver.remove, integer_cut))
                 count += 1
 
-        return OptKnockResult(knockout_list, fluxes_list, production_list, growth_list, target)
+        return OptKnockResult(knockout_list, fluxes_list, production_fluxes, min_production_list, max_production_list,
+                              fbid_list, objective_fluxes, target)
+
+    def _fva(self, target, knockouts):
+        with TimeMachine() as tm:
+            for k in knockouts:
+                self._original_model.reactions.get_by_id(k).knock_out(tm)
+        try:
+            fva_res = flux_variability_analysis(self._original_model,
+                                                reactions=[target],
+                                                fraction_of_optimum=0.95)
+            return fva_res.loc[target]['lower_bound'], fva_res.loc[target]['upper_bound']
+        except:
+            return NaN, NaN
+
+    def _fbid(self, target, knockouts):
+        try:
+            return flux_balance_impact_degree(self._original_model, knockouts)
+        except:
+            return NaN
 
 
 class RobustKnock(StrainDesignMethod):
@@ -255,12 +289,16 @@ class RobustKnock(StrainDesignMethod):
 
 
 class OptKnockResult(StrainDesignResult):
-    def __init__(self, knockouts, fluxes, production, growth, target, *args, **kwargs):
+    def __init__(self, knockouts, fluxes, production, min_production, max_production,
+                 impact_degree, objective_flux, target, *args, **kwargs):
         super(OptKnockResult, self).__init__(*args, **kwargs)
         self._knockouts = knockouts
         self._fluxes = fluxes
         self._production = production
-        self._growth = growth
+        self._min_production = min_production
+        self._max_production = max_production
+        self._impact_degree = impact_degree
+        self._objective_flux = objective_flux
         self._target = target
 
     @property
@@ -277,7 +315,7 @@ class OptKnockResult(StrainDesignResult):
 
     @property
     def growth(self):
-        return self._growth
+        return self._objective_flux
 
     @property
     def target(self):
@@ -288,8 +326,11 @@ class OptKnockResult(StrainDesignResult):
         return pd.DataFrame(
             {"Knockouts": [tuple(k.id for k in design) for design in self.knockouts],
              "Production": self.production,
-             "Growth": self.growth}
-        )[["Knockouts", "Production", "Growth"]]
+             "Objective": self.growth,
+             "FVA_min": self._min_production,
+             "FVA_max": self._max_production,
+             "FBID": self._impact_degree}
+        )[["Knockouts", "Production", "Objective", "FVA_min", "FVA_max", "FBID"]]
 
     def _repr_html_(self):
         html_string = """
