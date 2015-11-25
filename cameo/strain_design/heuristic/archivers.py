@@ -12,10 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from __future__ import absolute_import, print_function
+import time
 
 __all__ = ['BestSolutionArchiver']
 
 from bisect import insort
+from inspyred.ec import Individual as OriginalIndividual
 
 
 class BestSolutionArchiver(object):
@@ -27,17 +29,17 @@ class BestSolutionArchiver(object):
     def __call__(self, random, population, archive, args):
         self.archive = archive
         maximize = args.get("maximize", True)
-        size = args.get('max_archive_size', 100)
-        [self.add(individual.candidate, individual.fitness, size, maximize) for individual in population]
+        max_size = args.get('max_archive_size', 100)
+        [self.add(i.candidate, i.fitness, i.birthdate, maximize, max_size) for i in population]
         return self.archive
 
-    def add(self, candidate, fitness, max_size, maximize=True):
+    def add(self, candidate, fitness, birthdate, maximize, max_size):
         if self.worst_fitness is None:
             self.worst_fitness = fitness
 
         if (maximize and fitness >= self.worst_fitness) or (not maximize and fitness <= self.worst_fitness):
 
-            candidate = SolutionTuple(candidate, fitness, maximize)
+            candidate = Individual(candidate, fitness, maximize, birthdate)
             add = True
             for c in self.archive:
                 if c == candidate:
@@ -69,11 +71,11 @@ class BestSolutionArchiver(object):
         return self.length()
 
 
-class SolutionTuple(object):
-    def __init__(self, candidate, fitness, maximize=True):
-        self.candidate = set(candidate)
+class Individual(OriginalIndividual):
+    def __init__(self, candidate, fitness, maximize=True, birthdate=time.time()):
+        super(Individual, self).__init__(set(candidate), maximize)
         self.fitness = fitness
-        self.maximize = maximize
+        self.birthdate = birthdate
 
     def __eq__(self, other):
         return self.candidate == other.candidate and self.fitness == other.fitness
@@ -104,6 +106,12 @@ class SolutionTuple(object):
         else:
             return not self.maximize
 
+    def __ge__(self, other):
+        return self.__eq__(other) or self.__gt__(other)
+
+    def __le__(self, other):
+        return self.__eq__(other) or self.__lt__(other)
+
     def __gt__(self, other):
         if self.fitness > other.fitness:
             return not self.maximize
@@ -131,7 +139,7 @@ class SolutionTuple(object):
         return self.candidate.symmetric_difference(other.candidate)
 
     def improves(self, other):
-        assert isinstance(other, SolutionTuple)
+        assert isinstance(other, Individual)
         if self.maximize:
             return self.issubset(other) and \
                    len(self.symmetric_difference(other)) > 0 and \
