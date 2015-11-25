@@ -329,7 +329,7 @@ class OptKnockResult(StrainDesignResult):
     @property
     def data_frame(self):
         return pd.DataFrame(
-            {"Knockouts": [tuple(k.id for k in design) for design in self.knockouts],
+            {"Knockouts": [tuple(design) for design in self.knockouts],
              "Production": self.production,
              "Objective": self.growth,
              "FVA_min": self._min_production,
