@@ -258,6 +258,10 @@ class OptKnock(StrainDesignMethod):
                 integer_cut = self._model.solver.interface.Constraint(Add(*y_vars_to_cut),
                                                                       lb=1,
                                                                       name="integer_cut_"+str(count))
+
+                if len(knockouts) < k:
+                    self._number_of_knockouts_constraint.lb = self._number_of_knockouts_constraint.ub - len(knockouts)
+
                 tm(do=partial(self._model.solver.add, integer_cut),
                    undo=partial(self._model.solver.remove, integer_cut))
                 count += 1
@@ -282,6 +286,7 @@ class OptKnock(StrainDesignMethod):
             return flux_balance_impact_degree(self._original_model, knockouts)
         except:
             return NaN
+
 
 
 class RobustKnock(StrainDesignMethod):
