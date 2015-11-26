@@ -101,7 +101,7 @@ class TestOptKnock(unittest.TestCase):
         production = result.production[0]
         knockouts = result.knockouts[0]
         for knockout in knockouts:
-            self.model.reactions.get_by_id(knockout.id).knock_out()
+            self.model.reactions.get_by_id(knockout).knock_out()
         fva = cameo.flux_variability_analysis(self.model, fraction_of_optimum=1, remove_cycles=False, reactions=["EX_ac_lp_e_rp_"])
         self.assertAlmostEqual(fva["upper_bound"][0], production)
 

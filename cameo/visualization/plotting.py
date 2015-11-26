@@ -30,10 +30,18 @@ try:
         # plt.xlabel("growth")
         # plt.ylabel(key)
 
+    def plot_flux_variability_analysis_ipython_matplotlib(fva_result, grid=None, width=None, height=None, title=None,
+                                                          axis_font_size=None):
+        pass
+
 except ImportError:
 
     def plot_production_envelope_ipython_matplotlib(envelope, objective, key, grid=None, width=None, height=None,
                                                     title=None, points=None, points_colors=None, axis_font_size=None):
+        pass
+
+    def plot_flux_variability_analysis_ipython_matplotlib(fva_result, grid=None, width=None, height=None, title=None,
+                                                          axis_font_size=None):
         pass
 
 try:
@@ -78,10 +86,37 @@ try:
         else:
             plotting.show(p)
 
+    def plot_flux_variability_analysis_ipython_bokeh(fva_result, grid=None, width=None, height=None, title=None,
+                                                     axis_font_size=None):
+
+        factors = list(fva_result.index)
+        x0 = fva_result['lower_bound'].values
+        x1 = fva_result['upper_bound'].values
+
+        x_range = [min([min(x0), min(x1)]) -5, max([max(x0), max(x1)]) + 5]
+
+        p = plotting.figure(title=title if title is not None else "Production envelope",
+                            tools="save",
+                            plot_width=width if width is not None else 700,
+                            plot_height=height if height is not None else 700,
+                            y_range=factors, x_range=x_range)
+
+        p.segment(x0, factors, x1, factors, line_width=10, line_color="#99d8c9")
+        p.line([0, 0], [-1, len(factors)+1], line_width=2, color="black")
+
+        if grid is not None:
+            grid.append(p)
+        else:
+            plotting.show(p)
+
 except ImportError:
 
     def plot_production_envelope_ipython_bokeh(envelope, objective, key, grid=None, width=None, height=None,
                                                title=None, points=None, points_colors=None, axis_font_size=None):
+        pass
+
+    def plot_flux_variability_analysis_ipython_bokeh(fva_result, grid=None, width=None, height=None, title=None,
+                                                     axis_font_size=None):
         pass
 
 try:
@@ -91,9 +126,18 @@ try:
                                      title=None, points=None, points_colors=None, axis_font_size=None):
         scatterplot.plot_scatter(None, envelope[key], envelope["objective_upper_bound"], "*")
 
+    def plot_flux_variability_analysis_cli(fva_result, grid=None, width=None, height=None, title=None,
+                                           axis_font_size=None):
+        pass
+
+
 except ImportError:
     def plot_production_envelope_cli(envelope, objective, key, grid=None, width=None, height=None,
                                      title=None, points=None, points_colors=None, axis_font_size=None):
+        pass
+
+    def plot_flux_variability_analysis_cli(fva_result, grid=None, width=None, height=None, title=None,
+                                           axis_font_size=None):
         pass
 
 
@@ -116,6 +160,23 @@ def plot_production_envelope(envelope, objective, key, grid=None, width=None, he
     else:
         plot_production_envelope_cli(envelope, objective, key, width=width, height=height, title=title, points=points,
                                      points_colors=points_colors, axis_font_size=axis_font_size)
+
+
+def plot_flux_variability_analysis(fva_result, grid=None, width=None, height=None, title=None, axis_font_size=None):
+    if width is None and height is None:
+        width = 700
+    if width is None or height is None:
+        width, height = _golden_ratio(width, height)
+    if util.in_ipnb():
+        if config.use_bokeh:
+            plot_flux_variability_analysis_ipython_bokeh(fva_result, grid=grid, width=width, height=height,
+                                                         title=title, axis_font_size=axis_font_size)
+        elif config.use_matplotlib:
+            plot_flux_variability_analysis_matplotlib(fva_result, grid=grid, width=width, height=height,
+                                                      title=title, axis_font_size=axis_font_size)
+    else:
+        plot_flux_variability_analysis_cli(fva_result, grid=grid, width=width, height=height,
+                                           title=title, axis_font_size=axis_font_size)
 
 
 class Grid(object):
