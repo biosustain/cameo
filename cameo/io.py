@@ -51,7 +51,7 @@ def load_model(path_or_handle, solver_interface=optlang.glpk_interface, sanitize
         except IOError:
             logger.debug('%s not a file path. Querying webmodels ... trying http://bigg.ucsd.edu first' % path)
             try:
-                return cameo.models.webmodels.get_model_from_bigg(path)
+                return cameo.models.webmodels.get_model_from_bigg(path, solver_interface=solver_interface)
             except:
                 logger.debug('%s not a file path. Querying webmodels ... trying minho next' % path)
                 try:
