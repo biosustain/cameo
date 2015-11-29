@@ -81,7 +81,7 @@ def fba(model, objective=None, reactions=None, *args, **kwargs):
 
 
 def pfba(model, objective=None, reactions=None, *args, **kwargs):
-    """Parsimonious Flux Balance Analysis.
+    """Parsimonious Enzyme Usage Flux Balance Analysis [1].
 
     Parameters
     ----------
@@ -93,6 +93,12 @@ def pfba(model, objective=None, reactions=None, *args, **kwargs):
     -------
     FluxDistributionResult
         Contains the result of the linear solver.
+
+    References
+    ----------
+    .. [1] Lewis, N. E., Hixson, K. K., Conrad, T. M., Lerman, J. A., Charusanti, P., Polpitiya, A. D., …
+     Palsson, B. Ø. (2010). Omic data from evolved E. coli are consistent with computed optimal growth from
+     genome-scale models. Molecular Systems Biology, 6, 390. doi:10.1038/msb.2010.47
 
     """
     with TimeMachine() as tm:
