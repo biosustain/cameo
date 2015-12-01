@@ -15,6 +15,7 @@
 
 from __future__ import absolute_import, print_function
 import re
+import numpy as np
 
 __all__ = ['DifferentialFVA', 'FSEOF']
 
@@ -133,9 +134,14 @@ class DifferentialFVA(StrainDesignMethod):
         if isinstance(objective, Reaction):
             self.objective = objective.id
         elif isinstance(objective, Metabolite):
-            self.reference_model.add_demand(objective)
-            self.objective = self.design_space_model.add_demand(objective).id
-            self.objective = objective
+            try:
+                self.reference_model.add_demand(objective)
+            except:
+                pass
+            try:
+                self.objective = self.design_space_model.add_demand(objective).id
+            except:
+                self.objective = self.design_space_model.reactions.get_by_id("DM_" + objective.id).id
         elif isinstance(objective, str):
             self.objective = objective
         else:
@@ -260,7 +266,8 @@ class DifferentialFVA(StrainDesignMethod):
             included_reactions = [reaction.id for reaction in self.reference_model.reactions if
                                   reaction.id not in self.exclude]
             self.reference_flux_ranges = flux_variability_analysis(self.reference_model, reactions=included_reactions,
-                                                                   view=view, remove_cycles=False).data_frame
+                                                                   view=view, remove_cycles=False,
+                                                                   fraction_of_optimum=1.).data_frame
             self._init_search_grid(surface_only=surface_only, improvements_only=improvements_only)
 
             progress = ProgressBar(len(self.grid))
@@ -303,27 +310,51 @@ class DifferentialFVA(StrainDesignMethod):
             df.loc[flux_reversal_selection.index]['suddenly_essential'] = True
 
         # solutions['reference_flux_ranges'] = self.reference_flux_ranges
-        return DifferentialFVAResult(pandas.Panel(solutions), self.envelope, self.variables, self.objective)
+        return DifferentialFVAResult(pandas.Panel(solutions), self.envelope, self.reference_flux_ranges,
+                                     self.variables, self.objective)
 
 
 class DifferentialFVAResult(PhenotypicPhasePlaneResult):
-    def __init__(self, solutions, phase_plane, variables_ids, objective, *args, **kwargs):
+    def __init__(self, solutions, phase_plane, reference_fva, variables_ids, objective, *args, **kwargs):
         if isinstance(phase_plane, PhenotypicPhasePlaneResult):
             phase_plane = phase_plane._phase_plane
         super(DifferentialFVAResult, self).__init__(phase_plane, variables_ids, objective, *args, **kwargs)
+        self.reference_fva = reference_fva
         self.solutions = solutions
 
-    def plot(self, grid=None, width=None, height=None, title=None):
+    def __getitem__(self, item):
+        columns = ["lower_bound", "upper_bound", "gaps", "normalized_gaps", "KO", "flux_reversal", "suddenly_essential"]
+        rows = list(range(len(self.solutions)))
+        values = np.ndarray((len(rows), len(columns)))
+        for i in rows:
+            values[i] = self.solutions.iloc[i].loc[item].values
+
+        data = DataFrame(values, index=rows, columns=columns)
+        data["KO"] = data["KO"].values.astype(np.bool)
+        data["flux_reversal"] = data["flux_reversal"].values.astype(np.bool)
+        data["suddenly_essential"] = data["suddenly_essential"].values.astype(np.bool)
+        return data
+
+    def plot(self, index=None, variables=None, grid=None, width=None, height=None, title=None, **kwargs):
         if len(self.variable_ids) > 1:
             notice("Multi-dimensional plotting is not supported")
             return
-        title = "DifferentialFVA Result" if title is None else title
-        x = [elem[0][1] for elem in list(self.solutions.items)]
-        y = [elem[1][1] for elem in list(self.solutions.items)]
-        colors = ["red" for _ in x]
-        plotting.plot_production_envelope(self._phase_plane, objective=self.objective, key=self.variable_ids[0],
-                                          grid=grid, width=width, height=height, title=title,
-                                          points=[x, y], points_colors=colors)
+        if index is not None:
+            if variables is None:
+                variables = self.reference_fva.index[0:10]
+            title = "Compare WT solution %i" % index
+            fva_res1 = self.reference_fva.loc[variables]
+            fva_res2 = self.solutions.iloc[index].loc[variables]
+            plotting.plot_2_flux_variability_analysis(fva_res1, fva_res2, grid=grid,
+                                                      width=width, height=height, title=title)
+        else:
+            title = "DifferentialFVA Result" if title is None else title
+            x = [elem[0][1] for elem in list(self.solutions.items)]
+            y = [elem[1][1] for elem in list(self.solutions.items)]
+            colors = ["red" for _ in x]
+            plotting.plot_production_envelope(self._phase_plane, objective=self.objective, key=self.variable_ids[0],
+                                              grid=grid, width=width, height=height, title=title,
+                                              points=zip(x, y), points_colors=colors)
 
     def _repr_html_(self):
         def _data_frame(solution):

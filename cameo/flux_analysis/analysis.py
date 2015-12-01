@@ -525,8 +525,12 @@ class FluxVariabilityResult(Result):
     def data_frame(self):
         return self._data_frame
 
-    def plot(self, grid=None, width=None, height=None, title=None, axis_font_size=None):
-        raise NotImplementedError('Plotting of flux variability results has not been implemented yet.')
+    def plot(self, index=None, grid=None, width=None, height=None, title=None, axis_font_size=None):
+        if index is None:
+            index = self.data_frame.index[0:10]
+        fva_result = self.data_frame.loc[index]
+        plotting.plot_flux_variability_analysis(fva_result, grid=grid, width=width, height=height, title=title,
+                                                axis_font_size=axis_font_size)
 
     def __getitem__(self, item):
         return self._data_frame[item]
