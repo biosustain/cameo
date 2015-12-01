@@ -14,25 +14,30 @@
 
 """Methods for stoichiometric analaysis"""
 
-from future.utils import implements_iterator
-
 from copy import copy
 
 import sympy
 import optlang
+import six
+from itertools import ifilter
 
 from cameo.exceptions import SolveError
+from cameo.util import TimeMachine
 
 
-@implements_iterator
-class ShortestElementaryFluxModes(object):
-    def __init__(self, model):
+class ShortestElementaryFluxModes(six.Iterator):
+    def __init__(self, model, copy=True):
         self._indicator_variables = None
-        self._model = model.copy()
+        if copy:
+            self._model = model.copy()
+        else:
+            self._model = model
         self.__set_exchange_bounds()
         self.__set_up_constraints_and_objective()
-        if self.model.solver == optlang.cplex_interface.Model:
-            fixed_size_constraint = self.model.solver.interface.Constraint(sympy.Add(*self.indicator_variables), name='fixed_size_constraint', lb=1, ub=1)
+        if type(self.model.solver) == optlang.cplex_interface.Model:
+            fixed_size_constraint = self.model.solver.interface.Constraint(
+                sympy.Add(*self.indicator_variables), name='fixed_size_constraint', lb=1, ub=1
+            )
             self.model.solver._add_constraint(fixed_size_constraint, sloppy=True)
             self._elementary_mode_generator = self.__generate_elementary_modes_via_fixed_size_constraint()
         else:
@@ -41,7 +46,7 @@ class ShortestElementaryFluxModes(object):
     def __set_exchange_bounds(self):
         exchanges = self.model.exchanges
         min_bound = min(exchange.lower_bound for exchange in exchanges)
-        max_bound = max(exchange.lower_bound for exchange in exchanges)
+        max_bound = max(exchange.upper_bound for exchange in exchanges)
         for exchange in exchanges:
             if 0 < exchange.upper_bound < max_bound:
                 exchange.upper_bound = max_bound
@@ -53,39 +58,49 @@ class ShortestElementaryFluxModes(object):
         for reaction in self.model.reactions:
             y_fwd = self.model.solver.interface.Variable('y_fwd_' + reaction.id, type='binary')
             reaction._indicator_variable_fwd = y_fwd
-            indicator_constraint_fwd_1 = self.model.solver.interface.Constraint(reaction.forward_variable,
-                                                                          indicator_variable=y_fwd, active_when=0, lb=0,
-                                                                          ub=0,
-                                                                          name='indicator_constraint_fwd_1_{}'.format(reaction.id))
+            indicator_constraint_fwd_1 = self.model.solver.interface.Constraint(
+                reaction.forward_variable,
+                indicator_variable=y_fwd, active_when=0, lb=0,
+                ub=0,
+                name='indicator_constraint_fwd_1_{}'.format(reaction.id)
+            )
 
             self.model.solver._add_variable(y_fwd)
             self.model.solver._add_constraint(indicator_constraint_fwd_1, sloppy=True)
-            indicator_constraint_fwd_2 = self.model.solver.interface.Constraint(reaction.forward_variable,
-                                                                          indicator_variable=y_fwd, active_when=1, lb=c,
-                                                                          name='indicator_constraint_fwd_2_{}'.format(reaction.id))
+            indicator_constraint_fwd_2 = self.model.solver.interface.Constraint(
+                reaction.forward_variable,
+                indicator_variable=y_fwd, active_when=1, lb=c,
+                name='indicator_constraint_fwd_2_{}'.format(reaction.id)
+            )
             self.model.solver._add_constraint(indicator_constraint_fwd_2, sloppy=True)
 
-
-            y_rev = self.model.solver.interface.Variable('y_ref_' + reaction.id, type='binary')
+            y_rev = self.model.solver.interface.Variable('y_rev_' + reaction.id, type='binary')
             reaction._indicator_variable_rev = y_rev
-            indicator_constraint_rev = self.model.solver.interface.Constraint(reaction.reverse_variable,
-                                                                          indicator_variable=y_rev, active_when=0, lb=0,
-                                                                          ub=0,
-                                                                          name='indicator_constraint_rev_1_{}'.format(reaction.id))
+            indicator_constraint_rev = self.model.solver.interface.Constraint(
+                reaction.reverse_variable,
+                indicator_variable=y_rev, active_when=0, lb=0,
+                ub=0,
+                name='indicator_constraint_rev_1_{}'.format(reaction.id)
+            )
 
             self.model.solver._add_variable(y_rev)
             self.model.solver._add_constraint(indicator_constraint_rev, sloppy=True)
-            indicator_constraint_rev_2 = self.model.solver.interface.Constraint(reaction.reverse_variable,
-                                                                          indicator_variable=y_rev, active_when=1, lb=c,
-                                                                          name='indicator_constraint_rev_2_{}'.format(reaction.id))
+            indicator_constraint_rev_2 = self.model.solver.interface.Constraint(
+                reaction.reverse_variable,
+                indicator_variable=y_rev, active_when=1, lb=c,
+                name='indicator_constraint_rev_2_{}'.format(reaction.id)
+            )
             self.model.solver._add_constraint(indicator_constraint_rev_2, sloppy=True)
 
-
-            one_direction_constraint = self.model.solver.interface.Constraint(y_fwd + y_rev, lb=0, ub=1, name='one_direction_constraint_{}'.format(reaction.id))
+            one_direction_constraint = self.model.solver.interface.Constraint(
+                y_fwd + y_rev, lb=0, ub=1, name='one_direction_constraint_{}'.format(reaction.id)
+            )
             self.model.solver._add_constraint(one_direction_constraint, sloppy=True)
             indicator_variables.append(y_fwd)
             indicator_variables.append(y_rev)
-        at_least_one_active = self.model.solver.interface.Constraint(sympy.Add(*indicator_variables), lb=1, name='an_EM_must_constain_at_least_one_active_reaction')
+        at_least_one_active = self.model.solver.interface.Constraint(
+            sympy.Add(*indicator_variables), lb=1, name='an_EM_must_constain_at_least_one_active_reaction'
+        )
         self.model.solver._add_constraint(at_least_one_active, sloppy=True)
         self.model.objective = self.model.solver.interface.Objective(sympy.Add(*indicator_variables), direction='min')
         self._indicator_variables = indicator_variables
@@ -146,8 +161,6 @@ class ShortestElementaryFluxModes(object):
             if new_fixed_size > len(self.model.reactions):
                 break
             fixed_size_constraint.ub, fixed_size_constraint.lb = new_fixed_size, new_fixed_size
-            new_fixed_size = fixed_size_constraint.ub + 1
-            fixed_size_constraint.ub, fixed_size_constraint.lb = new_fixed_size, new_fixed_size
 
 
     @property
@@ -162,26 +175,72 @@ class ShortestElementaryFluxModes(object):
         return self
 
     def __next__(self):
-        return next(self._elementary_mode_generator)
+        return six.next(self._elementary_mode_generator)
 
 
-class MetabolicCutSetsEnumerator(object):
-    def __init__(self, model):
+class MetabolicCutSetsEnumerator(ShortestElementaryFluxModes):
+    def __init__(self, model, targets, constraints=None):
+        self._primal_model = model.copy()
+        self._targets = self._construct_target_constraints(targets)
+        self._constraints = self._construct_constraints(constraints)
+        self._dual_model = self._make_dual_model(model)
+
+        super(MetabolicCutSetsEnumerator, self).__init__(self._dual_model, copy=False)
+
+        def _(generator, func):
+            for mcs in generator:
+                allowed_mcs = func(mcs)
+                if allowed_mcs is not None:
+                    yield allowed_mcs
+
+        self._elementary_mode_generator = _(self._elementary_mode_generator, self._allowed_mcs)
+
         raise NotImplementedError
+
+    def _allowed_mcs(self, mcs):
+        if len(self._constraints) > 0:
+            # Modify the MCS to fit reactions in the primal
+
+            with TimeMachine() as tm:
+                for reac_id in mcs:
+                    self._primal_model.reactions.get_by_id(reac_id).knock_out(tm)
+                try:
+                    self._primal_model.solve()
+                except SolveError:
+                    return False
+                else:
+                    return True
+        else:
+            return True
+
+    def _make_dual_model(self, model):
+        pass
+
+    def _construct_target_constraints(self, targets):
+        pass
+
+    def _construct_constraints(self, constraints):
+        if constraints is None:
+            return ()
+        else:
+            self._primal_model.solver.add(constraints)
+            return constraints
 
 
 if __name__ == '__main__':
     from cameo import load_model
 
-    model = load_model('../../tests/data/EcoliCore.xml')
+    model = load_model("e_coli_core")
+    #model = load_model('../../tests/data/EcoliCore.xml')
     model.reactions.ATPM.lower_bound, model.reactions.ATPM.upper_bound = 0, 9999999.
+    model.reactions.BIOMASS_Ecoli_core_w_GAM.lower_bound = 1
     model.solver = 'cplex'
     shortest_emo = ShortestElementaryFluxModes(model)
     # s.model.solver.configuration.verbosity = 3
     count = 0
     for emo in shortest_emo:
-        # if count == 1000:
-        #     break
+        if count == 1000:
+            break
         count +=1
         print(str(count)+" "+80*"#")
         print(len(emo))
