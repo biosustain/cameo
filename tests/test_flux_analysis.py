@@ -290,6 +290,9 @@ class TestSimulationMethodsGLPK(Wrapper.AbstractTestSimulationMethods):
         self.model = CORE_MODEL
         self.model.solver = 'glpk'
 
+    def test_moma(self):
+        self.assertRaises(ValueError, super(TestSimulationMethodsGLPK, self).test_moma) # GLPK has no QP support
+
 
 @unittest.skipIf(six.PY2, 'Build stalling in python 2.7.')
 class TestSimulationMethodsCPLEX(Wrapper.AbstractTestSimulationMethods):

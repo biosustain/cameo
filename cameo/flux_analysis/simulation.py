@@ -142,7 +142,7 @@ def moma(model, reference=None, *args, **kwargs):
     """
     with TimeMachine() as tm:
         aux_vars = {}
-        for reac_id in reference:
+        for reac_id in reference.keys():
             var = model.solver.interface.Variable("moma_aux_"+reac_id)
             aux_vars[reac_id] = var
         tm(do=partial(model.solver.add, aux_vars.values()),
