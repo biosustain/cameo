@@ -187,7 +187,6 @@ class Wrapper:
             solution = lmoma(self.model, reference=pfba_solution, reactions=['EX_o2_LPAREN_e_RPAREN_', 'EX_glc_LPAREN_e_RPAREN_'])
             self.assertEqual(len(solution.fluxes), 2)
 
-        @unittest.skip("Needs QP")
         def test_moma(self):
             pfba_solution = pfba(self.model)
             solution = moma(self.model, reference=pfba_solution)
