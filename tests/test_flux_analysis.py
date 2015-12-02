@@ -182,6 +182,12 @@ class Wrapper:
                                    delta=1e-6,
                                    msg="lmoma distance without knockouts must be 0 (was %f)" % distance)
 
+        def test_lmoma_with_reaction_filter(self):
+            pfba_solution = pfba(self.model)
+            solution = lmoma(self.model, reference=pfba_solution, reactions=['EX_o2_LPAREN_e_RPAREN_', 'EX_glc_LPAREN_e_RPAREN_'])
+            self.assertEqual(len(solution.fluxes), 2)
+
+        @unittest.skip("Needs QP")
         def test_moma(self):
             pfba_solution = pfba(self.model)
             solution = moma(self.model, reference=pfba_solution)
@@ -189,11 +195,6 @@ class Wrapper:
             self.assertAlmostEqual(0, distance,
                                    delta=1e-6,
                                    msg="moma distance without knockouts must be 0 (was %f)" % distance)
-
-        def test_lmoma_with_reaction_filter(self):
-            pfba_solution = pfba(self.model)
-            solution = lmoma(self.model, reference=pfba_solution, reactions=['EX_o2_LPAREN_e_RPAREN_', 'EX_glc_LPAREN_e_RPAREN_'])
-            self.assertEqual(len(solution.fluxes), 2)
 
         def test_room(self):
             pfba_solution = pfba(self.model)
