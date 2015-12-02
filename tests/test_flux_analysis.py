@@ -23,7 +23,7 @@ import six
 from sympy import Add
 from cameo.flux_analysis import remove_infeasible_cycles
 
-from cameo.flux_analysis.simulation import fba, pfba, lmoma, room
+from cameo.flux_analysis.simulation import fba, pfba, lmoma, room, moma
 from cameo.parallel import SequentialView, MultiprocessingView
 from cameo.io import load_model
 from cameo.flux_analysis.analysis import flux_variability_analysis, phenotypic_phase_plane, _cycle_free_fva, \
@@ -167,9 +167,9 @@ class Wrapper:
 
         def test_pfba_iJO(self):
             fba_solution = fba(iJO_MODEL)
-            fba_flux_sum = sum((abs(val) for val in list(fba_solution.fluxes.values())))
+            fba_flux_sum = sum((abs(val) for val in fba_solution.fluxes.values()))
             pfba_solution = pfba(iJO_MODEL)
-            pfba_flux_sum = sum((abs(val) for val in list(pfba_solution.fluxes.values())))
+            pfba_flux_sum = sum((abs(val) for val in pfba_solution.fluxes.values()))
             print(pfba_flux_sum)
             self.assertTrue((pfba_flux_sum - fba_flux_sum) < 1e-6,
                             msg="FBA sum is suppose to be lower than PFBA (was %f)" % (pfba_flux_sum - fba_flux_sum))
@@ -177,10 +177,18 @@ class Wrapper:
         def test_lmoma(self):
             pfba_solution = pfba(self.model)
             solution = lmoma(self.model, reference=pfba_solution)
-            distance = sum([abs(solution[v] - pfba_solution[v]) for v in list(pfba_solution.keys())])
+            distance = sum((abs(solution[v] - pfba_solution[v]) for v in pfba_solution.keys()))
             self.assertAlmostEqual(0, distance,
                                    delta=1e-6,
                                    msg="lmoma distance without knockouts must be 0 (was %f)" % distance)
+
+        def test_moma(self):
+            pfba_solution = pfba(self.model)
+            solution = moma(self.model, reference=pfba_solution)
+            distance = sum((abs(solution[v] - pfba_solution[v]) for v in pfba_solution.keys()))
+            self.assertAlmostEqual(0, distance,
+                                   delta=1e-6,
+                                   msg="moma distance without knockouts must be 0 (was %f)" % distance)
 
         def test_lmoma_with_reaction_filter(self):
             pfba_solution = pfba(self.model)
