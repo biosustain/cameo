@@ -224,7 +224,7 @@ class TestFindBlockedReactionsGLPK(Wrapper.AbstractTestFindBlockedReactions):
         self.model = CORE_MODEL.copy()
         self.model.solver = 'glpk'
 
-@unittest.skipIf(six.PY2, 'Build stalling in python 2.7.')
+#@unittest.skipIf(six.PY2, 'Build stalling in python 2.7.')
 class TestFindBlockedReactionsCPLEX(Wrapper.AbstractTestFindBlockedReactions):
     def setUp(self):
         self.model = CORE_MODEL.copy()
