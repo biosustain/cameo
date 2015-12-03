@@ -68,8 +68,8 @@ def find_blocked_reactions(model):
         fva_solution = flux_variability_analysis(model)
     return [
         reaction for reaction in model.reactions
-        if round(fva_solution.data_frame.loc[reaction, "lower_bound"], config.ndecimals) == 0 and
-        round(fva_solution.data_frame.loc[reaction, "upper_bound"], config.ndecimals) == 0
+        if round(fva_solution.data_frame.loc[reaction.id, "lower_bound"], config.ndecimals) == 0 and
+        round(fva_solution.data_frame.loc[reaction.id, "upper_bound"], config.ndecimals) == 0
     ]
 
 
