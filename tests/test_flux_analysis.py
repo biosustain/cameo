@@ -224,7 +224,6 @@ class TestFindBlockedReactionsGLPK(Wrapper.AbstractTestFindBlockedReactions):
         self.model = CORE_MODEL.copy()
         self.model.solver = 'glpk'
 
-#@unittest.skipIf(six.PY2, 'Build stalling in python 2.7.')
 class TestFindBlockedReactionsCPLEX(Wrapper.AbstractTestFindBlockedReactions):
     def setUp(self):
         self.model = CORE_MODEL.copy()
@@ -238,13 +237,12 @@ class TestFluxVariabilityAnalysisGLPK(Wrapper.AbstractTestFluxVariabilityAnalysi
         self.biomass_flux = 0.873921
         self.model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = self.biomass_flux
 
-#@unittest.skipIf(six.PY2, 'Build stalling in python 2.7.')
 class TestFluxVariabilityAnalysisCPLEX(Wrapper.AbstractTestFluxVariabilityAnalysis):
     def setUp(self):
         self.model = CORE_MODEL.copy()
         self.model.solver = 'cplex'
-        self.biomass_flux = 0.87392
-        self.model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = self.biomass_flux
+        #self.biomass_flux = 0.8739  # Redundant since FVA is run with fraction_of_optimum
+        #self.model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = self.biomass_flux
 
 
 @unittest.skipIf(six.PY3, "Test temporarily skipped")
