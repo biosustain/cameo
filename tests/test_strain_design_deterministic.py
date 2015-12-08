@@ -64,7 +64,7 @@ class TestFSEOF(unittest.TestCase):
 if six.PY2:  # Make these test cases work with PY3 as well
     class TestDifferentialFVA(unittest.TestCase):
         def setUp(self):
-            self.model = ECOLICORE
+            self.model = ECOLICORE.copy()
 
         def test_minimal_input(self):
             result = DifferentialFVA(self.model, self.model.reactions.EX_succ_lp_e_rp_, points=5).run()
@@ -82,12 +82,12 @@ if six.PY2:  # Make these test cases work with PY3 as well
             pandas.util.testing.assert_frame_equal(result.data_frame.iloc[0], pandas.read_pickle(os.path.join(TESTDIR, 'data/REFERENCE_DiffFVA2.pickle')))
 
 
-@unittest.skipIf(TRAVIS, "OptKnock takes too long for Travis")
 class TestOptKnock(unittest.TestCase):
     def setUp(self):
         self.model = ECOLICORE.copy()
+        self.model.reactions.Biomass_Ecoli_core_N_lp_w_fsh_GAM_rp__Nmet2.lower_bound = 0.1
         self.model.solver = "cplex"
-        self.optknock = OptKnock(ECOLICORE)
+        self.optknock = OptKnock(self.model)
 
     def test_optknock_runs(self):
         result = self.optknock.run(0, "EX_ac_lp_e_rp_", max_results=1)
@@ -104,7 +104,6 @@ class TestOptKnock(unittest.TestCase):
             self.model.reactions.get_by_id(knockout.id).knock_out()
         fva = cameo.flux_variability_analysis(self.model, fraction_of_optimum=1, remove_cycles=False, reactions=["EX_ac_lp_e_rp_"])
         self.assertAlmostEqual(fva["upper_bound"][0], production)
-
 
 
 if __name__ == "__main__":
