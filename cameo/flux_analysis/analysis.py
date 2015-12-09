@@ -15,9 +15,6 @@
 
 from __future__ import absolute_import, print_function
 
-__all__ = ['find_blocked_reactions', 'flux_variability_analysis', 'phenotypic_phase_plane',
-           'flux_balance_impact_degree']
-
 from cobra.core import Reaction, Metabolite
 
 import six
@@ -25,7 +22,6 @@ from six.moves import zip
 from numpy import trapz
 
 import itertools
-from copy import copy
 from collections import OrderedDict
 from functools import partial, reduce
 import numpy
@@ -44,6 +40,10 @@ from cameo.flux_analysis.util import remove_infeasible_cycles
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+__all__ = ['find_blocked_reactions', 'flux_variability_analysis', 'phenotypic_phase_plane',
+           'flux_balance_impact_degree']
 
 
 def find_blocked_reactions(model):
