@@ -77,13 +77,13 @@ class Wrapper:
         def test_flux_variability_parallel_remove_cycles(self):
             fva_solution = flux_variability_analysis(self.model, fraction_of_optimum=0.999999419892, remove_cycles=True,
                                                      view=MultiprocessingView())
-            self.assertGreater(REFERENCE_FVA_SOLUTION_ECOLI_CORE['upper_bound']['FRD7'], 1000.)
+            self.assertGreater(REFERENCE_FVA_SOLUTION_ECOLI_CORE['upper_bound']['FRD7'], 666.)
             self.assertAlmostEqual(fva_solution['upper_bound']['FRD7'], 0.)
             for key in fva_solution.data_frame.index:
-                if abs(REFERENCE_FVA_SOLUTION_ECOLI_CORE['lower_bound'][key]) < 1000:
+                if abs(REFERENCE_FVA_SOLUTION_ECOLI_CORE['lower_bound'][key]) > -666:
                     self.assertAlmostEqual(fva_solution['lower_bound'][key],
                                            REFERENCE_FVA_SOLUTION_ECOLI_CORE['lower_bound'][key], delta=0.0001)
-                if abs(REFERENCE_FVA_SOLUTION_ECOLI_CORE['upper_bound'][key]) < 1000:
+                if abs(REFERENCE_FVA_SOLUTION_ECOLI_CORE['upper_bound'][key]) < 666:
                     self.assertAlmostEqual(fva_solution['upper_bound'][key],
                                            REFERENCE_FVA_SOLUTION_ECOLI_CORE['upper_bound'][key], delta=0.0001)
 
@@ -102,13 +102,13 @@ class Wrapper:
         def test_flux_variability_sequential_remove_cycles(self):
             fva_solution = flux_variability_analysis(self.model, fraction_of_optimum=0.999999419892, remove_cycles=True,
                                                      view=SequentialView())
-            self.assertGreater(REFERENCE_FVA_SOLUTION_ECOLI_CORE['upper_bound']['FRD7'], 1000.)
+            self.assertGreater(REFERENCE_FVA_SOLUTION_ECOLI_CORE['upper_bound']['FRD7'], 666.)
             self.assertAlmostEqual(fva_solution['upper_bound']['FRD7'], 0.)
             for key in fva_solution.data_frame.index:
-                if abs(REFERENCE_FVA_SOLUTION_ECOLI_CORE['lower_bound'][key]) < 1000:
+                if abs(REFERENCE_FVA_SOLUTION_ECOLI_CORE['lower_bound'][key]) > -666:
                     self.assertAlmostEqual(fva_solution['lower_bound'][key],
                                            REFERENCE_FVA_SOLUTION_ECOLI_CORE['lower_bound'][key], delta=0.0001)
-                if abs(REFERENCE_FVA_SOLUTION_ECOLI_CORE['upper_bound'][key]) < 1000:
+                if abs(REFERENCE_FVA_SOLUTION_ECOLI_CORE['upper_bound'][key]) < 666:
                     self.assertAlmostEqual(fva_solution['upper_bound'][key],
                                            REFERENCE_FVA_SOLUTION_ECOLI_CORE['upper_bound'][key], delta=0.0001)
 
