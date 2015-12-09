@@ -67,6 +67,9 @@ class AbstractTestModelLoading(object):
         model = cameo.models.bigg.e_coli_core
         self.assertEqual(model.id, 'e_coli_core')
 
+    def test_invalid_path(self):
+        self.assertRaises(Exception, load_model, "blablabla_model")
+
 
 class TestModelLoadingGLPK(AbstractTestModelLoading, unittest.TestCase):
     def setUp(self):
