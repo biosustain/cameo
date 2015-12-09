@@ -265,9 +265,9 @@ class DifferentialFVA(StrainDesignMethod):
 
             included_reactions = [reaction.id for reaction in self.reference_model.reactions if
                                   reaction.id not in self.exclude]
+            # FIXME: reference flux ranges should be for a fraction (say 0.75) of the original objective
             self.reference_flux_ranges = flux_variability_analysis(self.reference_model, reactions=included_reactions,
-                                                                   view=view, remove_cycles=False,
-                                                                   fraction_of_optimum=1.).data_frame
+                                                                   view=view, remove_cycles=False).data_frame
             self._init_search_grid(surface_only=surface_only, improvements_only=improvements_only)
 
             progress = ProgressBar(len(self.grid))
