@@ -75,7 +75,7 @@ class TestModelLoadingGLPK(AbstractTestModelLoading, unittest.TestCase):
     def setUp(self):
         self.interface = optlang.glpk_interface
 
-@unittest.skipIf(six.PY2, 'Build stalling in python 2.7.')
+#@unittest.skipIf(six.PY2, 'Build stalling in python 2.7.')
 class TestModelLoadingCPLEX(AbstractTestModelLoading, unittest.TestCase):
     def setUp(self):
         self.interface = optlang.cplex_interface

@@ -82,11 +82,11 @@ class TestLazySolutionGLPK(AbstractTestLazySolution):
         self.solution = self.model.optimize()
 
 
-@unittest.skipIf(six.PY2, 'Build stalling in python 2.7.')
+#@unittest.skipIf(six.PY2, 'Build stalling in python 2.7.')
 class TestLazySolutionCPLEX(AbstractTestLazySolution):
     def setUp(self):
         super(TestLazySolutionCPLEX, self).setUp()
-        self.model.solver = 'glpk'
+        self.model.solver = 'cplex'
         self.solution = self.model.optimize()
 
 
@@ -778,7 +778,7 @@ class TestSolverBasedModelGLPK(WrappedAbstractTestSolverBasedModel.AbstractTestS
         self.assertNotIn('optimize', dir(self.model))
 
 
-@unittest.skipIf(six.PY2, 'Build stalling in python 2.7.')
+#@unittest.skipIf(six.PY2, 'Build stalling in python 2.7.')
 class TestSolverBasedModelCPLEX(WrappedAbstractTestSolverBasedModel.AbstractTestSolverBasedModel):
     def setUp(self):
         super(TestSolverBasedModelCPLEX, self).setUp()

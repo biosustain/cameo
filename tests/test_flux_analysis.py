@@ -23,7 +23,7 @@ import six
 from sympy import Add
 from cameo.flux_analysis import remove_infeasible_cycles
 
-from cameo.flux_analysis.simulation import fba, pfba, lmoma, room
+from cameo.flux_analysis.simulation import fba, pfba, lmoma, room, moma
 from cameo.parallel import SequentialView, MultiprocessingView
 from cameo.io import load_model
 from cameo.flux_analysis.analysis import flux_variability_analysis, phenotypic_phase_plane, _cycle_free_fva, \
@@ -167,9 +167,9 @@ class Wrapper:
 
         def test_pfba_iJO(self):
             fba_solution = fba(iJO_MODEL)
-            fba_flux_sum = sum((abs(val) for val in list(fba_solution.fluxes.values())))
+            fba_flux_sum = sum((abs(val) for val in fba_solution.fluxes.values()))
             pfba_solution = pfba(iJO_MODEL)
-            pfba_flux_sum = sum((abs(val) for val in list(pfba_solution.fluxes.values())))
+            pfba_flux_sum = sum((abs(val) for val in pfba_solution.fluxes.values()))
             print(pfba_flux_sum)
             self.assertTrue((pfba_flux_sum - fba_flux_sum) < 1e-6,
                             msg="FBA sum is suppose to be lower than PFBA (was %f)" % (pfba_flux_sum - fba_flux_sum))
@@ -177,7 +177,7 @@ class Wrapper:
         def test_lmoma(self):
             pfba_solution = pfba(self.model)
             solution = lmoma(self.model, reference=pfba_solution)
-            distance = sum([abs(solution[v] - pfba_solution[v]) for v in list(pfba_solution.keys())])
+            distance = sum((abs(solution[v] - pfba_solution[v]) for v in pfba_solution.keys()))
             self.assertAlmostEqual(0, distance,
                                    delta=1e-6,
                                    msg="lmoma distance without knockouts must be 0 (was %f)" % distance)
@@ -186,6 +186,14 @@ class Wrapper:
             pfba_solution = pfba(self.model)
             solution = lmoma(self.model, reference=pfba_solution, reactions=['EX_o2_LPAREN_e_RPAREN_', 'EX_glc_LPAREN_e_RPAREN_'])
             self.assertEqual(len(solution.fluxes), 2)
+
+        def test_moma(self):
+            pfba_solution = pfba(self.model)
+            solution = moma(self.model, reference=pfba_solution)
+            distance = sum((abs(solution[v] - pfba_solution[v]) for v in pfba_solution.keys()))
+            self.assertAlmostEqual(0, distance,
+                                   delta=1e-6,
+                                   msg="moma distance without knockouts must be 0 (was %f)" % distance)
 
         def test_room(self):
             pfba_solution = pfba(self.model)
@@ -216,12 +224,10 @@ class TestFindBlockedReactionsGLPK(Wrapper.AbstractTestFindBlockedReactions):
         self.model = CORE_MODEL.copy()
         self.model.solver = 'glpk'
 
-@unittest.skipIf(six.PY2, 'Build stalling in python 2.7.')
 class TestFindBlockedReactionsCPLEX(Wrapper.AbstractTestFindBlockedReactions):
     def setUp(self):
         self.model = CORE_MODEL.copy()
         self.model.solver = 'cplex'
-        self.model.solver.problem.parameters.lpmethod = self.model.solver.problem.parameters.lpmethod.values.dual
 
 
 class TestFluxVariabilityAnalysisGLPK(Wrapper.AbstractTestFluxVariabilityAnalysis):
@@ -231,14 +237,12 @@ class TestFluxVariabilityAnalysisGLPK(Wrapper.AbstractTestFluxVariabilityAnalysi
         self.biomass_flux = 0.873921
         self.model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = self.biomass_flux
 
-@unittest.skipIf(six.PY2, 'Build stalling in python 2.7.')
 class TestFluxVariabilityAnalysisCPLEX(Wrapper.AbstractTestFluxVariabilityAnalysis):
     def setUp(self):
         self.model = CORE_MODEL.copy()
         self.model.solver = 'cplex'
-        self.model.solver.problem.parameters.lpmethod = self.model.solver.problem.parameters.lpmethod.values.dual
-        self.biomass_flux = 0.873921
-        self.model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = self.biomass_flux
+        #self.biomass_flux = 0.8739  # Redundant since FVA is run with fraction_of_optimum
+        #self.model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = self.biomass_flux
 
 
 @unittest.skipIf(six.PY3, "Test temporarily skipped")
@@ -270,7 +274,7 @@ class TestPhenotypicPhasePlaneGLPK(Wrapper.AbstractTestPhenotypicPhasePlane):
         assert_dataframes_equal(ppp, REFERENCE_PPP_o2_EcoliCore)
 
 
-@unittest.skipIf(six.PY2, 'Build stalling in python 2.7.')
+#@unittest.skipIf(six.PY2, 'Build stalling in python 2.7.')
 class TestPhenotypicPhasePlaneCPLEX(Wrapper.AbstractTestPhenotypicPhasePlane):
     def setUp(self):
         self.model = CORE_MODEL.copy()
@@ -282,8 +286,11 @@ class TestSimulationMethodsGLPK(Wrapper.AbstractTestSimulationMethods):
         self.model = CORE_MODEL
         self.model.solver = 'glpk'
 
+    def test_moma(self):
+        self.assertRaises(ValueError, super(TestSimulationMethodsGLPK, self).test_moma) # GLPK has no QP support
 
-@unittest.skipIf(six.PY2, 'Build stalling in python 2.7.')
+
+#@unittest.skipIf(six.PY2, 'Build stalling in python 2.7.')
 class TestSimulationMethodsCPLEX(Wrapper.AbstractTestSimulationMethods):
     def setUp(self):
         self.model = CORE_MODEL
