@@ -61,7 +61,7 @@ class TestFSEOF(unittest.TestCase):
         self.assertIs(fseof_result.model, self.model)
         self.assertEqual(list(fseof_result), list(fseof_result.reactions))
 
-if six.PY2:  # Make these test cases work with PY3 as well
+if 1 or six.PY2:  # Make these test cases work with PY3 as well
     class TestDifferentialFVA(unittest.TestCase):
         def setUp(self):
             self.model = ECOLICORE.copy()
@@ -69,7 +69,8 @@ if six.PY2:  # Make these test cases work with PY3 as well
         def test_minimal_input(self):
             result = DifferentialFVA(self.model, self.model.reactions.EX_succ_lp_e_rp_, points=5).run()
             # result.data_frame.iloc[0].to_pickle(os.path.join(TESTDIR, 'data/REFERENCE_DiffFVA1.pickle'))
-            pandas.util.testing.assert_frame_equal(result.data_frame.iloc[0], pandas.read_pickle(os.path.join(TESTDIR, 'data/REFERENCE_DiffFVA1.pickle')))
+            pandas.util.testing.assert_frame_equal(result.data_frame.iloc[0].sort(axis=1),
+                                                   pandas.read_pickle(os.path.join(TESTDIR, 'data/REFERENCE_DiffFVA1.pickle')).sort(axis=1))
 
         def test_with_reference_model(self):
             reference_model = self.model.copy()
@@ -79,7 +80,8 @@ if six.PY2:  # Make these test cases work with PY3 as well
             target.lower_bound = 2
             result = DifferentialFVA(self.model, target, reference_model=reference_model, points=5).run()
             # result.data_frame.iloc[0].to_pickle(os.path.join(TESTDIR, 'data/REFERENCE_DiffFVA2.pickle'))
-            pandas.util.testing.assert_frame_equal(result.data_frame.iloc[0], pandas.read_pickle(os.path.join(TESTDIR, 'data/REFERENCE_DiffFVA2.pickle')))
+            pandas.util.testing.assert_frame_equal(result.data_frame.iloc[0].sort(axis=1),
+                                                   pandas.read_pickle(os.path.join(TESTDIR, 'data/REFERENCE_DiffFVA2.pickle')).sort(axis=1))
 
 
 class TestOptKnock(unittest.TestCase):

@@ -245,7 +245,6 @@ class TestFluxVariabilityAnalysisCPLEX(Wrapper.AbstractTestFluxVariabilityAnalys
         #self.model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = self.biomass_flux
 
 
-@unittest.skipIf(six.PY3, "Test temporarily skipped")
 class TestRemoveCycles(unittest.TestCase):
     def setUp(self):
         self.model = CORE_MODEL.copy()
@@ -257,7 +256,7 @@ class TestRemoveCycles(unittest.TestCase):
             self.model.objective = self.model.solver.interface.Objective(Add(*self.model.solver.variables.values()),
                                                                          name='Max all fluxes')
             solution = self.model.solve()
-            self.assertAlmostEqual(solution.data_frame.fluxes.abs().sum(), 2000506.2933342019, delta=1e-6)
+            self.assertAlmostEqual(solution.data_frame.fluxes.abs().sum(), 2508.293334, delta=1e-6)
             self.model.objective = original_objective
             fluxes = solution.fluxes
         clean_fluxes = remove_infeasible_cycles(self.model, fluxes)
@@ -274,7 +273,6 @@ class TestPhenotypicPhasePlaneGLPK(Wrapper.AbstractTestPhenotypicPhasePlane):
         assert_dataframes_equal(ppp, REFERENCE_PPP_o2_EcoliCore)
 
 
-#@unittest.skipIf(six.PY2, 'Build stalling in python 2.7.')
 class TestPhenotypicPhasePlaneCPLEX(Wrapper.AbstractTestPhenotypicPhasePlane):
     def setUp(self):
         self.model = CORE_MODEL.copy()
@@ -290,7 +288,6 @@ class TestSimulationMethodsGLPK(Wrapper.AbstractTestSimulationMethods):
         self.assertRaises(ValueError, super(TestSimulationMethodsGLPK, self).test_moma) # GLPK has no QP support
 
 
-#@unittest.skipIf(six.PY2, 'Build stalling in python 2.7.')
 class TestSimulationMethodsCPLEX(Wrapper.AbstractTestSimulationMethods):
     def setUp(self):
         self.model = CORE_MODEL
