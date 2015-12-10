@@ -199,7 +199,7 @@ class OptKnock(StrainDesignMethod):
                 try:
                     solution = self._model.solve()
                 except SolveError as e:
-                    logger.debug("Problem could not be solved. Terminating and returning "+count+" solutions")
+                    logger.debug("Problem could not be solved. Terminating and returning "+str(count)+" solutions")
                     logger.debug(str(e))
                     break
 
@@ -223,7 +223,7 @@ class OptKnock(StrainDesignMethod):
                    undo=partial(self._model.solver.remove, integer_cut))
                 count += 1
 
-            return OptKnockResult(knockout_list, fluxes_list, production_list, target)
+        return OptKnockResult(knockout_list, fluxes_list, production_list, target)
 
 
 class RobustKnock(StrainDesignMethod):
