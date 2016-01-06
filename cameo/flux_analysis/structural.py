@@ -17,28 +17,37 @@
 from copy import copy
 
 import sympy
+from cameo.core import SolverBasedModel
+from cameo import Reaction
+from cobra import Metabolite
 import optlang
 import six
-from itertools import ifilter
+import itertools
 
-from cameo.exceptions import SolveError
+from cameo.exceptions import SolveError, Infeasible
 from cameo.util import TimeMachine
 
 
 class ShortestElementaryFluxModes(six.Iterator):
-    def __init__(self, model, copy=True):
+    def __init__(self, model, reactions=None, c=1, copy=True, change_bounds=True):
         self._indicator_variables = None
         if copy:
             self._model = model.copy()
         else:
             self._model = model
-        self.__set_exchange_bounds()
-        self.__set_up_constraints_and_objective()
+        if reactions is None:
+            self._reactions = self.model.reactions
+        else:
+            self._reactions = []
+            for reaction in reactions:
+                if isinstance(reaction, six.string_types):
+                    self._reactions.append(self.model.reactions.get_by_id(reaction))
+                else:
+                    self._reactions.append(reaction)
+        if change_bounds:
+            self.__set_exchange_bounds()
+        self.__set_up_constraints_and_objective(c)
         if type(self.model.solver) == optlang.cplex_interface.Model:
-            fixed_size_constraint = self.model.solver.interface.Constraint(
-                sympy.Add(*self.indicator_variables), name='fixed_size_constraint', lb=1, ub=1
-            )
-            self.model.solver._add_constraint(fixed_size_constraint, sloppy=True)
             self._elementary_mode_generator = self.__generate_elementary_modes_via_fixed_size_constraint()
         else:
             self._elementary_mode_generator = self.__generate_elementary_modes()
@@ -55,7 +64,7 @@ class ShortestElementaryFluxModes(six.Iterator):
 
     def __set_up_constraints_and_objective(self, c=1):
         indicator_variables = list()
-        for reaction in self.model.reactions:
+        for reaction in self._reactions:
             y_fwd = self.model.solver.interface.Variable('y_fwd_' + reaction.id, type='binary')
             reaction._indicator_variable_fwd = y_fwd
             indicator_constraint_fwd_1 = self.model.solver.interface.Constraint(
@@ -113,7 +122,7 @@ class ShortestElementaryFluxModes(six.Iterator):
                 raise StopIteration
             elementary_flux_mode = list()
             exclusion_list = list()
-            for reaction in self.model.reactions:
+            for reaction in self._reactions:
                 if reaction._indicator_variable_fwd.primal == 1.:
                     reaction_copy = copy(reaction)
                     reaction_copy.lower_bound = 0
@@ -129,7 +138,11 @@ class ShortestElementaryFluxModes(six.Iterator):
             yield elementary_flux_mode
 
     def __generate_elementary_modes_via_fixed_size_constraint(self):
-        fixed_size_constraint = self.model.solver.constraints['fixed_size_constraint']
+        fixed_size_constraint = self.model.solver.interface.Constraint(
+                sympy.Add(*self.indicator_variables), name='fixed_size_constraint', lb=1, ub=1
+        )
+        self.model.solver._add_constraint(fixed_size_constraint, sloppy=True)
+
         while True:
             try:
                 self.model.solver.problem.populate_solution_pool()
@@ -141,7 +154,7 @@ class ShortestElementaryFluxModes(six.Iterator):
                 for i in range(solution_num):
                     elementary_flux_mode = list()
                     exclusion_list = list()
-                    for reaction in self.model.reactions:
+                    for reaction in self._reactions:
                         if self.model.solver.problem.solution.pool.get_values(i, reaction._indicator_variable_fwd.name) == 1.:
                             reaction_copy = copy(reaction)
                             reaction_copy.lower_bound = 0
@@ -181,43 +194,165 @@ class ShortestElementaryFluxModes(six.Iterator):
 class MetabolicCutSetsEnumerator(ShortestElementaryFluxModes):
     def __init__(self, model, targets, constraints=None):
         self._primal_model = model.copy()
-        self._targets = self._construct_target_constraints(targets)
         self._constraints = self._construct_constraints(constraints)
         self._dual_model = self._make_dual_model(model)
+        self._construct_target_constraints(targets)
 
-        super(MetabolicCutSetsEnumerator, self).__init__(self._dual_model, copy=False)
+        super(MetabolicCutSetsEnumerator, self).__init__(
+            self._dual_model, copy=False, change_bounds=False, reactions=self._v_reactions)
 
-        def _(generator, func):
+        def iterator_wrapper(generator, func):
+            """Convert MCS's to primal and filter according to constraints"""
             for mcs in generator:
                 allowed_mcs = func(mcs)
                 if allowed_mcs is not None:
                     yield allowed_mcs
 
-        self._elementary_mode_generator = _(self._elementary_mode_generator, self._allowed_mcs)
+        self._elementary_mode_generator = iterator_wrapper(self._elementary_mode_generator, self._allowed_mcs)
 
-        raise NotImplementedError
-
-    def _allowed_mcs(self, mcs):
+    def _allowed_mcs(self, dual_mcs):
+        mcs = self._convert_mcs_to_primal(dual_mcs)
+        #mcs = dual_mcs
         if len(self._constraints) > 0:
-            # Modify the MCS to fit reactions in the primal
-
             with TimeMachine() as tm:
                 for reac_id in mcs:
                     self._primal_model.reactions.get_by_id(reac_id).knock_out(tm)
                 try:
                     self._primal_model.solve()
-                except SolveError:
-                    return False
+                except Infeasible:
+                    return None
                 else:
-                    return True
+                    return mcs
         else:
-            return True
+            return mcs
+
+    def _convert_mcs_to_primal(self, dual_mcs):
+        primal_mcs = []
+        for reac in dual_mcs:
+            name = "_".join(reac.id.split("_")[1:])
+            if name in self._primal_model.reactions:
+                primal_mcs.append(name)
+            elif "_reverse_" in name and "_".join(name.split("_")[:-2]) in self._primal_model.reactions:
+                primal_mcs.append("_".join(name.split("_")[:-2]))
+            else:
+                raise RuntimeError("Primal reaction could not be found for "+reac.id)
+        return set(primal_mcs)
 
     def _make_dual_model(self, model):
-        pass
+        dual_model = SolverBasedModel(solver_interface=model.solver.interface)
+
+        # Add dual metabolites
+        dual_metabolite_names = []
+        for re in model.reactions:
+            if re.upper_bound > 0:
+                dual_metabolite_names.append(re._get_forward_id())
+            if re.lower_bound < 0:
+                dual_metabolite_names.append(re._get_reverse_id())
+        dual_model.add_metabolites([Metabolite(name) for name in dual_metabolite_names])
+
+        # Add dual "u-reactions"
+        transposed_stoichiometry = {}
+        for reaction in model.reactions:
+            for met, coef in reaction.metabolites.items():
+                if reaction._get_forward_id() in dual_metabolite_names:
+                    transposed_stoichiometry.setdefault(met, {})[
+                        dual_model.metabolites.get_by_id(reaction._get_forward_id())] = coef
+                if reaction._get_reverse_id() in dual_metabolite_names:
+                    transposed_stoichiometry.setdefault(met, {})[
+                        dual_model.metabolites.get_by_id(reaction._get_reverse_id())] = -coef
+
+        u_reactions = []
+        for met, stoichiometry in transposed_stoichiometry.items():
+            met_id = met.id
+            reac = Reaction("u_"+met_id)
+            reac.lower_bound = -reac.upper_bound  # Make reversible
+            reac.add_metabolites(stoichiometry)
+            u_reactions.append(reac)
+
+        dual_model.add_reactions(u_reactions)
+
+        # Add dual "v-reactions"
+        v_reactions = []
+        for dual_met in dual_model.metabolites:
+            reac = Reaction("v_"+dual_met.id)
+            reac.lower_bound = -reac.upper_bound  # Make reversible
+            reac.add_metabolites({dual_met: 1})
+            v_reactions.append(reac)
+        dual_model.add_reactions(v_reactions)
+        self._v_reactions = v_reactions
+
+        # Add dual "z-reactions"
+        z_reactions = []
+        for dual_met in dual_model.metabolites:
+            reac = Reaction("z_"+dual_met.id)
+            reac.lower_bound = 0
+            reac.add_metabolites({dual_met: -1})
+        '''
+        for reac in model.reactions:
+            forward = reac._get_forward_id()
+            reverse = reac._get_reverse_id()
+
+            forward_reac = Reaction("z_"+forward)
+            forward_reac.lower_bound = 0
+            forward_reac.add_metabolites({dual_model.metabolites.get_by_id(forward): -1})
+            z_reactions.append(forward_reac)
+
+            if reac.lower_bound < 0:
+                reverse_reac = Reaction("z_"+reverse)
+                reverse_reac.lower_bound = 0
+                reverse_reac.add_metabolites({dual_model.metabolites.get_by_id(reverse): -1})
+                z_reactions.append(reverse_reac)
+        '''
+        dual_model.add_reactions(z_reactions)
+
+        return dual_model
 
     def _construct_target_constraints(self, targets):
-        pass
+        if isinstance(targets, optlang.interface.Constraint):
+            targets = [targets]
+        elif isinstance(targets, six.string_types):
+            targets = [targets]
+        if isinstance(targets[0], six.string_types):
+            new_targets = []
+            for target in targets:
+                new_targets.extend(self._convert_target_string_to_constraints(target))
+            targets = new_targets
+
+        w_reactions = []
+        for i, target in enumerate(targets):
+            assert isinstance(target, optlang.interface.Constraint)
+            if not target.is_Linear:
+                raise ValueError("Target constraints must be linear.")
+            if (target.lb is None and target.ub is None) or (target.lb is not None and target.ub is not None):
+                raise ValueError("Target constraints must be one-sided inequalities.")
+            if target.lb is not None and target.lb < 0 or target.ub is not None and target.ub > 0:
+                raise ValueError("Target constraints must exclude the zero vector.")
+            coefficients_dict = target.expression.as_coefficients_dict()
+            w_reac = Reaction("w_"+str(i))
+            w_reac.lower_bound = 1
+            if target.ub is not None:
+                coefficients = {
+                    self._dual_model.metabolites.get_by_id(var.name): coef for var, coef in coefficients_dict.items()
+                    if var.name in self._dual_model.metabolites
+                }
+            elif target.lb is not None:
+                coefficients = {
+                    self._dual_model.metabolites.get_by_id(var.name): -coef for var, coef in coefficients_dict.items()
+                    if var.name in self._dual_model.metabolites
+                }
+            w_reac.add_metabolites(coefficients)
+            w_reactions.append(w_reac)
+        self._dual_model.add_reactions(w_reactions)
+
+        return None
+
+    def _convert_target_string_to_constraints(self, target_string):
+        """Convert a string to constraints, e.g. a reaction name to constraints that target that reaction"""
+        if target_string in self._primal_model.reactions:
+            raise NotImplementedError # TODO
+        else:
+            raise NotImplementedError
+        return constraints
 
     def _construct_constraints(self, constraints):
         if constraints is None:
@@ -232,7 +367,7 @@ if __name__ == '__main__':
 
     model = load_model("e_coli_core")
     #model = load_model('../../tests/data/EcoliCore.xml')
-    model.reactions.ATPM.lower_bound, model.reactions.ATPM.upper_bound = 0, 9999999.
+    model.reactions.ATPM.lower_bound, model.reactions.ATPM.upper_bound = 0, 1000.
     model.reactions.BIOMASS_Ecoli_core_w_GAM.lower_bound = 1
     model.solver = 'cplex'
     shortest_emo = ShortestElementaryFluxModes(model)
