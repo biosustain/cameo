@@ -12,4 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .optimization import ReactionKnockoutOptimization, GeneKnockoutOptimization
+from evolutionary_based import OptGene
