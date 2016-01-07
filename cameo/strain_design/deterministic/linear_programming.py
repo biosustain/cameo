@@ -204,7 +204,7 @@ class OptKnock(StrainDesignMethod):
                 try:
                     solution = self._model.solve()
                 except SolveError as e:
-                    logger.debug("Problem could not be solved. Terminating and returning "+count+" solutions")
+                    logger.debug("Problem could not be solved. Terminating and returning "+str(count)+" solutions")
                     logger.debug(str(e))
                     break
 
