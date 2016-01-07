@@ -11,35 +11,5 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from cameo.core.result import Result
 
 
-class StrainDesignMethod(object):
-    def __init__(self, *args, **kwargs):
-        super(StrainDesignMethod, self).__init__(*args, **kwargs)
-
-    def __call__(self, *args, **kwargs):
-        self.run(*args, **kwargs)
-
-    def run(self, *args, **kwargs):
-        raise NotImplementedError
-
-
-class StrainDesign(object):
-    def __init__(self, knockouts=None, knock_ins=None, over_expression=None, down_regulation=None):
-        self.knockouts = knockouts
-        self.knock_ins = knock_ins
-        self.over_expression = over_expression
-        self.down_regulation = down_regulation
-
-
-class StrainDesignResult(Result):
-    def __init__(self, *args, **kwargs):
-        super(StrainDesignResult, self).__init__(*args, **kwargs)
-
-    def __iter__(self):
-        """
-
-        Returns an iterator that yields StrainDesign objects.
-        """
-        raise NotImplementedError
