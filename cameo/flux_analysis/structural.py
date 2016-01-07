@@ -287,22 +287,7 @@ class MetabolicCutSetsEnumerator(ShortestElementaryFluxModes):
             reac = Reaction("z_"+dual_met.id)
             reac.lower_bound = 0
             reac.add_metabolites({dual_met: -1})
-        '''
-        for reac in model.reactions:
-            forward = reac._get_forward_id()
-            reverse = reac._get_reverse_id()
-
-            forward_reac = Reaction("z_"+forward)
-            forward_reac.lower_bound = 0
-            forward_reac.add_metabolites({dual_model.metabolites.get_by_id(forward): -1})
-            z_reactions.append(forward_reac)
-
-            if reac.lower_bound < 0:
-                reverse_reac = Reaction("z_"+reverse)
-                reverse_reac.lower_bound = 0
-                reverse_reac.add_metabolites({dual_model.metabolites.get_by_id(reverse): -1})
-                z_reactions.append(reverse_reac)
-        '''
+            z_reactions.append(reac)
         dual_model.add_reactions(z_reactions)
 
         return dual_model
@@ -325,8 +310,6 @@ class MetabolicCutSetsEnumerator(ShortestElementaryFluxModes):
                 raise ValueError("Target constraints must be linear.")
             if (target.lb is None and target.ub is None) or (target.lb is not None and target.ub is not None):
                 raise ValueError("Target constraints must be one-sided inequalities.")
-            if target.lb is not None and target.lb < 0 or target.ub is not None and target.ub > 0:
-                raise ValueError("Target constraints must exclude the zero vector.")
             coefficients_dict = target.expression.as_coefficients_dict()
             w_reac = Reaction("w_"+str(i))
             w_reac.lower_bound = 1
