@@ -43,8 +43,8 @@ class OptGene(StrainDesignMethod):
         self._manipulation_type = None
         self._essential_genes = essential_genes
         self._essential_reactions = essential_reactions
-        self.manipulation_type = manipulation_type
         self._plot = plot
+        self.manipulation_type = manipulation_type
 
     @property
     def manipulation_type(self):
