@@ -148,7 +148,7 @@ def phenotypic_phase_plane(model, variables=[], objective=None, points=20, view=
     References
     ----------
     [1] Edwards, J. S., Ramakrishna, R. and Palsson, B. O. (2002). Characterizing the metabolic phenotype: a phenotype
-    phase plane analysis. Biotechnology and Bioengineering, 77(1), 27–36. doi:10.1002/bit.10047
+        phase plane analysis. Biotechnology and Bioengineering, 77(1), 27–36. doi:10.1002/bit.10047
     """
     if isinstance(variables, str):
         variables = [variables]
@@ -416,16 +416,18 @@ def flux_balance_impact_degree(model, knockouts, view=config.default_view, metho
 
     Returns
     -------
-    int: perturbation
-        The number of changes in reachable reactions (reactions that can carry flux)
+    FluxBalanceImpactDegreeResult: perturbation
+        The changes in reachable reactions (reactions that can carry flux)
     """
 
     if method == "fva":
-        _fbid_fva(model, knockouts, view)
+        reachable_reactions, perturbed_reactions =_fbid_fva(model, knockouts, view)
     elif method == "em":
         raise NotImplementedError("Elementary modes approach is not implemented")
     else:
         raise ValueError("%s method is not valid to compute Flux Balance Impact Degree" % method)
+
+    return FluxBalanceImpactDegreeResult(reachable_reactions, perturbed_reactions, method)
 
 
 def _fbid_fva(model, knockouts, view):
@@ -451,13 +453,16 @@ def _fbid_fva(model, knockouts, view):
 
     mt_fva = flux_variability_analysis(model, view)
 
-    perturbation = 0
+    reachable_reactions = []
+    perturbed_reactions = []
     for reaction in model.reactions:
-        if wt_fva[reaction.id] != 0 and mt_fva[reaction.id] == 0:
-            perturbation += 1
+        if wt_fva[reaction.id] != 0:
+            reachable_reactions.append(reaction.id)
+            if mt_fva[reaction.id] == 0:
+                perturbed_reactions.append(reaction.id)
 
     tm.reset()
-    return perturbation
+    return reachable_reactions, perturbed_reactions
 
 
 class PhenotypicPhasePlaneResult(Result):
@@ -515,7 +520,45 @@ class FluxVariabilityResult(Result):
                                                 axis_font_size=axis_font_size)
 
     def __getitem__(self, item):
-        return self._data_frame[item]
+        if isinstance(item, Reaction):
+            item = item.id
+        return self._data_frame.loc[item]
 
     def iterrows(self):
         return self._data_frame.iterrows()
+
+
+class FluxBalanceImpactDegreeResult(Result):
+
+    def __init__(self, reachable_reactions, perturbed_reactions, method, *args, **kwargs):
+        super(FluxBalanceImpactDegreeResult, self).__init__(*args, **kwargs)
+        self._method = method
+        self._reachable_reactions = reachable_reactions
+        self._perturbed_reactions = perturbed_reactions
+
+    def __contains__(self, item):
+        if isinstance(item, Reaction):
+            item = item.id
+        return item in self._reachable_reactions
+
+    def _repr_html_(self):
+        return """
+        Flux Balance Impact Degree\n
+        Degree: %i\n
+        Reactions:\n
+        %s
+        """.format(self.degree, self.data_frame._repr_html_)
+
+    @property
+    def degree(self):
+        return len(self._perturbed_reactions)
+
+    @property
+    def data_frame(self):
+        data_frame = pandas.DataFrame(columns=["perturbed"])
+        for i, reaction in enumerate(self._reachable_reactions):
+            data_frame.loc[i] = [reaction in self._perturbed_reactions]
+        return data_frame
+
+    def plot(self, grid=None, width=None, height=None, title=None):
+        pass
