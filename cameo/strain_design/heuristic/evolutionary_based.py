@@ -32,7 +32,7 @@ from cameo import ui
 
 class OptGene(StrainDesignMethod):
     def __init__(self, model, evolutionary_algorithm=inspyred.ec.GA, manipulation_type="genes", essential_genes=None,
-                 essential_reactions=None, *args, **kwargs):
+                 essential_reactions=None, plot=True, *args, **kwargs):
         assert isinstance(model, SolverBasedModel)
 
         super(OptGene, self).__init__(*args, **kwargs)
@@ -44,10 +44,21 @@ class OptGene(StrainDesignMethod):
         self._essential_genes = essential_genes
         self._essential_reactions = essential_reactions
         self.manipulation_type = manipulation_type
+        self._plot = plot
 
     @property
     def manipulation_type(self):
         return self._manipulation_type
+
+    @property
+    def plot(self):
+        return self._plot
+
+    @plot.setter
+    def plot(self, plot):
+        self._plot = plot
+        if self._optimization_algorithm is not None:
+            self._optimization_algorithm.plot = plot
 
     @manipulation_type.setter
     def manipulation_type(self, manipulation_type):
@@ -56,13 +67,14 @@ class OptGene(StrainDesignMethod):
             self._optimization_algorithm = GeneKnockoutOptimization(
                 model=self._model,
                 heuristic_method=self._algorithm,
-                essential_genes=self._essential_genes)
+                essential_genes=self._essential_genes,
+                plot=self.plot)
         elif manipulation_type is "reactions":
             self._optimization_algorithm = ReactionKnockoutOptimization(
                 model=self._model,
                 heuristic_method=self._algorithm,
-                essential_reactions=self._essential_reactions
-            )
+                essential_reactions=self._essential_reactions,
+                plot=self.plot)
         else:
             raise ValueError("Invalid manipulation type %s" % manipulation_type)
 
