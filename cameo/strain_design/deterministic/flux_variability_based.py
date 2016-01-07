@@ -14,32 +14,19 @@
 # limitations under the License.
 
 from __future__ import absolute_import, print_function
-import re
-import numpy as np
 
-__all__ = ['DifferentialFVA', 'FSEOF']
+
+import re
+import six
+import logging
+import warnings
+
+
+import numpy as np
 
 from functools import partial
 from uuid import uuid4
 from IPython.core.display import display, HTML, Javascript
-import warnings
-
-with warnings.catch_warnings():
-    warnings.simplefilter("ignore")
-    try:
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            from IPython.html.widgets import interact, IntSlider
-    except ImportError:
-        from ipywidgets import interact, IntSlider
-import six
-from cameo.ui import notice
-from cameo.visualization.escher_ext import NotebookBuilder
-
-if six.PY2:
-    from itertools import izip as my_zip
-else:
-    my_zip = zip
 
 from IProgress import ProgressBar
 from pandas import DataFrame, pandas
@@ -50,13 +37,32 @@ from cameo import config, flux_variability_analysis, fba
 from cameo import Metabolite
 from cameo.parallel import SequentialView
 from cameo.core.solver_based_model import Reaction
-from cameo.strain_design import StrainDesignMethod, StrainDesignResult
+from cameo.strain_design.strain_design import StrainDesignMethod, StrainDesignResult, StrainDesign
 from cameo.flux_analysis.analysis import phenotypic_phase_plane, PhenotypicPhasePlaneResult
 from cameo.util import TimeMachine
-import cameo
+from cameo.ui import notice
+from cameo.visualization.escher_ext import NotebookBuilder
 
-import logging
-import six
+
+
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore")
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            from IPython.html.widgets import interact, IntSlider
+    except ImportError:
+        from ipywidgets import interact, IntSlider
+
+
+if six.PY2:
+    from itertools import izip as my_zip
+else:
+    my_zip = zip
+
+
+__all__ = ['DifferentialFVA', 'FSEOF']
+
 
 logger = logging.getLogger(__name__)
 
@@ -550,7 +556,7 @@ class FSEOF(StrainDesignMethod):
             enforcements = [initial_flux + (i + 1) * (max_flux - initial_flux) / granularity for i in range(granularity)]
 
             # FSEOF results
-            results = {reaction.id: [round(initial_fluxes[reaction.id], config.ndecimals)] for reaction in model.reactions}
+            results = {reaction.id: [round(initial_fluxes[reaction.id], ndecimals)] for reaction in model.reactions}
 
             # Scan fluxes for different levels of enforcement
             model.objective = primary_objective
@@ -559,7 +565,7 @@ class FSEOF(StrainDesignMethod):
                 enforced_reaction.upper_bound = enforcement
                 solution = solution_method(model)
                 for reaction_id, flux in solution.fluxes.items():
-                    results[reaction_id].append(round(flux, config.ndecimals))
+                    results[reaction_id].append(round(flux, ndecimals))
 
         # Test each reaction
         fseof_reactions = []
@@ -607,7 +613,12 @@ class FSEOFResult(StrainDesignResult):
 
     # TODO: Make an iterator that returns designs from the different enforced levels
     def __iter__(self):
-        return iter(self.reactions)
+        for i, level in enumerate(self.enforced_levels):
+            if i > 0:
+                knockouts = [r for r, v in six.iteritems(self._reaction_results) if v[0] > 0 and v[i] == 0]
+                over_expressions = {r: v for r, v in six.iteritems(self._reaction_results) if v[i] > v[0]}
+                under_expressions = {r: v for r, v in six.iteritems(self._reaction_results) if v[i] < v[0]}
+                yield StrainDesign()
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) and \
