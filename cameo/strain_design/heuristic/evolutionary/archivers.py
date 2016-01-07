@@ -77,6 +77,10 @@ class Individual(OriginalIndividual):
         self.fitness = fitness
         self.birthdate = birthdate
 
+    def __iter__(self):
+        for v in self.candidate:
+            yield v
+
     def __eq__(self, other):
         return self.candidate == other.candidate and self.fitness == other.fitness
 

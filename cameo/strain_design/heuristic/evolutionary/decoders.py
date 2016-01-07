@@ -25,7 +25,7 @@ class KnockoutDecoder(object):
         self.representation = representation
         self.model = model
 
-    def __call__(self, individual):
+    def __call__(self, individual, flat=False):
         raise NotImplementedError
 
 
@@ -45,13 +45,15 @@ class ReactionKnockoutDecoder(KnockoutDecoder):
     def __init__(self, representation, model, *args, **kwargs):
         super(ReactionKnockoutDecoder, self).__init__(representation, model, *args, **kwargs)
 
-    def __call__(self, individual):
+    def __call__(self, individual, flat=False):
         """
         Parameters
         ----------
 
-        individual : list
+        individual: list
             a list of integers
+        flat: bool
+            if True, returns strings. Otherwise returns Reaction
 
         Returns
         -------
@@ -60,7 +62,9 @@ class ReactionKnockoutDecoder(KnockoutDecoder):
 
         """
         reactions = [self.model.reactions.get_by_id(self.representation[index]) for index in individual]
-        return [reactions, reactions]
+        if flat:
+            return [tuple(r.id for r in reactions), tuple(r.id for r in reactions)]
+        return [tuple(reactions), tuple(reactions)]
 
 
 class GeneKnockoutDecoder(KnockoutDecoder):
@@ -77,13 +81,15 @@ class GeneKnockoutDecoder(KnockoutDecoder):
     def __init__(self, representation, model, *args, **kwargs):
         super(GeneKnockoutDecoder, self).__init__(representation, model, *args, **kwargs)
 
-    def __call__(self, individual):
+    def __call__(self, individual, flat=False):
         """
         Parameters
         ----------
 
-        individual : list
+        individual: list
             a list of integers
+        flat: bool
+            if True, returns strings. Otherwise returns Gene
 
         Returns
         -------
@@ -93,4 +99,7 @@ class GeneKnockoutDecoder(KnockoutDecoder):
         """
         genes = [self.model.genes.get_by_id(self.representation[index]) for index in individual]
         reactions = find_gene_knockout_reactions(self.model, genes)
-        return [reactions, genes]
+
+        if flat:
+            return [tuple(r.id for r in reactions), tuple(g.id for g in genes)]
+        return [tuple(reactions), tuple(genes)]

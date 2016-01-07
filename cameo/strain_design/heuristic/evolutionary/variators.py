@@ -20,7 +20,7 @@ from six.moves import range
 
 from inspyred.ec.variators import mutator, crossover
 from ordered_set import OrderedSet
-from cameo.strain_design.heuristic.genomes import MultipleChromosomeGenome
+from cameo.strain_design.heuristic.evolutionary.genomes import MultipleChromosomeGenome
 from numpy import float32 as float
 
 import logging
