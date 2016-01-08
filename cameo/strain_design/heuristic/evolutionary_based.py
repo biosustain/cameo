@@ -16,6 +16,8 @@
 from __future__ import absolute_import, print_function
 
 import inspyred
+from cameo.visualization import ProgressBar
+
 from cameo.strain_design.heuristic.evolutionary.objective_functions import biomass_product_coupled_min_yield, \
     biomass_product_coupled_yield
 from pandas import DataFrame
@@ -26,8 +28,7 @@ from cameo.strain_design.heuristic.evolutionary.optimization import GeneKnockout
     ReactionKnockoutOptimization
 from cameo.strain_design.heuristic.evolutionary.processing import process_knockout_solution
 from cameo.strain_design.strain_design import StrainDesignMethod, StrainDesignResult, StrainDesign
-from cameo.util import ProblemCache
-from cameo import ui
+from cameo.util import ProblemCache, TimeMachine
 
 
 class OptGene(StrainDesignMethod):
@@ -167,6 +168,16 @@ class OptGeneResult(StrainDesignResult):
             self._process_solutions()
         return len(self._processed_solutions)
 
+    def _repr_html_(self):
+        return """
+        <h3>OptGene Result</h3>
+        <ul>
+            <li>Simulation: %s<br/></li>
+            <li>Objective Function: %s<br/></li>
+        </ul>
+        %s
+        """ % (self._simulation_method, self._objective_function._repr_latex_(), self.data_frame._repr_html_())
+
     def plot(self, grid=None, width=None, height=None, title=None):
         pass
 
@@ -176,7 +187,7 @@ class OptGeneResult(StrainDesignResult):
             self._process_solutions()
 
         if self._manipulation_type == "reactions":
-            data_frame =  DataFrame(self._processed_solutions)
+            data_frame = DataFrame(self._processed_solutions)
         else:
             columns = self._processed_solutions.columns.difference(["reactions", "size"])
             aggregation_functions = {k: self.__aggregation_function.get(k, lambda x: x.values[0]) for k in columns}
@@ -188,18 +199,20 @@ class OptGeneResult(StrainDesignResult):
         return data_frame
 
     def _process_solutions(self):
-        ui.notice("Processing solutions")
-        loader = ui.loading()
         processed_solutions = DataFrame(columns=["reactions", "genes", "size", "fva_min", "fva_max", "fbid",
                                                  "target_flux", "biomass_flux", "yield", "fitness"])
 
         cache = ProblemCache(self._model)
+        progress = ProgressBar(size=len(self._solutions), label="Processing solutions")
+        progress.start()
         for i, solution in enumerate(self._solutions):
             processed_solutions.loc[i] = process_knockout_solution(
                 self._model, solution, self._simulation_method, self._simulation_kwargs, self._biomass,
                 self._target, self._substrate, [self._objective_function], cache=cache)
+            progress.increment()
+
+        progress.end()
 
         if self._manipulation_type == "reactions":
             processed_solutions.drop('genes', axis=1, inplace=True)
-        ui.stop_loader(loader)
         self._processed_solutions = processed_solutions
