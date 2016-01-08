@@ -33,8 +33,8 @@ with open(SEARCHING_IMAGE_FILE, "rb") as f:
     elif six.PY3:
         SEARCHING_IMAGE = str(b64encode(f.read())).replace('\n', '')
 
-LOADING_IMAGE_FILE = os.path.join(ASSETS, "searching.gif")
-with open(SEARCHING_IMAGE_FILE, "rb") as f:
+LOADING_IMAGE_FILE = os.path.join(ASSETS, "loading.gif")
+with open(LOADING_IMAGE_FILE, "rb") as f:
     if six.PY2:
         LOADING_IMAGE = b64encode(f.read()).replace('\n', '')
     elif six.PY3:
@@ -87,3 +87,31 @@ def stop_loader(identifier):
         """ % identifier))
     else:
         logger.debug("loading only works on Jupyter notebooks")
+
+
+def delta():
+    if util.in_ipnb():
+        return "&Delta;"
+    else:
+        return str(b'\xce\x94')
+
+
+def knockin():
+    if util.in_ipnb():
+        return "+"
+    else:
+        return "+"
+
+
+def upreg(coeff):
+    if util.in_ipnb():
+        return "&uarr;%.3f" % coeff
+    else:
+        return str(b'\xe2\x86\x91') + "%.3f" % coeff
+
+
+def downreg(coeff):
+    if util.in_ipnb():
+        return "&darr;%.3f" % coeff
+    else:
+        return str(b'\xe2\x86\x93') + "%.3f" % coeff
