@@ -244,8 +244,14 @@ class KnockoutEvaluator(object):
         self.cache = ProblemCache(model)
 
     def __call__(self, population):
-        res = [self._evaluate_individual(frozenset(i)) for i in population]
-        self.cache.reset()
+        try:
+            res = [self._evaluate_individual(frozenset(i)) for i in population]
+        except Exception as e:
+            logger.error(e)
+            res = None
+        finally:
+            self.cache.reset()
+
         return res
 
     @memoize
@@ -452,6 +458,9 @@ class KnockoutOptimizationResult(Result):
             decoded_solutions.loc[index] = self._decoder(solution, flat=True)
         return decoded_solutions
 
+    def __len__(self):
+        return len(self._solutions)
+
     def __getstate__(self):
         return {'model': self.model,
                 'decoder': self._decoder,
@@ -481,7 +490,7 @@ class KnockoutOptimizationResult(Result):
         self.heuristic_method.maximize = d['heuristic_method.maximize']
         self.heuristic_method.terminator = d['heuristic_method.terminator']
         self.heuristic_method.termination_cause = d['heuristic_method.termination_cause']
-        self.heuristic_method.archiver = d['heuristic_method.archiver']
+        self.heuristic_method.archive = d['heuristic_method.archive']
         self.heuristic_method._kwargs = d['heuristic_method._kwargs']
         self.objective_functions = d['objective_functions']
         self.ko_type = d['ko_type']
@@ -688,6 +697,11 @@ class GeneKnockoutOptimization(KnockoutOptimization):
 
 
 class KnockinKnockoutEvaluator(KnockoutEvaluator):
+
+    def __init__(self, database, *args, **kwargs):
+        super(KnockinKnockoutEvaluator, self).__init__(*args, **kwargs)
+        self._database = database
+
     def __call__(self, *args, **kwargs):
         pass
 
@@ -703,7 +717,9 @@ class KnockinKnockoutOptimization(KnockoutOptimization):
     def _evaluator(self, candidates, args):
         view = args.get('view')
         population_chunks = (chunk for chunk in partition(candidates, len(view)))
-        func_obj = KnockinKnockoutEvaluator(self.model, self._decoder, self.objective_function, self.simulation_method)
+        func_obj = KnockinKnockoutEvaluator(self.model, self._decoder,
+                                            self.objective_function, self.simulation_method,
+                                            self.simulation_kwargs)
         results = view.map(func_obj, population_chunks)
         fitness = reduce(list.__add__, results)
 
