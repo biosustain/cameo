@@ -19,7 +19,8 @@
 from __future__ import absolute_import, print_function
 from functools import partial
 
-__all__ = ['to_solver_based_model', 'SolverBasedModel']
+from cobra.core import Metabolite
+
 
 import six
 
@@ -46,6 +47,10 @@ from .reaction import Reaction
 from .solution import LazySolution, Solution
 
 import logging
+
+
+__all__ = ['to_solver_based_model', 'SolverBasedModel']
+
 
 logger = logging.getLogger(__name__)
 
@@ -561,6 +566,30 @@ class SolverBasedModel(cobra.core.Model):
             else:
                 raise Exception('%s is not a reaction or reaction ID.' % reaction)
         return clean_reactions
+
+    def reaction_for(self, value, time_machine=None):
+        if isinstance(value, Reaction):
+            value = self.reactions.get_by_id(value.id)
+
+        if isinstance(value, str):
+            try:
+                value = self.reactions.get_by_id(value)
+            except KeyError:
+                try:
+                    value = self.metabolites.get_by_id(value)
+                except KeyError:
+                    raise KeyError("Invalid target %s." % value)
+
+        if isinstance(value, cobra.core.Metabolite):
+            try:
+                value = self.reactions.get_by_id("EX_%s" % value.id)
+            except KeyError:
+                try:
+                    value = self.reactions.get_by_id("DM_%s" % value.id)
+                except KeyError:
+                    value = self.add_demand(value, time_machine=time_machine)
+
+        return value
 
     @staticmethod
     def _load_medium_from_dict(model, medium):
