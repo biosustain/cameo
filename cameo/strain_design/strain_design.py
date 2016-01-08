@@ -45,10 +45,16 @@ class StrainDesign(object):
                        [ui.upreg(coeff) + oe for oe, coeff in six.iteritems(self.over_expression)] +
                        [ui.downreg(coeff) + dr for dr, coeff in six.iteritems(self.down_regulation)])
 
+    def __iter__(self):
+        yield tuple(set(self.knockouts))
+        yield tuple(set(self.knock_ins))
+        yield tuple(set(self.over_expression))
+        yield tuple(set(self.down_regulation))
+
 
 class StrainDesignResult(Result):
 
-    __method_name__ = ""
+    __method_name__ = None
 
     def __init__(self, *args, **kwargs):
         super(StrainDesignResult, self).__init__(*args, **kwargs)
@@ -66,7 +72,42 @@ class StrainDesignResult(Result):
         raise NotImplementedError
 
     def data_frame(self):
-        return DataFrame([str(design) for design in self])
+        return DataFrame([design for design in self],
+                         columns=["knockouts", "knock_ins", "over_expression", "down_regulation"])
 
     def display_on_map(self, map_name):
         raise NotImplementedError
+
+    def __add__(self, other):
+        df = DataFrame(columns=["knockouts", "knock_ins", "over_expression", "down_regulation", "type", "method"])
+        i = 0
+        for i, design in enumerate(self):
+            df.loc[i] = list(design) + [design.manipulation_type, self.__method_name__]
+
+        for j, design in enumerate(other):
+            df.loc[i + j] = list(design) + [design.manipulation_type, self.__method_name__]
+
+        # TODO: aggregate duplicated solutions
+
+        designs = [StrainDesign(row.values[:-1]) for _, row in df.iterrows()]
+
+        return StrainDesignEnsemble(designs, df['method'])
+
+
+class StrainDesignEnsemble(StrainDesignResult):
+    def __init__(self, designs, methods, *args, **kwargs):
+        super(StrainDesignEnsemble, self).__init__(*args, **kwargs)
+        self._designs = designs
+        self._methods = methods
+
+    def __iter__(self):
+        for design in self._designs:
+            yield design
+
+    def __len__(self):
+        return len(self._designs)
+
+    def data_frame(self):
+        return DataFrame(zip([design for design in self], self._methods),
+                         columns=["knockouts", "knockins", "over_expression", "downregulation", "method"])
+
