@@ -64,7 +64,7 @@ def process_knockout_solution(model, solution, simulation_method, simulation_kwa
         fva = flux_variability_analysis(model, fraction_of_optimum=0.99, reactions=[target])
         fbid = flux_balance_impact_degree(model, solution[0])
         target_yield = flux_dist[target]/abs(flux_dist[substrate])
-        return [solution[0], solution[1], len(solution[1]), fva[target]["lower_bound"], fva[target]["upper_bound"],
+        return [solution[0], solution[1], len(solution[1]), fva.lower_bound(target), fva.upper_bound(target),
                 fbid.degree, flux_dist[target], flux_dist[biomass], target_yield] + \
                [of(model, flux_dist, solution) for of in objective_functions]
 
