@@ -616,9 +616,10 @@ class FSEOFResult(StrainDesignResult):
         for i, level in enumerate(self.enforced_levels):
             if i > 0:
                 knockouts = [r for r, v in six.iteritems(self._reaction_results) if v[0] > 0 and v[i] == 0]
-                over_expressions = {r: v for r, v in six.iteritems(self._reaction_results) if v[i] > v[0]}
-                under_expressions = {r: v for r, v in six.iteritems(self._reaction_results) if v[i] < v[0]}
-                yield StrainDesign()
+                over_expression = {r: v for r, v in six.iteritems(self._reaction_results) if v[i] > v[0]}
+                down_regulation = {r: v for r, v in six.iteritems(self._reaction_results) if v[i] < v[0]}
+                yield StrainDesign(knockouts=knockouts, over_expression=over_expression,
+                                   down_regulation=down_regulation, manipulation_type="reactions")
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) and \
