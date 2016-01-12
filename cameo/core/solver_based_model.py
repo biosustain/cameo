@@ -319,7 +319,7 @@ class SolverBasedModel(cobra.core.Model):
             self.add_reactions([demand_reaction])
         return demand_reaction
 
-    def fix_objective_as_constraint(self, time_machine=None):
+    def fix_objective_as_constraint(self, time_machine=None, fraction=1):
         """Fix current objective as an additional constraint (e.g., ..math`c^T v >= max c^T v`).
 
         Parameters
@@ -331,8 +331,8 @@ class SolverBasedModel(cobra.core.Model):
         -------
         None
         """
-        objective_value = self.solve().objective_value
-        constraint = self.solver.interface.Constraint(self.objective.expression, lb=objective_value,
+        objective_value = self.solve().objective_value * fraction
+        constraint = self.solver.interface.Constraint(self.objective.expression,
                                                       name='Fixed_objective_{}'.format(self.objective.name))
         if self.objective.direction == 'max':
             constraint.lb = objective_value
