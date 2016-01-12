@@ -61,5 +61,5 @@ class Result(object):
     def data_frame(self):
         raise NotImplementedError
 
-    def plot(self, grid=None, width=None, height=None, title=None):
+    def plot(self, grid=None, width=None, height=None, title=None, *args, **kwargs):
         raise NotImplementedError
