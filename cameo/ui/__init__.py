@@ -38,7 +38,6 @@ with open(LOADING_IMAGE_FILE, "rb") as f:
     if six.PY2:
         LOADING_IMAGE = b64encode(f.read()).replace('\n', '')
     elif six.PY3:
-        s = f.read()
         LOADING_IMAGE = str(b64encode(f.read())).replace('\n', '')
 
 logger = logging.getLogger(__name__)
