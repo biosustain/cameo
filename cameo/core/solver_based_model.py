@@ -154,7 +154,7 @@ class SolverBasedModel(cobra.core.Model):
 
     @objective.setter
     def objective(self, value):
-        if isinstance(value, str):
+        if isinstance(value, six.string_types):
             value = self.reactions.get_by_id(value)
         if isinstance(value, Reaction):
             self.solver.objective = self.solver.interface.Objective(value.flux_expression, sloppy=True)
@@ -314,7 +314,7 @@ class SolverBasedModel(cobra.core.Model):
         demand_reaction.upper_bound = 1000
         if time_machine is not None:
             time_machine(do=partial(self.add_reactions, [demand_reaction]),
-                         undo=partial(self.remove_reactions, [demand_reaction]))
+                         undo=partial(self.remove_reactions, [demand_reaction], delete=False))
         else:
             self.add_reactions([demand_reaction])
         return demand_reaction
