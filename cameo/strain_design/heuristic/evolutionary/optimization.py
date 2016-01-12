@@ -26,7 +26,7 @@ from cameo import config
 from cameo.core.result import Result
 from cameo.exceptions import SolveError
 from cameo.flux_analysis.simulation import pfba, lmoma, moma, room
-from cameo.strain_design.heuristic.evolutionary import archivers
+from cameo.strain_design.heuristic.evolutionary import archives
 from cameo.strain_design.heuristic.evolutionary import decoders
 from cameo.strain_design.heuristic.evolutionary import generators
 from cameo.strain_design.heuristic.evolutionary import observers
@@ -61,7 +61,7 @@ PRE_CONFIGURED = {
         ],
         inspyred.ec.selectors.tournament_selection,
         inspyred.ec.replacers.generational_replacement,
-        archivers.BestSolutionArchiver(),
+        archives.BestSolutionArchive(),
     ],
     inspyred.ec.SA: [
 
@@ -71,7 +71,7 @@ PRE_CONFIGURED = {
         ],
         inspyred.ec.selectors.default_selection,
         inspyred.ec.replacers.simulated_annealing_replacement,
-        archivers.BestSolutionArchiver()
+        archives.BestSolutionArchive()
     ],
     inspyred.ec.emo.NSGA2: [
         [
@@ -711,8 +711,9 @@ class KnockinKnockoutOptimizationResult:
 
 
 class KnockinKnockoutOptimization(KnockoutOptimization):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, database=None, *args, **kwargs):
         super(KnockinKnockoutOptimization, self).__init__(*args, **kwargs)
+        self._database = database
 
     def _evaluator(self, candidates, args):
         view = args.get('view')
@@ -732,7 +733,7 @@ class KnockinKnockoutOptimization(KnockoutOptimization):
         super(KnockoutOptimization, self).run(
             keys=['knockout', 'knockin'],
             knockout_representation=self.representation,
-            knockin_representation=self.knockin_representaion,
+            knockin_representation=self._database,
             **kwargs)
         return KnockinKnockoutOptimizationResult(model=self.model,
                                                  heuristic_method=self.heuristic_method,
