@@ -16,6 +16,7 @@ from __future__ import print_function
 
 import warnings
 
+from cameo.core import SolverBasedModel
 from cameo.visualization import plotting
 from cameo.visualization import ProgressBar
 
@@ -65,7 +66,8 @@ class OptKnock(StrainDesignMethod):
     >>> optknock = OptKnock(model)
     >>> result = optknock.run(k=2, target="EX_ac_e", max_results=3)
     """
-    def __init__(self, model, exclude_reactions=None, remove_blocked=True, *args, **kwargs):
+    def __init__(self, model, exclude_reactions=None, remove_blocked=True, fraction_of_optimum=0.1, *args, **kwargs):
+        assert isinstance(model, SolverBasedModel)
         super(OptKnock, self).__init__(*args, **kwargs)
         self._model = model.copy()
         self._original_model = model
@@ -84,6 +86,7 @@ class OptKnock(StrainDesignMethod):
             warnings.warn("You are trying to run OptKnock with %s. This might not end well." %
                           self._model.solver.interface.__name__.split(".")[-1])
 
+        self._model.fix_objective_as_constraint(fraction=fraction_of_optimum)
         if remove_blocked:
             self._remove_blocked_reactions()
 
@@ -222,7 +225,7 @@ class OptKnock(StrainDesignMethod):
                     logger.debug(str(e))
                     break
 
-                knockouts = set(reac for y, reac in self._y_vars.items() if round(y.primal, 3) == 0)
+                knockouts = set(reaction.id for y, reaction in self._y_vars.items() if round(y.primal, 3) == 0)
                 assert len(knockouts) <= max_knockouts
 
                 knockout_list.append(knockouts)
@@ -264,15 +267,15 @@ class OptKnockResult(StrainDesignResult):
     def _process_knockouts(self):
         progress = ProgressBar(size=len(self._designs), label="Processing solutions")
 
-        self._processed_knockouts = pd.DataFrame(columns=["knockouts", "size", self._target,
+        self._processed_knockouts = pd.DataFrame(columns=["knockouts", "size", "biomass", self._target,
                                                           "fva_min", "fva_max", "fbid"])
         progress.start()
         try:
             for i, knockouts in enumerate(self._designs):
                 fva = flux_variability_analysis(self._model, fraction_of_optimum=0.99, reactions=[self.target])
                 fbid = flux_balance_impact_degree(self._model, knockouts)
-                self._processed_knockouts.loc[i] = [knockouts, len(knockouts), self.production[i],
-                                                    fva[self.target]["lower_bound"], fva[self.target]["upper_bound"],
+                self._processed_knockouts.loc[i] = [knockouts, len(knockouts), self.production[i], self._biomass[i],
+                                                    fva.lower_bound(self.target), fva.upper_bound(self.target),
                                                     fbid.degree]
         finally:
             progress.end()
@@ -296,14 +299,15 @@ class OptKnockResult(StrainDesignResult):
     def plot(self, index, grid=None, width=None, height=None, title=None, *args, **kwargs):
         wt_production = phenotypic_phase_plane(self._model, objective=self._target, variables=[self._biomass])
         with TimeMachine() as tm:
-            for ko in self._designs[index][0]:
+            for ko in self._designs[index]:
                 self._model.reactions.get_by_id(ko).knock_out(tm)
 
             mt_production = phenotypic_phase_plane(self._model, objective=self._target, variables=[self._biomass])
         plotting.plot_2_production_envelopes(wt_production.data_frame,
                                              mt_production.data_frame,
+                                             self._target,
                                              self._biomass,
-                                             self._target)
+                                             **kwargs)
 
     @property
     def data_frame(self):

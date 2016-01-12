@@ -210,11 +210,10 @@ class OptGeneResult(StrainDesignResult):
         cache = ProblemCache(self._model)
         progress = ProgressBar(size=len(self._designs), label="Processing solutions")
         progress.start()
-        for i, solution in enumerate(self._designs):
+        for i, solution in progress(enumerate(self._designs)):
             processed_solutions.loc[i] = process_knockout_solution(
                 self._model, solution, self._simulation_method, self._simulation_kwargs, self._biomass,
                 self._target, self._substrate, [self._objective_function], cache=cache)
-            progress.increment()
 
         progress.end()
 
@@ -231,5 +230,6 @@ class OptGeneResult(StrainDesignResult):
             mt_production = phenotypic_phase_plane(self._model, objective=self._target, variables=[self._biomass])
         plotting.plot_2_production_envelopes(wt_production.data_frame,
                                              mt_production.data_frame,
+                                             self._target,
                                              self._biomass,
-                                             self._target)
+                                             **kwargs)
