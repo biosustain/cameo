@@ -53,7 +53,6 @@ class StrainDesign(object):
 
 
 class StrainDesignResult(Result):
-
     __method_name__ = None
 
     def __init__(self, *args, **kwargs):
@@ -87,7 +86,7 @@ class StrainDesignResult(Result):
         for j, design in enumerate(other):
             df.loc[i + j] = list(design) + [design.manipulation_type, self.__method_name__]
 
-        # TODO: aggregate duplicated solutions
+        df = df.groupby(["knockouts", "knock_ins", "over_expression", "down_regulation", "type"]).aggregate("method")
 
         designs = [StrainDesign(row.values[:-1]) for _, row in df.iterrows()]
 
