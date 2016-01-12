@@ -159,11 +159,11 @@ def phenotypic_phase_plane(model, variables=[], objective=None, points=20, view=
         view = config.default_view
     with TimeMachine() as tm:
         if objective is not None:
-            if isinstance(objective, Metabolite):
-                try:
-                    objective = model.reactions.get_by_id("DM_%s" % objective.id)
-                except KeyError:
-                    objective = model.add_demand(objective, time_machine=tm)
+            try:
+                objective = model.reaction_for(objective, time_machine=tm)
+            except KeyError:
+                pass
+
             tm(do=partial(setattr, model, 'objective', objective),
                undo=partial(setattr, model, 'objective', model.objective))
 
@@ -458,8 +458,8 @@ def _fbid_fva(model, knockouts, view):
 
         perturbed_reactions = []
         for reaction in reachable_reactions.index:
-            if wt_fva[reaction]['upper_bound'] != mt_fva[reaction]['upper_bound'] or \
-               wt_fva[reaction]['lower_bound'] != mt_fva[reaction]['lower_bound']:
+            if wt_fva.upper_bound(reaction) != mt_fva.upper_bound(reaction) or \
+              wt_fva.lower_bound(reaction) != wt_fva.lower_bound(reaction):
                 perturbed_reactions.append(reaction)
 
         return list(reachable_reactions.index), perturbed_reactions
@@ -476,12 +476,12 @@ class PhenotypicPhasePlaneResult(Result):
     def data_frame(self):
         return pandas.DataFrame(self._phase_plane)
 
-    def plot(self, grid=None, width=None, height=None, title=None, axis_font_size=None, **kwargs):
+    def plot(self, grid=None, width=None, height=None, title=None, axis_font_size=None, color="lightblue", **kwargs):
         if len(self.variable_ids) > 1:
             notice("Multi-dimensional plotting is not supported")
             return
         plotting.plot_production_envelope(self._phase_plane, objective=self.objective, key=self.variable_ids[0],
-                                          grid=grid, width=width, height=height, title=title,
+                                          grid=grid, width=width, height=height, title=title, color=color,
                                           axis_font_size=axis_font_size, **kwargs)
 
     def __getitem__(self, item):
@@ -512,17 +512,26 @@ class FluxVariabilityResult(Result):
     def data_frame(self):
         return self._data_frame
 
-    def plot(self, index=None, grid=None, width=None, height=None, title=None, axis_font_size=None):
+    def plot(self, index=None, grid=None, width=None, height=None, title=None, axis_font_size=None, color="lightblue",
+             **kwargs):
         if index is None:
             index = self.data_frame.index[0:10]
         fva_result = self.data_frame.loc[index]
         plotting.plot_flux_variability_analysis(fva_result, grid=grid, width=width, height=height, title=title,
-                                                axis_font_size=axis_font_size)
+                                                axis_font_size=axis_font_size, color=color)
 
     def __getitem__(self, item):
+        return self._data_frame[item]
+
+    def upper_bound(self, item):
         if isinstance(item, Reaction):
             item = item.id
-        return self._data_frame.loc[item]
+        return self['upper_bound'][item]
+
+    def lower_bound(self, item):
+        if isinstance(item, Reaction):
+            item = item.id
+        return self['lower_bound'][item]
 
     def iterrows(self):
         return self._data_frame.iterrows()
