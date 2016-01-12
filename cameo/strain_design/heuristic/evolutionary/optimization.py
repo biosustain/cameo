@@ -437,13 +437,13 @@ class KnockoutOptimization(HeuristicOptimization):
 class KnockoutOptimizationResult(Result):
 
     def __init__(self, model=None, heuristic_method=None, simulation_method=None, simulation_kwargs=None,
-                 solutions=None, objective_function=None, ko_type=None, decoder=None, seed=None , *args, **kwargs):
+                 solutions=None, objective_function=None, ko_type=None, decoder=None, seed=None, *args, **kwargs):
         super(KnockoutOptimizationResult, self).__init__(*args, **kwargs)
         self.seed = seed
         self.model = model
         self.heuristic_method = heuristic_method
         self.simulation_method = simulation_method
-        self.simulation_kwargs = simulation_kwargs
+        self.simulation_kwargs = simulation_kwargs or {}
         if isinstance(objective_function, list):
             self.objective_functions = objective_function
         else:
@@ -453,9 +453,9 @@ class KnockoutOptimizationResult(Result):
         self._solutions = self._decode_solutions(solutions)
 
     def _decode_solutions(self, solutions):
-        decoded_solutions = DataFrame(columns=["reactions", "knockouts"])
+        decoded_solutions = DataFrame(columns=["reactions", "knockouts", "fitness"])
         for index, solution in enumerate(solutions):
-            decoded_solutions.loc[index] = self._decoder(solution, flat=True)
+            decoded_solutions.loc[index] = self._decoder(solution, flat=True) + [solution.fitness]
         return decoded_solutions
 
     def __len__(self):
@@ -519,7 +519,7 @@ class KnockoutOptimizationResult(Result):
 
     def __iter__(self):
         for _, row in self._solutions.iterrows():
-            yield [row['reactions'], row['knockouts']]
+            yield [row['reactions'], row['knockouts'], row['fitness']]
 
     def __iadd__(self, other):
         if not isinstance(other, self.__class__):
