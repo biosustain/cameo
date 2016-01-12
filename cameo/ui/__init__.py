@@ -33,7 +33,7 @@ with open(SEARCHING_IMAGE_FILE, "rb") as f:
     elif six.PY3:
         SEARCHING_IMAGE = str(b64encode(f.read())).replace('\n', '')
 
-LOADING_IMAGE_FILE = os.path.join(ASSETS, "loading.gif")
+LOADING_IMAGE_FILE = os.path.join(ASSETS, "loading_wave.gif")
 with open(LOADING_IMAGE_FILE, "rb") as f:
     if six.PY2:
         LOADING_IMAGE = b64encode(f.read()).replace('\n', '')
