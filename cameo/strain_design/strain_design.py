@@ -33,10 +33,10 @@ class StrainDesignMethod(object):
 class StrainDesign(object):
     def __init__(self, knockouts=None, knock_ins=None, over_expression=None, down_regulation=None,
                  manipulation_type="gene"):
-        self.knockouts = knockouts
-        self.knock_ins = knock_ins
-        self.over_expression = over_expression
-        self.down_regulation = down_regulation
+        self.knockouts = knockouts or []
+        self.knock_ins = knock_ins or []
+        self.over_expression = over_expression or {}
+        self.down_regulation = down_regulation or {}
         self.manipulation_type = manipulation_type
 
     def __repr__(self):
