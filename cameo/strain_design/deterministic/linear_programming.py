@@ -16,12 +16,13 @@ from __future__ import print_function
 
 import warnings
 
+from cameo.visualization import plotting
 from cameo.visualization import ProgressBar
 
 import cameo
 from cameo import ui
 from cameo.exceptions import SolveError
-from cameo.flux_analysis import flux_balance_impact_degree
+from cameo.flux_analysis import flux_balance_impact_degree, phenotypic_phase_plane
 from cameo.util import TimeMachine
 from cameo import config
 from cameo.core.solver_based_model_dual import convert_to_dual
@@ -36,7 +37,8 @@ logger = logging.getLogger(__name__)
 
 
 class OptKnock(StrainDesignMethod):
-    """OptKnock.
+    """
+    OptKnock.
 
     OptKnock solves a bi-level optimization problem, finding the set of knockouts that allows maximal
     target production under optimal growth.
@@ -184,21 +186,33 @@ class OptKnock(StrainDesignMethod):
 
         return y_var, constrained_vars
 
-    def run(self, k, target, max_results=1, *args, **kwargs):
+    def run(self, max_knockouts=5, biomass=None, target=None, max_results=1, *args, **kwargs):
         """
         Perform the OptKnock simulation
-        :param k: The maximal allowed number of knockouts
-        :param target: The reaction to be optimized
-        :param max_results: The number of distinct solutions desired.
-        :return: OptKnockResult
+
+        Parameters
+        ----------
+        target: str, Metabolite or Reaction
+            The design target
+        biomass: str, Metabolite or Reaction
+            The biomass definition in the model
+        max_knockouts: int
+            Max number of knockouts allowed
+        max_results: int
+            Max number of different designs to return if found
+
+        Returns
+        -------
+        OptKnockResult
         """
+
         knockout_list = []
         fluxes_list = []
         production_list = []
         loader_id = ui.loading()
         with TimeMachine() as tm:
             self._model.objective = target
-            self._number_of_knockouts_constraint.lb = self._number_of_knockouts_constraint.ub - k
+            self._number_of_knockouts_constraint.lb = self._number_of_knockouts_constraint.ub - max_knockouts
             count = 0
             while count < max_results:
                 try:
@@ -209,7 +223,7 @@ class OptKnock(StrainDesignMethod):
                     break
 
                 knockouts = set(reac for y, reac in self._y_vars.items() if round(y.primal, 3) == 0)
-                assert len(knockouts) <= k
+                assert len(knockouts) <= max_knockouts
 
                 knockout_list.append(knockouts)
                 fluxes_list.append(solution.fluxes)
@@ -221,7 +235,7 @@ class OptKnock(StrainDesignMethod):
                                                                       lb=1,
                                                                       name="integer_cut_"+str(count))
 
-                if len(knockouts) < k:
+                if len(knockouts) < max_knockouts:
                     self._number_of_knockouts_constraint.lb = self._number_of_knockouts_constraint.ub - len(knockouts)
 
                 tm(do=partial(self._model.solver.add, integer_cut),
@@ -229,7 +243,7 @@ class OptKnock(StrainDesignMethod):
                 count += 1
 
             ui.stop_loader(loader_id)
-            return OptKnockResult(self._original_model, knockout_list, fluxes_list, production_list, target)
+            return OptKnockResult(self._original_model, knockout_list, fluxes_list, production_list, target, biomass)
 
 
 class RobustKnock(StrainDesignMethod):
@@ -237,23 +251,24 @@ class RobustKnock(StrainDesignMethod):
 
 
 class OptKnockResult(StrainDesignResult):
-    def __init__(self, model, knockouts, fluxes, production, target, *args, **kwargs):
+    def __init__(self, model, designs, fluxes, production, target, biomass, *args, **kwargs):
         super(OptKnockResult, self).__init__(*args, **kwargs)
         self._model = model
-        self._knockouts = knockouts
+        self._designs = designs
         self._fluxes = fluxes
         self._production = production
         self._target = target
+        self._biomass = biomass
         self._processed_knockouts = None
 
     def _process_knockouts(self):
-        progress = ProgressBar(size=len(self._knockouts), label="Processing solutions")
+        progress = ProgressBar(size=len(self._designs), label="Processing solutions")
 
         self._processed_knockouts = pd.DataFrame(columns=["knockouts", "size", self._target,
                                                           "fva_min", "fva_max", "fbid"])
         progress.start()
         try:
-            for i, knockouts in enumerate(self._knockouts):
+            for i, knockouts in enumerate(self._designs):
                 fva = flux_variability_analysis(self._model, fraction_of_optimum=0.99, reactions=[self.target])
                 fbid = flux_balance_impact_degree(self._model, knockouts)
                 self._processed_knockouts.loc[i] = [knockouts, len(knockouts), self.production[i],
@@ -264,7 +279,7 @@ class OptKnockResult(StrainDesignResult):
 
     @property
     def knockouts(self):
-        return self._knockouts
+        return self._designs
 
     @property
     def fluxes(self):
@@ -277,6 +292,18 @@ class OptKnockResult(StrainDesignResult):
     @property
     def target(self):
         return self._target
+
+    def plot(self, index, grid=None, width=None, height=None, title=None, *args, **kwargs):
+        wt_production = phenotypic_phase_plane(self._model, objective=self._target, variables=[self._biomass])
+        with TimeMachine() as tm:
+            for ko in self._designs[index][0]:
+                self._model.reactions.get_by_id(ko).knock_out(tm)
+
+            mt_production = phenotypic_phase_plane(self._model, objective=self._target, variables=[self._biomass])
+        plotting.plot_2_production_envelopes(wt_production.data_frame,
+                                             mt_production.data_frame,
+                                             self._biomass,
+                                             self._target)
 
     @property
     def data_frame(self):

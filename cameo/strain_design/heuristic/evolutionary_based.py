@@ -16,13 +16,15 @@
 from __future__ import absolute_import, print_function
 
 import inspyred
+
+from cameo.visualization import plotting
 from cameo.visualization import ProgressBar
 
 from cameo.strain_design.heuristic.evolutionary.objective_functions import biomass_product_coupled_min_yield, \
     biomass_product_coupled_yield
 from pandas import DataFrame
 
-from cameo import fba
+from cameo import fba, phenotypic_phase_plane
 from cameo.core import SolverBasedModel
 from cameo.strain_design.heuristic.evolutionary.optimization import GeneKnockoutOptimization, \
     ReactionKnockoutOptimization
@@ -79,8 +81,8 @@ class OptGene(StrainDesignMethod):
         else:
             raise ValueError("Invalid manipulation type %s" % manipulation_type)
 
-    def run(self, target=None, biomass=None, substrate=None, knockouts=5, simulation_method=fba, robust=True,
-            max_evaluations=20000, population_size=100, time_machine=None, **kwargs):
+    def run(self, target=None, biomass=None, substrate=None, max_knockouts=5, simulation_method=fba, robust=True,
+            max_evaluations=20000, population_size=100, time_machine=None, max_results=50, **kwargs):
         """
         Parameters
         ----------
@@ -90,7 +92,7 @@ class OptGene(StrainDesignMethod):
             The biomass definition in the model
         substrate: str, Metabolite or Reaction
             The main carbon source
-        knockouts: int
+        max_knockouts: int
             Max number of knockouts allowed
         simulation_method: function
             Any method from cameo.flux_analysis.simulation or equivalent
@@ -102,12 +104,14 @@ class OptGene(StrainDesignMethod):
             Number of individuals in each generation
         time_machine: TimeMachine
             See TimeMachine
+        max_results: int
+            Max number of different designs to return if found
         kwargs: dict
             Arguments for the simulation method.
 
+
         Returns
         -------
-
         OptGeneResult
         """
 
@@ -128,8 +132,9 @@ class OptGene(StrainDesignMethod):
                                                   popuplation_size=population_size,
                                                   product=target,
                                                   biomass=biomass,
-                                                  max_size=knockouts,
+                                                  max_size=max_knockouts,
                                                   maximize=True,
+                                                  max_archive_size=max_results,
                                                   **kwargs)
 
         return OptGeneResult(self._model, result, objective_function, simulation_method, self._manipulation_type,
@@ -143,13 +148,13 @@ class OptGeneResult(StrainDesignResult):
         "genes": lambda x: tuple(tuple(e for e in elements) for elements in x.values)
     }
 
-    def __init__(self, model, solutions, objective_function, simulation_method, manipulation_type,
+    def __init__(self, model, designs, objective_function, simulation_method, manipulation_type,
                  biomass, target, substrate, simulation_kwargs, *args, **kwargs):
         super(OptGeneResult, self).__init__(*args, **kwargs)
         assert isinstance(model, SolverBasedModel)
 
         self._model = model
-        self._solutions = solutions
+        self._designs = designs
         self._objective_function = objective_function
         self._simulation_method = simulation_method
         self._manipulation_type = manipulation_type
@@ -160,7 +165,7 @@ class OptGeneResult(StrainDesignResult):
         self._simulation_kwargs = simulation_kwargs
 
     def __iter__(self):
-        for solution in self._solutions:
+        for solution in self._designs:
             yield StrainDesign(knockouts=solution, manipulation_type=self._manipulation_type)
 
     def __len__(self):
@@ -176,9 +181,9 @@ class OptGeneResult(StrainDesignResult):
             <li>Objective Function: %s<br/></li>
         </ul>
         %s
-        """ % (self._simulation_method, self._objective_function._repr_latex_(), self.data_frame._repr_html_())
+        """ % (self._simulation_method.__name__, self._objective_function._repr_latex_(), self.data_frame._repr_html_())
 
-    def plot(self, grid=None, width=None, height=None, title=None):
+    def plot(self, grid=None, width=None, height=None, title=None, *args, **kwargs):
         pass
 
     @property
@@ -203,9 +208,9 @@ class OptGeneResult(StrainDesignResult):
                                                  "target_flux", "biomass_flux", "yield", "fitness"])
 
         cache = ProblemCache(self._model)
-        progress = ProgressBar(size=len(self._solutions), label="Processing solutions")
+        progress = ProgressBar(size=len(self._designs), label="Processing solutions")
         progress.start()
-        for i, solution in enumerate(self._solutions):
+        for i, solution in enumerate(self._designs):
             processed_solutions.loc[i] = process_knockout_solution(
                 self._model, solution, self._simulation_method, self._simulation_kwargs, self._biomass,
                 self._target, self._substrate, [self._objective_function], cache=cache)
@@ -216,3 +221,15 @@ class OptGeneResult(StrainDesignResult):
         if self._manipulation_type == "reactions":
             processed_solutions.drop('genes', axis=1, inplace=True)
         self._processed_solutions = processed_solutions
+
+    def plot(self, index, grid=None, width=None, height=None, title=None, *args, **kwargs):
+        wt_production = phenotypic_phase_plane(self._model, objective=self._target, variables=[self._biomass])
+        with TimeMachine() as tm:
+            for ko in self._designs[index][0]:
+                self._model.reactions.get_by_id(ko).knock_out(tm)
+
+            mt_production = phenotypic_phase_plane(self._model, objective=self._target, variables=[self._biomass])
+        plotting.plot_2_production_envelopes(wt_production.data_frame,
+                                             mt_production.data_frame,
+                                             self._biomass,
+                                             self._target)
