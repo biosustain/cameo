@@ -92,14 +92,16 @@ class TestOptKnock(unittest.TestCase):
         self.optknock = OptKnock(self.model)
 
     def test_optknock_runs(self):
-        result = self.optknock.run(max_knockouts=0, target="EX_ac_lp_e_rp_", max_results=1)
+        result = self.optknock.run(max_knockouts=0, target="EX_ac_lp_e_rp_",
+                                   biomass="Biomass_Ecoli_core_N_lp_w_fsh_GAM_rp__Nmet2", max_results=1)
         self.assertEqual(len(result), 1)
         self.assertEqual(len(result.knockouts[0]), 0)
         self.assertEqual(len(list(result)), 1)
         self.assertIsInstance(result.data_frame, DataFrame)
 
     def test_result_is_correct(self):
-        result = self.optknock.run(max_knockouts=1, target="EX_ac_lp_e_rp_", max_results=1)
+        result = self.optknock.run(max_knockouts=1, target="EX_ac_lp_e_rp_",
+                                   biomass="Biomass_Ecoli_core_N_lp_w_fsh_GAM_rp__Nmet2", max_results=1)
         production = result.production[0]
         knockouts = result.knockouts[0]
         for knockout in knockouts:
