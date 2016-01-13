@@ -59,7 +59,6 @@ class TestFSEOF(unittest.TestCase):
         self.assertIsInstance(fseof_result.data_frame, DataFrame)
         self.assertIs(fseof_result.enforced_reaction, self.model.reactions.EX_ac_lp_e_rp_)
         self.assertIs(fseof_result.model, self.model)
-        self.assertEqual(list(fseof_result), list(fseof_result.reactions))
 
 
 if six.PY2:  # Make these test cases work with PY3 as well
@@ -93,19 +92,20 @@ class TestOptKnock(unittest.TestCase):
         self.optknock = OptKnock(self.model)
 
     def test_optknock_runs(self):
-        result = self.optknock.run(0, "EX_ac_lp_e_rp_", max_results=1)
+        result = self.optknock.run(max_knockouts=0, target="EX_ac_lp_e_rp_", max_results=1)
         self.assertEqual(len(result), 1)
         self.assertEqual(len(result.knockouts[0]), 0)
         self.assertEqual(len(list(result)), 1)
         self.assertIsInstance(result.data_frame, DataFrame)
 
     def test_result_is_correct(self):
-        result = self.optknock.run(1, "EX_ac_lp_e_rp_", max_results=1)
+        result = self.optknock.run(max_knockouts=1, target="EX_ac_lp_e_rp_", max_results=1)
         production = result.production[0]
         knockouts = result.knockouts[0]
         for knockout in knockouts:
-            self.model.reactions.get_by_id(knockout.id).knock_out()
-        fva = cameo.flux_variability_analysis(self.model, fraction_of_optimum=1, remove_cycles=False, reactions=["EX_ac_lp_e_rp_"])
+            self.model.reactions.get_by_id(knockout).knock_out()
+        fva = cameo.flux_variability_analysis(self.model, fraction_of_optimum=1, remove_cycles=False,
+                                              reactions=["EX_ac_lp_e_rp_"])
         self.assertAlmostEqual(fva["upper_bound"][0], production)
 
 
