@@ -148,7 +148,7 @@ def phenotypic_phase_plane(model, variables=[], objective=None, points=20, view=
     References
     ----------
     [1] Edwards, J. S., Ramakrishna, R. and Palsson, B. O. (2002). Characterizing the metabolic phenotype: a phenotype
-    phase plane analysis. Biotechnology and Bioengineering, 77(1), 27–36. doi:10.1002/bit.10047
+        phase plane analysis. Biotechnology and Bioengineering, 77(1), 27–36. doi:10.1002/bit.10047
     """
     if isinstance(variables, str):
         variables = [variables]
@@ -159,11 +159,11 @@ def phenotypic_phase_plane(model, variables=[], objective=None, points=20, view=
         view = config.default_view
     with TimeMachine() as tm:
         if objective is not None:
-            if isinstance(objective, Metabolite):
-                try:
-                    objective = model.reactions.get_by_id("DM_%s" % objective.id)
-                except KeyError:
-                    objective = model.add_demand(objective, time_machine=tm)
+            try:
+                objective = model.reaction_for(objective, time_machine=tm)
+            except KeyError:
+                pass
+
             tm(do=partial(setattr, model, 'objective', objective),
                undo=partial(setattr, model, 'objective', model.objective))
 
@@ -416,48 +416,53 @@ def flux_balance_impact_degree(model, knockouts, view=config.default_view, metho
 
     Returns
     -------
-    int: perturbation
-        The number of changes in reachable reactions (reactions that can carry flux)
+    FluxBalanceImpactDegreeResult: perturbation
+        The changes in reachable reactions (reactions that can carry flux)
     """
 
     if method == "fva":
-        _fbid_fva(model, knockouts, view)
+        reachable_reactions, perturbed_reactions =_fbid_fva(model, knockouts, view)
     elif method == "em":
         raise NotImplementedError("Elementary modes approach is not implemented")
     else:
         raise ValueError("%s method is not valid to compute Flux Balance Impact Degree" % method)
 
+    return FluxBalanceImpactDegreeResult(reachable_reactions, perturbed_reactions, method)
+
 
 def _fbid_fva(model, knockouts, view):
-    tm = TimeMachine()
-    for reaction in model.reactions:
-        if reaction.reversibility:
-            tm(do=partial(setattr, reaction, 'lower_bound', -1),
-               undo=partial(setattr, reaction, 'lower_bound', reaction.lower_bound))
-            tm(do=partial(setattr, reaction, 'upper_bound', 1),
-               undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
-        else:
-            tm(do=partial(setattr, reaction, 'lower_bound', 0),
-               undo=partial(setattr, reaction, 'lower_bound', reaction.lower_bound))
-            tm(do=partial(setattr, reaction, 'upper_bound', 1),
-               undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
+    with TimeMachine() as tm:
 
-    wt_fva = flux_variability_analysis(model, view)
-    for reaction in knockouts:
-        tm(do=partial(setattr, reaction, 'upper_bound', 0),
-           undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
-        tm(do=partial(setattr, reaction, 'lower_bound', 0),
-           undo=partial(setattr, reaction, 'lower_bound', reaction.lower_bound))
+        for reaction in model.reactions:
+            if reaction.reversibility:
+                tm(do=partial(setattr, reaction, 'lower_bound', -1),
+                   undo=partial(setattr, reaction, 'lower_bound', reaction.lower_bound))
+                tm(do=partial(setattr, reaction, 'upper_bound', 1),
+                   undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
+            else:
+                tm(do=partial(setattr, reaction, 'lower_bound', 0),
+                   undo=partial(setattr, reaction, 'lower_bound', reaction.lower_bound))
+                tm(do=partial(setattr, reaction, 'upper_bound', 1),
+                   undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
 
-    mt_fva = flux_variability_analysis(model, view)
+        wt_fva = flux_variability_analysis(model, view=view, remove_cycles=False)
+        wt_fva._data_frame = wt_fva._data_frame.apply(numpy.round)
 
-    perturbation = 0
-    for reaction in model.reactions:
-        if wt_fva[reaction.id] != 0 and mt_fva[reaction.id] == 0:
-            perturbation += 1
+        reachable_reactions = wt_fva.data_frame.query("lower_bound != 0 | upper_bound != 0")
 
-    tm.reset()
-    return perturbation
+        for reaction in model._ids_to_reactions(knockouts):
+            reaction.knock_out(tm)
+
+        mt_fva = flux_variability_analysis(model, reactions=reachable_reactions.index, view=view, remove_cycles=False)
+        mt_fva._data_frame = mt_fva._data_frame.apply(numpy.round)
+
+        perturbed_reactions = []
+        for reaction in reachable_reactions.index:
+            if wt_fva.upper_bound(reaction) != mt_fva.upper_bound(reaction) or \
+              wt_fva.lower_bound(reaction) != wt_fva.lower_bound(reaction):
+                perturbed_reactions.append(reaction)
+
+        return list(reachable_reactions.index), perturbed_reactions
 
 
 class PhenotypicPhasePlaneResult(Result):
@@ -471,12 +476,12 @@ class PhenotypicPhasePlaneResult(Result):
     def data_frame(self):
         return pandas.DataFrame(self._phase_plane)
 
-    def plot(self, grid=None, width=None, height=None, title=None, axis_font_size=None, **kwargs):
+    def plot(self, grid=None, width=None, height=None, title=None, axis_font_size=None, color="lightblue", **kwargs):
         if len(self.variable_ids) > 1:
             notice("Multi-dimensional plotting is not supported")
             return
         plotting.plot_production_envelope(self._phase_plane, objective=self.objective, key=self.variable_ids[0],
-                                          grid=grid, width=width, height=height, title=title,
+                                          grid=grid, width=width, height=height, title=title, color=color,
                                           axis_font_size=axis_font_size, **kwargs)
 
     def __getitem__(self, item):
@@ -507,15 +512,64 @@ class FluxVariabilityResult(Result):
     def data_frame(self):
         return self._data_frame
 
-    def plot(self, index=None, grid=None, width=None, height=None, title=None, axis_font_size=None):
+    def plot(self, index=None, grid=None, width=None, height=None, title=None, axis_font_size=None, color="lightblue",
+             **kwargs):
         if index is None:
             index = self.data_frame.index[0:10]
         fva_result = self.data_frame.loc[index]
         plotting.plot_flux_variability_analysis(fva_result, grid=grid, width=width, height=height, title=title,
-                                                axis_font_size=axis_font_size)
+                                                axis_font_size=axis_font_size, color=color)
 
     def __getitem__(self, item):
         return self._data_frame[item]
 
+    def upper_bound(self, item):
+        if isinstance(item, Reaction):
+            item = item.id
+        return self['upper_bound'][item]
+
+    def lower_bound(self, item):
+        if isinstance(item, Reaction):
+            item = item.id
+        return self['lower_bound'][item]
+
     def iterrows(self):
         return self._data_frame.iterrows()
+
+
+class FluxBalanceImpactDegreeResult(Result):
+
+    def __init__(self, reachable_reactions, perturbed_reactions, method, *args, **kwargs):
+        super(FluxBalanceImpactDegreeResult, self).__init__(*args, **kwargs)
+        self._method = method
+        self._reachable_reactions = reachable_reactions
+        self._perturbed_reactions = perturbed_reactions
+
+    def __contains__(self, item):
+        if isinstance(item, Reaction):
+            item = item.id
+        return item in self._reachable_reactions
+
+    def _repr_html_(self):
+        return """
+        <h3>Flux Balance Impact Degree</h3>
+        <ul>
+            <li> Degree: %i</li>
+            <li> Reactions: %i</li>
+        </ul>
+        %s
+        """ % (self.degree, len(self._reachable_reactions), self.data_frame._repr_html_())
+
+    @property
+    def degree(self):
+        return len(self._perturbed_reactions)
+
+    @property
+    def data_frame(self):
+        data_frame = pandas.DataFrame(columns=["perturbed"])
+        for reaction in self._reachable_reactions:
+            data_frame.loc[reaction] = [reaction in self._perturbed_reactions]
+        return data_frame
+
+    def plot(self, grid=None, width=None, height=None, title=None):
+        pass

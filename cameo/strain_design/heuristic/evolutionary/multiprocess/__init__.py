@@ -28,8 +28,8 @@ The result is the same as in the single objective. The knockouts solutions resul
 Examples
 --------
 >>> from cameo import models
->>> from cameo.strain_design.heuristic.multiprocess import MultiprocessGeneKnockoutOptimization
->>> from cameo.strain_design.heuristic.objective_functions import biomass_product_coupled_yield
+>>> from cameo.strain_design.heuristic.evolutionary.multiprocess import MultiprocessGeneKnockoutOptimization
+>>> from cameo.strain_design.heuristic.evolutionary.objective_functions import biomass_product_coupled_yield
 >>> import inspyred
 >>> model = models.bigg.iJO1366
 >>> objective_function = biomass_product_coupled_yield('Ec_biomass_iJO1366_core_53p95M', 'EX_succ_e', 'EX_glc__D_e')

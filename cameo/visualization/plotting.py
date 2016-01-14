@@ -26,15 +26,15 @@ try:
     # import matplotlib.pyplot as plt
 
     def plot_flux_variability_analysis_matplotlib(fva_result, grid=None, width=None, height=None, title=None,
-                                                  axis_font_size=None):
+                                                  axis_font_size=None, color="blue"):
         pass
 
     def plot_2_flux_variability_analysis_matplotlib(fva_result1, fva_result2, grid=None, width=None, height=None,
-                                                    title=None, axis_font_size=None):
+                                                    title=None, axis_font_size=None, color1="blue", color2="orange"):
         pass
 
-    def plot_production_envelope_matplotlib(envelope, objective, key, grid=None, width=None, height=None,
-                                                    title=None, points=None, points_colors=None, axis_font_size=None):
+    def plot_production_envelope_matplotlib(envelope, objective, key, grid=None, width=None, height=None, title=None,
+                                            points=None, points_colors=None, axis_font_size=None, color="blue"):
         pass
         # plt.plot(envelope["objective_upper_bound"], envelope[key], title="Production envelop")
         # plt.xlabel("growth")
@@ -42,26 +42,26 @@ try:
 
     def plot_2_production_envelopes_matplotlib(envelope1, envelope2, objective, key, grid=None, width=None,
                                                       height=None, title=None, points=None, points_colors=None,
-                                                      axis_font_size=None):
+                                                      axis_font_size=None, color1="blue", color2="orange"):
         pass
 
 except ImportError:
 
     def plot_flux_variability_analysis_matplotlib(fva_result, grid=None, width=None, height=None, title=None,
-                                       axis_font_size=None):
+                                                  axis_font_size=None, color="blue"):
         pass
 
     def plot_2_flux_variability_analysis_matplotlib(fva_result1, fva_result2, grid=None, width=None, height=None,
-                                                    title=None, axis_font_size=None):
+                                                    title=None, axis_font_size=None, color1="blue", color2="orange"):
         pass
 
-    def plot_production_envelope_matplotlib(envelope, objective, key, grid=None, width=None, height=None,
-                                                    title=None, points=None, points_colors=None, axis_font_size=None):
+    def plot_production_envelope_matplotlib(envelope, objective, key, grid=None, width=None, height=None, title=None,
+                                            points=None, points_colors=None, axis_font_size=None, color="blue"):
         pass
 
     def plot_2_production_envelopes_matplotlib(envelope1, envelope2, objective, key, grid=None, width=None,
                                                       height=None, title=None, points=None, points_colors=None,
-                                                      axis_font_size=None):
+                                                      axis_font_size=None, color1="blue", color2="orange"):
         pass
 
 try:
@@ -94,7 +94,7 @@ try:
             plot.line((var[-1], var[-1]), (ub[-1], lb[-1]), color=line_color)
 
     def plot_flux_variability_analysis_bokeh(fva_result, grid=None, width=None, height=None, title=None,
-                                             axis_font_size=None):
+                                             axis_font_size=None, color="blue"):
 
         title = "Flux Variability Analysis" if title is None else title
 
@@ -108,10 +108,10 @@ try:
 
         line_width = (width-30)/len(factors)/2
 
-        p.segment(x0, factors, x1, factors, line_width=line_width, line_color="#99d8c9")
+        p.segment(x0, factors, x1, factors, line_width=line_width, line_color=color)
         for x_0, x_1, f in zip(x0, x1, factors):
             if x_0 == x_1:
-                p.segment([x_0-0.0005], [f], [x_1+0.0005], [f], line_width=line_width, color="blue")
+                p.segment([x_0-0.0005], [f], [x_1+0.0005], [f], line_width=line_width, color=color)
         p.line([0, 0], [0, len(factors)+1], line_color="black", line_width=1, line_alpha=0.3)
 
         if axis_font_size is not None:
@@ -124,7 +124,7 @@ try:
             plotting.show(p)
 
     def plot_2_flux_variability_analysis_bokeh(fva_result1, fva_result2, grid=None, width=None, height=None, title=None,
-                                               axis_font_size=None):
+                                               axis_font_size=None, color1="blue", color2="orange"):
 
         factors = list(fva_result1.index)
 
@@ -144,8 +144,8 @@ try:
 
         p = _figure(title, width, height, x_range=x_range, y_range=factors)
 
-        p.quad(top=top1, bottom=bottom1, left=left1, right=right1, color="blue")
-        p.quad(top=top2, bottom=bottom2, left=left2, right=right2, color="orange")
+        p.quad(top=top1, bottom=bottom1, left=left1, right=right1, color=color1)
+        p.quad(top=top2, bottom=bottom2, left=left2, right=right2, color=color2)
 
         if axis_font_size is not None:
             p.xaxis.axis_label_text_font_size = axis_font_size
@@ -156,8 +156,8 @@ try:
         else:
             plotting.show(p)
 
-    def plot_production_envelope_bokeh(envelope, objective, key, grid=None, width=None, height=None,
-                                       title=None, points=None, points_colors=None, axis_font_size=None):
+    def plot_production_envelope_bokeh(envelope, objective, key, grid=None, width=None, height=None, title=None,
+                                       points=None, points_colors=None, axis_font_size=None, color="blue"):
 
         title = "Production Envelope" if title is None  else title
         p = _figure(title, width, height)
@@ -165,7 +165,7 @@ try:
         p.xaxis.axis_label = key
         p.yaxis.axis_label = objective
 
-        _add_production_envelope(p, envelope, key, patch_color="#99d8c9", patch_alpha=0.3, line_color="blue")
+        _add_production_envelope(p, envelope, key, patch_color=color, patch_alpha=0.3, line_color=color)
 
         if axis_font_size is not None:
             p.xaxis.axis_label_text_font_size = axis_font_size
@@ -181,7 +181,7 @@ try:
 
     def plot_2_production_envelopes_bokeh(envelope1, envelope2, objective, key, grid=None, width=None,
                                           height=None, title=None, points=None, points_colors=None,
-                                          axis_font_size=None):
+                                          axis_font_size=None, color1="blue", color2="orange"):
 
         title = "2 Production Envelopes" if title is None else title
         p = _figure(title, width, height)
@@ -189,8 +189,8 @@ try:
         p.xaxis.axis_label = key
         p.yaxis.axis_label = objective
 
-        _add_production_envelope(p, envelope1, key, patch_color="#99d8c9", patch_alpha=0.3, line_color="blue")
-        _add_production_envelope(p, envelope2, key, patch_color="#FBCEB1", patch_alpha=0.5, line_color="#FF7538")
+        _add_production_envelope(p, envelope1, key, patch_color=color1, patch_alpha=0.3, line_color=color1)
+        _add_production_envelope(p, envelope2, key, patch_color=color2, patch_alpha=0.3, line_color=color2)
 
         if axis_font_size is not None:
             p.xaxis.axis_label_text_font_size = axis_font_size
@@ -208,63 +208,63 @@ try:
 except ImportError:
 
     def plot_flux_variability_analysis_bokeh(fva_result, grid=None, width=None, height=None, title=None,
-                                             axis_font_size=None):
+                                             axis_font_size=None, color="blue"):
         pass
 
     def plot_2_flux_variability_analysis_bokeh(fva_result1, fva_result2, grid=None, width=None, height=None, title=None,
-                                               axis_font_size=None):
+                                               axis_font_size=None, color1="blue", color2="orange"):
         pass
 
-    def plot_production_envelope_bokeh(envelope, objective, key, grid=None, width=None, height=None,
-                                       title=None, points=None, points_colors=None, axis_font_size=None):
+    def plot_production_envelope_bokeh(envelope, objective, key, grid=None, width=None, height=None, title=None,
+                                       points=None, points_colors=None, axis_font_size=None, color="blue"):
         pass
 
     def plot_2_production_envelopes_bokeh(envelope1, envelope2, objective, key, grid=None, width=None,
                                           height=None, title=None, points=None, points_colors=None,
-                                          axis_font_size=None):
+                                          axis_font_size=None, color1="blue", color2="orange"):
         pass
 
 try:
     from bashplotlib import scatterplot
 
     def plot_2_flux_variability_analysis_cli(fva_result1, fva_result2, grid=None, width=None, height=None, title=None,
-                                             axis_font_size=None):
+                                             axis_font_size=None, color1="blue", color2="orange"):
         pass
 
     def plot_flux_variability_analysis_cli(fva_result, grid=None, width=None, height=None, title=None,
-                                           axis_font_size=None):
+                                           axis_font_size=None, color="blue"):
         pass
 
-    def plot_production_envelope_cli(envelope, objective, key, grid=None, width=None, height=None,
-                                     title=None, points=None, points_colors=None, axis_font_size=None):
+    def plot_production_envelope_cli(envelope, objective, key, grid=None, width=None, height=None, title=None,
+                                     points=None, points_colors=None, axis_font_size=None, color="blue"):
         scatterplot.plot_scatter(None, envelope[key], envelope["objective_upper_bound"], "*")
 
     def plot_2_production_envelopes_cli(envelope1, envelope2, objective, key, grid=None, width=None,
                                         height=None, title=None, points=None, points_colors=None,
-                                        axis_font_size=None):
+                                        axis_font_size=None, color1="blue", color2="orange"):
         pass
 
 except ImportError:
     def plot_2_flux_variability_analysis_cli(fva_result1, fva_result2, grid=None, width=None, height=None, title=None,
-                                             axis_font_size=None):
+                                             axis_font_size=None, color1="blue", color2="orange"):
         pass
 
     def plot_flux_variability_analysis_cli(fva_result, grid=None, width=None, height=None, title=None,
-                                           axis_font_size=None):
+                                           axis_font_size=None, color="blue"):
         pass
 
-    def plot_production_envelope_cli(envelope, objective, key, grid=None, width=None, height=None,
-                                     title=None, points=None, points_colors=None, axis_font_size=None):
+    def plot_production_envelope_cli(envelope, objective, key, grid=None, width=None, height=None, title=None,
+                                     points=None, points_colors=None, axis_font_size=None, color="blue"):
         pass
 
     def plot_2_production_envelopes_cli(envelope1, envelope2, objective, key, grid=None, width=None,
                                         height=None, title=None, points=None, points_colors=None,
-                                        axis_font_size=None):
+                                        axis_font_size=None, color1="blue", color2="orange"):
         pass
 
 
 def plot_production_envelope(envelope, objective, key, grid=None, width=None, height=None, title=None,
-                             points=None, points_colors=None, axis_font_size=None):
+                             points=None, points_colors=None, axis_font_size=None, color="blue"):
 
     if width is None and height is None:
         width = 700
@@ -273,18 +273,18 @@ def plot_production_envelope(envelope, objective, key, grid=None, width=None, he
     if config.use_bokeh:
         plot_production_envelope_bokeh(envelope, objective, key, grid=grid, width=width, height=height,
                                        title=title, points=points, points_colors=points_colors,
-                                       axis_font_size=axis_font_size)
+                                       axis_font_size=axis_font_size, color=color)
     elif config.use_matplotlib:
         plot_production_envelope_matplotlib(envelope, objective, key, grid=grid, width=width, height=height,
                                             title=title, points=points, points_colors=points_colors,
-                                            axis_font_size=axis_font_size)
+                                            axis_font_size=axis_font_size, color=color)
     else:
         plot_production_envelope_cli(envelope, objective, key, width=width, height=height, title=title, points=points,
-                                     points_colors=points_colors, axis_font_size=axis_font_size)
+                                     points_colors=points_colors, axis_font_size=axis_font_size, color=color)
 
 
 def plot_2_production_envelopes(envelope1, envelope2, objective, key, grid=None, width=None, height=None, title=None,
-                                points=None, points_colors=None, axis_font_size=None):
+                                points=None, points_colors=None, axis_font_size=None, color1="blue", color2="orange"):
 
     if width is None and height is None:
         width = 700
@@ -293,46 +293,50 @@ def plot_2_production_envelopes(envelope1, envelope2, objective, key, grid=None,
     if config.use_bokeh:
         plot_2_production_envelopes_bokeh(envelope1, envelope2, objective, key, grid=grid, width=width, height=height,
                                           title=title, points=points, points_colors=points_colors,
-                                          axis_font_size=axis_font_size)
+                                          axis_font_size=axis_font_size, color1=color1, color2=color2)
     elif config.use_matplotlib:
         plot_2_production_envelopes_matplotlib(envelope1, envelope2, objective, key, grid=grid, width=width,
                                                height=height, title=title, points=points, points_colors=points_colors,
-                                               axis_font_size=axis_font_size)
+                                               axis_font_size=axis_font_size, color1=color1, color2=color2)
     else:
         plot_2_production_envelopes_cli(envelope1, envelope2, objective, key, width=width, height=height, title=title,
-                                        points=points, points_colors=points_colors, axis_font_size=axis_font_size)
+                                        points=points, points_colors=points_colors, axis_font_size=axis_font_size,
+                                        color1=color1, color2=color2)
 
 
-def plot_flux_variability_analysis(fva_result, grid=None, width=None, height=None, title=None, axis_font_size=None):
+def plot_flux_variability_analysis(fva_result, grid=None, width=None, height=None, title=None, axis_font_size=None,
+                                   color="blue"):
     if width is None and height is None:
         width = 700
     if width is None or height is None:
         width, height = _golden_ratio(width, height)
     if config.use_bokeh:
         plot_flux_variability_analysis_bokeh(fva_result, grid=grid, width=width, height=height, title=title,
-                                             axis_font_size=axis_font_size)
+                                             axis_font_size=axis_font_size, color=color)
     elif config.use_matplotlib:
         plot_flux_variability_analysis_matplotlib(fva_result, grid=grid, width=width, height=height, title=title,
-                                                  axis_font_size=axis_font_size)
+                                                  axis_font_size=axis_font_size, color=color)
     else:
         plot_flux_variability_analysis_cli(fva_result, grid=grid, width=width, height=height, title=title,
-                                           axis_font_size=axis_font_size)
+                                           axis_font_size=axis_font_size, color=color)
 
 
-def plot_2_flux_variability_analysis(fva_result1, fva_result2, grid=None, width=None, height=None, title=None, axis_font_size=None):
+def plot_2_flux_variability_analysis(fva_result1, fva_result2, grid=None, width=None, height=None, title=None,
+                                     axis_font_size=None, color1="blue", color2="orange"):
     if width is None and height is None:
         width = 700
     if width is None or height is None:
         width, height = _golden_ratio(width, height)
     if config.use_bokeh:
         plot_2_flux_variability_analysis_bokeh(fva_result1, fva_result2, grid=grid, width=width, height=height,
-                                               title=title, axis_font_size=axis_font_size)
+                                               title=title, axis_font_size=axis_font_size, color1=color1, color2=color2)
     elif config.use_matplotlib:
         plot_2_flux_variability_analysis_matplotlib(fva_result1, fva_result2, grid=grid, width=width, height=height,
-                                                    title=title, axis_font_size=axis_font_size)
+                                                    title=title, axis_font_size=axis_font_size, color1=color1,
+                                                    color2=color2)
     else:
         plot_2_flux_variability_analysis_cli(fva_result1, fva_result2, grid=grid, width=width, height=height,
-                                             title=title, axis_font_size=axis_font_size)
+                                             title=title, axis_font_size=axis_font_size, color1=color1, color2=color2)
 
 
 class Grid(object):

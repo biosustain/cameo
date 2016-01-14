@@ -22,7 +22,7 @@ from uuid import uuid1
 from pandas import DataFrame
 from requests import ConnectionError
 from cameo import config
-from cameo.strain_design.heuristic.multiprocess.observers import AbstractParallelObserver, \
+from cameo.strain_design.heuristic.evolutionary.multiprocess.observers import AbstractParallelObserver, \
     AbstractParallelObserverClient
 
 if config.use_bokeh:

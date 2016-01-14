@@ -15,12 +15,19 @@
 from __future__ import print_function
 
 import warnings
+
+from cameo.core import SolverBasedModel
+from cameo.visualization import plotting
+from cameo.visualization import ProgressBar
+
 import cameo
+from cameo import ui
 from cameo.exceptions import SolveError
+from cameo.flux_analysis import flux_balance_impact_degree, phenotypic_phase_plane
 from cameo.util import TimeMachine
 from cameo import config
 from cameo.core.solver_based_model_dual import convert_to_dual
-from cameo.strain_design import StrainDesignMethod, StrainDesignResult, StrainDesign
+from cameo.strain_design.strain_design import StrainDesignMethod, StrainDesign, StrainDesignResult
 from sympy import Add
 from cameo import flux_variability_analysis
 import pandas as pd
@@ -31,7 +38,8 @@ logger = logging.getLogger(__name__)
 
 
 class OptKnock(StrainDesignMethod):
-    """OptKnock.
+    """
+    OptKnock.
 
     OptKnock solves a bi-level optimization problem, finding the set of knockouts that allows maximal
     target production under optimal growth.
@@ -58,9 +66,11 @@ class OptKnock(StrainDesignMethod):
     >>> optknock = OptKnock(model)
     >>> result = optknock.run(k=2, target="EX_ac_e", max_results=3)
     """
-    def __init__(self, model, exclude_reactions=None, remove_blocked=True, *args, **kwargs):
+    def __init__(self, model, exclude_reactions=None, remove_blocked=True, fraction_of_optimum=None, *args, **kwargs):
+        assert isinstance(model, SolverBasedModel)
         super(OptKnock, self).__init__(*args, **kwargs)
         self._model = model.copy()
+        self._original_model = model
 
         if "cplex" in config.solvers:
             logger.debug("Changing solver to cplex and tweaking some parameters.")
@@ -74,9 +84,10 @@ class OptKnock(StrainDesignMethod):
             problem.parameters.mip.tolerances.mipgap.set(1e-8)
         else:
             warnings.warn("You are trying to run OptKnock with %s. This might not end well." %
-                          self._model.solver.interface.__name__.split(".")[-1]
-                          )
+                          self._model.solver.interface.__name__.split(".")[-1])
 
+        if fraction_of_optimum is not None:
+            self._model.fix_objective_as_constraint(fraction=fraction_of_optimum)
         if remove_blocked:
             self._remove_blocked_reactions()
 
@@ -179,21 +190,33 @@ class OptKnock(StrainDesignMethod):
 
         return y_var, constrained_vars
 
-    def run(self, k, target, max_results=1, *args, **kwargs):
+    def run(self, max_knockouts=5, biomass=None, target=None, max_results=1, *args, **kwargs):
         """
         Perform the OptKnock simulation
-        :param k: The maximal allowed number of knockouts
-        :param target: The reaction to be optimized
-        :param max_results: The number of distinct solutions desired.
-        :return: OptKnockResult
+
+        Parameters
+        ----------
+        target: str, Metabolite or Reaction
+            The design target
+        biomass: str, Metabolite or Reaction
+            The biomass definition in the model
+        max_knockouts: int
+            Max number of knockouts allowed
+        max_results: int
+            Max number of different designs to return if found
+
+        Returns
+        -------
+        OptKnockResult
         """
+
         knockout_list = []
         fluxes_list = []
         production_list = []
-
+        loader_id = ui.loading()
         with TimeMachine() as tm:
             self._model.objective = target
-            self._number_of_knockouts_constraint.lb = self._number_of_knockouts_constraint.ub - k
+            self._number_of_knockouts_constraint.lb = self._number_of_knockouts_constraint.ub - max_knockouts
             count = 0
             while count < max_results:
                 try:
@@ -203,8 +226,8 @@ class OptKnock(StrainDesignMethod):
                     logger.debug(str(e))
                     break
 
-                knockouts = set(reac for y, reac in self._y_vars.items() if round(y.primal, 3) == 0)
-                assert len(knockouts) <= k
+                knockouts = set(reaction.id for y, reaction in self._y_vars.items() if round(y.primal, 3) == 0)
+                assert len(knockouts) <= max_knockouts
 
                 knockout_list.append(knockouts)
                 fluxes_list.append(solution.fluxes)
@@ -216,14 +239,15 @@ class OptKnock(StrainDesignMethod):
                                                                       lb=1,
                                                                       name="integer_cut_"+str(count))
 
-                if len(knockouts) < k:
+                if len(knockouts) < max_knockouts:
                     self._number_of_knockouts_constraint.lb = self._number_of_knockouts_constraint.ub - len(knockouts)
 
                 tm(do=partial(self._model.solver.add, integer_cut),
                    undo=partial(self._model.solver.remove, integer_cut))
                 count += 1
 
-        return OptKnockResult(knockout_list, fluxes_list, production_list, target)
+            ui.stop_loader(loader_id)
+            return OptKnockResult(self._original_model, knockout_list, fluxes_list, production_list, target, biomass)
 
 
 class RobustKnock(StrainDesignMethod):
@@ -231,16 +255,35 @@ class RobustKnock(StrainDesignMethod):
 
 
 class OptKnockResult(StrainDesignResult):
-    def __init__(self, knockouts, fluxes, production, target, *args, **kwargs):
+    def __init__(self, model, designs, fluxes, production, target, biomass, *args, **kwargs):
         super(OptKnockResult, self).__init__(*args, **kwargs)
-        self._knockouts = knockouts
+        self._model = model
+        self._designs = designs
         self._fluxes = fluxes
         self._production = production
         self._target = target
+        self._biomass = biomass
+        self._processed_knockouts = None
+
+    def _process_knockouts(self):
+        progress = ProgressBar(size=len(self._designs), label="Processing solutions")
+
+        self._processed_knockouts = pd.DataFrame(columns=["knockouts", "size", "biomass", self._target,
+                                                          "fva_min", "fva_max", "fbid"])
+        progress.start()
+        try:
+            for i, knockouts in enumerate(self._designs):
+                fva = flux_variability_analysis(self._model, fraction_of_optimum=0.99, reactions=[self.target])
+                fbid = flux_balance_impact_degree(self._model, knockouts)
+                self._processed_knockouts.loc[i] = [knockouts, len(knockouts), self.production[i], self._biomass[i],
+                                                    fva.lower_bound(self.target), fva.upper_bound(self.target),
+                                                    fbid.degree]
+        finally:
+            progress.end()
 
     @property
     def knockouts(self):
-        return self._knockouts
+        return self._designs
 
     @property
     def fluxes(self):
@@ -254,22 +297,39 @@ class OptKnockResult(StrainDesignResult):
     def target(self):
         return self._target
 
+    def plot(self, index, grid=None, width=None, height=None, title=None, *args, **kwargs):
+        wt_production = phenotypic_phase_plane(self._model, objective=self._target, variables=[self._biomass])
+        with TimeMachine() as tm:
+            for ko in self._designs[index]:
+                self._model.reactions.get_by_id(ko).knock_out(tm)
+
+            mt_production = phenotypic_phase_plane(self._model, objective=self._target, variables=[self._biomass])
+        plotting.plot_2_production_envelopes(wt_production.data_frame,
+                                             mt_production.data_frame,
+                                             self._target,
+                                             self._biomass,
+                                             **kwargs)
+
     @property
     def data_frame(self):
-        return pd.DataFrame(
-            {"Knockouts": [tuple(k.id for k in design) for design in self.knockouts], "Production": self.production}
-        )
+        if self._processed_knockouts is None:
+            self._process_knockouts()
+        data_frame = pd.DataFrame(self._processed_knockouts)
+        data_frame.sort_values("size", inplace=True)
+        return data_frame
 
     def _repr_html_(self):
         html_string = """
-<h3>OptKnock knockout optimization:</h3>
-<p><b>Target:</b> %s</p></br>
-%s""" % (self._target, self.data_frame._repr_html_())
+        <h3>OptKnock:</h3>
+        <ul>
+            <li>Target: %s</li>
+        </ul>
+        %s""" % (self._target, self.data_frame._repr_html_())
         return html_string
 
     def __len__(self):
         return len(self.knockouts)
 
     def __iter__(self):
-        for design in self.knockouts:
-            yield StrainDesign(knockouts=design)
+        for knockouts in self.knockouts:
+            yield StrainDesign(knockouts=knockouts)

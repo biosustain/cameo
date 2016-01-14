@@ -14,24 +14,25 @@
 
 from __future__ import absolute_import, print_function
 
-__all__ = ['MultiprocessReactionKnockoutOptimization', 'MultiprocessGeneKnockoutOptimization']
-
-from six.moves import range
 from functools import reduce
 
 import inspyred
+from cameo.strain_design.heuristic.evolutionary.multiprocess.migrators import MultiprocessingMigrator
+from cameo.strain_design.heuristic.evolutionary.multiprocess.observers import IPythonNotebookMultiprocessProgressObserver, \
+    CliMultiprocessProgressObserver
+from six.moves import range
 
-from cameo import util
 from cameo import config
 from cameo import parallel
+from cameo import util
 from cameo.flux_analysis.simulation import pfba
-from cameo.strain_design import StrainDesignMethod
-from cameo.strain_design.heuristic import ReactionKnockoutOptimization, GeneKnockoutOptimization
-from cameo.strain_design.heuristic.optimization import KnockoutOptimizationResult
-from cameo.strain_design.heuristic.multiprocess.observers import IPythonNotebookMultiprocessProgressObserver, \
-    CliMultiprocessProgressObserver
-from cameo.strain_design.heuristic.multiprocess.plotters import IPythonNotebookBokehMultiprocessPlotObserver
-from cameo.strain_design.heuristic.multiprocess.migrators import MultiprocessingMigrator
+from cameo.strain_design.heuristic.evolutionary import ReactionKnockoutOptimization, GeneKnockoutOptimization
+from cameo.strain_design.heuristic.evolutionary.multiprocess.plotters import IPythonNotebookBokehMultiprocessPlotObserver
+from cameo.strain_design.heuristic.evolutionary.optimization import KnockoutOptimizationResult
+from cameo.strain_design.strain_design import StrainDesignMethod
+
+
+__all__ = ['MultiprocessReactionKnockoutOptimization', 'MultiprocessGeneKnockoutOptimization']
 
 
 class MultiprocessRunner(object):

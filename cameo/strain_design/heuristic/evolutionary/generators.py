@@ -13,12 +13,13 @@
 # limitations under the License.
 
 from __future__ import absolute_import, print_function
+
 from collections import OrderedDict
 
 __all__ = ['set_generator', 'unique_set_generator']
 
 from inspyred.ec.generators import diversify
-from cameo.strain_design.heuristic.genomes import MultipleChromosomeGenome
+from cameo.strain_design.heuristic.evolutionary.genomes import MultipleChromosomeGenome
 from six.moves import range
 from six.moves import zip
 

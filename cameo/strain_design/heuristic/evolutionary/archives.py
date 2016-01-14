@@ -14,13 +14,13 @@
 from __future__ import absolute_import, print_function
 import time
 
-__all__ = ['BestSolutionArchiver']
+__all__ = ['BestSolutionArchive']
 
 from bisect import insort
 from inspyred.ec import Individual as OriginalIndividual
 
 
-class BestSolutionArchiver(object):
+class BestSolutionArchive(object):
     def __init__(self):
         self.__name__ = self.__class__.__name__
         self.worst_fitness = None
@@ -76,6 +76,10 @@ class Individual(OriginalIndividual):
         super(Individual, self).__init__(set(candidate), maximize)
         self.fitness = fitness
         self.birthdate = birthdate
+
+    def __iter__(self):
+        for v in self.candidate:
+            yield v
 
     def __eq__(self, other):
         return self.candidate == other.candidate and self.fitness == other.fitness

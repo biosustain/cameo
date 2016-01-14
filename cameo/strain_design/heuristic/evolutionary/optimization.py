@@ -13,41 +13,33 @@
 # limitations under the License.
 
 from __future__ import absolute_import, print_function
-from cameo.strain_design import StrainDesignResult, StrainDesignMethod, StrainDesign
+
+
+import logging
+import time
+from functools import reduce
+
+import inspyred
+from pandas import DataFrame
+
+from cameo import config
+from cameo.core.result import Result
+from cameo.exceptions import SolveError
+from cameo.flux_analysis.simulation import pfba, lmoma, moma, room
+from cameo.strain_design.heuristic.evolutionary import archives
+from cameo.strain_design.heuristic.evolutionary import decoders
+from cameo.strain_design.heuristic.evolutionary import generators
+from cameo.strain_design.heuristic.evolutionary import observers
+from cameo.strain_design.heuristic.evolutionary import plotters
+from cameo.strain_design.heuristic.evolutionary import variators
+from cameo.strain_design.heuristic.evolutionary import stats
+from cameo.strain_design.heuristic.evolutionary.processing import reactions2filter
+from cameo.util import RandomGenerator as Random
+from cameo.util import in_ipnb
+from cameo.util import partition, TimeMachine, memoize, ProblemCache
 
 __all__ = ['ReactionKnockoutOptimization', 'GeneKnockoutOptimization']
 
-from six.moves import range
-
-import time
-import numpy as np
-
-from functools import reduce
-from sympy import Symbol
-
-from cobra.manipulation.delete import find_gene_knockout_reactions
-from inspyred.ec.emo import Pareto
-
-from cameo.exceptions import SolveError
-from cameo.visualization.sympy_ext import And, Or
-from cameo.strain_design.heuristic import archivers
-from cameo.strain_design.heuristic import plotters
-from cameo.strain_design.heuristic import observers
-from cameo.strain_design.heuristic import variators
-from cameo.strain_design.heuristic import generators
-from cameo.strain_design.heuristic import decoders
-from cameo.strain_design.heuristic import stats
-from cameo import config
-from cameo.flux_analysis.simulation import pfba, lmoma, moma, room
-from cameo.util import partition, TimeMachine, memoize, ProblemCache
-from pandas import DataFrame
-
-import inspyred
-import logging
-
-from cameo.util import RandomGenerator as Random
-from cameo.util import in_ipnb
-from cameo.visualization import draw_knockout_result
 
 REACTION_KNOCKOUT_TYPE = "reaction"
 GENE_KNOCKOUT_TYPE = "gene"
@@ -69,7 +61,7 @@ PRE_CONFIGURED = {
         ],
         inspyred.ec.selectors.tournament_selection,
         inspyred.ec.replacers.generational_replacement,
-        archivers.BestSolutionArchiver(),
+        archives.BestSolutionArchive(),
     ],
     inspyred.ec.SA: [
 
@@ -79,7 +71,7 @@ PRE_CONFIGURED = {
         ],
         inspyred.ec.selectors.default_selection,
         inspyred.ec.replacers.simulated_annealing_replacement,
-        archivers.BestSolutionArchiver()
+        archives.BestSolutionArchive()
     ],
     inspyred.ec.emo.NSGA2: [
         [
@@ -108,7 +100,7 @@ def set_distance_function(candidate1, candidate2):
     return len(set(candidate1).symmetric_difference(set(candidate2)))
 
 
-class HeuristicOptimization(StrainDesignMethod):
+class HeuristicOptimization(object):
     """
     Blueprint for any model optimization based on heuristic methods.
 
@@ -252,12 +244,33 @@ class KnockoutEvaluator(object):
         self.cache = ProblemCache(model)
 
     def __call__(self, population):
-        res = [self.evaluate_individual(frozenset(i)) for i in population]
-        self.cache.reset()
+        try:
+            res = [self._evaluate_individual(frozenset(i)) for i in population]
+        except Exception as e:
+            logger.error(e)
+            res = None
+        finally:
+            self.cache.reset()
+
         return res
 
     @memoize
-    def evaluate_individual(self, individual):
+    def _evaluate_individual(self, individual):
+        """
+        Evaluates a single individual.
+
+        Arguments
+        ---------
+
+        individual: set
+            The encoded representation of a single individual.
+
+
+        Returns
+        -------
+        fitness
+            A single real value or a Pareto, depending on the number of objectives.
+        """
         decoded = self.decoder(individual)
         reactions = decoded[0]
         with TimeMachine() as tm:
@@ -268,7 +281,7 @@ class KnockoutEvaluator(object):
                                                   cache=self.cache,
                                                   volatile=False,
                                                   raw=True,
-                                                  reactions=self._reactions2filter(),
+                                                  reactions=reactions2filter(self.objective_function),
                                                   **self.simulation_kwargs)
                 fitness = self._calculate_fitness(solution, decoded)
             except SolveError as e:
@@ -280,20 +293,12 @@ class KnockoutEvaluator(object):
 
             return fitness
 
-    def _reactions2filter(self):
-        if isinstance(self.objective_function, list):
-            reactions = []
-            [reactions.extend(of.reactions) for of in self.objective_function]
-        else:
-            reactions = self.objective_function.reactions
-        return set(reactions)
-
     def _calculate_fitness(self, solution, decoded):
         if isinstance(self.objective_function, list):
-            logger.debug("evaluate multi objective")
+            logger.debug("evaluate multiobjective solution")
             return inspyred.ec.emo.Pareto(values=[of(self.model, solution, decoded) for of in self.objective_function])
         else:
-            logger.debug("evaluate single objective")
+            logger.debug("evaluate single objective solution")
             return self.objective_function(self.model, solution, decoded)
 
 
@@ -311,7 +316,8 @@ class KnockoutOptimization(HeuristicOptimization):
         wt_reference: dict
         """
         super(KnockoutOptimization, self).__init__(*args, **kwargs)
-        self.wt_reference = wt_reference
+        self._simulation_kwargs = dict()
+        self._simulation_kwargs['reference'] = wt_reference
         self._simulation_method = None
         self.simulation_method = simulation_method
         self.representation = None
@@ -325,17 +331,27 @@ class KnockoutOptimization(HeuristicOptimization):
 
     @simulation_method.setter
     def simulation_method(self, simulation_method):
-        if simulation_method in [lmoma, moma, room] and self.wt_reference is None:
+        if simulation_method in [lmoma, moma, room] and self._simulation_kwargs.get("reference", None) is None:
             logger.info("No WT reference found, generating using pfba.")
-            self.wt_reference = pfba(self.model).fluxes
+            self._simulation_kwargs['reference'] = pfba(self.model).fluxes
         self._simulation_method = simulation_method
+
+    @property
+    def simulation_kwargs(self):
+        return self._simulation_kwargs
+
+    @simulation_kwargs.setter
+    def simulation_kwargs(self, simulation_kwargs):
+        if self.simulation_method in [lmoma, moma, room] and simulation_kwargs.get("reference", None) is None:
+            logger.info("No WT reference found, generating using pfba.")
+            simulation_kwargs['reference'] = pfba(self.model).fluxes
+        self._simulation_kwargs = simulation_kwargs
 
     def _evaluator(self, candidates, args):
         view = args.get('view')
         population_chunks = (chunk for chunk in partition(candidates, len(view)))
-        kwargs = {'reference': self.wt_reference}
-
-        func_obj = KnockoutEvaluator(self.model, self._decoder, self.objective_function, self.simulation_method, kwargs)
+        func_obj = KnockoutEvaluator(self.model, self._decoder, self.objective_function,
+                                     self.simulation_method, self._simulation_kwargs)
         try:
             results = view.map(func_obj, population_chunks)
         except KeyboardInterrupt as e:
@@ -391,7 +407,7 @@ class KnockoutOptimization(HeuristicOptimization):
         if self.progress:
             self.observers.append(observers.ProgressObserver())
 
-    def run(self, **kwargs):
+    def run(self, max_size=10, variable_size=True, **kwargs):
         """
         Parameters
         ----------
@@ -410,62 +426,46 @@ class KnockoutOptimization(HeuristicOptimization):
         return KnockoutOptimizationResult(model=self.model,
                                           heuristic_method=self.heuristic_method,
                                           simulation_method=self.simulation_method,
+                                          simulation_kwargs=self._simulation_kwargs,
                                           solutions=self.heuristic_method.archive,
                                           objective_function=self.objective_function,
                                           ko_type=self._ko_type,
                                           decoder=self._decoder,
-                                          product=kwargs.get('product', None),
-                                          biomass=kwargs.get('biomass', None),
-                                          seed=self.seed,
-                                          reference=self.wt_reference)
+                                          seed=self.seed)
 
 
-# TODO: Figure out a way to provide generic parameters for different simulation methods
-class KnockoutOptimizationResult(StrainDesignResult):
+class KnockoutOptimizationResult(Result):
 
-    __aggregation_function = {
-        KNOCKOUTS: lambda x: Or(*x.values),
-        BIOMASS: lambda x: x.values[0]
-    }
-
-    @staticmethod
-    def merge(a, b):
-        return a._merge(b)
-
-    def __init__(self, model=None, heuristic_method=None, simulation_method=None, solutions=None,
-                 objective_function=None, ko_type=None, decoder=None, product=None, biomass=None,
-                 seed=None, reference=None, *args, **kwargs):
+    def __init__(self, model=None, heuristic_method=None, simulation_method=None, simulation_kwargs=None,
+                 solutions=None, objective_function=None, ko_type=None, decoder=None, seed=None, *args, **kwargs):
         super(KnockoutOptimizationResult, self).__init__(*args, **kwargs)
-        self.biomass = biomass
         self.seed = seed
-        self.reference = reference
-        if product is None:
-            self.products = []
-        elif isinstance(product, str):
-            self.products = [product]
-        else:
-            self.products = product
-
         self.model = model
         self.heuristic_method = heuristic_method
         self.simulation_method = simulation_method
+        self.simulation_kwargs = simulation_kwargs or {}
         if isinstance(objective_function, list):
             self.objective_functions = objective_function
         else:
             self.objective_functions = [objective_function]
         self.ko_type = ko_type
-        self.decoder = decoder
-        self._solutions = self._build_solutions(solutions)
+        self._decoder = decoder
+        self._solutions = self._decode_solutions(solutions)
 
-    def apply(self, column, function, *args, **kwargs):
-        self._solutions[column].apply(function, *args, **kwargs)
+    def _decode_solutions(self, solutions):
+        decoded_solutions = DataFrame(columns=["reactions", "knockouts", "fitness"])
+        for index, solution in enumerate(solutions):
+            decoded_solutions.loc[index] = self._decoder(solution, flat=True) + [solution.fitness]
+        return decoded_solutions
+
+    def __len__(self):
+        return len(self._solutions)
 
     def __getstate__(self):
-        return {'product': self.products,
-                'model': self.model,
-                'biomass': self.biomass,
-                'reference': self.reference,
+        return {'model': self.model,
+                'decoder': self._decoder,
                 'simulation_method': self.simulation_method,
+                'simulation_kwargs': self.simulation_kwargs,
                 'heuristic_method.__class__': self.heuristic_method.__class__,
                 'heuristic_method.maximize': self.heuristic_method.maximize,
                 'heuristic_method.variator': self.heuristic_method.variator,
@@ -474,103 +474,27 @@ class KnockoutOptimizationResult(StrainDesignResult):
                 'heuristic_method.termination_cause': self.heuristic_method.termination_cause,
                 'heuristic_method._random': self.heuristic_method._random,
                 'heuristic_method.generator': self.heuristic_method.generator,
-                'heuristic_method._kwargs.representation': self.heuristic_method._kwargs.get('representation'),
-                'heuristic_method._kwargs.max_size': self.heuristic_method._kwargs.get('max_size'),
-                'heuristic_method._kwargs.variable_size': self.heuristic_method._kwargs.get('variable_size'),
-                'heuristic_method._kwargs.pop_size': self.heuristic_method._kwargs.get('pop_size'),
-                'heuristic_method._kwargs.mutation_rate': self.heuristic_method._kwargs.get('mutation_rate'),
-                'heuristic_method._kwargs.crossover_rate': self.heuristic_method._kwargs.get('crossover_rate'),
-                'heuristic_method._kwargs.num_elites': self.heuristic_method._kwargs.get('num_elites'),
+                'heuristic_method._kwargs': self.heuristic_method._kwargs,
                 'objective_functions': self.objective_functions,
                 'ko_type': self.ko_type,
                 'solutions': self._solutions,
                 'seed': self.seed}
 
     def __setstate__(self, d):
-        self.products = d['product']
         self.model = d['model']
-        self.biomass = d['biomass']
         self.simulation_method = d['simulation_method']
+        self.simulation_kwargs = d['simulation_kwargs']
         self.seed = d['seed']
-        self.reference = d['reference']
         random = d['heuristic_method._random']
         self.heuristic_method = d['heuristic_method.__class__'](random)
         self.heuristic_method.maximize = d['heuristic_method.maximize']
         self.heuristic_method.terminator = d['heuristic_method.terminator']
         self.heuristic_method.termination_cause = d['heuristic_method.termination_cause']
-        self.heuristic_method.archiver = d['heuristic_method.archiver']
-        self.heuristic_method._kwargs['representation'] = d['heuristic_method._kwargs.representation']
-        self.heuristic_method._kwargs['max_size'] = d['heuristic_method._kwargs.max_size']
-        self.heuristic_method._kwargs['variable_size'] = d['heuristic_method._kwargs.variable_size']
-        self.heuristic_method._kwargs['pop_size'] = d['heuristic_method._kwargs.pop_size']
-        self.heuristic_method._kwargs['mutation_rate'] = d['heuristic_method._kwargs.mutation_rate']
-        self.heuristic_method._kwargs['crossover_rate'] = d['heuristic_method._kwargs.crossover_rate']
-        self.heuristic_method._kwargs['num_elites'] = d['heuristic_method._kwargs.num_elites']
+        self.heuristic_method.archive = d['heuristic_method.archive']
+        self.heuristic_method._kwargs = d['heuristic_method._kwargs']
         self.objective_functions = d['objective_functions']
         self.ko_type = d['ko_type']
         self._solutions = d['solutions']
-
-    def _build_solutions(self, solutions):
-        knockouts = []
-        biomass = []
-        sizes = []
-        reactions = []
-        fitness = np.zeros((len(solutions), len(self.objective_functions)))
-        products = np.zeros((len(solutions), len(self.products)))
-        mo = len(self.objective_functions) > 1
-        success = np.zeros((len(solutions), 1))
-        for i, solution in enumerate(solutions):
-            proceed = mo or solution.fitness > 0
-            if proceed:
-                decoded_solution = self.decoder(solution.candidate)
-                try:
-                    simulation_result = self._simulate(decoded_solution[0])
-                    success[i] = [True]
-                except SolveError as e:
-                    logger.debug(e)
-                    products[i] = [np.nan for _ in self.products]
-                    fitness[i] = [np.nan for _ in self.objective_functions]
-                    success[i] = [False]
-                    continue
-
-                if self.biomass:
-                    biomass.append(simulation_result[self.biomass])
-
-                if not mo:
-                    fitness[i] = [solution.fitness]
-                else:
-                    fitness[i] = solution.fitness
-
-                knockouts.append(And(*[Symbol(v.id) for v in decoded_solution[1]]))
-                reactions.append(And(*[Symbol(v.id) for v in decoded_solution[0]]))
-                sizes.append(len(decoded_solution[1]))
-                products[i] = [simulation_result[p] for p in self.products]
-
-        products = products[success.all(axis=1)]
-        fitness = fitness[success.all(axis=1)]
-
-        if self.ko_type == REACTION_KNOCKOUT_TYPE:
-            data_frame = DataFrame({KNOCKOUTS: knockouts, SIZE: sizes})
-        else:
-            data_frame = DataFrame({KNOCKOUTS: knockouts, REACTIONS: reactions, SIZE: sizes})
-
-        if self.biomass is not None:
-            data_frame[BIOMASS] = biomass
-
-        for j, product in enumerate(self.products):
-            data_frame[product] = products[:, j]
-
-        for j, of in enumerate(self.objective_functions):
-            data_frame["Fitness %i" % (j+1)] = fitness[:, j]
-
-        return data_frame
-
-    def _simulate(self, reactions):
-        with TimeMachine() as tm:
-            for reaction in reactions:
-                reaction.knock_out(time_machine=tm)
-            solution = self.simulation_method(self.model, reference=self.reference)
-            return solution
 
     def _repr_html_(self):
 
@@ -593,15 +517,22 @@ class KnockoutOptimizationResult(StrainDesignResult):
         results = template % (model_id, heuristic, of_string, simulation, self.ko_type)
         return results + solutions
 
+    def __iter__(self):
+        for _, row in self._solutions.iterrows():
+            yield [row['reactions'], row['knockouts'], row['fitness']]
+
     def __iadd__(self, other):
-        assert isinstance(other, self.__class__), "Cannot merge result with %s" % type(other)
-        assert self.model.id == other.model.id, "Cannot merge results from different models"
-        assert self.ko_type == other.ko_type, "Cannot merge results with resulting from different strategies"
-        assert self.heuristic_method.__class__.__name__ == other.heuristic_method.__class__.__name__, \
-            "Cannot merge results from different heuristic methods"
+        if not isinstance(other, self.__class__):
+            raise AssertionError("Cannot merge result with %s" % type(other))
+        if self.model.id != other.model.id:
+            raise AssertionError("Cannot merge results from different models")
+        if self.ko_type != other.ko_type:
+            raise AssertionError("Cannot merge results with resulting from different strategies")
+        if self.heuristic_method.__class__.__name__ != other.heuristic_method.__class__.__name__:
+            raise AssertionError("Cannot merge results from different heuristic methods")
 
         self._solutions = self._solutions.append(other._solutions, ignore_index=True)
-        self._solutions.drop_duplicates(subset=KNOCKOUTS, take_last=True, inplace=True)
+        self._solutions.drop_duplicates(subset="knockouts", take_last=True, inplace=True)
 
         return self
 
@@ -618,58 +549,12 @@ class KnockoutOptimizationResult(StrainDesignResult):
 
         stats_data.display()
 
-    def visualize(self, index, map_name):
-        if type == REACTION_KNOCKOUT_TYPE:
-            knockouts = self._solutions[KNOCKOUTS][index]
-        else:
-            genes = [self.model.genes.get_by_id(g) for g in self._solutions[KNOCKOUTS][index]]
-            knockouts = find_gene_knockout_reactions(self.model, genes)
-
-        builder = draw_knockout_result(self.model, map_name, self.simulation_method, knockouts)
-        return builder.display_in_notebook()
-
-    def individuals(self):
-        for index, row in self._solutions.iterrows():
-            if len(self.objective_functions) == 1:
-                fitness = row["Fitness 1"]
-            else:
-                fitness = Pareto(values=[row["Fitness %i"] % (i+1) for i in range(len(self.objective_functions))])
-
-            if isinstance(row[KNOCKOUTS], Symbol):
-                knockouts = [str(row[KNOCKOUTS])]
-            else:
-                knockouts = [str(r) for r in row[KNOCKOUTS].args]
-
-            yield knockouts, fitness
-
     def plot(self, grid=None, width=None, height=None, title=None):
         pass
 
-    def __iter__(self):
-        for index, row in self._solutions.iterrows():
-            if self.ko_type == GENE_KNOCKOUT_TYPE:
-                if isinstance(row[REACTIONS], Symbol):
-                    knockouts = [row[REACTIONS]]
-                else:
-                    knockouts = row[REACTIONS].args
-            else:
-                if isinstance(row[KNOCKOUTS], Symbol):
-                    knockouts = [row[KNOCKOUTS]]
-                else:
-                    knockouts = row[KNOCKOUTS].args
-
-            yield StrainDesign(knockouts=knockouts)
-
     @property
     def data_frame(self):
-        if self.ko_type == GENE_KNOCKOUT_TYPE:
-            columns = self._solutions.columns.difference([REACTIONS, SIZE])
-            aggregation_functions = {k: self.__aggregation_function.get(k, lambda x: x.values[0]) for k in columns}
-            data_frame = self._solutions.groupby([REACTIONS, SIZE], as_index=False).aggregate(aggregation_functions)
-            return data_frame[self._solutions.columns]
-
-        else:
-            return DataFrame(self._solutions)
+        return DataFrame(self._solutions)
 
 
 class ReactionKnockoutOptimization(KnockoutOptimization):
@@ -714,7 +599,7 @@ class ReactionKnockoutOptimization(KnockoutOptimization):
     --------
     >>> from cameo import models
     >>> model = models.bigg.iJO1366
-    >>> from cameo.strain_design.heuristic.objective_functions import biomass_product_coupled_yield
+    >>> from cameo.strain_design.heuristic.evolutionary.objective_functions import biomass_product_coupled_yield
     >>> bpcy = biomass_product_coupled_yield(model.reactions.Ec_biomass_iJO1366_core_53p95,
     >>>                                      model.reactions.EX_succ_e),
     >>>                                      model.reactions.EX_glc__D_e)
@@ -785,7 +670,7 @@ class GeneKnockoutOptimization(KnockoutOptimization):
     --------
     >>> from cameo import models
     >>> model = models.bigg.iJO1366
-    >>> from cameo.strain_design.heuristic.objective_functions import biomass_product_coupled_yield
+    >>> from cameo.strain_design.heuristic.evolutionary.objective_functions import biomass_product_coupled_yield
     >>> bpcy = biomass_product_coupled_yield(model.reactions.Ec_biomass_iJO1366_core_53p95,
     >>>                                      model.reactions.EX_succ_e),
     >>>                                      model.reactions.EX_glc__D_e)
@@ -812,6 +697,11 @@ class GeneKnockoutOptimization(KnockoutOptimization):
 
 
 class KnockinKnockoutEvaluator(KnockoutEvaluator):
+
+    def __init__(self, database, *args, **kwargs):
+        super(KnockinKnockoutEvaluator, self).__init__(*args, **kwargs)
+        self._database = database
+
     def __call__(self, *args, **kwargs):
         pass
 
@@ -821,13 +711,16 @@ class KnockinKnockoutOptimizationResult:
 
 
 class KnockinKnockoutOptimization(KnockoutOptimization):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, database=None, *args, **kwargs):
         super(KnockinKnockoutOptimization, self).__init__(*args, **kwargs)
+        self._database = database
 
     def _evaluator(self, candidates, args):
         view = args.get('view')
         population_chunks = (chunk for chunk in partition(candidates, len(view)))
-        func_obj = KnockinKnockoutEvaluator(self.model, self._decoder, self.objective_function, self.simulation_method)
+        func_obj = KnockinKnockoutEvaluator(self.model, self._decoder,
+                                            self.objective_function, self.simulation_method,
+                                            self.simulation_kwargs)
         results = view.map(func_obj, population_chunks)
         fitness = reduce(list.__add__, results)
 
@@ -840,7 +733,7 @@ class KnockinKnockoutOptimization(KnockoutOptimization):
         super(KnockoutOptimization, self).run(
             keys=['knockout', 'knockin'],
             knockout_representation=self.representation,
-            knockin_representation=self.knockin_representaion,
+            knockin_representation=self._database,
             **kwargs)
         return KnockinKnockoutOptimizationResult(model=self.model,
                                                  heuristic_method=self.heuristic_method,

@@ -14,13 +14,16 @@
 # limitations under the License.
 
 from __future__ import absolute_import, print_function
-from functools import partial
-from cameo.util import TimeMachine
 
-__all__ = ['biomass_product_coupled_yield', 'product_yield', 'number_of_knockouts']
+from functools import partial
+
 
 from cobra import Reaction
 from cameo import config, flux_variability_analysis
+from cameo.util import TimeMachine
+
+
+__all__ = ['biomass_product_coupled_yield', 'product_yield', 'number_of_knockouts']
 
 
 class ObjectiveFunction(object):
@@ -121,7 +124,7 @@ class biomass_product_coupled_yield(ObjectiveFunction):
 
 class biomass_product_coupled_min_yield(ObjectiveFunction):
     """
-    Biomass-Product Coupled Yield: (v[biomass] * min(v[product])) / v[substrate] [1]
+    Biomass-Product Coupled Minimum Yield: (v[biomass] * min(v[product])) / v[substrate] [1]
 
     Parameters
     ----------
@@ -159,10 +162,10 @@ class biomass_product_coupled_min_yield(ObjectiveFunction):
                 biomass_reaction = model.reactions.get_by_id(self.biomass)
                 tm(do=partial(setattr, biomass_reaction, 'lower_bound', biomass_flux),
                    undo=partial(setattr, biomass_reaction, 'lower_bound', biomass_reaction.lower_bound))
-                for reaction_ko in decoded_representation[0]:
-                    reaction_ko.knock_out(tm)
+                # for reaction_ko in decoded_representation[0]:
+                #     reaction_ko.knock_out(tm)
 
-                fva_res = flux_variability_analysis(model, reactions=[self.product])
+            fva_res = flux_variability_analysis(model, reactions=[self.product])
 
             min_product_flux = fva_res["lower_bound"][self.product]
             substrate_flux = round(abs(solution.fluxes[self.substrate]), config.ndecimals)

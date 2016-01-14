@@ -13,40 +13,40 @@
 # limitations under the License.
 
 from __future__ import absolute_import, print_function
+
+import os
+import pickle
+import unittest
 from collections import namedtuple
 from math import sqrt
 
-import os
-import unittest
 import inspyred
-import pickle
-from inspyred.ec import Bounder
 import numpy
-from ordered_set import OrderedSet
-
-from pandas.util.testing import assert_frame_equal
 import six
-
-from cameo import load_model, fba, config
-from cameo.strain_design.heuristic.genomes import MultipleChromosomeGenome
-from cameo.strain_design.heuristic.metrics import euclidean_distance
-from cameo.strain_design.heuristic.metrics import manhattan_distance
-from cameo.strain_design.heuristic.multiprocess.migrators import MultiprocessingMigrator
-from cameo.strain_design.heuristic.variators import _do_set_n_point_crossover, set_n_point_crossover, set_mutation, \
-    set_indel, multiple_chromosome_set_mutation, multiple_chromosome_set_indel
-
-from cameo.util import RandomGenerator as Random
-from cameo.strain_design.heuristic.optimization import HeuristicOptimization, ReactionKnockoutOptimization, \
-    set_distance_function, KnockoutOptimizationResult
-from cameo.strain_design.heuristic.archivers import Individual, BestSolutionArchiver
-from cameo.strain_design.heuristic.decoders import ReactionKnockoutDecoder, KnockoutDecoder, GeneKnockoutDecoder
-from cameo.strain_design.heuristic.generators import set_generator, unique_set_generator, \
+from cameo.strain_design.heuristic.evolutionary.archives import Individual, BestSolutionArchive
+from cameo.strain_design.heuristic.evolutionary.decoders import ReactionKnockoutDecoder, KnockoutDecoder, \
+    GeneKnockoutDecoder
+from cameo.strain_design.heuristic.evolutionary.generators import set_generator, unique_set_generator, \
     multiple_chromosome_set_generator, linear_set_generator
-from cameo.strain_design.heuristic.objective_functions import biomass_product_coupled_yield, product_yield, \
-    number_of_knockouts
+from cameo.strain_design.heuristic.evolutionary.genomes import MultipleChromosomeGenome
+from cameo.strain_design.heuristic.evolutionary.metrics import euclidean_distance
+from cameo.strain_design.heuristic.evolutionary.metrics import manhattan_distance
+from cameo.strain_design.heuristic.evolutionary.objective_functions import biomass_product_coupled_yield, \
+    product_yield, number_of_knockouts
+from cameo.strain_design.heuristic.evolutionary.variators import _do_set_n_point_crossover, set_n_point_crossover, \
+    set_mutation, set_indel, multiple_chromosome_set_mutation, multiple_chromosome_set_indel
 from cobra.manipulation.delete import find_gene_knockout_reactions
-from cameo.parallel import SequentialView, MultiprocessingView, RedisQueue
+from inspyred.ec import Bounder
+from ordered_set import OrderedSet
+from pandas.util.testing import assert_frame_equal
 from six.moves import range
+
+from cameo import load_model, fba
+from cameo.parallel import SequentialView, RedisQueue
+from cameo.strain_design.heuristic.evolutionary.multiprocess.migrators import MultiprocessingMigrator
+from cameo.strain_design.heuristic.evolutionary.optimization import HeuristicOptimization, \
+    ReactionKnockoutOptimization, set_distance_function, KnockoutOptimizationResult
+from cameo.util import RandomGenerator as Random
 
 TRAVIS = os.getenv('TRAVIS', False)
 
@@ -81,7 +81,7 @@ class TestMetrics(unittest.TestCase):
         self.assertEqual(distance, abs(9-3))
 
 
-class TestBestSolutionArchiver(unittest.TestCase):
+class TestBestSolutionArchive(unittest.TestCase):
     def test_solution_string(self):
         sol1 = Individual(SOLUTIONS[0][0], SOLUTIONS[0][1])
         sol2 = Individual(SOLUTIONS[1][0], SOLUTIONS[1][1])
@@ -182,7 +182,7 @@ class TestBestSolutionArchiver(unittest.TestCase):
 
     def test_add_greater_solution_with_same_fitness(self):
         size = 1
-        pool = BestSolutionArchiver()
+        pool = BestSolutionArchive()
         pool.add(SOLUTIONS[0][0], SOLUTIONS[0][1], None, True, size)
         pool.add(SOLUTIONS[1][0], SOLUTIONS[1][1], None, True, size)
         self.assertEqual(pool.length(), 1, msg="Pool must keep one solution (length=%s)" % pool.length())
@@ -194,7 +194,7 @@ class TestBestSolutionArchiver(unittest.TestCase):
 
     def test_add_smaller_solution_with_same_fitness(self):
         size = 1
-        pool = BestSolutionArchiver()
+        pool = BestSolutionArchive()
         pool.add(SOLUTIONS[1][0], SOLUTIONS[1][1], None, True, size)
         pool.add(SOLUTIONS[0][0], SOLUTIONS[0][1], None, True, size)
         self.assertEqual(pool.length(), 1, msg="Pool must keep one solution (length=%s)" % pool.length())
@@ -206,7 +206,7 @@ class TestBestSolutionArchiver(unittest.TestCase):
 
     def test_uniqueness_of_solutions(self):
         size = 2
-        pool = BestSolutionArchiver()
+        pool = BestSolutionArchive()
         pool.add(SOLUTIONS[1][0], SOLUTIONS[1][1], None, True, size)
         pool.add(SOLUTIONS[1][0], SOLUTIONS[1][1], None, True, size)
 
@@ -214,7 +214,7 @@ class TestBestSolutionArchiver(unittest.TestCase):
 
     def test_pool_size_limit(self):
         size = 1
-        pool = BestSolutionArchiver()
+        pool = BestSolutionArchive()
         pool.add(SOLUTIONS[0][0], SOLUTIONS[0][1], None, True, size)
         pool.add(SOLUTIONS[1][0], SOLUTIONS[1][1], None, True, size)
         pool.add(SOLUTIONS[2][0], SOLUTIONS[2][1], None, True, size)
@@ -227,7 +227,7 @@ class TestBestSolutionArchiver(unittest.TestCase):
         pool.add(SOLUTIONS[9][0], SOLUTIONS[9][1], None, True, size)
         self.assertLessEqual(pool.length(), 1, msg="Pool must keep one solution (length=%s)" % pool.length())
         size = 2
-        pool = BestSolutionArchiver()
+        pool = BestSolutionArchive()
         pool.add(SOLUTIONS[0][0], SOLUTIONS[0][1], None, True, size)
         pool.add(SOLUTIONS[1][0], SOLUTIONS[1][1], None, True, size)
         pool.add(SOLUTIONS[2][0], SOLUTIONS[2][1], None, True, size)
@@ -240,7 +240,7 @@ class TestBestSolutionArchiver(unittest.TestCase):
         pool.add(SOLUTIONS[9][0], SOLUTIONS[9][1], None, True, size)
         self.assertLessEqual(pool.length(), 2, msg="Pool must keep one solution (length=%s)" % pool.length())
         size = 3
-        pool = BestSolutionArchiver()
+        pool = BestSolutionArchive()
         pool.add(SOLUTIONS[0][0], SOLUTIONS[0][1], None, True, size)
         pool.add(SOLUTIONS[1][0], SOLUTIONS[1][1], None, True, size)
         pool.add(SOLUTIONS[2][0], SOLUTIONS[2][1], None, True, size)
@@ -253,7 +253,7 @@ class TestBestSolutionArchiver(unittest.TestCase):
         pool.add(SOLUTIONS[9][0], SOLUTIONS[9][1], None, True, size)
         self.assertLessEqual(pool.length(), 3, msg="Pool must keep one solution (length=%s)" % pool.length())
         size = 4
-        pool = BestSolutionArchiver()
+        pool = BestSolutionArchive()
         pool.add(SOLUTIONS[0][0], SOLUTIONS[0][1], None, True, size)
         pool.add(SOLUTIONS[1][0], SOLUTIONS[1][1], None, True, size)
         pool.add(SOLUTIONS[2][0], SOLUTIONS[2][1], None, True, size)
@@ -267,7 +267,7 @@ class TestBestSolutionArchiver(unittest.TestCase):
         self.assertLessEqual(pool.length(), 4, msg="Pool must keep one solution (length=%s)" % pool.length())
 
     def test_callable_pool(self):
-        pool = BestSolutionArchiver()
+        pool = BestSolutionArchive()
         size = 3
         args = {}
         args['max_archive_size'] = size
@@ -623,7 +623,7 @@ class TestKnockoutOptimizationResult(unittest.TestCase):
         self.representation = [r.id for r in self.model.reactions]
         random = Random(SEED)
         args = {"representation": self.representation}
-        self.solutions = BestSolutionArchiver()
+        self.solutions = BestSolutionArchive()
         for _ in range(10000):
             self.solutions.add(set_generator(random, args), random.random(), None, True, 100)
         self.decoder = ReactionKnockoutDecoder(self.representation, self.model)
@@ -633,21 +633,19 @@ class TestKnockoutOptimizationResult(unittest.TestCase):
             model=self.model,
             heuristic_method=None,
             simulation_method=fba,
+            simulation_kwargs=None,
             solutions=self.solutions,
             objective_function=None,
             ko_type="reaction",
             decoder=self.decoder,
-            product="EX_ac_LPAREN_e_RPAREN_",
-            biomass="Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2",
-            seed=SEED,
-            reference=None)
+            seed=SEED)
 
         self.assertEqual(result.ko_type, "reaction")
 
         individuals = []
-        for row in result.individuals():
+        for row in result:
             encoded = set(self.representation.index(v) for v in row[0])
-            individual = Individual(encoded, row[1])
+            individual = Individual(encoded, row[2])
             self.assertNotIn(individual, individuals, msg="%s is repeated on result")
             individuals.append(individual)
             self.assertIn(individual, self.solutions.archive)
@@ -730,7 +728,7 @@ class TestReactionKnockoutOptimization(unittest.TestCase):
         pass
 
 
-class VariatorsTestCase(unittest.TestCase):
+class VariatorTestCase(unittest.TestCase):
 
     def test_set_n_point_crossover(self):
         mom = OrderedSet([1, 3, 5, 9, 10])
