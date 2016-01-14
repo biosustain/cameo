@@ -66,7 +66,7 @@ class OptKnock(StrainDesignMethod):
     >>> optknock = OptKnock(model)
     >>> result = optknock.run(k=2, target="EX_ac_e", max_results=3)
     """
-    def __init__(self, model, exclude_reactions=None, remove_blocked=True, fraction_of_optimum=0.1, *args, **kwargs):
+    def __init__(self, model, exclude_reactions=None, remove_blocked=True, fraction_of_optimum=None, *args, **kwargs):
         assert isinstance(model, SolverBasedModel)
         super(OptKnock, self).__init__(*args, **kwargs)
         self._model = model.copy()
@@ -86,7 +86,8 @@ class OptKnock(StrainDesignMethod):
             warnings.warn("You are trying to run OptKnock with %s. This might not end well." %
                           self._model.solver.interface.__name__.split(".")[-1])
 
-        self._model.fix_objective_as_constraint(fraction=fraction_of_optimum)
+        if fraction_of_optimum is not None:
+            self._model.fix_objective_as_constraint(fraction=fraction_of_optimum)
         if remove_blocked:
             self._remove_blocked_reactions()
 

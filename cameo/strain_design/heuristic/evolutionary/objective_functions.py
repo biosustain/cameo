@@ -124,7 +124,7 @@ class biomass_product_coupled_yield(ObjectiveFunction):
 
 class biomass_product_coupled_min_yield(ObjectiveFunction):
     """
-    Biomass-Product Coupled Mi Yield: (v[biomass] * min(v[product])) / v[substrate] [1]
+    Biomass-Product Coupled Minimum Yield: (v[biomass] * min(v[product])) / v[substrate] [1]
 
     Parameters
     ----------

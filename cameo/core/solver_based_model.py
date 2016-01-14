@@ -188,7 +188,7 @@ class SolverBasedModel(cobra.core.Model):
         not_valid_interface = ValueError(
             '%s is not a valid solver interface. Pick from %s, or specify an optlang interface (e.g. optlang.glpk_interface).' % (
                 value, list(config.solvers.keys())))
-        if isinstance(value, str):
+        if isinstance(value, six.string_types):
             try:
                 interface = config.solvers[value]
             except KeyError:
@@ -548,7 +548,7 @@ class SolverBasedModel(cobra.core.Model):
             model._load_medium_from_dict(model, medium)
         elif isinstance(medium, pandas.DataFrame):
             model._load_medium_from_dataframe(model, medium)
-        elif isinstance(medium, str):
+        elif isinstance(medium, six.string_types):
             model._load_medium_from_file(model, medium)
         else:
             raise AssertionError("input type (%s) is not valid" % type(medium))
@@ -559,7 +559,7 @@ class SolverBasedModel(cobra.core.Model):
         """Translate reaction IDs into reactions (skips reactions)."""
         clean_reactions = list()
         for reaction in reactions:
-            if isinstance(reaction, str):
+            if isinstance(reaction, six.string_types):
                 clean_reactions.append(self.reactions.get_by_id(reaction))
             elif isinstance(reaction, Reaction):
                 clean_reactions.append(reaction)
@@ -571,7 +571,7 @@ class SolverBasedModel(cobra.core.Model):
         if isinstance(value, Reaction):
             value = self.reactions.get_by_id(value.id)
 
-        if isinstance(value, str):
+        if isinstance(value, six.string_types):
             try:
                 value = self.reactions.get_by_id(value)
             except KeyError:
