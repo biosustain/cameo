@@ -308,7 +308,12 @@ class SolverBasedModel(cobra.core.Model):
         Reaction
             The created demand reaction.
         """
-        demand_reaction = Reaction(str(prefix + metabolite.id))
+        id = str(prefix + metabolite.id)
+        name = "Exchange %s" % metabolite.name if prefix == "EX_" else "Demand %s" % metabolite.name
+
+        demand_reaction = Reaction()
+        demand_reaction.id = id
+        demand_reaction.name = name
         demand_reaction.add_metabolites({metabolite: -1})
         demand_reaction.lower_bound = 0
         demand_reaction.upper_bound = 1000
@@ -567,7 +572,33 @@ class SolverBasedModel(cobra.core.Model):
                 raise Exception('%s is not a reaction or reaction ID.' % reaction)
         return clean_reactions
 
-    def reaction_for(self, value, time_machine=None):
+    def reaction_for(self, value, time_machine=None, add=True):
+        """
+        Converts an object into a reaction.
+
+        If a Metabolite or a Metabolite id is given, it will return an exchange or demand reaction if it exists.
+        If *add* is true, it adds a demand reaction if it does not exist.
+
+        Parameters
+        ----------
+        value: str, Reaction or Metabolite
+            An object that can be converted to a reaction
+        time_machine: TimeMachine
+            Can be used when *add* is True to revert the model
+        add: bool
+            Adds a demand reaction for a metabolite if a metabolite is found for *value*
+
+        Returns
+        -------
+        Reaction
+
+        Raises
+        ------
+        KeyError
+            If *value* does not match any Reaction or Metabolite
+
+        """
+
         if isinstance(value, Reaction):
             value = self.reactions.get_by_id(value.id)
 
@@ -586,8 +617,14 @@ class SolverBasedModel(cobra.core.Model):
             except KeyError:
                 try:
                     value = self.reactions.get_by_id("DM_%s" % value.id)
-                except KeyError:
-                    value = self.add_demand(value, time_machine=time_machine)
+                except KeyError as e:
+                    if add:
+                        value = self.add_demand(value, time_machine=time_machine)
+                    else:
+                        raise e
+
+        if value is None:
+            raise KeyError(None)
 
         return value
 
