@@ -110,6 +110,11 @@ class TestOptKnock(unittest.TestCase):
                                               reactions=["EX_ac_lp_e_rp_"])
         self.assertAlmostEqual(fva["upper_bound"][0], production)
 
+    def test_invalid_input(self):
+        self.assertRaises(KeyError, self.optknock.run, target="EX_ac_lp_e_rp_")
+        self.assertRaises(KeyError, self.optknock.run, biomass="Biomass_Ecoli_core_N_lp_w_fsh_GAM_rp__Nmet2")
+
+
 
 if __name__ == "__main__":
     import nose
