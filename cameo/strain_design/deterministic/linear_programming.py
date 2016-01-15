@@ -210,9 +210,13 @@ class OptKnock(StrainDesignMethod):
         OptKnockResult
         """
 
+        target = self._model.reaction_for(target, add=False)
+        biomass = self._model.reaction_for(biomass, add=False)
+
         knockout_list = []
         fluxes_list = []
         production_list = []
+        biomass_list = []
         loader_id = ui.loading()
         with TimeMachine() as tm:
             self._model.objective = target
@@ -232,6 +236,7 @@ class OptKnock(StrainDesignMethod):
                 knockout_list.append(knockouts)
                 fluxes_list.append(solution.fluxes)
                 production_list.append(solution.f)
+                biomass_list.append(solution.fluxes[biomass.id])
 
                 # Add an integer cut
                 y_vars_to_cut = [y for y in self._y_vars if round(y.primal, 3) == 0]
@@ -247,7 +252,8 @@ class OptKnock(StrainDesignMethod):
                 count += 1
 
             ui.stop_loader(loader_id)
-            return OptKnockResult(self._original_model, knockout_list, fluxes_list, production_list, target, biomass)
+            return OptKnockResult(self._original_model, knockout_list, fluxes_list,
+                                  production_list, biomass_list, target, biomass)
 
 
 class RobustKnock(StrainDesignMethod):
@@ -255,12 +261,13 @@ class RobustKnock(StrainDesignMethod):
 
 
 class OptKnockResult(StrainDesignResult):
-    def __init__(self, model, designs, fluxes, production, target, biomass, *args, **kwargs):
+    def __init__(self, model, designs, fluxes, production_fluxes, biomass_fluxes, target, biomass, *args, **kwargs):
         super(OptKnockResult, self).__init__(*args, **kwargs)
         self._model = model
         self._designs = designs
         self._fluxes = fluxes
-        self._production = production
+        self._production_fluxes = production_fluxes
+        self._biomass_fluxes = biomass_fluxes
         self._target = target
         self._biomass = biomass
         self._processed_knockouts = None
@@ -275,7 +282,7 @@ class OptKnockResult(StrainDesignResult):
             for i, knockouts in enumerate(self._designs):
                 fva = flux_variability_analysis(self._model, fraction_of_optimum=0.99, reactions=[self.target])
                 fbid = flux_balance_impact_degree(self._model, knockouts)
-                self._processed_knockouts.loc[i] = [knockouts, len(knockouts), self.production[i], self._biomass[i],
+                self._processed_knockouts.loc[i] = [knockouts, len(knockouts), self.production[i], self.biomass[i],
                                                     fva.lower_bound(self.target), fva.upper_bound(self.target),
                                                     fbid.degree]
         finally:
@@ -291,7 +298,11 @@ class OptKnockResult(StrainDesignResult):
 
     @property
     def production(self):
-        return self._production
+        return self._production_fluxes
+
+    @property
+    def biomass(self):
+        return self._biomass_fluxes
 
     @property
     def target(self):
