@@ -253,7 +253,7 @@ class OptKnock(StrainDesignMethod):
 
             ui.stop_loader(loader_id)
             return OptKnockResult(self._original_model, knockout_list, fluxes_list,
-                                  production_list, biomass_list, target, biomass)
+                                  production_list, biomass_list, target.id, biomass)
 
 
 class RobustKnock(StrainDesignMethod):
