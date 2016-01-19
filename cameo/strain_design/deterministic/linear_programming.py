@@ -219,7 +219,7 @@ class OptKnock(StrainDesignMethod):
         biomass_list = []
         loader_id = ui.loading()
         with TimeMachine() as tm:
-            self._model.objective = target
+            self._model.objective = target.id
             self._number_of_knockouts_constraint.lb = self._number_of_knockouts_constraint.ub - max_knockouts
             count = 0
             while count < max_results:
