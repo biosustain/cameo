@@ -77,16 +77,16 @@ class Reaction(_cobrapy.core.Reaction):
             metabolite._reaction.add(new_reaction)
         return new_reaction
 
-    def __init__(self, name=None):
+    def __init__(self, id, name=None, subsystem="", lower_bound=0, upper_bound=1000):
         """
         Parameters
         ----------
         name : str, optional
             The name of the reaction.
         """
-        super(Reaction, self).__init__(name=name)
-        self._lower_bound = 0
-        self._upper_bound = 1000.
+        super(Reaction, self).__init__(id=id, name=name, subsystem=subsystem)
+        self._lower_bound = lower_bound
+        self._upper_bound = upper_bound
         self._objective_coefficient = 0.
 
     def __str__(self):
@@ -123,7 +123,6 @@ class Reaction(_cobrapy.core.Reaction):
         if model is not None:
             aux_id = self._get_forward_id()
             return model.solver.variables[aux_id]
-
         else:
             return None
 
