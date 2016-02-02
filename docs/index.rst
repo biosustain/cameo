@@ -35,15 +35,17 @@ Table of Contents
 
     dependencies
     installation
-    1-quick-start
-    2-import-models
-    3-simulate-models
-    4-analyze-models
-    5-predict-expression-modulation-targets
-    6-predict-gene-knockout-strategies
-    7-predict-heterologous-pathways
-    8-high-level-AP
-    parallelization
+    01-quick-start
+    02-import-models
+    03-simulate-models
+    04-analyze-models
+    05-predict-gene-knockout-strategies
+    06-predict-expression-modulation-targets
+    07-predict-heterologous-pathways
+    08-high-level-API
+    09-vanillin-production
+    11-multiprocess
+    12-advanced-usage-of-heuristic-optimization
     cobrapy_difference
     API
 
