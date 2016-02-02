@@ -8,7 +8,7 @@ Jinja2==2.7.3
 pandas>=0.15.2
 ordered-set==1.2
 inspyred==1.0
-cobra==0.3.2
+cobra==0.4.0b6
 optlang==0.2.9
 sphinx>=1.2.2
 sphinx-rtd-theme>=0.1.6
