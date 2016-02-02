@@ -26,7 +26,7 @@ if on_rtd:
         def __getattr__(cls, name):
             return Mock()
 
-    MOCK_MODULES = ['numpy', 'numpy.random', 'matplotlib', 'pandas', 'scipy', 'scipy.sparse',
+    MOCK_MODULES = ['numpy', 'numpy.random', 'numpy.linalg', 'matplotlib', 'pandas', 'scipy', 'scipy.sparse',
                     'scipy.io', 'scipy.stats', 'scipy.version', 'bokeh', 'bokeh.plotting', 'swiglpk',
                     'glpk', 'gurobipy', 'gurobipy.GRB', 'cplex', 'mlabwrap', 'pp', 'libsbml', 'METANETX', '_METANETX']
     sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
