@@ -45,7 +45,6 @@ Table of Contents
     08-high-level-API
     09-vanillin-production
     11-multiprocess
-    12-advanced-usage-of-heuristic-optimization
     cobrapy_difference
     API
 
