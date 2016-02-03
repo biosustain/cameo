@@ -55,7 +55,7 @@ class Reaction(_cobrapy.core.Reaction):
         Reaction
 
         """
-        new_reaction = cls(name=reaction.name)
+        new_reaction = cls(reaction.id, name=reaction.name)
         for attribute, value in six.iteritems(reaction.__dict__):
             if attribute == '_model':  # _model needs to be set after all other attributes have been set.
                 continue
@@ -77,7 +77,7 @@ class Reaction(_cobrapy.core.Reaction):
             metabolite._reaction.add(new_reaction)
         return new_reaction
 
-    def __init__(self, id, name=None, subsystem="", lower_bound=0, upper_bound=1000):
+    def __init__(self, id=None, name='', subsystem="", lower_bound=0, upper_bound=1000):
         """
         Parameters
         ----------
