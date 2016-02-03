@@ -4,7 +4,7 @@
 Welcome to cameo!
 =================
 
-|Documentation Status| |Build Status| |Coverage Status| |DOI|
+|Build Status| |Coverage Status| |DOI|
 
 **Cameo** is a high-level python library developed to aid the strain
 design process in metabolic engineering projects. The library provides a
@@ -45,6 +45,7 @@ Table of Contents
     08-high-level-API
     09-vanillin-production
     11-multiprocess
+    12-advanced-usage-of-heuristic-optimization.rst
     cobrapy_difference
     API
 
@@ -58,7 +59,7 @@ Indices and tables
 
 .. |Build Status| image:: https://travis-ci.org/biosustain/cameo.svg?branch=master
    :target: https://travis-ci.org/biosustain/cameo
-.. |Coverage Status| .. image:: https://codecov.io/github/biosustain/cameo/coverage.svg?branch=devel
-    :target: https://codecov.io/github/biosustain/cameo?branch=devel
+.. |Coverage Status| image:: https://codecov.io/github/biosustain/cameo/coverage.svg?branch=devel
+   :target: https://codecov.io/github/biosustain/cameo?branch=devel
 .. |DOI| image:: https://zenodo.org/badge/doi/10.5281/zenodo.19827.svg
    :target: http://dx.doi.org/10.5281/zenodo.19827
