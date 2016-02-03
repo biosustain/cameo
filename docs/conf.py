@@ -15,26 +15,26 @@
 import sys
 import os
 
-import sphinx_rtd_theme
+import alabaster
 
-on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
-if on_rtd:
-    from mock import MagicMock
-
-    class Mock(MagicMock):
-        @classmethod
-        def __getattr__(cls, name):
-            return Mock()
-
-    # MOCK_MODULES = ['numpy', 'numpy.random', 'numpy.linalg', 'matplotlib', 'pandas', 'scipy', 'scipy.sparse',
-    #                 'scipy.io', 'scipy.stats', 'scipy.version', 'bokeh', 'bokeh.plotting', 'swiglpk',
-    #                 'glpk', 'gurobipy', 'gurobipy.GRB', 'cplex', 'mlabwrap', 'pp', 'libsbml', 'METANETX', '_METANETX',
-    #                 'IPython.core.display', 'IPython.core', 'IPython']
-    MOCK_MODULES = ['matplotlib', 'pandas', 'scipy', 'scipy.sparse',
-                    'scipy.io', 'scipy.stats', 'scipy.version', 'bokeh', 'bokeh.plotting', 'swiglpk',
-                    'glpk', 'gurobipy', 'gurobipy.GRB', 'cplex', 'mlabwrap', 'pp', 'libsbml', 'METANETX', '_METANETX',
-                    'IPython.core.display', 'IPython.core', 'IPython']
-    sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
+# on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
+# if on_rtd:
+#     from mock import MagicMock
+#
+#     class Mock(MagicMock):
+#         @classmethod
+#         def __getattr__(cls, name):
+#             return Mock()
+#
+#     # MOCK_MODULES = ['numpy', 'numpy.random', 'numpy.linalg', 'matplotlib', 'pandas', 'scipy', 'scipy.sparse',
+#     #                 'scipy.io', 'scipy.stats', 'scipy.version', 'bokeh', 'bokeh.plotting', 'swiglpk',
+#     #                 'glpk', 'gurobipy', 'gurobipy.GRB', 'cplex', 'mlabwrap', 'pp', 'libsbml', 'METANETX', '_METANETX',
+#     #                 'IPython.core.display', 'IPython.core', 'IPython']
+#     MOCK_MODULES = ['matplotlib', 'pandas', 'scipy', 'scipy.sparse',
+#                     'scipy.io', 'scipy.stats', 'scipy.version', 'bokeh', 'bokeh.plotting', 'swiglpk',
+#                     'glpk', 'gurobipy', 'gurobipy.GRB', 'cplex', 'mlabwrap', 'pp', 'libsbml', 'METANETX', '_METANETX',
+#                     'IPython.core.display', 'IPython.core', 'IPython']
+#     sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -142,26 +142,34 @@ pygments_style = 'sphinx'
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-# html_theme = "sphinx_rtd_theme"
+html_theme = 'alabaster'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
-# html_theme_options = {}
+html_theme_options = {
+    'logo': 'cameo_logo.png',
+    'touch_icon': 'cameo_touch_icon.png',
+    'github_banner': True,
+    'github_user': 'biosustain',
+    'github_repo': 'cameo',
+    'travis_button': 'biosustain/cameo',
+    'codecov_button': 'biosustain/cameo'
+}
 
 # Add any paths that contain custom themes here, relative to this directory.
-html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
+html_theme_path = [alabaster.get_path()]
 
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
 # html_title = None
 
 # A shorter title for the navigation bar.  Default is the same as html_title.
-# html_short_title = None
+html_short_title = None
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-# html_logo = None
+# html_logo = 'cameo_logo.png'
 
 # The name of an image file (within the static path) to use as favicon of the
 # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
@@ -187,7 +195,15 @@ html_static_path = ['_static']
 # html_use_smartypants = True
 
 # Custom sidebar templates, maps document names to template names.
-# html_sidebars = {}
+html_sidebars = {
+    '**': [
+        'about.html',
+        'navigation.html',
+        'relations.html',
+        'searchbox.html',
+        'donate.html',
+    ]
+}
 
 # Additional templates that should be rendered to pages, maps page names to
 # template names.

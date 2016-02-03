@@ -1,8 +1,8 @@
 .. warning::
     These pages are under construction. Feel free to look around ...
 
-cameo
-=====
+Welcome to cameo!
+=================
 
 |Documentation Status| |Build Status| |Coverage Status| |DOI|
 
@@ -31,7 +31,7 @@ Table of Contents
 -----------------
 
 .. toctree::
-    :maxdepth: 2
+    :maxdepth: 3
 
     dependencies
     installation
@@ -56,11 +56,9 @@ Indices and tables
 * :ref:`search`
 
 
-.. |Documentation Status| image:: https://readthedocs.org/projects/cameo/badge/?version=devel
-   :target: https://readthedocs.org/projects/cameo/?badge=devel
 .. |Build Status| image:: https://travis-ci.org/biosustain/cameo.svg?branch=master
    :target: https://travis-ci.org/biosustain/cameo
-.. |Coverage Status| image:: https://coveralls.io/repos/biosustain/cameo/badge.svg?branch=devel
-   :target: https://coveralls.io/r/biosustain/cameo?branch=devel
+.. |Coverage Status| .. image:: https://codecov.io/github/biosustain/cameo/coverage.svg?branch=devel
+    :target: https://codecov.io/github/biosustain/cameo?branch=devel
 .. |DOI| image:: https://zenodo.org/badge/doi/10.5281/zenodo.19827.svg
    :target: http://dx.doi.org/10.5281/zenodo.19827
