@@ -23,6 +23,7 @@ addons:
 before_install:
 #- if [ ! -d "cplex/python/$TRAVIS_PYTHON_VERSION/x86-64_linux/" ]; then curl -L SECRET_CPLEX_LINK -o cplex.tar.gz && tar xvf cplex.tar.gz; fi
 - pip install pip --upgrade
+- pip install codecov
 - curl -L $SECRET_CPLEX_LINK -o cplex.tar.gz
 - tar xvf cplex.tar.gz
 - if [[ $TRAVIS_PYTHON_VERSION == "3.4" ]]; then cd "cplex/python/3.4/x86-64_linux/"; fi
@@ -45,6 +46,7 @@ install:
 script: nosetests
 after_success:
 - coveralls
+- codecov
 notifications:
   slack: biosustain:UGm09rOjMCgXko3rS3wUivoX
 before_deploy:
