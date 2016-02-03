@@ -26,7 +26,11 @@ import numpy as np
 
 from functools import partial
 from uuid import uuid4
-from IPython.core.display import display, HTML, Javascript
+
+try:
+    from IPython.core.display import display, HTML, Javascript
+except ImportError:
+    pass
 
 from IProgress import ProgressBar
 from pandas import DataFrame, pandas
@@ -52,14 +56,12 @@ with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             from IPython.html.widgets import interact, IntSlider
     except ImportError:
-        from ipywidgets import interact, IntSlider
+        try:
+            from ipywidgets import interact, IntSlider
+        except ImportError:
+            pass
 
-
-if six.PY2:
-    from itertools import izip as my_zip
-else:
-    my_zip = zip
-
+zip = my_zip = six.moves.zip
 
 __all__ = ['DifferentialFVA', 'FSEOF']
 
