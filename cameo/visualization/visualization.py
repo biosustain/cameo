@@ -33,7 +33,10 @@ from cameo.util import TimeMachine, in_ipnb
 
 log = logging.getLogger(__name__)
 
-from IPython.display import HTML, SVG, Javascript, display
+try:
+    from IPython.display import HTML, SVG, Javascript, display
+except ImportError:
+    pass
 
 
 def pathviz_maps():

@@ -14,8 +14,11 @@
 
 from __future__ import absolute_import, print_function
 from uuid import uuid4
-from IPython.core.display import HTML, Javascript
-from IPython.core.display import display
+try:
+    from IPython.core.display import HTML, Javascript
+    from IPython.core.display import display
+except ImportError:
+    pass
 
 from cameo import util
 import logging
