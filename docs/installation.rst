@@ -69,15 +69,24 @@ Soft dependencies
 
 We highly recommend installing the following soft dependencies to provide a richer user experience when working with cameo.
 
-- Jupyter notebook >= 1.0.0 (for interactive modeling environment)
-- bokeh >= 0.11.0 (for plotting)
-- escher >= 1.2.1 (for pathway visualizations)
+- [Jupyter notebook](https://pypi.python.org/pypi/jupyter)) >= 1.0.0 (for interactive modeling environment)
+- [bokeh](https://pypi.python.org/pypi/bokeh)) >= 0.11.0 (for plotting)
+- [escher](https://pypi.python.org/pypi/escher)) >= 1.2.1 (for pathway visualizations)
 
 All of these soft dependencies can be installed using pip.
 
 .. code-block:: bash
 
     $ pip install jupyter bokeh escher
+
+Furthermore, the following dependencies are needed for developing and contributing to cameo.
+
+* [sphinx](https://pypi.python.org/pypi/sphinx)) (for generating documentation)
+* [numpydoc](https://pypi.python.org/pypi/numpydoc) (for using numpy doc strings)
+* [nose](https://pypi.python.org/pypi/nose/) (for running unit tests)
+* [rednose](https://pypi.python.org/pypi/rednose) (for running unit tests)
+* [codecov](https://pypi.python.org/pypi/codecov) (for determining test coverage)
+
 
 Development setup
 -----------------
