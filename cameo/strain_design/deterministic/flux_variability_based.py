@@ -153,7 +153,7 @@ class DifferentialFVA(StrainDesignMethod):
         elif isinstance(objective, str):
             self.objective = objective
         else:
-            raise ValueError('You need to either provide ')
+            raise ValueError('You need to provide an objective as a Reaction, Metabolite or a reaction id')
 
         if variables is None:
             # try to establish the current objective reaction
