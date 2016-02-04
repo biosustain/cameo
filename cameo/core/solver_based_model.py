@@ -120,7 +120,7 @@ class SolverBasedModel(cobra.core.Model):
         model_copy = super(SolverBasedModel, self).copy()
         try:
             model_copy._solver = deepcopy(self.solver)
-        except:  # pragma: no cover # Cplex has an issue with deep copies
+        except Exception:  # pragma: no cover # Cplex has an issue with deep copies
             model_copy._solver = copy(self.solver)  # pragma: no cover
         return model_copy
 
@@ -310,6 +310,8 @@ class SolverBasedModel(cobra.core.Model):
         """
         id = str(prefix + metabolite.id)
         name = "Exchange %s" % metabolite.name if prefix == "EX_" else "Demand %s" % metabolite.name
+        if id in self.reactions:
+            raise ValueError("The metabolite already has a demand reaction.")
 
         demand_reaction = Reaction()
         demand_reaction.id = id
