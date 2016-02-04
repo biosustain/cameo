@@ -17,8 +17,14 @@ from __future__ import absolute_import, print_function
 import re
 
 import numpy as np
-from IPython.core.display import display
-from IPython.core.display import HTML
+try:
+    from IPython.core.display import display
+    from IPython.core.display import HTML
+except:
+    def display(*args, **kwargs):
+        print(*args, **kwargs)
+    def HTML(*args, **kwargs):
+        print(*args, **kwargs)
 from pandas import DataFrame
 
 from cameo import Metabolite, Model, phenotypic_phase_plane, fba
