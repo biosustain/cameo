@@ -39,7 +39,6 @@ On macs we recommend using homebrew_.
     $ brew install swig
     $ brew install glpk
 
-
 CPLEX
 ~~~~~
 
@@ -65,6 +64,21 @@ cameo can be installed using `pip`.
 
     $ pip install cameo
 
+Soft dependencies
+-----------------
+
+We highly recommend installing the following soft dependencies to provide a richer user experience when working with cameo.
+
+- Jupyter notebook >= 1.0.0 (for interactive modeling environment)
+- bokeh >= 0.11.0 (for plotting)
+- escher >= 1.2.1 (for pathway visualizations)
+
+All of these soft dependencies can be installed using pip.
+
+.. code-block:: bash
+
+    $ pip install jupyter bokeh escher
+
 Development setup
 -----------------
 
@@ -78,9 +92,9 @@ Alternatively, you can clone the repository (or your fork) and then run
 
 .. code-block:: bash
 
-    $ python setup.py install
+    $ pip install -e .
 
-From withing the cameo directory.
+within the cameo directory.
 
 .. _homebrew: http://brew.sh/
 .. _swig: http://www.swig.org/
