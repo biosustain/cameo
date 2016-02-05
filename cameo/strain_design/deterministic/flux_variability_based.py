@@ -572,7 +572,7 @@ class FSEOF(StrainDesignMethod):
                         solution_method=simulation_method,
                         simulation_kwargs=simulation_kwargs,
                         exclude=exclude)
-        return FSEOFResult(fseof_reactions, target, model, self.primary_objective, levels, results, reference, run_args)
+        return FSEOFResult(fseof_reactions, target, model, self.primary_objective, levels, results, run_args, reference)
 
 
 class FSEOFResult(StrainDesignResult):
