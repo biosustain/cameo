@@ -16,22 +16,31 @@
 from __future__ import absolute_import, print_function
 
 import inspyred
+import numpy
 
+from pandas import DataFrame
+
+from cameo.exceptions import SolveError
 from cameo.visualization import plotting
-from cameo.visualization import ProgressBar
+from cameo.util import ProblemCache, TimeMachine
+
+from cameo.flux_analysis.simulation import fba
+from cameo.flux_analysis.analysis import phenotypic_phase_plane
+
+from cameo.core.solver_based_model import SolverBasedModel
+
+from cameo.strain_design.strain_design import StrainDesignMethod, StrainDesignResult, StrainDesign
 
 from cameo.strain_design.heuristic.evolutionary.objective_functions import biomass_product_coupled_min_yield, \
     biomass_product_coupled_yield
-from pandas import DataFrame
-
-from cameo import fba, phenotypic_phase_plane
-from cameo.core import SolverBasedModel
 from cameo.strain_design.heuristic.evolutionary.optimization import GeneKnockoutOptimization, \
     ReactionKnockoutOptimization
 from cameo.strain_design.heuristic.evolutionary.processing import process_knockout_solution
-from cameo.strain_design.strain_design import StrainDesignMethod, StrainDesignResult, StrainDesign
-from cameo.util import ProblemCache, TimeMachine
 
+from IProgress.progressbar import ProgressBar
+from IProgress.widgets import Bar, Percentage
+
+__all__ = ["OptGene"]
 
 class OptGene(StrainDesignMethod):
     def __init__(self, model, evolutionary_algorithm=inspyred.ec.GA, manipulation_type="genes", essential_genes=None,
@@ -181,10 +190,9 @@ class OptGeneResult(StrainDesignResult):
             <li>Objective Function: %s<br/></li>
         </ul>
         %s
-        """ % (self._simulation_method.__name__, self._objective_function._repr_latex_(), self.data_frame._repr_html_())
-
-    def plot(self, grid=None, width=None, height=None, title=None, *args, **kwargs):
-        pass
+        """ % (self._simulation_method.__name__,
+               self._objective_function._repr_latex_(),
+               self.data_frame._repr_html_())
 
     @property
     def data_frame(self):
@@ -204,24 +212,24 @@ class OptGeneResult(StrainDesignResult):
         return data_frame
 
     def _process_solutions(self):
-        processed_solutions = DataFrame(columns=["reactions", "genes", "size", "fva_min", "fva_max", "fbid",
+        processed_solutions = DataFrame(columns=["reactions", "genes", "size", "fva_min", "fva_max",
                                                  "target_flux", "biomass_flux", "yield", "fitness"])
 
         cache = ProblemCache(self._model)
-        progress = ProgressBar(size=len(self._designs), label="Processing solutions")
-        progress.start()
+        progress = ProgressBar(maxval=len(self._designs), widgets=["Processing solutions: ", Bar(), Percentage()])
         for i, solution in progress(enumerate(self._designs)):
-            processed_solutions.loc[i] = process_knockout_solution(
-                self._model, solution, self._simulation_method, self._simulation_kwargs, self._biomass,
-                self._target, self._substrate, [self._objective_function], cache=cache)
-
-        progress.end()
+            try:
+                processed_solutions.loc[i] = process_knockout_solution(
+                    self._model, solution, self._simulation_method, self._simulation_kwargs, self._biomass,
+                    self._target, self._substrate, [self._objective_function], cache=cache)
+            except SolveError:
+                processed_solutions.loc[i] = [numpy.nan for _ in processed_solutions.columns]
 
         if self._manipulation_type == "reactions":
             processed_solutions.drop('genes', axis=1, inplace=True)
         self._processed_solutions = processed_solutions
 
-    def plot(self, index, grid=None, width=None, height=None, title=None, *args, **kwargs):
+    def plot(self, index=None, grid=None, width=None, height=None, title=None, *args, **kwargs):
         wt_production = phenotypic_phase_plane(self._model, objective=self._target, variables=[self._biomass])
         with TimeMachine() as tm:
             for ko in self._designs[index][0]:

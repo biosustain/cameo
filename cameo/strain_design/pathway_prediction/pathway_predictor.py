@@ -68,12 +68,12 @@ class PathwayResult(Pathway, Result):
             if exchanges:
                 tm(do=partial(model.add_reactions, self.exchanges),
                    undo=partial(model.remove_reactions, self.exchanges, delete=False))
+            tm(do=partial(setattr, self.product, "lower_bound", 0),
+                undo=partial(setattr, self.product, "lower_bound", self.product.lower_bound))
             try:
-                tm(do=partial(setattr, self.product, "lower_bound", 0),
-                   undo=partial(setattr, self.product, "lower_bound", self.product.lower_bound))
                 tm(do=partial(model.add_reaction, self.product),
                    undo=partial(model.remove_reactions, [self.product], delete=False))
-            except:
+            except Exception:
                 logger.warning("Exchange %s already in model" % self.product.id)
                 pass
         else:
@@ -83,10 +83,10 @@ class PathwayResult(Pathway, Result):
             if exchanges:
                 model.add_reactions(self.exchanges)
 
+            self.product.lower_bound = 0
             try:
-                self.product.lower_bound = 0
                 model.add_reaction(self.product)
-            except:
+            except Exception:
                 logger.warning("Exchange %s already in model" % self.product.id)
                 pass
 

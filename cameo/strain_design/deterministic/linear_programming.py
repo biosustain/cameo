@@ -15,26 +15,38 @@
 from __future__ import print_function
 
 import warnings
-
-from cameo.core import SolverBasedModel
-from cameo.visualization import plotting
-from cameo.visualization import ProgressBar
-
-import cameo
-from cameo import ui
-from cameo.exceptions import SolveError
-from cameo.flux_analysis import flux_balance_impact_degree, phenotypic_phase_plane
-from cameo.util import TimeMachine
-from cameo import config
-from cameo.core.solver_based_model_dual import convert_to_dual
-from cameo.strain_design.strain_design import StrainDesignMethod, StrainDesign, StrainDesignResult
-from sympy import Add
-from cameo import flux_variability_analysis
-import pandas as pd
+import numpy
 import logging
+
+from cameo.visualization import plotting
+
+from pandas import DataFrame
+
 from functools import partial
 
+from sympy import Add
+
+from cameo import ui
+from cameo import config
+
+from cameo.util import TimeMachine
+
+from cameo.flux_analysis import flux_balance_impact_degree, phenotypic_phase_plane, flux_variability_analysis
+from cameo.exceptions import SolveError
+
+from cameo.core.solver_based_model import SolverBasedModel
+from cameo.core.solver_based_model_dual import convert_to_dual
+from cameo.core.reaction import Reaction
+
+from cameo.strain_design.strain_design import StrainDesignMethod, StrainDesign, StrainDesignResult
+
+from IProgress.progressbar import ProgressBar
+from IProgress.widgets import Bar, Percentage
+
 logger = logging.getLogger(__name__)
+
+
+__all__ = ["OptKnock"]
 
 
 class OptKnock(StrainDesignMethod):
@@ -108,7 +120,7 @@ class OptKnock(StrainDesignMethod):
         self.essential_reactions = self._model.essential_reactions() + self._model.exchanges
         if essential_reactions:
             for ess_reac in essential_reactions:
-                if isinstance(ess_reac, cameo.Reaction):
+                if isinstance(ess_reac, Reaction):
                     essential_reactions.append(self._model.reactions.get_by_id(ess_reac.id))
                 elif isinstance(essential_reactions, str):
                     essential_reactions.append(self._model.reactions.get_by_id(ess_reac))
@@ -273,20 +285,18 @@ class OptKnockResult(StrainDesignResult):
         self._processed_knockouts = None
 
     def _process_knockouts(self):
-        progress = ProgressBar(size=len(self._designs), label="Processing solutions")
+        progress = ProgressBar(maxval=len(self._designs), widgets=["Processing solutions: ", Bar(), Percentage()])
 
-        self._processed_knockouts = pd.DataFrame(columns=["knockouts", "size", "biomass", self._target,
-                                                          "fva_min", "fva_max", "fbid"])
-        progress.start()
-        try:
-            for i, knockouts in enumerate(self._designs):
+        self._processed_knockouts = DataFrame(columns=["knockouts", "size", "biomass",
+                                                       self._target, "fva_min", "fva_max"])
+
+        for i, knockouts in progress(enumerate(self._designs)):
+            try:
                 fva = flux_variability_analysis(self._model, fraction_of_optimum=0.99, reactions=[self.target])
-                fbid = flux_balance_impact_degree(self._model, knockouts)
                 self._processed_knockouts.loc[i] = [knockouts, len(knockouts), self.production[i], self.biomass[i],
-                                                    fva.lower_bound(self.target), fva.upper_bound(self.target),
-                                                    fbid.degree]
-        finally:
-            progress.end()
+                                                    fva.lower_bound(self.target), fva.upper_bound(self.target)]
+            except SolveError:
+                self._processed_knockouts.loc[i] = [numpy.nan for _ in self._processed_knockouts.columns]
 
     @property
     def knockouts(self):
@@ -309,23 +319,23 @@ class OptKnockResult(StrainDesignResult):
         return self._target
 
     def plot(self, index, grid=None, width=None, height=None, title=None, *args, **kwargs):
-        wt_production = phenotypic_phase_plane(self._model, objective=self._target, variables=[self._biomass])
+        wt_production = phenotypic_phase_plane(self._model, objective=self._target, variables=[self._biomass.id])
         with TimeMachine() as tm:
             for ko in self._designs[index]:
                 self._model.reactions.get_by_id(ko).knock_out(tm)
 
-            mt_production = phenotypic_phase_plane(self._model, objective=self._target, variables=[self._biomass])
+            mt_production = phenotypic_phase_plane(self._model, objective=self._target, variables=[self._biomass.id])
         plotting.plot_2_production_envelopes(wt_production.data_frame,
                                              mt_production.data_frame,
                                              self._target,
-                                             self._biomass,
+                                             self._biomass.id,
                                              **kwargs)
 
     @property
     def data_frame(self):
         if self._processed_knockouts is None:
             self._process_knockouts()
-        data_frame = pd.DataFrame(self._processed_knockouts)
+        data_frame = DataFrame(self._processed_knockouts)
         data_frame.sort_values("size", inplace=True)
         return data_frame
 

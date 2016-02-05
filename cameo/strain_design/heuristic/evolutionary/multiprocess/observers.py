@@ -14,13 +14,21 @@
 
 from __future__ import absolute_import, print_function
 
-__all__ = ['CliMultiprocessProgressObserver', 'IPythonNotebookMultiprocessProgressObserver']
+from threading import Thread
 
 import six
-from six.moves.queue import Empty
-from uuid import uuid4
-from cameo.parallel import RedisQueue
 from six.moves import range
+from six.moves.queue import Empty
+
+from uuid import uuid4
+
+from blessings import Terminal
+
+from cameo.parallel import RedisQueue
+from IProgress.progressbar import ProgressBar
+from IProgress.widgets import Percentage, Bar
+
+__all__ = ['CliMultiprocessProgressObserver', 'IPythonNotebookMultiprocessProgressObserver']
 
 
 class AbstractParallelObserver(object):
@@ -30,6 +38,7 @@ class AbstractParallelObserver(object):
         self.queue = RedisQueue(name=str(uuid4()), namespace=self.__name__)
         self.clients = {}
         self.run = True
+        self.t = None
         for i in range(number_of_islands):
             self._create_client(i)
 
@@ -75,11 +84,6 @@ class AbstractParallelObserverClient(object):
         pass
 
 
-from threading import Thread
-from blessings import Terminal
-from cameo.visualization import ProgressBar
-
-
 class CliMultiprocessProgressObserver(AbstractParallelObserver):
     """
     Command line progress display for multiprocess run
@@ -88,7 +92,7 @@ class CliMultiprocessProgressObserver(AbstractParallelObserver):
     __name__ = "CLI Multiprocess Progress Observer"
 
     def __init__(self, *args, **kwargs):
-        self.progress = {}
+        self.progress_bar = {}
         self.terminal = Terminal()
         super(CliMultiprocessProgressObserver, self).__init__(*args, **kwargs)
 
@@ -97,19 +101,21 @@ class CliMultiprocessProgressObserver(AbstractParallelObserver):
 
     def _process_message(self, message):
         i = message['index']
-        if not i in self.progress:
+        if i not in self.progress_bar:
             print("")
             label = "Island %i: " % (i + 1)
             pos = abs(len(self.clients) - i)
             writer = self.TerminalWriter((self.terminal.height or 1) - pos, self.terminal)
-            self.progress[i] = ProgressBar(label=label, fd=writer, size=message['max_evaluations'])
-            self.progress[i].start()
+            self.progress_bar[i] = ProgressBar(maxval=message['max_evaluations'],
+                                               widgets=[label, Bar(), Percentage()],
+                                               fd=writer)
+            self.progress_bar[i].start()
 
-        self.progress[i].update(message['num_evaluations'])
+        self.progress_bar[i].update(message['num_evaluations'])
 
     def _listen(self):
         AbstractParallelObserver._listen(self)
-        for i, progress in six.iteritems(self.progress):
+        for i, progress in six.iteritems(self.progress_bar):
             progress.finish()
 
     class TerminalWriter(object):
@@ -150,20 +156,22 @@ class IPythonNotebookMultiprocessProgressObserver(AbstractParallelObserver):
 
     __name__ = "IPython Notebook Multiprocess Progress Observer"
 
-    def __init__(self, color_map=None, *args, **kwargs):
-        self.progress = {}
-        self.color_map = color_map
+    def __init__(self, *args, **kwargs):
+        self.progress_bar = {}
         super(IPythonNotebookMultiprocessProgressObserver, self).__init__(*args, **kwargs)
 
     def _create_client(self, i):
         self.clients[i] = IPythonNotebookMultiprocessProgressObserverClient(queue=self.queue, index=i)
-        label = "Island %i" % (i + 1)
-        self.progress[i] = ProgressBar(label=label, color=self.color_map[i])
 
     def _process_message(self, message):
-        if self.progress[message['index']].id is None:
-            self.progress[message['index']].start()
-        self.progress[message['index']].set(message['progress'])
+        i = message['index']
+        if i not in self.progress_bar:
+            label = "Island %i" % (i + 1)
+            self.progress_bar[i] = ProgressBar(maxval=message['max_evaluations'],
+                                               widgets=[label, Bar(), Percentage()])
+            self.progress_bar[message['index']].start()
+
+        self.progress_bar[message['index']].set(message['progress'])
 
 
 class IPythonNotebookMultiprocessProgressObserverClient(AbstractParallelObserverClient):

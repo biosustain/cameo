@@ -14,7 +14,8 @@
 
 from __future__ import absolute_import, print_function
 
-from cameo.visualization import ProgressBar
+from IProgress.progressbar import ProgressBar
+from IProgress.widgets import Percentage, Bar
 
 
 class ProgressObserver(object):
@@ -29,7 +30,8 @@ class ProgressObserver(object):
     def __call__(self, population, num_generations, num_evaluations, args):
         if self.progress is None:
             self.max_evaluations = args.get('max_evaluations', 50000)
-            self.progress = ProgressBar(self.max_evaluations)
+            self.progress = ProgressBar(maxval=self.max_evaluations,
+                                        widgets=["Running Optimization", Bar(), Percentage()])
             self.progress.start()
 
         if num_evaluations % args.get('n', 1) == 0:
@@ -42,4 +44,4 @@ class ProgressObserver(object):
         self.progress = None
 
     def end(self):
-        self.progress.end()
+        self.progress.finish()
