@@ -541,7 +541,7 @@ class FSEOF(StrainDesignMethod):
             initial_flux = round(initial_fluxes[target.id], ndecimals)
 
             # Find theoretical maximum of enforced reaction
-            max_theoretical_flux = round(fba(model, objective=target.id, reactions=[target.id] ).fluxes[target.id], ndecimals)
+            max_theoretical_flux = round(fba(model, objective=target.id, reactions=[target.id]).fluxes[target.id], ndecimals)
 
             max_flux = max_theoretical_flux * max_enforced_flux
 
@@ -572,6 +572,7 @@ class FSEOF(StrainDesignMethod):
                         solution_method=simulation_method,
                         simulation_kwargs=simulation_kwargs,
                         exclude=exclude)
+
         return FSEOFResult(fseof_reactions, target, model, self.primary_objective, levels, results, run_args, reference)
 
 
@@ -661,7 +662,7 @@ class FSEOFResult(StrainDesignResult):
     def data_frame(self):
         df = pandas.DataFrame(self._reaction_results).transpose()
         df.columns = (i+1 for i in range(len(self._enforced_levels)))
-        df.loc[self.target.id] = self._enforced_levels
+        df.loc[self.target] = self._enforced_levels
         return df
 
 
