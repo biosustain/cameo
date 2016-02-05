@@ -14,8 +14,11 @@
 
 from __future__ import absolute_import, print_function
 from uuid import uuid4
-from IPython.core.display import HTML, Javascript
-from IPython.core.display import display
+try:
+    from IPython.core.display import HTML, Javascript
+    from IPython.core.display import display
+except ImportError:
+    pass
 
 from cameo import util
 import logging
@@ -33,7 +36,8 @@ with open(SEARCHING_IMAGE_FILE, "rb") as f:
     elif six.PY3:
         SEARCHING_IMAGE = str(b64encode(f.read())).replace('\n', '')
 
-LOADING_IMAGE_FILE = os.path.join(ASSETS, "loading_wave.gif")
+# LOADING_IMAGE_FILE = os.path.join(ASSETS, "loading_wave.gif")
+LOADING_IMAGE_FILE = os.path.join(ASSETS, "searching.gif")
 with open(LOADING_IMAGE_FILE, "rb") as f:
     if six.PY2:
         LOADING_IMAGE = b64encode(f.read()).replace('\n', '')

@@ -28,7 +28,11 @@ try:
         warnings.simplefilter("ignore")
         from IPython.parallel import Client, interactive
 except ImportError:
-    from ipyparallel import Client, interactive
+    try:
+        from ipyparallel import Client, interactive
+    except ImportError:
+        def interactive(f):
+            return f
 from six.moves import range
 
 SOLUTION = [x ** 2 for x in range(100)]

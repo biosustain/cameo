@@ -26,7 +26,11 @@ import numpy as np
 
 from functools import partial
 from uuid import uuid4
-from IPython.core.display import display, HTML, Javascript
+
+try:
+    from IPython.core.display import display, HTML, Javascript
+except ImportError:
+    pass
 
 from IProgress import ProgressBar
 from pandas import DataFrame, pandas
@@ -52,14 +56,12 @@ with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             from IPython.html.widgets import interact, IntSlider
     except ImportError:
-        from ipywidgets import interact, IntSlider
+        try:
+            from ipywidgets import interact, IntSlider
+        except ImportError:
+            pass
 
-
-if six.PY2:
-    from itertools import izip as my_zip
-else:
-    my_zip = zip
-
+zip = my_zip = six.moves.zip
 
 __all__ = ['DifferentialFVA', 'FSEOF']
 
@@ -142,16 +144,16 @@ class DifferentialFVA(StrainDesignMethod):
         elif isinstance(objective, Metabolite):
             try:
                 self.reference_model.add_demand(objective)
-            except:
+            except ValueError:
                 pass
             try:
                 self.objective = self.design_space_model.add_demand(objective).id
-            except:
+            except ValueError:
                 self.objective = self.design_space_model.reactions.get_by_id("DM_" + objective.id).id
         elif isinstance(objective, str):
             self.objective = objective
         else:
-            raise ValueError('You need to either provide ')
+            raise ValueError('You need to provide an objective as a Reaction, Metabolite or a reaction id')
 
         if variables is None:
             # try to establish the current objective reaction
