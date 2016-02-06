@@ -14,20 +14,18 @@
 # limitations under the License.
 # @formatter:on
 
-from __future__ import absolute_import, print_function
+from __future__ import absolute_import
 import copy
 
 import os
 import unittest
-import six
 from sympy import Add
 from cameo.flux_analysis import remove_infeasible_cycles
 
 from cameo.flux_analysis.simulation import fba, pfba, lmoma, room, moma
 from cameo.parallel import SequentialView, MultiprocessingView
 from cameo.io import load_model
-from cameo.flux_analysis.analysis import flux_variability_analysis, phenotypic_phase_plane, _cycle_free_fva, \
-    find_blocked_reactions
+from cameo.flux_analysis.analysis import flux_variability_analysis, phenotypic_phase_plane, find_blocked_reactions
 
 import pandas
 from pandas.util.testing import assert_frame_equal
@@ -143,15 +141,20 @@ class Wrapper:
 
         def test_fba(self):
             solution = fba(self.model)
+            original_objective = self.model.objective
             self.assertAlmostEqual(solution.objective_value, 0.873921, delta=0.000001)
             self.assertEqual(len(solution.fluxes), len(self.model.reactions))
+            self.assertIs(self.model.objective, original_objective)
 
         def test_fba_with_reaction_filter(self):
+            original_objective = self.model.objective
             solution = fba(self.model, reactions=['EX_o2_LPAREN_e_RPAREN_', 'EX_glc_LPAREN_e_RPAREN_'])
             self.assertAlmostEqual(solution.objective_value, 0.873921, delta=0.000001)
             self.assertEqual(len(solution.fluxes), 2)
+            self.assertIs(self.model.objective, original_objective)
 
         def test_pfba(self):
+            original_objective = self.model.objective
             fba_solution = fba(self.model)
             fba_flux_sum = sum((abs(val) for val in list(fba_solution.fluxes.values())))
             pfba_solution = pfba(self.model)
@@ -159,55 +162,69 @@ class Wrapper:
             # looks like GLPK finds a parsimonious solution without the flux minimization objective
             self.assertTrue((pfba_flux_sum - fba_flux_sum) < 1e-6,
                             msg="FBA sum is suppose to be lower than PFBA (was %f)" % (pfba_flux_sum - fba_flux_sum))
+            self.assertIs(self.model.objective, original_objective)
 
         def test_pfba_with_reaction_filter(self):
-            fba_solution = fba(self.model)
+            original_objective = self.model.objective
             pfba_solution = pfba(self.model, reactions=['EX_o2_LPAREN_e_RPAREN_', 'EX_glc_LPAREN_e_RPAREN_'])
             self.assertEqual(len(pfba_solution.fluxes), 2)
+            self.assertIs(self.model.objective, original_objective)
 
         def test_pfba_iJO(self):
+            original_objective = self.model.objective
             fba_solution = fba(iJO_MODEL)
             fba_flux_sum = sum((abs(val) for val in fba_solution.fluxes.values()))
             pfba_solution = pfba(iJO_MODEL)
             pfba_flux_sum = sum((abs(val) for val in pfba_solution.fluxes.values()))
-            print(pfba_flux_sum)
             self.assertTrue((pfba_flux_sum - fba_flux_sum) < 1e-6,
                             msg="FBA sum is suppose to be lower than PFBA (was %f)" % (pfba_flux_sum - fba_flux_sum))
+            self.assertIs(self.model.objective, original_objective)
 
         def test_lmoma(self):
+            original_objective = self.model.objective
             pfba_solution = pfba(self.model)
             solution = lmoma(self.model, reference=pfba_solution)
             distance = sum((abs(solution[v] - pfba_solution[v]) for v in pfba_solution.keys()))
             self.assertAlmostEqual(0, distance,
                                    delta=1e-6,
                                    msg="lmoma distance without knockouts must be 0 (was %f)" % distance)
+            self.assertIs(self.model.objective, original_objective)
 
         def test_lmoma_with_reaction_filter(self):
+            original_objective = self.model.objective
             pfba_solution = pfba(self.model)
             solution = lmoma(self.model, reference=pfba_solution, reactions=['EX_o2_LPAREN_e_RPAREN_', 'EX_glc_LPAREN_e_RPAREN_'])
             self.assertEqual(len(solution.fluxes), 2)
+            self.assertIs(self.model.objective, original_objective)
 
         def test_moma(self):
+            original_objective = self.model.objective
             pfba_solution = pfba(self.model)
             solution = moma(self.model, reference=pfba_solution)
             distance = sum((abs(solution[v] - pfba_solution[v]) for v in pfba_solution.keys()))
             self.assertAlmostEqual(0, distance,
                                    delta=1e-6,
                                    msg="moma distance without knockouts must be 0 (was %f)" % distance)
+            self.assertIs(self.model.objective, original_objective)
 
         def test_room(self):
+            original_objective = self.model.objective
             pfba_solution = pfba(self.model)
             solution = room(self.model, reference=pfba_solution)
             self.assertAlmostEqual(0, solution.objective_value,
                                    delta=1e-6,
                                    msg="room objective without knockouts must be 0 (was %f)" % solution.objective_value)
+            self.assertIs(self.model.objective, original_objective)
 
         def test_room_with_reaction_filter(self):
+            original_objective = self.model.objective
             pfba_solution = pfba(self.model)
             solution = room(self.model, reference=pfba_solution, reactions=['EX_o2_LPAREN_e_RPAREN_', 'EX_glc_LPAREN_e_RPAREN_'])
             self.assertEqual(len(solution.fluxes), 2)
+            self.assertIs(self.model.objective, original_objective)
 
         def test_room_shlomi_2005(self):
+            original_objective = self.model.objective
             reference = {"b1": -10, "v1": 10, "v2": 5, "v3": 0, "v4": 0, "v5": 0, "v6": 5, "b2": 5, "b3": 5}
             TOY_MODEL_PAPIN_2004.solver = self.model.solver.interface
             with TimeMachine() as tm:
@@ -217,7 +234,7 @@ class Wrapper:
             self.assertEquals(
                 result.fluxes,
                 {'b1': 10.0, 'b2': 5.0, 'b3': 5.0, 'v1': 5.0, 'v2': 5.0, 'v3': 0.0, 'v4': 5.0, 'v5': 5.0, 'v6': 0.0})
-
+            self.assertIs(self.model.objective, original_objective)
 
 class TestFindBlockedReactionsGLPK(Wrapper.AbstractTestFindBlockedReactions):
     def setUp(self):
