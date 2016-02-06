@@ -56,7 +56,7 @@ class ProblemCache(object):
         self._model = model
         self.variables = {}
         self.constraints = {}
-        self.original_objective = model.objective.expression
+        self.original_objective = model.objective
         self.time_machine = TimeMachine()
         self.transaction_id = None
 
