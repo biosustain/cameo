@@ -51,7 +51,7 @@ class TestFSEOF(unittest.TestCase):
         fseof = FSEOF(self.model)
         fseof_result = fseof.run(target="EX_succ_lp_e_rp_")
         self.assertIsInstance(fseof_result, FSEOFResult)
-        # self.assertIs(objective, self.model.objective)
+        self.assertIs(objective, self.model.objective)
 
     def test_fseof_result(self):
         fseof = FSEOF(self.model)
