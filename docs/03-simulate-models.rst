@@ -1,27 +1,4 @@
 
-.. code:: python
-
-    from cameo import models
-    model = models.bigg.iJO1366
-
-.. code:: python
-
-    from cameo import load_model
-    model = load_model('iJO1366')
-
-.. code:: python
-
-    model.reactions.PGK.lower_bound
-
-
-
-
-.. parsed-literal::
-
-    -1000.0
-
-
-
 Simulate models
 ===============
 
@@ -82,6 +59,13 @@ balance analysis (FBA):
 
 Flux Balance Analysis
 ---------------------
+
+Load a model.
+
+.. code:: python
+
+    from cameo import load_model
+    model = load_model('iJO1366')
 
 In cameo, flux balance analysis can be performed with the function
 `fba`.
