@@ -80,8 +80,8 @@ try:
         lb = envelope["objective_lower_bound"].values
         var = envelope[key].values
 
-        x = [0] + [v for v in var] + list(reversed([v for v in var]))
-        y = [0] + [v for v in lb] + list(reversed([v for v in ub]))
+        x = [v for v in var] + [v for v in reversed(var)]
+        y = [v for v in lb] + [v for v in reversed(ub)]
 
         plot.patch(x=x, y=y, color=patch_color, alpha=patch_alpha)
 
@@ -111,7 +111,7 @@ try:
         p.segment(x0, factors, x1, factors, line_width=line_width, line_color=color)
         for x_0, x_1, f in zip(x0, x1, factors):
             if x_0 == x_1:
-                p.segment([x_0-0.0005], [f], [x_1+0.0005], [f], line_width=line_width, color=color)
+                p.segment([x_0-0.01], [f], [x_1+0.01], [f], line_width=line_width, color=color)
         p.line([0, 0], [0, len(factors)+1], line_color="black", line_width=1, line_alpha=0.3)
 
         if axis_font_size is not None:
@@ -131,12 +131,12 @@ try:
         left1 = list(fva_result1.upper_bound)
         right1 = list(fva_result1.lower_bound)
         top1 = [i for i in range(0, len(factors))]
-        bottom1 = [i+0.4 for i in range(0, len(factors))]
+        bottom1 = [i+0.5 for i in range(0, len(factors))]
 
         left2 = list(fva_result2.upper_bound)
         right2 = list(fva_result2.lower_bound)
         top2 = [i for i in range(0, len(factors))]
-        bottom2 = [i-0.4 for i in range(0, len(factors))]
+        bottom2 = [i-0.5 for i in range(0, len(factors))]
 
         x_range = [min([min(bottom1), min(bottom2)]) - 5, max([max(top1), max(top2)]) + 5]
 
