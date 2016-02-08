@@ -33,6 +33,7 @@ from functools import partial
 import requests
 from pandas import DataFrame
 import lazy_object_proxy
+import optlang
 
 
 from cobra.io import load_json_model, read_sbml_model
@@ -124,7 +125,7 @@ def index_models_bigg():
             "Could not index available models. bigg.ucsd.edu returned status code {}".format(response.status_code))
 
 
-def get_model_from_bigg(id):
+def get_model_from_bigg(id, solver_interface=optlang):
     try:
         response = requests.get('http://bigg.ucsd.edu/api/v2/models/{}/download'.format(id))
     except requests.ConnectionError as e:
@@ -132,7 +133,7 @@ def get_model_from_bigg(id):
         raise e
     if response.ok:
         with io.StringIO(response.text) as f:
-            return to_solver_based_model(load_json_model(f))
+            return to_solver_based_model(load_json_model(f), solver_interface=solver_interface)
     else:
         raise Exception(
             "Could not download model {}. bigg.ucsd.edu returned status code {}".format(id, response.status_code))

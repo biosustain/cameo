@@ -46,10 +46,14 @@ help:
 	@echo "  linkcheck  to check all external links for integrity"
 	@echo "  doctest    to run all doctests embedded in the documentation (if enabled)"
 	@echo "  ipy2rst    to convert ipython notebooks in to rst files"
+	@echo "  apidoc     to autogenerate API "
 
 ipy2rst:
-	for i in notebooks/*.ipynb; do ipython nbconvert $$i --to rst; done
+	for i in notebooks/*.ipynb; do if [ $$i != "notebooks/index.ipynb" ] ; then jupyter nbconvert $$i --to rst; fi done
 	sed -i '' 's/``/`/g' *.rst
+
+apidoc:
+	sphinx-apidoc --no-toc -f -o apidoc_output/ ../cameo ../cameo/strain_design/heuristic/multiprocess
 
 clean:
 	rm -rf $(BUILDDIR)/*

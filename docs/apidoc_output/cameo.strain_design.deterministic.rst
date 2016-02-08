@@ -12,6 +12,14 @@ cameo.strain_design.deterministic.flux_variability_based module
     :undoc-members:
     :show-inheritance:
 
+cameo.strain_design.deterministic.linear_programming module
+-----------------------------------------------------------
+
+.. automodule:: cameo.strain_design.deterministic.linear_programming
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 
 Module contents
 ---------------

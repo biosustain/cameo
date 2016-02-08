@@ -1,4 +1,5 @@
-# Copyright 2014 Novo Nordisk Foundation Center for Biosustainability, DTU.
+# -*- coding: utf-8 -*-
+#  Copyright 2014 Novo Nordisk Foundation Center for Biosustainability, DTU.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,6 +28,7 @@ import pandas
 from sympy.parsing.sympy_parser import parse_expr
 import cameo
 from cameo.core.result import Result
+from cameo.core.solution import SolutionBase
 
 __all__ = ['fba', 'pfba', 'moma', 'lmoma', 'room']
 
@@ -49,10 +51,11 @@ add = Add._from_args
 mul = Mul._from_args
 NegativeOne = sympy.singleton.S.NegativeOne
 One = sympy.singleton.S.One
+FloatOne = sympy.Float(1)
 RealNumber = sympy.RealNumber
 
 
-def fba(model, objective=None, *args, **kwargs):
+def fba(model, objective=None, reactions=None, *args, **kwargs):
     """Flux Balance Analysis.
 
     Parameters
@@ -71,12 +74,15 @@ def fba(model, objective=None, *args, **kwargs):
             tm(do=partial(setattr, model, 'objective', objective),
                undo=partial(setattr, model, 'objective', model.objective))
         solution = model.solve()
-        result = FluxDistributionResult(solution)
-    return result
+        if reactions is not None:
+            result = FluxDistributionResult({r: solution.get_primal_by_id(r) for r in reactions}, solution.f)
+        else:
+            result = FluxDistributionResult.from_solution(solution)
+        return result
 
 
-def pfba(model, objective=None, *args, **kwargs):
-    """Parsimonious Flux Balance Analysis.
+def pfba(model, objective=None, reactions=None, *args, **kwargs):
+    """Parsimonious Enzyme Usage Flux Balance Analysis [1].
 
     Parameters
     ----------
@@ -88,6 +94,12 @@ def pfba(model, objective=None, *args, **kwargs):
     -------
     FluxDistributionResult
         Contains the result of the linear solver.
+
+    References
+    ----------
+    .. [1] Lewis, N. E., Hixson, K. K., Conrad, T. M., Lerman, J. A., Charusanti, P., Polpitiya, A. D., …
+     Palsson, B. Ø. (2010). Omic data from evolved E. coli are consistent with computed optimal growth from
+     genome-scale models. Molecular Systems Biology, 6, 390. doi:10.1038/msb.2010.47
 
     """
     with TimeMachine() as tm:
@@ -113,7 +125,10 @@ def pfba(model, objective=None, *args, **kwargs):
            undo=partial(setattr, model, 'objective', original_objective))
         try:
             solution = model.solve()
-            result = FluxDistributionResult(solution)
+            if reactions is not None:
+                result = FluxDistributionResult({r: solution.get_primal_by_id(r) for r in reactions}, solution.f)
+            else:
+                result = FluxDistributionResult.from_solution(solution)
             tm.reset()
             return result
         except SolveError as e:
@@ -122,11 +137,45 @@ def pfba(model, objective=None, *args, **kwargs):
 
 
 def moma(model, reference=None, *args, **kwargs):
-    raise NotImplementedError('Quadratic MOMA not yet implemented.')
+    """
+    Minimization of Metabolic Adjustment
+    """
+    with TimeMachine() as tm:
+        aux_vars = {}
+        for reac_id in reference.keys():
+            var = model.solver.interface.Variable("moma_aux_"+reac_id)
+            aux_vars[reac_id] = var
+        tm(do=partial(model.solver.add, aux_vars.values()),
+           undo=partial(model.solver.remove, aux_vars.values()))
+
+        constraints = {}
+        for reac_id, aux_var in aux_vars.items():
+            reac = model.reactions.get_by_id(reac_id)
+            const = model.solver.interface.Constraint(
+                add([mul([One, reac.forward_variable]),
+                     mul([NegativeOne, reac.reverse_variable]),
+                     mul([NegativeOne, aux_var])
+                ]),
+                lb=reference[reac_id],
+                ub=reference[reac_id],
+                sloppy=True
+            )
+            constraints[reac_id] = const
+        tm(do=partial(model.solver.add, constraints.values()),
+           undo=partial(model.solver.remove, constraints.values()))
+
+        obj = model.solver.interface.Objective(Add(*(FloatOne*var**2 for var in aux_vars.values())), direction="min", sloppy=True)
+        tm(do=partial(setattr, model, "objective", obj),
+           undo=partial(setattr, model, "objective", model.objective))
+
+        sol = model.solve()
+        result = FluxDistributionResult.from_solution(sol)
+
+    return result
 
 
-def lmoma(model, reference=None, cache=None, *args, **kwargs):
-    """Linear Minimization Of Metabolic Adjustment.
+def lmoma(model, reference=None, cache=None, reactions=None, *args, **kwargs):
+    """Linear Minimization Of Metabolic Adjustment [1].
 
     Parameters
     ----------
@@ -141,6 +190,12 @@ def lmoma(model, reference=None, cache=None, *args, **kwargs):
     -------
     FluxDistributionResult
         Contains the result of the linear solver.
+
+    References
+    ----------
+    .. [1] Becker, S. A., Feist, A. M., Mo, M. L., Hannum, G., Palsson, B. Ø., & Herrgard, M. J. (2007).
+    Quantitative prediction of cellular metabolism with constraint-based models: the COBRA Toolbox.
+    Nature Protocols, 2(3), 727–38. doi:10.1038/nprot.2007.99
 
     """
     volatile = False
@@ -198,7 +253,13 @@ def lmoma(model, reference=None, cache=None, *args, **kwargs):
                                                            direction="min")
 
         try:
-            return FluxDistributionResult(model.solve())
+
+            solution = model.solve()
+            if reactions is not None:
+                result = FluxDistributionResult({r: solution.get_primal_by_id(r) for r in reactions}, solution.f)
+            else:
+                result = FluxDistributionResult.from_solution(solution)
+            return result
         except SolveError as e:
             raise e
     except Exception as e:
@@ -210,7 +271,7 @@ def lmoma(model, reference=None, cache=None, *args, **kwargs):
             cache.reset()
 
 
-def room(model, reference=None, cache=None, delta=0.03, epsilon=0.001, *args, **kwargs):
+def room(model, reference=None, cache=None, delta=0.03, epsilon=0.001, reactions=None, *args, **kwargs):
     """Regulatory On/Off Minimization [1].
 
     Parameters
@@ -226,7 +287,7 @@ def room(model, reference=None, cache=None, delta=0.03, epsilon=0.001, *args, **
 
     References
     ----------
-    [1] Tomer Shlomi, Omer Berkman and Eytan Ruppin, "Regulatory on/off minimization of metabolic
+    .. [1] Tomer Shlomi, Omer Berkman and Eytan Ruppin, "Regulatory on/off minimization of metabolic
     flux changes after genetic perturbations", PNAS 2005 102 (21) 7695-7700; doi:10.1073/pnas.0406346102
     """
     volatile = False
@@ -286,7 +347,11 @@ def room(model, reference=None, cache=None, delta=0.03, epsilon=0.001, *args, **
                                                            direction='min')
         try:
             solution = model.solve()
-            return FluxDistributionResult(solution)
+            if reactions is not None:
+                result = FluxDistributionResult({r: solution.get_primal_by_id(r) for r in reactions}, solution.f)
+            else:
+                result = FluxDistributionResult.from_solution(solution)
+            return result
         except SolveError as e:
             logger.error("room could not determine an optimal solution for objective %s" % model.objective)
             raise e
@@ -298,6 +363,65 @@ def room(model, reference=None, cache=None, delta=0.03, epsilon=0.001, *args, **
     finally:
         if volatile:
             cache.reset()
+
+
+class FluxDistributionResult(Result):
+    @classmethod
+    def from_solution(cls, solution, *args, **kwargs):
+        return  cls(solution.fluxes, solution.f, *args, **kwargs)
+
+    def __init__(self, fluxes, objective_value, *args, **kwargs):
+        super(FluxDistributionResult, self).__init__(*args, **kwargs)
+        self._fluxes = fluxes
+        self._objective_value = objective_value
+
+    def __getitem__(self, item):
+        if isinstance(item, cameo.Reaction):
+            return self.fluxes[item.id]
+        elif isinstance(item, str):
+            try:
+                return self.fluxes[item]
+            except KeyError:
+                exp = parse_expr(item)
+        elif isinstance(item, OptimizationExpression):
+            exp = item.expression
+        elif isinstance(item, sympy.Expr):
+            exp = item
+        else:
+            raise KeyError(item)
+
+        return exp.evalf(subs={v: self.fluxes[v.name] for v in exp.atoms(sympy.Symbol)})
+
+    @property
+    def data_frame(self):
+        return pandas.DataFrame(list(self._fluxes.values()), index=list(self._fluxes.keys()), columns=['flux'])
+
+    @property
+    def fluxes(self):
+        return self._fluxes
+
+    @property
+    def objective_value(self):
+        return self._objective_value
+
+    def plot(self, grid=None, width=None, height=None, title=None):
+        # TODO: Add barchart or something similar.
+        pass
+
+    def iteritems(self):
+        return six.iteritems(self.fluxes)
+
+    def items(self):
+        return six.iteritems(self.fluxes)
+
+    def keys(self):
+        return self.fluxes.keys()
+
+    def values(self):
+        return self.fluxes.values()
+
+    def _repr_html_(self):
+        return "<strong>objective value: %s</strong>" % self.objective_value
 
 
 if __name__ == '__main__':
@@ -362,58 +486,3 @@ if __name__ == '__main__':
     print("cameo lmoma runtime:", time.time() - tic)
 
     # print model.solver
-
-
-class FluxDistributionResult(Result):
-    def __init__(self, solution, *args, **kwargs):
-        super(FluxDistributionResult, self).__init__(*args, **kwargs)
-        self._fluxes = solution.fluxes
-        self._objective_value = solution.f
-
-    def __getitem__(self, item):
-        if isinstance(item, cameo.Reaction):
-            return self.fluxes[item.id]
-        elif isinstance(item, str):
-            try:
-                return self.fluxes[item]
-            except KeyError:
-                exp = parse_expr(item)
-        elif isinstance(item, OptimizationExpression):
-            exp = item.expression
-        elif isinstance(item, sympy.Expr):
-            exp = item
-        else:
-            raise KeyError(item)
-
-        return exp.evalf(subs={v: self.fluxes[v.name] for v in exp.atoms(sympy.Symbol)})
-
-    @property
-    def data_frame(self):
-        return pandas.DataFrame(list(self._fluxes.values()), index=list(self._fluxes.keys()), columns=['flux'])
-
-    @property
-    def fluxes(self):
-        return self._fluxes
-
-    @property
-    def objective_value(self):
-        return self._objective_value
-
-    def plot(self, grid=None, width=None, height=None, title=None):
-        # TODO: Add barchart or something similar.
-        pass
-
-    def iteritems(self):
-        return six.iteritems(self.fluxes)
-
-    def items(self):
-        return six.iteritems(self.fluxes)
-
-    def keys(self):
-        return self.fluxes.keys()
-
-    def values(self):
-        return self.fluxes.values()
-
-    def _repr_html_(self):
-        return "<strong>objective value: %s</strong>" % self.objective_value

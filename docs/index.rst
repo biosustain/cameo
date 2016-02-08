@@ -1,10 +1,10 @@
 .. warning::
     These pages are under construction. Feel free to look around ...
 
-cameo
-=====
+Welcome to cameo!
+=================
 
-|Documentation Status| |Build Status| |Coverage Status| |DOI|
+|Build Status| |Coverage Status| |DOI|
 
 **Cameo** is a high-level python library developed to aid the strain
 design process in metabolic engineering projects. The library provides a
@@ -35,15 +35,17 @@ Table of Contents
 
     dependencies
     installation
-    1-quick-start
-    2-import-models
-    3-simulate-models
-    4-analyze-models
-    5-predict-expression-modulation-targets
-    6-predict-gene-knockout-strategies
-    7-predict-heterologous-pathways
-    8-high-level-AP
-    parallelization
+    01-quick-start
+    02-import-models
+    03-simulate-models
+    04-analyze-models
+    05-predict-gene-knockout-strategies
+    06-predict-expression-modulation-targets
+    07-predict-heterologous-pathways
+    08-high-level-API
+    09-vanillin-production
+    11-multiprocess
+    12-advanced-usage-of-heuristic-optimization.rst
     cobrapy_difference
     API
 
@@ -55,11 +57,9 @@ Indices and tables
 * :ref:`search`
 
 
-.. |Documentation Status| image:: https://readthedocs.org/projects/cameo/badge/?version=devel
-   :target: https://readthedocs.org/projects/cameo/?badge=devel
 .. |Build Status| image:: https://travis-ci.org/biosustain/cameo.svg?branch=master
    :target: https://travis-ci.org/biosustain/cameo
-.. |Coverage Status| image:: https://coveralls.io/repos/biosustain/cameo/badge.svg?branch=devel
-   :target: https://coveralls.io/r/biosustain/cameo?branch=devel
+.. |Coverage Status| image:: https://codecov.io/github/biosustain/cameo/coverage.svg?branch=devel
+   :target: https://codecov.io/github/biosustain/cameo?branch=devel
 .. |DOI| image:: https://zenodo.org/badge/doi/10.5281/zenodo.19827.svg
    :target: http://dx.doi.org/10.5281/zenodo.19827

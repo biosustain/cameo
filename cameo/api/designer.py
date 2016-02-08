@@ -14,8 +14,6 @@
 
 from __future__ import absolute_import, print_function
 
-__all__ = ['design']
-
 import re
 
 import numpy as np
@@ -29,8 +27,8 @@ from cameo.core.result import Result
 from cameo.api.hosts import hosts, Host
 from cameo.api.products import products
 from cameo.exceptions import SolveError
-from cameo.strain_design.heuristic import GeneKnockoutOptimization
-from cameo.strain_design.heuristic.objective_functions import biomass_product_coupled_yield
+from cameo.strain_design.deterministic import OptKnock
+from cameo.strain_design.heuristic import OptGene
 from cameo.ui import notice, searching, stop_loader
 from cameo.strain_design import pathway_prediction
 from cameo.util import TimeMachine
@@ -40,6 +38,10 @@ from cameo.visualization import visualization
 from cameo.visualization.plotting import Grid
 
 import logging
+
+
+__all__ = ['design']
+
 
 logger = logging.getLogger(__name__)
 
@@ -51,11 +53,16 @@ class _OptimizationRunner(object):
         (host, model, pathway) = (strategy[0], strategy[1], strategy[2])
         with TimeMachine() as tm:
             pathway.plug_model(model, tm)
-            objective = biomass_product_coupled_yield(model.biomass,
-                                                      pathway.product,
-                                                      model.carbon_source)
-            opt = GeneKnockoutOptimization(model=model, objective_function=objective, progress=True, plot=False)
-            return opt.run(product=pathway.product.id, max_evaluations=10000)
+            opt_gene = OptGene(model=model, plot=False)
+            opt_gene_designs = opt_gene.run(target=pathway.product.id, biomass=model.biomass,
+                                            substrate=model.carbon_source, max_evaluations=10000)
+
+            opt_knock = OptKnock(model=model)
+            opt_knock_designs = opt_knock.run(5, target=pathway.product.id, max_results=5)
+
+            designs = opt_gene_designs + opt_knock_designs
+
+            return designs
 
 
 class DesignerResult(Result):

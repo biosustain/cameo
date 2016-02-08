@@ -67,12 +67,15 @@ class AbstractTestModelLoading(object):
         model = cameo.models.bigg.e_coli_core
         self.assertEqual(model.id, 'e_coli_core')
 
+    def test_invalid_path(self):
+        self.assertRaises(Exception, load_model, "blablabla_model")
+
 
 class TestModelLoadingGLPK(AbstractTestModelLoading, unittest.TestCase):
     def setUp(self):
         self.interface = optlang.glpk_interface
 
-@unittest.skipIf(six.PY2, 'Build stalling in python 2.7.')
+#@unittest.skipIf(six.PY2, 'Build stalling in python 2.7.')
 class TestModelLoadingCPLEX(AbstractTestModelLoading, unittest.TestCase):
     def setUp(self):
         self.interface = optlang.cplex_interface

@@ -6,6 +6,7 @@ include requirements.txt
 include versioneer.py
 include cameo/_version.py
 include cameo/ui/assets/searching.gif
+include cameo/ui/assets/loading_wave.gif
 recursive-include cameo/data *
 recursive-include cameo/models *
 recursive-include tests *

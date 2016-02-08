@@ -12,4 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .optimization import ReactionKnockoutOptimization, GeneKnockoutOptimization
+from __future__ import absolute_import
+
+
+from cameo.strain_design.heuristic.evolutionary_based import OptGene

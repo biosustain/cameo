@@ -1,214 +1,108 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<sbml xmlns="http://www.sbml.org/sbml/level3/version1/core" xmlns:fbc="http://www.sbml.org/sbml/level3/version1/fbc/version1" level="3" version="1" fbc:required="false">
-  <model substanceUnits="substance" timeUnits="dimensionless" volumeUnits="volume" areaUnits="area" lengthUnits="metre" extentUnits="substance">
+<sbml xmlns:fbc="http://www.sbml.org/sbml/level3/version1/fbc/version2" level="3" sboTerm="SBO:0000624" version="1" xmlns="http://www.sbml.org/sbml/level3/version1/core" fbc:required="false">
+  <model fbc:strict="true" id="">
+    <listOfUnitDefinitions>
+      <unitDefinition id="mmol_per_gDW_per_hr">
+        <listOfUnits>
+          <unit exponent="1" kind="mole" multiplier="1" scale="-3"/>
+          <unit exponent="-1" kind="gram" multiplier="1" scale="0"/>
+          <unit exponent="-1" kind="second" multiplier="3600" scale="0"/>
+        </listOfUnits>
+      </unitDefinition>
+    </listOfUnitDefinitions>
+    <fbc:listOfObjectives fbc:activeObjective="obj">
+      <fbc:objective fbc:id="obj" fbc:type="maximize">
+        <fbc:listOfFluxObjectives/>
+      </fbc:objective>
+    </fbc:listOfObjectives>
+    <listOfParameters>
+      <parameter constant="true" id="cobra_default_lb" sboTerm="SBO:0000626" units="mmol_per_gDW_per_hr" value="0"/>
+      <parameter constant="true" id="cobra_default_ub" sboTerm="SBO:0000626" units="mmol_per_gDW_per_hr" value="1000"/>
+      <parameter constant="true" id="cobra_0_bound" sboTerm="SBO:0000626" units="mmol_per_gDW_per_hr" value="0"/>
+      <parameter constant="true" id="R_b1_upper_bound" sboTerm="SBO:0000625" units="mmol_per_gDW_per_hr" value="10"/>
+    </listOfParameters>
     <listOfCompartments>
-      <compartment id="p" name="periplasm" spatialDimensions="3" size="1" constant="true"/>
-      <compartment id="c" name="cytosol" spatialDimensions="3" size="1" constant="true"/>
-      <compartment id="e" name="extracellular" spatialDimensions="3" size="1" constant="true"/>
+      <compartment constant="true" id="p" name="periplasm"/>
+      <compartment constant="true" id="c" name="cytosol"/>
+      <compartment constant="true" id="e" name="extracellular"/>
     </listOfCompartments>
     <listOfSpecies>
-      <species id="M_A_None" name="A" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false">
-        <notes>
-          <html xmlns="http://www.w3.org/1999/xhtml"/>
-        </notes>
-      </species>
-      <species id="M_B_None" name="B" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false">
-        <notes>
-          <html xmlns="http://www.w3.org/1999/xhtml"/>
-        </notes>
-      </species>
-      <species id="M_C_None" name="C" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false">
-        <notes>
-          <html xmlns="http://www.w3.org/1999/xhtml"/>
-        </notes>
-      </species>
-      <species id="M_D_None" name="D" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false">
-        <notes>
-          <html xmlns="http://www.w3.org/1999/xhtml"/>
-        </notes>
-      </species>
-      <species id="M_E_None" name="E" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false">
-        <notes>
-          <html xmlns="http://www.w3.org/1999/xhtml"/>
-        </notes>
-      </species>
-      <species id="M_byp_None" name="byp" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false">
-        <notes>
-          <html xmlns="http://www.w3.org/1999/xhtml"/>
-        </notes>
-      </species>
-      <species id="M_cof_None" name="cof" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false">
-        <notes>
-          <html xmlns="http://www.w3.org/1999/xhtml"/>
-        </notes>
-      </species>
-      <species id="M_A_None_boundary" name="A" hasOnlySubstanceUnits="false" boundaryCondition="true" constant="false">
-        <notes>
-          <html xmlns="http://www.w3.org/1999/xhtml"/>
-        </notes>
-      </species>
-      <species id="M_E_None_boundary" name="E" hasOnlySubstanceUnits="false" boundaryCondition="true" constant="false">
-        <notes>
-          <html xmlns="http://www.w3.org/1999/xhtml"/>
-        </notes>
-      </species>
-      <species id="M_byp_None_boundary" name="byp" hasOnlySubstanceUnits="false" boundaryCondition="true" constant="false">
-        <notes>
-          <html xmlns="http://www.w3.org/1999/xhtml"/>
-        </notes>
-      </species>
+      <species boundaryCondition="false" constant="false" hasOnlySubstanceUnits="false" id="M_A_None" name="A" fbc:charge="0"/>
+      <species boundaryCondition="false" constant="false" hasOnlySubstanceUnits="false" id="M_B_None" name="B" fbc:charge="0"/>
+      <species boundaryCondition="false" constant="false" hasOnlySubstanceUnits="false" id="M_C_None" name="C" fbc:charge="0"/>
+      <species boundaryCondition="false" constant="false" hasOnlySubstanceUnits="false" id="M_D_None" name="D" fbc:charge="0"/>
+      <species boundaryCondition="false" constant="false" hasOnlySubstanceUnits="false" id="M_E_None" name="E" fbc:charge="0"/>
+      <species boundaryCondition="false" constant="false" hasOnlySubstanceUnits="false" id="M_byp_None" name="byp" fbc:charge="0"/>
+      <species boundaryCondition="false" constant="false" hasOnlySubstanceUnits="false" id="M_cof_None" name="cof" fbc:charge="0"/>
     </listOfSpecies>
     <listOfReactions>
-      <reaction id="R_b1" name="b1" reversible="false" fast="false">
-        <notes>
-          <html xmlns="http://www.w3.org/1999/xhtml">
-            <p>GENE_ASSOCIATION: </p>
-            <p>SUBSYSTEM: </p>
-          </html>
-        </notes>
-        <listOfReactants>
-          <speciesReference species="M_A_None_boundary" stoichiometry="1" constant="true"/>
-        </listOfReactants>
+      <reaction fast="false" id="R_b1" reversible="false" name="b1" fbc:upperFluxBound="R_b1_upper_bound" fbc:lowerFluxBound="cobra_default_lb">
         <listOfProducts>
-          <speciesReference species="M_A_None" stoichiometry="1" constant="true"/>
+          <speciesReference constant="true" species="M_A_None" stoichiometry="1"/>
         </listOfProducts>
       </reaction>
-      <reaction id="R_b2" name="b2" reversible="false" fast="false">
-        <notes>
-          <html xmlns="http://www.w3.org/1999/xhtml">
-            <p>GENE_ASSOCIATION: </p>
-            <p>SUBSYSTEM: </p>
-          </html>
-        </notes>
+      <reaction fast="false" id="R_b2" reversible="false" name="b2" fbc:upperFluxBound="cobra_default_ub" fbc:lowerFluxBound="cobra_default_lb">
         <listOfReactants>
-          <speciesReference species="M_E_None" stoichiometry="1" constant="true"/>
+          <speciesReference constant="true" species="M_E_None" stoichiometry="1"/>
+        </listOfReactants>
+      </reaction>
+      <reaction fast="false" id="R_b3" reversible="false" name="b3" fbc:upperFluxBound="cobra_default_ub" fbc:lowerFluxBound="cobra_default_lb">
+        <listOfReactants>
+          <speciesReference constant="true" species="M_byp_None" stoichiometry="1"/>
+        </listOfReactants>
+      </reaction>
+      <reaction fast="false" id="R_v1" reversible="false" name="v1" fbc:upperFluxBound="cobra_default_ub" fbc:lowerFluxBound="cobra_default_lb">
+        <listOfReactants>
+          <speciesReference constant="true" species="M_A_None" stoichiometry="2"/>
         </listOfReactants>
         <listOfProducts>
-          <speciesReference species="M_E_None_boundary" stoichiometry="1" constant="true"/>
+          <speciesReference constant="true" species="M_B_None" stoichiometry="2"/>
         </listOfProducts>
       </reaction>
-      <reaction id="R_b3" name="b3" reversible="false" fast="false">
-        <notes>
-          <html xmlns="http://www.w3.org/1999/xhtml">
-            <p>GENE_ASSOCIATION: </p>
-            <p>SUBSYSTEM: </p>
-          </html>
-        </notes>
+      <reaction fast="false" id="R_v2" reversible="false" name="v2" fbc:upperFluxBound="cobra_default_ub" fbc:lowerFluxBound="cobra_default_lb">
         <listOfReactants>
-          <speciesReference species="M_byp_None" stoichiometry="1" constant="true"/>
+          <speciesReference constant="true" species="M_B_None" stoichiometry="2"/>
         </listOfReactants>
         <listOfProducts>
-          <speciesReference species="M_byp_None_boundary" stoichiometry="1" constant="true"/>
+          <speciesReference constant="true" species="M_C_None" stoichiometry="1"/>
+          <speciesReference constant="true" species="M_byp_None" stoichiometry="1"/>
         </listOfProducts>
       </reaction>
-      <reaction id="R_v1" name="v1" reversible="false" fast="false">
-        <notes>
-          <html xmlns="http://www.w3.org/1999/xhtml">
-            <p>GENE_ASSOCIATION: </p>
-            <p>SUBSYSTEM: </p>
-          </html>
-        </notes>
+      <reaction fast="false" id="R_v3" reversible="false" name="v3" fbc:upperFluxBound="cobra_default_ub" fbc:lowerFluxBound="cobra_default_lb">
         <listOfReactants>
-          <speciesReference species="M_A_None" stoichiometry="2" constant="true"/>
+          <speciesReference constant="true" species="M_B_None" stoichiometry="1"/>
+          <speciesReference constant="true" species="M_cof_None" stoichiometry="1"/>
         </listOfReactants>
         <listOfProducts>
-          <speciesReference species="M_B_None" stoichiometry="2" constant="true"/>
+          <speciesReference constant="true" species="M_D_None" stoichiometry="1"/>
+          <speciesReference constant="true" species="M_byp_None" stoichiometry="1"/>
         </listOfProducts>
       </reaction>
-      <reaction id="R_v2" name="v2" reversible="false" fast="false">
-        <notes>
-          <html xmlns="http://www.w3.org/1999/xhtml">
-            <p>GENE_ASSOCIATION: </p>
-            <p>SUBSYSTEM: </p>
-          </html>
-        </notes>
+      <reaction fast="false" id="R_v4" reversible="false" name="v4" fbc:upperFluxBound="cobra_default_ub" fbc:lowerFluxBound="cobra_default_lb">
         <listOfReactants>
-          <speciesReference species="M_B_None" stoichiometry="2" constant="true"/>
+          <speciesReference constant="true" species="M_D_None" stoichiometry="1"/>
         </listOfReactants>
         <listOfProducts>
-          <speciesReference species="M_C_None" stoichiometry="1" constant="true"/>
-          <speciesReference species="M_byp_None" stoichiometry="1" constant="true"/>
+          <speciesReference constant="true" species="M_E_None" stoichiometry="1"/>
+          <speciesReference constant="true" species="M_cof_None" stoichiometry="1"/>
         </listOfProducts>
       </reaction>
-      <reaction id="R_v3" name="v3" reversible="false" fast="false">
-        <notes>
-          <html xmlns="http://www.w3.org/1999/xhtml">
-            <p>GENE_ASSOCIATION: </p>
-            <p>SUBSYSTEM: </p>
-          </html>
-        </notes>
+      <reaction fast="false" id="R_v5" reversible="false" name="v5" fbc:upperFluxBound="cobra_default_ub" fbc:lowerFluxBound="cobra_default_lb">
         <listOfReactants>
-          <speciesReference species="M_cof_None" stoichiometry="1" constant="true"/>
-          <speciesReference species="M_B_None" stoichiometry="1" constant="true"/>
+          <speciesReference constant="true" species="M_C_None" stoichiometry="1"/>
+          <speciesReference constant="true" species="M_cof_None" stoichiometry="1"/>
         </listOfReactants>
         <listOfProducts>
-          <speciesReference species="M_D_None" stoichiometry="1" constant="true"/>
-          <speciesReference species="M_byp_None" stoichiometry="1" constant="true"/>
+          <speciesReference constant="true" species="M_D_None" stoichiometry="1"/>
         </listOfProducts>
       </reaction>
-      <reaction id="R_v4" name="v4" reversible="false" fast="false">
-        <notes>
-          <html xmlns="http://www.w3.org/1999/xhtml">
-            <p>GENE_ASSOCIATION: </p>
-            <p>SUBSYSTEM: </p>
-          </html>
-        </notes>
+      <reaction fast="false" id="R_v6" reversible="false" name="v6" fbc:upperFluxBound="cobra_default_lb" fbc:lowerFluxBound="cobra_default_lb">
         <listOfReactants>
-          <speciesReference species="M_D_None" stoichiometry="1" constant="true"/>
+          <speciesReference constant="true" species="M_C_None" stoichiometry="1"/>
         </listOfReactants>
         <listOfProducts>
-          <speciesReference species="M_cof_None" stoichiometry="1" constant="true"/>
-          <speciesReference species="M_E_None" stoichiometry="1" constant="true"/>
-        </listOfProducts>
-      </reaction>
-      <reaction id="R_v5" name="v5" reversible="false" fast="false">
-        <notes>
-          <html xmlns="http://www.w3.org/1999/xhtml">
-            <p>GENE_ASSOCIATION: </p>
-            <p>SUBSYSTEM: </p>
-          </html>
-        </notes>
-        <listOfReactants>
-          <speciesReference species="M_C_None" stoichiometry="1" constant="true"/>
-          <speciesReference species="M_cof_None" stoichiometry="1" constant="true"/>
-        </listOfReactants>
-        <listOfProducts>
-          <speciesReference species="M_D_None" stoichiometry="1" constant="true"/>
-        </listOfProducts>
-      </reaction>
-      <reaction id="R_v6" name="v6" reversible="false" fast="false">
-        <notes>
-          <html xmlns="http://www.w3.org/1999/xhtml">
-            <p>GENE_ASSOCIATION: </p>
-            <p>SUBSYSTEM: </p>
-          </html>
-        </notes>
-        <listOfReactants>
-          <speciesReference species="M_C_None" stoichiometry="1" constant="true"/>
-        </listOfReactants>
-        <listOfProducts>
-          <speciesReference species="M_E_None" stoichiometry="1" constant="true"/>
+          <speciesReference constant="true" species="M_E_None" stoichiometry="1"/>
         </listOfProducts>
       </reaction>
     </listOfReactions>
-    <fbc:listOfFluxBounds>
-      <fbc:fluxBound fbc:reaction="R_b1" fbc:operation="greaterEqual" fbc:value="0"/>
-      <fbc:fluxBound fbc:reaction="R_b1" fbc:operation="lessEqual" fbc:value="10"/>
-      <fbc:fluxBound fbc:reaction="R_b2" fbc:operation="greaterEqual" fbc:value="0"/>
-      <fbc:fluxBound fbc:reaction="R_b2" fbc:operation="lessEqual" fbc:value="1000"/>
-      <fbc:fluxBound fbc:reaction="R_b3" fbc:operation="greaterEqual" fbc:value="0"/>
-      <fbc:fluxBound fbc:reaction="R_b3" fbc:operation="lessEqual" fbc:value="1000"/>
-      <fbc:fluxBound fbc:reaction="R_v1" fbc:operation="greaterEqual" fbc:value="0"/>
-      <fbc:fluxBound fbc:reaction="R_v1" fbc:operation="lessEqual" fbc:value="1000"/>
-      <fbc:fluxBound fbc:reaction="R_v2" fbc:operation="greaterEqual" fbc:value="0"/>
-      <fbc:fluxBound fbc:reaction="R_v2" fbc:operation="lessEqual" fbc:value="1000"/>
-      <fbc:fluxBound fbc:reaction="R_v3" fbc:operation="greaterEqual" fbc:value="0"/>
-      <fbc:fluxBound fbc:reaction="R_v3" fbc:operation="lessEqual" fbc:value="1000"/>
-      <fbc:fluxBound fbc:reaction="R_v4" fbc:operation="greaterEqual" fbc:value="0"/>
-      <fbc:fluxBound fbc:reaction="R_v4" fbc:operation="lessEqual" fbc:value="1000"/>
-      <fbc:fluxBound fbc:reaction="R_v5" fbc:operation="greaterEqual" fbc:value="0"/>
-      <fbc:fluxBound fbc:reaction="R_v5" fbc:operation="lessEqual" fbc:value="1000"/>
-      <fbc:fluxBound fbc:reaction="R_v6" fbc:operation="equal" fbc:value="0"/>
-    </fbc:listOfFluxBounds>
   </model>
 </sbml>
