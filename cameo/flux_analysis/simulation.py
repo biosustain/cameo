@@ -103,7 +103,7 @@ def pfba(model, objective=None, reactions=None, *args, **kwargs):
 
     """
     with TimeMachine() as tm:
-        original_objective = model.objective.expression
+        original_objective = model.objective
         if objective is not None:
             tm(do=partial(setattr, model, 'objective', objective),
                undo=partial(setattr, model, 'objective', original_objective))

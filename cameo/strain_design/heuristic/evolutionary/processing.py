@@ -14,7 +14,6 @@
 from functools import partial
 
 from cameo import flux_variability_analysis
-from cameo.flux_analysis import flux_balance_impact_degree
 from cameo.util import TimeMachine
 
 
@@ -48,7 +47,7 @@ def process_knockout_solution(model, solution, simulation_method, simulation_kwa
     -------
 
     list
-        A list with: reactions, knockouts, size, fva_min, fva_max, fbid, target flux, biomass flux, yield, fitness,
+        A list with: reactions, knockouts, size, fva_min, fva_max, target flux, biomass flux, yield, fitness,
         [fitness, [fitness]]
     """
 
@@ -62,11 +61,10 @@ def process_knockout_solution(model, solution, simulation_method, simulation_kwa
            undo=partial(setattr, model, "objective", model.objective.expression))
 
         fva = flux_variability_analysis(model, fraction_of_optimum=0.99, reactions=[target])
-        fbid = flux_balance_impact_degree(model, solution[0])
         target_yield = flux_dist[target]/abs(flux_dist[substrate])
-        return [solution[0], solution[1], len(solution[1]), fva.lower_bound(target), fva.upper_bound(target),
-                fbid.degree, flux_dist[target], flux_dist[biomass], target_yield] + \
-               [of(model, flux_dist, solution) for of in objective_functions]
+        return [solution[0], solution[1], len(solution[1]), fva.lower_bound(target),
+                fva.upper_bound(target), flux_dist[target], flux_dist[biomass],
+                target_yield] + [of(model, flux_dist, solution) for of in objective_functions]
 
 
 def reactions2filter(objective_function):

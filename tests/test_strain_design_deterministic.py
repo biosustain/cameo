@@ -51,13 +51,13 @@ class TestFSEOF(unittest.TestCase):
         fseof = FSEOF(self.model)
         fseof_result = fseof.run(target="EX_succ_lp_e_rp_")
         self.assertIsInstance(fseof_result, FSEOFResult)
-        # self.assertIs(objective, self.model.objective)
+        self.assertIs(objective, self.model.objective)
 
     def test_fseof_result(self):
         fseof = FSEOF(self.model)
         fseof_result = fseof.run(target=self.model.reactions.EX_ac_lp_e_rp_)
         self.assertIsInstance(fseof_result.data_frame, DataFrame)
-        self.assertIs(fseof_result.target, self.model.reactions.EX_ac_lp_e_rp_)
+        self.assertIs(fseof_result.target, self.model.reactions.EX_ac_lp_e_rp_.id)
         self.assertIs(fseof_result.model, self.model)
 
 
