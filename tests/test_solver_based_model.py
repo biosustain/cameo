@@ -795,7 +795,7 @@ class TestSolverBasedModelGLPK(WrappedAbstractTestSolverBasedModel.AbstractTestS
 class TestSolverBasedModelCPLEX(WrappedAbstractTestSolverBasedModel.AbstractTestSolverBasedModel):
     def setUp(self):
         super(TestSolverBasedModelCPLEX, self).setUp()
-        self.model.solver = 'glpk'
+        self.model.solver = 'cplex'
 
 
 if __name__ == '__main__':
