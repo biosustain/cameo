@@ -443,6 +443,7 @@ class WrappedAbstractTestReaction:
             self.assertEqual(self.model.reactions.PFK.reverse_variable.lb, 0)
             self.assertEqual(self.model.reactions.PFK.reverse_variable.ub, 1000)
 
+        @unittest.skipIf(TRAVIS, "This is slow on Travis")
         def test_iMM904_4HGLSDm_problem(self):
             model = load_model(os.path.join(TESTDIR, 'data/iMM904.xml'))
             # set upper bound before lower bound after knockout
