@@ -91,7 +91,7 @@ except ImportError:
 
 try:
     from cameo.parallel import RedisQueue
-    
+
     class TestRedisQueue(unittest.TestCase):
         def test_queue_size(self):
             queue = RedisQueue("test-queue-size-1", maxsize=1)
