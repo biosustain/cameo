@@ -65,7 +65,7 @@ class TestSequentialView(unittest.TestCase):
 try:
     from cameo.parallel import MultiprocessingView
 
-    @unittest.skipIf(SKIP_PARALLEL)
+    @unittest.skipIf(SKIP_PARALLEL, "This is Travis")
     class TestMultiprocessingView(unittest.TestCase):
         def setUp(self):
             self.view = MultiprocessingView()
