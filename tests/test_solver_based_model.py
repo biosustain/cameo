@@ -660,8 +660,8 @@ class WrappedAbstractTestSolverBasedModel:
                 1.0 * self.model.reactions.ACALD.forward_variable - 1.0 * self.model.reactions.ACALD.reverse_variable))
 
         def test_invalid_objective_raises(self):
-            self.assertRaises(Exception, setattr, self.model, 'objective', 'This is not a valid objective!')
-            self.assertRaises(Exception, setattr, self.model, 'objective', 3.)
+            self.assertRaises(ValueError, setattr, self.model, 'objective', 'This is not a valid objective!')
+            self.assertRaises(TypeError, setattr, self.model, 'objective', 3.)
 
         def test_solver_change(self):
             solver_id = id(self.model.solver)
