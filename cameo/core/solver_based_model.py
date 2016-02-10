@@ -228,6 +228,7 @@ class SolverBasedModel(cobra.core.Model):
         objective_terms = list()
         metabolites = {}
         for reaction in reaction_list:
+
             if reaction.reversibility:
                 forward_variable = self.solver.interface.Variable(reaction._get_forward_id(), lb=0,
                                                                   ub=reaction._upper_bound)
@@ -258,8 +259,8 @@ class SolverBasedModel(cobra.core.Model):
                 constr_terms[metabolite.id].append(
                     sympy.Mul._from_args([sympy.RealNumber(-1 * coeff), reverse_variable]))
 
-            if reaction.objective_coefficient != 0.:
-                objective_terms.append(reaction.objective_coefficient * reaction.flux_expression)
+            if reaction._objective_coefficient != 0.:
+                objective_terms.append(reaction._objective_coefficient * reaction.flux_expression)
 
         for met_id, terms in six.iteritems(constr_terms):
             expr = sympy.Add._from_args(terms)
