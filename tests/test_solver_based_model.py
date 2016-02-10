@@ -646,8 +646,8 @@ class WrappedAbstractTestSolverBasedModel:
 
         def test_change_objective(self):
             expression = 1.0 * self.model.solver.variables['ENO'] + 1.0 * self.model.solver.variables['PFK']
-            self.model.objective = Objective(expression)
-            self.assertEqual(str(self.model.objective.expression), str(expression))
+            self.model.objective = self.model.solver.interface.Objective(expression)
+            self.assertEqual(self.model.objective.expression, expression)
 
         def test_set_reaction_objective(self):
             self.model.objective = self.model.reactions.ACALD
