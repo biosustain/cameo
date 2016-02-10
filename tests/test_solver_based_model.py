@@ -443,6 +443,7 @@ class WrappedAbstractTestReaction:
             self.assertEqual(self.model.reactions.PFK.reverse_variable.lb, 0)
             self.assertEqual(self.model.reactions.PFK.reverse_variable.ub, 1000)
 
+        @unittest.skipIf(TRAVIS, "This is slow on Travis")
         def test_iMM904_4HGLSDm_problem(self):
             model = load_model(os.path.join(TESTDIR, 'data/iMM904.xml'))
             # set upper bound before lower bound after knockout
@@ -529,7 +530,7 @@ class TestReactionGLPK(WrappedAbstractTestReaction.AbstractTestReaction):
         self.model.solver = 'glpk'
 
 
-@unittest.skipIf(TRAVIS, 'Skip for now')
+#@unittest.skipIf(TRAVIS, 'Skip for now')
 class TestReactionCPLEX(WrappedAbstractTestReaction.AbstractTestReaction):
     def setUp(self):
         self.cobrapy_model = COBRAPYTESTMODEL.copy()
@@ -542,6 +543,25 @@ class WrappedAbstractTestSolverBasedModel:
         def setUp(self):
             self.model = TESTMODEL.copy()
             self.model.solve()
+
+        def test_objective_coefficient_reflects_changed_objective(self):
+            biomass_r = self.model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2
+            self.assertEqual(biomass_r.objective_coefficient, 1)
+            self.model.objective = "PGI"
+            self.assertEqual(biomass_r.objective_coefficient, 0)
+            self.assertEqual(self.model.reactions.PGI.objective_coefficient, 1)
+
+        def test_objective_can_be_changed_through_objective_coefficient(self):
+            biomass_r = self.model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2
+            pgi = self.model.reactions.PGI
+            pgi.objective_coefficient = 2
+            coef_dict = self.model.objective.expression.as_coefficients_dict()
+            # Check that objective has been updated
+            self.assertEqual(coef_dict[pgi.forward_variable], 2)
+            self.assertEqual(coef_dict[pgi.reverse_variable], -2)
+            # Check that original objective is still in there
+            self.assertEqual(coef_dict[biomass_r.forward_variable], 1)
+            self.assertEqual(coef_dict[biomass_r.reverse_variable], -1)
 
         def test_model_from_other_cameo_model(self):
             model = Model(description=self.model)
@@ -556,16 +576,17 @@ class WrappedAbstractTestSolverBasedModel:
             r2.add_metabolites({Metabolite('A'): -1, Metabolite('C'): 1, Metabolite('D'): 1})
             r2.lower_bound, r2.upper_bound = 0., 999999.
             r2.objective_coefficient = 3.
+            self.assertEqual(r2.objective_coefficient, 3.)
             self.model.add_reactions([r1, r2])
             self.assertEqual(self.model.reactions[-2], r1)
             self.assertEqual(self.model.reactions[-1], r2)
             self.assertTrue(isinstance(self.model.reactions[-2].reverse_variable, self.model.solver.interface.Variable))
-            self.assertEqual(self.model.objective.expression.coeff(
-                self.model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.forward_variable), 1.)
-            self.assertEqual(self.model.objective.expression.coeff(
-                self.model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.reverse_variable), -1.)
-            self.assertEqual(self.model.objective.expression.coeff(self.model.reactions.r2.forward_variable), 3.)
-            self.assertEqual(self.model.objective.expression.coeff(self.model.reactions.r2.reverse_variable), -3.)
+            coefficients_dict = self.model.objective.expression.as_coefficients_dict()
+            biomass_r = self.model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2
+            self.assertEqual(coefficients_dict[biomass_r.forward_variable], 1.)
+            self.assertEqual(coefficients_dict[biomass_r.reverse_variable], -1.)
+            self.assertEqual(coefficients_dict[self.model.reactions.r2.forward_variable], 3.)
+            self.assertEqual(coefficients_dict[self.model.reactions.r2.reverse_variable], -3.)
 
         def test_all_objects_point_to_all_other_correct_objects(self):
             model = load_model(os.path.join(TESTDIR, 'data/EcoliCore.xml'))
@@ -645,8 +666,8 @@ class WrappedAbstractTestSolverBasedModel:
 
         def test_change_objective(self):
             expression = 1.0 * self.model.solver.variables['ENO'] + 1.0 * self.model.solver.variables['PFK']
-            self.model.objective = Objective(expression)
-            self.assertEqual(str(self.model.objective.expression), str(expression))
+            self.model.objective = self.model.solver.interface.Objective(expression)
+            self.assertEqual(self.model.objective.expression, expression)
 
         def test_set_reaction_objective(self):
             self.model.objective = self.model.reactions.ACALD
@@ -659,8 +680,8 @@ class WrappedAbstractTestSolverBasedModel:
                 1.0 * self.model.reactions.ACALD.forward_variable - 1.0 * self.model.reactions.ACALD.reverse_variable))
 
         def test_invalid_objective_raises(self):
-            self.assertRaises(Exception, setattr, self.model, 'objective', 'This is not a valid objective!')
-            self.assertRaises(Exception, setattr, self.model, 'objective', 3.)
+            self.assertRaises(ValueError, setattr, self.model, 'objective', 'This is not a valid objective!')
+            self.assertRaises(TypeError, setattr, self.model, 'objective', 3.)
 
         def test_solver_change(self):
             solver_id = id(self.model.solver)
@@ -795,7 +816,7 @@ class TestSolverBasedModelGLPK(WrappedAbstractTestSolverBasedModel.AbstractTestS
 class TestSolverBasedModelCPLEX(WrappedAbstractTestSolverBasedModel.AbstractTestSolverBasedModel):
     def setUp(self):
         super(TestSolverBasedModelCPLEX, self).setUp()
-        self.model.solver = 'glpk'
+        self.model.solver = 'cplex'
 
 
 if __name__ == '__main__':
