@@ -22,10 +22,41 @@ from cameo import Reaction
 from cobra import Metabolite
 import optlang
 import six
+import logging
+
+logger = logging.getLogger(__name__)
 import itertools
 
 from cameo.exceptions import SolveError, Infeasible
 from cameo.util import TimeMachine
+
+
+def find_dead_end_reactions(model):
+    """
+    Identify reactions that are structurally prevented from carrying flux (dead ends).
+    """
+    stoichiometries = {}
+    for reaction in model.reactions:
+        for met, coef in reaction.metabolites.items():
+            stoichiometries.setdefault(met.id, {})[reaction.id] = coef
+
+    blocked_reactions = set()
+    while True:
+        new_blocked = set()
+        for met_id, stoichiometry in stoichiometries.items():
+            if len(stoichiometry) == 1:  # Metabolite is only associated with 1 reaction, which can thus not be active
+                new_blocked.add(list(stoichiometry)[0])
+        if len(new_blocked) == 0:
+            break  # No more blocked reactions
+
+        # Remove blocked reactions from stoichiometries
+        stoichiometries = {
+            met_id: {reac_id: coef for reac_id, coef in stoichiometry.items() if reac_id not in new_blocked}
+            for met_id, stoichiometry in stoichiometries.items()
+        }
+        blocked_reactions.update(new_blocked)
+
+    return blocked_reactions
 
 
 class ShortestElementaryFluxModes(six.Iterator):
@@ -144,6 +175,7 @@ class ShortestElementaryFluxModes(six.Iterator):
         self.model.solver._add_constraint(fixed_size_constraint, sloppy=True)
 
         while True:
+            logger.debug("Looking for solutions with cardinality "+str(fixed_size_constraint.lb))
             try:
                 self.model.solver.problem.populate_solution_pool()
             except Exception as e:
@@ -210,9 +242,8 @@ class MetabolicCutSetsEnumerator(ShortestElementaryFluxModes):
 
         self._elementary_mode_generator = iterator_wrapper(self._elementary_mode_generator, self._allowed_mcs)
 
-    def _allowed_mcs(self, dual_mcs):
-        mcs = self._convert_mcs_to_primal(dual_mcs)
-        #mcs = dual_mcs
+    def _allowed_mcs(self, dual_em):
+        mcs = self._convert_mcs_to_primal(dual_em)
         if len(self._constraints) > 0:
             with TimeMachine() as tm:
                 for reac_id in mcs:
@@ -226,9 +257,9 @@ class MetabolicCutSetsEnumerator(ShortestElementaryFluxModes):
         else:
             return mcs
 
-    def _convert_mcs_to_primal(self, dual_mcs):
+    def _convert_mcs_to_primal(self, dual_em):
         primal_mcs = []
-        for reac in dual_mcs:
+        for reac in dual_em:
             name = "_".join(reac.id.split("_")[1:])
             if name in self._primal_model.reactions:
                 primal_mcs.append(name)
@@ -341,8 +372,12 @@ class MetabolicCutSetsEnumerator(ShortestElementaryFluxModes):
         if constraints is None:
             return ()
         else:
-            self._primal_model.solver.add(constraints)
-            return constraints
+            cloned_constraints = [
+                self._primal_model.solver.interface.Constraint.clone(constraint, model=self._primal_model.solver)
+                for constraint in constraints
+            ]
+            self._primal_model.solver.add(cloned_constraints)
+            return cloned_constraints
 
 
 if __name__ == '__main__':
