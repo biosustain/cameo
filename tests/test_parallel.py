@@ -22,17 +22,24 @@ from cameo.parallel import SequentialView
 import subprocess
 from time import sleep
 from multiprocessing import cpu_count
+import os
 
 try:
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         from IPython.parallel import Client, interactive
 except ImportError:
-    from ipyparallel import Client, interactive
+    try:
+        from ipyparallel import Client, interactive
+    except ImportError:
+        def interactive(f):
+            return f
 from six.moves import range
 
 SOLUTION = [x ** 2 for x in range(100)]
 
+TRAVIS = os.getenv('TRAVIS', False)
+SKIP_PARALLEL = TRAVIS
 
 @interactive
 def to_the_power_of_2_interactive(arg):
@@ -58,6 +65,7 @@ class TestSequentialView(unittest.TestCase):
 try:
     from cameo.parallel import MultiprocessingView
 
+    @unittest.skipIf(SKIP_PARALLEL, "This is Travis")
     class TestMultiprocessingView(unittest.TestCase):
         def setUp(self):
             self.view = MultiprocessingView()

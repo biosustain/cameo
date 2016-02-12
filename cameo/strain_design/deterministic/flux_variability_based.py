@@ -14,14 +14,40 @@
 # limitations under the License.
 
 from __future__ import absolute_import, print_function
-import re
 
-__all__ = ['DifferentialFVA', 'fseof']
+
+import re
+import six
+import logging
+import warnings
+
+
+import numpy as np
 
 from functools import partial
 from uuid import uuid4
-from IPython.core.display import display, HTML, Javascript
-import warnings
+
+try:
+    from IPython.core.display import display, HTML, Javascript
+except ImportError:
+    pass
+
+from IProgress import ProgressBar
+from pandas import DataFrame, pandas
+from cameo.visualization import plotting
+
+from cameo import config, flux_variability_analysis
+from cameo.flux_analysis.simulation import pfba, fba
+
+from cameo import Metabolite
+from cameo.parallel import SequentialView
+from cameo.core.solver_based_model import Reaction
+from cameo.strain_design.strain_design import StrainDesignMethod, StrainDesignResult, StrainDesign
+from cameo.flux_analysis.analysis import phenotypic_phase_plane, PhenotypicPhasePlaneResult
+from cameo.util import TimeMachine
+from cameo.ui import notice
+from cameo.visualization.escher_ext import NotebookBuilder
+
 
 with warnings.catch_warnings():
     warnings.simplefilter("ignore")
@@ -30,32 +56,15 @@ with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             from IPython.html.widgets import interact, IntSlider
     except ImportError:
-        from ipywidgets import interact, IntSlider
-import six
-from cameo.ui import notice
-from cameo.visualization.escher_ext import NotebookBuilder
+        try:
+            from ipywidgets import interact, IntSlider
+        except ImportError:
+            pass
 
-if six.PY2:
-    from itertools import izip as my_zip
-else:
-    my_zip = zip
+zip = my_zip = six.moves.zip
 
-from IProgress import ProgressBar
-from pandas import DataFrame, pandas
-from cameo.visualization import plotting
+__all__ = ['DifferentialFVA', 'FSEOF']
 
-from cameo import config, flux_variability_analysis, fba
-
-from cameo import Metabolite
-from cameo.parallel import SequentialView
-from cameo.core.solver_based_model import Reaction
-from cameo.strain_design import StrainDesignMethod
-from cameo.flux_analysis.analysis import phenotypic_phase_plane, PhenotypicPhasePlaneResult
-from cameo.util import TimeMachine
-import cameo
-
-import logging
-import six
 
 logger = logging.getLogger(__name__)
 
@@ -135,15 +144,16 @@ class DifferentialFVA(StrainDesignMethod):
         elif isinstance(objective, Metabolite):
             try:
                 self.reference_model.add_demand(objective)
+            except ValueError:
+                pass
+            try:
                 self.objective = self.design_space_model.add_demand(objective).id
-            except:
-                logger.debug("Demand reaction for metabolite %s already exists" % objective.id)
-                self.objective = self.design_space_model.reactions.get_by_id("DM_%s" % objective.id).id
-
+            except ValueError:
+                self.objective = self.design_space_model.reactions.get_by_id("DM_" + objective.id).id
         elif isinstance(objective, str):
             self.objective = objective
         else:
-            raise ValueError('You need to either provide ')
+            raise ValueError('You need to provide an objective as a Reaction, Metabolite or a reaction id')
 
         if variables is None:
             # try to establish the current objective reaction
@@ -263,6 +273,7 @@ class DifferentialFVA(StrainDesignMethod):
 
             included_reactions = [reaction.id for reaction in self.reference_model.reactions if
                                   reaction.id not in self.exclude]
+            # FIXME: reference flux ranges should be for a fraction (say 0.75) of the original objective
             self.reference_flux_ranges = flux_variability_analysis(self.reference_model, reactions=included_reactions,
                                                                    view=view, remove_cycles=False).data_frame
             self._init_search_grid(surface_only=surface_only, improvements_only=improvements_only)
@@ -307,26 +318,51 @@ class DifferentialFVA(StrainDesignMethod):
             df.loc[flux_reversal_selection.index]['suddenly_essential'] = True
 
         # solutions['reference_flux_ranges'] = self.reference_flux_ranges
-        return DifferentialFVAResult(pandas.Panel(solutions), self.envelope, self.variables, self.objective)
+        return DifferentialFVAResult(pandas.Panel(solutions), self.envelope, self.reference_flux_ranges,
+                                     self.variables, self.objective)
 
 
 class DifferentialFVAResult(PhenotypicPhasePlaneResult):
-    def __init__(self, solutions, phase_plane, variables_ids, objective, *args, **kwargs):
+    def __init__(self, solutions, phase_plane, reference_fva, variables_ids, objective, *args, **kwargs):
         if isinstance(phase_plane, PhenotypicPhasePlaneResult):
             phase_plane = phase_plane._phase_plane
         super(DifferentialFVAResult, self).__init__(phase_plane, variables_ids, objective, *args, **kwargs)
+        self.reference_fva = reference_fva
         self.solutions = solutions
 
-    def plot(self, grid=None, width=None, height=None, title=None):
+    def __getitem__(self, item):
+        columns = ["lower_bound", "upper_bound", "gaps", "normalized_gaps", "KO", "flux_reversal", "suddenly_essential"]
+        rows = list(range(len(self.solutions)))
+        values = np.ndarray((len(rows), len(columns)))
+        for i in rows:
+            values[i] = self.solutions.iloc[i].loc[item].values
+
+        data = DataFrame(values, index=rows, columns=columns)
+        data["KO"] = data["KO"].values.astype(np.bool)
+        data["flux_reversal"] = data["flux_reversal"].values.astype(np.bool)
+        data["suddenly_essential"] = data["suddenly_essential"].values.astype(np.bool)
+        return data
+
+    def plot(self, index=None, variables=None, grid=None, width=None, height=None, title=None, **kwargs):
         if len(self.variable_ids) > 1:
             notice("Multi-dimensional plotting is not supported")
             return
-        title = "DifferentialFVA Result" if title is None else title
-        points = [(elem[0][1], elem[1][1]) for elem in list(self.solutions.items)]
-        colors = ["red" for _ in points]
-        plotting.plot_production_envelope(self._phase_plane, objective=self.objective, key=self.variable_ids[0],
-                                          grid=grid, width=width, height=height, title=title,
-                                          points=points, points_colors=colors)
+        if index is not None:
+            if variables is None:
+                variables = self.reference_fva.index[0:10]
+            title = "Compare WT solution %i" % index
+            fva_res1 = self.reference_fva.loc[variables]
+            fva_res2 = self.solutions.iloc[index].loc[variables]
+            plotting.plot_2_flux_variability_analysis(fva_res1, fva_res2, grid=grid,
+                                                      width=width, height=height, title=title)
+        else:
+            title = "DifferentialFVA Result" if title is None else title
+            x = [elem[0][1] for elem in list(self.solutions.items)]
+            y = [elem[1][1] for elem in list(self.solutions.items)]
+            colors = ["red" for _ in x]
+            plotting.plot_production_envelope(self._phase_plane, objective=self.objective, key=self.variable_ids[0],
+                                              grid=grid, width=width, height=height, title=title,
+                                              points=zip(x, y), points_colors=colors)
 
     def _repr_html_(self):
         def _data_frame(solution):
@@ -410,8 +446,7 @@ class _DifferentialFvaEvaluator(object):
         target_reaction.lower_bound, target_reaction.upper_bound = target_bound, target_bound
 
 
-def fseof(model, enforced_reaction, max_enforced_flux=0.9, granularity=10, primary_objective=None, solution_method=fba,
-          exclude=()):
+class FSEOF(StrainDesignMethod):
     """
     Performs a Flux Scanning based on Enforced Objective Flux (FSEOF) analysis.
 
@@ -419,19 +454,9 @@ def fseof(model, enforced_reaction, max_enforced_flux=0.9, granularity=10, prima
     ----------
     model : SolverBasedModel
     enforced_reaction : Reaction
-        The flux that will be enforced.
-    max_enforced_flux : float, optional
-        The maximal flux of secondary_objective that will be enforced, relative to the theoretical maximum.
-    granularity : int, optional (defaults to 0.9).
-        The number of enforced flux levels (defaults to 10).
+        The flux that will be enforced. Reaction object or reaction id string.
     primary_objective : Reaction
         The primary objective flux (defaults to model.objective).
-    exclude : Iterable of reactions or reaction ids that will not be included in the output.
-
-    Returns
-    -------
-    FseofResult
-        List of reactions that correlate with enforced flux.
 
     References
     ----------
@@ -439,80 +464,162 @@ def fseof(model, enforced_reaction, max_enforced_flux=0.9, granularity=10, prima
     for improvement of lycopene production.,' Appl Environ Microbiol, vol. 76, no. 10, pp. 3097–3105, May 2010.
 
     """
-    ndecimals = config.ndecimals
-    with TimeMachine() as tm:
+    def __init__(self, model, primary_objective=None, *args, **kwargs):
+        super(FSEOF, self).__init__(*args, **kwargs)
+        self.model = model
 
-        # Convert enforced reaction to Reaction object
-        if not isinstance(enforced_reaction, Reaction):
-            enforced_reaction = model.reactions.get_by_id(enforced_reaction)
-        primary_objective = primary_objective or model.objective
+        if primary_objective is None:
+            self.primary_objective = model.objective
+        elif isinstance(primary_objective, Reaction):
+            if primary_objective in model.reactions:
+                self.primary_objective = primary_objective
+            else:
+                raise ValueError("The reaction "+primary_objective.id+" does not belong to the model")
+        elif isinstance(primary_objective, str):
+            if primary_objective in model.reactions:
+                self.primary_objective = model.reactions.get_by_id(primary_objective)
+            else:
+                raise ValueError("No reaction "+primary_objective+" found in the model")
+        elif isinstance(primary_objective, type(model.objective)):
+            self.primary_objective = primary_objective
+        else:
+            raise TypeError("Primary objective must be an Objective, Reaction or a string")
+
+    def run(self, target=None, max_enforced_flux=0.9, number_of_results=10, exclude=(), simulation_method=fba, simulation_kwargs=None):
+        """
+        Performs a Flux Scanning based on Enforced Objective Flux (FSEOF) analysis.
+
+        Parameters
+        ----------
+        target: str, Reaction, Metabolite
+            The target for optimization.
+        max_enforced_flux : float, optional
+            The maximal flux of secondary_objective that will be enforced, relative to the theoretical maximum (defaults to 0.9).
+        number_of_results : int, optional
+            The number of enforced flux levels (defaults to 10).
+        exclude : Iterable of reactions or reaction ids that will not be included in the output.
+
+        Returns
+        -------
+        FseofResult
+            An object containing the identified reactions and the used parameters.
+
+        References
+        ----------
+        .. [1] H. S. Choi, S. Y. Lee, T. Y. Kim, and H. M. Woo, 'In silico identification of gene amplification targets
+        for improvement of lycopene production.,' Appl Environ Microbiol, vol. 76, no. 10, pp. 3097–3105, May 2010.
+
+        """
+        model = self.model
+        target = model.reaction_for(target)
+
+        simulation_kwargs = simulation_kwargs if simulation_kwargs is not None else {}
+        simulation_kwargs['objective'] = self.primary_objective
+
+        if 'reference' not in simulation_kwargs:
+            reference = simulation_kwargs['reference'] = pfba(model, **simulation_kwargs)
+        else:
+            reference = simulation_kwargs['reference']
+
+        ndecimals = config.ndecimals
 
         # Exclude list
-        exclude += tuple(model.exchanges)
-        exclude_ids = [enforced_reaction.id]
+        exclude = list(exclude) + model.exchanges
+        exclude_ids = [target.id]
         for reaction in exclude:
             if isinstance(reaction, Reaction):
                 exclude_ids.append(reaction.id)
             else:
                 exclude_ids.append(reaction)
 
-        tm(do=int, undo=partial(setattr, model, "objective", model.objective))
-        tm(do=int, undo=partial(setattr, enforced_reaction, "lower_bound", enforced_reaction.lower_bound))
-        tm(do=int, undo=partial(setattr, enforced_reaction, "upper_bound", enforced_reaction.upper_bound))
+        with TimeMachine() as tm:
 
-        # Find initial flux of enforced reaction
-        model.objective = primary_objective
-        initial_solution = solution_method(model)
-        initial_fluxes = initial_solution.fluxes
-        initial_flux = round(initial_fluxes[enforced_reaction.id], ndecimals)
+            tm(do=int, undo=partial(setattr, model, "objective", model.objective))
+            tm(do=int, undo=partial(setattr, target, "lower_bound", target.lower_bound))
+            tm(do=int, undo=partial(setattr, target, "upper_bound", target.upper_bound))
 
-        # Find theoretical maximum of enforced reaction
-        model.objective = enforced_reaction
-        max_theoretical_flux = round(solution_method(model).fluxes[enforced_reaction.id], ndecimals)
+            # Find initial flux of enforced reaction
+            initial_fluxes = reference.fluxes
+            initial_flux = round(initial_fluxes[target.id], ndecimals)
 
-        max_flux = max_theoretical_flux * max_enforced_flux
+            # Find theoretical maximum of enforced reaction
+            max_theoretical_flux = round(fba(model, objective=target.id, reactions=[target.id]).fluxes[target.id], ndecimals)
 
-        # Calculate enforcement levels
-        enforcements = [initial_flux + (i + 1) * (max_flux - initial_flux) / granularity for i in range(granularity)]
+            max_flux = max_theoretical_flux * max_enforced_flux
 
-        # FSEOF results
-        results = {reaction.id: [round(initial_fluxes[reaction.id], config.ndecimals)] for reaction in model.reactions}
+            # Calculate enforcement levels
+            levels = [initial_flux+(i+1)*(max_flux-initial_flux)/number_of_results for i in range(number_of_results)]
 
-        # Scan fluxes for different levels of enforcement
-        model.objective = primary_objective
-        for enforcement in enforcements:
-            enforced_reaction.lower_bound = enforcement
-            enforced_reaction.upper_bound = enforcement
-            solution = solution_method(model)
-            for reaction_id, flux in solution.fluxes.items():
-                results[reaction_id].append(round(flux, config.ndecimals))
+            # FSEOF results
+            results = {reaction.id: [] for reaction in model.reactions}
 
-    # Test each reaction
-    fseof_reactions = []
-    for reaction_id, fluxes in results.items():
-        if reaction_id not in exclude_ids and abs(fluxes[-1]) > abs(fluxes[0]) and min(fluxes) * max(fluxes) >= 0:
-            fseof_reactions.append(model.reactions.get_by_id(reaction_id))
+            for level in levels:
+                target.lower_bound = level
+                target.upper_bound = level
+                solution = simulation_method(model, **simulation_kwargs)
+                for reaction_id, flux in solution.fluxes.items():
+                    results[reaction_id].append(round(flux, ndecimals))
 
-    return FseofResult(fseof_reactions, enforced_reaction, model)
+        # Test each reaction
+        fseof_reactions = []
+        for reaction_id, fluxes in results.items():
+            if reaction_id not in exclude_ids \
+                    and max(abs(max(fluxes)), abs(min(fluxes))) > abs(reference[reaction_id]) \
+                    and min(fluxes) * max(fluxes) >= 0:
+                fseof_reactions.append(model.reactions.get_by_id(reaction_id))
+
+        results = {rea.id: results[rea.id] for rea in fseof_reactions}
+        run_args = dict(max_enforced_flux=max_enforced_flux,
+                        number_of_results=number_of_results,
+                        solution_method=simulation_method,
+                        simulation_kwargs=simulation_kwargs,
+                        exclude=exclude)
+
+        return FSEOFResult(fseof_reactions, target, model, self.primary_objective, levels, results, run_args, reference)
 
 
-class FseofResult(cameo.core.result.Result):
+class FSEOFResult(StrainDesignResult):
     """
     Object for storing a FSEOF result.
+
+    Attributes:
+    reactions: A list of the reactions that are found to increase with product formation.
+    enforced_levels: A list of the fluxes that the enforced reaction was constrained to.
+    data_frame: A pandas DataFrame containing the fluxes for every reaction for each enforced flux.
+    run_args: The arguments that the analysis was run with. To repeat do 'FSEOF.run(**FSEOFResult.run_args)'.
+
     """
 
-    def __init__(self, reactions, objective, model, *args, **kwargs):
-        super(FseofResult, self).__init__(*args, **kwargs)
+    def plot(self, grid=None, width=None, height=None, title=None):
+        pass
+
+    def __init__(self, reactions, target, model, primary_objective, enforced_levels, reaction_results,
+                 run_args, reference, *args, **kwargs):
+        super(FSEOFResult, self).__init__(*args, **kwargs)
         self._reactions = reactions
-        self._objective = objective
+        self._target = target.id
         self._model = model
+        self._primary_objective = primary_objective
+        self._run_args = run_args
+        self._enforced_levels = enforced_levels
+        self._reaction_results = reaction_results
+        self._reference_fluxes = {r: reference.fluxes[r.id] for r in reactions}
+
+    def __len__(self):
+        return len(self.reactions)
 
     def __iter__(self):
-        return iter(self.reactions)
+        ref_fluxes = self._reference_fluxes
+        for i, level in enumerate(self.enforced_levels):
+            knockouts = [r for r, v in six.iteritems(self._reaction_results) if ref_fluxes[r.id] > 0 and v[i] == 0]
+            over_expression = {r: v for r, v in six.iteritems(self._reaction_results) if v[i] > ref_fluxes[r.id]}
+            down_regulation = {r: v for r, v in six.iteritems(self._reaction_results) if v[i] < ref_fluxes[r.id]}
+            yield StrainDesign(knockouts=knockouts, over_expression=over_expression,
+                               down_regulation=down_regulation, manipulation_type="reactions")
 
     def __eq__(self, other):
-        return isinstance(other,
-                          self.__class__) and self.objective == other.objective and self.reactions == other.reactions
+        return isinstance(other, self.__class__) and \
+               self.target == other.target and self.reactions == other.reactions
 
     @property
     def reactions(self):
@@ -523,27 +630,42 @@ class FseofResult(cameo.core.result.Result):
         return self._model
 
     @property
-    def objective(self):
-        return self._objective
+    def target(self):
+        return self._target
+
+    @property
+    def primary_objective(self):
+        return self._primary_objective
+
+    @property
+    def run_args(self):
+        return self._run_args
+
+    @property
+    def enforced_levels(self):
+        return self._enforced_levels
 
     def _repr_html_(self):
         template = """
-<table>
-     <tr>
-        <td><b>Enforced objective</b></td>
-        <td>%(objective)s</td>
-    </tr>
-    <tr>
-        <td><b>Reactions</b></td>
-        <td>%(reactions)s</td>
-    <tr>
-</table>"""
-        return template % {'objective': self.objective.nice_id,
-                           'reactions': "<br>".join(reaction.id for reaction in self.reactions)}
+<strong>Model:</strong> %(model)s</br>
+<strong>Enforced objective:</strong> %(objective)s</br>
+<strong>Primary objective:</strong> %(primary)s</br>
+<br>
+<strong>Reaction fluxes</strong><br><br>
+%(df)s
+"""
+        return template % {'objective': self.target.id,
+                           'reactions': "<br>".join(reaction.id for reaction in self.reactions),
+                           'model': self.model.id,
+                           'primary': str(self._primary_objective),
+                           'df': self.data_frame._repr_html_()}
 
     @property
     def data_frame(self):
-        return pandas.DataFrame((r.id for r in self.reactions), columns=["Reaction id"])
+        df = pandas.DataFrame(self._reaction_results).transpose()
+        df.columns = (i+1 for i in range(len(self._enforced_levels)))
+        df.loc[self.target] = self._enforced_levels
+        return df
 
 
 # if __name__ == '__main__':

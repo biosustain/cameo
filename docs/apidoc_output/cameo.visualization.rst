@@ -20,6 +20,14 @@ cameo.visualization.plotting module
     :undoc-members:
     :show-inheritance:
 
+cameo.visualization.sympy_ext module
+------------------------------------
+
+.. automodule:: cameo.visualization.sympy_ext
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 cameo.visualization.visualization module
 ----------------------------------------
 

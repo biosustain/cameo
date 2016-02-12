@@ -51,6 +51,7 @@ add = Add._from_args
 mul = Mul._from_args
 NegativeOne = sympy.singleton.S.NegativeOne
 One = sympy.singleton.S.One
+FloatOne = sympy.Float(1)
 RealNumber = sympy.RealNumber
 
 
@@ -81,7 +82,7 @@ def fba(model, objective=None, reactions=None, *args, **kwargs):
 
 
 def pfba(model, objective=None, reactions=None, *args, **kwargs):
-    """Parsimonious Flux Balance Analysis.
+    """Parsimonious Enzyme Usage Flux Balance Analysis [1].
 
     Parameters
     ----------
@@ -94,9 +95,15 @@ def pfba(model, objective=None, reactions=None, *args, **kwargs):
     FluxDistributionResult
         Contains the result of the linear solver.
 
+    References
+    ----------
+    .. [1] Lewis, N. E., Hixson, K. K., Conrad, T. M., Lerman, J. A., Charusanti, P., Polpitiya, A. D., …
+     Palsson, B. Ø. (2010). Omic data from evolved E. coli are consistent with computed optimal growth from
+     genome-scale models. Molecular Systems Biology, 6, 390. doi:10.1038/msb.2010.47
+
     """
     with TimeMachine() as tm:
-        original_objective = model.objective.expression
+        original_objective = model.objective
         if objective is not None:
             tm(do=partial(setattr, model, 'objective', objective),
                undo=partial(setattr, model, 'objective', original_objective))
@@ -130,7 +137,41 @@ def pfba(model, objective=None, reactions=None, *args, **kwargs):
 
 
 def moma(model, reference=None, *args, **kwargs):
-    raise NotImplementedError('Quadratic MOMA not yet implemented.')
+    """
+    Minimization of Metabolic Adjustment
+    """
+    with TimeMachine() as tm:
+        aux_vars = {}
+        for reac_id in reference.keys():
+            var = model.solver.interface.Variable("moma_aux_"+reac_id)
+            aux_vars[reac_id] = var
+        tm(do=partial(model.solver.add, aux_vars.values()),
+           undo=partial(model.solver.remove, aux_vars.values()))
+
+        constraints = {}
+        for reac_id, aux_var in aux_vars.items():
+            reac = model.reactions.get_by_id(reac_id)
+            const = model.solver.interface.Constraint(
+                add([mul([One, reac.forward_variable]),
+                     mul([NegativeOne, reac.reverse_variable]),
+                     mul([NegativeOne, aux_var])
+                ]),
+                lb=reference[reac_id],
+                ub=reference[reac_id],
+                sloppy=True
+            )
+            constraints[reac_id] = const
+        tm(do=partial(model.solver.add, constraints.values()),
+           undo=partial(model.solver.remove, constraints.values()))
+
+        obj = model.solver.interface.Objective(Add(*(FloatOne*var**2 for var in aux_vars.values())), direction="min", sloppy=True)
+        tm(do=partial(setattr, model, "objective", obj),
+           undo=partial(setattr, model, "objective", model.objective))
+
+        sol = model.solve()
+        result = FluxDistributionResult.from_solution(sol)
+
+    return result
 
 
 def lmoma(model, reference=None, cache=None, reactions=None, *args, **kwargs):

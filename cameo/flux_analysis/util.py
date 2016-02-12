@@ -21,8 +21,12 @@ from functools import partial
 from cameo.exceptions import SolveError
 from cameo.util import TimeMachine
 
+import sympy
+from sympy import Add, Mul
+
 import logging
 
+FloatOne = sympy.Float(1)
 logger = logging.getLogger(__name__)
 
 
@@ -47,8 +51,8 @@ def remove_infeasible_cycles(model, fluxes, fix=()):
             thermodynamically infeasible loops from flux distributions.”
     """
     with TimeMachine() as tm:
-        # make sure the orignal object is restored
-        tm(do=int, undo=partial(setattr, model, 'objective', copy.copy(model.objective)))
+        # make sure the original object is restored
+        tm(do=int, undo=partial(setattr, model, 'objective', model.objective))
         exchange_reactions = model.exchanges
         exchange_ids = [exchange.id for exchange in exchange_reactions]
         internal_reactions = [reaction for reaction in model.reactions if reaction.id not in exchange_ids]
@@ -58,23 +62,26 @@ def remove_infeasible_cycles(model, fluxes, fix=()):
                undo=partial(setattr, exchange, 'lower_bound', exchange.lower_bound))
             tm(do=partial(setattr, exchange, 'upper_bound', exchange_flux),
                undo=partial(setattr, exchange, 'upper_bound', exchange.upper_bound))
+        cycle_free_objective_list = []
         for internal_reaction in internal_reactions:
             internal_flux = fluxes[internal_reaction.id]
             if internal_flux >= 0:
-                model.solver._set_linear_objective_term(internal_reaction.forward_variable, 1.)
+                cycle_free_objective_list.append(Mul._from_args((FloatOne, internal_reaction.forward_variable)))
                 tm(do=partial(setattr, internal_reaction, 'lower_bound', 0),
                    undo=partial(setattr, internal_reaction, 'lower_bound', internal_reaction.lower_bound))
                 tm(do=partial(setattr, internal_reaction, 'upper_bound', internal_flux),
                    undo=partial(setattr, internal_reaction, 'upper_bound', internal_reaction.upper_bound))
-            elif internal_flux < 0:
-                model.solver._set_linear_objective_term(internal_reaction.reverse_variable, -1.)
+            else:  # internal_flux < 0:
+                cycle_free_objective_list.append(Mul._from_args((FloatOne, internal_reaction.reverse_variable)))
                 tm(do=partial(setattr, internal_reaction, 'lower_bound', internal_flux),
                    undo=partial(setattr, internal_reaction, 'lower_bound', internal_reaction.lower_bound))
                 tm(do=partial(setattr, internal_reaction, 'upper_bound', 0),
                    undo=partial(setattr, internal_reaction, 'upper_bound', internal_reaction.upper_bound))
-            else:
-                pass
-        model.objective.direction = 'min'
+
+        cycle_free_objective = model.solver.interface.Objective(
+            Add._from_args(cycle_free_objective_list), direction="min", sloppy=True
+        )
+        model.objective = cycle_free_objective
 
         for reaction_id in fix:
             reaction_to_fix = model.reactions.get_by_id(reaction_id)
@@ -85,9 +92,9 @@ def remove_infeasible_cycles(model, fluxes, fix=()):
 
         try:
             solution = model.solve()
-            result = solution.x_dict
         except SolveError as e:
             logger.warning("Couldn't remove cycles from reference flux distribution.")
             raise e
+        result = solution.x_dict
 
     return result

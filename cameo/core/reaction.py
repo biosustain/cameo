@@ -55,7 +55,7 @@ class Reaction(_cobrapy.core.Reaction):
         Reaction
 
         """
-        new_reaction = cls(name=reaction.name)
+        new_reaction = cls(reaction.id, name=reaction.name)
         for attribute, value in six.iteritems(reaction.__dict__):
             if attribute == '_model':  # _model needs to be set after all other attributes have been set.
                 continue
@@ -77,17 +77,17 @@ class Reaction(_cobrapy.core.Reaction):
             metabolite._reaction.add(new_reaction)
         return new_reaction
 
-    def __init__(self, name=None):
+    def __init__(self, id=None, name='', subsystem="", lower_bound=0, upper_bound=1000):
         """
         Parameters
         ----------
         name : str, optional
             The name of the reaction.
         """
-        super(Reaction, self).__init__(name=name)
-        self._lower_bound = 0
-        self._upper_bound = 1000.
-        self._objective_coefficient = 0.
+        super(Reaction, self).__init__(id=id, name=name, subsystem=subsystem)
+        self._lower_bound = lower_bound
+        self._upper_bound = upper_bound
+        self._model = None
 
     def __str__(self):
         return ''.join((self.id, ": ", self.build_reaction_string()))
@@ -123,7 +123,6 @@ class Reaction(_cobrapy.core.Reaction):
         if model is not None:
             aux_id = self._get_forward_id()
             return model.solver.variables[aux_id]
-
         else:
             return None
 
@@ -256,15 +255,35 @@ class Reaction(_cobrapy.core.Reaction):
         self._upper_bound = value
 
     @property
+    def model(self):
+        return self._model
+
+    @model.setter
+    def model(self, value):
+        if value is None:
+            self.objective_coefficient  # Get objective coefficient from model
+        elif not isinstance(value, cameo.core.SolverBasedModel):
+            raise ValueError("Must be an instance of cameo.core.SolverBasedModel, not %s" % type(value))
+        self._model = value
+
+    @property
     def objective_coefficient(self):
+        if self.model is not None and self.model.objective is not None:
+            coefficients_dict = self.model.objective.expression.as_coefficients_dict()
+            forw_coef = coefficients_dict.get(self.forward_variable, 0)
+            rev_coef = coefficients_dict.get(self.reverse_variable, 0)
+            if forw_coef == -rev_coef:
+                self._objective_coefficient = forw_coef
+            else:
+                self._objective_coefficient = 0
         return self._objective_coefficient
 
     @objective_coefficient.setter
     def objective_coefficient(self, value):
         model = self.model
         if model is not None:
-            model.solver._set_linear_objective_term(self.forward_variable, value)
-            model.solver._set_linear_objective_term(self.reverse_variable, -1 * value)
+            coef_difference = value - self.objective_coefficient
+            model.objective += coef_difference * self.flux_expression
         self._objective_coefficient = value
 
     @property

@@ -19,7 +19,8 @@
 from __future__ import absolute_import, print_function
 from functools import partial
 
-__all__ = ['to_solver_based_model', 'SolverBasedModel']
+from cobra.core import Metabolite
+
 
 import six
 
@@ -46,6 +47,10 @@ from .reaction import Reaction
 from .solution import LazySolution, Solution
 
 import logging
+
+
+__all__ = ['to_solver_based_model', 'SolverBasedModel']
+
 
 logger = logging.getLogger(__name__)
 
@@ -115,7 +120,7 @@ class SolverBasedModel(cobra.core.Model):
         model_copy = super(SolverBasedModel, self).copy()
         try:
             model_copy._solver = deepcopy(self.solver)
-        except:  # pragma: no cover # Cplex has an issue with deep copies
+        except Exception:  # pragma: no cover # Cplex has an issue with deep copies
             model_copy._solver = copy(self.solver)  # pragma: no cover
         return model_copy
 
@@ -149,9 +154,14 @@ class SolverBasedModel(cobra.core.Model):
 
     @objective.setter
     def objective(self, value):
-        if isinstance(value, str):
-            value = self.reactions.get_by_id(value)
+        if isinstance(value, six.string_types):
+            try:
+                value = self.reactions.get_by_id(value)
+            except KeyError:
+                raise ValueError("No reaction with the id %s in the model" % value)
         if isinstance(value, Reaction):
+            if value.model is not self:
+                raise ValueError("%r does not belong to the model" % value)
             self.solver.objective = self.solver.interface.Objective(value.flux_expression, sloppy=True)
         elif isinstance(value, self.solver.interface.Objective):
             self.solver.objective = value
@@ -161,7 +171,7 @@ class SolverBasedModel(cobra.core.Model):
         elif isinstance(value, sympy.Basic):
             self.solver.objective = self.solver.interface.Objective(value, sloppy=False)
         else:
-            raise Exception('%s is not a valid objective.' % value)
+            raise TypeError('%r is not a valid objective for %r.' % (value, self.solver))
 
     @property
     def solver(self):
@@ -183,7 +193,7 @@ class SolverBasedModel(cobra.core.Model):
         not_valid_interface = ValueError(
             '%s is not a valid solver interface. Pick from %s, or specify an optlang interface (e.g. optlang.glpk_interface).' % (
                 value, list(config.solvers.keys())))
-        if isinstance(value, str):
+        if isinstance(value, six.string_types):
             try:
                 interface = config.solvers[value]
             except KeyError:
@@ -218,6 +228,7 @@ class SolverBasedModel(cobra.core.Model):
         objective_terms = list()
         metabolites = {}
         for reaction in reaction_list:
+
             if reaction.reversibility:
                 forward_variable = self.solver.interface.Variable(reaction._get_forward_id(), lb=0,
                                                                   ub=reaction._upper_bound)
@@ -248,8 +259,8 @@ class SolverBasedModel(cobra.core.Model):
                 constr_terms[metabolite.id].append(
                     sympy.Mul._from_args([sympy.RealNumber(-1 * coeff), reverse_variable]))
 
-            if reaction.objective_coefficient != 0.:
-                objective_terms.append(reaction.objective_coefficient * reaction.flux_expression)
+            if reaction._objective_coefficient != 0.:
+                objective_terms.append(reaction._objective_coefficient * reaction.flux_expression)
 
         for met_id, terms in six.iteritems(constr_terms):
             expr = sympy.Add._from_args(terms)
@@ -303,18 +314,25 @@ class SolverBasedModel(cobra.core.Model):
         Reaction
             The created demand reaction.
         """
-        demand_reaction = Reaction(str(prefix + metabolite.id))
+        id = str(prefix + metabolite.id)
+        name = "Exchange %s" % metabolite.name if prefix == "EX_" else "Demand %s" % metabolite.name
+        if id in self.reactions:
+            raise ValueError("The metabolite already has a demand reaction.")
+
+        demand_reaction = Reaction()
+        demand_reaction.id = id
+        demand_reaction.name = name
         demand_reaction.add_metabolites({metabolite: -1})
         demand_reaction.lower_bound = 0
         demand_reaction.upper_bound = 1000
         if time_machine is not None:
             time_machine(do=partial(self.add_reactions, [demand_reaction]),
-                         undo=partial(self.remove_reactions, [demand_reaction]))
+                         undo=partial(self.remove_reactions, [demand_reaction], delete=False))
         else:
             self.add_reactions([demand_reaction])
         return demand_reaction
 
-    def fix_objective_as_constraint(self, time_machine=None):
+    def fix_objective_as_constraint(self, time_machine=None, fraction=1):
         """Fix current objective as an additional constraint (e.g., ..math`c^T v >= max c^T v`).
 
         Parameters
@@ -326,8 +344,8 @@ class SolverBasedModel(cobra.core.Model):
         -------
         None
         """
-        objective_value = self.solve().objective_value
-        constraint = self.solver.interface.Constraint(self.objective.expression, lb=objective_value,
+        objective_value = self.solve().objective_value * fraction
+        constraint = self.solver.interface.Constraint(self.objective.expression,
                                                       name='Fixed_objective_{}'.format(self.objective.name))
         if self.objective.direction == 'max':
             constraint.lb = objective_value
@@ -543,7 +561,7 @@ class SolverBasedModel(cobra.core.Model):
             model._load_medium_from_dict(model, medium)
         elif isinstance(medium, pandas.DataFrame):
             model._load_medium_from_dataframe(model, medium)
-        elif isinstance(medium, str):
+        elif isinstance(medium, six.string_types):
             model._load_medium_from_file(model, medium)
         else:
             raise AssertionError("input type (%s) is not valid" % type(medium))
@@ -554,13 +572,69 @@ class SolverBasedModel(cobra.core.Model):
         """Translate reaction IDs into reactions (skips reactions)."""
         clean_reactions = list()
         for reaction in reactions:
-            if isinstance(reaction, str):
+            if isinstance(reaction, six.string_types):
                 clean_reactions.append(self.reactions.get_by_id(reaction))
             elif isinstance(reaction, Reaction):
                 clean_reactions.append(reaction)
             else:
                 raise Exception('%s is not a reaction or reaction ID.' % reaction)
         return clean_reactions
+
+    def reaction_for(self, value, time_machine=None, add=True):
+        """
+        Converts an object into a reaction.
+
+        If a Metabolite or a Metabolite id is given, it will return an exchange or demand reaction if it exists.
+        If *add* is true, it adds a demand reaction if it does not exist.
+
+        Parameters
+        ----------
+        value: str, Reaction or Metabolite
+            An object that can be converted to a reaction
+        time_machine: TimeMachine
+            Can be used when *add* is True to revert the model
+        add: bool
+            Adds a demand reaction for a metabolite if a metabolite is found for *value*
+
+        Returns
+        -------
+        Reaction
+
+        Raises
+        ------
+        KeyError
+            If *value* does not match any Reaction or Metabolite
+
+        """
+
+        if isinstance(value, Reaction):
+            value = self.reactions.get_by_id(value.id)
+
+        if isinstance(value, six.string_types):
+            try:
+                value = self.reactions.get_by_id(value)
+            except KeyError:
+                try:
+                    value = self.metabolites.get_by_id(value)
+                except KeyError:
+                    raise KeyError("Invalid target %s." % value)
+
+        if isinstance(value, cobra.core.Metabolite):
+            try:
+                value = self.reactions.get_by_id("EX_%s" % value.id)
+            except KeyError:
+                try:
+                    value = self.reactions.get_by_id("DM_%s" % value.id)
+                except KeyError as e:
+                    if add:
+                        value = self.add_demand(value, time_machine=time_machine)
+                    else:
+                        raise e
+
+        if value is None:
+            raise KeyError(None)
+
+        return value
 
     @staticmethod
     def _load_medium_from_dict(model, medium):
