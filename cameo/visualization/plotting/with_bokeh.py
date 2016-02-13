@@ -16,7 +16,7 @@ from __future__ import absolute_import
 import six
 import collections
 
-from bokeh.models import GridPlot
+from bokeh.models import GridPlot, FactorRange
 from bokeh.plotting import figure, show
 from bokeh.palettes import brewer
 
@@ -29,13 +29,15 @@ class BokehPlotter(AbstractPlotter):
     def __init__(self, **options):
         if 'alpha' not in options:
             options['alpha'] = 0.3
+        if 'palette' not in options:
+            options['palette'] = 'RdYlBu'
         super(BokehPlotter, self).__init__(**options)
 
-    def _add_production_envelope(self, plot, dataframe, variable, patch_color=None, line_color=None):
+    def _add_production_envelope(self, plot, dataframe, values, variable, patch_color=None, line_color=None):
         patch_alpha = self.get_option('alpha')
-        ub = dataframe.query("variable = '%s'" % variable)["ub"].values
-        lb = dataframe.query("variable = '%s'" % variable)["lb"].values
-        var = dataframe[variable].values
+        ub = dataframe["ub"].values.tolist()
+        lb = dataframe["lb"].values.tolist()
+        var = dataframe[values].values
 
         x = [v for v in var] + [v for v in reversed(var)]
         y = [v for v in lb] + [v for v in reversed(ub)]
@@ -60,41 +62,49 @@ class BokehPlotter(AbstractPlotter):
         plot.quad(top=top, bottom=bottom, left=left, right=right, color=color, alpha=alpha, legend=variable)
 
     def flux_variability_analysis(self, dataframe, values=None, grid=None, width=None, height=None, title=None,
-                                  palette=None, xaxis_label=None, yaxis_label=None):
-
+                                  palette=None, x_axis_label=None, y_axis_label=None):
+        palette = self.get_option('palette') if palette is None else palette
+        width = self.get_option('width') if width is None else width
         variables = dataframe[values].unique()
-        factors = dataframe['reaction'].unique()
+        factors = dataframe['reaction'].unique().tolist()
         x_range = [min(dataframe.lb), max(dataframe.ub)]
 
-        plot = figure(title=title, plot_width=width, plot_height=height, x_range=x_range, y_range=factors)
+        plot = figure(title=title, plot_width=width, plot_height=height,
+                      x_range=x_range, y_range=FactorRange(factors=factors))
 
         n = len(variables)
         h = 1.0/float(len(variables))
-        for i, variable, color in zip(variables, range(1, n+1), self._palette(palette, n)):
-            _dataframe = dataframe.query("%s = '%s'" % (values, variable))
+        for variable, i, color in zip(variables, range(1, n+1), self._palette(palette, n)):
+            _dataframe = dataframe[dataframe[values] == variable]
             self._add_fva_bars(plot, factors, _dataframe, i*h, (i+1)*h, color, variable)
 
+        if x_axis_label:
+            plot.xaxis.axis_label = x_axis_label
+        if y_axis_label:
+            plot.yaxis.axis_label = y_axis_label
+
+        return plot
 
     def production_envelope(self, dataframe, values=None, grid=None, width=None, height=None, title=None, points=None,
-                            points_colors=None, palette='RdYlBu', xaxis_label=None, yaxis_label=None):
+                            points_colors=None, palette='RdYlBu', x_axis_label=None, y_axis_label=None):
         variables = dataframe[values].unique()
-
+        palette = self.get_option('palette') if palette is None else palette
         width = self.get_option('width') if width is None else width
-
         if not height:
             width, height = self.golden_ratio(width, height)
 
         plot = figure(title=title, plot_width=width, plot_height=height)
-        for color, variable in zip(variables, self._palette(palette, len(variables))):
-            self._add_production_envelope(plot, dataframe, variable, patch_color=color, line_color=color)
+        for variable, color in zip(variables, self._palette(palette, len(variables))):
+            _dataframe = dataframe[dataframe[values] == variable]
+            self._add_production_envelope(plot, _dataframe, values, variable, patch_color=color, line_color=color)
 
         if points is not None:
             plot.scatter(*zip(*points), color="green" if points_colors is None else points_colors)
 
-        if xaxis_label:
-            plot.xaxis.axis_label = xaxis_label
-        if yaxis_label:
-            plot.yaxis.axis_label = yaxis_label
+        if x_axis_label:
+            plot.xaxis.axis_label = x_axis_label
+        if y_axis_label:
+            plot.yaxis.axis_label = y_axis_label
 
         if grid is not None:
             grid.append(plot)
