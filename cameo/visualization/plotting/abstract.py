@@ -21,7 +21,8 @@ class AbstractPlotter(object):
 
     __default_options__ = {
         'color': 'blue',
-        'palette': 'Pastel2'
+        'palette': 'Pastel2',
+        'width': 700
     }
 
     def __init__(self, **options):
@@ -34,13 +35,13 @@ class AbstractPlotter(object):
     def get_option(self, key):
         if key in self.__options__:
             return self.__options__[key]
-        elif key in self.__default_options__[key]:
+        elif key in self.__default_options__:
             return self.__default_options__[key]
         else:
             return None
 
     def production_envelope(self, dataframe, values=None, grid=None, width=None, height=None, title=None,
-                             points=None, points_colors=None, palette=None, xaxis_label=None, yaxis_label=None):
+                             points=None, points_colors=None, palette=None, x_axis_label=None, y_axis_label=None):
         """
         Plots production envelopes from a pandas.DataFrame.
 
@@ -128,8 +129,7 @@ class AbstractPlotter(object):
         """
         raise NotImplementedError
 
-    @classmethod
-    def display(cls, plot):
+    def display(self, plot):
         """
         Displays an object using the implemented library
 
