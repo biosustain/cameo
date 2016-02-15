@@ -25,7 +25,7 @@ import six
 import logging
 
 logger = logging.getLogger(__name__)
-import itertools
+logger.setLevel(logging.DEBUG)
 
 from cameo.exceptions import SolveError, Infeasible
 from cameo.util import TimeMachine
@@ -60,7 +60,7 @@ def find_dead_end_reactions(model):
 
 
 class ShortestElementaryFluxModes(six.Iterator):
-    def __init__(self, model, reactions=None, c=1, copy=True, change_bounds=True):
+    def __init__(self, model, reactions=None, c=1e-5, copy=True, change_bounds=True):
         self._indicator_variables = None
         if copy:
             self._model = model.copy()
@@ -203,7 +203,7 @@ class ShortestElementaryFluxModes(six.Iterator):
                     exclusion_constraint = self.model.solver.interface.Constraint(sympy.Add(*exclusion_list), ub=len(exclusion_list) - 1)
                     self.model.solver._add_constraint(exclusion_constraint, sloppy=True)
             new_fixed_size = fixed_size_constraint.ub + 1
-            if new_fixed_size > len(self.model.reactions):
+            if new_fixed_size > len(self._reactions):
                 break
             fixed_size_constraint.ub, fixed_size_constraint.lb = new_fixed_size, new_fixed_size
 
@@ -223,15 +223,27 @@ class ShortestElementaryFluxModes(six.Iterator):
         return six.next(self._elementary_mode_generator)
 
 
-class MetabolicCutSetsEnumerator(ShortestElementaryFluxModes):
-    def __init__(self, model, targets, constraints=None):
+class MinimalCutSetsEnumerator(ShortestElementaryFluxModes):
+    def __init__(self, model, targets, constraints=None, exclude=None, c=1e-5):
+        if exclude is not None:
+            exclude_copy = []
+            for re in exclude:
+                if isinstance(re, six.string_types):
+                    exclude_copy.append(re)
+                else:
+                    exclude_copy.append(re.id)
+        else:
+            exclude_copy = ()
+        exclude = exclude_copy
+
         self._primal_model = model.copy()
         self._constraints = self._construct_constraints(constraints)
+        self._target_constraints = self._convert_target_to_constraints(targets)
         self._dual_model = self._make_dual_model(model)
-        self._construct_target_constraints(targets)
+        self._add_target_constraints(c)
 
-        super(MetabolicCutSetsEnumerator, self).__init__(
-            self._dual_model, copy=False, change_bounds=False, reactions=self._v_reactions)
+        super(MinimalCutSetsEnumerator, self).__init__(
+            self._dual_model, copy=False, change_bounds=False, reactions=self._v_reactions, c=c)
 
         def iterator_wrapper(generator, func):
             """Convert MCS's to primal and filter according to constraints"""
@@ -274,23 +286,40 @@ class MetabolicCutSetsEnumerator(ShortestElementaryFluxModes):
 
         # Add dual metabolites
         dual_metabolite_names = []
+        irreversibles = []  # Metabolites for which a z-reaction must be added
+        self._dual_to_primal_mapping = {}
         for re in model.reactions:
-            if re.upper_bound > 0:
-                dual_metabolite_names.append(re._get_forward_id())
-            if re.lower_bound < 0:
-                dual_metabolite_names.append(re._get_reverse_id())
+            forward_id = re._get_forward_id()
+            reverse_id = re._get_reverse_id()
+            if forward_id in self._split_vars or reverse_id in self._split_vars:
+                if re.upper_bound > 0 or forward_id in self._split_vars:
+                    dual_metabolite_names.append(forward_id)
+                    irreversibles.append(forward_id)
+                    self._dual_to_primal_mapping[forward_id] = re.id
+                if re.lower_bound < 0 or reverse_id in self._split_vars:
+                    dual_metabolite_names.append(reverse_id)
+                    irreversibles.append(reverse_id)
+                    self._dual_to_primal_mapping[reverse_id] = re.id
+            else:
+                dual_metabolite_names.append(re.id)
+                if re.lower_bound >= 0:
+                    irreversibles.append(re.id)
+                self._dual_to_primal_mapping[re.id] = re.id
         dual_model.add_metabolites([Metabolite(name) for name in dual_metabolite_names])
 
         # Add dual "u-reactions"
         transposed_stoichiometry = {}
         for reaction in model.reactions:
             for met, coef in reaction.metabolites.items():
-                if reaction._get_forward_id() in dual_metabolite_names:
-                    transposed_stoichiometry.setdefault(met, {})[
-                        dual_model.metabolites.get_by_id(reaction._get_forward_id())] = coef
                 if reaction._get_reverse_id() in dual_metabolite_names:
                     transposed_stoichiometry.setdefault(met, {})[
                         dual_model.metabolites.get_by_id(reaction._get_reverse_id())] = -coef
+                if reaction._get_forward_id() in dual_metabolite_names:
+                    transposed_stoichiometry.setdefault(met, {})[
+                        dual_model.metabolites.get_by_id(reaction._get_forward_id())] = coef
+                elif reaction.id in dual_metabolite_names:  # This should be the same as forward_var.name but in general it might not be
+                    transposed_stoichiometry.setdefault(met, {})[
+                        dual_model.metabolites.get_by_id(reaction.id)] = coef
 
         u_reactions = []
         for met, stoichiometry in transposed_stoichiometry.items():
@@ -315,15 +344,26 @@ class MetabolicCutSetsEnumerator(ShortestElementaryFluxModes):
         # Add dual "z-reactions"
         z_reactions = []
         for dual_met in dual_model.metabolites:
-            reac = Reaction("z_"+dual_met.id)
-            reac.lower_bound = 0
-            reac.add_metabolites({dual_met: -1})
-            z_reactions.append(reac)
+            if dual_met.id in irreversibles:
+                reac = Reaction("z_"+dual_met.id)
+                reac.lower_bound = 0
+                reac.add_metabolites({dual_met: -1})
+                z_reactions.append(reac)
         dual_model.add_reactions(z_reactions)
 
         return dual_model
 
-    def _construct_target_constraints(self, targets):
+    def _convert_target_to_constraints(self, targets):
+        """Make a list of constraints that describe the target polytope."""
+
+        def _convert_string_to_target_constraints(target_string):
+            """Convert a string to constraints, e.g. a reaction name to constraints that target that reaction"""
+            if target_string in self._primal_model.reactions:
+                raise NotImplementedError  # TODO
+            else:
+                raise NotImplementedError
+            return constraints
+
         if isinstance(targets, optlang.interface.Constraint):
             targets = [targets]
         elif isinstance(targets, six.string_types):
@@ -331,8 +371,20 @@ class MetabolicCutSetsEnumerator(ShortestElementaryFluxModes):
         if isinstance(targets[0], six.string_types):
             new_targets = []
             for target in targets:
-                new_targets.extend(self._convert_target_string_to_constraints(target))
+                new_targets.extend(_convert_string_to_target_constraints(target))
             targets = new_targets
+
+        # Find the variables that are used to describe the target polytope (these have to be split).
+        split_vars = set()
+        for target in targets:
+            split_vars.update(set(var.name for var in target.variables))
+        self._split_vars = split_vars
+
+        return targets
+
+    def _add_target_constraints(self, c):
+        """Add the target constraints to the dual model"""
+        targets = self._target_constraints
 
         w_reactions = []
         for i, target in enumerate(targets):
@@ -343,7 +395,7 @@ class MetabolicCutSetsEnumerator(ShortestElementaryFluxModes):
                 raise ValueError("Target constraints must be one-sided inequalities.")
             coefficients_dict = target.expression.as_coefficients_dict()
             w_reac = Reaction("w_"+str(i))
-            w_reac.lower_bound = 1
+            w_reac.lower_bound = c
             if target.ub is not None:
                 coefficients = {
                     self._dual_model.metabolites.get_by_id(var.name): coef for var, coef in coefficients_dict.items()
@@ -360,16 +412,9 @@ class MetabolicCutSetsEnumerator(ShortestElementaryFluxModes):
 
         return None
 
-    def _convert_target_string_to_constraints(self, target_string):
-        """Convert a string to constraints, e.g. a reaction name to constraints that target that reaction"""
-        if target_string in self._primal_model.reactions:
-            raise NotImplementedError # TODO
-        else:
-            raise NotImplementedError
-        return constraints
-
     def _construct_constraints(self, constraints):
         if constraints is None:
+            self._illegal_knockouts = set()
             return ()
         else:
             cloned_constraints = [
@@ -377,6 +422,17 @@ class MetabolicCutSetsEnumerator(ShortestElementaryFluxModes):
                 for constraint in constraints
             ]
             self._primal_model.solver.add(cloned_constraints)
+            illegal_knockouts = []
+            for reaction in self._primal_model.reactions:
+                # If single knockout causes the constrained model to become infeasible, then no superset
+                # of knockouts can be feasible either.
+                with TimeMachine() as tm:
+                    reaction.knock_out(tm)
+                    try:
+                        self._primal_model.solve()
+                    except Infeasible:
+                        illegal_knockouts.append(reaction.id)
+            self._illegal_knockouts = illegal_knockouts
             return cloned_constraints
 
 
