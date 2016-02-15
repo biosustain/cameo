@@ -59,6 +59,38 @@ def find_dead_end_reactions(model):
     return blocked_reactions
 
 
+def find_coupled_reactions(model, return_dead_ends=False):
+    """Find reaction sets that are structurally forced to carry equal flux"""
+    blocked = find_dead_end_reactions(model)
+    stoichiometries = {}
+    for reaction in model.reactions:
+        if reaction.id in blocked:
+            continue
+        for met, coef in reaction.metabolites.items():
+            stoichiometries.setdefault(met.id, {})[reaction.id] = coef
+
+    # Find reaction pairs that are constrained to carry equal flux
+    couples = []
+    for met_id, stoichiometry in stoichiometries.items():
+        if len(stoichiometry) == 2 and set(stoichiometry.values()) == {1, -1}:
+            couples.append(set(stoichiometry.keys()))
+
+    # Aggregate the pairs into groups
+    coupled_groups = []
+    for couple in couples:
+        for group in coupled_groups:
+            if len(couple & group) != 0:
+                group.update(couple)
+                break
+        else:
+            coupled_groups.append(couple)
+
+    if return_dead_ends:
+        return coupled_groups, blocked
+    else:
+        return coupled_groups
+
+
 class ShortestElementaryFluxModes(six.Iterator):
     def __init__(self, model, reactions=None, c=1e-5, copy=True, change_bounds=True):
         self._indicator_variables = None
