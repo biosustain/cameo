@@ -39,7 +39,7 @@ else:
                     'Jinja2>=2.7.3',
                     'pandas>=0.15.2',
                     'ordered-set>=1.2',
-                    'cobra>=0.4.0',
+                    'cobra>=0.4.0b6',
                     'optlang>=0.2.9',
                     'requests>=2.5.0',
                     'numexpr>=2.4',
