@@ -23,7 +23,6 @@ import cameo
 
 from cobra import Metabolite
 import numpy
-from optlang import Objective
 from cobra.io import read_sbml_model
 import optlang
 import pandas
@@ -82,7 +81,6 @@ class TestLazySolutionGLPK(AbstractTestLazySolution):
         self.solution = self.model.optimize()
 
 
-#@unittest.skipIf(six.PY2, 'Build stalling in python 2.7.')
 class TestLazySolutionCPLEX(AbstractTestLazySolution):
     def setUp(self):
         super(TestLazySolutionCPLEX, self).setUp()
@@ -530,7 +528,6 @@ class TestReactionGLPK(WrappedAbstractTestReaction.AbstractTestReaction):
         self.model.solver = 'glpk'
 
 
-#@unittest.skipIf(TRAVIS, 'Skip for now')
 class TestReactionCPLEX(WrappedAbstractTestReaction.AbstractTestReaction):
     def setUp(self):
         self.cobrapy_model = COBRAPYTESTMODEL.copy()
@@ -812,7 +809,6 @@ class TestSolverBasedModelGLPK(WrappedAbstractTestSolverBasedModel.AbstractTestS
         self.assertNotIn('optimize', dir(self.model))
 
 
-#@unittest.skipIf(six.PY2, 'Build stalling in python 2.7.')
 class TestSolverBasedModelCPLEX(WrappedAbstractTestSolverBasedModel.AbstractTestSolverBasedModel):
     def setUp(self):
         super(TestSolverBasedModelCPLEX, self).setUp()
