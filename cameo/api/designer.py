@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""This module implements the high-level interface function `design`.
+"""
+
 from __future__ import absolute_import, print_function
 
 import re
@@ -133,6 +136,8 @@ class Designer(object):
 
     @staticmethod
     def optimize_strains(pathways, view):
+        """
+        """
         runner = _OptimizationRunner()
         designs = [(host, model, pathway) for (host, model) in pathways for pathway in pathways[host, model]
                    if pathway.needs_optimization(model, objective=model.biomass)]
@@ -156,9 +161,11 @@ class Designer(object):
 
         product = self.__translate_product_to_universal_reactions_model_metabolite(product, database)
         for host in hosts:
+            logging.debug('Processing host {}'.format(host.name))
             if isinstance(host, Model):
                 host = Host(name='UNKNOWN_HOST', models=[host])
             for model in list(host.models):
+                logging.debug('Processing model {} for host {}'.format(model.id, host.name))
                 notice('Predicting pathways for product %s in %s (using model %s).'
                        % (product.name, host, model.id))
                 identifier = searching()
@@ -168,6 +175,7 @@ class Designer(object):
                 except ValueError:
                     logger.debug('Could not set solver to cplex for pathway predictions.')
                     pass
+                logging.debug('Predicting pathways for model {}'.format(model.id))
                 pathway_predictor = pathway_prediction.PathwayPredictor(model,
                                                                         universal_model=database,
                                                                         compartment_regexp=re.compile(".*_c$"))

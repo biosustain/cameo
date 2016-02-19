@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""This module subclasses and extends cobrapy.Reaction to work with cameo.core.SolverBasedModel."""
+
 from __future__ import absolute_import, print_function
 
 import warnings
@@ -34,11 +36,11 @@ logger.setLevel(logging.DEBUG)
 
 
 class Reaction(_cobrapy.core.Reaction):
-    """This class extends the cobrapy Reaction class to work with SolverBasedModel.
+    """This class extends the `cobrapy.core.Reaction` class to work with `SolverBasedModel`.
 
     Notes
     -----
-    See also documentation for cobra.core.Reaction.Reaction for an extensive list of inherited attributes.
+    See also documentation for `cobra.core.Reaction` for an extensive list of inherited attributes.
     """
 
     @classmethod
@@ -47,7 +49,7 @@ class Reaction(_cobrapy.core.Reaction):
 
         Parameters
         ----------
-        reaction : Reaction, cobra.core.Reaction.Reaction
+        reaction : Reaction, `cobra.core.Reaction`
         model : model, optional
 
         Returns
