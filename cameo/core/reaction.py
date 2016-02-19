@@ -13,8 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""This module subclasses and extends cobrapy.Reaction to work with cameo.core.SolverBasedModel."""
-
 from __future__ import absolute_import, print_function
 
 import warnings
@@ -36,11 +34,11 @@ logger.setLevel(logging.DEBUG)
 
 
 class Reaction(_cobrapy.core.Reaction):
-    """This class extends the `cobrapy.core.Reaction` class to work with `SolverBasedModel`.
+    """This class extends the cobrapy Reaction class to work with SolverBasedModel.
 
     Notes
     -----
-    See also documentation for `cobra.core.Reaction` for an extensive list of inherited attributes.
+    See also documentation for cobra.core.Reaction.Reaction for an extensive list of inherited attributes.
     """
 
     @classmethod
@@ -49,7 +47,7 @@ class Reaction(_cobrapy.core.Reaction):
 
         Parameters
         ----------
-        reaction : Reaction, `cobra.core.Reaction`
+        reaction : Reaction, cobra.core.Reaction.Reaction
         model : model, optional
 
         Returns
@@ -324,8 +322,6 @@ class Reaction(_cobrapy.core.Reaction):
         model = self.model
         if model is not None:
             for metabolite, coefficient in six.iteritems(metabolites):
-                if isinstance(metabolite, six.string_types):  # support metabolites added as strings.
-                    metabolite = model.metabolites.get_by_id(metabolite)
                 if not combine:
                     try:
                         old_coefficient = old_coefficients[metabolite]
