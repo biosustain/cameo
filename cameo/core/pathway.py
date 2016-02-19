@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""This module implements a pathway data structure that can be added to a model for example."""
+
 from functools import partial, reduce
 from cobra.core import Metabolite
 from pandas import DataFrame

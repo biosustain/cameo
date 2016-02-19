@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""This module provides access to supported target products."""
+
 from __future__ import absolute_import, print_function
 
 __all__ = ['products']
@@ -37,10 +39,23 @@ class Compound(object):
 
 
 class Products(object):
+    """Supported target products."""
     def __init__(self):
         self.data_frame = metanetx.chem_prop
 
     def search(self, query):
+        """Fuzzy search of available target products.
+
+        Parameters
+        ----------
+        query : str
+            Compound ID, name or InChI string.
+
+        Returns
+        -------
+        pandas.DataFrame
+            A dataframe containing the scored search results.
+        """
         matches = self._search_by_source(query)
         if len(matches) > 0:
             return matches

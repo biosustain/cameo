@@ -27,32 +27,23 @@ versioneer.versionfile_build = 'cameo/_version.py'
 versioneer.tag_prefix = ''  # tags are like 1.2.0
 versioneer.parentdir_prefix = 'myproject-'  # dirname like 'myproject-1.2.0'
 
-on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
-if on_rtd:
-    requirements = []
-else:
-    requirements = ['numpy>=1.9.1',
-                    'pyzmq>=14.3.1',
-                    'ipython>=2.1.0',
-                    'scipy>=0.14.0',
-                    'blessings>=1.5.1',
-                    'Jinja2>=2.7.3',
-                    'pandas>=0.15.2',
-                    'ordered-set>=1.2',
-                    'cobra>=0.4.0b6',
-                    'optlang>=0.2.9',
-                    'requests>=2.5.0',
-                    'numexpr>=2.4',
-                    'networkx>=1.9.1',
-                    'six>=1.9.0',
-                    'escher>=1.1.2',
-                    'IProgress>=0.2',
-                    'inspyred>=1.0',
-                    'lazy-object-proxy>=1.2.0',
-                    'python-libsbml>=5.11.4'
-                    ]
-if sys.version_info[0] < 3:
-    requirements.extend(['bashplotlib>=0.6.1', ])
+requirements = ['numpy>=1.9.1',
+                'scipy>=0.14.0',
+                'blessings>=1.5.1',
+                'pandas>=0.15.2',
+                'ordered-set>=1.2',
+                'cobra==0.4.0b6',
+                'optlang>=0.2.9',
+                'requests>=2.5.0',
+                'numexpr>=2.4',
+                'networkx>=1.9.1',
+                'six>=1.9.0',
+                'escher>=1.1.2',
+                'IProgress>=0.2',
+                'inspyred>=1.0',
+                'lazy-object-proxy>=1.2.0',
+                'python-libsbml>=5.11.4'
+                ]
 
 # Run
 # pandoc --from=markdown --to=rst README.md -o README.rst

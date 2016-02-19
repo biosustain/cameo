@@ -12,6 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""This package implement the high-level user interface of cameo.
+
+Examples
+--------
+Compute strain designs for the target product vanillin.
+    $ api.design(product='vanillin')
+
+Search in the list of available target products.
+    $ api.products.search('vanillin')
+
+The available host organism models for E. coli.
+    $ api.hosts.ecoli.models
+"""
+
 from __future__ import absolute_import
 
 import logging

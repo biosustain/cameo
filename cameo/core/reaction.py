@@ -322,8 +322,6 @@ class Reaction(_cobrapy.core.Reaction):
         model = self.model
         if model is not None:
             for metabolite, coefficient in six.iteritems(metabolites):
-                if isinstance(metabolite, six.string_types):  # support metabolites added as strings.
-                    metabolite = model.metabolites.get_by_id(metabolite)
                 if not combine:
                     try:
                         old_coefficient = old_coefficients[metabolite]
