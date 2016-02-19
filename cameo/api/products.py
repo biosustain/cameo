@@ -76,7 +76,7 @@ class Products(object):
         ranks = dict([(match, i) for i, match in enumerate(matches)])
         selection = DataFrame(self.data_frame[self.data_frame.name.isin(matches)])
         selection['search_rank'] = selection.name.map(ranks)
-        return selection.sort('search_rank')
+        return selection.sort_values('search_rank')
 
     def _search_by_source(self, source_id):
         return self.data_frame[self.data_frame.source == source_id.lower()]
@@ -90,7 +90,7 @@ class Products(object):
         ranks = dict([(match, i) for i, match in enumerate(matches)])
         selection = DataFrame(self.data_frame[self.data_frame.InChI.isin(matches)])
         selection['search_rank'] = selection.name.map(ranks)
-        return selection.sort('search_rank')
+        return selection.sort_values('search_rank')
 
 
 products = Products()
