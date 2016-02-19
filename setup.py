@@ -42,7 +42,6 @@ requirements = ['numpy>=1.9.1',
                 'IProgress>=0.2',
                 'inspyred>=1.0',
                 'lazy-object-proxy>=1.2.0',
-                'python-libsbml>=5.11.4'
                 ]
 
 # Run

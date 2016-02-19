@@ -32,7 +32,7 @@ before_install:
 - cd $TRAVIS_BUILD_DIR
 install:
 - if [[ $TRAVIS_PYTHON_VERSION == "3.4" ]]; then pip install pyzmq pandas; fi
-- pip install python-libsbml-experimental numpy scipy pyzmq pandas -f http://nikosonnensche.in/wheels/index.html --trusted-host nikosonnensche.in
+- pip install numpy scipy pyzmq pandas -f http://nikosonnensche.in/wheels/index.html --trusted-host nikosonnensche.in
   --no-index
 - pip install ipython[all]
 - pip install ipyparallel ipywidgets
