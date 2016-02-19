@@ -47,7 +47,7 @@ class TimeMachineTestCase(unittest.TestCase):
         if six.PY2:
             self.assertEqual(self.tm.__str__().split('\n')[2:-1],
                              ["undo: <type 'str'> (1,) None", 'redo: normal_function'])
-        elif sys.version_info.major == 3 and sys.version_info.minor == 4 and sys.version_info.micor == 3:  # special exception for travis-ci
+        elif sys.version_info.major == 3 and sys.version_info.minor == 4 and sys.version_info.micro == 3:  # special exception for travis-ci
             self.assertEqual(self.tm.__str__().split('\n')[2:-1],
                              ["undo: <type 'str'> (1,) None", 'redo: normal_function'])
         elif six.PY3:
