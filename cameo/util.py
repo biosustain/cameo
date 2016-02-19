@@ -287,14 +287,14 @@ class TimeMachine(object):
         info += datetime.fromtimestamp(entry['unix_epoch']).strftime('%Y-%m-%d %H:%M:%S') + '\n'
         undo_entry = entry['undo']
         try:
-            elements = undo_entry.func, undo_entry.args, undo_entry.keywords  # partial
+            elements = undo_entry.func, undo_entry.args, undo_entry.keywords or {}  # partial  (if .keywords is None print {} instead)
             info += 'undo: ' + ' '.join([str(elem) for elem in elements]) + '\n'
         except AttributeError:  # normal python function
             info += 'undo: ' + undo_entry.__name__ + '\n'
 
         redo_entry = entry['redo']
         try:
-            elements = redo_entry.func, redo_entry.args, redo_entry.keywords  # partial
+            elements = redo_entry.func, redo_entry.args, redo_entry.keywords or {}  # partial
             info += 'redo: ' + ' '.join([str(elem) for elem in elements]) + '\n'
         except AttributeError:
             info += 'redo: ' + redo_entry.__name__ + '\n'
