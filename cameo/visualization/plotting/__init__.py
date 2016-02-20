@@ -36,8 +36,16 @@ try:
 except ImportError:
     pass
 
+try:
+    from cameo.visualization.plotting.with_plotly import GGPlotPlotter
+    _engine = GGPlotPlotter() if _engine is None else _engine
+    _engines["ggplot"] = GGPlotPlotter
+except ImportError:
+    pass
+
 if _engine is None:
     _engine = AbstractPlotter()
+
 
 class _plotting:
     def __init__(self, engine):
