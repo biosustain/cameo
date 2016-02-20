@@ -13,16 +13,46 @@
 # limitations under the License.
 from __future__ import absolute_import
 
+import six
+import collections
+
+from cameo.visualization.palette import mapper, Palette
+
 
 GOLDEN_RATIO = 1.618033988
 
 
+class AbstractGrid(object):
+    def __init__(self, n_rows=1, width=None, height=None, title=None):
+        self.plots = []
+        if n_rows <= 1:
+            n_rows = 1
+        self.n_rows = n_rows
+        self.title = title
+
+        if width is None or height is None:
+            width, height = AbstractPlotter.golden_ratio(width, height)
+
+        self.width = width
+        self.height = height
+
+    def add_plot(self, plot):
+        self.plots.append(plot)
+
+    @property
+    def plot(self):
+        raise NotImplementedError
+
+
 class AbstractPlotter(object):
+
+    __grid__class__ = AbstractGrid
 
     __default_options__ = {
         'color': 'blue',
         'palette': 'Pastel2',
-        'width': 700
+        'width': 700,
+        'alpha': 0.3
     }
 
     def __init__(self, **options):
@@ -33,20 +63,15 @@ class AbstractPlotter(object):
         self.__options__[key] = value
 
     def get_option(self, key):
-        if key in self.__options__:
-            return self.__options__[key]
-        elif key in self.__default_options__:
-            return self.__default_options__[key]
-        else:
-            return None
+        return self.__options__.get(key, self.__default_options__.get(key, None))
 
-    def production_envelope(self, dataframe, values=None, grid=None, width=None, height=None, title=None,
+    def production_envelope(self, dataframe, grid=None, width=None, height=None, title=None,
                              points=None, points_colors=None, palette=None, x_axis_label=None, y_axis_label=None):
         """
         Plots production envelopes from a pandas.DataFrame.
 
         The DataFrame format is:
-            ub     lb     variable   value
+            ub     lb     strain   value
             10     0      WT         0.4
             5      0      WT         0.5
             10     0      MT         0.4
@@ -57,8 +82,6 @@ class AbstractPlotter(object):
         dataframe: pandas.DataFrame
             The data to plot.
 
-        values: str
-            The column of the DataFrame that identifies different envelopes
         grid: AbstractGrid
             An instance of AbstractGrid compatible with the plotter implementation. see AbstractPlotter.grid
         width: int
@@ -85,7 +108,7 @@ class AbstractPlotter(object):
         """
         raise NotImplementedError
 
-    def flux_variability_analysis(self, dataframe, values=None, grid=None, width=None, height=None, title=None,
+    def flux_variability_analysis(self, dataframe, grid=None, width=None, height=None, title=None,
                                   palette=None, x_axis_label=None, y_axis_label=None):
         """
         Plots flux variability analysis bars from a pandas.DataFrame.
@@ -101,8 +124,6 @@ class AbstractPlotter(object):
         ---------
         dataframe: pandas.DataFrame
             The data to plot.
-        values: str
-            The column of the DataFrame that identifies different FVA results
         grid: AbstractGrid
             An instance of AbstractGrid compatible with the plotter implementation. see AbstractPlotter.grid
         width: int
@@ -146,20 +167,20 @@ class AbstractPlotter(object):
 
         return width, height
 
+    @staticmethod
+    def _palette(palette, number):
+        if isinstance(palette, six.string_types):
+            palette = mapper.map_palette(palette, number)
 
-class AbstractGrid(object):
-    def __init__(self, n_rows=1, width=None, height=None, title=None):
-        self.plots = []
-        if n_rows <= 1:
-            n_rows = 1
-        self.n_rows = n_rows
-        self.title = title
-        self.width = width
-        self.height = height
+        if isinstance(palette, collections.Iterable):
+            return palette
+        elif isinstance(palette, Palette):
+            return palette.hex_colors
+        else:
+            raise ValueError("Invalid palette %s" % palette)
 
-    def add_plot(self, plot):
-        self.plots.append(plot)
+    @classmethod
+    def grid(cls, n_rows=1, width=None, height=None, title=None):
+        cls.__grid__(n_rows=n_rows, width=width, height=height, title=title)
 
-    @property
-    def plot(self):
-        raise NotImplementedError
+
