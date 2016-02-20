@@ -476,7 +476,8 @@ class PhenotypicPhasePlaneResult(Result):
     def data_frame(self):
         return pandas.DataFrame(self._phase_plane)
 
-    def plot(self, grid=None, width=None, height=None, title=None, axis_font_size=None, palette=None, **kwargs):
+    def plot(self, grid=None, width=None, height=None, title=None, axis_font_size=None, palette=None,
+             points=None, points_colors=None, **kwargs):
         if len(self.variable_ids) > 1:
             notice("Multi-dimensional plotting is not supported")
             return
@@ -491,9 +492,9 @@ class PhenotypicPhasePlaneResult(Result):
                                    columns=dataframe.columns)
             dataframe = dataframe.append(_df)
 
-        plot = plotter.production_envelope(dataframe, values="strain", grid=grid, width=width, height=height,
+        plot = plotter.production_envelope(dataframe, grid=grid, width=width, height=height,
                                            title=title, x_axis_label=str(self.objective), y_axis_label=variable,
-                                           palette=palette)
+                                           palette=palette, points=points, points_colors=points_colors)
         plotter.display(plot)
 
     def __getitem__(self, item):
@@ -537,7 +538,7 @@ class FluxVariabilityResult(Result):
                                    columns=dataframe.columns)
             dataframe = dataframe.append(_df)
 
-        plot = plotter.flux_variability_analysis(dataframe, values="strain", grid=grid, width=width, height=height,
+        plot = plotter.flux_variability_analysis(dataframe, grid=grid, width=width, height=height,
                                                  title=title, x_axis_label="Reactions", y_axis_label="Flux limits",
                                                  palette=palette)
         plotter.display(plot)
