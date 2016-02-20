@@ -34,7 +34,7 @@ except ImportError:
 
 from IProgress import ProgressBar
 from pandas import DataFrame, pandas
-from cameo.visualization import plotting
+from cameo.visualization.plotting import plotter
 
 from cameo import config, flux_variability_analysis
 from cameo.flux_analysis.simulation import pfba, fba
@@ -343,26 +343,49 @@ class DifferentialFVAResult(PhenotypicPhasePlaneResult):
         data["suddenly_essential"] = data["suddenly_essential"].values.astype(np.bool)
         return data
 
-    def plot(self, index=None, variables=None, grid=None, width=None, height=None, title=None, **kwargs):
+    def plot(self, index=None, variables=None, grid=None, width=None, height=None, title=None, palette=None, **kwargs):
         if len(self.variable_ids) > 1:
             notice("Multi-dimensional plotting is not supported")
             return
         if index is not None:
-            if variables is None:
-                variables = self.reference_fva.index[0:10]
-            title = "Compare WT solution %i" % index
-            fva_res1 = self.reference_fva.loc[variables]
-            fva_res2 = self.solutions.iloc[index].loc[variables]
-            plotting.plot_2_flux_variability_analysis(fva_res1, fva_res2, grid=grid,
-                                                      width=width, height=height, title=title)
+            self._plot_flux_variability_analysis(index)
         else:
-            title = "DifferentialFVA Result" if title is None else title
-            x = [elem[0][1] for elem in list(self.solutions.items)]
-            y = [elem[1][1] for elem in list(self.solutions.items)]
-            colors = ["red" for _ in x]
-            plotting.plot_production_envelope(self._phase_plane, objective=self.objective, key=self.variable_ids[0],
-                                              grid=grid, width=width, height=height, title=title,
-                                              points=zip(x, y), points_colors=colors)
+            self._plot_production_envelope(title=title, grid=grid, width=width, height=height)
+
+    def _plot_flux_variability_analysis(self, index, variables=None, title=None,
+                                        width=None, height=None, palette=None, grid=None):
+        if variables is None:
+            variables = self.reference_fva.index[0:10]
+
+        title = "Compare WT solution %i" % index if title is None else title
+
+        wt_fva_res = self.reference_fva.loc[variables]
+        strain_fva_res = self.solutions.iloc[index].loc[variables]
+        dataframe = pandas.DataFrame(columns=["lb", "ub", "strain", "reaction"])
+        for reaction_id, row in wt_fva_res.iterrows():
+            _df = pandas.DataFrame([[row['lower_bound'], row['upper_bound'], "WT", reaction_id]],
+                                   columns=dataframe.columns)
+            dataframe = dataframe.append(_df)
+
+        for reaction_id, row in strain_fva_res.iterrows():
+            _df = pandas.DataFrame([[row['lower_bound'], row['upper_bound'], "Striain %i" % index, reaction_id]],
+                                   columns=dataframe.columns)
+            dataframe = dataframe.append(_df)
+
+        plot = plotter.flux_variability_analysis(dataframe, grid=grid, width=width, height=height,
+                                                 title=title, x_axis_label="Reactions", y_axis_label="Flux limits",
+                                                 palette=palette)
+
+        plotter.display(plot)
+
+    def _plot_production_envelope(self, title=None, width=None, height=None, grid=None):
+        title = "DifferentialFVA Result" if title is None else title
+        x = [elem[0][1] for elem in list(self.solutions.items)]
+        y = [elem[1][1] for elem in list(self.solutions.items)]
+        colors = ["red" for _ in x]
+        points = zip(x, y)
+        super(DifferentialFVAResult, self).plot(title=title, grid=grid, width=width, heigth=height,
+                                                points=points, points_colors=colors)
 
     def _repr_html_(self):
         def _data_frame(solution):

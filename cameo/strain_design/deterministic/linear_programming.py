@@ -18,7 +18,7 @@ import warnings
 import numpy
 import logging
 
-from cameo.visualization import plotting
+from cameo.visualization.plotting import plotter
 
 from pandas import DataFrame
 
@@ -287,12 +287,14 @@ class OptKnockResult(StrainDesignResult):
     def _process_knockouts(self):
         progress = ProgressBar(maxval=len(self._designs), widgets=["Processing solutions: ", Bar(), Percentage()])
 
-        self._processed_knockouts = DataFrame(columns=["knockouts", "size", "biomass",
+        self._processed_knockouts = DataFrame(columns=["reactions", "size", "biomass",
                                                        self._target, "fva_min", "fva_max"])
 
         for i, knockouts in progress(enumerate(self._designs)):
             try:
-                fva = flux_variability_analysis(self._model, fraction_of_optimum=0.99, reactions=[self.target])
+                with TimeMachine() as tm:
+                    [self._model.reactions.get_by_id(ko).knock_out(time_machine=tm) for ko in knockouts]
+                    fva = flux_variability_analysis(self._model, fraction_of_optimum=0.99, reactions=[self.target])
                 self._processed_knockouts.loc[i] = [knockouts, len(knockouts), self.production[i], self.biomass[i],
                                                     fva.lower_bound(self.target), fva.upper_bound(self.target)]
             except SolveError:
@@ -318,18 +320,29 @@ class OptKnockResult(StrainDesignResult):
     def target(self):
         return self._target
 
-    def plot(self, index, grid=None, width=None, height=None, title=None, *args, **kwargs):
+    def plot(self, index=0, grid=None, width=None, height=None, title=None, palette=None, **kwargs):
         wt_production = phenotypic_phase_plane(self._model, objective=self._target, variables=[self._biomass.id])
         with TimeMachine() as tm:
             for ko in self._designs[index]:
                 self._model.reactions.get_by_id(ko).knock_out(tm)
 
             mt_production = phenotypic_phase_plane(self._model, objective=self._target, variables=[self._biomass.id])
-        plotting.plot_2_production_envelopes(wt_production.data_frame,
-                                             mt_production.data_frame,
-                                             self._target,
-                                             self._biomass.id,
-                                             **kwargs)
+        if title is None:
+            title = "Production Envelope"
+
+        dataframe = DataFrame(columns=["ub", "lb", "value", "strain"])
+        for _, row in wt_production.iterrows():
+            _df = DataFrame([[row['objective_upper_bound'], row['objective_lower_bound'], row[self._biomass.id], "WT"]],
+                                   columns=dataframe.columns)
+            dataframe = dataframe.append(_df)
+        for _, row in mt_production.iterrows():
+            _df = DataFrame([[row['objective_upper_bound'], row['objective_lower_bound'], row[self._biomass.id], "MT"]],
+                                   columns=dataframe.columns)
+            dataframe = dataframe.append(_df)
+
+        plot = plotter.production_envelope(dataframe, grid=grid, width=width, height=height, title=title,
+                                           x_axis_label=self._biomass.id, y_axis_label=self._target, palette=palette)
+        plotter.display(plot)
 
     @property
     def data_frame(self):
