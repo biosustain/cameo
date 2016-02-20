@@ -21,7 +21,7 @@ import numpy
 from pandas import DataFrame
 
 from cameo.exceptions import SolveError
-from cameo.visualization import plotting
+from cameo.visualization.plotting import plotter
 from cameo.util import ProblemCache, TimeMachine
 
 from cameo.flux_analysis.simulation import fba
@@ -90,8 +90,9 @@ class OptGene(StrainDesignMethod):
         else:
             raise ValueError("Invalid manipulation type %s" % manipulation_type)
 
-    def run(self, target=None, biomass=None, substrate=None, max_knockouts=5, simulation_method=fba, robust=True,
-            max_evaluations=20000, population_size=100, time_machine=None, max_results=50, **kwargs):
+    def run(self, target=None, biomass=None, substrate=None, max_knockouts=5, simulation_method=fba,
+            growth_coupled=True, max_evaluations=20000, population_size=100, time_machine=None,
+            max_results=50, **kwargs):
         """
         Parameters
         ----------
@@ -128,7 +129,7 @@ class OptGene(StrainDesignMethod):
         biomass = self._model.reaction_for(biomass, time_machine=time_machine)
         substrate = self._model.reaction_for(substrate, time_machine=time_machine)
 
-        if robust:
+        if growth_coupled:
             objective_function = biomass_product_coupled_min_yield(biomass, target, substrate)
         else:
             objective_function = biomass_product_coupled_yield(biomass, target, substrate)
@@ -229,15 +230,26 @@ class OptGeneResult(StrainDesignResult):
             processed_solutions.drop('genes', axis=1, inplace=True)
         self._processed_solutions = processed_solutions
 
-    def plot(self, index=None, grid=None, width=None, height=None, title=None, *args, **kwargs):
+    def plot(self, index=None, grid=None, width=None, height=None, title=None, palette=None, **kwargs):
         wt_production = phenotypic_phase_plane(self._model, objective=self._target, variables=[self._biomass])
         with TimeMachine() as tm:
-            for ko in self._designs[index][0]:
+            for ko in self._processed_solutions.loc[index, "reactions"]:
                 self._model.reactions.get_by_id(ko).knock_out(tm)
-
             mt_production = phenotypic_phase_plane(self._model, objective=self._target, variables=[self._biomass])
-        plotting.plot_2_production_envelopes(wt_production.data_frame,
-                                             mt_production.data_frame,
-                                             self._target,
-                                             self._biomass,
-                                             **kwargs)
+
+        if title is None:
+            title = "Production Envelope"
+
+        dataframe = DataFrame(columns=["ub", "lb", "value", "strain"])
+        for _, row in wt_production.iterrows():
+            _df = DataFrame([[row['objective_upper_bound'], row['objective_lower_bound'], row[self._biomass.id], "WT"]],
+                                   columns=dataframe.columns)
+            dataframe = dataframe.append(_df)
+        for _, row in mt_production.iterrows():
+            _df = DataFrame([[row['objective_upper_bound'], row['objective_lower_bound'], row[self._biomass.id], "MT"]],
+                                   columns=dataframe.columns)
+            dataframe = dataframe.append(_df)
+
+        plot = plotter.production_envelope(dataframe, grid=grid, width=width, height=height, title=title,
+                                           x_axis_label=self._biomass.id, y_axis_label=self._target.id, palette=palette)
+        plotter.display(plot)
