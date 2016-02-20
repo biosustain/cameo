@@ -1,6 +1,4 @@
-.. warning::
-    These pages are under construction. Feel free to look around ...
-
+=================
 Welcome to cameo!
 =================
 
@@ -16,7 +14,7 @@ clusters using the IPython parallelization framework (see example and
 documentation for more details). The default fallback is python's
 multiprocessing library.
 
-Furthermore, it exposes a high-level API to users that just want to compute
+Furthermore, it exposes a high-level API to users that simply want to compute
 promising strain designs.
 
 ::
@@ -27,30 +25,36 @@ promising strain designs.
 You got curious? Head over to `try.cameo.bio <http://try.cameo.bio>`__
 and give it a try.
 
-Table of Contents
------------------
+User's guide
+============
 
 .. toctree::
     :maxdepth: 2
 
-    dependencies
     installation
-    01-quick-start
-    02-import-models
-    03-simulate-models
-    04-analyze-models
-    05-predict-gene-knockout-strategies
-    06-predict-expression-modulation-targets
-    07-predict-heterologous-pathways
-    08-high-level-API
-    09-vanillin-production
-    11-multiprocess
-    12-advanced-usage-of-heuristic-optimization.rst
-    cobrapy_difference
+    FAQ <FAQ>
+    tutorials
+
+Developers's guide
+==================
+
+.. toctree::
+    :maxdepth: 2
+
+    development
+    contributing
+
+API
+===
+
+.. toctree::
+    :maxdepth: 2
+
     API
 
+
 Indices and tables
-------------------
+==================
 
 * :ref:`genindex`
 * :ref:`modindex`

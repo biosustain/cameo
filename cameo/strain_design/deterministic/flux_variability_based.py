@@ -399,8 +399,8 @@ class DifferentialFVAResult(PhenotypicPhasePlaneResult):
     def data_frame(self):
         return self.solutions
 
-    def display_on_map(self, map_name=None):
-        view = _MapView(self.solutions, map_name)
+    def display_on_map(self, map_name=None, **kwargs):
+        view = _MapView(self.solutions, map_name, **kwargs)
         slider = IntSlider(min=1, max=len(self.solutions), value=1)
         slider.on_trait_change(lambda x: view(slider.get_state("value")["value"]))
         display(slider)
@@ -408,10 +408,11 @@ class DifferentialFVAResult(PhenotypicPhasePlaneResult):
 
 
 class _MapView(object):
-    def __init__(self, solutions, map_name):
+    def __init__(self, solutions, map_name, **kwargs):
         self.solutions = solutions
         self.map_name = map_name
         self.builder = None
+        self.kwargs_for_escher = kwargs
 
     def __call__(self, index):
         reaction_data = dict(self.solutions.iloc[index - 1].gaps)
@@ -443,7 +444,7 @@ class _MapView(object):
                                        reaction_scale=[
                                            dict(type='min', color="red", size=20),
                                            dict(type='median', color="grey", size=7),
-                                           dict(type='max', color='green', size=20)])
+                                           dict(type='max', color='green', size=20)], **self.kwargs_for_escher)
         display(self.builder.display_in_notebook())
 
 

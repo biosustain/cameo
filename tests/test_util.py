@@ -18,6 +18,8 @@ import unittest
 from functools import partial
 from itertools import chain
 
+import sys
+
 from cameo.util import TimeMachine, generate_colors, Singleton, partition, RandomGenerator
 from cameo.network_analysis.util import distance_based_on_molecular_formula
 import six
@@ -42,12 +44,8 @@ class TimeMachineTestCase(unittest.TestCase):
 
         partial_function = partial(str, 1)
         self.tm(do=normal_function, undo=partial_function)
-        if six.PY2:
-            self.assertEqual(self.tm.__str__().split('\n')[2:-1],
-                             ["undo: <type 'str'> (1,) None", 'redo: normal_function'])
-        elif six.PY3:
-            self.assertEqual(self.tm.__str__().split('\n')[2:-1],
-                             ["undo: <class 'str'> (1,) None", 'redo: normal_function'])
+        self.assertEqual(self.tm.__str__().split('\n')[2:-1],
+                         ["undo: <class 'str'> (1,) {}", 'redo: normal_function'])
 
     def test_with_statement(self):
         l = [1, 2, 3, 4]

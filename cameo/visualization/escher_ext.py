@@ -15,7 +15,10 @@ import json
 import escher
 
 from uuid import uuid4
-from IPython.display import Javascript, display
+try:
+    from IPython.display import Javascript, display
+except:
+    pass
 
 
 def _builders_var():
