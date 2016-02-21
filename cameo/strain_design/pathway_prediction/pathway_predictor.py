@@ -14,9 +14,7 @@
 
 from __future__ import absolute_import, print_function
 from math import ceil
-from cameo.visualization.plotting import Grid
-
-__all__ = ['PathwayPredictor']
+from cameo.visualization.plotting import plotter
 
 import six
 
@@ -35,6 +33,10 @@ from cameo.strain_design.pathway_prediction import util
 from sympy import Add
 
 import logging
+
+
+__all__ = ['PathwayPredictor']
+
 
 logger = logging.getLogger(__name__)
 
@@ -120,11 +122,13 @@ class PathwayPredictions(Result):
         raise NotImplementedError
 
     def plot_production_envelopes(self, model, variables=None):
-        grid = Grid(nrows=int(ceil(len(self.pathways)/2.0)), title="Production envelops for %s" % self.pathways[0].product.name)
+        rows = int(ceil(len(self.pathways)/2.0))
+        title ="Production envelops for %s" % self.pathways[0].product.name
+        grid = plotter.grid(n_rows=rows, title=title)
         with grid:
             for i, pathway in enumerate(self.pathways):
                 ppp = pathway.production_envelope(model, variables)
-                ppp.plot(grid, width=450, title="Pathway %i" % i)
+                ppp.plot(grid=grid, width=450, title="Pathway %i" % i)
 
     def __iter__(self):
         for p in self.pathways:
