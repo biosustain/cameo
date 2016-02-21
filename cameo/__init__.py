@@ -50,16 +50,17 @@ optimization.run(max_evaluations=2000, n=1,
 from __future__ import absolute_import, print_function
 
 import os
+import imp
 
 _cameo_path = __path__[0]
 _cameo_data_path = os.path.join(_cameo_path, 'data')
 
-from cameo import config
 
+from cameo import config
 from .util import get_system_info, in_ipnb
 
 # fix - if matplotlib is installed it is not possible to import cameo without importing matplotlib on jupyter notebook.
-if in_ipnb():
+if imp.find_module("matplotlib") and in_ipnb():
     from IPython import get_ipython
     ipython = get_ipython()
     ipython.magic("matplotlib inline")
