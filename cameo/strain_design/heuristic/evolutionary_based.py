@@ -42,6 +42,7 @@ from IProgress.widgets import Bar, Percentage
 
 __all__ = ["OptGene"]
 
+
 class OptGene(StrainDesignMethod):
     def __init__(self, model, evolutionary_algorithm=inspyred.ec.GA, manipulation_type="genes", essential_genes=None,
                  essential_reactions=None, plot=True, *args, **kwargs):
@@ -132,15 +133,11 @@ class OptGene(StrainDesignMethod):
             objective_function = biomass_product_coupled_min_yield(biomass, target, substrate)
         else:
             objective_function = biomass_product_coupled_yield(biomass, target, substrate)
-
         self._optimization_algorithm.objective_function = objective_function
         self._optimization_algorithm.simulation_kwargs = kwargs
         self._optimization_algorithm.simulation_method = simulation_method
-
         result = self._optimization_algorithm.run(max_evaluations=max_evaluations,
                                                   popuplation_size=population_size,
-                                                  product=target,
-                                                  biomass=biomass,
                                                   max_size=max_knockouts,
                                                   maximize=True,
                                                   max_archive_size=max_results,
