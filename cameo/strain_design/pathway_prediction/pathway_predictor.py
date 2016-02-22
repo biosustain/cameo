@@ -121,9 +121,9 @@ class PathwayPredictions(Result):
         # TODO: small pathway visualizations would be great.
         raise NotImplementedError
 
-    def plot_production_envelopes(self, model, variables=None):
+    def plot_production_envelopes(self, model, variables=None, title=None):
         rows = int(ceil(len(self.pathways)/2.0))
-        title ="Production envelops for %s" % self.pathways[0].product.name
+        title ="Production envelops for %s" % self.pathways[0].product.name if title is None else title
         grid = plotter.grid(n_rows=rows, title=title)
         with grid:
             for i, pathway in enumerate(self.pathways):

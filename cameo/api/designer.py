@@ -30,7 +30,7 @@ except:
         print(*args, **kwargs)
 from pandas import DataFrame
 
-from cameo import Metabolite, Model, phenotypic_phase_plane, fba
+from cameo import Metabolite, Model, fba
 from cameo import config, util
 from cameo.core.result import Result
 from cameo.api.hosts import hosts, Host
@@ -44,7 +44,6 @@ from cameo.util import TimeMachine
 from cameo.models import universal
 
 from cameo.visualization import visualization
-from cameo.visualization.plotting import Grid
 
 import logging
 
@@ -277,16 +276,10 @@ class Designer(object):
 
     @staticmethod
     def __display_pathways_information(predicted_pathways, host, original_model):
-        # TODO: remove copy hack.
-        with Grid(nrows=2, title="Production envelopes for %s (%s)" % (host.name, original_model.id)) as grid:
-            for i, pathway in enumerate(predicted_pathways):
-                pathway_id = "Pathway %i" % (i + 1)
-                with TimeMachine() as tm:
-                    pathway.plug_model(original_model, tm)
-                    production_envelope = phenotypic_phase_plane(original_model,
-                                                                 variables=[original_model.biomass],
-                                                                 objective=pathway.product)
-                    production_envelope.plot(grid, title=pathway_id, width=400, height=300)
+        predicted_pathways.plot_production_envelopes(original_model,
+                                                     title="Production envelopes for %s (%s)" % (host.name, original_model.id),
+                                                     variables=[original_model.biomass])
+
 
     @staticmethod
     def calculate_yield(model, source, product):
