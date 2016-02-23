@@ -23,7 +23,7 @@ import numpy as np
 try:
     from IPython.core.display import display
     from IPython.core.display import HTML
-except:
+except ImportError:
     def display(*args, **kwargs):
         print(*args, **kwargs)
     def HTML(*args, **kwargs):

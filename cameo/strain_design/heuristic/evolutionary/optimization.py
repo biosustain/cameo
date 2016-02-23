@@ -334,6 +334,7 @@ class KnockoutOptimization(HeuristicOptimization):
         if simulation_method in [lmoma, moma, room] and self._simulation_kwargs.get("reference", None) is None:
             logger.info("No WT reference found, generating using pfba.")
             self._simulation_kwargs['reference'] = pfba(self.model).fluxes
+            logger.info("Reference successfully computed.")
         self._simulation_method = simulation_method
 
     @property
@@ -616,7 +617,7 @@ class ReactionKnockoutOptimization(KnockoutOptimization):
             self.reactions = set([r.id for r in self.model.reactions])
         else:
             self.reactions = reactions
-
+        logger.info("Computing essential reactions...")
         if essential_reactions is None:
             self.essential_reactions = set([r.id for r in self.model.essential_reactions()])
         else:
@@ -685,7 +686,7 @@ class GeneKnockoutOptimization(KnockoutOptimization):
             self.genes = set([g.id for g in self.model.genes])
         else:
             self.genes = genes
-
+        logger.info("Computing essential genes...")
         if essential_genes is None:
             self.essential_genes = set([g.id for g in self.model.essential_genes()])
         else:

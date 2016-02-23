@@ -30,7 +30,10 @@ from io import BytesIO
 from escher import Builder
 from cameo.util import TimeMachine
 
-from IPython.display import HTML, SVG
+try:
+    from IPython.display import HTML, SVG
+except ImportError:
+    pass
 
 __all__ = ['graph_to_svg', 'draw_knockout_result', 'inchi_to_svg']
 

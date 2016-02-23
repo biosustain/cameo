@@ -45,7 +45,7 @@ class TimeMachineTestCase(unittest.TestCase):
         partial_function = partial(str, 1)
         self.tm(do=normal_function, undo=partial_function)
         self.assertEqual(self.tm.__str__().split('\n')[2:-1],
-                         ["undo: <class 'str'> (1,) {}", 'redo: normal_function'])
+                         ["undo: "+str(str)+" (1,) {}", 'redo: normal_function'])
 
     def test_with_statement(self):
         l = [1, 2, 3, 4]

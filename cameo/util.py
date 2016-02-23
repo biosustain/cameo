@@ -43,6 +43,32 @@ import itertools
 logger = logging.getLogger(__name__)
 
 
+class frozendict(dict):
+    def __init__(self, iterable, **kwargs):
+        super(frozendict, self).__init__(iterable, **kwargs)
+
+    def popitem(self):
+        raise AttributeError("'frozendict' object has no attribute 'popitem")
+
+    def pop(self, k, d=None):
+        raise AttributeError("'frozendict' object has no attribute 'pop")
+
+    def __setitem__(self, key, value):
+        raise AttributeError("'frozendict' object has no attribute '__setitem__")
+
+    def setdefault(self, k, d=None):
+        raise AttributeError("'frozendict' object has no attribute 'setdefault")
+
+    def __delitem__(self, key):
+        raise AttributeError("'frozendict' object has no attribute '__delitem__")
+
+    def __hash__(self):
+        return hash(tuple(sorted(self.items())))
+
+    def update(self, E=None, **F):
+        raise AttributeError("'frozendict' object has no attribute 'update")
+
+
 class ProblemCache(object):
     """
     Variable and constraint cache for models.
@@ -237,7 +263,7 @@ class Singleton(object):
 
     def __new__(cls, *args, **kwargs):
         if not cls._instance:
-            cls._instance = super(Singleton, cls).__new__(cls, *args, **kwargs)
+            cls._instance = super(Singleton, cls).__new__(cls)
         return cls._instance
 
 
