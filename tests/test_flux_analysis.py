@@ -65,9 +65,8 @@ class Wrapper:
 
     class AbstractTestFluxVariabilityAnalysis(unittest.TestCase):
 
-        @unittest.skipIf(TRAVIS, 'Running multiprocess in Travis breaks')
         def test_flux_variability_parallel(self):
-            mp_view = MultiprocessingView()
+            mp_view = MultiprocessingView(2)
             fva_solution = flux_variability_analysis(self.model, remove_cycles=False, view=mp_view)
             mp_view.shutdown()
             assert_dataframes_equal(fva_solution, REFERENCE_FVA_SOLUTION_ECOLI_CORE)
