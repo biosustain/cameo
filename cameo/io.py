@@ -14,7 +14,10 @@
 
 from __future__ import absolute_import, print_function
 
-import pickle
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
 
 import requests
 import optlang

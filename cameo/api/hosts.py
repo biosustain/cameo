@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""This module provides reference models for a number of supported host organisms (currently Escherichia coli and
+Sacharomyces cerevisiae)."""
+
 from __future__ import absolute_import, print_function
 
 __all__ = ['hosts']

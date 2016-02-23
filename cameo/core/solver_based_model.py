@@ -155,8 +155,13 @@ class SolverBasedModel(cobra.core.Model):
     @objective.setter
     def objective(self, value):
         if isinstance(value, six.string_types):
-            value = self.reactions.get_by_id(value)
+            try:
+                value = self.reactions.get_by_id(value)
+            except KeyError:
+                raise ValueError("No reaction with the id %s in the model" % value)
         if isinstance(value, Reaction):
+            if value.model is not self:
+                raise ValueError("%r does not belong to the model" % value)
             self.solver.objective = self.solver.interface.Objective(value.flux_expression, sloppy=True)
         elif isinstance(value, self.solver.interface.Objective):
             self.solver.objective = value
@@ -166,7 +171,7 @@ class SolverBasedModel(cobra.core.Model):
         elif isinstance(value, sympy.Basic):
             self.solver.objective = self.solver.interface.Objective(value, sloppy=False)
         else:
-            raise Exception('%s is not a valid objective.' % value)
+            raise TypeError('%r is not a valid objective for %r.' % (value, self.solver))
 
     @property
     def solver(self):
@@ -223,6 +228,7 @@ class SolverBasedModel(cobra.core.Model):
         objective_terms = list()
         metabolites = {}
         for reaction in reaction_list:
+
             if reaction.reversibility:
                 forward_variable = self.solver.interface.Variable(reaction._get_forward_id(), lb=0,
                                                                   ub=reaction._upper_bound)
@@ -253,8 +259,8 @@ class SolverBasedModel(cobra.core.Model):
                 constr_terms[metabolite.id].append(
                     sympy.Mul._from_args([sympy.RealNumber(-1 * coeff), reverse_variable]))
 
-            if reaction.objective_coefficient != 0.:
-                objective_terms.append(reaction.objective_coefficient * reaction.flux_expression)
+            if reaction._objective_coefficient != 0.:
+                objective_terms.append(reaction._objective_coefficient * reaction.flux_expression)
 
         for met_id, terms in six.iteritems(constr_terms):
             expr = sympy.Add._from_args(terms)

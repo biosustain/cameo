@@ -287,14 +287,14 @@ class TimeMachine(object):
         info += datetime.fromtimestamp(entry['unix_epoch']).strftime('%Y-%m-%d %H:%M:%S') + '\n'
         undo_entry = entry['undo']
         try:
-            elements = undo_entry.func, undo_entry.args, undo_entry.keywords  # partial
+            elements = undo_entry.func, undo_entry.args, undo_entry.keywords or {}  # partial  (if .keywords is None print {} instead)
             info += 'undo: ' + ' '.join([str(elem) for elem in elements]) + '\n'
         except AttributeError:  # normal python function
             info += 'undo: ' + undo_entry.__name__ + '\n'
 
         redo_entry = entry['redo']
         try:
-            elements = redo_entry.func, redo_entry.args, redo_entry.keywords  # partial
+            elements = redo_entry.func, redo_entry.args, redo_entry.keywords or {}  # partial
             info += 'redo: ' + ' '.join([str(elem) for elem in elements]) + '\n'
         except AttributeError:
             info += 'redo: ' + redo_entry.__name__ + '\n'
@@ -403,32 +403,6 @@ class DocInherit(object):
         return func
 
 doc_inherit = DocInherit
-
-
-# class DisplayItemsWidget(progressbar.widgets.Widget):
-#     """Display an items[pbar.currval]
-#
-#     Examples
-#     --------
-#     import time
-#     from progressbar import Progressbar, widges
-#     pbar = ProgressBar(widgets=[DisplayItemsWidget(["asdf"+str(i) for i in range(10)]), widgets.Bar()])
-#     pbar.maxval = 10
-#     pbar.start()
-#     for i in range(10):
-#         time.sleep(.2)
-#         pbar.update(i)
-#     pbar.finish()
-#     """
-#
-#     def __init__(self, items):
-#         self.items = items
-#
-#     def update(self, pbar):
-#         try:
-#             return "%s" % self.items[pbar.currval]
-#         except IndexError:
-#             return ""
 
 
 def partition_(lst, n):
