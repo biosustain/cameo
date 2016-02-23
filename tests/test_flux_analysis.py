@@ -72,6 +72,7 @@ class Wrapper:
             mp_view.shutdown()
             assert_dataframes_equal(fva_solution, REFERENCE_FVA_SOLUTION_ECOLI_CORE)
 
+        @unittest.skipIf(TRAVIS, 'Skip multiprocessing in Travis')
         def test_flux_variability_parallel_remove_cycles(self):
             fva_solution = flux_variability_analysis(self.model, fraction_of_optimum=0.999999419892, remove_cycles=True,
                                                      view=MultiprocessingView())
