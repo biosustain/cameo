@@ -13,7 +13,7 @@
 # limitations under the License.
 from warnings import warn
 
-from cameo.util import in_ipnb
+from cameo.util import in_ipnb, doc_inherit
 
 from ggplot import *
 
@@ -26,6 +26,7 @@ class GGPlotPlotter(AbstractPlotter):
 
         super(GGPlotPlotter, self).__init__(**options)
 
+    @doc_inherit
     def production_envelope(self, dataframe, grid=None, width=None, height=None, title=None, points=None,
                             points_colors=None, palette=None, x_axis_label=None, y_axis_label=None):
 
@@ -43,6 +44,7 @@ class GGPlotPlotter(AbstractPlotter):
 
         return plot
 
+    @doc_inherit
     def flux_variability_analysis(self, dataframe, grid=None, width=None, height=None, title=None, palette=None,
                                   x_axis_label=None, y_axis_label=None):
 

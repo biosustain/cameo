@@ -16,7 +16,7 @@ from __future__ import absolute_import
 from bokeh.models import GridPlot, FactorRange
 from bokeh.plotting import figure, show
 
-from cameo.util import partition
+from cameo.util import partition, doc_inherit
 from cameo.visualization.plotting.abstract import AbstractPlotter, AbstractGrid
 
 
@@ -48,6 +48,7 @@ class BokehPlotter(AbstractPlotter):
 
         plot.quad(top=top, bottom=bottom, left=left, right=right, color=color, legend=strain, fill_alpha=alpha)
 
+    @doc_inherit
     def flux_variability_analysis(self, dataframe, grid=None, width=None, height=None, title=None,
                                   palette=None, x_axis_label=None, y_axis_label=None):
         palette = self.get_option('palette') if palette is None else palette
@@ -96,6 +97,7 @@ class BokehPlotter(AbstractPlotter):
         if ub[-1] != lb[-1]:
             plot.line((var[-1], var[-1]), (ub[-1], lb[-1]), color=color)
 
+    @doc_inherit
     def production_envelope(self, dataframe, grid=None, width=None, height=None, title=None, points=None,
                             points_colors=None, palette='RdYlBu', x_axis_label=None, y_axis_label=None):
         strains = dataframe["strain"].unique()

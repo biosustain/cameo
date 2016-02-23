@@ -13,6 +13,8 @@
 # limitations under the License.
 from __future__ import absolute_import
 
+from warnings import warn
+
 import six
 
 from cameo.visualization.plotting.abstract import AbstractPlotter
@@ -44,6 +46,8 @@ except ImportError:
     pass
 
 if _engine is None:
+    warn("Cannot import any plotting library. Please install one of 'plotly', 'bokeh' or 'ggplot' if you want to"
+         " use any plotting function.")
     _engine = AbstractPlotter()
 
 

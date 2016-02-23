@@ -19,7 +19,7 @@ import math
 from plotly import tools
 import plotly.graph_objs as go
 
-from cameo.util import zip_repeat, in_ipnb
+from cameo.util import zip_repeat, in_ipnb, doc_inherit
 from cameo.visualization.plotting.abstract import AbstractPlotter, AbstractGrid
 
 
@@ -142,6 +142,7 @@ class PlotlyPlotter(AbstractPlotter):
 
         return scatter, path
 
+    @doc_inherit
     def production_envelope(self, dataframe, grid=None, width=None, height=None, title=None, points=None,
                             points_colors=None, palette='RdYlBu', x_axis_label=None, y_axis_label=None):
         variables = dataframe["strain"].unique()
@@ -208,6 +209,7 @@ class PlotlyPlotter(AbstractPlotter):
 
         return scatter, rectangles
 
+    @doc_inherit
     def flux_variability_analysis(self, dataframe, grid=None, width=None, height=None, title=None,
                                   palette=None, x_axis_label=None, y_axis_label=None):
         palette = self.get_option('palette') if palette is None else palette
