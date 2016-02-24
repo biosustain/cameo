@@ -697,16 +697,16 @@ class WrappedAbstractTestSolverBasedModel:
             for key in list(solution.keys()):
                 self.assertAlmostEqual(new_solution.x_dict[key], solution[key])
 
-    def test_solver_change_with_optlang_interface(self):
-        solver_id = id(self.model.solver)
-        problem_id = id(self.model.solver.problem)
-        solution = self.model.solve().x_dict
-        self.model.solver = optlang.glpk_interface
-        self.assertNotEqual(id(self.model.solver), solver_id)
-        self.assertNotEqual(id(self.model.solver.problem), problem_id)
-        new_solution = self.model.solve()
-        for key in list(solution.keys()):
-            self.assertAlmostEqual(new_solution.x_dict[key], solution[key])
+        def test_solver_change_with_optlang_interface(self):
+            solver_id = id(self.model.solver)
+            problem_id = id(self.model.solver.problem)
+            solution = self.model.solve().x_dict
+            self.model.solver = optlang.glpk_interface
+            self.assertNotEqual(id(self.model.solver), solver_id)
+            self.assertNotEqual(id(self.model.solver.problem), problem_id)
+            new_solution = self.model.solve()
+            for key in list(solution.keys()):
+                self.assertAlmostEqual(new_solution.x_dict[key], solution[key])
 
         def test_invalid_solver_change_raises(self):
             self.assertRaises(ValueError, setattr, self.model, 'solver', [1, 2, 3])
