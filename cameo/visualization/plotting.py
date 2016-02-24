@@ -12,62 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from cameo.util import partition
+from cameo.util import partition, in_ipnb
 from cameo import config, util
+
+import logging
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.WARNING)
 
 
 __all__ = ['plot_production_envelope', 'plot_2_production_envelopes', 'plot_flux_variability_analysis']
 
-
+MISSING_PLOTTING_BACKEND_MESSAGE = "No supported plotting backend could be found. Please install bokeh if you'd like to generate plots (other backends will be supported in the future)."
 GOLDEN_RATIO = 1.618033988
-
-
-try:
-    # import matplotlib.pyplot as plt
-
-    def plot_flux_variability_analysis_matplotlib(fva_result, grid=None, width=None, height=None, title=None,
-                                                  axis_font_size=None, color="blue"):
-        pass
-
-    def plot_2_flux_variability_analysis_matplotlib(fva_result1, fva_result2, grid=None, width=None, height=None,
-                                                    title=None, axis_font_size=None, color1="blue", color2="orange"):
-        pass
-
-    def plot_production_envelope_matplotlib(envelope, objective, key, grid=None, width=None, height=None, title=None,
-                                            points=None, points_colors=None, axis_font_size=None, color="blue"):
-        pass
-        # plt.plot(envelope["objective_upper_bound"], envelope[key], title="Production envelop")
-        # plt.xlabel("growth")
-        # plt.ylabel(key)
-
-    def plot_2_production_envelopes_matplotlib(envelope1, envelope2, objective, key, grid=None, width=None,
-                                                      height=None, title=None, points=None, points_colors=None,
-                                                      axis_font_size=None, color1="blue", color2="orange"):
-        pass
-
-except ImportError:
-
-    def plot_flux_variability_analysis_matplotlib(fva_result, grid=None, width=None, height=None, title=None,
-                                                  axis_font_size=None, color="blue"):
-        pass
-
-    def plot_2_flux_variability_analysis_matplotlib(fva_result1, fva_result2, grid=None, width=None, height=None,
-                                                    title=None, axis_font_size=None, color1="blue", color2="orange"):
-        pass
-
-    def plot_production_envelope_matplotlib(envelope, objective, key, grid=None, width=None, height=None, title=None,
-                                            points=None, points_colors=None, axis_font_size=None, color="blue"):
-        pass
-
-    def plot_2_production_envelopes_matplotlib(envelope1, envelope2, objective, key, grid=None, width=None,
-                                                      height=None, title=None, points=None, points_colors=None,
-                                                      axis_font_size=None, color1="blue", color2="orange"):
-        pass
 
 try:
     from bokeh import plotting
     from bokeh.models import GridPlot
-
+except ImportError:
+    pass
+else:
     def _figure(title, width, height, **kwargs):
         return plotting.figure(title=title,
                                tools="save",
@@ -80,8 +43,8 @@ try:
         lb = envelope["objective_lower_bound"].values
         var = envelope[key].values
 
-        x = [0] + [v for v in var] + list(reversed([v for v in var]))
-        y = [0] + [v for v in lb] + list(reversed([v for v in ub]))
+        x = [v for v in var] + [v for v in reversed(var)]
+        y = [v for v in lb] + [v for v in reversed(ub)]
 
         plot.patch(x=x, y=y, color=patch_color, alpha=patch_alpha)
 
@@ -111,7 +74,7 @@ try:
         p.segment(x0, factors, x1, factors, line_width=line_width, line_color=color)
         for x_0, x_1, f in zip(x0, x1, factors):
             if x_0 == x_1:
-                p.segment([x_0-0.0005], [f], [x_1+0.0005], [f], line_width=line_width, color=color)
+                p.segment([x_0-0.01], [f], [x_1+0.01], [f], line_width=line_width, color=color)
         p.line([0, 0], [0, len(factors)+1], line_color="black", line_width=1, line_alpha=0.3)
 
         if axis_font_size is not None:
@@ -131,12 +94,12 @@ try:
         left1 = list(fva_result1.upper_bound)
         right1 = list(fva_result1.lower_bound)
         top1 = [i for i in range(0, len(factors))]
-        bottom1 = [i+0.4 for i in range(0, len(factors))]
+        bottom1 = [i+0.5 for i in range(0, len(factors))]
 
         left2 = list(fva_result2.upper_bound)
         right2 = list(fva_result2.lower_bound)
         top2 = [i for i in range(0, len(factors))]
-        bottom2 = [i-0.4 for i in range(0, len(factors))]
+        bottom2 = [i-0.5 for i in range(0, len(factors))]
 
         x_range = [min([min(bottom1), min(bottom2)]) - 5, max([max(top1), max(top2)]) + 5]
 
@@ -204,63 +167,14 @@ try:
         else:
             plotting.show(p)
 
-
-except ImportError:
-
-    def plot_flux_variability_analysis_bokeh(fva_result, grid=None, width=None, height=None, title=None,
-                                             axis_font_size=None, color="blue"):
-        pass
-
-    def plot_2_flux_variability_analysis_bokeh(fva_result1, fva_result2, grid=None, width=None, height=None, title=None,
-                                               axis_font_size=None, color1="blue", color2="orange"):
-        pass
-
-    def plot_production_envelope_bokeh(envelope, objective, key, grid=None, width=None, height=None, title=None,
-                                       points=None, points_colors=None, axis_font_size=None, color="blue"):
-        pass
-
-    def plot_2_production_envelopes_bokeh(envelope1, envelope2, objective, key, grid=None, width=None,
-                                          height=None, title=None, points=None, points_colors=None,
-                                          axis_font_size=None, color1="blue", color2="orange"):
-        pass
-
 try:
     from bashplotlib import scatterplot
-
-    def plot_2_flux_variability_analysis_cli(fva_result1, fva_result2, grid=None, width=None, height=None, title=None,
-                                             axis_font_size=None, color1="blue", color2="orange"):
-        pass
-
-    def plot_flux_variability_analysis_cli(fva_result, grid=None, width=None, height=None, title=None,
-                                           axis_font_size=None, color="blue"):
-        pass
-
+except ImportError:
+    pass
+else:
     def plot_production_envelope_cli(envelope, objective, key, grid=None, width=None, height=None, title=None,
                                      points=None, points_colors=None, axis_font_size=None, color="blue"):
         scatterplot.plot_scatter(None, envelope[key], envelope["objective_upper_bound"], "*")
-
-    def plot_2_production_envelopes_cli(envelope1, envelope2, objective, key, grid=None, width=None,
-                                        height=None, title=None, points=None, points_colors=None,
-                                        axis_font_size=None, color1="blue", color2="orange"):
-        pass
-
-except ImportError:
-    def plot_2_flux_variability_analysis_cli(fva_result1, fva_result2, grid=None, width=None, height=None, title=None,
-                                             axis_font_size=None, color1="blue", color2="orange"):
-        pass
-
-    def plot_flux_variability_analysis_cli(fva_result, grid=None, width=None, height=None, title=None,
-                                           axis_font_size=None, color="blue"):
-        pass
-
-    def plot_production_envelope_cli(envelope, objective, key, grid=None, width=None, height=None, title=None,
-                                     points=None, points_colors=None, axis_font_size=None, color="blue"):
-        pass
-
-    def plot_2_production_envelopes_cli(envelope1, envelope2, objective, key, grid=None, width=None,
-                                        height=None, title=None, points=None, points_colors=None,
-                                        axis_font_size=None, color1="blue", color2="orange"):
-        pass
 
 
 def plot_production_envelope(envelope, objective, key, grid=None, width=None, height=None, title=None,
@@ -270,17 +184,16 @@ def plot_production_envelope(envelope, objective, key, grid=None, width=None, he
         width = 700
     if width is None or height is None:
         width, height = _golden_ratio(width, height)
-    if config.use_bokeh:
-        plot_production_envelope_bokeh(envelope, objective, key, grid=grid, width=width, height=height,
-                                       title=title, points=points, points_colors=points_colors,
-                                       axis_font_size=axis_font_size, color=color)
-    elif config.use_matplotlib:
-        plot_production_envelope_matplotlib(envelope, objective, key, grid=grid, width=width, height=height,
-                                            title=title, points=points, points_colors=points_colors,
-                                            axis_font_size=axis_font_size, color=color)
-    else:
-        plot_production_envelope_cli(envelope, objective, key, width=width, height=height, title=title, points=points,
-                                     points_colors=points_colors, axis_font_size=axis_font_size, color=color)
+    try:
+        if config.use_bokeh:
+            plot_production_envelope_bokeh(envelope, objective, key, grid=grid, width=width, height=height,
+                                           title=title, points=points, points_colors=points_colors,
+                                           axis_font_size=axis_font_size, color=color)
+        else:
+            plot_production_envelope_cli(envelope, objective, key, width=width, height=height, title=title, points=points,
+                                         points_colors=points_colors, axis_font_size=axis_font_size, color=color)
+    except NameError:
+        logger.logger.warn(MISSING_PLOTTING_BACKEND_MESSAGE)
 
 
 def plot_2_production_envelopes(envelope1, envelope2, objective, key, grid=None, width=None, height=None, title=None,
@@ -290,18 +203,15 @@ def plot_2_production_envelopes(envelope1, envelope2, objective, key, grid=None,
         width = 700
     if width is None or height is None:
         width, height = _golden_ratio(width, height)
-    if config.use_bokeh:
-        plot_2_production_envelopes_bokeh(envelope1, envelope2, objective, key, grid=grid, width=width, height=height,
-                                          title=title, points=points, points_colors=points_colors,
-                                          axis_font_size=axis_font_size, color1=color1, color2=color2)
-    elif config.use_matplotlib:
-        plot_2_production_envelopes_matplotlib(envelope1, envelope2, objective, key, grid=grid, width=width,
-                                               height=height, title=title, points=points, points_colors=points_colors,
-                                               axis_font_size=axis_font_size, color1=color1, color2=color2)
-    else:
-        plot_2_production_envelopes_cli(envelope1, envelope2, objective, key, width=width, height=height, title=title,
-                                        points=points, points_colors=points_colors, axis_font_size=axis_font_size,
-                                        color1=color1, color2=color2)
+    try:
+        if config.use_bokeh:
+            plot_2_production_envelopes_bokeh(envelope1, envelope2, objective, key, grid=grid, width=width, height=height,
+                                              title=title, points=points, points_colors=points_colors,
+                                              axis_font_size=axis_font_size, color1=color1, color2=color2)
+        else:
+            logger.warn(MISSING_PLOTTING_BACKEND_MESSAGE)
+    except NameError:
+        logger.warn(MISSING_PLOTTING_BACKEND_MESSAGE)
 
 
 def plot_flux_variability_analysis(fva_result, grid=None, width=None, height=None, title=None, axis_font_size=None,
@@ -310,15 +220,14 @@ def plot_flux_variability_analysis(fva_result, grid=None, width=None, height=Non
         width = 700
     if width is None or height is None:
         width, height = _golden_ratio(width, height)
-    if config.use_bokeh:
-        plot_flux_variability_analysis_bokeh(fva_result, grid=grid, width=width, height=height, title=title,
-                                             axis_font_size=axis_font_size, color=color)
-    elif config.use_matplotlib:
-        plot_flux_variability_analysis_matplotlib(fva_result, grid=grid, width=width, height=height, title=title,
-                                                  axis_font_size=axis_font_size, color=color)
-    else:
-        plot_flux_variability_analysis_cli(fva_result, grid=grid, width=width, height=height, title=title,
-                                           axis_font_size=axis_font_size, color=color)
+    try:
+        if config.use_bokeh:
+            plot_flux_variability_analysis_bokeh(fva_result, grid=grid, width=width, height=height, title=title,
+                                                 axis_font_size=axis_font_size, color=color)
+        else:
+            logger.warn(MISSING_PLOTTING_BACKEND_MESSAGE)
+    except NameError:
+        logger.warn(MISSING_PLOTTING_BACKEND_MESSAGE)
 
 
 def plot_2_flux_variability_analysis(fva_result1, fva_result2, grid=None, width=None, height=None, title=None,
@@ -327,16 +236,14 @@ def plot_2_flux_variability_analysis(fva_result1, fva_result2, grid=None, width=
         width = 700
     if width is None or height is None:
         width, height = _golden_ratio(width, height)
-    if config.use_bokeh:
-        plot_2_flux_variability_analysis_bokeh(fva_result1, fva_result2, grid=grid, width=width, height=height,
-                                               title=title, axis_font_size=axis_font_size, color1=color1, color2=color2)
-    elif config.use_matplotlib:
-        plot_2_flux_variability_analysis_matplotlib(fva_result1, fva_result2, grid=grid, width=width, height=height,
-                                                    title=title, axis_font_size=axis_font_size, color1=color1,
-                                                    color2=color2)
-    else:
-        plot_2_flux_variability_analysis_cli(fva_result1, fva_result2, grid=grid, width=width, height=height,
-                                             title=title, axis_font_size=axis_font_size, color1=color1, color2=color2)
+    try:
+        if config.use_bokeh:
+            plot_2_flux_variability_analysis_bokeh(fva_result1, fva_result2, grid=grid, width=width, height=height,
+                                                   title=title, axis_font_size=axis_font_size, color1=color1, color2=color2)
+        else:
+            logger.warn(MISSING_PLOTTING_BACKEND_MESSAGE)
+    except NameError:
+        logger.warn(MISSING_PLOTTING_BACKEND_MESSAGE)
 
 
 class Grid(object):

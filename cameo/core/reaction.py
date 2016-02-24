@@ -87,7 +87,7 @@ class Reaction(_cobrapy.core.Reaction):
         super(Reaction, self).__init__(id=id, name=name, subsystem=subsystem)
         self._lower_bound = lower_bound
         self._upper_bound = upper_bound
-        self._objective_coefficient = 0.
+        self._model = None
 
     def __str__(self):
         return ''.join((self.id, ": ", self.build_reaction_string()))
@@ -255,15 +255,35 @@ class Reaction(_cobrapy.core.Reaction):
         self._upper_bound = value
 
     @property
+    def model(self):
+        return self._model
+
+    @model.setter
+    def model(self, value):
+        if value is None:
+            self.objective_coefficient  # Get objective coefficient from model
+        elif not isinstance(value, cameo.core.SolverBasedModel):
+            raise ValueError("Must be an instance of cameo.core.SolverBasedModel, not %s" % type(value))
+        self._model = value
+
+    @property
     def objective_coefficient(self):
+        if self.model is not None and self.model.objective is not None:
+            coefficients_dict = self.model.objective.expression.as_coefficients_dict()
+            forw_coef = coefficients_dict.get(self.forward_variable, 0)
+            rev_coef = coefficients_dict.get(self.reverse_variable, 0)
+            if forw_coef == -rev_coef:
+                self._objective_coefficient = forw_coef
+            else:
+                self._objective_coefficient = 0
         return self._objective_coefficient
 
     @objective_coefficient.setter
     def objective_coefficient(self, value):
         model = self.model
         if model is not None:
-            model.solver._set_linear_objective_term(self.forward_variable, value)
-            model.solver._set_linear_objective_term(self.reverse_variable, -1 * value)
+            coef_difference = value - self.objective_coefficient
+            model.objective += coef_difference * self.flux_expression
         self._objective_coefficient = value
 
     @property
@@ -302,6 +322,8 @@ class Reaction(_cobrapy.core.Reaction):
         model = self.model
         if model is not None:
             for metabolite, coefficient in six.iteritems(metabolites):
+                if isinstance(metabolite, six.string_types):  # support metabolites added as strings.
+                    metabolite = model.metabolites.get_by_id(metabolite)
                 if not combine:
                     try:
                         old_coefficient = old_coefficients[metabolite]

@@ -14,7 +14,6 @@
 
 from __future__ import absolute_import, print_function
 
-__all__ = ['graph_to_svg', 'draw_knockout_result', 'inchi_to_svg', 'ProgressBar']
 
 import os
 import six
@@ -29,15 +28,17 @@ import networkx as nx
 from functools import partial
 from io import BytesIO
 from escher import Builder
-from cameo.util import TimeMachine, in_ipnb
-
-log = logging.getLogger(__name__)
+from cameo.util import TimeMachine
 
 try:
-    from IPython.display import HTML, SVG, Javascript, display
+    from IPython.display import HTML, SVG
 except ImportError:
     pass
 
+__all__ = ['graph_to_svg', 'draw_knockout_result', 'inchi_to_svg']
+
+
+logger = logging.getLogger(__name__)
 
 def pathviz_maps():
     """Return a list of maps available in pathviz.m"""
@@ -54,6 +55,7 @@ def pathviz_svg(map_id='EcoliCore_coreMap', **kwargs):
         json.dump(config, fhandle)
     fd, tmp_pathviz_output = tempfile.mkstemp(prefix='pathviz_svg_', suffix='.svg')
     output = subprocess.check_output(['pathviz.m', '-o', tmp_pathviz_output, '-i', tmp_pathviz_input])
+    logger.debug(output)
     with open(tmp_pathviz_output, 'r') as fhandle:
         svg_map = fhandle.read()
     return SVG(svg_map)
@@ -91,7 +93,7 @@ cdf.embed("%s", 942, 678);
         json.dump(config, fhandle)
     fd, tmp_pathviz_output = tempfile.mkstemp(prefix='pathviz_cdf_', suffix='.cdf', dir='.')
     output = subprocess.check_output(['pathviz.m', '-o', tmp_pathviz_output, '-i', tmp_pathviz_input])
-    log.debug(output)
+    logger.debug(output)
     fd, tmp_html = tempfile.mkstemp(prefix='pathviz_cdf_embedded_', suffix='.html', dir='.')
     with open(tmp_html, 'w') as fhandle:
         fhandle.write(html_template % os.path.basename(tmp_pathviz_output))
@@ -227,97 +229,3 @@ def graph_to_svg(g, layout=nx.spring_layout):
     return output.getvalue()
 
 
-try:
-    import uuid
-
-    if not in_ipnb():
-        raise ImportError
-
-    class IPythonProgressBar(object):
-        def __init__(self, size=100, label="", color=None, fd=None):
-            self.progress = 0
-            self.size = size
-            self.label = label
-            self.color = color
-            self.id = None
-
-        def start(self, width='50%'):
-            self.id = "progress-bar-%s" % str(uuid.uuid4())
-            style = "width:%s;" % width
-            if self.color is not None:
-                style += "color: %s;" % self.color
-            html = HTML(
-                "%s<progress id='%s' value='0' max='%i' style='%s'></progress>&nbsp;<span id='perc-%s'>0&#37;</span>"
-                % (self.label, self.id, self.size, style, self.id))
-            display(html)
-
-        def increment(self, i=1):
-            p = self.progress + i
-            self._update(p)
-
-        def update(self, progress):
-            p = progress
-            self._update(p)
-
-        def _update(self, v):
-            if v <= self.size:
-                p = v * 100 / self.size
-                display(Javascript("jQuery('#%s').val('%i')" % (self.id, v)))
-                display(Javascript("jQuery('#perc-%s').html('%i&#37;')" % (self.id, p)))
-                self.progress = p
-            else:
-                raise RuntimeError("Already reached 100%")
-
-        def reset(self):
-            self.progress = 0
-            self.id = None
-
-        def end(self):
-            self.update(self.size)
-
-        def __call__(self, iterable):
-            count = 0
-            self.start()
-            self.update(0)
-            for item in iterable:
-                count += 1
-                self.update(count)
-                yield item
-            self.end()
-
-    ProgressBar = IPythonProgressBar
-
-except ImportError:
-    from IProgress import ProgressBar as PB
-    from IProgress import Bar, RotatingMarker, Percentage
-    import sys
-
-    class CLIProgressBar(object):
-        widgets = [' ', Bar(marker=RotatingMarker()), ' ', Percentage()]
-
-        def __init__(self, size=100, label="", color=None, fd=sys.stdout):
-            self.progress_bar = PB(widgets=[label] + self.widgets, maxval=size, fd=fd)
-            self.progress = 0
-
-        def start(self, width='50%'):
-            self.progress_bar.start()
-            self.progress = 0
-
-        def increment(self, i=1):
-            p = self.progress + i
-            self.progress_bar.update(p)
-
-        def update(self, progress):
-            self.progress_bar.update(progress)
-
-        def reset(self):
-            self.progress_bar.start()
-            self.progress = 0
-
-        def end(self):
-            self.progress_bar.finish()
-
-        def __call__(self, iterable):
-            return self.progress_bar(iterable)
-
-    ProgressBar = CLIProgressBar

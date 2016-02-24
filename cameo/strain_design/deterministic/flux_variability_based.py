@@ -36,7 +36,8 @@ from IProgress import ProgressBar
 from pandas import DataFrame, pandas
 from cameo.visualization import plotting
 
-from cameo import config, flux_variability_analysis, fba
+from cameo import config, flux_variability_analysis
+from cameo.flux_analysis.simulation import pfba, fba
 
 from cameo import Metabolite
 from cameo.parallel import SequentialView
@@ -46,7 +47,6 @@ from cameo.flux_analysis.analysis import phenotypic_phase_plane, PhenotypicPhase
 from cameo.util import TimeMachine
 from cameo.ui import notice
 from cameo.visualization.escher_ext import NotebookBuilder
-
 
 
 with warnings.catch_warnings():
@@ -376,8 +376,8 @@ class DifferentialFVAResult(PhenotypicPhasePlaneResult):
     def data_frame(self):
         return self.solutions
 
-    def display_on_map(self, map_name=None):
-        view = _MapView(self.solutions, map_name)
+    def display_on_map(self, map_name=None, **kwargs):
+        view = _MapView(self.solutions, map_name, **kwargs)
         slider = IntSlider(min=1, max=len(self.solutions), value=1)
         slider.on_trait_change(lambda x: view(slider.get_state("value")["value"]))
         display(slider)
@@ -385,10 +385,11 @@ class DifferentialFVAResult(PhenotypicPhasePlaneResult):
 
 
 class _MapView(object):
-    def __init__(self, solutions, map_name):
+    def __init__(self, solutions, map_name, **kwargs):
         self.solutions = solutions
         self.map_name = map_name
         self.builder = None
+        self.kwargs_for_escher = kwargs
 
     def __call__(self, index):
         reaction_data = dict(self.solutions.iloc[index - 1].gaps)
@@ -420,7 +421,7 @@ class _MapView(object):
                                        reaction_scale=[
                                            dict(type='min', color="red", size=20),
                                            dict(type='median', color="grey", size=7),
-                                           dict(type='max', color='green', size=20)])
+                                           dict(type='max', color='green', size=20)], **self.kwargs_for_escher)
         display(self.builder.display_in_notebook())
 
 
@@ -464,22 +465,9 @@ class FSEOF(StrainDesignMethod):
     for improvement of lycopene production.,' Appl Environ Microbiol, vol. 76, no. 10, pp. 3097–3105, May 2010.
 
     """
-    def __init__(self, model, enforced_reaction, primary_objective=None, *args, **kwargs):
+    def __init__(self, model, primary_objective=None, *args, **kwargs):
         super(FSEOF, self).__init__(*args, **kwargs)
         self.model = model
-
-        if isinstance(enforced_reaction, Reaction):
-            if enforced_reaction in model.reactions:
-                self.enforced_reaction = enforced_reaction
-            else:
-                raise ValueError("The reaction "+enforced_reaction.id+" does not belong to the model")
-        elif isinstance(enforced_reaction, str):
-            if enforced_reaction in model.reactions:
-                self.enforced_reaction = model.reactions.get_by_id(enforced_reaction)
-            else:
-                raise ValueError("No reaction "+enforced_reaction+" found in model")
-        else:
-            raise TypeError("Enforced reaction must be a Reaction or reaction id")
 
         if primary_objective is None:
             self.primary_objective = model.objective
@@ -498,15 +486,17 @@ class FSEOF(StrainDesignMethod):
         else:
             raise TypeError("Primary objective must be an Objective, Reaction or a string")
 
-    def run(self, max_enforced_flux=0.9, granularity=10, exclude=(), solution_method=fba):
+    def run(self, target=None, max_enforced_flux=0.9, number_of_results=10, exclude=(), simulation_method=fba, simulation_kwargs=None):
         """
         Performs a Flux Scanning based on Enforced Objective Flux (FSEOF) analysis.
 
         Parameters
         ----------
+        target: str, Reaction, Metabolite
+            The target for optimization.
         max_enforced_flux : float, optional
             The maximal flux of secondary_objective that will be enforced, relative to the theoretical maximum (defaults to 0.9).
-        granularity : int, optional
+        number_of_results : int, optional
             The number of enforced flux levels (defaults to 10).
         exclude : Iterable of reactions or reaction ids that will not be included in the output.
 
@@ -522,14 +512,21 @@ class FSEOF(StrainDesignMethod):
 
         """
         model = self.model
-        primary_objective = self.primary_objective
-        enforced_reaction = self.enforced_reaction
+        target = model.reaction_for(target)
+
+        simulation_kwargs = simulation_kwargs if simulation_kwargs is not None else {}
+        simulation_kwargs['objective'] = self.primary_objective
+
+        if 'reference' not in simulation_kwargs:
+            reference = simulation_kwargs['reference'] = pfba(model, **simulation_kwargs)
+        else:
+            reference = simulation_kwargs['reference']
 
         ndecimals = config.ndecimals
 
         # Exclude list
         exclude = list(exclude) + model.exchanges
-        exclude_ids = [self.enforced_reaction.id]
+        exclude_ids = [target.id]
         for reaction in exclude:
             if isinstance(reaction, Reaction):
                 exclude_ids.append(reaction.id)
@@ -539,33 +536,28 @@ class FSEOF(StrainDesignMethod):
         with TimeMachine() as tm:
 
             tm(do=int, undo=partial(setattr, model, "objective", model.objective))
-            tm(do=int, undo=partial(setattr, enforced_reaction, "lower_bound", enforced_reaction.lower_bound))
-            tm(do=int, undo=partial(setattr, enforced_reaction, "upper_bound", enforced_reaction.upper_bound))
+            tm(do=int, undo=partial(setattr, target, "lower_bound", target.lower_bound))
+            tm(do=int, undo=partial(setattr, target, "upper_bound", target.upper_bound))
 
             # Find initial flux of enforced reaction
-            model.objective = primary_objective
-            initial_solution = solution_method(model)
-            initial_fluxes = initial_solution.fluxes
-            initial_flux = round(initial_fluxes[enforced_reaction.id], ndecimals)
+            initial_fluxes = reference.fluxes
+            initial_flux = round(initial_fluxes[target.id], ndecimals)
 
             # Find theoretical maximum of enforced reaction
-            model.objective = enforced_reaction
-            max_theoretical_flux = round(solution_method(model).fluxes[enforced_reaction.id], ndecimals)
+            max_theoretical_flux = round(fba(model, objective=target.id, reactions=[target.id]).fluxes[target.id], ndecimals)
 
             max_flux = max_theoretical_flux * max_enforced_flux
 
             # Calculate enforcement levels
-            enforcements = [initial_flux + (i + 1) * (max_flux - initial_flux) / granularity for i in range(granularity)]
+            levels = [initial_flux+(i+1)*(max_flux-initial_flux)/number_of_results for i in range(number_of_results)]
 
             # FSEOF results
-            results = {reaction.id: [round(initial_fluxes[reaction.id], ndecimals)] for reaction in model.reactions}
+            results = {reaction.id: [] for reaction in model.reactions}
 
-            # Scan fluxes for different levels of enforcement
-            model.objective = primary_objective
-            for enforcement in enforcements:
-                enforced_reaction.lower_bound = enforcement
-                enforced_reaction.upper_bound = enforcement
-                solution = solution_method(model)
+            for level in levels:
+                target.lower_bound = level
+                target.upper_bound = level
+                solution = simulation_method(model, **simulation_kwargs)
                 for reaction_id, flux in solution.fluxes.items():
                     results[reaction_id].append(round(flux, ndecimals))
 
@@ -573,16 +565,18 @@ class FSEOF(StrainDesignMethod):
         fseof_reactions = []
         for reaction_id, fluxes in results.items():
             if reaction_id not in exclude_ids \
-                    and max(abs(max(fluxes)), abs(min(fluxes))) > abs(fluxes[0]) \
+                    and max(abs(max(fluxes)), abs(min(fluxes))) > abs(reference[reaction_id]) \
                     and min(fluxes) * max(fluxes) >= 0:
                 fseof_reactions.append(model.reactions.get_by_id(reaction_id))
 
-        reaction_results = {rea.id: results[rea.id] for rea in fseof_reactions}
+        results = {rea.id: results[rea.id] for rea in fseof_reactions}
         run_args = dict(max_enforced_flux=max_enforced_flux,
-                        granularity=granularity,
-                        solution_method=solution_method,
+                        number_of_results=number_of_results,
+                        solution_method=simulation_method,
+                        simulation_kwargs=simulation_kwargs,
                         exclude=exclude)
-        return FSEOFResult(fseof_reactions, enforced_reaction, model, primary_objective, [initial_flux]+enforcements, reaction_results, run_args)
+
+        return FSEOFResult(fseof_reactions, target, model, self.primary_objective, levels, results, run_args, reference)
 
 
 class FSEOFResult(StrainDesignResult):
@@ -600,32 +594,33 @@ class FSEOFResult(StrainDesignResult):
     def plot(self, grid=None, width=None, height=None, title=None):
         pass
 
-    def __init__(self, reactions, enforced_reaction, model, primary_objective, enforced_levels, reaction_results, run_args, *args, **kwargs):
+    def __init__(self, reactions, target, model, primary_objective, enforced_levels, reaction_results,
+                 run_args, reference, *args, **kwargs):
         super(FSEOFResult, self).__init__(*args, **kwargs)
         self._reactions = reactions
-        self._enforced_reaction = enforced_reaction
+        self._target = target.id
         self._model = model
         self._primary_objective = primary_objective
         self._run_args = run_args
         self._enforced_levels = enforced_levels
         self._reaction_results = reaction_results
+        self._reference_fluxes = {r: reference.fluxes[r.id] for r in reactions}
 
     def __len__(self):
         return len(self.reactions)
 
-    # TODO: Make an iterator that returns designs from the different enforced levels
     def __iter__(self):
+        ref_fluxes = self._reference_fluxes
         for i, level in enumerate(self.enforced_levels):
-            if i > 0:
-                knockouts = [r for r, v in six.iteritems(self._reaction_results) if v[0] > 0 and v[i] == 0]
-                over_expression = {r: v for r, v in six.iteritems(self._reaction_results) if v[i] > v[0]}
-                down_regulation = {r: v for r, v in six.iteritems(self._reaction_results) if v[i] < v[0]}
-                yield StrainDesign(knockouts=knockouts, over_expression=over_expression,
-                                   down_regulation=down_regulation, manipulation_type="reactions")
+            knockouts = [r for r, v in six.iteritems(self._reaction_results) if ref_fluxes[r.id] > 0 and v[i] == 0]
+            over_expression = {r: v for r, v in six.iteritems(self._reaction_results) if v[i] > ref_fluxes[r.id]}
+            down_regulation = {r: v for r, v in six.iteritems(self._reaction_results) if v[i] < ref_fluxes[r.id]}
+            yield StrainDesign(knockouts=knockouts, over_expression=over_expression,
+                               down_regulation=down_regulation, manipulation_type="reactions")
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) and \
-            self.enforced_reaction == other.enforced_reaction and self.reactions == other.reactions
+               self.target == other.target and self.reactions == other.reactions
 
     @property
     def reactions(self):
@@ -636,8 +631,8 @@ class FSEOFResult(StrainDesignResult):
         return self._model
 
     @property
-    def enforced_reaction(self):
-        return self._enforced_reaction
+    def target(self):
+        return self._target
 
     @property
     def primary_objective(self):
@@ -660,7 +655,7 @@ class FSEOFResult(StrainDesignResult):
 <strong>Reaction fluxes</strong><br><br>
 %(df)s
 """
-        return template % {'objective': str(self.enforced_reaction),
+        return template % {'objective': self.target.id,
                            'reactions': "<br>".join(reaction.id for reaction in self.reactions),
                            'model': self.model.id,
                            'primary': str(self._primary_objective),
@@ -669,7 +664,8 @@ class FSEOFResult(StrainDesignResult):
     @property
     def data_frame(self):
         df = pandas.DataFrame(self._reaction_results).transpose()
-        df.columns = (str(enf) for enf in self._enforced_levels)
+        df.columns = (i+1 for i in range(len(self._enforced_levels)))
+        df.loc[self.target] = self._enforced_levels
         return df
 
 

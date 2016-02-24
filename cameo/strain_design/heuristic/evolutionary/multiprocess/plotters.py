@@ -17,17 +17,15 @@ from __future__ import absolute_import, print_function
 __all__ = ['IPythonNotebookBokehMultiprocessPlotObserver']
 
 import six.moves.queue
-
-from uuid import uuid1
 from pandas import DataFrame
-from requests import ConnectionError
 from cameo import config
 from cameo.strain_design.heuristic.evolutionary.multiprocess.observers import AbstractParallelObserver, \
     AbstractParallelObserverClient
 
 if config.use_bokeh:
-    from bokeh.plotting import *
-    from bokeh.models import GlyphRenderer
+    from bokeh.plotting import figure, show
+    from bokeh.models import ColumnDataSource
+    from bokeh.io import push_notebook
 
 
 class IPythonNotebookBokehMultiprocessPlotObserver(AbstractParallelObserver):
@@ -39,7 +37,6 @@ class IPythonNotebookBokehMultiprocessPlotObserver(AbstractParallelObserver):
         self.color_map = color_map
         self.data_frame = DataFrame(columns=['iteration', 'island', 'color', 'fitness'])
         self.plotted = False
-        self.can_plot = True
 
     def _create_client(self, i):
         self.clients[i] = IPythonNotebookBokehMultiprocessPlotObserverClient(queue=self.queue, index=i)
@@ -49,29 +46,17 @@ class IPythonNotebookBokehMultiprocessPlotObserver(AbstractParallelObserver):
         AbstractParallelObserver.start(self)
 
     def _plot(self):
-        self.uuid = uuid1()
-        try:
-            self.plot = figure(title="Fitness plot", tools='', plot_height=400, plot_width=650)
-            self.plot.scatter([], [])
-            self.plot.xaxis.axis_label = "Iteration"
-            self.plot.yaxis.axis_label = "Fitness"
+        self.plot = figure(title="Fitness plot", tools='', plot_height=400, plot_width=650)
+        self.plot.xaxis.axis_label = "Iteration"
+        self.plot.yaxis.axis_label = "Fitness"
+        self.ds = ColumnDataSource(data=dict(x=[], y=[], island=[]))
+        self.plot.circle('x', 'y', source=self.ds)
 
-            renderer = self.plot.select(dict(type=GlyphRenderer))
-            self.ds = renderer[0].data_source
-
-            output_notebook(url=config.bokeh_url, docname=str(self.uuid), hide_banner=True)
-            show(self.plot)
-            self.plotted = True
-        except ConnectionError:
-            from bokeh import io
-
-            io._state._session = None
-            output_notebook(url=None, docname=None, hide_banner=True)
-            logger.info("Bokeh-server is not running. Skipping plotting.")
-            self.can_plot = False
+        show(self.plot)
+        self.plotted = True
 
     def _process_message(self, message):
-        if not self.plotted and self.can_plot:
+        if not self.plotted:
             self._plot()
 
         index = message['index']
@@ -91,7 +76,7 @@ class IPythonNotebookBokehMultiprocessPlotObserver(AbstractParallelObserver):
         self.ds.data['fill_color'] = self.data_frame['color']
         self.ds.data['line_color'] = self.data_frame['color']
         self.ds._dirty = True
-        cursession().store_objects(self.ds)
+        push_notebook()
 
     def stop(self):
         self.data_frame = DataFrame(columns=['iteration', 'island', 'color', 'fitness'])

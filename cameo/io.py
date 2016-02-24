@@ -14,7 +14,10 @@
 
 from __future__ import absolute_import, print_function
 
-import pickle
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
 
 import requests
 import optlang
@@ -28,7 +31,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def load_model(path_or_handle, solver_interface=optlang.glpk_interface, sanitize=True):
+def load_model(path_or_handle, solver_interface=optlang, sanitize=True):
     """Read a metabolic model .
 
     Parameters

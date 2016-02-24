@@ -144,12 +144,11 @@ class MultiprocessKnockoutOptimization(MultiprocessHeuristicOptimization):
 
     def _set_observers(self, number_of_islands):
         observers = []
-        progress_observer = None
+
         plotting_observer = None
         if util.in_ipnb():
             color_map = util.generate_colors(number_of_islands)
-            progress_observer = IPythonNotebookMultiprocessProgressObserver(number_of_islands=number_of_islands,
-                                                                            color_map=color_map)
+            progress_observer = IPythonNotebookMultiprocessProgressObserver(number_of_islands=number_of_islands)
             if config.use_bokeh:
                 plotting_observer = IPythonNotebookBokehMultiprocessPlotObserver(number_of_islands=number_of_islands,
                                                                                  color_map=color_map)
