@@ -659,8 +659,13 @@ class WrappedAbstractTestSolverBasedModel:
         def test_objective(self):
             obj = self.model.objective
             self.assertEqual(
-                obj.__str__(),
-                'Maximize\n-1.0*Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2_reverse_9ebcd + 1.0*Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2')
+                {var.name: coef for var, coef in obj.expression.as_coefficients_dict().items()},
+                {'Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2_reverse_9ebcd': -1,
+                 'Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2': 1})
+            self.assertEqual(
+                obj.direction,
+                "max"
+            )
 
         def test_change_objective(self):
             expression = 1.0 * self.model.solver.variables['ENO'] + 1.0 * self.model.solver.variables['PFK']
