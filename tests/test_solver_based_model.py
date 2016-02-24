@@ -506,6 +506,27 @@ class WrappedAbstractTestReaction:
                 self.assertTrue(self.model.solver.constraints[already_included_metabolite.id].expression.has(10 * reaction.forward_variable))
                 self.assertTrue(self.model.solver.constraints[already_included_metabolite.id].expression.has(-10 * reaction.reverse_variable))
 
+        def test_pop(self):
+            pgi = self.model.reactions.PGI
+            g6p = self.model.metabolites.get_by_id("g6p_c")
+            f6p = self.model.metabolites.get_by_id("f6p_c")
+            g6p_expr = self.model.solver.constraints["g6p_c"].expression
+            g6p_coef = pgi.pop("g6p_c")
+            self.assertNotIn(g6p, pgi.metabolites)
+            self.assertEqual(
+                self.model.solver.constraints["g6p_c"].expression.as_coefficients_dict(),
+                (g6p_expr - g6p_coef * pgi.flux_expression).as_coefficients_dict()
+            )
+            self.assertEqual(pgi.metabolites[f6p], 1)
+
+            f6p_expr = self.model.solver.constraints["f6p_c"].expression
+            f6p_coef = pgi.pop(f6p)
+            self.assertNotIn(f6p, pgi.metabolites)
+            self.assertEqual(
+                self.model.solver.constraints["f6p_c"].expression.as_coefficients_dict(),
+                (f6p_expr - f6p_coef * pgi.flux_expression).as_coefficients_dict()
+            )
+
         @unittest.skip('Not implemented yet.')
         def test_change_id_is_reflected_in_solver(self):
             for i, reaction in enumerate(self.model.reactions):
@@ -665,6 +686,16 @@ class WrappedAbstractTestSolverBasedModel:
             expression = 1.0 * self.model.solver.variables['ENO'] + 1.0 * self.model.solver.variables['PFK']
             self.model.objective = self.model.solver.interface.Objective(expression)
             self.assertEqual(self.model.objective.expression, expression)
+
+            self.model.change_objective("ENO")
+            eno_obj = self.model.solver.interface.Objective(self.model.reactions.ENO.flux_expression, direction="max")
+            pfk_obj = self.model.solver.interface.Objective(self.model.reactions.PFK.flux_expression, direction="max")
+            self.assertEqual(self.model.objective, eno_obj)
+
+            with TimeMachine() as tm:
+                self.model.change_objective("PFK", tm)
+                self.assertEqual(self.model.objective, pfk_obj)
+            self.assertEqual(self.model.objective, eno_obj)
 
         def test_set_reaction_objective(self):
             self.model.objective = self.model.reactions.ACALD

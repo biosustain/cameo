@@ -580,6 +580,17 @@ class SolverBasedModel(cobra.core.Model):
                 raise Exception('%s is not a reaction or reaction ID.' % reaction)
         return clean_reactions
 
+    def change_objective(self, value, time_machine=None):
+        """
+        Changes the objective of the model to the given value. Allows passing a time machine to
+        revert the change later
+        """
+        if time_machine is None:
+            self.objective = value
+        else:
+            time_machine(do=partial(setattr, self, "objective", value),
+                         undo=partial(setattr, self, "objective", self.objective))
+
     def reaction_for(self, value, time_machine=None, add=True):
         """
         Converts an object into a reaction.
