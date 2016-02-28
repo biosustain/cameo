@@ -22,8 +22,9 @@ from cameo.visualization.palette import mapper, Palette
 GOLDEN_RATIO = 1.618033988
 
 
-class AbstractGrid(object):
-    def __init__(self, n_rows=1, width=None, height=None, title=None):
+class Grid(object):
+    def __init__(self, engine, n_rows=1, width=None, height=None, title=None):
+        self.engine = engine
         self.plots = []
         if n_rows <= 1:
             n_rows = 1
@@ -39,14 +40,20 @@ class AbstractGrid(object):
     def add_plot(self, plot):
         self.plots.append(plot)
 
-    @property
+    def __enter__(self):
+        return self
+
+    def append(self, plot):
+        self.plots.append(plot)
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.plot()
+
     def plot(self):
-        raise NotImplementedError
+        self.engine.display(self)
 
 
 class AbstractPlotter(object):
-
-    __grid__class__ = AbstractGrid
 
     __default_options__ = {
         'color': 'blue',
@@ -150,15 +157,30 @@ class AbstractPlotter(object):
         """
         raise NotImplementedError
 
+    @property
+    def _display(self):
+        raise NotImplementedError
+
+    @staticmethod
+    def _make_grid(grid):
+        raise NotImplementedError
+
     def display(self, plot):
         """
         Displays an object using the implemented library
 
         """
-        raise NotImplementedError
+
+        if isinstance(plot, Grid):
+            plot = self._make_grid(plot)
+
+        self._display(plot)
+
 
     @staticmethod
     def golden_ratio(width, height):
+        if width is None and height is None:
+            return width, height
         if width is None:
             width = int(height + height/GOLDEN_RATIO)
 
@@ -179,8 +201,5 @@ class AbstractPlotter(object):
         else:
             raise ValueError("Invalid palette %s" % palette)
 
-    @classmethod
-    def grid(cls, n_rows=1, width=None, height=None, title=None):
-        cls.__grid__(n_rows=n_rows, width=width, height=height, title=title)
-
-
+    def grid(self, n_rows=1, width=None, height=None, title=None):
+        return Grid(self, n_rows=n_rows, width=width, height=height, title=title)

@@ -17,24 +17,10 @@ from bokeh.models import GridPlot, FactorRange
 from bokeh.plotting import figure, show
 
 from cameo.util import partition, doc_inherit
-from cameo.visualization.plotting.abstract import AbstractPlotter, AbstractGrid
-
-
-class BokehGrid(AbstractGrid):
-    @property
-    def plot(self):
-        width, height = AbstractPlotter.golden_ratio(self.width, self.height)
-
-        return GridPlot(children=partition(self.plots, self.n_rows),
-                        title=self.title,
-                        plot_width=width,
-                        plot_heigt=height)
+from cameo.visualization.plotting.abstract import AbstractPlotter, Grid
 
 
 class BokehPlotter(AbstractPlotter):
-
-    __grid__class__ = BokehGrid
-
     def __init__(self, **options):
         super(BokehPlotter, self).__init__(**options)
 
@@ -125,8 +111,11 @@ class BokehPlotter(AbstractPlotter):
 
         return plot
 
-    @classmethod
-    def display(cls, plot):
-        if isinstance(plot, BokehGrid):
-            plot = plot.plot
-        show(plot)
+    @property
+    def _display(self):
+        return show
+
+    @staticmethod
+    def _make_grid(grid):
+        return GridPlot(children=partition(grid.plots, grid.n_rows),
+                        name=grid.title)

@@ -11,12 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from __future__ import absolute_import
+
+from math import ceil
+
 from warnings import warn
-
-from cameo.util import in_ipnb, doc_inherit
-
 from ggplot import *
 
+from cameo.util import in_ipnb, doc_inherit
 from cameo.visualization.plotting import AbstractPlotter
 
 
@@ -52,10 +54,17 @@ class GGPlotPlotter(AbstractPlotter):
 
         return aes(data=dataframe, )
 
-    def display(self, plot):
+    @property
+    def _display(self):
         if in_ipnb():
             from IPython.display import display
-            display(plot)
+            return display
+
+    @staticmethod
+    def _make_grid(grid):
+        columns = ceil(grid.n_rows/len(grid.plots()))
+        return grid.plot[0] + facet_grid(grid.n_rows, columns, scales="fixed")
+
 
 
 

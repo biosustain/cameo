@@ -19,30 +19,11 @@ import math
 from plotly import tools
 import plotly.graph_objs as go
 
-from cameo.util import zip_repeat, in_ipnb, doc_inherit
-from cameo.visualization.plotting.abstract import AbstractPlotter, AbstractGrid
-
-
-class PlotlyGrid(AbstractGrid):
-    def plot(self):
-        rows = self.n_rows
-        columns = math.ceil(len(self.plots)/rows)
-
-        plot = tools.make_subplots(rows=rows, cols=columns, subplot_titles=[p.layout['title'] for p in self.plots])
-        plot['layout']['width'] = self.width
-        plot['layout']['heigth'] = self.height
-        for i, subplot in enumerate(self.plots):
-            plot.append_trace(go.Data(data=subplot.data))
-            plot['layout']['xaxis%i' % (i+1)].update(subplot.layout['xaxis'])
-            plot['layout']['yaxis%i' % (i+1)].update(subplot.layout['yaxis'])
-            plot['layout']['shapes%i' % (i+1)].update(subplot.layout['shapes'])
-
-        return plot
+from cameo.util import zip_repeat, in_ipnb, doc_inherit, partition
+from cameo.visualization.plotting.abstract import AbstractPlotter, Grid
 
 
 class PlotlyPlotter(AbstractPlotter):
-
-    __grid__class__ = PlotlyGrid
 
     class Figure(object):
         def __init__(self, data=None, layout=None):
@@ -246,12 +227,29 @@ class PlotlyPlotter(AbstractPlotter):
             plot = go.Figure(data=data, layout=layout)
         return plot
 
-    def display(self, plot):
+    @property
+    def _display(self):
         if self.get_option('mode') is "offline":
             from plotly.offline import iplot
         else:
             from plotly.plotly import iplot
 
-        iplot(plot)
+        return iplot
 
+    @staticmethod
+    def _make_grid(grid):
+        rows = grid.n_rows
+        columns = math.ceil(len(grid.plots)/rows)
 
+        plot = tools.make_subplots(rows=rows, cols=columns, subplot_titles=[p.layout['title'] for p in grid.plots])
+        plot['layout']['width'] = grid.width
+        plot['layout']['height'] = grid.height
+        for i, subplots in enumerate(partition(grid.plots, rows)):
+            for j, subplot in enumerate(subplots):
+                for trace in subplot.data:
+                    plot.append_trace(trace, i+1, j+1)
+                plot['layout']['xaxis%i' % (i+j+1)].update(**subplot.layout['xaxis'])
+                plot['layout']['yaxis%i' % (i+j+1)].update(**subplot.layout['yaxis'])
+                plot['layout']['shapes%i' % (i+j+1)].update(**subplot.layout['shapes'])
+
+        return plot
