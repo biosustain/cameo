@@ -129,7 +129,8 @@ class OptKnock(StrainDesignMethod):
 
         self.essential_reactions = self._model.essential_reactions() + self._model.exchanges
         if essential_reactions:
-            for ess_reac in essential_reactions:
+            essential_reactions, essential_reactions_copy = [], list(essential_reactions)
+            for ess_reac in essential_reactions_copy:
                 if isinstance(ess_reac, Reaction):
                     essential_reactions.append(self._model.reactions.get_by_id(ess_reac.id))
                 elif isinstance(essential_reactions, str):
