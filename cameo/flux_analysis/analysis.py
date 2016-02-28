@@ -495,7 +495,8 @@ class PhenotypicPhasePlaneResult(Result):
         plot = plotter.production_envelope(dataframe, grid=grid, width=width, height=height,
                                            title=title, x_axis_label=str(self.objective), y_axis_label=variable,
                                            palette=palette, points=points, points_colors=points_colors)
-        plotter.display(plot)
+        if grid is None:
+            plotter.display(plot)
 
     def __getitem__(self, item):
         return self._phase_plane[item]
@@ -541,7 +542,8 @@ class FluxVariabilityResult(Result):
         plot = plotter.flux_variability_analysis(dataframe, grid=grid, width=width, height=height,
                                                  title=title, x_axis_label="Reactions", y_axis_label="Flux limits",
                                                  palette=palette)
-        plotter.display(plot)
+        if grid is None:
+            plotter.display(plot)
 
     def __getitem__(self, item):
         return self._data_frame[item]
