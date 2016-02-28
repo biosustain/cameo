@@ -55,26 +55,26 @@ class PathwayResult(Pathway, Result):
     def needs_optimization(self, model, objective=None):
         return self.production_envelope(model, objective).area > 1e-5
 
-    def production_envelope(self, model, variables=None):
+    def production_envelope(self, model, objective=None):
         with TimeMachine() as tm:
             self.plug_model(model, tm)
-            return phenotypic_phase_plane(model, variables=variables, objective=self.product)
+            return phenotypic_phase_plane(model, variables=[self.product], objective=objective)
 
     def plug_model(self, model, tm=None, adapters=True, exchanges=True):
         if tm is not None:
             tm(do=partial(model.add_reactions, self.reactions),
-               undo=partial(model.remove_reactions, self.reactions, delete=False))
+               undo=partial(model.remove_reactions, self.reactions, delete=False, remove_orphans=True))
             if adapters:
                 tm(do=partial(model.add_reactions, self.adapters),
-                   undo=partial(model.remove_reactions, self.adapters, delete=False))
+                   undo=partial(model.remove_reactions, self.adapters, delete=False, remove_orphans=True))
             if exchanges:
                 tm(do=partial(model.add_reactions, self.exchanges),
-                   undo=partial(model.remove_reactions, self.exchanges, delete=False))
+                   undo=partial(model.remove_reactions, self.exchanges, delete=False, remove_orphans=True))
             tm(do=partial(setattr, self.product, "lower_bound", 0),
                 undo=partial(setattr, self.product, "lower_bound", self.product.lower_bound))
             try:
                 tm(do=partial(model.add_reaction, self.product),
-                   undo=partial(model.remove_reactions, [self.product], delete=False))
+                   undo=partial(model.remove_reactions, [self.product], delete=False, remove_orphans=True))
             except Exception:
                 logger.warning("Exchange %s already in model" % self.product.id)
                 pass
@@ -121,13 +121,13 @@ class PathwayPredictions(Result):
         # TODO: small pathway visualizations would be great.
         raise NotImplementedError
 
-    def plot_production_envelopes(self, model, variables=None, title=None):
+    def plot_production_envelopes(self, model, objective=None, title=None):
         rows = int(ceil(len(self.pathways)/2.0))
         title ="Production envelops for %s" % self.pathways[0].product.name if title is None else title
         grid = plotter.grid(n_rows=rows, title=title)
         with grid:
             for i, pathway in enumerate(self.pathways):
-                ppp = pathway.production_envelope(model, variables)
+                ppp = pathway.production_envelope(model, objective=objective)
                 ppp.plot(grid=grid, width=450, title="Pathway %i" % i)
 
     def __iter__(self):
