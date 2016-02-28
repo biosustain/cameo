@@ -89,9 +89,10 @@ class OptKnock(StrainDesignMethod):
         self._model = model.copy()
         self._original_model = model
 
-        if "cplex" in config.solvers and "cplex_interface" not in self._model.solver.interface.__name__:
+        if "cplex" in config.solvers:
             logger.debug("Changing solver to cplex and tweaking some parameters.")
-            self._model.solver = "cplex"
+            if "cplex_interface" not in self._model.solver.interface.__name__:
+                self._model.solver = "cplex"
             problem = self._model.solver.problem
             problem.parameters.mip.strategy.startalgorithm.set(1)
             problem.parameters.simplex.tolerances.feasibility.set(1e-8)
