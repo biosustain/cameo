@@ -19,6 +19,7 @@ from __future__ import absolute_import, print_function
 import os
 import copy
 import unittest
+import pickle
 import cameo
 
 from cobra import Metabolite
@@ -679,8 +680,13 @@ class WrappedAbstractTestSolverBasedModel:
         def test_objective(self):
             obj = self.model.objective
             self.assertEqual(
-                obj.__str__(),
-                'Maximize\n-1.0*Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2_reverse_9ebcd + 1.0*Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2')
+                {var.name: coef for var, coef in obj.expression.as_coefficients_dict().items()},
+                {'Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2_reverse_9ebcd': -1,
+                 'Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2': 1})
+            self.assertEqual(
+                obj.direction,
+                "max"
+            )
 
         def test_change_objective(self):
             expression = 1.0 * self.model.solver.variables['ENO'] + 1.0 * self.model.solver.variables['PFK']
@@ -838,6 +844,13 @@ class TestSolverBasedModelGLPK(WrappedAbstractTestSolverBasedModel.AbstractTestS
 
     def test_cobrapy_attributes_not_in_dir(self):
         self.assertNotIn('optimize', dir(self.model))
+
+    def test_solver_change_preserves_non_metabolic_constraints(self):
+        self.model.add_ratio_constraint(self.model.reactions.PGK, self.model.reactions.PFK, 1/2)
+        all_constraint_ids = self.model.solver.constraints.keys()
+        self.assertTrue(all_constraint_ids[-1], 'ratio_constraint_PGK_PFK')
+        resurrected = pickle.loads(pickle.dumps(self.model))
+        self.assertEqual(resurrected.solver.constraints.keys(), all_constraint_ids)
 
 
 class TestSolverBasedModelCPLEX(WrappedAbstractTestSolverBasedModel.AbstractTestSolverBasedModel):
