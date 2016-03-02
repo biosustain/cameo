@@ -67,6 +67,11 @@ class OptKnock(StrainDesignMethod):
     remove_blocked : boolean (default True)
         If True, reactions that cannot carry flux (determined by FVA) will be removed from the model.
         This reduces running time significantly.
+    fraction_of_optimum : If not None, this value will be used to constrain the inner objective (e.g. growth) to
+        a fraction of the optimal inner objective value. If inner objective is not constrained manually
+        this argument should be used. (Default: None)
+    exclude_non_gene_reactions : If True (default), reactions that are not associated with genes will not be
+        knocked out. This results in more practically relevant solutions as well as shorter running times.
 
     Examples
     --------
@@ -78,15 +83,16 @@ class OptKnock(StrainDesignMethod):
     >>> optknock = OptKnock(model)
     >>> result = optknock.run(k=2, target="EX_ac_e", max_results=3)
     """
-    def __init__(self, model, exclude_reactions=None, remove_blocked=True, fraction_of_optimum=None, *args, **kwargs):
-        assert isinstance(model, SolverBasedModel)
+    def __init__(self, model, exclude_reactions=None, remove_blocked=True, fraction_of_optimum=None,
+                 exclude_non_gene_reactions=True, *args, **kwargs):
         super(OptKnock, self).__init__(*args, **kwargs)
         self._model = model.copy()
         self._original_model = model
 
         if "cplex" in config.solvers:
             logger.debug("Changing solver to cplex and tweaking some parameters.")
-            self._model.solver = "cplex"
+            if "cplex_interface" not in self._model.solver.interface.__name__:
+                self._model.solver = "cplex"
             problem = self._model.solver.problem
             problem.parameters.mip.strategy.startalgorithm.set(1)
             problem.parameters.simplex.tolerances.feasibility.set(1e-8)
@@ -102,6 +108,10 @@ class OptKnock(StrainDesignMethod):
             self._model.fix_objective_as_constraint(fraction=fraction_of_optimum)
         if remove_blocked:
             self._remove_blocked_reactions()
+        if not exclude_reactions:
+            exclude_reactions = []
+        if exclude_non_gene_reactions:
+            exclude_reactions += [r for r in self._model.reactions if not r.genes]
 
         self._build_problem(exclude_reactions)
 
@@ -119,7 +129,8 @@ class OptKnock(StrainDesignMethod):
 
         self.essential_reactions = self._model.essential_reactions() + self._model.exchanges
         if essential_reactions:
-            for ess_reac in essential_reactions:
+            essential_reactions, essential_reactions_copy = [], list(essential_reactions)
+            for ess_reac in essential_reactions_copy:
                 if isinstance(ess_reac, Reaction):
                     essential_reactions.append(self._model.reactions.get_by_id(ess_reac.id))
                 elif isinstance(essential_reactions, str):
