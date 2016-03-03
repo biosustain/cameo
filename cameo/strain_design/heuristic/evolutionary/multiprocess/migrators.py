@@ -59,7 +59,7 @@ class MultiprocessingMigrator(object):
     ---------
     max_migrants: int
         Number of migrants in the queue at the same time.
-    connnection_kwargs: keyword arguments:
+    connection_kwargs: keyword arguments:
         see parallel.RedisQueue
 
     """
