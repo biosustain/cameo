@@ -80,17 +80,21 @@ class MultiprocessHeuristicOptimization(StrainDesignMethod):
         The method using for search (default: inspyred.ec.GA).
     max_migrants: int
         The number of individuals travelling between islands (different processes) at the same time (default: 1).
+    migrator: MultiprocessingMigrator
+        If None, it will try to initialize on localhost.
 
     """
     _island_class = None
 
-    def __init__(self, model=None, objective_function=None, heuristic_method=inspyred.ec.GA, max_migrants=1, *args,
-                 **kwargs):
+    def __init__(self, model=None, objective_function=None, heuristic_method=inspyred.ec.GA, max_migrants=1,
+                 migrator=None, *args, **kwargs):
         super(MultiprocessHeuristicOptimization, self).__init__(*args, **kwargs)
         self.model = model
         self.objective_function = objective_function
         self.heuristic_method = heuristic_method
-        self.migrator = MultiprocessingMigrator(max_migrants)
+        if migrator is None:
+            migrator = MultiprocessingMigrator(max_migrants)
+        self.migrator = migrator
         self.observers = []
 
     def _init_kwargs(self):
