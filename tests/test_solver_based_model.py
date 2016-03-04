@@ -19,6 +19,7 @@ from __future__ import absolute_import, print_function
 import os
 import copy
 import unittest
+import pickle
 import cameo
 
 from cobra import Metabolite
@@ -506,6 +507,27 @@ class WrappedAbstractTestReaction:
                 self.assertTrue(self.model.solver.constraints[already_included_metabolite.id].expression.has(10 * reaction.forward_variable))
                 self.assertTrue(self.model.solver.constraints[already_included_metabolite.id].expression.has(-10 * reaction.reverse_variable))
 
+        def test_pop(self):
+            pgi = self.model.reactions.PGI
+            g6p = self.model.metabolites.get_by_id("g6p_c")
+            f6p = self.model.metabolites.get_by_id("f6p_c")
+            g6p_expr = self.model.solver.constraints["g6p_c"].expression
+            g6p_coef = pgi.pop("g6p_c")
+            self.assertNotIn(g6p, pgi.metabolites)
+            self.assertEqual(
+                self.model.solver.constraints["g6p_c"].expression.as_coefficients_dict(),
+                (g6p_expr - g6p_coef * pgi.flux_expression).as_coefficients_dict()
+            )
+            self.assertEqual(pgi.metabolites[f6p], 1)
+
+            f6p_expr = self.model.solver.constraints["f6p_c"].expression
+            f6p_coef = pgi.pop(f6p)
+            self.assertNotIn(f6p, pgi.metabolites)
+            self.assertEqual(
+                self.model.solver.constraints["f6p_c"].expression.as_coefficients_dict(),
+                (f6p_expr - f6p_coef * pgi.flux_expression).as_coefficients_dict()
+            )
+
         @unittest.skip('Not implemented yet.')
         def test_change_id_is_reflected_in_solver(self):
             for i, reaction in enumerate(self.model.reactions):
@@ -658,13 +680,28 @@ class WrappedAbstractTestSolverBasedModel:
         def test_objective(self):
             obj = self.model.objective
             self.assertEqual(
-                obj.__str__(),
-                'Maximize\n-1.0*Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2_reverse_9ebcd + 1.0*Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2')
+                {var.name: coef for var, coef in obj.expression.as_coefficients_dict().items()},
+                {'Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2_reverse_9ebcd': -1,
+                 'Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2': 1})
+            self.assertEqual(
+                obj.direction,
+                "max"
+            )
 
         def test_change_objective(self):
             expression = 1.0 * self.model.solver.variables['ENO'] + 1.0 * self.model.solver.variables['PFK']
             self.model.objective = self.model.solver.interface.Objective(expression)
             self.assertEqual(self.model.objective.expression, expression)
+
+            self.model.change_objective("ENO")
+            eno_obj = self.model.solver.interface.Objective(self.model.reactions.ENO.flux_expression, direction="max")
+            pfk_obj = self.model.solver.interface.Objective(self.model.reactions.PFK.flux_expression, direction="max")
+            self.assertEqual(self.model.objective, eno_obj)
+
+            with TimeMachine() as tm:
+                self.model.change_objective("PFK", tm)
+                self.assertEqual(self.model.objective, pfk_obj)
+            self.assertEqual(self.model.objective, eno_obj)
 
         def test_set_reaction_objective(self):
             self.model.objective = self.model.reactions.ACALD
@@ -807,6 +844,13 @@ class TestSolverBasedModelGLPK(WrappedAbstractTestSolverBasedModel.AbstractTestS
 
     def test_cobrapy_attributes_not_in_dir(self):
         self.assertNotIn('optimize', dir(self.model))
+
+    def test_solver_change_preserves_non_metabolic_constraints(self):
+        self.model.add_ratio_constraint(self.model.reactions.PGK, self.model.reactions.PFK, 1/2)
+        all_constraint_ids = self.model.solver.constraints.keys()
+        self.assertTrue(all_constraint_ids[-1], 'ratio_constraint_PGK_PFK')
+        resurrected = pickle.loads(pickle.dumps(self.model))
+        self.assertEqual(resurrected.solver.constraints.keys(), all_constraint_ids)
 
 
 class TestSolverBasedModelCPLEX(WrappedAbstractTestSolverBasedModel.AbstractTestSolverBasedModel):

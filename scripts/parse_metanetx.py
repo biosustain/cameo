@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import cPickle as pickle
 from math import isnan
 import re
 import gzip
+import six.moves.cPickle as pickle
 import optlang
 from pandas import read_table, notnull
 from cameo.io import _apply_sanitize_rules, ID_SANITIZE_RULES_TAB_COMPLETION, ID_SANITIZE_RULES_SIMPHENY
@@ -74,7 +74,7 @@ def construct_universal_model(list_of_db_prefixes):
         except ValueError:
             continue
         else:
-            for met, coeff in stoichiometry.iteritems():
+            for met, coeff in stoichiometry.items():
                 met.name = chem_prop.loc[met.id]['name']
                 try:
                     met.formula = Formula(chem_prop.loc[met.id].formula)
@@ -97,11 +97,16 @@ def construct_universal_model(list_of_db_prefixes):
                 continue
             reaction = Reaction(index)
             reaction.add_metabolites(stoichiometry)
-            if reaction.check_mass_balance() != []:
+            try:
+                if len(reaction.check_mass_balance()) != 0:
+                    continue
+            except AttributeError as e:
+                logger.debug(str(e))
                 continue
             if row.Balance:
                 reaction.lower_bound = -1 * reaction.upper_bound
             reaction.name = row['Source']
+            row = row.fillna("")
             rest = row.to_dict()
             reaction.annotation = dict((key, rest[key]) for key in rest if key in ('EC', 'Description'))
             reactions.append(reaction)
@@ -131,7 +136,7 @@ if __name__ == '__main__':
                            names=['name', 'formula', 'charge', 'mass', 'InChI', 'SMILES', 'source'])
 
     # replace NaN with None
-    chem_prop = chem_prop.where((notnull(chem_prop)), None)
+    chem_prop = chem_prop.where((notnull(chem_prop)), "")
 
     REVERSE_ID_SANITIZE_RULES_SIMPHENY = [(value, key) for key, value in ID_SANITIZE_RULES_SIMPHENY]
 
@@ -169,8 +174,8 @@ if __name__ == '__main__':
         all2mnx[cleaned_key] = mnx_id
 
     metanetx['all2mnx'] = all2mnx
-    with open('../cameo/data/metanetx.pickle', 'wb') as f:
-        pickle.dump(metanetx, f)
+    #with open('../cameo/data/metanetx.pickle', 'wb') as f:
+    #    pickle.dump(metanetx, f)
 
     # generate universal reaction models
     db_combinations = [('bigg',), ('rhea',), ('bigg', 'rhea'), ('bigg', 'rhea', 'kegg'),
@@ -179,16 +184,17 @@ if __name__ == '__main__':
         universal_model = construct_universal_model(db_combination)
         # The following is a hack; uncomment the following
         import json
-        from cobra.io.json import _to_dict, _DEFAULT_REACTION_ATTRIBUTES
+        from cobra.io.json import _to_dict, _REQUIRED_REACTION_ATTRIBUTES
 
-        _DEFAULT_REACTION_ATTRIBUTES.add('annotation')
-        d_model = _to_dict(universal_model)
+        _REQUIRED_REACTION_ATTRIBUTES.add('annotation')
+        #d_model = _to_dict(universal_model)
         with open('../cameo/models/universal_models/{model_name}.json'.format(model_name=universal_model.id), 'w') as f:
-            json.dump(d_model, f)
+            save_json_model(universal_model, f)
+            # json.dump(d_model, f)
             # save_json_model(universal_model, '../cameo/models/universal_models/{model_name}.json'.format(model_name=universal_model.id))
     chem_prop_filtered = chem_prop[
         [any([source.startswith(db) for db in ('bigg', 'rhea', 'kegg', 'brenda', 'chebi')]) for source in
          chem_prop.source]]
     chem_prop_filtered = chem_prop_filtered.dropna(subset=['name'])
-    with gzip.open('../cameo/data/metanetx_chem_prop.pklz', 'wb') as f:
-        pickle.dump(chem_prop_filtered, f)
+    #with gzip.open('../cameo/data/metanetx_chem_prop.pklz', 'wb') as f:
+    #    pickle.dump(chem_prop_filtered, f)

@@ -55,11 +55,18 @@ class MultiprocessingMigrator(object):
     - *evaluate_migrant* -- should new migrants be evaluated before
       adding them to the population (default False)
 
+    Arguments
+    ---------
+    max_migrants: int
+        Number of migrants in the queue at the same time.
+    connection_kwargs: keyword arguments:
+        see parallel.RedisQueue
+
     """
 
-    def __init__(self, max_migrants=1):
+    def __init__(self, max_migrants=1, **connection_kwargs):
         self.max_migrants = max_migrants
-        self.migrants = RedisQueue(uuid4())
+        self.migrants = RedisQueue(uuid4(), **connection_kwargs)
         self.__name__ = self.__class__.__name__
 
     def __call__(self, random, population, args):

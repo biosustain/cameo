@@ -31,7 +31,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def load_model(path_or_handle, solver_interface=optlang.glpk_interface, sanitize=True):
+def load_model(path_or_handle, solver_interface=optlang, sanitize=True):
     """Read a metabolic model .
 
     Parameters

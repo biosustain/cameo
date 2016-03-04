@@ -45,10 +45,15 @@ __all__ = ["OptGene"]
 
 class OptGene(StrainDesignMethod):
     def __init__(self, model, evolutionary_algorithm=inspyred.ec.GA, manipulation_type="genes", essential_genes=None,
-                 essential_reactions=None, plot=True, *args, **kwargs):
-        assert isinstance(model, SolverBasedModel)
+                 essential_reactions=None, plot=True, exclude_non_gene_reactions=True, *args, **kwargs):
+        if not isinstance(model, SolverBasedModel):
+            raise TypeError("Argument 'model' should be of type 'cameo.core.SolverBasedModel'.")
 
         super(OptGene, self).__init__(*args, **kwargs)
+
+        if exclude_non_gene_reactions:
+            essential_reactions = essential_reactions or []
+            essential_reactions += [r for r in model.reactions if not r.genes]
 
         self._model = model
         self._algorithm = evolutionary_algorithm

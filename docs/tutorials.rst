@@ -20,7 +20,7 @@ we suggest you work through the following material.
     03-simulate-models
     04-analyze-models
     05-predict-gene-knockout-strategies
-    06-predict-expression-modulation-targets
+    06-predict-gene-modulation-targets
     07-predict-heterologous-pathways
     09-vanillin-production
     11-multiprocess
