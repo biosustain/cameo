@@ -62,11 +62,19 @@ class AbstractParallelObserver(object):
         raise NotImplementedError
 
     def start(self):
+        """
+        Starts the observer. It is called internally before the optimization starts.
+        The observer will not report anything until start has been called.
+
+        """
         self.run = True
         self.t = Thread(target=self._listen)
         self.t.start()
 
     def finish(self):
+        """
+        Stops the observer. The observer will not report anything else from the optimization.
+        """
         self.run = False
 
 
@@ -86,7 +94,15 @@ class AbstractParallelObserverClient(object):
 
 class CliMultiprocessProgressObserver(AbstractParallelObserver):
     """
-    Command line progress display for multiprocess run
+    Command line progress display for multiprocess Heuristic Optimization
+
+    Attributes
+    __________
+    progress_bar: dict
+        Progress bar for each island.
+    terminal: Terminal
+        A blessings.Terminal object to map the bars in the terminal
+
     """
 
     __name__ = "CLI Multiprocess Progress Observer"
@@ -151,7 +167,13 @@ class CliMultiprocessProgressObserverClient(AbstractParallelObserverClient):
 
 class IPythonNotebookMultiprocessProgressObserver(AbstractParallelObserver):
     """
-    IPython Notebook Progress Observer for multiprocess run
+    IPython Notebook Progress Observer for multiprocess Heuristic Optimization
+
+    Attributes
+    __________
+    progress_bar: dict
+        Progress bar for each island.
+
     """
 
     __name__ = "IPython Notebook Multiprocess Progress Observer"

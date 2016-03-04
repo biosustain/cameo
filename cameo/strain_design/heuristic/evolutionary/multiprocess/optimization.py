@@ -69,8 +69,8 @@ class MultiprocessHeuristicOptimization(StrainDesignMethod):
     """
     Heuristic Optimization abstract implementation.
 
-    Arguments
-    ---------
+    Attributes
+    ----------
 
     model: SolverBasedModel
         A model to simulate.
@@ -122,8 +122,8 @@ class MultiprocessKnockoutOptimization(MultiprocessHeuristicOptimization):
     """
     Heuristic Knockout Optimization Abstract implementation.
 
-    Arguments
-    ---------
+    Attributes
+    ----------
 
     model: SolverBasedModel
         A model to simulate.
@@ -187,8 +187,8 @@ class MultiprocessReactionKnockoutOptimization(MultiprocessKnockoutOptimization)
     """
     Heuristic Knockout Optimization Reaction implementation.
 
-    Arguments
-    ---------
+    Attributes
+    ----------
 
     model: SolverBasedModel
         A model to simulate.
@@ -230,8 +230,8 @@ class MultiprocessGeneKnockoutOptimization(MultiprocessKnockoutOptimization):
     """
     Heuristic Knockout Optimization Gene implementation.
 
-    Arguments
-    ---------
+    Attributes
+    ----------
 
     model: SolverBasedModel
         A model to simulate.
