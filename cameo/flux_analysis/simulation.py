@@ -194,8 +194,8 @@ def lmoma(model, reference=None, cache=None, reactions=None, *args, **kwargs):
     References
     ----------
     .. [1] Becker, S. A., Feist, A. M., Mo, M. L., Hannum, G., Palsson, B. Ø., & Herrgard, M. J. (2007).
-    Quantitative prediction of cellular metabolism with constraint-based models: the COBRA Toolbox.
-    Nature Protocols, 2(3), 727–38. doi:10.1038/nprot.2007.99
+     Quantitative prediction of cellular metabolism with constraint-based models: the COBRA Toolbox.
+     Nature Protocols, 2(3), 727–38. doi:10.1038/nprot.2007.99
 
     """
     volatile = False
@@ -288,7 +288,8 @@ def room(model, reference=None, cache=None, delta=0.03, epsilon=0.001, reactions
     References
     ----------
     .. [1] Tomer Shlomi, Omer Berkman and Eytan Ruppin, "Regulatory on/off minimization of metabolic
-    flux changes after genetic perturbations", PNAS 2005 102 (21) 7695-7700; doi:10.1073/pnas.0406346102
+     flux changes after genetic perturbations", PNAS 2005 102 (21) 7695-7700; doi:10.1073/pnas.0406346102
+
     """
     volatile = False
     if cache is None:
@@ -366,9 +367,14 @@ def room(model, reference=None, cache=None, delta=0.03, epsilon=0.001, reactions
 
 
 class FluxDistributionResult(Result):
+    """
+    Contains a flux distribution of a simulation method.
+
+
+    """
     @classmethod
     def from_solution(cls, solution, *args, **kwargs):
-        return  cls(solution.fluxes, solution.f, *args, **kwargs)
+        return cls(solution.fluxes, solution.f, *args, **kwargs)
 
     def __init__(self, fluxes, objective_value, *args, **kwargs):
         super(FluxDistributionResult, self).__init__(*args, **kwargs)
