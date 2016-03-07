@@ -50,6 +50,11 @@ from cameo.util import RandomGenerator as Random
 
 TRAVIS = os.getenv('TRAVIS', False)
 
+if os.getenv('REDIS_PORT_6379_TCP_ADDR'):
+    REDIS_HOST = os.getenv('REDIS_PORT_6379_TCP_ADDR')  # wercker
+else:
+    REDIS_HOST = 'localhost'
+
 SEED = 1234
 
 CURRENT_PATH = os.path.dirname(__file__)
@@ -592,21 +597,23 @@ class TestMigrators(unittest.TestCase):
         self.population = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
         self.random = Random(SEED)
 
+    # unittest.skipIf(os.getenv('WERCKER', False), 'Currently not working on wercker as redis is not running on localhost')
     def test_migrator_constructor(self):
-        migrator = MultiprocessingMigrator(max_migrants=1)
+        migrator = MultiprocessingMigrator(max_migrants=1, host=REDIS_HOST)
         self.assertIsInstance(migrator.migrants, RedisQueue)
         self.assertEqual(migrator.max_migrants, 1)
 
-        migrator = MultiprocessingMigrator(max_migrants=2)
+        migrator = MultiprocessingMigrator(max_migrants=2, host=REDIS_HOST)
         self.assertIsInstance(migrator.migrants, RedisQueue)
         self.assertEqual(migrator.max_migrants, 2)
 
-        migrator = MultiprocessingMigrator(max_migrants=3)
+        migrator = MultiprocessingMigrator(max_migrants=3, host=REDIS_HOST)
         self.assertIsInstance(migrator.migrants, RedisQueue)
         self.assertEqual(migrator.max_migrants, 3)
 
+    # unittest.skipIf(os.getenv('WERCKER', False), 'Currently not working on wercker as redis is not running on localhost')
     def test_migrate_individuals_without_evaluation(self):
-        migrator = MultiprocessingMigrator(max_migrants=1)
+        migrator = MultiprocessingMigrator(max_migrants=1, host=REDIS_HOST)
         self.assertIsInstance(migrator.migrants, RedisQueue)
         self.assertEqual(migrator.max_migrants, 1)
 
