@@ -19,9 +19,6 @@
 from __future__ import absolute_import, print_function
 from functools import partial
 
-from cobra.core import Metabolite
-
-
 import six
 
 import time
@@ -45,6 +42,8 @@ from cameo import exceptions
 from cameo.exceptions import SolveError, Infeasible, UndefinedSolution
 from .reaction import Reaction
 from .solution import LazySolution, Solution
+from cameo.core.metabolite import Metabolite
+from cameo.core.gene import Gene
 
 import logging
 
@@ -89,20 +88,37 @@ class SolverBasedModel(cobra.core.Model):
             else:
                 cleaned_reactions.append(Reaction.clone(reaction, model=self))
         self.reactions = cleaned_reactions
+
+        cleaned_genes = cobra.core.DictList()
         for gene in self.genes:
-            gene._model = self
-            gene_reactions = list()
-            for reaction in gene.reactions:
-                model_reaction = self.reactions.get_by_id(reaction.id)
-                gene_reactions.append(model_reaction)
-            gene._reaction = set(gene_reactions)
+            if isinstance(gene, Gene):
+                cleaned_genes.append(gene)
+            else:
+                cleaned_genes.append(Gene.clone(gene, model=self))
+        self.genes = cleaned_genes
+
+        cleaned_metabolites = cobra.core.DictList()
+        for metabolite in self.metabolites:
+            if isinstance(metabolite, Metabolite):
+                cleaned_metabolites.append(metabolite)
+            else:
+                cleaned_metabolites.append(Metabolite.clone(metabolite, model=self))
+        self.metabolites = cleaned_metabolites
+
         for metabolite in self.metabolites:
             metabolite._model = self
-            metabolite_reactions = list()
-            for reaction in metabolite.reactions:
-                model_reaction = self.reactions.get_by_id(reaction.id)
-                metabolite_reactions.append(model_reaction)
-            metabolite._reaction = set(metabolite_reactions)
+            metabolite._reaction = {self.reactions.get_by_id(re.id) for re in metabolite.reactions}
+
+        for gene in self.genes:
+            gene._model = self
+            gene._reaction = {self.reactions.get_by_id(re.id) for re in gene.reactions}
+
+        for reaction in self.reactions:
+            reaction._genes = {self.genes.get_by_id(gene.id) for gene in reaction.genes}
+            reaction._metabolites = {
+                self.metabolites.get_by_id(met.id): coef for met, coef in reaction.metabolites.items()
+            }
+
         self._solver = solver_interface.Model()
         self._populate_solver(self.reactions)
         self._timestamp_last_optimization = None

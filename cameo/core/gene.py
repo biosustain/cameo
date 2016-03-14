@@ -1,0 +1,36 @@
+# Copyright 2016 Novo Nordisk Foundation Center for Biosustainability, DTU.
+
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+
+# http://www.apache.org/licenses/LICENSE-2.0
+
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import cobra
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+class Gene(cobra.core.Gene):
+
+    @classmethod
+    def clone(cls, gene, model=None):
+        new_gene = cls(id=gene.id)
+        for attribute, value in gene.__dict__.items():
+            try:
+                setattr(new_gene, attribute, value)
+            except AttributeError:
+                logger.info(
+                    "Can't set attribute %s for gene %s (while cloning it to a cameo style gene). Skipping it ..." %
+                    (attribute, gene)
+                )
+        if model is not None:
+            new_gene._model = model
+        return new_gene
