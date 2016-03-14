@@ -37,6 +37,9 @@ from numpy.random import RandomState
 
 import logging
 
+import itertools
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -546,3 +549,21 @@ def str_to_valid_variable_name(s):
     s = re.sub('^[^a-zA-Z_]+', '', s)
 
     return s
+
+
+def zip_repeat(long_iter, short_iter):
+    """
+    Zips two iterable objects but repeats the second one if it is shorter than the first one.
+
+    Parameters
+    ----------
+    long_iter: iterable
+
+    short_iter: iterable
+
+    Returns
+    -------
+    generator
+    """
+    for i, j in zip(long_iter, itertools.cycle(short_iter)):
+        yield i, j
