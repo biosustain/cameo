@@ -12,3 +12,4 @@ networkx==1.9.1
 six>=1.9.0
 lazy-object-proxy==1.2.0
 IProgress==0.2
+palettable>=2.1.1
