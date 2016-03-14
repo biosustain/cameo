@@ -34,7 +34,7 @@ from cameo.util import TimeMachine, partition
 from cameo.parallel import SequentialView
 from cameo.core.result import Result
 from cameo.ui import notice
-from cameo.visualization import plotting
+from cameo.visualization.plotting import plotter
 from cameo.flux_analysis.util import remove_infeasible_cycles
 
 import logging
@@ -476,13 +476,27 @@ class PhenotypicPhasePlaneResult(Result):
     def data_frame(self):
         return pandas.DataFrame(self._phase_plane)
 
-    def plot(self, grid=None, width=None, height=None, title=None, axis_font_size=None, color="lightblue", **kwargs):
+    def plot(self, grid=None, width=None, height=None, title=None, axis_font_size=None, palette=None,
+             points=None, points_colors=None, **kwargs):
         if len(self.variable_ids) > 1:
             notice("Multi-dimensional plotting is not supported")
             return
-        plotting.plot_production_envelope(self._phase_plane, objective=self.objective, key=self.variable_ids[0],
-                                          grid=grid, width=width, height=height, title=title, color=color,
-                                          axis_font_size=axis_font_size, **kwargs)
+
+        if title is None:
+            title = "Phenotypic Phase Plane"
+        variable = self.variable_ids[0]
+
+        dataframe = pandas.DataFrame(columns=["ub", "lb", "value", "strain"])
+        for _, row in self.iterrows():
+            _df = pandas.DataFrame([[row['objective_upper_bound'], row['objective_lower_bound'], row[variable], "WT"]],
+                                   columns=dataframe.columns)
+            dataframe = dataframe.append(_df)
+
+        plot = plotter.production_envelope(dataframe, grid=grid, width=width, height=height,
+                                           title=title, x_axis_label=str(self.objective), y_axis_label=variable,
+                                           palette=palette, points=points, points_colors=points_colors)
+        if grid is None:
+            plotter.display(plot)
 
     def __getitem__(self, item):
         return self._phase_plane[item]
@@ -512,13 +526,24 @@ class FluxVariabilityResult(Result):
     def data_frame(self):
         return self._data_frame
 
-    def plot(self, index=None, grid=None, width=None, height=None, title=None, axis_font_size=None, color="lightblue",
-             **kwargs):
+    def plot(self, index=None, grid=None, width=None, height=None, title=None, palette=None, **kwargs):
         if index is None:
             index = self.data_frame.index[0:10]
         fva_result = self.data_frame.loc[index]
-        plotting.plot_flux_variability_analysis(fva_result, grid=grid, width=width, height=height, title=title,
-                                                axis_font_size=axis_font_size, color=color)
+        if title is None:
+            title = "Flux Variability Analysis"
+
+        dataframe = pandas.DataFrame(columns=["lb", "ub", "strain", "reaction"])
+        for reaction_id, row in fva_result.iterrows():
+            _df = pandas.DataFrame([[row['lower_bound'], row['upper_bound'], "WT", reaction_id]],
+                                   columns=dataframe.columns)
+            dataframe = dataframe.append(_df)
+
+        plot = plotter.flux_variability_analysis(dataframe, grid=grid, width=width, height=height,
+                                                 title=title, x_axis_label="Reactions", y_axis_label="Flux limits",
+                                                 palette=palette)
+        if grid is None:
+            plotter.display(plot)
 
     def __getitem__(self, item):
         return self._data_frame[item]
