@@ -61,7 +61,7 @@ def process_knockout_solution(model, solution, simulation_method, simulation_kwa
            undo=partial(setattr, model, "objective", model.objective.expression))
 
         fva = flux_variability_analysis(model, fraction_of_optimum=0.99, reactions=[target])
-        target_yield = flux_dist[target]/abs(flux_dist[substrate])
+        target_yield = flux_dist[target] / abs(flux_dist[substrate])
         return [solution[0], solution[1], len(solution[1]), fva.lower_bound(target),
                 fva.upper_bound(target), flux_dist[target], flux_dist[biomass],
                 target_yield] + [of(model, flux_dist, solution) for of in objective_functions]

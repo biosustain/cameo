@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import six
-from cameo.core.solver_based_model import SolverBasedModel
 from sympy import Add
-import optlang
+
+from cameo.core.solver_based_model import SolverBasedModel
 
 
 def convert_to_dual(model):
@@ -34,51 +34,51 @@ def convert_to_dual(model):
         if constraint.expression == 0:
             continue
         if not constraint.is_Linear:
-            raise NotImplementedError("Non-linear problems are currently not supported: "+str(constraint))
+            raise NotImplementedError("Non-linear problems are currently not supported: " + str(constraint))
         if constraint.lb is None and constraint.ub is None:
             continue
         if constraint.lb == constraint.ub:
-            const_var = model.interface.Variable("dual_"+constraint.name+"_constraint", lb=-1000, ub=1000)
+            const_var = model.interface.Variable("dual_" + constraint.name + "_constraint", lb=-1000, ub=1000)
             dual_model._add_variable(const_var)
             if constraint.lb != 0:
-                dual_objective[const_var] = sign*constraint.lb
+                dual_objective[const_var] = sign * constraint.lb
             for variable, coef in constraint.expression.as_coefficients_dict().items():
-                coefficients.setdefault(variable.name, {})[const_var] = sign*coef
+                coefficients.setdefault(variable.name, {})[const_var] = sign * coef
         else:
             if constraint.lb is not None:
-                lb_var = model.interface.Variable("dual_"+constraint.name+"_constraint_lb", lb=0, ub=1000)
+                lb_var = model.interface.Variable("dual_" + constraint.name + "_constraint_lb", lb=0, ub=1000)
                 dual_model._add_variable(lb_var)
                 if constraint.lb != 0:
-                    dual_objective[lb_var] = -sign*constraint.lb
+                    dual_objective[lb_var] = -sign * constraint.lb
             if constraint.ub is not None:
-                ub_var = model.interface.Variable("dual_"+constraint.name+"_constraint_ub", lb=0, ub=1000)
+                ub_var = model.interface.Variable("dual_" + constraint.name + "_constraint_ub", lb=0, ub=1000)
                 dual_model._add_variable(ub_var)
                 if constraint.ub != 0:
-                    dual_objective[ub_var] = sign*constraint.ub
+                    dual_objective[ub_var] = sign * constraint.ub
 
             for variable, coef in constraint.expression.as_coefficients_dict().items():
                 if constraint.lb is not None:
-                    coefficients.setdefault(variable.name, {})[lb_var] = -sign*coef
+                    coefficients.setdefault(variable.name, {})[lb_var] = -sign * coef
                 if constraint.ub is not None:
-                    coefficients.setdefault(variable.name, {})[ub_var] = sign*coef
+                    coefficients.setdefault(variable.name, {})[ub_var] = sign * coef
 
     # Add dual variables from primal bounds
     for variable in model.variables:
         if variable.type != "continuous":
-            raise NotImplementedError("Integer variables are currently not supported: "+str(variable))
+            raise NotImplementedError("Integer variables are currently not supported: " + str(variable))
         if variable.lb is None or variable.lb < 0:
-            raise ValueError("Problem is not in standard form ("+variable.name+" can be negative)")
+            raise ValueError("Problem is not in standard form (" + variable.name + " can be negative)")
         if variable.lb > 0:
-            bound_var = model.interface.Variable("dual_"+variable.name+"_lb", lb=0, ub=1000)
+            bound_var = model.interface.Variable("dual_" + variable.name + "_lb", lb=0, ub=1000)
             dual_model._add_variable(bound_var)
-            coefficients.setdefault(variable.name, {})[bound_var] = -sign*1
-            dual_objective[bound_var] = -sign*variable.lb
+            coefficients.setdefault(variable.name, {})[bound_var] = -sign * 1
+            dual_objective[bound_var] = -sign * variable.lb
         if variable.ub is not None:
-            bound_var = model.interface.Variable("dual_"+variable.name+"_ub", lb=0, ub=1000)
+            bound_var = model.interface.Variable("dual_" + variable.name + "_ub", lb=0, ub=1000)
             dual_model._add_variable(bound_var)
-            coefficients.setdefault(variable.name, {})[bound_var] = sign*1
+            coefficients.setdefault(variable.name, {})[bound_var] = sign * 1
             if variable.ub != 0:
-                dual_objective[bound_var] = sign*variable.ub
+                dual_objective[bound_var] = sign * variable.ub
 
     # Add dual constraints from primal objective
     primal_objective_dict = model.objective.expression.as_coefficients_dict()
@@ -86,7 +86,7 @@ def convert_to_dual(model):
         expr = Add(*((coef * dual_var) for dual_var, coef in coefficients[variable.name].items()))
         obj_coef = primal_objective_dict[variable]
         if maximization:
-            const = model.interface.Constraint(expr, lb=obj_coef, name="dual_"+variable.name)
+            const = model.interface.Constraint(expr, lb=obj_coef, name="dual_" + variable.name)
         else:
             const = model.interface.Constraint(expr, ub=obj_coef)
         dual_model._add_constraint(const)
@@ -106,7 +106,7 @@ def to_dual_model(solver_based_model, solver_interface=None):
     if not isinstance(solver_based_model, SolverBasedModel):
         raise TypeError("Input model must be of type 'SolverBasedModel'")
     if solver_interface is None:
-            solver_interface = solver_based_model.solver.interface
+        solver_interface = solver_based_model.solver.interface
     return SolverBasedModelDual(solver_based_model, solver_interface=solver_interface)
 
 
@@ -122,6 +122,7 @@ class SolverBasedModelDual(SolverBasedModel):
     Dual constraints will be set according to the original primal objective.
     The objective can be changed subsequently to optimize an outer problem.
     """
+
     def __init__(self, *args, **kwargs):
         self._dual_variables = {}
         super(SolverBasedModelDual, self).__init__(*args, **kwargs)
@@ -143,13 +144,15 @@ class SolverBasedModelDual(SolverBasedModel):
         """Add a dual constraint corresponding to the reaction's objective coefficient"""
         stoichiometry = {self.solver.variables["lambda_" + m.id]: c for m, c in six.iteritems(reaction.metabolites)}
         if maximization:
-            constraint = self.solver.interface.Constraint(Add._from_args(tuple(c * v for v, c in six.iteritems(stoichiometry))),
-                                                                name="r_%s_%s" % (reaction.id, prefix),
-                                                                lb=coefficient)
+            constraint = self.solver.interface.Constraint(
+                Add._from_args(tuple(c * v for v, c in six.iteritems(stoichiometry))),
+                name="r_%s_%s" % (reaction.id, prefix),
+                lb=coefficient)
         else:
-            constraint = self._dual_solver.interface.Constraint(Add._from_args(tuple(c * v for v, c in six.iteritems(stoichiometry))),
-                                                                name="r_%s_%s" % (reaction.id, prefix),
-                                                                ub=coefficient)
+            constraint = self._dual_solver.interface.Constraint(
+                Add._from_args(tuple(c * v for v, c in six.iteritems(stoichiometry))),
+                name="r_%s_%s" % (reaction.id, prefix),
+                ub=coefficient)
         self.solver._add_constraint(constraint)
 
     @property

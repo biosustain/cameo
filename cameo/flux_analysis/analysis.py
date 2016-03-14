@@ -41,7 +41,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-
 __all__ = ['find_blocked_reactions', 'flux_variability_analysis', 'phenotypic_phase_plane',
            'flux_balance_impact_degree']
 
@@ -66,11 +65,9 @@ def find_blocked_reactions(model):
             tm(do=partial(setattr, exchange, 'upper_bound', 9999),
                undo=partial(setattr, exchange, 'upper_bound', exchange.upper_bound))
         fva_solution = flux_variability_analysis(model)
-    return [
-        reaction for reaction in model.reactions
-        if round(fva_solution.data_frame.loc[reaction.id, "lower_bound"], config.ndecimals) == 0 and
-        round(fva_solution.data_frame.loc[reaction.id, "upper_bound"], config.ndecimals) == 0
-    ]
+    return [reaction for reaction in model.reactions
+            if round(fva_solution.data_frame.loc[reaction.id, "lower_bound"], config.ndecimals) == 0 and
+            round(fva_solution.data_frame.loc[reaction.id, "upper_bound"], config.ndecimals) == 0]
 
 
 def flux_variability_analysis(model, reactions=None, fraction_of_optimum=0., remove_cycles=False, view=None):
@@ -247,7 +244,7 @@ def _flux_variability_analysis(model, reactions=None):
     try:  # this is an alternative solution to what I did above with flags
         assert ((
                 lb_higher_ub.lower_bound - lb_higher_ub.upper_bound) < 1e-6).all()  # Assert that these cases really only numerical artifacts
-    except AssertionError as e:
+    except AssertionError:
         logger.debug(list(zip(model.reactions, (lb_higher_ub.lower_bound - lb_higher_ub.upper_bound) < 1e-6)))
     df.lower_bound[lb_higher_ub.index] = df.upper_bound[lb_higher_ub.index]
     return df
@@ -299,7 +296,8 @@ def _cycle_free_fva(model, reactions=None, sloppy=True, sloppy_bound=666):
                 v2_one_cycle_fluxes = remove_infeasible_cycles(model, v0_fluxes, fix=[reaction.id])
                 with TimeMachine() as tm:
                     for key, v1_flux in six.iteritems(v1_cycle_free_fluxes):
-                        if round(v1_flux, config.ndecimals) == 0 and round(v2_one_cycle_fluxes[key], config.ndecimals) != 0:
+                        if round(v1_flux, config.ndecimals) == 0 and round(v2_one_cycle_fluxes[key],
+                                                                           config.ndecimals) != 0:
                             knockout_reaction = model.reactions.get_by_id(key)
                             tm(do=partial(setattr, knockout_reaction, 'lower_bound', 0.),
                                undo=partial(setattr, knockout_reaction, 'lower_bound', knockout_reaction.lower_bound))
@@ -341,7 +339,8 @@ def _cycle_free_fva(model, reactions=None, sloppy=True, sloppy_bound=666):
                 v2_one_cycle_fluxes = remove_infeasible_cycles(model, v0_fluxes, fix=[reaction.id])
                 with TimeMachine() as tm:
                     for key, v1_flux in six.iteritems(v1_cycle_free_fluxes):
-                        if round(v1_flux, config.ndecimals) == 0 and round(v2_one_cycle_fluxes[key], config.ndecimals) != 0:
+                        if round(v1_flux, config.ndecimals) == 0 and round(v2_one_cycle_fluxes[key],
+                                                                           config.ndecimals) != 0:
                             knockout_reaction = model.reactions.get_by_id(key)
                             tm(do=partial(setattr, knockout_reaction, 'lower_bound', 0.),
                                undo=partial(setattr, knockout_reaction, 'lower_bound',
@@ -388,7 +387,7 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
             self.model.objective.direction = 'min'
             try:
                 solution = self.model.solve().f
-            except (Infeasible, UndefinedSolution): # Hack to handle GLPK bug
+            except (Infeasible, UndefinedSolution):  # Hack to handle GLPK bug
                 solution = 0
             interval.append(solution)
             self.model.objective.direction = 'max'
@@ -421,7 +420,7 @@ def flux_balance_impact_degree(model, knockouts, view=config.default_view, metho
     """
 
     if method == "fva":
-        reachable_reactions, perturbed_reactions =_fbid_fva(model, knockouts, view)
+        reachable_reactions, perturbed_reactions = _fbid_fva(model, knockouts, view)
     elif method == "em":
         raise NotImplementedError("Elementary modes approach is not implemented")
     else:
@@ -458,8 +457,8 @@ def _fbid_fva(model, knockouts, view):
 
         perturbed_reactions = []
         for reaction in reachable_reactions.index:
-            if wt_fva.upper_bound(reaction) != mt_fva.upper_bound(reaction) or \
-              wt_fva.lower_bound(reaction) != wt_fva.lower_bound(reaction):
+            if wt_fva.upper_bound(reaction) != mt_fva.upper_bound(reaction) or wt_fva.lower_bound(
+                    reaction) != wt_fva.lower_bound(reaction):
                 perturbed_reactions.append(reaction)
 
         return list(reachable_reactions.index), perturbed_reactions
@@ -563,7 +562,6 @@ class FluxVariabilityResult(Result):
 
 
 class FluxBalanceImpactDegreeResult(Result):
-
     def __init__(self, reachable_reactions, perturbed_reactions, method, *args, **kwargs):
         super(FluxBalanceImpactDegreeResult, self).__init__(*args, **kwargs)
         self._method = method

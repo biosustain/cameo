@@ -13,7 +13,6 @@
 # serve to show the default.
 
 import sys
-import os
 
 import alabaster
 
@@ -87,7 +86,7 @@ copyright = u'2014, Novo Nordisk Foundation Center for Biosustainability'
 # The short X.Y version.
 
 sys.path.insert(0, '.')
-sys.path.insert(0, '../') # to get the versioneer module
+sys.path.insert(0, '../')  # to get the versioneer module
 
 import versioneer
 
@@ -240,7 +239,6 @@ html_sidebars = {
 
 # Output file base name for HTML help builder.
 htmlhelp_basename = 'cameodoc'
-
 
 # -- Options for LaTeX output ---------------------------------------------
 

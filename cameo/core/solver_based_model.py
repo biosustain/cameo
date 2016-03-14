@@ -21,7 +21,6 @@ from functools import partial
 
 from cobra.core import Metabolite
 
-
 import six
 
 import time
@@ -48,9 +47,7 @@ from .solution import LazySolution, Solution
 
 import logging
 
-
 __all__ = ['to_solver_based_model', 'SolverBasedModel']
-
 
 logger = logging.getLogger(__name__)
 
@@ -271,7 +268,8 @@ class SolverBasedModel(cobra.core.Model):
         if self.solver.objective is None:
             self.solver.objective = self.solver.interface.Objective(objective_expression, name='obj', direction='max')
         else:
-            self.solver.objective.variables  # TODO: remove this weird hack. Looks like some weird issue with lazy objective expressions in CPLEX and GLPK interface in optlang.
+            # TODO: remove this weird hack. Looks like some weird issue with lazy objective expressions in CPLEX and GLPK interface in optlang.
+            self.solver.objective.variables
             self.solver.objective += objective_expression
 
     @doc_inherit

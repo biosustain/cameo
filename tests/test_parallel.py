@@ -14,15 +14,14 @@
 
 from __future__ import absolute_import, print_function
 
-import six.moves.queue
-
+import os
 import unittest
 import warnings
-from cameo.parallel import SequentialView
-import subprocess
-from time import sleep
 from multiprocessing import cpu_count
-import os
+
+import six.moves.queue
+
+from cameo.parallel import SequentialView
 
 try:
     with warnings.catch_warnings():
@@ -45,6 +44,7 @@ if os.getenv('REDIS_PORT_6379_TCP_ADDR'):
     REDIS_HOST = os.getenv('REDIS_PORT_6379_TCP_ADDR')  # wercker
 else:
     REDIS_HOST = 'localhost'
+
 
 @interactive
 def to_the_power_of_2_interactive(arg):
@@ -69,6 +69,7 @@ class TestSequentialView(unittest.TestCase):
 
 try:
     from cameo.parallel import MultiprocessingView
+
 
     @unittest.skipIf(SKIP_PARALLEL, "This is Travis")
     class TestMultiprocessingView(unittest.TestCase):
@@ -96,6 +97,7 @@ except ImportError:
 
 try:
     from cameo.parallel import RedisQueue
+
 
     class TestRedisQueue(unittest.TestCase):
         def test_queue_size(self):
@@ -164,7 +166,6 @@ try:
 
 except ImportError:
     print("Skipping MultiprocessingView tests ...")
-
 
 # class TestIPythonParallelView(unittest.TestCase):
 # def setUp(self):

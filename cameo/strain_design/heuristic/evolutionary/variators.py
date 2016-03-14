@@ -24,6 +24,7 @@ from cameo.strain_design.heuristic.evolutionary.genomes import MultipleChromosom
 from numpy import float32 as float
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 

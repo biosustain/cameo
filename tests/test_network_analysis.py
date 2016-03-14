@@ -13,11 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from cobra.test import create_test_model
 from nose.tools import assert_equal, assert_in, assert_not_in
 
-from cameo.network_analysis.util import distance_based_on_molecular_formula
 from cameo.network_analysis import model_to_network, reactions_to_network, remove_highly_connected_nodes
-from cobra.test import create_test_model
+from cameo.network_analysis.util import distance_based_on_molecular_formula
 
 TEST_MODEL = create_test_model()
 

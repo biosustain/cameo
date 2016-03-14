@@ -13,8 +13,10 @@
 # limitations under the License.
 from tempfile import _TemporaryFileWrapper
 from unittest import TestCase
-from pandas import DataFrame
+
 import requests
+from pandas import DataFrame
+
 from cameo.models.webmodels import index_models_minho, get_sbml_file, NotFoundException
 
 

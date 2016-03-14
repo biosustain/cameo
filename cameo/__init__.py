@@ -55,6 +55,7 @@ import sys
 if sys.version_info[0] == 2:
     import imp
 
+
     def find_module(name):
         try:
             imp.find_module(name)
@@ -68,13 +69,12 @@ elif sys.version_info[0] == 3:
     else:
         from importlib.util import find_spec as find
 
+
     def find_module(name):
         return find(name) is not None
 
-
 _cameo_path = __path__[0]
 _cameo_data_path = os.path.join(_cameo_path, 'data')
-
 
 from cameo import config
 from .util import get_system_info, in_ipnb
@@ -82,6 +82,7 @@ from .util import get_system_info, in_ipnb
 # fix - if matplotlib is installed it is not possible to import cameo without importing matplotlib on jupyter notebook.
 if find_module("matplotlib") and in_ipnb():
     from IPython import get_ipython
+
     ipython = get_ipython()
     ipython.magic("matplotlib inline")
 

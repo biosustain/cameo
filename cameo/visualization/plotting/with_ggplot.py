@@ -16,7 +16,7 @@ from __future__ import absolute_import
 from math import ceil
 
 from warnings import warn
-from ggplot import *
+from ggplot import scale_colour_manual, geom_area, geom_tile, scale_x_continuous, scale_y_continuous, aes, facet_grid
 
 from cameo.util import in_ipnb, doc_inherit
 from cameo.visualization.plotting import AbstractPlotter
@@ -50,8 +50,6 @@ class GGPlotPlotter(AbstractPlotter):
     def flux_variability_analysis(self, dataframe, grid=None, width=None, height=None, title=None, palette=None,
                                   x_axis_label=None, y_axis_label=None):
 
-        strains = dataframe["strain"].unique()
-
         return aes(data=dataframe, )
 
     @property
@@ -62,11 +60,5 @@ class GGPlotPlotter(AbstractPlotter):
 
     @staticmethod
     def _make_grid(grid):
-        columns = ceil(grid.n_rows/len(grid.plots()))
+        columns = ceil(grid.n_rows / len(grid.plots()))
         return grid.plot[0] + facet_grid(grid.n_rows, columns, scales="fixed")
-
-
-
-
-
-

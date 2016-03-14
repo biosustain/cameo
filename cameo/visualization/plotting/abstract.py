@@ -18,7 +18,6 @@ import collections
 
 from cameo.visualization.palette import mapper, Palette
 
-
 GOLDEN_RATIO = 1.618033988
 
 
@@ -54,7 +53,6 @@ class Grid(object):
 
 
 class AbstractPlotter(object):
-
     __default_options__ = {
         'color': 'blue',
         'palette': 'Pastel2',
@@ -73,7 +71,7 @@ class AbstractPlotter(object):
         return self.__options__.get(key, self.__default_options__.get(key, None))
 
     def production_envelope(self, dataframe, grid=None, width=None, height=None, title=None,
-                             points=None, points_colors=None, palette=None, x_axis_label=None, y_axis_label=None):
+                            points=None, points_colors=None, palette=None, x_axis_label=None, y_axis_label=None):
         """
         Plots production envelopes from a pandas.DataFrame.
 
@@ -176,16 +174,15 @@ class AbstractPlotter(object):
 
         self._display(plot)
 
-
     @staticmethod
     def golden_ratio(width, height):
         if width is None and height is None:
             return width, height
         if width is None:
-            width = int(height + height/GOLDEN_RATIO)
+            width = int(height + height / GOLDEN_RATIO)
 
         elif height is None:
-            height = int(width/GOLDEN_RATIO)
+            height = int(width / GOLDEN_RATIO)
 
         return width, height
 

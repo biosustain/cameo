@@ -12,20 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from math import isnan
-import re
-import gzip
-import six.moves.cPickle as pickle
-import optlang
-from pandas import read_table, notnull
-from cameo.io import _apply_sanitize_rules, ID_SANITIZE_RULES_TAB_COMPLETION, ID_SANITIZE_RULES_SIMPHENY
-from cameo import Reaction, Metabolite, Model
-from cobra.io.json import save_json_model
-from cobra.core.Formula import Formula
-
 import logging
+import re
+
+import optlang
+from cobra.core.Formula import Formula
+from cobra.io.json import save_json_model
+from pandas import read_table, notnull
+
+from cameo import Reaction, Metabolite, Model
+from cameo.io import _apply_sanitize_rules, ID_SANITIZE_RULES_TAB_COMPLETION, ID_SANITIZE_RULES_SIMPHENY
 
 logger = logging.getLogger('parse_metanetx')
+
+
 # logger.setLevel(logging.DEBUG)
 
 
@@ -174,7 +174,7 @@ if __name__ == '__main__':
         all2mnx[cleaned_key] = mnx_id
 
     metanetx['all2mnx'] = all2mnx
-    #with open('../cameo/data/metanetx.pickle', 'wb') as f:
+    # with open('../cameo/data/metanetx.pickle', 'wb') as f:
     #    pickle.dump(metanetx, f)
 
     # generate universal reaction models
@@ -183,11 +183,10 @@ if __name__ == '__main__':
     for db_combination in db_combinations:
         universal_model = construct_universal_model(db_combination)
         # The following is a hack; uncomment the following
-        import json
-        from cobra.io.json import _to_dict, _REQUIRED_REACTION_ATTRIBUTES
+        from cobra.io.json import _REQUIRED_REACTION_ATTRIBUTES
 
         _REQUIRED_REACTION_ATTRIBUTES.add('annotation')
-        #d_model = _to_dict(universal_model)
+        # d_model = _to_dict(universal_model)
         with open('../cameo/models/universal_models/{model_name}.json'.format(model_name=universal_model.id), 'w') as f:
             save_json_model(universal_model, f)
             # json.dump(d_model, f)
@@ -196,5 +195,5 @@ if __name__ == '__main__':
         [any([source.startswith(db) for db in ('bigg', 'rhea', 'kegg', 'brenda', 'chebi')]) for source in
          chem_prop.source]]
     chem_prop_filtered = chem_prop_filtered.dropna(subset=['name'])
-    #with gzip.open('../cameo/data/metanetx_chem_prop.pklz', 'wb') as f:
+    # with gzip.open('../cameo/data/metanetx_chem_prop.pklz', 'wb') as f:
     #    pickle.dump(chem_prop_filtered, f)

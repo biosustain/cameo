@@ -16,25 +16,24 @@
 
 from __future__ import absolute_import, print_function
 
-import os
 import copy
-import unittest
+import os
 import pickle
-import cameo
+import unittest
 
-from cobra import Metabolite
 import numpy
-from cobra.io import read_sbml_model
 import optlang
 import pandas
-from sympy import Eq
-
-from cameo import load_model, Reaction, Model
-from cameo.config import solvers
-from cameo.exceptions import UndefinedSolution
-from cameo.core.solver_based_model import Reaction
-from cameo.util import TimeMachine
 import six
+from cobra import Metabolite
+from cobra.io import read_sbml_model
+
+import cameo
+from cameo import load_model, Model
+from cameo.config import solvers
+from cameo.core.solver_based_model import Reaction
+from cameo.exceptions import UndefinedSolution
+from cameo.util import TimeMachine
 
 TRAVIS = os.getenv('TRAVIS', False)
 TESTDIR = os.path.dirname(__file__)
@@ -111,24 +110,30 @@ class WrappedAbstractTestReaction:
             pgi_reaction.add_metabolites({test_met: 42}, combine=False)
             self.assertEqual(pgi_reaction.metabolites[test_met], 42)
             self.assertEqual(
-                model.solver.constraints[test_met.id].expression.as_coefficients_dict()[pgi_reaction.forward_variable], 42)
+                model.solver.constraints[test_met.id].expression.as_coefficients_dict()[pgi_reaction.forward_variable],
+                42)
             self.assertEqual(
-                model.solver.constraints[test_met.id].expression.as_coefficients_dict()[pgi_reaction.reverse_variable], -42)
+                model.solver.constraints[test_met.id].expression.as_coefficients_dict()[pgi_reaction.reverse_variable],
+                -42)
 
             pgi_reaction.add_metabolites({test_met: -10}, combine=True)
             self.assertEqual(pgi_reaction.metabolites[test_met], 32)
             self.assertEqual(
-                model.solver.constraints[test_met.id].expression.as_coefficients_dict()[pgi_reaction.forward_variable], 32)
+                model.solver.constraints[test_met.id].expression.as_coefficients_dict()[pgi_reaction.forward_variable],
+                32)
             self.assertEqual(
-                model.solver.constraints[test_met.id].expression.as_coefficients_dict()[pgi_reaction.reverse_variable], -32)
+                model.solver.constraints[test_met.id].expression.as_coefficients_dict()[pgi_reaction.reverse_variable],
+                -32)
 
             pgi_reaction.add_metabolites({test_met: 0}, combine=False)
             with self.assertRaises(KeyError):
                 pgi_reaction.metabolites[test_met]
             self.assertEqual(
-                model.solver.constraints[test_met.id].expression.as_coefficients_dict()[pgi_reaction.forward_variable], 0)
+                model.solver.constraints[test_met.id].expression.as_coefficients_dict()[pgi_reaction.forward_variable],
+                0)
             self.assertEqual(
-                model.solver.constraints[test_met.id].expression.as_coefficients_dict()[pgi_reaction.reverse_variable], 0)
+                model.solver.constraints[test_met.id].expression.as_coefficients_dict()[pgi_reaction.reverse_variable],
+                0)
 
             # test_met_2 = Metabolite("Test2", compartment="c")
             # pgi_reaction.add_metabolites({test_met_2: 43}, combine=False)
@@ -490,8 +495,10 @@ class WrappedAbstractTestReaction:
                 reaction.add_metabolites({already_included_metabolite: 10}, combine=True)
                 new_coefficient = previous_coefficient + 10
                 self.assertEqual(reaction.metabolites[already_included_metabolite], new_coefficient)
-                self.assertTrue(self.model.solver.constraints[already_included_metabolite.id].expression.has(new_coefficient * reaction.forward_variable))
-                self.assertTrue(self.model.solver.constraints[already_included_metabolite.id].expression.has(-1 * new_coefficient * reaction.reverse_variable))
+                self.assertTrue(self.model.solver.constraints[already_included_metabolite.id].expression.has(
+                    new_coefficient * reaction.forward_variable))
+                self.assertTrue(self.model.solver.constraints[already_included_metabolite.id].expression.has(
+                    -1 * new_coefficient * reaction.reverse_variable))
 
         @unittest.skipIf(TRAVIS, 'This test behaves non-deterministic on travis-ci')
         def test_add_metabolites_combine_false(self):
@@ -504,8 +511,10 @@ class WrappedAbstractTestReaction:
                 already_included_metabolite = list(reaction.metabolites.keys())[0]
                 reaction.add_metabolites({already_included_metabolite: 10}, combine=False)
                 self.assertEqual(reaction.metabolites[already_included_metabolite], 10)
-                self.assertTrue(self.model.solver.constraints[already_included_metabolite.id].expression.has(10 * reaction.forward_variable))
-                self.assertTrue(self.model.solver.constraints[already_included_metabolite.id].expression.has(-10 * reaction.reverse_variable))
+                self.assertTrue(self.model.solver.constraints[already_included_metabolite.id].expression.has(
+                    10 * reaction.forward_variable))
+                self.assertTrue(self.model.solver.constraints[already_included_metabolite.id].expression.has(
+                    -10 * reaction.reverse_variable))
 
         def test_pop(self):
             pgi = self.model.reactions.PGI
@@ -664,7 +673,8 @@ class WrappedAbstractTestSolverBasedModel:
                 demand_reaction = self.model.add_demand(metabolite, prefix="DemandReaction_")
                 self.assertEqual(self.model.reactions.get_by_id(demand_reaction.id), demand_reaction)
                 self.assertEqual(demand_reaction.reactants, [metabolite])
-                self.assertTrue(self.model.solver.constraints[metabolite.id].expression.has(self.model.solver.variables["DemandReaction_" + metabolite.id]))
+                self.assertTrue(self.model.solver.constraints[metabolite.id].expression.has(
+                    self.model.solver.variables["DemandReaction_" + metabolite.id]))
 
         def test_add_demand_time_machine(self):
             with TimeMachine() as tm:
@@ -672,7 +682,8 @@ class WrappedAbstractTestSolverBasedModel:
                     demand_reaction = self.model.add_demand(metabolite, time_machine=tm)
                     self.assertEqual(self.model.reactions.get_by_id(demand_reaction.id), demand_reaction)
                     self.assertEqual(demand_reaction.reactants, [metabolite])
-                    self.assertTrue(-self.model.solver.constraints[metabolite.id].expression.has(self.model.solver.variables["DM_" + metabolite.id]))
+                    self.assertTrue(-self.model.solver.constraints[metabolite.id].expression.has(
+                        self.model.solver.variables["DM_" + metabolite.id]))
             for metabolite in self.model.metabolites:
                 self.assertNotIn("DM_" + metabolite.id, self.model.reactions)
                 self.assertNotIn("DM_" + metabolite.id, self.model.solver.variables.keys())
@@ -790,7 +801,8 @@ class WrappedAbstractTestSolverBasedModel:
         def test_add_demand_for_non_existing_metabolite(self):
             metabolite = Metabolite(id="a_metabolite")
             self.model.add_demand(metabolite)
-            self.assertTrue(self.model.solver.constraints[metabolite.id].expression.has(self.model.solver.variables["DM_" + metabolite.id]))
+            self.assertTrue(self.model.solver.constraints[metabolite.id].expression.has(
+                self.model.solver.variables["DM_" + metabolite.id]))
 
         def test_add_ratio_constraint(self):
             solution = self.model.solve()
@@ -846,7 +858,7 @@ class TestSolverBasedModelGLPK(WrappedAbstractTestSolverBasedModel.AbstractTestS
         self.assertNotIn('optimize', dir(self.model))
 
     def test_solver_change_preserves_non_metabolic_constraints(self):
-        self.model.add_ratio_constraint(self.model.reactions.PGK, self.model.reactions.PFK, 1/2)
+        self.model.add_ratio_constraint(self.model.reactions.PGK, self.model.reactions.PFK, 1 / 2)
         all_constraint_ids = self.model.solver.constraints.keys()
         self.assertTrue(all_constraint_ids[-1], 'ratio_constraint_PGK_PFK')
         resurrected = pickle.loads(pickle.dumps(self.model))

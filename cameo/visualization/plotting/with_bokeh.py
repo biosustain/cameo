@@ -17,7 +17,7 @@ from bokeh.models import GridPlot, FactorRange
 from bokeh.plotting import figure, show
 
 from cameo.util import partition, doc_inherit
-from cameo.visualization.plotting.abstract import AbstractPlotter, Grid
+from cameo.visualization.plotting.abstract import AbstractPlotter
 
 
 class BokehPlotter(AbstractPlotter):
@@ -29,8 +29,8 @@ class BokehPlotter(AbstractPlotter):
 
         left = dataframe.ub.tolist()
         right = dataframe.lb.tolist()
-        bottom = [(i+1.5)+height for i in range(len(factors))]
-        top = [(i+1.5)+height+step for i in range(len(factors))]
+        bottom = [(i + 1.5) + height for i in range(len(factors))]
+        top = [(i + 1.5) + height + step for i in range(len(factors))]
 
         plot.quad(top=top, bottom=bottom, left=left, right=right, color=color, legend=strain, fill_alpha=alpha)
 
@@ -41,21 +41,21 @@ class BokehPlotter(AbstractPlotter):
         width = self.get_option('width') if width is None else width
         strains = dataframe["strain"].unique()
         factors = dataframe['reaction'].unique().tolist()
-        x_range = [min(dataframe.lb)-5, max(dataframe.ub)+5]
+        x_range = [min(dataframe.lb) - 5, max(dataframe.ub) + 5]
 
         width, height = self.golden_ratio(width, height)
 
         plot = figure(title=title, plot_width=width, plot_height=height,
-                      x_range=x_range, y_range=FactorRange(factors=[""]+factors+[""]),
+                      x_range=x_range, y_range=FactorRange(factors=[""] + factors + [""]),
                       min_border=5)
 
-        plot.line([0, 0], [0, len(factors)+3], line_color="black", line_width=1.5, line_alpha=1)
+        plot.line([0, 0], [0, len(factors) + 3], line_color="black", line_width=1.5, line_alpha=1)
 
         n = len(strains)
-        step = 1.0/float(len(strains))
+        step = 1.0 / float(len(strains))
         for strain, i, color in zip(strains, range(n), self._palette(palette, n)):
             _dataframe = dataframe[dataframe["strain"] == strain]
-            self._add_fva_bars(plot, factors, _dataframe, i*step, step, color, strain)
+            self._add_fva_bars(plot, factors, _dataframe, i * step, step, color, strain)
 
         if x_axis_label:
             plot.xaxis.axis_label = x_axis_label

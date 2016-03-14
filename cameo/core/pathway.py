@@ -21,9 +21,6 @@ import six
 from cameo.core.reaction import Reaction
 
 
-if six.PY3:
-    from functools import reduce
-
 # TODO: Load pathways from SBML and JSON
 # TODO: Define the product
 # TODO: Visualization with ESCHER
@@ -38,6 +35,7 @@ class Pathway(object):
         The list of reactions in the pathway.
 
     """
+
     def __init__(self, reactions, *args, **kwargs):
         super(Pathway, self).__init__(*args, **kwargs)
         self.reactions = reactions
@@ -133,7 +131,7 @@ class Pathway(object):
         else:
             model.add_reactions(self.reactions)
 
-        metabolites = set(reduce(lambda x, y: x+y, [list(r.metabolites.keys()) for r in self.reactions], []))
+        metabolites = set(reduce(lambda x, y: x + y, [list(r.metabolites.keys()) for r in self.reactions], []))
         exchanges = [model.add_demand(m, prefix="EX_", time_machine=tm) for m in metabolites if len(m.reactions) == 1]
         for exchange in exchanges:
             exchange.lower_bound = 0

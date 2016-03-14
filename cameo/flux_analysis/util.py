@@ -15,7 +15,6 @@
 
 __all__ = ['remove_infeasible_cycles']
 
-import copy
 from functools import partial
 
 from cameo.exceptions import SolveError

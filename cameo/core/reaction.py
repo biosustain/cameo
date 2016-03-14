@@ -15,8 +15,6 @@
 
 from __future__ import absolute_import, print_function
 
-import warnings
-
 from functools import partial
 import hashlib
 import cobra as _cobrapy

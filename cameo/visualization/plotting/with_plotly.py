@@ -16,15 +16,14 @@ from __future__ import absolute_import
 
 import math
 
-from plotly import tools
 import plotly.graph_objs as go
+from plotly import tools
 
 from cameo.util import zip_repeat, in_ipnb, doc_inherit, partition
-from cameo.visualization.plotting.abstract import AbstractPlotter, Grid
+from cameo.visualization.plotting.abstract import AbstractPlotter
 
 
 class PlotlyPlotter(AbstractPlotter):
-
     class Figure(object):
         def __init__(self, data=None, layout=None):
             self.data = data
@@ -171,8 +170,8 @@ class PlotlyPlotter(AbstractPlotter):
 
         rectangles = []
         scatter = go.Scatter(
-            x=[(x0+x1)/2.0 for x0, x1 in zip(ub, lb)],
-            y=[(y+1+height) for y in range(len(factores))],
+            x=[(x0 + x1) / 2.0 for x0, x1 in zip(ub, lb)],
+            y=[(y + 1 + height) for y in range(len(factores))],
             name=variable,
             fillcolor=color,
             mode="markers",
@@ -180,8 +179,8 @@ class PlotlyPlotter(AbstractPlotter):
             hoverinfo='none'
         )
         for x0, x1, y in zip(ub, lb, range(len(factores))):
-            y_ = y+1
-            rect = self.Rectangle(x0, x1, y_+height-step/2, y_+height+step/2,
+            y_ = y + 1
+            rect = self.Rectangle(x0, x1, y_ + height - step / 2, y_ + height + step / 2,
                                   fill_color=color,
                                   line_color=color,
                                   line_width=0,
@@ -203,17 +202,17 @@ class PlotlyPlotter(AbstractPlotter):
         data = []
         shapes = []
         n = len(variables)
-        step = 1.0/float(len(variables))
+        step = 1.0 / float(len(variables))
         for variable, i, color in zip(variables, range(n), self._palette(palette, n)):
             _dataframe = dataframe[dataframe["strain"] == variable]
-            scatter_, shapes_ = self._make_fva_bars(factors, _dataframe, i*step, step, color, variable)
+            scatter_, shapes_ = self._make_fva_bars(factors, _dataframe, i * step, step, color, variable)
             data.append(scatter_)
             shapes += [s.to_dict() for s in shapes_]
 
         layout = go.Layout(
             title=title,
             xaxis=dict(title=x_axis_label),
-            yaxis=dict(title=y_axis_label, ticktext=[""]+factors, tickvals=[i for i in range(len(factors)+1)]),
+            yaxis=dict(title=y_axis_label, ticktext=[""] + factors, tickvals=[i for i in range(len(factors) + 1)]),
             width=width,
             height=height,
             shapes=shapes
@@ -239,7 +238,7 @@ class PlotlyPlotter(AbstractPlotter):
     @staticmethod
     def _make_grid(grid):
         rows = grid.n_rows
-        columns = math.ceil(len(grid.plots)/rows)
+        columns = math.ceil(len(grid.plots) / rows)
 
         plot = tools.make_subplots(rows=rows, cols=columns, subplot_titles=[p.layout['title'] for p in grid.plots])
         plot['layout']['width'] = grid.width
@@ -247,9 +246,9 @@ class PlotlyPlotter(AbstractPlotter):
         for i, subplots in enumerate(partition(grid.plots, rows)):
             for j, subplot in enumerate(subplots):
                 for trace in subplot.data:
-                    plot.append_trace(trace, i+1, j+1)
-                plot['layout']['xaxis%i' % (i+j+1)].update(**subplot.layout['xaxis'])
-                plot['layout']['yaxis%i' % (i+j+1)].update(**subplot.layout['yaxis'])
-                plot['layout']['shapes%i' % (i+j+1)].update(**subplot.layout['shapes'])
+                    plot.append_trace(trace, i + 1, j + 1)
+                plot['layout']['xaxis%i' % (i + j + 1)].update(**subplot.layout['xaxis'])
+                plot['layout']['yaxis%i' % (i + j + 1)].update(**subplot.layout['yaxis'])
+                plot['layout']['shapes%i' % (i + j + 1)].update(**subplot.layout['shapes'])
 
         return plot

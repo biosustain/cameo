@@ -41,4 +41,3 @@ class MultipleChromosomeGenome(object):
 
     def __repr__(self):
         return "| ".join(["%s: %s" % (k, list(v)) for k, v in six.iteritems(self.chromosomes)])
-
