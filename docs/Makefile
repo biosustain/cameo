@@ -53,7 +53,7 @@ ipy2rst:
 	sed -i '' 's/``/`/g' *.rst
 
 apidoc:
-	sphinx-apidoc --no-toc -f -o apidoc_output/ ../cameo ../cameo/strain_design/heuristic/multiprocess
+	sphinx-apidoc --no-toc -f -o apidoc_output/ ../cameo ../cameo/strain_design/heuristic/multiprocess ../cameo/stuff ../cameo/strain_design/heuristic/evolutionary
 
 clean:
 	rm -rf $(BUILDDIR)/*
