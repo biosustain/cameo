@@ -33,7 +33,7 @@ requirements = ['numpy>=1.9.1',
                 'pandas>=0.15.2',
                 'ordered-set>=1.2',
                 'cobra==0.4.0b6',
-                'optlang>=0.2.17',
+                'optlang>=0.2.18',
                 'requests>=2.5.0',
                 'numexpr>=2.4',
                 'networkx>=1.9.1',
@@ -42,7 +42,7 @@ requirements = ['numpy>=1.9.1',
                 'IProgress>=0.2',
                 'inspyred>=1.0',
                 'lazy-object-proxy>=1.2.0',
-                ]
+                'palettable>=2.1.1']
 
 # Run
 # pandoc --from=markdown --to=rst README.md -o README.rst
