@@ -67,12 +67,12 @@ class Reaction(_cobrapy.core.Reaction):
             new_reaction._model = None
         if model is not None:
             new_reaction._model = model
-        #for gene in new_reaction.genes:
-        #    gene._reaction.remove(reaction)
-        #    gene._reaction.add(new_reaction)
-        #for metabolite in new_reaction.metabolites:
-        #    metabolite._reaction.remove(reaction)
-        #    metabolite._reaction.add(new_reaction)
+        # for gene in new_reaction.genes:
+        #     gene._reaction.remove(reaction)
+        #     gene._reaction.add(new_reaction)
+        # for metabolite in new_reaction.metabolites:
+        #     metabolite._reaction.remove(reaction)
+        #     metabolite._reaction.add(new_reaction)
         return new_reaction
 
     def __init__(self, id=None, name='', subsystem="", lower_bound=0, upper_bound=1000):
