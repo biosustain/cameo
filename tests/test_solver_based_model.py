@@ -33,6 +33,8 @@ from cameo import load_model, Model
 from cameo.config import solvers
 from cameo.core.solver_based_model import Reaction
 from cameo.exceptions import UndefinedSolution
+from cameo.core.metabolite import Metabolite
+from cameo.core.gene import Gene
 from cameo.util import TimeMachine
 
 TRAVIS = os.getenv('TRAVIS', False)
@@ -571,6 +573,34 @@ class WrappedAbstractTestSolverBasedModel:
         def setUp(self):
             self.model = TESTMODEL.copy()
             self.model.solve()
+
+        def test_model_is_subclassed(self):
+            model = self.model
+            self.assertTrue(isinstance(model, cameo.core.SolverBasedModel))
+            for reac in self.model.reactions:
+                self.assertTrue(isinstance(reac, Reaction))
+                for met in reac.metabolites:
+                    self.assertTrue(isinstance(met, Metabolite))
+                    self.assertTrue(met in model.metabolites)
+                    self.assertTrue(met is model.metabolites.get_by_id(met.id))
+                for gene in reac.genes:
+                    self.assertTrue(isinstance(gene, Gene))
+                    self.assertTrue(gene in model.genes)
+                    self.assertTrue(gene is model.genes.get_by_id(gene.id))
+
+            for gene in model.genes:
+                self.assertTrue(isinstance(gene, Gene))
+                for reac in gene.reactions:
+                    self.assertTrue(isinstance(reac, Reaction))
+                    self.assertTrue(reac in model.reactions)
+                    self.assertTrue(reac is model.reactions.get_by_id(reac.id))
+
+            for met in model.metabolites:
+                self.assertTrue(isinstance(met, Metabolite))
+                for reac in met.reactions:
+                    self.assertTrue(isinstance(reac, Reaction))
+                    self.assertTrue(reac in model.reactions)
+                    self.assertTrue(reac is model.reactions.get_by_id(reac.id))
 
         def test_objective_coefficient_reflects_changed_objective(self):
             biomass_r = self.model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2
