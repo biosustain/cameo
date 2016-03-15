@@ -13,7 +13,6 @@ Subpackages
     cameo.models
     cameo.network_analysis
     cameo.strain_design
-    cameo.stuff
     cameo.ui
     cameo.visualization
 

@@ -19,6 +19,7 @@ __all__ = ['create_adapter_reactions', 'display_pathway']
 from cameo import Reaction
 from cameo.ui import notice
 from cameo.util import in_ipnb
+
 try:
     from IPython.display import display
 except:

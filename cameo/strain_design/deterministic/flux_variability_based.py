@@ -15,17 +15,14 @@
 
 from __future__ import absolute_import, print_function
 
-
-import re
-import six
 import logging
+import re
 import warnings
-
-
-import numpy as np
-
 from functools import partial
 from uuid import uuid4
+
+import numpy as np
+import six
 
 try:
     from IPython.core.display import display, HTML, Javascript
@@ -48,7 +45,6 @@ from cameo.util import TimeMachine
 from cameo.ui import notice
 from cameo.visualization.escher_ext import NotebookBuilder
 
-
 with warnings.catch_warnings():
     warnings.simplefilter("ignore")
     try:
@@ -64,7 +60,6 @@ with warnings.catch_warnings():
 zip = my_zip = six.moves.zip
 
 __all__ = ['DifferentialFVA', 'FSEOF']
-
 
 logger = logging.getLogger(__name__)
 
@@ -160,7 +155,8 @@ class DifferentialFVA(StrainDesignMethod):
             obj_var_ids = [variable.name for variable in self.design_space_model.objective.expression.free_symbols]
             obj_var_ids = [re.sub('_reverse.*', '', id) for id in obj_var_ids]
             if len(set(obj_var_ids)) != 1:
-                raise ValueError("The current objective in design_space_model is not a single reaction objective. DifferentialFVA does not support composite objectives.")
+                raise ValueError(
+                    "The current objective in design_space_model is not a single reaction objective. DifferentialFVA does not support composite objectives.")
             else:
                 self.variables = [self.design_space_model.reactions.get_by_id(obj_var_ids[0]).id]
         else:
@@ -488,6 +484,7 @@ class FSEOF(StrainDesignMethod):
     for improvement of lycopene production.,' Appl Environ Microbiol, vol. 76, no. 10, pp. 3097–3105, May 2010.
 
     """
+
     def __init__(self, model, primary_objective=None, *args, **kwargs):
         super(FSEOF, self).__init__(*args, **kwargs)
         self.model = model
@@ -498,18 +495,19 @@ class FSEOF(StrainDesignMethod):
             if primary_objective in model.reactions:
                 self.primary_objective = primary_objective
             else:
-                raise ValueError("The reaction "+primary_objective.id+" does not belong to the model")
+                raise ValueError("The reaction " + primary_objective.id + " does not belong to the model")
         elif isinstance(primary_objective, str):
             if primary_objective in model.reactions:
                 self.primary_objective = model.reactions.get_by_id(primary_objective)
             else:
-                raise ValueError("No reaction "+primary_objective+" found in the model")
+                raise ValueError("No reaction " + primary_objective + " found in the model")
         elif isinstance(primary_objective, type(model.objective)):
             self.primary_objective = primary_objective
         else:
             raise TypeError("Primary objective must be an Objective, Reaction or a string")
 
-    def run(self, target=None, max_enforced_flux=0.9, number_of_results=10, exclude=(), simulation_method=fba, simulation_kwargs=None):
+    def run(self, target=None, max_enforced_flux=0.9, number_of_results=10, exclude=(), simulation_method=fba,
+            simulation_kwargs=None):
         """
         Performs a Flux Scanning based on Enforced Objective Flux (FSEOF) analysis.
 
@@ -567,12 +565,14 @@ class FSEOF(StrainDesignMethod):
             initial_flux = round(initial_fluxes[target.id], ndecimals)
 
             # Find theoretical maximum of enforced reaction
-            max_theoretical_flux = round(fba(model, objective=target.id, reactions=[target.id]).fluxes[target.id], ndecimals)
+            max_theoretical_flux = round(fba(model, objective=target.id, reactions=[target.id]).fluxes[target.id],
+                                         ndecimals)
 
             max_flux = max_theoretical_flux * max_enforced_flux
 
             # Calculate enforcement levels
-            levels = [initial_flux+(i+1)*(max_flux-initial_flux)/number_of_results for i in range(number_of_results)]
+            levels = [initial_flux + (i + 1) * (max_flux - initial_flux) / number_of_results for i in
+                      range(number_of_results)]
 
             # FSEOF results
             results = {reaction.id: [] for reaction in model.reactions}
@@ -642,8 +642,7 @@ class FSEOFResult(StrainDesignResult):
                                down_regulation=down_regulation, manipulation_type="reactions")
 
     def __eq__(self, other):
-        return isinstance(other, self.__class__) and \
-               self.target == other.target and self.reactions == other.reactions
+        return isinstance(other, self.__class__) and self.target == other.target and self.reactions == other.reactions
 
     @property
     def reactions(self):
@@ -687,40 +686,39 @@ class FSEOFResult(StrainDesignResult):
     @property
     def data_frame(self):
         df = pandas.DataFrame(self._reaction_results).transpose()
-        df.columns = (i+1 for i in range(len(self._enforced_levels)))
+        df.columns = (i + 1 for i in range(len(self._enforced_levels)))
         df.loc[self.target] = self._enforced_levels
         return df
 
-
-# if __name__ == '__main__':
-#     from cameo.io import load_model
-#     from cameo.util import Timer
-#
-#     model = load_model(
-#         '/Users/niko/Arbejder/Dev/cameo/tests/data/EcoliCore.xml')
-#
-#     solution = model.solve()
-#     max_growth = solution.f
-#
-#     reference_model = model.copy()
-#     biomass_rxn = model.reactions.get_by_id('Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2')
-#     reference_model.reactions.get_by_id(
-#         'Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2').lower_bound = max_growth
-#
-#     diffFVA = DifferentialFVA(design_space_model=model,
-#                               reference_model=reference_model,
-#                               objective='EX_succ_LPAREN_e_RPAREN_',
-#                               variables=['Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2',
-#                                          'EX_o2_LPAREN_e_RPAREN_'],
-#                               normalize_ranges_by='Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2',
-#                               points=10
-#                               )
-#     result = diffFVA.run(surface_only=True, view=SequentialView())
-#
-#     with Timer('Sequential'):
-#         result = diffFVA.run(surface_only=True, view=SequentialView())
-#     with Timer('Multiprocessing'):
-#         result = diffFVA.run(surface_only=True, view=MultiprocessingView())
+        # if __name__ == '__main__':
+        #     from cameo.io import load_model
+        #     from cameo.util import Timer
+        #
+        #     model = load_model(
+        #         '/Users/niko/Arbejder/Dev/cameo/tests/data/EcoliCore.xml')
+        #
+        #     solution = model.solve()
+        #     max_growth = solution.f
+        #
+        #     reference_model = model.copy()
+        #     biomass_rxn = model.reactions.get_by_id('Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2')
+        #     reference_model.reactions.get_by_id(
+        #         'Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2').lower_bound = max_growth
+        #
+        #     diffFVA = DifferentialFVA(design_space_model=model,
+        #                               reference_model=reference_model,
+        #                               objective='EX_succ_LPAREN_e_RPAREN_',
+        #                               variables=['Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2',
+        #                                          'EX_o2_LPAREN_e_RPAREN_'],
+        #                               normalize_ranges_by='Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2',
+        #                               points=10
+        #                               )
+        #     result = diffFVA.run(surface_only=True, view=SequentialView())
+        #
+        #     with Timer('Sequential'):
+        #         result = diffFVA.run(surface_only=True, view=SequentialView())
+        #     with Timer('Multiprocessing'):
+        #         result = diffFVA.run(surface_only=True, view=MultiprocessingView())
         # try:
         # from IPython.parallel import Client
         #     client = Client()

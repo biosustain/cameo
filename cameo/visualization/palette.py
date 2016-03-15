@@ -14,9 +14,9 @@
 
 import six
 
-from palettable.colorbrewer.diverging import *
-from palettable.colorbrewer.qualitative import *
-from palettable.colorbrewer.sequential import *
+from palettable.colorbrewer.diverging import *  # noqa
+from palettable.colorbrewer.qualitative import *  # noqa
+from palettable.colorbrewer.sequential import *  # noqa
 
 from palettable.cubehelix.cubehelix import Cubehelix
 from palettable.tableau.tableau import TableauMap

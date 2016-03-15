@@ -14,10 +14,11 @@
 
 from __future__ import absolute_import, print_function
 
-from .util import in_ipnb
-from .parallel import SequentialView
-
 import logging
+
+from .parallel import SequentialView
+from .util import in_ipnb
+
 logging.getLogger().setLevel(logging.ERROR)
 
 log = logging.getLogger(__name__)

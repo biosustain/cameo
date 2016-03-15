@@ -15,20 +15,20 @@
 # @formatter:on
 
 from __future__ import absolute_import
-import copy
 
+import copy
 import os
 import unittest
-from sympy import Add
-from cameo.flux_analysis import remove_infeasible_cycles
-
-from cameo.flux_analysis.simulation import fba, pfba, lmoma, room, moma
-from cameo.parallel import SequentialView, MultiprocessingView
-from cameo.io import load_model
-from cameo.flux_analysis.analysis import flux_variability_analysis, phenotypic_phase_plane, find_blocked_reactions
 
 import pandas
 from pandas.util.testing import assert_frame_equal
+from sympy import Add
+
+from cameo.flux_analysis import remove_infeasible_cycles
+from cameo.flux_analysis.analysis import flux_variability_analysis, phenotypic_phase_plane, find_blocked_reactions
+from cameo.flux_analysis.simulation import fba, pfba, lmoma, room, moma
+from cameo.io import load_model
+from cameo.parallel import SequentialView, MultiprocessingView
 from cameo.util import TimeMachine
 
 TRAVIS = os.getenv('TRAVIS', False)
@@ -84,7 +84,6 @@ class Wrapper:
                 if abs(REFERENCE_FVA_SOLUTION_ECOLI_CORE['upper_bound'][key]) < 666:
                     self.assertAlmostEqual(fva_solution['upper_bound'][key],
                                            REFERENCE_FVA_SOLUTION_ECOLI_CORE['upper_bound'][key], delta=0.0001)
-
 
         def test_flux_variability_sequential(self):
             fva_solution = flux_variability_analysis(self.model, fraction_of_optimum=0.999999419892,
@@ -193,7 +192,8 @@ class Wrapper:
         def test_lmoma_with_reaction_filter(self):
             original_objective = self.model.objective
             pfba_solution = pfba(self.model)
-            solution = lmoma(self.model, reference=pfba_solution, reactions=['EX_o2_LPAREN_e_RPAREN_', 'EX_glc_LPAREN_e_RPAREN_'])
+            solution = lmoma(self.model, reference=pfba_solution,
+                             reactions=['EX_o2_LPAREN_e_RPAREN_', 'EX_glc_LPAREN_e_RPAREN_'])
             self.assertEqual(len(solution.fluxes), 2)
             self.assertIs(self.model.objective, original_objective)
 
@@ -219,7 +219,8 @@ class Wrapper:
         def test_room_with_reaction_filter(self):
             original_objective = self.model.objective
             pfba_solution = pfba(self.model)
-            solution = room(self.model, reference=pfba_solution, reactions=['EX_o2_LPAREN_e_RPAREN_', 'EX_glc_LPAREN_e_RPAREN_'])
+            solution = room(self.model, reference=pfba_solution,
+                            reactions=['EX_o2_LPAREN_e_RPAREN_', 'EX_glc_LPAREN_e_RPAREN_'])
             self.assertEqual(len(solution.fluxes), 2)
             self.assertIs(self.model.objective, original_objective)
 
@@ -236,10 +237,12 @@ class Wrapper:
                 {'b1': 10.0, 'b2': 5.0, 'b3': 5.0, 'v1': 5.0, 'v2': 5.0, 'v3': 0.0, 'v4': 5.0, 'v5': 5.0, 'v6': 0.0})
             self.assertIs(self.model.objective, original_objective)
 
+
 class TestFindBlockedReactionsGLPK(Wrapper.AbstractTestFindBlockedReactions):
     def setUp(self):
         self.model = CORE_MODEL.copy()
         self.model.solver = 'glpk'
+
 
 class TestFindBlockedReactionsCPLEX(Wrapper.AbstractTestFindBlockedReactions):
     def setUp(self):
@@ -254,12 +257,13 @@ class TestFluxVariabilityAnalysisGLPK(Wrapper.AbstractTestFluxVariabilityAnalysi
         self.biomass_flux = 0.873921
         self.model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = self.biomass_flux
 
+
 class TestFluxVariabilityAnalysisCPLEX(Wrapper.AbstractTestFluxVariabilityAnalysis):
     def setUp(self):
         self.model = CORE_MODEL.copy()
         self.model.solver = 'cplex'
-        #self.biomass_flux = 0.8739  # Redundant since FVA is run with fraction_of_optimum
-        #self.model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = self.biomass_flux
+        # self.biomass_flux = 0.8739  # Redundant since FVA is run with fraction_of_optimum
+        # self.model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = self.biomass_flux
 
 
 class TestRemoveCycles(unittest.TestCase):
@@ -286,7 +290,8 @@ class TestPhenotypicPhasePlaneGLPK(Wrapper.AbstractTestPhenotypicPhasePlane):
         self.model.solver = 'glpk'
 
     def test_one_variable_sequential_metabolite(self):
-        ppp = phenotypic_phase_plane(self.model, ['EX_o2_LPAREN_e_RPAREN_'], self.model.metabolites.o2_c, view=SequentialView())
+        ppp = phenotypic_phase_plane(self.model, ['EX_o2_LPAREN_e_RPAREN_'], self.model.metabolites.o2_c,
+                                     view=SequentialView())
         assert_dataframes_equal(ppp, REFERENCE_PPP_o2_EcoliCore)
 
 
@@ -302,7 +307,7 @@ class TestSimulationMethodsGLPK(Wrapper.AbstractTestSimulationMethods):
         self.model.solver = 'glpk'
 
     def test_moma(self):
-        self.assertRaises(ValueError, super(TestSimulationMethodsGLPK, self).test_moma) # GLPK has no QP support
+        self.assertRaises(ValueError, super(TestSimulationMethodsGLPK, self).test_moma)  # GLPK has no QP support
 
 
 class TestSimulationMethodsCPLEX(Wrapper.AbstractTestSimulationMethods):

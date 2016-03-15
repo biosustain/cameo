@@ -34,9 +34,7 @@ from sympy import Add
 
 import logging
 
-
 __all__ = ['PathwayPredictor']
-
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +69,7 @@ class PathwayResult(Pathway, Result):
                 tm(do=partial(model.add_reactions, self.exchanges),
                    undo=partial(model.remove_reactions, self.exchanges, delete=False, remove_orphans=True))
             tm(do=partial(setattr, self.product, "lower_bound", 0),
-                undo=partial(setattr, self.product, "lower_bound", self.product.lower_bound))
+               undo=partial(setattr, self.product, "lower_bound", self.product.lower_bound))
             try:
                 tm(do=partial(model.add_reaction, self.product),
                    undo=partial(model.remove_reactions, [self.product], delete=False, remove_orphans=True))
@@ -122,8 +120,8 @@ class PathwayPredictions(Result):
         raise NotImplementedError
 
     def plot_production_envelopes(self, model, objective=None, title=None):
-        rows = int(ceil(len(self.pathways)/2.0))
-        title ="Production envelops for %s" % self.pathways[0].product.name if title is None else title
+        rows = int(ceil(len(self.pathways) / 2.0))
+        title = "Production envelops for %s" % self.pathways[0].product.name if title is None else title
         grid = plotter.grid(n_rows=rows, title=title)
         with grid:
             for i, pathway in enumerate(self.pathways):
@@ -241,7 +239,7 @@ class PathwayPredictor(object):
             while counter <= max_predictions:
                 logger.debug('Predicting pathway No. %d' % counter)
                 try:
-                    solution = self.model.solve()
+                    self.model.solve()
                 except SolveError as e:
                     logger.error('No pathway could be predicted. Terminating pathway predictions.')
                     logger.error(e)
@@ -257,7 +255,7 @@ class PathwayPredictor(object):
                     # no pathway found:
                     logger.info(
                         "It seems %s is a native product in model %s. Let's see if we can find better heterologous pathways." % (
-                        product, self.model))
+                            product, self.model))
                     # knockout adapter with native product
                     for adapter in self.adpater_reactions:
                         if product in adapter.metabolites:

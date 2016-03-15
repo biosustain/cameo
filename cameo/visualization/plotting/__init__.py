@@ -26,6 +26,7 @@ _engines = {}
 
 try:
     from cameo.visualization.plotting.with_bokeh import BokehPlotter
+
     _engine = BokehPlotter() if _engine is None else _engine
     _engines["bokeh"] = BokehPlotter
 except ImportError:
@@ -33,6 +34,7 @@ except ImportError:
 
 try:
     from cameo.visualization.plotting.with_plotly import PlotlyPlotter
+
     _engine = PlotlyPlotter(mode='offline') if _engine is None else _engine
     _engines["plotly"] = PlotlyPlotter
 except ImportError:
@@ -40,6 +42,7 @@ except ImportError:
 
 try:
     from cameo.visualization.plotting.with_plotly import GGPlotPlotter
+
     _engine = GGPlotPlotter() if _engine is None else _engine
     _engines["ggplot"] = GGPlotPlotter
 except ImportError:

@@ -28,7 +28,6 @@ import pandas
 from sympy.parsing.sympy_parser import parse_expr
 import cameo
 from cameo.core.result import Result
-from cameo.core.solution import SolutionBase
 
 __all__ = ['fba', 'pfba', 'moma', 'lmoma', 'room']
 
@@ -143,7 +142,7 @@ def moma(model, reference=None, *args, **kwargs):
     with TimeMachine() as tm:
         aux_vars = {}
         for reac_id in reference.keys():
-            var = model.solver.interface.Variable("moma_aux_"+reac_id)
+            var = model.solver.interface.Variable("moma_aux_" + reac_id)
             aux_vars[reac_id] = var
         tm(do=partial(model.solver.add, aux_vars.values()),
            undo=partial(model.solver.remove, aux_vars.values()))
@@ -155,7 +154,7 @@ def moma(model, reference=None, *args, **kwargs):
                 add([mul([One, reac.forward_variable]),
                      mul([NegativeOne, reac.reverse_variable]),
                      mul([NegativeOne, aux_var])
-                ]),
+                     ]),
                 lb=reference[reac_id],
                 ub=reference[reac_id],
                 sloppy=True
@@ -164,7 +163,8 @@ def moma(model, reference=None, *args, **kwargs):
         tm(do=partial(model.solver.add, constraints.values()),
            undo=partial(model.solver.remove, constraints.values()))
 
-        obj = model.solver.interface.Objective(Add(*(FloatOne*var**2 for var in aux_vars.values())), direction="min", sloppy=True)
+        obj = model.solver.interface.Objective(Add(*(FloatOne * var ** 2 for var in aux_vars.values())),
+                                               direction="min", sloppy=True)
         tm(do=partial(setattr, model, "objective", obj),
            undo=partial(setattr, model, "objective", model.objective))
 
@@ -368,7 +368,7 @@ def room(model, reference=None, cache=None, delta=0.03, epsilon=0.001, reactions
 class FluxDistributionResult(Result):
     @classmethod
     def from_solution(cls, solution, *args, **kwargs):
-        return  cls(solution.fluxes, solution.f, *args, **kwargs)
+        return cls(solution.fluxes, solution.f, *args, **kwargs)
 
     def __init__(self, fluxes, objective_value, *args, **kwargs):
         super(FluxDistributionResult, self).__init__(*args, **kwargs)

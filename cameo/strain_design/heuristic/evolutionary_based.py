@@ -207,7 +207,7 @@ class OptGeneResult(StrainDesignResult):
         else:
             columns = self._processed_solutions.columns.difference(["reactions", "size"])
             aggregation_functions = {k: self.__aggregation_function.get(k, lambda x: x.values[0]) for k in columns}
-            data_frame = self._processed_solutions.groupby(["reactions", "size"], as_index=False)\
+            data_frame = self._processed_solutions.groupby(["reactions", "size"], as_index=False) \
                 .aggregate(aggregation_functions)
             data_frame = data_frame[self._processed_solutions.columns]
 
@@ -245,11 +245,11 @@ class OptGeneResult(StrainDesignResult):
         dataframe = DataFrame(columns=["ub", "lb", "value", "strain"])
         for _, row in wt_production.iterrows():
             _df = DataFrame([[row['objective_upper_bound'], row['objective_lower_bound'], row[self._biomass.id], "WT"]],
-                                   columns=dataframe.columns)
+                            columns=dataframe.columns)
             dataframe = dataframe.append(_df)
         for _, row in mt_production.iterrows():
             _df = DataFrame([[row['objective_upper_bound'], row['objective_lower_bound'], row[self._biomass.id], "MT"]],
-                                   columns=dataframe.columns)
+                            columns=dataframe.columns)
             dataframe = dataframe.append(_df)
 
         plot = plotter.production_envelope(dataframe, grid=grid, width=width, height=height, title=title,

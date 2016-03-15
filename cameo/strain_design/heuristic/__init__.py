@@ -14,5 +14,4 @@
 
 from __future__ import absolute_import
 
-
 from cameo.strain_design.heuristic.evolutionary_based import OptGene
