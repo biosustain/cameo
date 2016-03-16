@@ -493,7 +493,7 @@ class PhenotypicPhasePlaneResult(Result):
             dataframe = dataframe.append(_df)
 
         plot = plotter.production_envelope(dataframe, grid=grid, width=width, height=height,
-                                           title=title, x_axis_label=str(self.objective), y_axis_label=variable,
+                                           title=title, y_axis_label=str(self.objective), x_axis_label=variable,
                                            palette=palette, points=points, points_colors=points_colors)
         if grid is None:
             plotter.display(plot)
