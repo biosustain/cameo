@@ -14,7 +14,6 @@
 
 from __future__ import absolute_import, print_function
 
-
 import logging
 import time
 from functools import reduce
@@ -39,7 +38,6 @@ from cameo.util import in_ipnb
 from cameo.util import partition, TimeMachine, memoize, ProblemCache
 
 __all__ = ['ReactionKnockoutOptimization', 'GeneKnockoutOptimization']
-
 
 REACTION_KNOCKOUT_TYPE = "reaction"
 GENE_KNOCKOUT_TYPE = "gene"
@@ -436,7 +434,6 @@ class KnockoutOptimization(HeuristicOptimization):
 
 
 class KnockoutOptimizationResult(Result):
-
     def __init__(self, model=None, heuristic_method=None, simulation_method=None, simulation_kwargs=None,
                  solutions=None, objective_function=None, ko_type=None, decoder=None, seed=None, *args, **kwargs):
         super(KnockoutOptimizationResult, self).__init__(*args, **kwargs)
@@ -698,7 +695,6 @@ class GeneKnockoutOptimization(KnockoutOptimization):
 
 
 class KnockinKnockoutEvaluator(KnockoutEvaluator):
-
     def __init__(self, database, *args, **kwargs):
         super(KnockinKnockoutEvaluator, self).__init__(*args, **kwargs)
         self._database = database

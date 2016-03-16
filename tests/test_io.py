@@ -13,9 +13,6 @@
 # limitations under the License.
 
 from __future__ import absolute_import, print_function
-import cameo
-
-import six
 
 import os
 import unittest
@@ -23,9 +20,8 @@ import unittest
 import cobra
 import optlang
 
+import cameo
 from cameo import load_model
-from cameo.config import solvers
-from cameo.core.solver_based_model import SolverBasedModel
 
 TESTDIR = os.path.dirname(__file__)
 TRAVIS = os.getenv('TRAVIS', False)
@@ -75,7 +71,8 @@ class TestModelLoadingGLPK(AbstractTestModelLoading, unittest.TestCase):
     def setUp(self):
         self.interface = optlang.glpk_interface
 
-#@unittest.skipIf(six.PY2, 'Build stalling in python 2.7.')
+
+# @unittest.skipIf(six.PY2, 'Build stalling in python 2.7.')
 class TestModelLoadingCPLEX(AbstractTestModelLoading, unittest.TestCase):
     def setUp(self):
         self.interface = optlang.cplex_interface

@@ -16,6 +16,7 @@ from __future__ import absolute_import, print_function
 
 __all__ = ['distance_based_on_molecular_formula']
 
+
 def distance_based_on_molecular_formula(metabolite1, metabolite2, normalize=True):
     """Calculate the distance of two metabolites bases on the molecular formula
 

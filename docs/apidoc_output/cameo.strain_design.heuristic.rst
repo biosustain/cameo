@@ -1,13 +1,6 @@
 cameo.strain_design.heuristic package
 =====================================
 
-Subpackages
------------
-
-.. toctree::
-
-    cameo.strain_design.heuristic.evolutionary
-
 Submodules
 ----------
 

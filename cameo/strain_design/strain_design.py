@@ -110,4 +110,3 @@ class StrainDesignEnsemble(StrainDesignResult):
     def data_frame(self):
         return DataFrame(zip([design for design in self], self._methods),
                          columns=["knockouts", "knockins", "over_expression", "downregulation", "method"])
-

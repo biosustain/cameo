@@ -13,7 +13,9 @@
 # limitations under the License.
 
 from __future__ import absolute_import, print_function
+
 from uuid import uuid4
+
 try:
     from IPython.core.display import HTML, Javascript
     from IPython.core.display import display

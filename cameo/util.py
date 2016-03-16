@@ -14,31 +14,26 @@
 
 from __future__ import absolute_import, print_function
 
-import six
-from six.moves import range
-
+import colorsys
+import itertools
+import logging
+import platform
 import re
 from collections import OrderedDict
-from uuid import uuid1
-from time import time
 from datetime import datetime
-import colorsys
-from functools import wraps
-import numpy as np
-from numpy.linalg import svd
-
-import pip
-import platform
-from itertools import islice
 from functools import partial
+from functools import wraps
+from itertools import islice
+from time import time
+from uuid import uuid1
 
+import numpy as np
 import pandas
+import pip
+import six
+from numpy.linalg import svd
 from numpy.random import RandomState
-
-import logging
-
-import itertools
-
+from six.moves import range
 
 logger = logging.getLogger(__name__)
 
@@ -80,6 +75,7 @@ class ProblemCache(object):
     generates an invalid state.
 
     """
+
     def __init__(self, model):
         self.time_machine = None
         self._model = model
@@ -417,9 +413,10 @@ class DocInherit(object):
 
         for parent in cls.__mro__[1:]:
             overridden = getattr(parent, self.name, None)
-            if overridden: break
+            if overridden:
+                break
 
-        @wraps(self.mthd, assigned=('__name__','__module__'))
+        @wraps(self.mthd, assigned=('__name__', '__module__'))
         def f(*args, **kwargs):
             return self.mthd(*args, **kwargs)
 
@@ -430,6 +427,7 @@ class DocInherit(object):
             raise NameError("Can't find '%s' in parents" % self.name)
         func.__doc__ = source.__doc__
         return func
+
 
 doc_inherit = DocInherit
 

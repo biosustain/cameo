@@ -14,37 +14,27 @@
 
 from __future__ import print_function
 
-import warnings
-import numpy
 import logging
-
-from cameo.visualization.plotting import plotter
-
-from pandas import DataFrame
-
+import warnings
 from functools import partial
 
-from sympy import Add
-
-from cameo import ui
-from cameo import config
-
-from cameo.util import TimeMachine
-
-from cameo.flux_analysis import flux_balance_impact_degree, phenotypic_phase_plane, flux_variability_analysis
-from cameo.exceptions import SolveError
-
-from cameo.core.solver_based_model import SolverBasedModel
-from cameo.core.solver_based_model_dual import convert_to_dual
-from cameo.core.reaction import Reaction
-
-from cameo.strain_design.strain_design import StrainDesignMethod, StrainDesign, StrainDesignResult
-
+import numpy
 from IProgress.progressbar import ProgressBar
 from IProgress.widgets import Bar, Percentage
+from pandas import DataFrame
+from sympy import Add
+
+from cameo import config
+from cameo import ui
+from cameo.core.reaction import Reaction
+from cameo.core.solver_based_model_dual import convert_to_dual
+from cameo.exceptions import SolveError
+from cameo.flux_analysis import phenotypic_phase_plane, flux_variability_analysis
+from cameo.strain_design.strain_design import StrainDesignMethod, StrainDesign, StrainDesignResult
+from cameo.util import TimeMachine
+from cameo.visualization.plotting import plotter
 
 logger = logging.getLogger(__name__)
-
 
 __all__ = ["OptKnock"]
 
@@ -83,6 +73,7 @@ class OptKnock(StrainDesignMethod):
     >>> optknock = OptKnock(model)
     >>> result = optknock.run(k=2, target="EX_ac_e", max_results=3)
     """
+
     def __init__(self, model, exclude_reactions=None, remove_blocked=True, fraction_of_optimum=None,
                  exclude_non_gene_reactions=True, *args, **kwargs):
         super(OptKnock, self).__init__(*args, **kwargs)
@@ -120,8 +111,7 @@ class OptKnock(StrainDesignMethod):
         blocked = [
             self._model.reactions.get_by_id(reaction) for reaction, row in fva_res.data_frame.iterrows()
             if (round(row["lower_bound"], config.ndecimals) ==
-                round(row["upper_bound"], config.ndecimals) == 0)
-        ]
+                round(row["upper_bound"], config.ndecimals) == 0)]
         self._model.remove_reactions(blocked)
 
     def _build_problem(self, essential_reactions):
@@ -195,20 +185,20 @@ class OptKnock(StrainDesignMethod):
 
     def _add_knockout_constraints(self, reaction):
         interface = self._model.solver.interface
-        y_var = interface.Variable("y_"+reaction.id, type="binary")
+        y_var = interface.Variable("y_" + reaction.id, type="binary")
 
-        self._model.solver.add(interface.Constraint(reaction.flux_expression-1000*y_var, ub=0))
-        self._model.solver.add(interface.Constraint(reaction.flux_expression+1000*y_var, lb=0))
+        self._model.solver.add(interface.Constraint(reaction.flux_expression - 1000 * y_var, ub=0))
+        self._model.solver.add(interface.Constraint(reaction.flux_expression + 1000 * y_var, lb=0))
 
         constrained_vars = []
 
         if reaction.upper_bound != 0:
-            dual_forward_ub = self._model.solver.variables["dual_"+reaction.forward_variable.name+"_ub"]
-            self._model.solver.add(interface.Constraint(dual_forward_ub-1000*(1-y_var), ub=0))
+            dual_forward_ub = self._model.solver.variables["dual_" + reaction.forward_variable.name + "_ub"]
+            self._model.solver.add(interface.Constraint(dual_forward_ub - 1000 * (1 - y_var), ub=0))
             constrained_vars.append(dual_forward_ub)
         if reaction.lower_bound != 0:
-            dual_reverse_ub = self._model.solver.variables["dual_"+reaction.reverse_variable.name+"_ub"]
-            self._model.solver.add(interface.Constraint(dual_reverse_ub - 1000*(1-y_var), ub=0))
+            dual_reverse_ub = self._model.solver.variables["dual_" + reaction.reverse_variable.name + "_ub"]
+            self._model.solver.add(interface.Constraint(dual_reverse_ub - 1000 * (1 - y_var), ub=0))
             constrained_vars.append(dual_reverse_ub)
 
         return y_var, constrained_vars
@@ -249,7 +239,7 @@ class OptKnock(StrainDesignMethod):
                 try:
                     solution = self._model.solve()
                 except SolveError as e:
-                    logger.debug("Problem could not be solved. Terminating and returning "+str(count)+" solutions")
+                    logger.debug("Problem could not be solved. Terminating and returning " + str(count) + " solutions")
                     logger.debug(str(e))
                     break
 
@@ -265,7 +255,7 @@ class OptKnock(StrainDesignMethod):
                 y_vars_to_cut = [y for y in self._y_vars if round(y.primal, 3) == 0]
                 integer_cut = self._model.solver.interface.Constraint(Add(*y_vars_to_cut),
                                                                       lb=1,
-                                                                      name="integer_cut_"+str(count))
+                                                                      name="integer_cut_" + str(count))
 
                 if len(knockouts) < max_knockouts:
                     self._number_of_knockouts_constraint.lb = self._number_of_knockouts_constraint.ub - len(knockouts)
@@ -344,11 +334,11 @@ class OptKnockResult(StrainDesignResult):
         dataframe = DataFrame(columns=["ub", "lb", "value", "strain"])
         for _, row in wt_production.iterrows():
             _df = DataFrame([[row['objective_upper_bound'], row['objective_lower_bound'], row[self._biomass.id], "WT"]],
-                                   columns=dataframe.columns)
+                            columns=dataframe.columns)
             dataframe = dataframe.append(_df)
         for _, row in mt_production.iterrows():
             _df = DataFrame([[row['objective_upper_bound'], row['objective_lower_bound'], row[self._biomass.id], "MT"]],
-                                   columns=dataframe.columns)
+                            columns=dataframe.columns)
             dataframe = dataframe.append(_df)
 
         plot = plotter.production_envelope(dataframe, grid=grid, width=width, height=height, title=title,

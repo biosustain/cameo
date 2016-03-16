@@ -20,12 +20,15 @@ from __future__ import absolute_import, print_function
 import re
 
 import numpy as np
+
 try:
     from IPython.core.display import display
     from IPython.core.display import HTML
 except ImportError:
     def display(*args, **kwargs):
         print(*args, **kwargs)
+
+
     def HTML(*args, **kwargs):
         print(*args, **kwargs)
 from pandas import DataFrame
@@ -47,18 +50,17 @@ from cameo.visualization import visualization
 
 import logging
 
-
 __all__ = ['design']
 
-
 logger = logging.getLogger(__name__)
+
 
 # TODO: implement cplex preference (if available)
 
 
 class _OptimizationRunner(object):
     def __call__(self, strategy, *args, **kwargs):
-        (host, model, pathway) = (strategy[0], strategy[1], strategy[2])
+        (model, pathway) = (strategy[1], strategy[2])
         with TimeMachine() as tm:
             pathway.plug_model(model, tm)
             opt_gene = OptGene(model=model, plot=False)
@@ -277,9 +279,9 @@ class Designer(object):
     @staticmethod
     def __display_pathways_information(predicted_pathways, host, original_model):
         predicted_pathways.plot_production_envelopes(original_model,
-                                                     title="Production envelopes for %s (%s)" % (host.name, original_model.id),
+                                                     title="Production envelopes for %s (%s)" % (
+                                                         host.name, original_model.id),
                                                      variables=[original_model.biomass])
-
 
     @staticmethod
     def calculate_yield(model, source, product):

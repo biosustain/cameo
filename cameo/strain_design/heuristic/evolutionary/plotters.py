@@ -70,7 +70,7 @@ class IPythonBokehFitnessPlotter(object):
         self.plotted = False
 
     def end(self):
-        #end is not necessary
+        # end is not necessary
         pass
 
 
@@ -113,7 +113,7 @@ class IPythonBokehParetoPlotter(object):
         self.plotted = False
 
     def end(self):
-        #does not need end
+        # does not need end
         pass
 
 

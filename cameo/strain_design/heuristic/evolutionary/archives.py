@@ -145,10 +145,6 @@ class Individual(OriginalIndividual):
     def improves(self, other):
         assert isinstance(other, Individual)
         if self.maximize:
-            return self.issubset(other) and \
-                   len(self.symmetric_difference(other)) > 0 and \
-                   self.fitness >= other.fitness
+            return self.issubset(other) and len(self.symmetric_difference(other)) > 0 and self.fitness >= other.fitness
         else:
-            return self.issubset(other) and \
-                   len(self.symmetric_difference(other)) > 0 and \
-                   self.fitness <= other.fitness
+            return self.issubset(other) and len(self.symmetric_difference(other)) > 0 and self.fitness <= other.fitness

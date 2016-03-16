@@ -17,11 +17,9 @@ from __future__ import absolute_import, print_function
 
 from functools import partial
 
-
 from cobra import Reaction
 from cameo import config, flux_variability_analysis
 from cameo.util import TimeMachine
-
 
 __all__ = ['biomass_product_coupled_yield', 'product_yield', 'number_of_knockouts']
 
@@ -111,7 +109,7 @@ class biomass_product_coupled_yield(ObjectiveFunction):
 
     def _repr_latex_(self):
         return "$$bpcy = \\frac{(%s * %s)}{%s}$$" % (
-        self.biomass.replace("_", "\\_"), self.product.replace("_", "\\_"), self.substrate.replace("_", "\\_"))
+            self.biomass.replace("_", "\\_"), self.product.replace("_", "\\_"), self.substrate.replace("_", "\\_"))
 
     @property
     def name(self):
@@ -231,7 +229,6 @@ class product_yield(ObjectiveFunction):
     @property
     def reactions(self):
         return [self.product, self.substrate]
-
 
 
 class number_of_knockouts(ObjectiveFunction):

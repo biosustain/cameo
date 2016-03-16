@@ -92,7 +92,8 @@ def load_model(path_or_handle, solver_interface=optlang, sanitize=True):
                 raise e
             except Exception as e:
                 logger.error(
-                    "Looks like something blow up while trying to import {} as a SBML model. Try validating the model at http://sbml.org/Facilities/Validator/ to get more information.".format(
+                    "Looks like something blow up while trying to import {} as a SBML model."
+                    "Try validating the model at http://sbml.org/Facilities/Validator/ to get more information.".format(
                         path))
                 raise e
     if sanitize:
