@@ -917,6 +917,29 @@ class TestSolverBasedModelCPLEX(WrappedAbstractTestSolverBasedModel.AbstractTest
         self.model.solver = 'cplex'
 
 
+class WrappedAbstractTestMetabolite:
+    class AbstractTestMetabolite(unittest.TestCase):
+        def test_remove_from_model(self):
+            met = self.model.metabolites.get_by_id("g6p_c")
+            met.remove_from_model()
+            self.assertFalse(met.id in self.model.metabolites)
+            self.assertFalse(met.id in self.model.solver.constraints)
+
+
+class TestMetaboliteGLPK(WrappedAbstractTestMetabolite.AbstractTestMetabolite):
+    def setUp(self):
+        self.cobrapy_model = COBRAPYTESTMODEL.copy()
+        self.model = TESTMODEL.copy()
+        self.model.solver = 'glpk'
+
+
+class TestMetaboliteCPLEX(WrappedAbstractTestMetabolite.AbstractTestMetabolite):
+    def setUp(self):
+        self.cobrapy_model = COBRAPYTESTMODEL.copy()
+        self.model = TESTMODEL.copy()
+        self.model.solver = 'cplex'
+
+
 if __name__ == '__main__':
     import nose
 
