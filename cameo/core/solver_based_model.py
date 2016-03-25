@@ -305,9 +305,6 @@ class SolverBasedModel(cobra.core.Model):
 
     @doc_inherit
     def remove_reactions(self, the_reactions, delete=True, remove_orphans=False):
-        for reaction in the_reactions:
-            self.solver.remove(reaction.forward_variable)
-            self.solver.remove(reaction.reverse_variable)
         super(SolverBasedModel, self).remove_reactions(the_reactions, delete=delete, remove_orphans=remove_orphans)
 
     def add_demand(self, metabolite, prefix="DM_", time_machine=None):

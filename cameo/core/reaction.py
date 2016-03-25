@@ -367,6 +367,20 @@ class Reaction(_cobrapy.core.Reaction):
             self.add_metabolites({met: -coef}, combine=True)
             return coef
 
+    def remove_from_model(self, model=None, remove_orphans=False):
+        reaction_model = self.model
+        forward = self.forward_variable
+        reverse = self.reverse_variable
+        super(Reaction, self).remove_from_model(model, remove_orphans)
+        reaction_model.solver.remove([forward, reverse])
+
+    def delete(self, remove_orphans=False):
+        model = self.model
+        forward = self.forward_variable
+        reverse = self.reverse_variable
+        super(Reaction, self).delete(remove_orphans)
+        model.solver.remove([forward, reverse])
+
     def _repr_html_(self):
         return """
         <table>

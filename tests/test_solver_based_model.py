@@ -539,6 +539,22 @@ class WrappedAbstractTestReaction:
                 (f6p_expr - f6p_coef * pgi.flux_expression).as_coefficients_dict()
             )
 
+        def test_remove_from_model(self):
+            pgi = self.model.reactions.PGI
+            pgi.remove_from_model()
+            self.assertTrue(pgi.model is None)
+            self.assertFalse("PGI" in self.model.reactions)
+            self.assertFalse(pgi._get_forward_id() in self.model.solver.variables)
+            self.assertFalse(pgi._get_reverse_id() in self.model.solver.variables)
+
+        def test_delete(self):
+            pgi = self.model.reactions.PGI
+            pgi.delete()
+            self.assertTrue(pgi.model is None)
+            self.assertFalse("PGI" in self.model.reactions)
+            self.assertFalse(pgi._get_forward_id() in self.model.solver.variables)
+            self.assertFalse(pgi._get_reverse_id() in self.model.solver.variables)
+
         @unittest.skip('Not implemented yet.')
         def test_change_id_is_reflected_in_solver(self):
             for i, reaction in enumerate(self.model.reactions):
