@@ -621,7 +621,7 @@ class FSEOFResult(StrainDesignResult):
                  run_args, reference, *args, **kwargs):
         super(FSEOFResult, self).__init__(*args, **kwargs)
         self._reactions = reactions
-        self._target = target.id
+        self._target = target
         self._model = model
         self._primary_objective = primary_objective
         self._run_args = run_args
@@ -687,7 +687,7 @@ class FSEOFResult(StrainDesignResult):
     def data_frame(self):
         df = pandas.DataFrame(self._reaction_results).transpose()
         df.columns = (i + 1 for i in range(len(self._enforced_levels)))
-        df.loc[self.target] = self._enforced_levels
+        df.loc[self.target.id] = self._enforced_levels
         return df
 
         # if __name__ == '__main__':
