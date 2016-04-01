@@ -344,7 +344,7 @@ class DifferentialFVAResult(PhenotypicPhasePlaneResult):
             notice("Multi-dimensional plotting is not supported")
             return
         if index is not None:
-            self._plot_flux_variability_analysis(index)
+            self._plot_flux_variability_analysis(index, variables=variables, width=width, grid=grid, palette=palette)
         else:
             self._plot_production_envelope(title=title, grid=grid, width=width, height=height)
 
