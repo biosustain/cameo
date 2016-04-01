@@ -445,7 +445,8 @@ def _fbid_fva(model, knockouts, view):
                    undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
 
         wt_fva = flux_variability_analysis(model, view=view, remove_cycles=False)
-        wt_fva._data_frame = wt_fva._data_frame.apply(numpy.round)
+        wt_fva._data_frame['upper_bound'] = wt_fva._data_frame.upper_bound.apply(numpy.round)
+        wt_fva._data_frame['lower_bound'] = wt_fva._data_frame.lower_bound.apply(numpy.round)
 
         reachable_reactions = wt_fva.data_frame.query("lower_bound != 0 | upper_bound != 0")
 
@@ -453,7 +454,8 @@ def _fbid_fva(model, knockouts, view):
             reaction.knock_out(tm)
 
         mt_fva = flux_variability_analysis(model, reactions=reachable_reactions.index, view=view, remove_cycles=False)
-        mt_fva._data_frame = mt_fva._data_frame.apply(numpy.round)
+        mt_fva._data_frame['upper_bound'] = mt_fva._data_frame.upper_bound.apply(numpy.round)
+        mt_fva._data_frame['lower_bound'] = mt_fva._data_frame.lower_bound.apply(numpy.round)
 
         perturbed_reactions = []
         for reaction in reachable_reactions.index:
