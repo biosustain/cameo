@@ -74,7 +74,7 @@ class OptKnock(StrainDesignMethod):
     >>> result = optknock.run(k=2, target="EX_ac_e", max_results=3)
     """
 
-    def __init__(self, model, exclude_reactions=None, remove_blocked=True, fraction_of_optimum=None,
+    def __init__(self, model, exclude_reactions=None, remove_blocked=True, fraction_of_optimum=0.1,
                  exclude_non_gene_reactions=True, *args, **kwargs):
         super(OptKnock, self).__init__(*args, **kwargs)
         self._model = model.copy()
@@ -288,8 +288,8 @@ class OptKnockResult(StrainDesignResult):
     def _process_knockouts(self):
         progress = ProgressBar(maxval=len(self._designs), widgets=["Processing solutions: ", Bar(), Percentage()])
 
-        self._processed_knockouts = DataFrame(columns=["reactions", "size", "biomass",
-                                                       self._target, "fva_min", "fva_max"])
+        self._processed_knockouts = DataFrame(columns=["reactions", "size", self._target,
+                                                       "biomass", "fva_min", "fva_max"])
 
         for i, knockouts in progress(enumerate(self._designs)):
             try:
