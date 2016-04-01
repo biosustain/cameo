@@ -614,7 +614,7 @@ class ReactionKnockoutOptimization(KnockoutOptimization):
             self.reactions = set([r.id for r in self.model.reactions])
         else:
             self.reactions = reactions
-        logger.info("Computing essential reactions...")
+        logger.debug("Computing essential reactions...")
         if essential_reactions is None:
             self.essential_reactions = set([r.id for r in self.model.essential_reactions()])
         else:
@@ -683,7 +683,7 @@ class GeneKnockoutOptimization(KnockoutOptimization):
             self.genes = set([g.id for g in self.model.genes])
         else:
             self.genes = genes
-        logger.info("Computing essential genes...")
+        logger.debug("Computing essential genes...")
         if essential_genes is None:
             self.essential_genes = set([g.id for g in self.model.essential_genes()])
         else:
