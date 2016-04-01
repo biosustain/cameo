@@ -278,6 +278,8 @@ def room(model, reference=None, cache=None, delta=0.03, epsilon=0.001, reactions
     ----------
     model: SolverBasedModel
     reference: dict
+    delta: float
+    epsilon: float
     cache: ProblemCache
 
     Returns
