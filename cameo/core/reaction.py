@@ -271,7 +271,7 @@ class Reaction(_cobrapy.core.Reaction):
             forw_coef = coefficients_dict.get(self.forward_variable, 0)
             rev_coef = coefficients_dict.get(self.reverse_variable, 0)
             if forw_coef == -rev_coef:
-                self._objective_coefficient = forw_coef
+                self._objective_coefficient = float(forw_coef)
             else:
                 self._objective_coefficient = 0
         return self._objective_coefficient
