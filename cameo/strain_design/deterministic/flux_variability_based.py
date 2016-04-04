@@ -413,7 +413,7 @@ class DifferentialFVAResult(PhenotypicPhasePlaneResult):
 
     def _display_on_map_iteractive(self, index, map_name, **kwargs):
         view = _MapView(self.solutions, map_name, **kwargs)
-        slider = IntSlider(min=1, max=len(self.solutions), value=index+1)
+        slider = IntSlider(min=1, max=len(self.solutions), value=index + 1)
         slider.on_trait_change(lambda x: view(slider.get_state("value")["value"]))
         display(slider)
         view(1)

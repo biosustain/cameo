@@ -21,6 +21,7 @@ from inspyred.ec import Individual as OriginalIndividual
 
 __all__ = ['BestSolutionArchive', 'ProductionStrainArchive']
 
+
 class BestSolutionArchive(object):
     def __init__(self):
         self.__name__ = self.__class__.__name__
