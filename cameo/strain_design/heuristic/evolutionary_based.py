@@ -31,6 +31,7 @@ from cameo.core.solver_based_model import SolverBasedModel
 
 from cameo.strain_design.strain_design import StrainDesignMethod, StrainDesignResult, StrainDesign
 
+from cameo.strain_design.heuristic.evolutionary.archives import ProductionStrainArchive
 from cameo.strain_design.heuristic.evolutionary.objective_functions import biomass_product_coupled_min_yield, \
     biomass_product_coupled_yield
 from cameo.strain_design.heuristic.evolutionary.optimization import GeneKnockoutOptimization, \
@@ -142,6 +143,7 @@ class OptGene(StrainDesignMethod):
         self._optimization_algorithm.objective_function = objective_function
         self._optimization_algorithm.simulation_kwargs = kwargs
         self._optimization_algorithm.simulation_method = simulation_method
+        self._optimization_algorithm.archiver = ProductionStrainArchive()
         result = self._optimization_algorithm.run(max_evaluations=max_evaluations,
                                                   popuplation_size=population_size,
                                                   max_size=max_knockouts,
