@@ -49,6 +49,30 @@ class NotFoundException(Exception):
         Exception.__init__(self, message, *args, **kwargs)
 
 
+def load_webmodel(query, solver_interface):
+    logger.debug('Querying webmodels ... trying http://bigg.ucsd.edu first')
+    try:
+        model = get_model_from_bigg(query, solver_interface=solver_interface)
+    except Exception:
+        logger.debug('Querying webmodels ... trying minho next')
+        try:
+            df = index_models_minho()
+        except requests.ConnectionError as e:
+            logger.error("You need to be connected to the internet to load an online model.")
+            raise e
+        except Exception as e:
+            logger.error("Something went wrong while looking up available webmodels.")
+            raise e
+        try:
+            index = df.query('name == "%s"' % query).id.values[0]
+            model = get_model_from_uminho(index)
+            # handle = get_sbml_file(index)
+            # path = handle.name
+        except IndexError:
+            raise ValueError("%s is neither a file nor a model ID." % query)
+    return model
+
+
 def index_models_minho(host="http://darwin.di.uminho.pt/models"):
     """
     Retrieves a summary of all models in the database.

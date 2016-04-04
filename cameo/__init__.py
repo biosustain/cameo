@@ -51,6 +51,8 @@ from __future__ import absolute_import, print_function
 
 import os
 import sys
+from cameo import config
+from cameo.util import get_system_info, in_ipnb
 
 if sys.version_info[0] == 2:
     import imp
@@ -76,9 +78,6 @@ elif sys.version_info[0] == 3:
 _cameo_path = __path__[0]
 _cameo_data_path = os.path.join(_cameo_path, 'data')
 
-from cameo import config
-from .util import get_system_info, in_ipnb
-
 # fix - if matplotlib is installed it is not possible to import cameo without importing matplotlib on jupyter notebook.
 if find_module("matplotlib") and in_ipnb():
     from IPython import get_ipython
@@ -93,10 +92,10 @@ from ._version import get_versions
 __version__ = get_versions()['version']
 del get_versions
 
-try:
-    from cameo.io import load_model
-except ImportError:
-    pass
+from cameo.io import load_model
+#except ImportError:
+#    raise
+#    pass
 
 from cameo import models
 

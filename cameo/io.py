@@ -19,11 +19,11 @@ try:
 except ImportError:
     import pickle
 
-import requests
+import os
+import six
 import optlang
 from cobra.io import read_sbml_model, load_json_model
 
-import cameo
 from cameo.core.solver_based_model import SolverBasedModel, to_solver_based_model
 
 import logging
@@ -47,43 +47,48 @@ def load_model(path_or_handle, solver_interface=optlang, sanitize=True):
         If reaction and metabolite IDs should be sanitized (works only for SBML models).
     """
 
-    if isinstance(path_or_handle, str):
-        path = path_or_handle
-        try:
-            handle = open(path_or_handle, 'rb')
-        except IOError:
-            logger.debug('%s not a file path. Querying webmodels ... trying http://bigg.ucsd.edu first' % path)
-            try:
-                return cameo.models.webmodels.get_model_from_bigg(path, solver_interface=solver_interface)
-            except Exception:
-                logger.debug('%s not a file path. Querying webmodels ... trying minho next' % path)
-                try:
-                    df = cameo.models.webmodels.index_models_minho()
-                except requests.ConnectionError as e:
-                    logger.error("You need to be connected to the internet to load an online model.")
-                    raise e
-                except Exception as e:
-                    logger.error("Something went wrong while looking up available webmodels.")
-                    raise e
-                try:
-                    index = df.query('name == "%s"' % path_or_handle).id.values[0]
-                    handle = cameo.models.webmodels.get_sbml_file(index)
-                    path = handle.name
-                except IndexError:
-                    raise ValueError("%s is neither a file nor a model ID." % path)
-    elif hasattr(path_or_handle, 'read'):
-        path = path_or_handle.name
-        handle = path_or_handle
+    if isinstance(path_or_handle, six.string_types) and not os.path.isfile(path_or_handle):
+        from cameo.models.webmodels import load_webmodel
+        logger.debug("Given path is not a file. Trying to load from webmodels")
+        model = load_webmodel(path_or_handle, solver_interface)
     else:
-        raise ValueError('Provided argument %s has to be either a file path or handle' % path_or_handle)
+        if isinstance(path_or_handle, six.string_types):
+            # Open the given file
+            path = path_or_handle
+            handle = open(path_or_handle, 'rb')
+        elif hasattr(path_or_handle, 'read'):
+            # Argument is already an open file
+            path = path_or_handle.name
+            handle = path_or_handle
+        else:
+            raise ValueError('Provided argument %s has to be either a string or a file handle' % path_or_handle)
+        model = _load_model_from_file(path, handle)  # Parse model from the file
+
+    if sanitize:
+        sanitize_ids(model)
+
+    if not isinstance(model, SolverBasedModel):
+        if solver_interface is not None:
+            logger.debug("Changing solver interface to %s" % solver_interface)
+            model = to_solver_based_model(model, solver_interface=solver_interface)
+    else:
+        if model.solver.interface is not solver_interface and solver_interface is not None:
+            logger.debug("Changing solver interface to %s" % solver_interface)
+            model.solver = solver_interface
+
+    return model
+
+
+def _load_model_from_file(path, handle):
+    """Try to parse a model from a file handle using different encodings."""
     logger.debug('Reading file from %s assuming pickled model.' % path)
     try:
         model = pickle.load(handle)
-    except Exception:
+    except (TypeError, pickle.UnpicklingError):
         logger.debug('Cannot unpickle %s. Assuming json model next.' % path)
         try:
             model = load_json_model(path)
-        except Exception:
+        except ValueError:
             logger.debug("Cannot import %s as json model. Assuming sbml model next." % path)
             try:
                 model = read_sbml_model(path)
@@ -96,18 +101,6 @@ def load_model(path_or_handle, solver_interface=optlang, sanitize=True):
                     "Try validating the model at http://sbml.org/Facilities/Validator/ to get more information.".format(
                         path))
                 raise e
-    if sanitize:
-        sanitize_ids(model)
-
-    if not isinstance(model, SolverBasedModel):
-        if solver_interface is not None:
-            logger.debug("Changing solver interface to %s" % solver_interface)
-            model = to_solver_based_model(model, solver_interface=solver_interface)
-    else:
-        if model.interface is not solver_interface and solver_interface is not None:
-            logger.debug("Changing solver interface to %s" % solver_interface)
-            model.solver = solver_interface
-
     return model
 
 
