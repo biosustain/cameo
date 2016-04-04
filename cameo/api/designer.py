@@ -281,7 +281,7 @@ class Designer(object):
         predicted_pathways.plot_production_envelopes(original_model,
                                                      title="Production envelopes for %s (%s)" % (
                                                          host.name, original_model.id),
-                                                     variables=[original_model.biomass])
+                                                     objective=original_model.biomass)
 
     @staticmethod
     def calculate_yield(model, source, product):
