@@ -395,9 +395,25 @@ class DifferentialFVAResult(PhenotypicPhasePlaneResult):
     def data_frame(self):
         return self.solutions
 
-    def display_on_map(self, map_name=None, **kwargs):
+    def display_on_map(self, index=0, map_name=None, iterative=False, **kwargs):
+        if iterative:
+            self._display_on_map_iteractive(index, map_name, **kwargs)
+        else:
+            self._display_on_map_static(index, map_name, **kwargs)
+
+    def _display_on_map_static(self, index, map_name, **kwargs):
+        reaction_data = reaction_data = dict(self.solutions.iloc[index].gaps)
+        builder = NotebookBuilder(map_name=map_name,
+                                  reaction_data=reaction_data,
+                                  reaction_scale=[dict(type='min', color="red", size=20),
+                                                  dict(type='median', color="grey", size=7),
+                                                  dict(type='max', color='green', size=20)],
+                                  **kwargs)
+        display(builder.display_in_notebook())
+
+    def _display_on_map_iteractive(self, index, map_name, **kwargs):
         view = _MapView(self.solutions, map_name, **kwargs)
-        slider = IntSlider(min=1, max=len(self.solutions), value=1)
+        slider = IntSlider(min=1, max=len(self.solutions), value=index+1)
         slider.on_trait_change(lambda x: view(slider.get_state("value")["value"]))
         display(slider)
         view(1)
