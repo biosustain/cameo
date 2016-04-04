@@ -36,7 +36,7 @@ install:
   --no-index
 - pip install ipython[all]
 - pip install ipyparallel ipywidgets
-- pip install coveralls coverage
+- pip install coverage
 - pip install pypandoc
 - pip install redis
 - pip install rednose
@@ -48,7 +48,6 @@ before_script:
 - "flake8 ."
 script: nosetests
 after_success:
-- coveralls
 - codecov
 notifications:
   slack: biosustain:UGm09rOjMCgXko3rS3wUivoX

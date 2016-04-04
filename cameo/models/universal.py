@@ -14,8 +14,6 @@
 
 from __future__ import absolute_import
 
-__all__ = ['universal']
-
 import sys
 import os
 import glob
@@ -25,6 +23,8 @@ from cameo import util
 
 from functools import partial
 from lazy_object_proxy import Proxy
+
+__all__ = ['universal']
 
 
 class ModelDB(object):
