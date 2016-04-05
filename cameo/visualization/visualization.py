@@ -151,7 +151,7 @@ def inchi_to_svg(inchi, file=None, debug=False, three_d=False):
                       (in_file.name, file.name, gen, error_level))
             return file.name
         else:
-            out_file = tempfile.NamedTemporaryFile()
+            out_file = tempfile.NamedTemporaryFile("w+")
             os.system("obabel -iinchi %s -osvg -O %s %s -xh 40 ---errorlevel %d"
                       % (in_file.name, out_file.name, gen, error_level))
             return out_file.read()
