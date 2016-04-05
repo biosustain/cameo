@@ -68,7 +68,8 @@ class _OptimizationRunner(object):
                                             substrate=model.carbon_source, max_evaluations=10000)
 
             opt_knock = OptKnock(model=model)
-            opt_knock_designs = opt_knock.run(5, target=pathway.product.id, max_results=5)
+            opt_knock_designs = opt_knock.run(max_knockouts=5, target=pathway.product.id,
+                                              max_results=5, biomass=model.biomass, substrate=model.carbon_source)
 
             designs = opt_gene_designs + opt_knock_designs
 
@@ -169,7 +170,6 @@ class Designer(object):
                 logging.debug('Processing model {} for host {}'.format(model.id, host.name))
                 notice('Predicting pathways for product %s in %s (using model %s).'
                        % (product.name, host, model.id))
-                identifier = searching()
                 try:
                     logger.debug('Trying to set solver to cplex for pathway predictions.')
                     model.solver = 'cplex'  # CPLEX is better predicting pathways
@@ -183,7 +183,6 @@ class Designer(object):
                 # TODO adjust these numbers to something reasonable
                 predicted_pathways = pathway_predictor.run(product, max_predictions=4, timeout=3 * 60, silent=True)
                 pathways[(host, model)] = predicted_pathways
-                stop_loader(identifier)
                 self.__display_pathways_information(predicted_pathways, host, model)
         return pathways
 
