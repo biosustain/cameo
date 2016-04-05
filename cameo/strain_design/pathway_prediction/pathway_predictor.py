@@ -56,7 +56,7 @@ class PathwayResult(Pathway, Result):
     def production_envelope(self, model, objective=None):
         with TimeMachine() as tm:
             self.plug_model(model, tm)
-            return phenotypic_phase_plane(model, variables=[self.product], objective=objective)
+            return phenotypic_phase_plane(model, variables=[objective], objective=self.product)
 
     def plug_model(self, model, tm=None, adapters=True, exchanges=True):
         if tm is not None:
