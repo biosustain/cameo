@@ -39,7 +39,7 @@ from pandas import DataFrame, pandas
 from cameo.util import TimeMachine, doc_inherit
 from cameo import config
 from cameo import exceptions
-from cameo.exceptions import SolveError, Infeasible, UndefinedSolution
+from cameo.exceptions import SolveError
 from .reaction import Reaction
 from .solution import LazySolution, Solution
 from cameo.core.metabolite import Metabolite
@@ -483,7 +483,7 @@ class SolverBasedModel(cobra.core.Model):
                     reaction.knock_out(time_machine=tm)
                     try:
                         sol = self.solve()
-                    except (Infeasible, UndefinedSolution):
+                    except SolveError:
                         essential.append(reaction)
                     else:
                         if sol.f < threshold:
@@ -520,7 +520,7 @@ class SolverBasedModel(cobra.core.Model):
                     reaction.knock_out(time_machine=tm)
                 try:
                     sol = self.solve()
-                except (Infeasible, UndefinedSolution):
+                except SolveError:
                     essential.append(gene)
                 else:
                     if sol.f < threshold:
