@@ -487,21 +487,11 @@ class SolverBasedModel(cobra.core.Model):
                         else:
                             if sol.f < threshold:
                                 essential.append(reaction)
+
         except SolveError as e:
             logger.error('Cannot determine essential reactions for un-optimal model.')
             raise e
-        for reaction_id, flux in six.iteritems(solution.fluxes):
-            if abs(flux) > 0:
-                reaction = self.reactions.get_by_id(reaction_id)
-                with TimeMachine() as tm:
-                    reaction.knock_out(time_machine=tm)
-                    try:
-                        sol = self.solve()
-                    except (Infeasible, UndefinedSolution):
-                        essential.append(reaction)
-                    else:
-                        if sol.f < threshold:
-                            essential.append(reaction)
+
         return essential
 
     def essential_genes(self, threshold=1e-6):
