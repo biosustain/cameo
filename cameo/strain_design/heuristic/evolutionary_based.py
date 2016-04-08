@@ -98,7 +98,7 @@ class OptGene(StrainDesignMethod):
             raise ValueError("Invalid manipulation type %s" % manipulation_type)
 
     def run(self, target=None, biomass=None, substrate=None, max_knockouts=5, simulation_method=fba,
-            growth_coupled=True, max_evaluations=20000, population_size=100, time_machine=None,
+            growth_coupled=False, max_evaluations=20000, population_size=100, time_machine=None,
             max_results=50, **kwargs):
         """
         Parameters
