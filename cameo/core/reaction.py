@@ -331,6 +331,30 @@ class Reaction(_cobrapy.core.Reaction):
                         coefficient = coefficient - old_coefficient
                 model.solver.constraints[metabolite.id] += coefficient * self.flux_expression
 
+    @property
+    def id(self):
+        return getattr(self, "_id", None)  # Returns None if _id is not set
+
+    @id.setter
+    def id(self, value):
+        if value == self.id:
+            pass
+        elif not isinstance(value, six.string_types):
+            raise TypeError("ID must be a string")
+        elif getattr(self, "_model", None) is not None:  # (= if hasattr(self, "_model") and self._model is not None)
+            if value in self.model.reactions:
+                raise ValueError("The model already contains a reaction with the id:", value)
+            forward_variable = self.forward_variable
+            reverse_variable = self.reverse_variable
+
+            self._id = value
+            self.model.reactions._generate_index()
+
+            forward_variable.name = self._get_forward_id()
+            reverse_variable.name = self._get_reverse_id()
+        else:
+            self._id = value
+
     def knock_out(self, time_machine=None):
         """Knockout reaction by setting its bounds to zero.
 

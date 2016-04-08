@@ -14,6 +14,7 @@
 
 import cobra
 import logging
+import six
 
 logger = logging.getLogger(__name__)
 
@@ -39,3 +40,23 @@ class Metabolite(cobra.core.Metabolite):
         model = self.model
         super(Metabolite, self).remove_from_model(method, **kwargs)
         model.solver.remove(model.solver.constraints[self.id])
+
+    @property
+    def id(self):
+        return getattr(self, "_id", None)  # Returns None if _id is not set
+
+    @id.setter
+    def id(self, value):
+        if value == self.id:
+            pass
+        elif not isinstance(value, six.string_types):
+            raise TypeError("ID must be a string")
+        elif getattr(self, "_model", None) is not None:  # (= if hasattr(self, "_model") and self._model is not None)
+            if value in self.model.metabolites:
+                raise ValueError("The model already contains a metabolite with the id:", value)
+            self.model.solver.constraints[self.id].name = value
+
+            self._id = value
+            self.model.reactions._generate_index()
+        else:
+            self._id = value
