@@ -47,7 +47,6 @@ class Metabolite(cobra.core.Metabolite):
 
     @id.setter
     def id(self, value):
-        print(self.id, "ID is being changed to", value, "!!!")
         if value == self.id:
             pass
         elif not isinstance(value, six.string_types):
