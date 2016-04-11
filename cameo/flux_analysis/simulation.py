@@ -29,7 +29,6 @@ from sympy.parsing.sympy_parser import parse_expr
 import cameo
 from cameo.core.result import Result
 
-__all__ = ['fba', 'pfba', 'moma', 'lmoma', 'room']
 
 import six
 
@@ -43,6 +42,10 @@ from cameo.util import TimeMachine, ProblemCache
 from cameo.exceptions import SolveError
 
 import logging
+
+
+__all__ = ['fba', 'pfba', 'moma', 'lmoma', 'room']
+
 
 logger = logging.getLogger(__name__)
 
@@ -135,43 +138,78 @@ def pfba(model, objective=None, reactions=None, *args, **kwargs):
             raise e
 
 
-def moma(model, reference=None, *args, **kwargs):
+def moma(model, reference=None, cache=None, reactions=None, *args, **kwargs):
     """
-    Minimization of Metabolic Adjustment
+    Minimization of Metabolic Adjustment[1]
+
+    Parameters
+    ----------
+    model: SolverBasedModel
+    reference: FluxDistributionResult, dict
+    cache: ProblemCache
+    reactions: list
+
+    Returns
+    -------
+    FluxDistributionResult
+        Contains the result of the solver.
+
+    References
+    ----------
+    .. [1] Segrè, D., Vitkup, D., & Church, G. M. (2002). Analysis of optimality in natural and perturbed metabolic
+     networks. Proceedings of the National Academy of Sciences of the United States of America, 99(23), 15112–7.
+     doi:10.1073/pnas.232349399
+
     """
-    with TimeMachine() as tm:
-        aux_vars = {}
-        for reac_id in reference.keys():
-            var = model.solver.interface.Variable("moma_aux_" + reac_id)
-            aux_vars[reac_id] = var
-        tm(do=partial(model.solver.add, aux_vars.values()),
-           undo=partial(model.solver.remove, aux_vars.values()))
+    volatile = False
+    if cache is None:
+        volatile = True
+        cache = ProblemCache(model)
 
-        constraints = {}
-        for reac_id, aux_var in aux_vars.items():
-            reac = model.reactions.get_by_id(reac_id)
-            const = model.solver.interface.Constraint(
-                add([mul([One, reac.forward_variable]),
-                     mul([NegativeOne, reac.reverse_variable]),
-                     mul([NegativeOne, aux_var])
-                     ]),
-                lb=reference[reac_id],
-                ub=reference[reac_id],
-                sloppy=True
-            )
-            constraints[reac_id] = const
-        tm(do=partial(model.solver.add, constraints.values()),
-           undo=partial(model.solver.remove, constraints.values()))
+    cache.begin_transaction()
+    try:
+        for rid, flux_value in six.iteritems(reference):
 
-        obj = model.solver.interface.Objective(Add(*(FloatOne * var ** 2 for var in aux_vars.values())),
-                                               direction="min", sloppy=True)
-        tm(do=partial(setattr, model, "objective", obj),
-           undo=partial(setattr, model, "objective", model.objective))
+            def create_variable(model, variable_id):
+                var = model.solver.interface.Variable(variable_id)
+                return var
 
-        sol = model.solve()
-        result = FluxDistributionResult.from_solution(sol)
+            var_id = "moma_aux_%s" % rid
 
-    return result
+            cache.add_variable(var_id, create_variable, None)
+
+            def create_constraint(model, constraint_id, var, reaction, flux_value):
+                constraint = model.solver.interface.Constraint(reaction.flux_expression - var,
+                                                               lb=flux_value,
+                                                               ub=flux_value,
+                                                               name=constraint_id)
+                return constraint
+
+            def update_constraint(model, constraint, var, reaction, flux_value):
+                constraint.lb = flux_value
+                constraint.ub = flux_value
+
+            constraint_id = "moma_const_%s" % rid
+            reaction = model.reactions.get_by_id(rid)
+            cache.add_constraint(constraint_id, create_constraint, update_constraint,
+                                 cache.variables[var_id], reaction, flux_value)
+
+        def create_objective(model, variables):
+            return model.solver.interface.Objective(Add(*[FloatOne * var ** 2 for var in variables]),
+                                                    direction="min",
+                                                    sloppy=True)
+
+        cache.add_objective(create_objective, None, cache.variables.values())
+
+        solution = model.solve()
+        if reactions is not None:
+            result = FluxDistributionResult({r: solution.get_primal_by_id(r) for r in reactions}, solution.f)
+        else:
+            result = FluxDistributionResult.from_solution(solution)
+        return result
+    finally:
+        if volatile:
+            cache.reset()
 
 
 def lmoma(model, reference=None, cache=None, reactions=None, *args, **kwargs):
@@ -180,16 +218,14 @@ def lmoma(model, reference=None, cache=None, reactions=None, *args, **kwargs):
     Parameters
     ----------
     model: SolverBasedModel
-    reference: dict
-    objective: str or reaction or optlang.Objective
-        An objective to be minimized/maximized for
-    volatile: boolean
-    cache: dict
+    reference: FluxDistributionResult, dict
+    cache: ProblemCache
+    reactions: list
 
     Returns
     -------
     FluxDistributionResult
-        Contains the result of the linear solver.
+        Contains the result of the solver.
 
     References
     ----------
@@ -249,8 +285,12 @@ def lmoma(model, reference=None, cache=None, reactions=None, *args, **kwargs):
             cache.add_constraint("c_%s_lb" % rid, create_lower_constraint, update_lower_constraint,
                                  cache.variables[neg_var_id], reaction, flux_value)
 
-        model.objective = model.solver.interface.Objective(add([mul([One, var]) for var in cache.variables.values()]),
-                                                           direction="min")
+        def create_objective(model, variables):
+            return model.solver.interface.Objective(add([mul((One, var)) for var in variables]),
+                                                    direction="min",
+                                                    sloppy=True)
+
+        cache.add_objective(create_objective, None, cache.variables.values())
 
         try:
 
@@ -277,7 +317,7 @@ def room(model, reference=None, cache=None, delta=0.03, epsilon=0.001, reactions
     Parameters
     ----------
     model: SolverBasedModel
-    reference: dict
+    reference: FluxDistributionResult, dict
     delta: float
     epsilon: float
     cache: ProblemCache

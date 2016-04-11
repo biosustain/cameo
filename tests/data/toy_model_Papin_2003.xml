@@ -52,10 +52,10 @@
       </reaction>
       <reaction fast="false" id="R_v1" reversible="false" name="v1" fbc:upperFluxBound="cobra_default_ub" fbc:lowerFluxBound="cobra_default_lb">
         <listOfReactants>
-          <speciesReference constant="true" species="M_A_c" stoichiometry="2"/>
+          <speciesReference constant="true" species="M_A_c" stoichiometry="1"/>
         </listOfReactants>
         <listOfProducts>
-          <speciesReference constant="true" species="M_B_c" stoichiometry="2"/>
+          <speciesReference constant="true" species="M_B_c" stoichiometry="1"/>
         </listOfProducts>
       </reaction>
       <reaction fast="false" id="R_v2" reversible="false" name="v2" fbc:upperFluxBound="cobra_default_ub" fbc:lowerFluxBound="cobra_default_lb">
@@ -69,7 +69,7 @@
       </reaction>
       <reaction fast="false" id="R_v3" reversible="false" name="v3" fbc:upperFluxBound="cobra_default_ub" fbc:lowerFluxBound="cobra_default_lb">
         <listOfReactants>
-          <speciesReference constant="true" species="M_B_c" stoichiometry="1"/>
+          <speciesReference constant="true" species="M_B_c" stoichiometry="2"/>
           <speciesReference constant="true" species="M_cof_c" stoichiometry="1"/>
         </listOfReactants>
         <listOfProducts>

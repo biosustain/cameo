@@ -53,7 +53,7 @@ iJO_MODEL = load_model(os.path.join(TESTDIR, 'data/iJO1366.xml'), sanitize=False
 
 iJO_MODEL_COBRAPY = load_model(os.path.join(TESTDIR, 'data/iJO1366.xml'), solver_interface=None, sanitize=False)
 
-TOY_MODEL_PAPIN_2004 = load_model(os.path.join(TESTDIR, "data/toy_model_Papin_2003.xml"))
+TOY_MODEL_PAPIN_2003 = load_model(os.path.join(TESTDIR, "data/toy_model_Papin_2003.xml"))
 
 
 class Wrapper:
@@ -226,15 +226,33 @@ class Wrapper:
 
         def test_room_shlomi_2005(self):
             original_objective = self.model.objective
-            reference = {"b1": -10, "v1": 10, "v2": 5, "v3": 0, "v4": 0, "v5": 0, "v6": 5, "b2": 5, "b3": 5}
-            TOY_MODEL_PAPIN_2004.solver = self.model.solver.interface
+            reference = {"b1": 10, "v1": 10, "v2": 5, "v3": 0, "v4": 0, "v5": 0, "v6": 5, "b2": 5, "b3": 5}
+            expected = {'b1': 10.0, 'b2': 5.0, 'b3': 5.0, 'v1': 10.0,
+                        'v2': 5.0, 'v3': 0.0, 'v4': 5.0, 'v5': 5.0, 'v6': 0.0}
+            TOY_MODEL_PAPIN_2003.solver = self.model.solver.interface
             with TimeMachine() as tm:
-                TOY_MODEL_PAPIN_2004.reactions.v6.knock_out(tm)
-                result = room(TOY_MODEL_PAPIN_2004, reference=reference, delta=0, epsilon=0)
+                TOY_MODEL_PAPIN_2003.reactions.v6.knock_out(tm)
+                result = room(TOY_MODEL_PAPIN_2003, reference=reference, delta=0, epsilon=0)
 
             self.assertEquals(
                 result.fluxes,
-                {'b1': 10.0, 'b2': 5.0, 'b3': 5.0, 'v1': 5.0, 'v2': 5.0, 'v3': 0.0, 'v4': 5.0, 'v5': 5.0, 'v6': 0.0})
+                expected,
+                msg="\n".join("%s: %f | %f" % (k, result.fluxes[k], expected[k]) for k in reference.keys()))
+            self.assertIs(self.model.objective, original_objective)
+
+        def test_moma_shlomi_2005(self):
+            original_objective = self.model.objective
+            reference = {"b1": 10, "v1": 10, "v2": 5, "v3": 0, "v4": 0, "v5": 0, "v6": 5, "b2": 5, "b3": 5}
+            expected = {'b1': 8.8, 'b2': 4.4, 'b3': 4.4, 'v1': 8.8,
+                        'v2': 3.1, 'v3': 1.3, 'v4': 4.4, 'v5': 3.1, 'v6': 0.0}
+
+            TOY_MODEL_PAPIN_2003.solver = self.model.solver.interface
+            with TimeMachine() as tm:
+                TOY_MODEL_PAPIN_2003.reactions.v6.knock_out(tm)
+                result = moma(TOY_MODEL_PAPIN_2003, reference=reference)
+
+            for k in reference.keys():
+                self.assertAlmostEqual(expected[k], result.fluxes[k], delta=0.1, msg="%s: %f | %f")
             self.assertIs(self.model.objective, original_objective)
 
 
@@ -307,6 +325,9 @@ class TestSimulationMethodsGLPK(Wrapper.AbstractTestSimulationMethods):
         self.model.solver = 'glpk'
 
     def test_moma(self):
+        self.assertRaises(ValueError, super(TestSimulationMethodsGLPK, self).test_moma)  # GLPK has no QP support
+
+    def test_moma_shlomi_2005(self):
         self.assertRaises(ValueError, super(TestSimulationMethodsGLPK, self).test_moma)  # GLPK has no QP support
 
 
