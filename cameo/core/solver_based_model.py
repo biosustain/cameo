@@ -515,10 +515,8 @@ class SolverBasedModel(cobra.core.Model):
                 if abs(flux) > 0:
                     genes_to_check.update(self.reactions.get_by_id(reaction_id).genes)
             for gene in genes_to_check:
-                reactions = cobra.manipulation.delete.find_gene_knockout_reactions(self, [gene])
                 with TimeMachine() as tm:
-                    for reaction in reactions:
-                        reaction.knock_out(time_machine=tm)
+                    gene.knock_out(time_machine=tm)
                     try:
                         sol = self.solve()
                     except Infeasible:
