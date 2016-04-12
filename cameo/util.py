@@ -81,6 +81,7 @@ class ProblemCache(object):
         self._model = model
         self.variables = {}
         self.constraints = {}
+        self.objective = None
         self.original_objective = model.objective
         self.time_machine = TimeMachine()
         self.transaction_id = None
@@ -194,6 +195,21 @@ class ProblemCache(object):
                 undo=partial(self._remove_variable, variable_id)
             )
 
+    def add_objective(self, create, update, *args):
+        if self.objective is None:
+            self.objective = create(self.model, *args)
+            self.time_machine(
+                do=partial(setattr, self.model, 'objective', self.objective),
+                undo=partial(setattr, self.model, 'objective', self.model.objective)
+            )
+        else:
+            if update:
+                objective = update(self.model, *args)
+                self.time_machine(
+                    do=partial(setattr, self.model, 'objective', objective),
+                    undo=partial(setattr, self.model, 'objective', self.model.objective)
+                )
+
     def reset(self):
         """
         Removes all constraints and variables from the cache.
@@ -202,6 +218,7 @@ class ProblemCache(object):
         self.model.solver._remove_variables(self.variables.values())
         self.model.objective = self.original_objective
         self.variables = {}
+        self.objective = None
         self.constraints = {}
         self.transaction_id = None
         self.time_machine.history.clear()
