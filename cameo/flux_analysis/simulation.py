@@ -23,26 +23,29 @@ Currently implements:
 """
 
 from __future__ import absolute_import, print_function
-from optlang.interface import OptimizationExpression
-import pandas
-from sympy.parsing.sympy_parser import parse_expr
-import cameo
-from cameo.core.result import Result
 
-
+import os
 import six
+
+import pandas
+import numpy
+import cameo
+
+import logging
 
 from functools import partial
 
 import sympy
 from sympy import Add
 from sympy import Mul
+from sympy.parsing.sympy_parser import parse_expr
 
-from cameo.util import TimeMachine, ProblemCache
+from optlang.interface import OptimizationExpression
+from cameo.config import ndecimals
+from cameo.util import TimeMachine, ProblemCache, in_ipnb
 from cameo.exceptions import SolveError
-
-import logging
-
+from cameo.core.result import Result
+from cameo.visualization.palette import mapper, Palette
 
 __all__ = ['fba', 'pfba', 'moma', 'lmoma', 'room']
 
@@ -454,7 +457,7 @@ class FluxDistributionResult(Result):
 
     def plot(self, grid=None, width=None, height=None, title=None):
         # TODO: Add barchart or something similar.
-        pass
+        raise  NotImplementedError
 
     def iteritems(self):
         return six.iteritems(self.fluxes)
@@ -470,6 +473,52 @@ class FluxDistributionResult(Result):
 
     def _repr_html_(self):
         return "<strong>objective value: %s</strong>" % self.objective_value
+
+    def plot_scale(self, palette="YlGnBu"):
+        if isinstance(palette, str):
+            palette = mapper.map_palette(palette, 3)
+            palette = palette.hex_colors
+
+        elif isinstance(palette, Palette):
+            palette = palette.hex_colors
+
+        values = [abs(v) for v in self.fluxes.values()]
+        values += [-v for v in self.fluxes.values()]
+
+        std = numpy.std(values)
+
+        return (-2*std, palette[2]), (-std, palette[1]), (0, palette[0]), (std, palette[1]), (2*std, palette[2])
+
+    def display_on_map(self, map_name=None, palette="YlGnBu"):
+        try:
+            import escher
+            if os.path.exists(map_name):
+                map_json = map_name
+                map_name = None
+            else:
+                map_json = None
+
+            scale = self.plot_scale(palette)
+
+            reaction_scale = [dict(type='min', color=scale[0][1], size=24),
+                              dict(type='value', value=scale[0][0], color=scale[0][1], size=21),
+                              dict(type='value', value=scale[1][0], color=scale[1][1], size=16),
+                              dict(type='value', value=scale[2][0], color=scale[2][1], size=8),
+                              dict(type='value', value=scale[3][0], color=scale[3][1], size=16),
+                              dict(type='value', value=scale[4][0], color=scale[4][1], size=21),
+                              dict(type='max', color=scale[4][1], size=24)]
+
+            builder = escher.Builder(map_name=map_name, map_json=map_json, reaction_data=self.fluxes,
+                                     reaction_scale=reaction_scale)
+
+            if in_ipnb():
+                from IPython.display import display
+                display(builder.display_in_notebook())
+            else:
+                builder.display_in_browser()
+
+        except ImportError:
+            print("Escher must be installed in order to visualize maps")
 
 
 if __name__ == '__main__':
