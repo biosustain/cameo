@@ -14,13 +14,11 @@
 
 import six
 
-from palettable.colorbrewer.diverging import *  # noqa
-from palettable.colorbrewer.qualitative import *  # noqa
-from palettable.colorbrewer.sequential import *  # noqa
+from palettable.colorbrewer.colorbrewer import _load_maps_by_type as load_colorbrewer_palette  # noqa
 
-from palettable.cubehelix.cubehelix import Cubehelix
-from palettable.tableau.tableau import TableauMap
-from palettable.wesanderson.wesanderson import WesAndersonMap
+from palettable.cubehelix.cubehelix import _get_all_maps as load_cubehelix_palettes
+from palettable.tableau.tableau import _get_all_maps as load_tableau_palettes
+from palettable.wesanderson.wesanderson import _get_all_maps as load_wesanderson_palettes
 
 from palettable.palette import Palette
 
@@ -29,17 +27,24 @@ class PaletteMapper(object):
     def __init__(self):
         self._palettes = {}
 
-    def add_palettalbe_palette(self, key, obj):
-        if isinstance(obj, Palette):
-            split = key.split("_")
-            name = split[0]
+    def add_palettalbe_palette(self, name, palette):
+        split = name.split("_")
+        name = split[0]
+        reverse = False
+        if len(split) == 2:
             size = int(split[1])
-            reverse = len(split) == 3
-            if name not in self._palettes:
-                self._palettes[name] = {}
-            if size not in self._palettes[name]:
-                self._palettes[name][size] = {}
-            self._palettes[name][size][reverse] = obj
+        else:
+            if split[-1] == "r":
+                reverse = True
+                size = int(split[-2])
+            else:
+                size = int(split[-1])
+
+        if name not in self._palettes:
+            self._palettes[name] = {}
+        if size not in self._palettes[name]:
+            self._palettes[name][size] = {}
+        self._palettes[name][size][reverse] = palette
 
     def map_palette(self, name, n, reverse=False):
         palette = self._palettes[name]
@@ -54,5 +59,21 @@ class PaletteMapper(object):
 
 
 mapper = PaletteMapper()
-for key, obj in six.iteritems(dict(globals())):
+
+for key, obj in six.iteritems(load_colorbrewer_palette("diverging")):
+    mapper.add_palettalbe_palette(key, obj)
+
+for key, obj in six.iteritems(load_colorbrewer_palette("sequential")):
+    mapper.add_palettalbe_palette(key, obj)
+
+for key, obj in six.iteritems(load_colorbrewer_palette("qualitative")):
+    mapper.add_palettalbe_palette(key, obj)
+
+for key, obj in six.iteritems(load_cubehelix_palettes()):
+    mapper.add_palettalbe_palette(key, obj)
+
+for key, obj in six.iteritems(load_tableau_palettes()):
+    mapper.add_palettalbe_palette(key, obj)
+
+for key, obj in six.iteritems(load_wesanderson_palettes()):
     mapper.add_palettalbe_palette(key, obj)
