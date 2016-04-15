@@ -15,14 +15,17 @@
 
 from __future__ import absolute_import, print_function
 
-import logging
+
+import os
 import re
+import six
 import warnings
+import logging
+
+import numpy
+
 from functools import partial
 from uuid import uuid4
-
-import numpy as np
-import six
 
 try:
     from IPython.core.display import display, HTML, Javascript
@@ -33,17 +36,25 @@ from IProgress import ProgressBar
 from pandas import DataFrame, pandas
 from cameo.visualization.plotting import plotter
 
-from cameo import config, flux_variability_analysis
+from cameo import config
+
+from cameo.ui import notice
+from cameo.util import TimeMachine, in_ipnb
+from cameo.parallel import SequentialView
+
+from cameo.core.reaction import Reaction
+from cameo.core.metabolite import Metabolite
+
+from cameo.visualization.escher_ext import NotebookBuilder
+from cameo.visualization.palette import mapper, Palette
+
+from cameo.flux_analysis.analysis import flux_variability_analysis, phenotypic_phase_plane, PhenotypicPhasePlaneResult
 from cameo.flux_analysis.simulation import pfba, fba
 
-from cameo import Metabolite
-from cameo.parallel import SequentialView
-from cameo.core.solver_based_model import Reaction
 from cameo.strain_design.strain_design import StrainDesignMethod, StrainDesignResult, StrainDesign
-from cameo.flux_analysis.analysis import phenotypic_phase_plane, PhenotypicPhasePlaneResult
-from cameo.util import TimeMachine
-from cameo.ui import notice
-from cameo.visualization.escher_ext import NotebookBuilder
+
+
+
 
 with warnings.catch_warnings():
     warnings.simplefilter("ignore")
@@ -329,14 +340,14 @@ class DifferentialFVAResult(PhenotypicPhasePlaneResult):
     def __getitem__(self, item):
         columns = ["lower_bound", "upper_bound", "gaps", "normalized_gaps", "KO", "flux_reversal", "suddenly_essential"]
         rows = list(range(len(self.solutions)))
-        values = np.ndarray((len(rows), len(columns)))
+        values = numpy.ndarray((len(rows), len(columns)))
         for i in rows:
             values[i] = self.solutions.iloc[i].loc[item].values
 
         data = DataFrame(values, index=rows, columns=columns)
-        data["KO"] = data["KO"].values.astype(np.bool)
-        data["flux_reversal"] = data["flux_reversal"].values.astype(np.bool)
-        data["suddenly_essential"] = data["suddenly_essential"].values.astype(np.bool)
+        data["KO"] = data["KO"].values.astype(numpy.bool)
+        data["flux_reversal"] = data["flux_reversal"].values.astype(numpy.bool)
+        data["suddenly_essential"] = data["suddenly_essential"].values.astype(numpy.bool)
         return data
 
     def plot(self, index=None, variables=None, grid=None, width=None, height=None, title=None, palette=None, **kwargs):
@@ -364,7 +375,7 @@ class DifferentialFVAResult(PhenotypicPhasePlaneResult):
             dataframe = dataframe.append(_df)
 
         for reaction_id, row in strain_fva_res.iterrows():
-            _df = pandas.DataFrame([[row['lower_bound'], row['upper_bound'], "Striain %i" % index, reaction_id]],
+            _df = pandas.DataFrame([[row['lower_bound'], row['upper_bound'], "Strain %i" % index, reaction_id]],
                                    columns=dataframe.columns)
             dataframe = dataframe.append(_df)
 
@@ -389,27 +400,88 @@ class DifferentialFVAResult(PhenotypicPhasePlaneResult):
             notice("%s: %f" % self.solutions.axes[0][solution - 1][1])
             display(self.solutions.iloc[solution - 1])
 
-        return interact(_data_frame, solution=[1, len(self.solutions)])
+        interact(_data_frame, solution=[1, len(self.solutions)])
+        return ""
 
     @property
     def data_frame(self):
         return self.solutions
 
-    def display_on_map(self, index=0, map_name=None, iterative=False, **kwargs):
-        if iterative:
-            self._display_on_map_iteractive(index, map_name, **kwargs)
-        else:
-            self._display_on_map_static(index, map_name, **kwargs)
+    @property
+    def normalized_gaps(self):
+        return numpy.concatenate(self.solutions.iloc[:, :, 3].values).astype(float)
 
-    def _display_on_map_static(self, index, map_name, **kwargs):
-        reaction_data = reaction_data = dict(self.solutions.iloc[index].gaps)
-        builder = NotebookBuilder(map_name=map_name,
-                                  reaction_data=reaction_data,
-                                  reaction_scale=[dict(type='min', color="red", size=20),
-                                                  dict(type='median', color="grey", size=7),
-                                                  dict(type='max', color='green', size=20)],
-                                  **kwargs)
-        display(builder.display_in_notebook())
+    def display_on_map(self, index=0, map_name=None, palette="RdYlBu", **kwargs):
+        #TODO: hack escher to use iterative maps
+        self._display_on_map_static(index, map_name, palette=palette, **kwargs)
+
+    def plot_scale(self, palette="RdYlBu"):
+        if isinstance(palette, str):
+            palette = mapper.map_palette(palette, 5)
+            palette = palette.hex_colors
+
+        elif isinstance(palette, Palette):
+            palette = palette.hex_colors
+
+        values = [abs(v) for v in self.normalized_gaps if not (numpy.isnan(v) or numpy.isinf(v))]
+        values += [-v for v in values]
+
+        std = numpy.std(values)
+
+        return (-2*std, palette[0]), (-std, palette[1]), (0, palette[2]), (std, palette[3]), (2*std, palette[4])
+
+    def _display_on_map_static(self, index, map_name, palette="RdYlBu", **kwargs):
+        try:
+            import escher
+            if os.path.exists(map_name):
+                map_json = map_name
+                map_name = None
+            else:
+                map_json = None
+
+            values = self.normalized_gaps
+
+            values = values[~numpy.isnan(values)]
+            values = values[~numpy.isinf(values)]
+
+            ndecimals = config.ndecimals
+
+            data = self.solutions.iloc[index]
+            # Find values above decimal precision
+            data = data[numpy.abs(data.normalized_gaps.astype(float)) > ndecimals]
+            # Remove NaN rows
+            data = data[~numpy.isnan(data.normalized_gaps.astype(float))]
+
+            reaction_data = dict(data.normalized_gaps)
+            for rid, gap in six.iteritems(reaction_data):
+                if numpy.isposinf(gap):
+                    gap = numpy.max(values)
+                elif numpy.isneginf(gap):
+                    gap = numpy.min(values)
+
+                reaction_data[rid] = gap
+
+            scale = self.plot_scale(palette)
+
+            reaction_scale = [dict(type='min', color=scale[0][1], size=24),
+                              dict(type='value', value=scale[0][0], color=scale[0][1], size=21),
+                              dict(type='value', value=scale[1][0], color=scale[1][1], size=16),
+                              dict(type='value', value=scale[2][0], color=scale[2][1], size=8),
+                              dict(type='value', value=scale[3][0], color=scale[3][1], size=16),
+                              dict(type='value', value=scale[4][0], color=scale[4][1], size=21),
+                              dict(type='max', color=scale[4][1], size=24)]
+
+            builder = escher.Builder(map_name=map_name, map_json=map_json, reaction_data=reaction_data,
+                                     reaction_scale=reaction_scale)
+
+            if in_ipnb():
+                from IPython.display import display
+                display(builder.display_in_notebook())
+            else:
+                builder.display_in_browser()
+
+        except ImportError:
+            print("Escher must be installed in order to visualize maps")
 
     def _display_on_map_iteractive(self, index, map_name, **kwargs):
         view = _MapView(self.solutions, map_name, **kwargs)
