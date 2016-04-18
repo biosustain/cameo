@@ -248,7 +248,7 @@ class OptGeneResult(StrainDesignResult):
 
         self._processed_solutions = processed_solutions
 
-    def display_on_map(self, index=0, map_name=None, palette="YlGnBl"):
+    def display_on_map(self, index=0, map_name=None, palette="YlGnBu"):
         with TimeMachine() as tm:
             for ko in self.data_frame.loc[index, "reactions"]:
                 self._model.reactions.get_by_id(ko).knock_out(tm)
