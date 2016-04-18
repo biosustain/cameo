@@ -176,7 +176,16 @@ def phenotypic_phase_plane(model, variables=[], objective=None, points=20, view=
         chunk_results = view.map(evaluator, chunks_of_points)
         envelope = reduce(list.__add__, chunk_results)
 
-    variable_reactions_ids = [reaction.id for reaction in variable_reactions]
+    variable_reactions_ids = []
+    nice_variable_ids = []
+    for reaction in variable_reactions:
+        if hasattr(reaction, "nice_id"):
+            variable_reactions_ids.append(reaction.id)
+            nice_variable_ids.append(reaction.nice_id)
+        else:
+            variable_reactions_ids.append(reaction.id)
+            nice_variable_ids.append(reaction.id)
+
     phase_plane = pandas.DataFrame(envelope, columns=(variable_reactions_ids +
                                                       ['objective_lower_bound', 'objective_upper_bound']))
 
@@ -184,11 +193,17 @@ def phenotypic_phase_plane(model, variables=[], objective=None, points=20, view=
         objective = model.objective
 
     if isinstance(objective, Reaction):
-        objective = objective.id
+        if hasattr(objective, 'nice_id'):
+            nice_objective_id = objective.nice_id
+            objective = objective.id
+        else:
+            objective = objective.id
+            nice_objective_id = objective
     else:
         objective = str(objective)
 
-    return PhenotypicPhasePlaneResult(phase_plane, variable_reactions_ids, objective)
+    return PhenotypicPhasePlaneResult(phase_plane, variable_reactions_ids, objective,
+                                      nice_variable_ids, nice_objective_id)
 
 
 class _FvaFunctionObject(object):
@@ -467,11 +482,14 @@ def _fbid_fva(model, knockouts, view):
 
 
 class PhenotypicPhasePlaneResult(Result):
-    def __init__(self, phase_plane, variable_ids, objective, *args, **kwargs):
+    def __init__(self, phase_plane, variable_ids, objective,
+                 nice_variable_ids=None, nice_objective=None, *args, **kwargs):
         super(PhenotypicPhasePlaneResult, self).__init__(*args, **kwargs)
         self._phase_plane = phase_plane
         self.variable_ids = variable_ids
+        self.nice_variable_ids = nice_variable_ids
         self.objective = objective
+        self.nice_objective = nice_objective
 
     @property
     def data_frame(self):
@@ -486,6 +504,8 @@ class PhenotypicPhasePlaneResult(Result):
         if title is None:
             title = "Phenotypic Phase Plane"
         variable = self.variable_ids[0]
+        x_axis_label = self.nice_variable_ids[0]
+        y_axis_label = self.nice_objective
 
         dataframe = pandas.DataFrame(columns=["ub", "lb", "value", "strain"])
         for _, row in self.iterrows():
@@ -494,7 +514,7 @@ class PhenotypicPhasePlaneResult(Result):
             dataframe = dataframe.append(_df)
 
         plot = plotter.production_envelope(dataframe, grid=grid, width=width, height=height,
-                                           title=title, y_axis_label=str(self.objective), x_axis_label=variable,
+                                           title=title, y_axis_label=y_axis_label, x_axis_label=x_axis_label,
                                            palette=palette, points=points, points_colors=points_colors)
         if grid is None:
             plotter.display(plot)
