@@ -138,7 +138,7 @@ class HeuristicOptimization(object):
         self.progress = progress
         if seed is None:
             seed = int(time.time())
-        self.seed = seed
+        self._seed = seed
         self.observers = []
         self.random = Random(seed=seed)
         self.model = model
@@ -152,6 +152,17 @@ class HeuristicOptimization(object):
     @property
     def objective_function(self):
         return self._objective_function
+
+    @property
+    def seed(self):
+        return self._seed
+
+    @seed.setter
+    def seed(self, seed):
+        if seed is None:
+            seed = int(time.time())
+        self._seed = seed
+        self.random = Random(seed=seed)
 
     @objective_function.setter
     def objective_function(self, objective_function):
