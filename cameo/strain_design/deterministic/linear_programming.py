@@ -332,7 +332,7 @@ class OptKnockResult(StrainDesignResult):
     def plot(self, index=0, grid=None, width=None, height=None, title=None, palette=None, **kwargs):
         wt_production = phenotypic_phase_plane(self._model, objective=self._target, variables=[self._biomass.id])
         with TimeMachine() as tm:
-            for ko in self.data_frame[index, "reactions"]:
+            for ko in self.data_frame.loc[index, "reactions"]:
                 self._model.reactions.get_by_id(ko).knock_out(tm)
 
             mt_production = phenotypic_phase_plane(self._model, objective=self._target, variables=[self._biomass.id])
