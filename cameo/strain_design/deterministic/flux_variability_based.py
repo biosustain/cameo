@@ -27,6 +27,7 @@ import numpy
 from functools import partial
 from uuid import uuid4
 
+
 try:
     from IPython.core.display import display, HTML, Javascript
 except ImportError:
@@ -40,6 +41,7 @@ from cameo import config
 
 from cameo.ui import notice
 from cameo.util import TimeMachine, in_ipnb
+from cameo.config import non_zero_flux_threshold
 from cameo.parallel import SequentialView
 
 from cameo.core.reaction import Reaction
@@ -304,27 +306,31 @@ class DifferentialFVA(StrainDesignMethod):
                 normalized_gaps = [self._interval_gap(interval1, interval2) for interval1, interval2 in
                                    my_zip(reference_intervals, normalized_intervals)]
                 sol['normalized_gaps'] = normalized_gaps
+        chopped_ref_lower_bounds = self.reference_flux_ranges.lower_bound.apply(lambda x: 0 if abs(x) < non_zero_flux_threshold else x)
+        chopped_ref_upper_bounds = self.reference_flux_ranges.upper_bound.apply(lambda x: 0 if abs(x) < non_zero_flux_threshold else x)
         for df in six.itervalues(solutions):
-            ko_selection = df[(df.lower_bound == 0) &
-                              (df.upper_bound == 0) &
-                              (self.reference_flux_ranges.lower_bound != 0) &
-                              self.reference_flux_ranges.upper_bound != 0]
+            df_chopped = df.applymap(lambda x: 0 if abs(x) < non_zero_flux_threshold else x)
+            ko_selection = df[(df_chopped.lower_bound == 0) &
+                              (df_chopped.upper_bound == 0) &
+                              (chopped_ref_lower_bounds != 0) &
+                              chopped_ref_upper_bounds != 0]
             df['KO'] = False
-            df.loc[ko_selection.index]['KO'] = True
+            df.loc[ko_selection.index, 'KO'] = True
 
         for df in six.itervalues(solutions):
-            flux_reversal_selection = df[((self.reference_flux_ranges.upper_bound < 0) & (df.lower_bound > 0) |
-                                          ((self.reference_flux_ranges.lower_bound > 0) & (df.upper_bound < 0)))]
+            df_chopped = df.applymap(lambda x: 0 if abs(x) < non_zero_flux_threshold else x)
+            flux_reversal_selection = df[((chopped_ref_upper_bounds < 0) & (df_chopped.lower_bound > 0) |
+                                          ((chopped_ref_lower_bounds > 0) & (df_chopped.upper_bound < 0)))]
             df['flux_reversal'] = False
-            df.loc[flux_reversal_selection.index]['flux_reversal'] = True
+            df.loc[flux_reversal_selection.index, 'flux_reversal'] = True
 
         for df in six.itervalues(solutions):
-            flux_reversal_selection = df[((self.reference_flux_ranges.lower_bound <= 0) & (df.lower_bound > 0)) | (
-                (self.reference_flux_ranges.upper_bound >= 0) & (df.upper_bound <= 0))]
+            df_chopped = df.applymap(lambda x: 0 if abs(x) < non_zero_flux_threshold else x)
+            suddenly_essential_selection = df[((df_chopped.lower_bound <= 0) & (df_chopped.lower_bound > 0)) | (
+                (chopped_ref_upper_bounds >= 0) & (df_chopped.upper_bound <= 0))]
             df['suddenly_essential'] = False
-            df.loc[flux_reversal_selection.index]['suddenly_essential'] = True
+            df.loc[suddenly_essential_selection.index, 'suddenly_essential'] = True
 
-        # solutions['reference_flux_ranges'] = self.reference_flux_ranges
         return DifferentialFVAResult(pandas.Panel(solutions), self.envelope, self.reference_flux_ranges,
                                      self.variables, self.objective)
 
@@ -412,7 +418,7 @@ class DifferentialFVAResult(PhenotypicPhasePlaneResult):
         return numpy.concatenate(self.solutions.iloc[:, :, 3].values).astype(float)
 
     def display_on_map(self, index=0, map_name=None, palette="RdYlBu", **kwargs):
-        #TODO: hack escher to use iterative maps
+        # TODO: hack escher to use iterative maps
         self._display_on_map_static(index, map_name, palette=palette, **kwargs)
 
     def plot_scale(self, palette="RdYlBu"):
@@ -444,11 +450,9 @@ class DifferentialFVAResult(PhenotypicPhasePlaneResult):
             values = values[~numpy.isnan(values)]
             values = values[~numpy.isinf(values)]
 
-            ndecimals = config.ndecimals
-
             data = self.solutions.iloc[index]
             # Find values above decimal precision
-            data = data[numpy.abs(data.normalized_gaps.astype(float)) > ndecimals]
+            data = data[numpy.abs(data.normalized_gaps.astype(float)) > non_zero_flux_threshold]
             # Remove NaN rows
             data = data[~numpy.isnan(data.normalized_gaps.astype(float))]
 

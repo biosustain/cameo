@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from functools import partial
+
 import cobra
 import logging
 
@@ -34,3 +36,27 @@ class Gene(cobra.core.Gene):
         if model is not None:
             new_gene._model = model
         return new_gene
+
+    def knock_out(self, time_machine=None):
+        """Knockout gene by setting all its affected reactions' bounds to zero.
+
+        Parameters
+        ----------
+        time_machine = TimeMachine
+            A time TimeMachine instance can be provided to undo the knockout eventually.
+
+        Returns
+        -------
+        None
+        """
+
+        from cobra.manipulation.delete import find_gene_knockout_reactions
+        for reaction in find_gene_knockout_reactions(self.model, [self]):
+            def _(reaction, lb, ub):
+                reaction.upper_bound = ub
+                reaction.lower_bound = lb
+
+            if time_machine is not None:
+                time_machine(do=reaction.knock_out, undo=partial(_, reaction, reaction.lower_bound, reaction.upper_bound))
+            else:
+                reaction.knock_out()
