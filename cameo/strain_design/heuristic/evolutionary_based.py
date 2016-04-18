@@ -46,7 +46,7 @@ __all__ = ["OptGene"]
 
 class OptGene(StrainDesignMethod):
     def __init__(self, model, evolutionary_algorithm=inspyred.ec.GA, manipulation_type="genes", essential_genes=None,
-                 essential_reactions=None, plot=True, exclude_non_gene_reactions=True, *args, **kwargs):
+                 essential_reactions=None, plot=True, exclude_non_gene_reactions=True, seed=None, *args, **kwargs):
         if not isinstance(model, SolverBasedModel):
             raise TypeError("Argument 'model' should be of type 'cameo.core.SolverBasedModel'.")
 
@@ -63,7 +63,17 @@ class OptGene(StrainDesignMethod):
         self._essential_genes = essential_genes
         self._essential_reactions = essential_reactions
         self._plot = plot
+        self._seed = None
         self.manipulation_type = manipulation_type
+
+    @property
+    def seed(self):
+        return self._seed
+
+    @seed.setter
+    def seed(self, seed):
+        self._seed = seed
+        self._optimization_algorithm.seed = seed
 
     @property
     def manipulation_type(self):
@@ -87,13 +97,15 @@ class OptGene(StrainDesignMethod):
                 model=self._model,
                 heuristic_method=self._algorithm,
                 essential_genes=self._essential_genes,
-                plot=self.plot)
+                plot=self.plot,
+                seed=self._seed)
         elif manipulation_type is "reactions":
             self._optimization_algorithm = ReactionKnockoutOptimization(
                 model=self._model,
                 heuristic_method=self._algorithm,
                 essential_reactions=self._essential_reactions,
-                plot=self.plot)
+                plot=self.plot,
+                seed=self._seed)
         else:
             raise ValueError("Invalid manipulation type %s" % manipulation_type)
 
@@ -214,6 +226,7 @@ class OptGeneResult(StrainDesignResult):
             data_frame = data_frame[self._processed_solutions.columns]
 
         data_frame.sort_values("size", inplace=True)
+        data_frame.index = [i for i in range(len(data_frame))]
         return data_frame
 
     def _process_solutions(self):
@@ -232,12 +245,20 @@ class OptGeneResult(StrainDesignResult):
 
         if self._manipulation_type == "reactions":
             processed_solutions.drop('genes', axis=1, inplace=True)
+
         self._processed_solutions = processed_solutions
 
-    def plot(self, index=None, grid=None, width=None, height=None, title=None, palette=None, **kwargs):
+    def display_on_map(self, index=0, map_name=None, palette="YlGnBl"):
+        with TimeMachine() as tm:
+            for ko in self.data_frame.loc[index, "reactions"]:
+                self._model.reactions.get_by_id(ko).knock_out(tm)
+            fluxes = self._simulation_method(self._model, **self._simulation_kwargs)
+            fluxes.display_on_map(map_name=map_name, palette=palette)
+
+    def plot(self, index=0, grid=None, width=None, height=None, title=None, palette=None, **kwargs):
         wt_production = phenotypic_phase_plane(self._model, objective=self._target, variables=[self._biomass])
         with TimeMachine() as tm:
-            for ko in self._processed_solutions.loc[index, "reactions"]:
+            for ko in self.data_frame.loc[index, "reactions"]:
                 self._model.reactions.get_by_id(ko).knock_out(tm)
             mt_production = phenotypic_phase_plane(self._model, objective=self._target, variables=[self._biomass])
 

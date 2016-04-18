@@ -36,7 +36,7 @@ with open(SEARCHING_IMAGE_FILE, "rb") as f:
     if six.PY2:
         SEARCHING_IMAGE = b64encode(f.read()).replace('\n', '')
     elif six.PY3:
-        SEARCHING_IMAGE = str(b64encode(f.read())).replace('\n', '')
+        SEARCHING_IMAGE = b64encode(f.read()).decode('utf-8').replace('\n', '')
 
 # LOADING_IMAGE_FILE = os.path.join(ASSETS, "loading_wave.gif")
 LOADING_IMAGE_FILE = os.path.join(ASSETS, "searching.gif")
@@ -44,7 +44,7 @@ with open(LOADING_IMAGE_FILE, "rb") as f:
     if six.PY2:
         LOADING_IMAGE = b64encode(f.read()).replace('\n', '')
     elif six.PY3:
-        LOADING_IMAGE = str(b64encode(f.read())).replace('\n', '')
+        LOADING_IMAGE = b64encode(f.read()).decode('utf-8').replace('\n', '')
 
 logger = logging.getLogger(__name__)
 

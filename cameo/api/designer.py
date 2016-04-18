@@ -67,11 +67,12 @@ class _OptimizationRunner(object):
             opt_gene_designs = opt_gene.run(target=pathway.product.id, biomass=model.biomass,
                                             substrate=model.carbon_source, max_evaluations=10000)
 
-            opt_knock = OptKnock(model=model)
-            opt_knock_designs = opt_knock.run(max_knockouts=5, target=pathway.product.id,
-                                              max_results=5, biomass=model.biomass, substrate=model.carbon_source)
+            #TODO: OptKnock is quite slow. Improve OptKnock (model simplification?)
+            # opt_knock = OptKnock(model=model)
+            # opt_knock_designs = opt_knock.run(max_knockouts=5, target=pathway.product.id,
+            #                                   max_results=5, biomass=model.biomass, substrate=model.carbon_source)
 
-            designs = opt_gene_designs + opt_knock_designs
+            designs = opt_gene_designs # + opt_knock_designs
 
             return designs
 
@@ -133,6 +134,7 @@ class Designer(object):
         notice("Starting searching for compound %s" % product)
         product = self.__translate_product_to_universal_reactions_model_metabolite(product, database)
         pathways = self.predict_pathways(product, hosts=hosts, database=database)
+        print("Optimizing %i pathways" % len(pathways))
         optimization_reports = self.optimize_strains(pathways, view)
         return optimization_reports
 
@@ -167,6 +169,7 @@ class Designer(object):
             if isinstance(host, Model):
                 host = Host(name='UNKNOWN_HOST', models=[host])
             for model in list(host.models):
+                identifier = searching()
                 logging.debug('Processing model {} for host {}'.format(model.id, host.name))
                 notice('Predicting pathways for product %s in %s (using model %s).'
                        % (product.name, host, model.id))
@@ -182,6 +185,7 @@ class Designer(object):
                                                                         compartment_regexp=re.compile(".*_c$"))
                 # TODO adjust these numbers to something reasonable
                 predicted_pathways = pathway_predictor.run(product, max_predictions=4, timeout=3 * 60, silent=True)
+                stop_loader(identifier)
                 pathways[(host, model)] = predicted_pathways
                 self.__display_pathways_information(predicted_pathways, host, model)
         return pathways

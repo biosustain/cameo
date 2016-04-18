@@ -29,7 +29,8 @@ from cameo import ui
 from cameo.core.reaction import Reaction
 from cameo.core.solver_based_model_dual import convert_to_dual
 from cameo.exceptions import SolveError
-from cameo.flux_analysis import phenotypic_phase_plane, flux_variability_analysis
+from cameo.flux_analysis.analysis import phenotypic_phase_plane, flux_variability_analysis
+from cameo.flux_analysis.simulation import fba
 from cameo.strain_design.strain_design import StrainDesignMethod, StrainDesign, StrainDesignResult
 from cameo.util import TimeMachine
 from cameo.visualization.plotting import plotter
@@ -321,10 +322,17 @@ class OptKnockResult(StrainDesignResult):
     def target(self):
         return self._target
 
+    def display_on_map(self, index=0, map_name=None, palette="YlGnBl"):
+        with TimeMachine() as tm:
+            for ko in self.data_frame.loc[index, "reactions"]:
+                self._model.reactions.get_by_id(ko).knock_out(tm)
+            fluxes = fba(self._model)
+            fluxes.display_on_map(map_name=map_name, palette=palette)
+
     def plot(self, index=0, grid=None, width=None, height=None, title=None, palette=None, **kwargs):
         wt_production = phenotypic_phase_plane(self._model, objective=self._target, variables=[self._biomass.id])
         with TimeMachine() as tm:
-            for ko in self._designs[index]:
+            for ko in self.data_frame[index, "reactions"]:
                 self._model.reactions.get_by_id(ko).knock_out(tm)
 
             mt_production = phenotypic_phase_plane(self._model, objective=self._target, variables=[self._biomass.id])
@@ -351,6 +359,7 @@ class OptKnockResult(StrainDesignResult):
             self._process_knockouts()
         data_frame = DataFrame(self._processed_knockouts)
         data_frame.sort_values("size", inplace=True)
+        data_frame.index = [i for i in range(len(data_frame))]
         return data_frame
 
     def _repr_html_(self):
