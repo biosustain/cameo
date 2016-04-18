@@ -27,8 +27,11 @@ class PaletteMapper(object):
     def __init__(self):
         self._palettes = {}
 
-    def add_palettalbe_palette(self, name, palette):
+    @staticmethod
+    def _split_palette_name(name):
         split = name.split("_")
+        if len(split) == 1:
+            raise ValueError("Invalid palette description '%s'" % name)
         name = split[0]
         reverse = False
         if len(split) == 2:
@@ -40,22 +43,33 @@ class PaletteMapper(object):
             else:
                 size = int(split[-1])
 
+        return name, size, reverse
+
+    def add_palettalbe_palette(self, name, palette):
+        assert isinstance(palette, Palette)
+        name, size, reverse = self._split_palette_name(name)
+
         if name not in self._palettes:
             self._palettes[name] = {}
         if size not in self._palettes[name]:
             self._palettes[name][size] = {}
         self._palettes[name][size][reverse] = palette
 
-    def map_palette(self, name, n, reverse=False):
-        palette = self._palettes[name]
-        max_n = max(palette.keys())
-        min_n = min(palette.keys())
-        if n < min_n:
-            n = min_n
-        if n > max_n:
-            n = max_n
+    def map_palette(self, name, n=3, reverse=False):
+        try:
+            name, size, reverse = self._split_palette_name(name)
+        except ValueError:
+            size = n
 
-        return palette[n][reverse]
+        palette = self._palettes[name]
+        max_size = max(palette.keys())
+        min_size = min(palette.keys())
+        if size < min_size:
+            size = min_size
+        if size > max_size:
+            size = max_size
+
+        return palette[size][reverse]
 
 
 mapper = PaletteMapper()
