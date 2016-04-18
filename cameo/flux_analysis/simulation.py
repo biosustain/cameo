@@ -458,7 +458,7 @@ class FluxDistributionResult(Result):
 
     def plot(self, grid=None, width=None, height=None, title=None):
         # TODO: Add barchart or something similar.
-        raise  NotImplementedError
+        raise NotImplementedError
 
     def iteritems(self):
         return six.iteritems(self.fluxes)
@@ -508,7 +508,7 @@ class FluxDistributionResult(Result):
 
         std = numpy.std(values)
 
-        return (-2*std, palette[2]), (-std, palette[1]), (0, palette[0]), (std, palette[1]), (2*std, palette[2])
+        return (-2 * std, palette[2]), (-std, palette[1]), (0, palette[0]), (std, palette[1]), (2 * std, palette[2])
 
     def display_on_map(self, map_name=None, palette="YlGnBu"):
         try:

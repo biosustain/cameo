@@ -67,12 +67,12 @@ class _OptimizationRunner(object):
             opt_gene_designs = opt_gene.run(target=pathway.product.id, biomass=model.biomass,
                                             substrate=model.carbon_source, max_evaluations=10000)
 
-            #TODO: OptKnock is quite slow. Improve OptKnock (model simplification?)
+            # TODO: OptKnock is quite slow. Improve OptKnock (model simplification?)
             # opt_knock = OptKnock(model=model)
             # opt_knock_designs = opt_knock.run(max_knockouts=5, target=pathway.product.id,
             #                                   max_results=5, biomass=model.biomass, substrate=model.carbon_source)
 
-            designs = opt_gene_designs # + opt_knock_designs
+            designs = opt_gene_designs  # + opt_knock_designs
 
             return designs
 

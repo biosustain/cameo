@@ -472,7 +472,7 @@ class DifferentialFVAResult(PhenotypicPhasePlaneResult):
 
         std = numpy.std(values)
 
-        return (-2*std, palette[0]), (-std, palette[1]), (0, palette[2]), (std, palette[3]), (2*std, palette[4])
+        return (-2 * std, palette[0]), (-std, palette[1]), (0, palette[2]), (std, palette[3]), (2 * std, palette[4])
 
     def _display_on_map_static(self, index, map_name, palette="RdYlBu", **kwargs):
         try:
