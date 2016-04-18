@@ -331,8 +331,25 @@ class DifferentialFVA(StrainDesignMethod):
             df['suddenly_essential'] = False
             df.loc[suddenly_essential_selection.index, 'suddenly_essential'] = True
 
+        if self.objective is None:
+            objective = self.reference_model.objective
+        else:
+            objective = self.objective
+
+        if isinstance(objective, Reaction):
+            if hasattr(self.objective, 'nice_id'):
+                nice_objective_id = objective.nice_id
+                objective = objective.id
+            else:
+                objective = objective.id
+                nice_objective_id = objective
+        else:
+            objective = str(self.objective)
+            nice_objective_id = str(objective)
+
         return DifferentialFVAResult(pandas.Panel(solutions), self.envelope, self.reference_flux_ranges,
-                                     self.variables, self.objective)
+                                     self.variables, objective, nice_objective_id=nice_objective_id,
+                                     nice_variable_ids=self.variables)
 
 
 class DifferentialFVAResult(PhenotypicPhasePlaneResult):
