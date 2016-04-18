@@ -26,6 +26,7 @@ from __future__ import absolute_import, print_function
 
 import os
 import six
+import math
 
 import pandas
 import numpy
@@ -475,6 +476,26 @@ class FluxDistributionResult(Result):
         return "<strong>objective value: %s</strong>" % self.objective_value
 
     def plot_scale(self, palette="YlGnBu"):
+        """
+        Generates a color scale based on the flux distribution.
+        It makes an array containing the absolute values and minus absolute values.
+
+        The colors set as follows (p standsfor palette colors array):
+        min   -2*std  -std      0      std      2*std   max
+        |-------|-------|-------|-------|-------|-------|
+        p[2]  p[2] .. p[1] .. p[0] .. p[1] ..  p[2]   p[2]
+
+
+        Arguments
+        ---------
+        palette: Palette, list, str
+            A Palette from palettable of equivalent, a list of colors (size 3) or a palette name
+
+        Returns
+        -------
+        tuple
+            ((-2*std, color), (-std, color) (0 color) (std, color) (2*std, color))
+        """
         if isinstance(palette, str):
             palette = mapper.map_palette(palette, 3)
             palette = palette.hex_colors
@@ -483,7 +504,7 @@ class FluxDistributionResult(Result):
             palette = palette.hex_colors
 
         values = [abs(v) for v in self.fluxes.values()]
-        values += [-v for v in self.fluxes.values()]
+        values += [-v for v in values]
 
         std = numpy.std(values)
 
@@ -499,6 +520,10 @@ class FluxDistributionResult(Result):
                 map_json = None
 
             scale = self.plot_scale(palette)
+            active_fluxes = {rid: flux for rid, flux in six.iteritems(self.fluxes) if abs(flux) > 10**-ndecimals}
+
+            values = [abs(v) for v in active_fluxes.values()]
+            values += [-v for v in values]
 
             reaction_scale = [dict(type='min', color=scale[0][1], size=24),
                               dict(type='value', value=scale[0][0], color=scale[0][1], size=21),
@@ -508,7 +533,12 @@ class FluxDistributionResult(Result):
                               dict(type='value', value=scale[4][0], color=scale[4][1], size=21),
                               dict(type='max', color=scale[4][1], size=24)]
 
-            builder = escher.Builder(map_name=map_name, map_json=map_json, reaction_data=self.fluxes,
+            active_fluxes = {rid: flux for rid, flux in six.iteritems(self.fluxes) if abs(flux) > 10**-ndecimals}
+
+            active_fluxes['min'] = min(values)
+            active_fluxes['max'] = max(values)
+
+            builder = escher.Builder(map_name=map_name, map_json=map_json, reaction_data=active_fluxes,
                                      reaction_scale=reaction_scale)
 
             if in_ipnb():
