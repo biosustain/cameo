@@ -24,6 +24,8 @@ from uuid import uuid4
 import numpy as np
 import six
 
+from cameo.config import non_zero_flux_threshold
+
 try:
     from IPython.core.display import display, HTML, Javascript
 except ImportError:
@@ -293,27 +295,31 @@ class DifferentialFVA(StrainDesignMethod):
                 normalized_gaps = [self._interval_gap(interval1, interval2) for interval1, interval2 in
                                    my_zip(reference_intervals, normalized_intervals)]
                 sol['normalized_gaps'] = normalized_gaps
+        chopped_ref_lower_bounds = self.reference_flux_ranges.lower_bound.apply(lambda x: 0 if abs(x) < non_zero_flux_threshold else x)
+        chopped_ref_upper_bounds = self.reference_flux_ranges.upper_bound.apply(lambda x: 0 if abs(x) < non_zero_flux_threshold else x)
         for df in six.itervalues(solutions):
-            ko_selection = df[(df.lower_bound == 0) &
-                              (df.upper_bound == 0) &
-                              (self.reference_flux_ranges.lower_bound != 0) &
-                              self.reference_flux_ranges.upper_bound != 0]
+            df_chopped = df.applymap(lambda x: 0 if abs(x) < non_zero_flux_threshold else x)
+            ko_selection = df[(df_chopped.lower_bound == 0) &
+                              (df_chopped.upper_bound == 0) &
+                              (chopped_ref_lower_bounds != 0) &
+                              chopped_ref_upper_bounds != 0]
             df['KO'] = False
-            df.loc[ko_selection.index]['KO'] = True
+            df.loc[ko_selection.index, 'KO'] = True
 
         for df in six.itervalues(solutions):
-            flux_reversal_selection = df[((self.reference_flux_ranges.upper_bound < 0) & (df.lower_bound > 0) |
-                                          ((self.reference_flux_ranges.lower_bound > 0) & (df.upper_bound < 0)))]
+            df_chopped = df.applymap(lambda x: 0 if abs(x) < non_zero_flux_threshold else x)
+            flux_reversal_selection = df[((chopped_ref_upper_bounds < 0) & (df_chopped.lower_bound > 0) |
+                                          ((chopped_ref_lower_bounds > 0) & (df_chopped.upper_bound < 0)))]
             df['flux_reversal'] = False
-            df.loc[flux_reversal_selection.index]['flux_reversal'] = True
+            df.loc[flux_reversal_selection.index, 'flux_reversal'] = True
 
         for df in six.itervalues(solutions):
-            flux_reversal_selection = df[((self.reference_flux_ranges.lower_bound <= 0) & (df.lower_bound > 0)) | (
-                (self.reference_flux_ranges.upper_bound >= 0) & (df.upper_bound <= 0))]
+            df_chopped = df.applymap(lambda x: 0 if abs(x) < non_zero_flux_threshold else x)
+            suddenly_essential_selection = df[((df_chopped.lower_bound <= 0) & (df_chopped.lower_bound > 0)) | (
+                (chopped_ref_upper_bounds >= 0) & (df_chopped.upper_bound <= 0))]
             df['suddenly_essential'] = False
-            df.loc[flux_reversal_selection.index]['suddenly_essential'] = True
+            df.loc[suddenly_essential_selection.index, 'suddenly_essential'] = True
 
-        # solutions['reference_flux_ranges'] = self.reference_flux_ranges
         return DifferentialFVAResult(pandas.Panel(solutions), self.envelope, self.reference_flux_ranges,
                                      self.variables, self.objective)
 
