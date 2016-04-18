@@ -421,7 +421,28 @@ class DifferentialFVAResult(PhenotypicPhasePlaneResult):
         # TODO: hack escher to use iterative maps
         self._display_on_map_static(index, map_name, palette=palette, **kwargs)
 
-    def plot_scale(self, palette="RdYlBu"):
+    def plot_scale(self, palette="YlGnBu"):
+        """
+        Generates a color scale based on the flux distribution.
+        It makes an array containing the absolute values and minus absolute values.
+
+        The colors set as follows (p standsfor palette colors array):
+        min   -2*std  -std      0      std      2*std   max
+        |-------|-------|-------|-------|-------|-------|
+        p[0] p[0] ..  p[1] .. p[2] ..  p[3] .. p[-1] p[-1]
+
+
+        Arguments
+        ---------
+        palette: Palette, list, str
+            A Palette from palettable of equivalent, a list of colors (size 5) or a palette name
+
+        Returns
+        -------
+        tuple:
+            ((-2*std, color), (-std, color) (0 color) (std, color) (2*std, color))
+
+        """
         if isinstance(palette, str):
             palette = mapper.map_palette(palette, 5)
             palette = palette.hex_colors
@@ -466,6 +487,8 @@ class DifferentialFVAResult(PhenotypicPhasePlaneResult):
                 reaction_data[rid] = gap
 
             scale = self.plot_scale(palette)
+            reaction_data['min'] = min(numpy.abs(values) * -1)
+            reaction_data['max'] = max(numpy.abs(values))
 
             reaction_scale = [dict(type='min', color=scale[0][1], size=24),
                               dict(type='value', value=scale[0][0], color=scale[0][1], size=21),
