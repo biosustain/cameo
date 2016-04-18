@@ -60,29 +60,30 @@ class TestFSEOF(unittest.TestCase):
         self.assertIs(fseof_result.model, self.model)
 
 
-if six.PY2:  # Make these test cases work with PY3 as well
-    class TestDifferentialFVA(unittest.TestCase):
-        def setUp(self):
-            self.model = ECOLICORE.copy()
+# if six.PY2:  # Make these test cases work with PY3 as well
+class TestDifferentialFVA(unittest.TestCase):
+    def setUp(self):
+        self.model = ECOLICORE.copy()
 
-        def test_minimal_input(self):
-            result = DifferentialFVA(self.model, self.model.reactions.EX_succ_lp_e_rp_, points=5).run()
-            # result.data_frame.iloc[0].to_csv(os.path.join(TESTDIR, 'data/REFERENCE_DiffFVA1.csv'))
-            ref_df = pandas.read_csv(os.path.join(TESTDIR, 'data/REFERENCE_DiffFVA1.csv'), index_col=0).astype(
-                "O").sort_index(axis=1)
-            pandas.util.testing.assert_frame_equal(result.data_frame.iloc[0].sort_index(axis=1), ref_df)
+    def test_minimal_input(self):
+        result = DifferentialFVA(self.model, self.model.reactions.EX_succ_lp_e_rp_, points=5).run()
 
-        def test_with_reference_model(self):
-            reference_model = self.model.copy()
-            biomass_rxn = reference_model.reactions.Biomass_Ecoli_core_N_lp_w_fsh_GAM_rp__Nmet2
-            biomass_rxn.lower_bound = 0.3
-            target = reference_model.reactions.EX_succ_lp_e_rp_
-            target.lower_bound = 2
-            result = DifferentialFVA(self.model, target, reference_model=reference_model, points=5).run()
-            # result.data_frame.iloc[0].to_csv(os.path.join(TESTDIR, 'data/REFERENCE_DiffFVA2.csv'))
-            ref_df = pandas.read_csv(os.path.join(TESTDIR, 'data/REFERENCE_DiffFVA2.csv'), index_col=0).astype(
-                "O").sort_index(axis=1)
-            pandas.util.testing.assert_frame_equal(result.data_frame.iloc[0].sort_index(axis=1), ref_df)
+        # result.data_frame.iloc[0].to_csv(os.path.join(TESTDIR, 'data/REFERENCE_DiffFVA1.csv'))
+        ref_df = pandas.read_csv(os.path.join(TESTDIR, 'data/REFERENCE_DiffFVA1.csv'), index_col=0).astype(
+            "O").sort_index(axis=1)
+        pandas.util.testing.assert_frame_equal(result.data_frame.iloc[0].sort_index(axis=1), ref_df)
+
+    def test_with_reference_model(self):
+        reference_model = self.model.copy()
+        biomass_rxn = reference_model.reactions.Biomass_Ecoli_core_N_lp_w_fsh_GAM_rp__Nmet2
+        biomass_rxn.lower_bound = 0.3
+        target = reference_model.reactions.EX_succ_lp_e_rp_
+        target.lower_bound = 2
+        result = DifferentialFVA(self.model, target, reference_model=reference_model, points=5).run()
+        # result.data_frame.iloc[0].to_csv(os.path.join(TESTDIR, 'data/REFERENCE_DiffFVA2.csv'))
+        ref_df = pandas.read_csv(os.path.join(TESTDIR, 'data/REFERENCE_DiffFVA2.csv'), index_col=0).astype(
+            "O").sort_index(axis=1)
+        pandas.util.testing.assert_frame_equal(result.data_frame.iloc[0].sort_index(axis=1), ref_df)
 
 
 class TestOptKnock(unittest.TestCase):
