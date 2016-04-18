@@ -201,9 +201,10 @@ def phenotypic_phase_plane(model, variables=[], objective=None, points=20, view=
             nice_objective_id = objective
     else:
         objective = str(objective)
+        nice_objective_id = str(objective)
 
     return PhenotypicPhasePlaneResult(phase_plane, variable_reactions_ids, objective,
-                                      nice_variable_ids, nice_objective_id)
+                                      nice_variable_ids=nice_variable_ids, nice_objective_id=nice_objective_id)
 
 
 class _FvaFunctionObject(object):
@@ -483,13 +484,13 @@ def _fbid_fva(model, knockouts, view):
 
 class PhenotypicPhasePlaneResult(Result):
     def __init__(self, phase_plane, variable_ids, objective,
-                 nice_variable_ids=None, nice_objective=None, *args, **kwargs):
+                 nice_variable_ids=None, nice_objective_id=None, *args, **kwargs):
         super(PhenotypicPhasePlaneResult, self).__init__(*args, **kwargs)
         self._phase_plane = phase_plane
         self.variable_ids = variable_ids
         self.nice_variable_ids = nice_variable_ids
         self.objective = objective
-        self.nice_objective = nice_objective
+        self.nice_objective_id = nice_objective_id
 
     @property
     def data_frame(self):
@@ -505,7 +506,7 @@ class PhenotypicPhasePlaneResult(Result):
             title = "Phenotypic Phase Plane"
         variable = self.variable_ids[0]
         x_axis_label = self.nice_variable_ids[0]
-        y_axis_label = self.nice_objective
+        y_axis_label = self.nice_objective_id
 
         dataframe = pandas.DataFrame(columns=["ub", "lb", "value", "strain"])
         for _, row in self.iterrows():
