@@ -116,7 +116,7 @@ class SolverBasedModel(cobra.core.Model):
             reaction._genes = {self.genes.get_by_id(gene.id) for gene in reaction.genes}
             reaction._metabolites = {
                 self.metabolites.get_by_id(met.id): coef for met, coef in reaction.metabolites.items()
-                }
+            }
 
         self._solver = solver_interface.Model()
         self._populate_solver(self.reactions)
