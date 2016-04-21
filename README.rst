@@ -128,5 +128,5 @@ Furthermore, the following dependencies are needed:
    :target: https://travis-ci.org/biosustain/cameo
 .. |Coverage Status| image:: https://coveralls.io/repos/biosustain/cameo/badge.svg?branch=devel
    :target: https://coveralls.io/r/biosustain/cameo?branch=devel
-.. |DOI| image:: https://zenodo.org/badge/doi/10.5281/zenodo.19827.svg
+.. |DOI| image:: https://zenodo.org/badge/5031/biosustain/cameo.svg
    :target: http://dx.doi.org/10.5281/zenodo.19827
