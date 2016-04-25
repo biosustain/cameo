@@ -132,6 +132,9 @@ class PathwayPredictions(Result):
         for p in self.pathways:
             yield p
 
+    def __len__(self):
+        return len(self.pathways)
+
 
 class PathwayPredictor(object):
     """Pathway predictions from a universal set of reaction.
