@@ -234,10 +234,8 @@ class Wrapper:
                 TOY_MODEL_PAPIN_2003.reactions.v6.knock_out(tm)
                 result = room(TOY_MODEL_PAPIN_2003, reference=reference, delta=0, epsilon=0)
 
-            self.assertEquals(
-                result.fluxes,
-                expected,
-                msg="\n".join("%s: %f | %f" % (k, result.fluxes[k], expected[k]) for k in reference.keys()))
+            for k in reference.keys():
+                self.assertAlmostEqual(expected[k], result.fluxes[k], delta=0.1, msg="%s: %f | %f")
             self.assertIs(self.model.objective, original_objective)
 
         def test_moma_shlomi_2005(self):
