@@ -101,16 +101,16 @@ class ProblemCache(object):
         (expression, lb, ub, name) = constraint.expression, constraint.lb, constraint.ub, constraint.name
 
         def rebuild():
-            self.model.solver._remove_constraint(constraint)
+            self._model.solver._remove_constraint(constraint)
             new_constraint = self.model.solver.interface.Constraint(expression, lb=lb, ub=ub, name=name)
             self.constraints[name] = new_constraint
-            self.model.solver._add_constraint(new_constraint, sloppy=True)
+            self._model.solver._add_constraint(new_constraint, sloppy=True)
 
         return rebuild
 
     def _append_constraint(self, constraint_id, create, *args, **kwargs):
         self.constraints[constraint_id] = create(self.model, constraint_id, *args, **kwargs)
-        self.model.solver._add_constraint(self.constraints[constraint_id])
+        self._model.solver._add_constraint(self.constraints[constraint_id])
 
     def _remove_constraint(self, constraint_id):
         constraint = self.constraints.pop(constraint_id)
@@ -156,9 +156,7 @@ class ProblemCache(object):
         """
         if constraint_id in self.constraints:
             if update is not None:
-                self.time_machine(
-                    do=partial(update, self.model, self.constraints[constraint_id], *args, **kwargs),
-                    undo=self._rebuild_constraint(self.constraints[constraint_id]))
+                update(self.model, self.constraints[constraint_id], *args, **kwargs)
         else:
             self.time_machine(
                 do=partial(self._append_constraint, constraint_id, create, *args, **kwargs),
@@ -204,9 +202,9 @@ class ProblemCache(object):
             )
         else:
             if update:
-                objective = update(self.model, *args)
+                self.objective = update(self.model, *args)
                 self.time_machine(
-                    do=partial(setattr, self.model, 'objective', objective),
+                    do=partial(setattr, self.model, 'objective', self.objective),
                     undo=partial(setattr, self.model, 'objective', self.model.objective)
                 )
 
