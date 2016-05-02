@@ -39,7 +39,6 @@ from cameo.core.result import Result
 from cameo.api.hosts import hosts, Host
 from cameo.api.products import products
 from cameo.exceptions import SolveError
-from cameo.strain_design.deterministic import OptKnock
 from cameo.strain_design.heuristic import OptGene
 from cameo.ui import notice, searching, stop_loader
 from cameo.strain_design import pathway_prediction
@@ -134,7 +133,7 @@ class Designer(object):
         notice("Starting searching for compound %s" % product)
         product = self.__translate_product_to_universal_reactions_model_metabolite(product, database)
         pathways = self.predict_pathways(product, hosts=hosts, database=database)
-        print("Optimizing %i pathways" % len(pathways))
+        print("Optimizing %i pathways" % sum(len(p) for p in pathways))
         optimization_reports = self.optimize_strains(pathways, view)
         return optimization_reports
 
@@ -173,12 +172,6 @@ class Designer(object):
                 logging.debug('Processing model {} for host {}'.format(model.id, host.name))
                 notice('Predicting pathways for product %s in %s (using model %s).'
                        % (product.name, host, model.id))
-                try:
-                    logger.debug('Trying to set solver to cplex for pathway predictions.')
-                    model.solver = 'cplex'  # CPLEX is better predicting pathways
-                except ValueError:
-                    logger.debug('Could not set solver to cplex for pathway predictions.')
-                    pass
                 logging.debug('Predicting pathways for model {}'.format(model.id))
                 pathway_predictor = pathway_prediction.PathwayPredictor(model,
                                                                         universal_model=database,
