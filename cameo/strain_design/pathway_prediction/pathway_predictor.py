@@ -92,8 +92,6 @@ class PathwayResult(Pathway, Result):
 
 
 class PathwayPredictions(Result):
-    def data_frame(self):
-        raise NotImplementedError
 
     def __init__(self, pathways, *args, **kwargs):
         super(PathwayPredictions, self).__init__(*args, **kwargs)
@@ -103,14 +101,11 @@ class PathwayPredictions(Result):
     def plug_model(self, model, index, tm=None):
         self.pathways[index].plug_model(model, tm)
 
-    def _repr_html_(self):
-        return self.data_frame()._repr_html_()
-
     def __str__(self):
         string = str()
         for i, pathway in enumerate(self.pathways):
             string += 'Pathway No. {}'.format(i + 1)
-            for reaction in pathway:
+            for reaction in pathway.reactions:
                 string += '{}, {}:'.format(reaction.id, reaction.name,
                                            reaction.build_reaction_string(use_metabolite_names=True))
         return string
