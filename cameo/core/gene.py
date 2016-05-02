@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
 from functools import partial
 
 import cobra
-import logging
+from cobra.manipulation.delete import find_gene_knockout_reactions
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +51,6 @@ class Gene(cobra.core.Gene):
         None
         """
 
-        from cobra.manipulation.delete import find_gene_knockout_reactions
         for reaction in find_gene_knockout_reactions(self.model, [self]):
             def _(reaction, lb, ub):
                 reaction.upper_bound = ub
