@@ -115,8 +115,7 @@ class Reaction(_cobrapy.core.Reaction):
 
     @property
     def forward_variable(self):
-        """An optlang variable representing the forward flux (if associated with model), otherwise None.
-        Representing the net flux if model.reversible_encoding == 'unsplit'"""
+        """An optlang variable representing the forward flux (if associated with model), otherwise None."""
         model = self.model
         if model is not None:
             aux_id = self._get_forward_id()
