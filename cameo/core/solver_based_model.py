@@ -10,6 +10,7 @@
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
@@ -302,7 +303,6 @@ class SolverBasedModel(cobra.core.Model):
 
         # cobrapy will raise an exceptions if one of the reactions already exists in the model (before adding any reactions)
         super(SolverBasedModel, self).add_reactions(cloned_reaction_list)
-
         self._populate_solver(cloned_reaction_list)
 
     @doc_inherit

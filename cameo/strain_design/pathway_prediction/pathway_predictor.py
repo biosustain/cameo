@@ -202,7 +202,7 @@ class PathwayPredictor(object):
         self.model.add_reactions(self.adpater_reactions)
         self._add_switches(self.new_reactions)
 
-    def run(self, product=None, max_predictions=float("inf"), min_production=.1, timeout=None, silent=False):
+    def run(self, product=None, max_predictions=float("inf"), min_production=.1, timeout=None, callback=None, silent=False):
         """Run pathway prediction for a desired product.
 
         Parameters
@@ -277,6 +277,8 @@ class PathwayPredictor(object):
                     util.display_pathway(pathway, counter)
 
                 pathways.append(pathway)
+                if callback is not None:
+                    callback(pathway)
                 integer_cut = self.model.solver.interface.Constraint(Add(*vars_to_cut),
                                                                      name="integer_cut_" + str(counter),
                                                                      ub=len(vars_to_cut) - 1)
@@ -305,21 +307,21 @@ class PathwayPredictor(object):
             y = self.model.solver.interface.Variable('y_' + reaction.id, lb=0, ub=1, type='binary')
             y_vars.append(y)
             # The following is a complicated but efficient way to write the following constraints
+
             # switch_lb = self.model.solver.interface.Constraint(y * reaction.lower_bound - reaction.flux_expression,
             #                                                    name='switch_lb_' + reaction.id, ub=0)
             # switch_ub = self.model.solver.interface.Constraint(y * reaction.upper_bound - reaction.flux_expression,
             #                                                    name='switch_ub_' + reaction.id, lb=0)
-            forward_var_term = Mul._from_args((NegativeOne, reaction.reverse_variable))
-            reverse_var_term = Mul._from_args((NegativeOne, reaction.reverse_variable))
-            switch_lb_y_term = Mul._from_args((y, RealNumber(reaction.lower_bound)))
-            switch_ub_y_term = Mul._from_args((y, RealNumber(reaction.upper_bound)))
+            forward_var_term = Mul._from_args((RealNumber(-1), reaction.forward_variable))
+            reverse_var_term = Mul._from_args((RealNumber(-1), reaction.reverse_variable))
+            switch_lb_y_term = Mul._from_args((RealNumber(reaction.lower_bound), y))
+            switch_ub_y_term = Mul._from_args((RealNumber(reaction.upper_bound), y))
             switch_lb = self.model.solver.interface.Constraint(
                 Add._from_args((switch_lb_y_term, forward_var_term, reverse_var_term)), name='switch_lb_' + reaction.id,
-                lb=0, sloppy=True)
+                ub=0, sloppy=True)
             switch_ub = self.model.solver.interface.Constraint(
                 Add._from_args((switch_ub_y_term, forward_var_term, reverse_var_term)), name='switch_ub_' + reaction.id,
                 lb=0, sloppy=True)
-
             switches.extend([switch_lb, switch_ub])
         self.model.solver.add(y_vars)
         self.model.solver.add(switches, sloppy=True)
@@ -360,7 +362,7 @@ class PathwayPredictor(object):
                 if metabolite.name == product:
                     return metabolite
             raise ValueError(
-                "Specified product '{product}' could not be found. Try searching pathway_predictor_obj.universal_metabolites.metabolites".format(
+                "Specified product '{product}' could not be found. Try searching pathway_predictor_obj.universal_model.metabolites".format(
                     product=product))
         elif isinstance(product, Metabolite):
             try:
