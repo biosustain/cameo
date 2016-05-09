@@ -30,7 +30,10 @@ from cameo.data import metanetx
 from cameo.util import TimeMachine
 from cameo.strain_design.pathway_prediction import util
 
-from sympy import Add
+import sympy
+NegativeOne = sympy.singleton.S.NegativeOne
+from sympy import Add, Mul, RealNumber
+
 
 import logging
 
@@ -302,14 +305,21 @@ class PathwayPredictor(object):
 
             y = self.model.solver.interface.Variable('y_' + reaction.id, lb=0, ub=1, type='binary')
             y_vars.append(y)
+            # The following is a complicated but efficient way to write the following constraints
+            # switch_lb = self.model.solver.interface.Constraint(y * reaction.lower_bound - reaction.flux_expression,
+            #                                                    name='switch_lb_' + reaction.id, ub=0)
+            # switch_ub = self.model.solver.interface.Constraint(y * reaction.upper_bound - reaction.flux_expression,
+            #                                                    name='switch_ub_' + reaction.id, lb=0)
+            forward_var_term = Mul._from_args((NegativeOne, reaction.reverse_variable))
+            reverse_var_term = Mul._from_args((NegativeOne, reaction.reverse_variable))
+            switch_lb_y_term = Mul._from_args((y, RealNumber(reaction.lower_bound)))
+            switch_ub_y_term = Mul._from_args((y, RealNumber(reaction.upper_bound)))
+            switch_lb = self.model.solver.interface.Constraint(Add._from_args((switch_lb_y_term, forward_var_term, reverse_var_term)), name='switch_lb_' + reaction.id, lb=0, sloppy=True)
+            switch_ub = self.model.solver.interface.Constraint(Add._from_args((switch_ub_y_term, forward_var_term, reverse_var_term)), name='switch_ub_' + reaction.id, lb=0, sloppy=True)
 
-            switch_lb = self.model.solver.interface.Constraint(y * reaction.lower_bound - reaction.flux_expression,
-                                                               name='switch_lb_' + reaction.id, ub=0)
-            switch_ub = self.model.solver.interface.Constraint(y * reaction.upper_bound - reaction.flux_expression,
-                                                               name='switch_ub_' + reaction.id, lb=0)
             switches.extend([switch_lb, switch_ub])
-
-        self.model.solver.add(switches)
+        self.model.solver.add(y_vars)
+        self.model.solver.add(switches, sloppy=True)
         logger.info("Setting minimization of switch variables as objective.")
         self.model.objective = self.model.solver.interface.Objective(Add(*y_vars), direction='min')
         self._y_vars_ids = [var.name for var in y_vars]
