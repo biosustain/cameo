@@ -31,9 +31,9 @@ from cameo.util import TimeMachine
 from cameo.strain_design.pathway_prediction import util
 
 import sympy
+
 NegativeOne = sympy.singleton.S.NegativeOne
 from sympy import Add, Mul, RealNumber
-
 
 import logging
 
@@ -95,7 +95,6 @@ class PathwayResult(Pathway, Result):
 
 
 class PathwayPredictions(Result):
-
     def __init__(self, pathways, *args, **kwargs):
         super(PathwayPredictions, self).__init__(*args, **kwargs)
         # TODO: sort the pathways to make them easier to read
@@ -314,8 +313,12 @@ class PathwayPredictor(object):
             reverse_var_term = Mul._from_args((NegativeOne, reaction.reverse_variable))
             switch_lb_y_term = Mul._from_args((y, RealNumber(reaction.lower_bound)))
             switch_ub_y_term = Mul._from_args((y, RealNumber(reaction.upper_bound)))
-            switch_lb = self.model.solver.interface.Constraint(Add._from_args((switch_lb_y_term, forward_var_term, reverse_var_term)), name='switch_lb_' + reaction.id, lb=0, sloppy=True)
-            switch_ub = self.model.solver.interface.Constraint(Add._from_args((switch_ub_y_term, forward_var_term, reverse_var_term)), name='switch_ub_' + reaction.id, lb=0, sloppy=True)
+            switch_lb = self.model.solver.interface.Constraint(
+                Add._from_args((switch_lb_y_term, forward_var_term, reverse_var_term)), name='switch_lb_' + reaction.id,
+                lb=0, sloppy=True)
+            switch_ub = self.model.solver.interface.Constraint(
+                Add._from_args((switch_ub_y_term, forward_var_term, reverse_var_term)), name='switch_ub_' + reaction.id,
+                lb=0, sloppy=True)
 
             switches.extend([switch_lb, switch_ub])
         self.model.solver.add(y_vars)
