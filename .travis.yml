@@ -43,6 +43,7 @@ install:
 - pip install flake8
 - pip install cobra==0.4.0b6 --pre
 - pip install swiglpk
+- pip install -e git://github.com/biosustain/optlang.git@transactions#egg=optlang
 - pip install .
 before_script:
 - "flake8 ."
