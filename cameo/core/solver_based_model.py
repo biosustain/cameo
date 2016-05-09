@@ -258,8 +258,8 @@ class SolverBasedModel(cobra.core.Model):
                 reverse_variable = self.solver.interface.Variable(reaction._get_reverse_id(),
                                                                   lb=-1 * reaction._upper_bound,
                                                                   ub=-1 * reaction._lower_bound)
-            self.solver._add_variable(forward_variable)
-            self.solver._add_variable(reverse_variable)
+            self.solver.add(forward_variable)
+            self.solver.add(reverse_variable)
 
             for metabolite, coeff in six.iteritems(reaction.metabolites):
                 if metabolite.id in constr_terms:
@@ -274,13 +274,14 @@ class SolverBasedModel(cobra.core.Model):
             if reaction._objective_coefficient != 0.:
                 objective_terms.append(reaction._objective_coefficient * reaction.flux_expression)
 
+        new_constraints = list()
         for met_id, terms in six.iteritems(constr_terms):
             expr = sympy.Add._from_args(terms)
             try:
                 self.solver.constraints[met_id] += expr
             except KeyError:
-                self.solver._add_constraint(self.solver.interface.Constraint(expr, name=met_id, lb=0, ub=0),
-                                            sloppy=True)
+                new_constraints.append(self.solver.interface.Constraint(expr, name=met_id, lb=0, ub=0, sloppy=True))
+        self.solver.add(new_constraints, sloppy=True)
 
         objective_expression = sympy.Add(*objective_terms)
         if self.solver.objective is None:
