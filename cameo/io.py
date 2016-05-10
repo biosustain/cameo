@@ -25,6 +25,7 @@ import optlang
 from cobra.io import read_sbml_model, load_json_model
 
 from cameo.core.solver_based_model import SolverBasedModel, to_solver_based_model
+from cameo.config import solvers
 
 import logging
 
@@ -46,6 +47,7 @@ def load_model(path_or_handle, solver_interface=optlang, sanitize=True):
     sanitize : boolean, optional
         If reaction and metabolite IDs should be sanitized (works only for SBML models).
     """
+    solver_interface = solvers.get(solver_interface, solver_interface)
 
     if isinstance(path_or_handle, six.string_types) and not os.path.isfile(path_or_handle):
         from cameo.models.webmodels import load_webmodel
@@ -72,7 +74,7 @@ def load_model(path_or_handle, solver_interface=optlang, sanitize=True):
             logger.debug("Changing solver interface to %s" % solver_interface)
             model = to_solver_based_model(model, solver_interface=solver_interface)
     else:
-        if model.solver.interface is not solver_interface and solver_interface is not None:
+        if solver_interface is not None and not isinstance(model.solver, solver_interface.Model):
             logger.debug("Changing solver interface to %s" % solver_interface)
             model.solver = solver_interface
 
