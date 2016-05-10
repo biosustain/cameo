@@ -120,12 +120,7 @@ class Reaction(_cobrapy.core.Reaction):
         """An optlang variable representing the forward flux (if associated with model), otherwise None."""
         model = self.model
         if model is not None:
-            if self._forward_variable is None:
-                aux_id = self._get_forward_id()
-                self._forward_variable = model.solver.variables[aux_id]
-                return self._forward_variable
-            else:
-                return self._forward_variable
+            return model.solver.variables[self._get_forward_id()]
         else:
             return None
 
@@ -134,12 +129,7 @@ class Reaction(_cobrapy.core.Reaction):
         """An optlang variable representing the reverse flux (if associated with model), otherwise None."""
         model = self.model
         if model is not None:
-            if self._reverse_variable is None:
-                aux_id = self._get_reverse_id()
-                self._reverse_variable = model.solver.variables[aux_id]
-                return self._reverse_variable
-            else:
-                return self._reverse_variable
+            return model.solver.variables[self._get_reverse_id()]
         else:
             return None
 
