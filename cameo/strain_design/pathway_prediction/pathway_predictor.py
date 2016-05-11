@@ -312,18 +312,16 @@ class PathwayPredictor(object):
             #                                                    name='switch_lb_' + reaction.id, ub=0)
             # switch_ub = self.model.solver.interface.Constraint(y * reaction.upper_bound - reaction.flux_expression,
             #                                                    name='switch_ub_' + reaction.id, lb=0)
-
             forward_var_term = Mul._from_args((RealNumber(-1), reaction.forward_variable))
             reverse_var_term = Mul._from_args((RealNumber(-1), reaction.reverse_variable))
             switch_lb_y_term = Mul._from_args((RealNumber(reaction.lower_bound), y))
             switch_ub_y_term = Mul._from_args((RealNumber(reaction.upper_bound), y))
             switch_lb = self.model.solver.interface.Constraint(
                 Add._from_args((switch_lb_y_term, forward_var_term, reverse_var_term)), name='switch_lb_' + reaction.id,
-                lb=0, sloppy=True)
+                ub=0, sloppy=True)
             switch_ub = self.model.solver.interface.Constraint(
                 Add._from_args((switch_ub_y_term, forward_var_term, reverse_var_term)), name='switch_ub_' + reaction.id,
                 lb=0, sloppy=True)
-
             switches.extend([switch_lb, switch_ub])
         self.model.solver.add(y_vars)
         self.model.solver.add(switches, sloppy=True)
