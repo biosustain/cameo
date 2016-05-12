@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""This package provides methods for simulating and analyzing models.
+"""
+
 from .simulation import *
 from .analysis import *
 from .util import *
-
-

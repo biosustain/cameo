@@ -16,16 +16,17 @@
 from __future__ import absolute_import, print_function
 
 
+import os
 import re
 import six
-import logging
 import warnings
+import logging
 
-
-import numpy as np
+import numpy
 
 from functools import partial
 from uuid import uuid4
+
 
 try:
     from IPython.core.display import display, HTML, Javascript
@@ -34,19 +35,27 @@ except ImportError:
 
 from IProgress import ProgressBar
 from pandas import DataFrame, pandas
-from cameo.visualization import plotting
+from cameo.visualization.plotting import plotter
 
-from cameo import config, flux_variability_analysis
+from cameo import config
+
+from cameo.ui import notice
+from cameo.util import TimeMachine, in_ipnb
+from cameo.config import non_zero_flux_threshold
+from cameo.parallel import SequentialView
+
+from cameo.core.reaction import Reaction
+from cameo.core.metabolite import Metabolite
+
+from cameo.visualization.escher_ext import NotebookBuilder
+from cameo.visualization.palette import mapper, Palette
+
+from cameo.flux_analysis.analysis import flux_variability_analysis, phenotypic_phase_plane, PhenotypicPhasePlaneResult
 from cameo.flux_analysis.simulation import pfba, fba
 
-from cameo import Metabolite
-from cameo.parallel import SequentialView
-from cameo.core.solver_based_model import Reaction
 from cameo.strain_design.strain_design import StrainDesignMethod, StrainDesignResult, StrainDesign
-from cameo.flux_analysis.analysis import phenotypic_phase_plane, PhenotypicPhasePlaneResult
-from cameo.util import TimeMachine
-from cameo.ui import notice
-from cameo.visualization.escher_ext import NotebookBuilder
+
+
 
 
 with warnings.catch_warnings():
@@ -64,7 +73,6 @@ with warnings.catch_warnings():
 zip = my_zip = six.moves.zip
 
 __all__ = ['DifferentialFVA', 'FSEOF']
-
 
 logger = logging.getLogger(__name__)
 
@@ -160,7 +168,8 @@ class DifferentialFVA(StrainDesignMethod):
             obj_var_ids = [variable.name for variable in self.design_space_model.objective.expression.free_symbols]
             obj_var_ids = [re.sub('_reverse.*', '', id) for id in obj_var_ids]
             if len(set(obj_var_ids)) != 1:
-                raise ValueError("The current objective in design_space_model is not a single reaction objective. DifferentialFVA does not support composite objectives.")
+                raise ValueError(
+                    "The current objective in design_space_model is not a single reaction objective. DifferentialFVA does not support composite objectives.")
             else:
                 self.variables = [self.design_space_model.reactions.get_by_id(obj_var_ids[0]).id]
         else:
@@ -297,29 +306,50 @@ class DifferentialFVA(StrainDesignMethod):
                 normalized_gaps = [self._interval_gap(interval1, interval2) for interval1, interval2 in
                                    my_zip(reference_intervals, normalized_intervals)]
                 sol['normalized_gaps'] = normalized_gaps
+        chopped_ref_lower_bounds = self.reference_flux_ranges.lower_bound.apply(lambda x: 0 if abs(x) < non_zero_flux_threshold else x)
+        chopped_ref_upper_bounds = self.reference_flux_ranges.upper_bound.apply(lambda x: 0 if abs(x) < non_zero_flux_threshold else x)
         for df in six.itervalues(solutions):
-            ko_selection = df[(df.lower_bound == 0) &
-                              (df.upper_bound == 0) &
-                              (self.reference_flux_ranges.lower_bound != 0) &
-                              self.reference_flux_ranges.upper_bound != 0]
+            df_chopped = df.applymap(lambda x: 0 if abs(x) < non_zero_flux_threshold else x)
+            ko_selection = df[(df_chopped.lower_bound == 0) &
+                              (df_chopped.upper_bound == 0) &
+                              (chopped_ref_lower_bounds != 0) &
+                              chopped_ref_upper_bounds != 0]
             df['KO'] = False
-            df.loc[ko_selection.index]['KO'] = True
+            df.loc[ko_selection.index, 'KO'] = True
 
         for df in six.itervalues(solutions):
-            flux_reversal_selection = df[((self.reference_flux_ranges.upper_bound < 0) & (df.lower_bound > 0) |
-                                          ((self.reference_flux_ranges.lower_bound > 0) & (df.upper_bound < 0)))]
+            df_chopped = df.applymap(lambda x: 0 if abs(x) < non_zero_flux_threshold else x)
+            flux_reversal_selection = df[((chopped_ref_upper_bounds < 0) & (df_chopped.lower_bound > 0) |
+                                          ((chopped_ref_lower_bounds > 0) & (df_chopped.upper_bound < 0)))]
             df['flux_reversal'] = False
-            df.loc[flux_reversal_selection.index]['flux_reversal'] = True
+            df.loc[flux_reversal_selection.index, 'flux_reversal'] = True
 
         for df in six.itervalues(solutions):
-            flux_reversal_selection = df[((self.reference_flux_ranges.lower_bound <= 0) & (df.lower_bound > 0)) | (
-                (self.reference_flux_ranges.upper_bound >= 0) & (df.upper_bound <= 0))]
+            df_chopped = df.applymap(lambda x: 0 if abs(x) < non_zero_flux_threshold else x)
+            suddenly_essential_selection = df[((df_chopped.lower_bound <= 0) & (df_chopped.lower_bound > 0)) | (
+                (chopped_ref_upper_bounds >= 0) & (df_chopped.upper_bound <= 0))]
             df['suddenly_essential'] = False
-            df.loc[flux_reversal_selection.index]['suddenly_essential'] = True
+            df.loc[suddenly_essential_selection.index, 'suddenly_essential'] = True
 
-        # solutions['reference_flux_ranges'] = self.reference_flux_ranges
+        if self.objective is None:
+            objective = self.reference_model.objective
+        else:
+            objective = self.objective
+
+        if isinstance(objective, Reaction):
+            if hasattr(self.objective, 'nice_id'):
+                nice_objective_id = objective.nice_id
+                objective = objective.id
+            else:
+                objective = objective.id
+                nice_objective_id = objective
+        else:
+            objective = str(self.objective)
+            nice_objective_id = str(objective)
+
         return DifferentialFVAResult(pandas.Panel(solutions), self.envelope, self.reference_flux_ranges,
-                                     self.variables, self.objective)
+                                     self.variables, objective, nice_objective_id=nice_objective_id,
+                                     nice_variable_ids=self.variables)
 
 
 class DifferentialFVAResult(PhenotypicPhasePlaneResult):
@@ -333,36 +363,59 @@ class DifferentialFVAResult(PhenotypicPhasePlaneResult):
     def __getitem__(self, item):
         columns = ["lower_bound", "upper_bound", "gaps", "normalized_gaps", "KO", "flux_reversal", "suddenly_essential"]
         rows = list(range(len(self.solutions)))
-        values = np.ndarray((len(rows), len(columns)))
+        values = numpy.ndarray((len(rows), len(columns)))
         for i in rows:
             values[i] = self.solutions.iloc[i].loc[item].values
 
         data = DataFrame(values, index=rows, columns=columns)
-        data["KO"] = data["KO"].values.astype(np.bool)
-        data["flux_reversal"] = data["flux_reversal"].values.astype(np.bool)
-        data["suddenly_essential"] = data["suddenly_essential"].values.astype(np.bool)
+        data["KO"] = data["KO"].values.astype(numpy.bool)
+        data["flux_reversal"] = data["flux_reversal"].values.astype(numpy.bool)
+        data["suddenly_essential"] = data["suddenly_essential"].values.astype(numpy.bool)
         return data
 
-    def plot(self, index=None, variables=None, grid=None, width=None, height=None, title=None, **kwargs):
+    def plot(self, index=None, variables=None, grid=None, width=None, height=None, title=None, palette=None, **kwargs):
         if len(self.variable_ids) > 1:
             notice("Multi-dimensional plotting is not supported")
             return
         if index is not None:
-            if variables is None:
-                variables = self.reference_fva.index[0:10]
-            title = "Compare WT solution %i" % index
-            fva_res1 = self.reference_fva.loc[variables]
-            fva_res2 = self.solutions.iloc[index].loc[variables]
-            plotting.plot_2_flux_variability_analysis(fva_res1, fva_res2, grid=grid,
-                                                      width=width, height=height, title=title)
+            self._plot_flux_variability_analysis(index, variables=variables, width=width, grid=grid, palette=palette)
         else:
-            title = "DifferentialFVA Result" if title is None else title
-            x = [elem[0][1] for elem in list(self.solutions.items)]
-            y = [elem[1][1] for elem in list(self.solutions.items)]
-            colors = ["red" for _ in x]
-            plotting.plot_production_envelope(self._phase_plane, objective=self.objective, key=self.variable_ids[0],
-                                              grid=grid, width=width, height=height, title=title,
-                                              points=zip(x, y), points_colors=colors)
+            self._plot_production_envelope(title=title, grid=grid, width=width, height=height)
+
+    def _plot_flux_variability_analysis(self, index, variables=None, title=None,
+                                        width=None, height=None, palette=None, grid=None):
+        if variables is None:
+            variables = self.reference_fva.index[0:10]
+
+        title = "Compare WT solution %i" % index if title is None else title
+
+        wt_fva_res = self.reference_fva.loc[variables]
+        strain_fva_res = self.solutions.iloc[index].loc[variables]
+        dataframe = pandas.DataFrame(columns=["lb", "ub", "strain", "reaction"])
+        for reaction_id, row in wt_fva_res.iterrows():
+            _df = pandas.DataFrame([[row['lower_bound'], row['upper_bound'], "WT", reaction_id]],
+                                   columns=dataframe.columns)
+            dataframe = dataframe.append(_df)
+
+        for reaction_id, row in strain_fva_res.iterrows():
+            _df = pandas.DataFrame([[row['lower_bound'], row['upper_bound'], "Strain %i" % index, reaction_id]],
+                                   columns=dataframe.columns)
+            dataframe = dataframe.append(_df)
+
+        plot = plotter.flux_variability_analysis(dataframe, grid=grid, width=width, height=height,
+                                                 title=title, x_axis_label="Reactions", y_axis_label="Flux limits",
+                                                 palette=palette)
+
+        plotter.display(plot)
+
+    def _plot_production_envelope(self, title=None, width=None, height=None, grid=None):
+        title = "DifferentialFVA Result" if title is None else title
+        x = [elem[0][1] for elem in list(self.solutions.items)]
+        y = [elem[1][1] for elem in list(self.solutions.items)]
+        colors = ["red" for _ in x]
+        points = zip(x, y)
+        super(DifferentialFVAResult, self).plot(title=title, grid=grid, width=width, heigth=height,
+                                                points=points, points_colors=colors)
 
     def _repr_html_(self):
         def _data_frame(solution):
@@ -370,25 +423,124 @@ class DifferentialFVAResult(PhenotypicPhasePlaneResult):
             notice("%s: %f" % self.solutions.axes[0][solution - 1][1])
             display(self.solutions.iloc[solution - 1])
 
-        return interact(_data_frame, solution=[1, len(self.solutions)])
+        interact(_data_frame, solution=[1, len(self.solutions)])
+        return ""
 
     @property
     def data_frame(self):
         return self.solutions
 
-    def display_on_map(self, map_name=None):
-        view = _MapView(self.solutions, map_name)
-        slider = IntSlider(min=1, max=len(self.solutions), value=1)
+    @property
+    def normalized_gaps(self):
+        return numpy.concatenate(self.solutions.iloc[:, :, 3].values).astype(float)
+
+    def display_on_map(self, index=0, map_name=None, palette="RdYlBu", **kwargs):
+        # TODO: hack escher to use iterative maps
+        self._display_on_map_static(index, map_name, palette=palette, **kwargs)
+
+    def plot_scale(self, palette="YlGnBu"):
+        """
+        Generates a color scale based on the flux distribution.
+        It makes an array containing the absolute values and minus absolute values.
+
+        The colors set as follows (p standsfor palette colors array):
+        min   -2*std  -std      0      std      2*std   max
+        |-------|-------|-------|-------|-------|-------|
+        p[0] p[0] ..  p[1] .. p[2] ..  p[3] .. p[-1] p[-1]
+
+
+        Arguments
+        ---------
+        palette: Palette, list, str
+            A Palette from palettable of equivalent, a list of colors (size 5) or a palette name
+
+        Returns
+        -------
+        tuple:
+            ((-2*std, color), (-std, color) (0 color) (std, color) (2*std, color))
+
+        """
+        if isinstance(palette, str):
+            palette = mapper.map_palette(palette, 5)
+            palette = palette.hex_colors
+
+        elif isinstance(palette, Palette):
+            palette = palette.hex_colors
+
+        values = [abs(v) for v in self.normalized_gaps if not (numpy.isnan(v) or numpy.isinf(v))]
+        values += [-v for v in values]
+
+        std = numpy.std(values)
+
+        return (-2 * std, palette[0]), (-std, palette[1]), (0, palette[2]), (std, palette[3]), (2 * std, palette[4])
+
+    def _display_on_map_static(self, index, map_name, palette="RdYlBu", **kwargs):
+        try:
+            import escher
+            if os.path.exists(map_name):
+                map_json = map_name
+                map_name = None
+            else:
+                map_json = None
+
+            values = self.normalized_gaps
+
+            values = values[~numpy.isnan(values)]
+            values = values[~numpy.isinf(values)]
+
+            data = self.solutions.iloc[index]
+            # Find values above decimal precision
+            data = data[numpy.abs(data.normalized_gaps.astype(float)) > non_zero_flux_threshold]
+            # Remove NaN rows
+            data = data[~numpy.isnan(data.normalized_gaps.astype(float))]
+
+            reaction_data = dict(data.normalized_gaps)
+            for rid, gap in six.iteritems(reaction_data):
+                if numpy.isposinf(gap):
+                    gap = numpy.max(values)
+                elif numpy.isneginf(gap):
+                    gap = numpy.min(values)
+
+                reaction_data[rid] = gap
+
+            scale = self.plot_scale(palette)
+            reaction_data['min'] = min(numpy.abs(values) * -1)
+            reaction_data['max'] = max(numpy.abs(values))
+
+            reaction_scale = [dict(type='min', color=scale[0][1], size=24),
+                              dict(type='value', value=scale[0][0], color=scale[0][1], size=21),
+                              dict(type='value', value=scale[1][0], color=scale[1][1], size=16),
+                              dict(type='value', value=scale[2][0], color=scale[2][1], size=8),
+                              dict(type='value', value=scale[3][0], color=scale[3][1], size=16),
+                              dict(type='value', value=scale[4][0], color=scale[4][1], size=21),
+                              dict(type='max', color=scale[4][1], size=24)]
+
+            builder = escher.Builder(map_name=map_name, map_json=map_json, reaction_data=reaction_data,
+                                     reaction_scale=reaction_scale)
+
+            if in_ipnb():
+                from IPython.display import display
+                display(builder.display_in_notebook())
+            else:
+                builder.display_in_browser()
+
+        except ImportError:
+            print("Escher must be installed in order to visualize maps")
+
+    def _display_on_map_iteractive(self, index, map_name, **kwargs):
+        view = _MapView(self.solutions, map_name, **kwargs)
+        slider = IntSlider(min=1, max=len(self.solutions), value=index + 1)
         slider.on_trait_change(lambda x: view(slider.get_state("value")["value"]))
         display(slider)
         view(1)
 
 
 class _MapView(object):
-    def __init__(self, solutions, map_name):
+    def __init__(self, solutions, map_name, **kwargs):
         self.solutions = solutions
         self.map_name = map_name
         self.builder = None
+        self.kwargs_for_escher = kwargs
 
     def __call__(self, index):
         reaction_data = dict(self.solutions.iloc[index - 1].gaps)
@@ -420,7 +572,7 @@ class _MapView(object):
                                        reaction_scale=[
                                            dict(type='min', color="red", size=20),
                                            dict(type='median', color="grey", size=7),
-                                           dict(type='max', color='green', size=20)])
+                                           dict(type='max', color='green', size=20)], **self.kwargs_for_escher)
         display(self.builder.display_in_notebook())
 
 
@@ -464,6 +616,7 @@ class FSEOF(StrainDesignMethod):
     for improvement of lycopene production.,' Appl Environ Microbiol, vol. 76, no. 10, pp. 3097–3105, May 2010.
 
     """
+
     def __init__(self, model, primary_objective=None, *args, **kwargs):
         super(FSEOF, self).__init__(*args, **kwargs)
         self.model = model
@@ -474,18 +627,19 @@ class FSEOF(StrainDesignMethod):
             if primary_objective in model.reactions:
                 self.primary_objective = primary_objective
             else:
-                raise ValueError("The reaction "+primary_objective.id+" does not belong to the model")
+                raise ValueError("The reaction " + primary_objective.id + " does not belong to the model")
         elif isinstance(primary_objective, str):
             if primary_objective in model.reactions:
                 self.primary_objective = model.reactions.get_by_id(primary_objective)
             else:
-                raise ValueError("No reaction "+primary_objective+" found in the model")
+                raise ValueError("No reaction " + primary_objective + " found in the model")
         elif isinstance(primary_objective, type(model.objective)):
             self.primary_objective = primary_objective
         else:
             raise TypeError("Primary objective must be an Objective, Reaction or a string")
 
-    def run(self, target=None, max_enforced_flux=0.9, number_of_results=10, exclude=(), simulation_method=fba, simulation_kwargs=None):
+    def run(self, target=None, max_enforced_flux=0.9, number_of_results=10, exclude=(), simulation_method=fba,
+            simulation_kwargs=None):
         """
         Performs a Flux Scanning based on Enforced Objective Flux (FSEOF) analysis.
 
@@ -543,12 +697,14 @@ class FSEOF(StrainDesignMethod):
             initial_flux = round(initial_fluxes[target.id], ndecimals)
 
             # Find theoretical maximum of enforced reaction
-            max_theoretical_flux = round(fba(model, objective=target.id, reactions=[target.id]).fluxes[target.id], ndecimals)
+            max_theoretical_flux = round(fba(model, objective=target.id, reactions=[target.id]).fluxes[target.id],
+                                         ndecimals)
 
             max_flux = max_theoretical_flux * max_enforced_flux
 
             # Calculate enforcement levels
-            levels = [initial_flux+(i+1)*(max_flux-initial_flux)/number_of_results for i in range(number_of_results)]
+            levels = [initial_flux + (i + 1) * (max_flux - initial_flux) / number_of_results for i in
+                      range(number_of_results)]
 
             # FSEOF results
             results = {reaction.id: [] for reaction in model.reactions}
@@ -597,7 +753,7 @@ class FSEOFResult(StrainDesignResult):
                  run_args, reference, *args, **kwargs):
         super(FSEOFResult, self).__init__(*args, **kwargs)
         self._reactions = reactions
-        self._target = target.id
+        self._target = target
         self._model = model
         self._primary_objective = primary_objective
         self._run_args = run_args
@@ -618,8 +774,7 @@ class FSEOFResult(StrainDesignResult):
                                down_regulation=down_regulation, manipulation_type="reactions")
 
     def __eq__(self, other):
-        return isinstance(other, self.__class__) and \
-               self.target == other.target and self.reactions == other.reactions
+        return isinstance(other, self.__class__) and self.target == other.target and self.reactions == other.reactions
 
     @property
     def reactions(self):
@@ -663,40 +818,39 @@ class FSEOFResult(StrainDesignResult):
     @property
     def data_frame(self):
         df = pandas.DataFrame(self._reaction_results).transpose()
-        df.columns = (i+1 for i in range(len(self._enforced_levels)))
-        df.loc[self.target] = self._enforced_levels
+        df.columns = (i + 1 for i in range(len(self._enforced_levels)))
+        df.loc[self.target.id] = self._enforced_levels
         return df
 
-
-# if __name__ == '__main__':
-#     from cameo.io import load_model
-#     from cameo.util import Timer
-#
-#     model = load_model(
-#         '/Users/niko/Arbejder/Dev/cameo/tests/data/EcoliCore.xml')
-#
-#     solution = model.solve()
-#     max_growth = solution.f
-#
-#     reference_model = model.copy()
-#     biomass_rxn = model.reactions.get_by_id('Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2')
-#     reference_model.reactions.get_by_id(
-#         'Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2').lower_bound = max_growth
-#
-#     diffFVA = DifferentialFVA(design_space_model=model,
-#                               reference_model=reference_model,
-#                               objective='EX_succ_LPAREN_e_RPAREN_',
-#                               variables=['Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2',
-#                                          'EX_o2_LPAREN_e_RPAREN_'],
-#                               normalize_ranges_by='Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2',
-#                               points=10
-#                               )
-#     result = diffFVA.run(surface_only=True, view=SequentialView())
-#
-#     with Timer('Sequential'):
-#         result = diffFVA.run(surface_only=True, view=SequentialView())
-#     with Timer('Multiprocessing'):
-#         result = diffFVA.run(surface_only=True, view=MultiprocessingView())
+        # if __name__ == '__main__':
+        #     from cameo.io import load_model
+        #     from cameo.util import Timer
+        #
+        #     model = load_model(
+        #         '/Users/niko/Arbejder/Dev/cameo/tests/data/EcoliCore.xml')
+        #
+        #     solution = model.solve()
+        #     max_growth = solution.f
+        #
+        #     reference_model = model.copy()
+        #     biomass_rxn = model.reactions.get_by_id('Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2')
+        #     reference_model.reactions.get_by_id(
+        #         'Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2').lower_bound = max_growth
+        #
+        #     diffFVA = DifferentialFVA(design_space_model=model,
+        #                               reference_model=reference_model,
+        #                               objective='EX_succ_LPAREN_e_RPAREN_',
+        #                               variables=['Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2',
+        #                                          'EX_o2_LPAREN_e_RPAREN_'],
+        #                               normalize_ranges_by='Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2',
+        #                               points=10
+        #                               )
+        #     result = diffFVA.run(surface_only=True, view=SequentialView())
+        #
+        #     with Timer('Sequential'):
+        #         result = diffFVA.run(surface_only=True, view=SequentialView())
+        #     with Timer('Multiprocessing'):
+        #         result = diffFVA.run(surface_only=True, view=MultiprocessingView())
         # try:
         # from IPython.parallel import Client
         #     client = Client()

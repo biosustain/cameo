@@ -220,8 +220,10 @@ class LazySolution(SolutionBase):
             If solution has become invalid.
         """
         if self._time_stamp != self.model._timestamp_last_optimization:
-            timestamp_formatter = lambda timestamp: datetime.datetime.fromtimestamp(timestamp).strftime(
-                "%Y-%m-%d %H:%M:%S:%f")
+            def timestamp_formatter(timestamp):
+                datetime.datetime.fromtimestamp(timestamp).strftime(
+                    "%Y-%m-%d %H:%M:%S:%f")
+
             raise UndefinedSolution(
                 'The solution (captured around %s) has become invalid as the model has been re-optimized recently (%s).' % (
                     timestamp_formatter(self._time_stamp),

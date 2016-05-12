@@ -23,18 +23,6 @@ from math import sqrt
 import inspyred
 import numpy
 import six
-from cameo.strain_design.heuristic.evolutionary.archives import Individual, BestSolutionArchive
-from cameo.strain_design.heuristic.evolutionary.decoders import ReactionKnockoutDecoder, KnockoutDecoder, \
-    GeneKnockoutDecoder
-from cameo.strain_design.heuristic.evolutionary.generators import set_generator, unique_set_generator, \
-    multiple_chromosome_set_generator, linear_set_generator
-from cameo.strain_design.heuristic.evolutionary.genomes import MultipleChromosomeGenome
-from cameo.strain_design.heuristic.evolutionary.metrics import euclidean_distance
-from cameo.strain_design.heuristic.evolutionary.metrics import manhattan_distance
-from cameo.strain_design.heuristic.evolutionary.objective_functions import biomass_product_coupled_yield, \
-    product_yield, number_of_knockouts
-from cameo.strain_design.heuristic.evolutionary.variators import _do_set_n_point_crossover, set_n_point_crossover, \
-    set_mutation, set_indel, multiple_chromosome_set_mutation, multiple_chromosome_set_indel
 from cobra.manipulation.delete import find_gene_knockout_reactions
 from inspyred.ec import Bounder
 from ordered_set import OrderedSet
@@ -43,12 +31,29 @@ from six.moves import range
 
 from cameo import load_model, fba
 from cameo.parallel import SequentialView, RedisQueue
+from cameo.strain_design.heuristic.evolutionary.archives import Individual, BestSolutionArchive
+from cameo.strain_design.heuristic.evolutionary.decoders import ReactionKnockoutDecoder, KnockoutDecoder, \
+    GeneKnockoutDecoder
+from cameo.strain_design.heuristic.evolutionary.generators import set_generator, unique_set_generator, \
+    multiple_chromosome_set_generator, linear_set_generator
+from cameo.strain_design.heuristic.evolutionary.genomes import MultipleChromosomeGenome
+from cameo.strain_design.heuristic.evolutionary.metrics import euclidean_distance
+from cameo.strain_design.heuristic.evolutionary.metrics import manhattan_distance
 from cameo.strain_design.heuristic.evolutionary.multiprocess.migrators import MultiprocessingMigrator
+from cameo.strain_design.heuristic.evolutionary.objective_functions import biomass_product_coupled_yield, \
+    product_yield, number_of_knockouts
 from cameo.strain_design.heuristic.evolutionary.optimization import HeuristicOptimization, \
     ReactionKnockoutOptimization, set_distance_function, KnockoutOptimizationResult
+from cameo.strain_design.heuristic.evolutionary.variators import _do_set_n_point_crossover, set_n_point_crossover, \
+    set_mutation, set_indel, multiple_chromosome_set_mutation, multiple_chromosome_set_indel
 from cameo.util import RandomGenerator as Random
 
 TRAVIS = os.getenv('TRAVIS', False)
+
+if os.getenv('REDIS_PORT_6379_TCP_ADDR'):
+    REDIS_HOST = os.getenv('REDIS_PORT_6379_TCP_ADDR')  # wercker
+else:
+    REDIS_HOST = 'localhost'
 
 SEED = 1234
 
@@ -74,11 +79,11 @@ SOLUTIONS = [
 class TestMetrics(unittest.TestCase):
     def test_euclidean_distance(self):
         distance = euclidean_distance({'a': 9}, {'a': 3})
-        self.assertEqual(distance, sqrt((9-3)**2))
+        self.assertEqual(distance, sqrt((9 - 3) ** 2))
 
     def test_manhattan_distance(self):
         distance = manhattan_distance({'a': 9}, {'a': 3})
-        self.assertEqual(distance, abs(9-3))
+        self.assertEqual(distance, abs(9 - 3))
 
 
 class TestBestSolutionArchive(unittest.TestCase):
@@ -111,7 +116,6 @@ class TestBestSolutionArchive(unittest.TestCase):
         self.assertFalse(sol1.__gt__(sol1))
         self.assertFalse(sol2.__lt__(sol1))
         self.assertFalse(sol3.__gt__(sol1))
-
 
         # testing issubset
         self.assertTrue(sol1.issubset(sol2), msg="Solution 1 is subset of Solution 2")
@@ -592,21 +596,23 @@ class TestMigrators(unittest.TestCase):
         self.population = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
         self.random = Random(SEED)
 
+    # unittest.skipIf(os.getenv('WERCKER', False), 'Currently not working on wercker as redis is not running on localhost')
     def test_migrator_constructor(self):
-        migrator = MultiprocessingMigrator(max_migrants=1)
+        migrator = MultiprocessingMigrator(max_migrants=1, host=REDIS_HOST)
         self.assertIsInstance(migrator.migrants, RedisQueue)
         self.assertEqual(migrator.max_migrants, 1)
 
-        migrator = MultiprocessingMigrator(max_migrants=2)
+        migrator = MultiprocessingMigrator(max_migrants=2, host=REDIS_HOST)
         self.assertIsInstance(migrator.migrants, RedisQueue)
         self.assertEqual(migrator.max_migrants, 2)
 
-        migrator = MultiprocessingMigrator(max_migrants=3)
+        migrator = MultiprocessingMigrator(max_migrants=3, host=REDIS_HOST)
         self.assertIsInstance(migrator.migrants, RedisQueue)
         self.assertEqual(migrator.max_migrants, 3)
 
+    # unittest.skipIf(os.getenv('WERCKER', False), 'Currently not working on wercker as redis is not running on localhost')
     def test_migrate_individuals_without_evaluation(self):
-        migrator = MultiprocessingMigrator(max_migrants=1)
+        migrator = MultiprocessingMigrator(max_migrants=1, host=REDIS_HOST)
         self.assertIsInstance(migrator.migrants, RedisQueue)
         self.assertEqual(migrator.max_migrants, 1)
 
@@ -729,7 +735,6 @@ class TestReactionKnockoutOptimization(unittest.TestCase):
 
 
 class VariatorTestCase(unittest.TestCase):
-
     def test_set_n_point_crossover(self):
         mom = OrderedSet([1, 3, 5, 9, 10])
         dad = OrderedSet([2, 3, 7, 8])

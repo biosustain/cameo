@@ -18,7 +18,8 @@ from functools import reduce
 
 import inspyred
 from cameo.strain_design.heuristic.evolutionary.multiprocess.migrators import MultiprocessingMigrator
-from cameo.strain_design.heuristic.evolutionary.multiprocess.observers import IPythonNotebookMultiprocessProgressObserver, \
+from cameo.strain_design.heuristic.evolutionary.multiprocess.observers import \
+    IPythonNotebookMultiprocessProgressObserver, \
     CliMultiprocessProgressObserver
 from six.moves import range
 
@@ -27,10 +28,10 @@ from cameo import parallel
 from cameo import util
 from cameo.flux_analysis.simulation import pfba
 from cameo.strain_design.heuristic.evolutionary import ReactionKnockoutOptimization, GeneKnockoutOptimization
-from cameo.strain_design.heuristic.evolutionary.multiprocess.plotters import IPythonNotebookBokehMultiprocessPlotObserver
+from cameo.strain_design.heuristic.evolutionary.multiprocess.plotters import \
+    IPythonNotebookBokehMultiprocessPlotObserver
 from cameo.strain_design.heuristic.evolutionary.optimization import KnockoutOptimizationResult
 from cameo.strain_design.strain_design import StrainDesignMethod
-
 
 __all__ = ['MultiprocessReactionKnockoutOptimization', 'MultiprocessGeneKnockoutOptimization']
 
@@ -69,8 +70,8 @@ class MultiprocessHeuristicOptimization(StrainDesignMethod):
     """
     Heuristic Optimization abstract implementation.
 
-    Arguments
-    ---------
+    Attributes
+    ----------
 
     model: SolverBasedModel
         A model to simulate.
@@ -80,17 +81,21 @@ class MultiprocessHeuristicOptimization(StrainDesignMethod):
         The method using for search (default: inspyred.ec.GA).
     max_migrants: int
         The number of individuals travelling between islands (different processes) at the same time (default: 1).
+    migrator: MultiprocessingMigrator
+        If None, it will try to initialize on localhost.
 
     """
     _island_class = None
 
-    def __init__(self, model=None, objective_function=None, heuristic_method=inspyred.ec.GA, max_migrants=1, *args,
-                 **kwargs):
+    def __init__(self, model=None, objective_function=None, heuristic_method=inspyred.ec.GA, max_migrants=1,
+                 migrator=None, *args, **kwargs):
         super(MultiprocessHeuristicOptimization, self).__init__(*args, **kwargs)
         self.model = model
         self.objective_function = objective_function
         self.heuristic_method = heuristic_method
-        self.migrator = MultiprocessingMigrator(max_migrants)
+        if migrator is None:
+            migrator = MultiprocessingMigrator(max_migrants)
+        self.migrator = migrator
         self.observers = []
 
     def _init_kwargs(self):
@@ -118,8 +123,8 @@ class MultiprocessKnockoutOptimization(MultiprocessHeuristicOptimization):
     """
     Heuristic Knockout Optimization Abstract implementation.
 
-    Arguments
-    ---------
+    Attributes
+    ----------
 
     model: SolverBasedModel
         A model to simulate.
@@ -183,8 +188,8 @@ class MultiprocessReactionKnockoutOptimization(MultiprocessKnockoutOptimization)
     """
     Heuristic Knockout Optimization Reaction implementation.
 
-    Arguments
-    ---------
+    Attributes
+    ----------
 
     model: SolverBasedModel
         A model to simulate.
@@ -226,8 +231,8 @@ class MultiprocessGeneKnockoutOptimization(MultiprocessKnockoutOptimization):
     """
     Heuristic Knockout Optimization Gene implementation.
 
-    Arguments
-    ---------
+    Attributes
+    ----------
 
     model: SolverBasedModel
         A model to simulate.

@@ -15,7 +15,11 @@ import json
 import escher
 
 from uuid import uuid4
-from IPython.display import Javascript, display
+
+try:
+    from IPython.display import Javascript, display
+except ImportError:
+    pass
 
 
 def _builders_var():
@@ -45,11 +49,11 @@ class NotebookBuilder(escher.Builder):
                         '\tbuilder.set_metabolite_data(metabolite_data_{the_id});\n'
                         '\tbuilder.set_gene_data(gene_data_{the_id});\n'
                         '}}'.format(
-                            the_id=self.the_id,
-                            reaction_data=(json.dumps(self.reaction_data) if self.reaction_data else 'null'),
-                            metabolite_data=(json.dumps(self.metabolite_data) if self.metabolite_data else 'null'),
-                            gene_data=(json.dumps(self.gene_data) if self.gene_data else 'null'),
-                            reaction_scale=json.dumps(reaction_scale) if reaction_scale else 'builder.options.reaction_scale'))
+            the_id=self.the_id,
+            reaction_data=(json.dumps(self.reaction_data) if self.reaction_data else 'null'),
+            metabolite_data=(json.dumps(self.metabolite_data) if self.metabolite_data else 'null'),
+            gene_data=(json.dumps(self.gene_data) if self.gene_data else 'null'),
+            reaction_scale=json.dumps(reaction_scale) if reaction_scale else 'builder.options.reaction_scale'))
         display(js)
 
     def _draw_js(self, the_id, enable_editing, menu, enable_keys, dev,

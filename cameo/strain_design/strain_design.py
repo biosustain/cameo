@@ -17,6 +17,7 @@ from cameo import ui
 from pandas import DataFrame
 
 from cameo.core.result import Result
+from cameo.util import frozendict
 
 
 class StrainDesignMethod(object):
@@ -32,11 +33,11 @@ class StrainDesignMethod(object):
 
 class StrainDesign(object):
     def __init__(self, knockouts=None, knock_ins=None, over_expression=None, down_regulation=None,
-                 manipulation_type="gene"):
+                 manipulation_type="genes"):
         self.knockouts = knockouts or []
         self.knock_ins = knock_ins or []
-        self.over_expression = over_expression or {}
-        self.down_regulation = down_regulation or {}
+        self.over_expression = frozendict(over_expression or {})
+        self.down_regulation = frozendict(down_regulation or {})
         self.manipulation_type = manipulation_type
 
     def __repr__(self):
@@ -48,8 +49,8 @@ class StrainDesign(object):
     def __iter__(self):
         yield tuple(set(self.knockouts))
         yield tuple(set(self.knock_ins))
-        yield tuple(set(self.over_expression))
-        yield tuple(set(self.down_regulation))
+        yield self.over_expression
+        yield self.down_regulation
 
 
 class StrainDesignResult(Result):
@@ -109,4 +110,3 @@ class StrainDesignEnsemble(StrainDesignResult):
     def data_frame(self):
         return DataFrame(zip([design for design in self], self._methods),
                          columns=["knockouts", "knockins", "over_expression", "downregulation", "method"])
-

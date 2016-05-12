@@ -14,30 +14,54 @@
 
 from __future__ import absolute_import, print_function
 
-import six
-from six.moves import range
-
+import colorsys
+import itertools
+import logging
+import platform
 import re
 from collections import OrderedDict
-from uuid import uuid1
-from time import time
 from datetime import datetime
-import colorsys
-from functools import wraps
-import numpy as np
-from numpy.linalg import svd
-
-import pip
-import platform
-from itertools import islice
 from functools import partial
+from functools import wraps
+from itertools import islice
+from time import time
+from uuid import uuid1
 
+import numpy as np
 import pandas
+import pip
+import six
+from numpy.linalg import svd
 from numpy.random import RandomState
-
-import logging
+from six.moves import range
 
 logger = logging.getLogger(__name__)
+
+
+class frozendict(dict):
+    def __init__(self, iterable, **kwargs):
+        super(frozendict, self).__init__(iterable, **kwargs)
+
+    def popitem(self):
+        raise AttributeError("'frozendict' object has no attribute 'popitem")
+
+    def pop(self, k, d=None):
+        raise AttributeError("'frozendict' object has no attribute 'pop")
+
+    def __setitem__(self, key, value):
+        raise AttributeError("'frozendict' object has no attribute '__setitem__")
+
+    def setdefault(self, k, d=None):
+        raise AttributeError("'frozendict' object has no attribute 'setdefault")
+
+    def __delitem__(self, key):
+        raise AttributeError("'frozendict' object has no attribute '__delitem__")
+
+    def __hash__(self):
+        return hash(tuple(sorted(self.items())))
+
+    def update(self, E=None, **F):
+        raise AttributeError("'frozendict' object has no attribute 'update")
 
 
 class ProblemCache(object):
@@ -51,11 +75,13 @@ class ProblemCache(object):
     generates an invalid state.
 
     """
+
     def __init__(self, model):
         self.time_machine = None
         self._model = model
         self.variables = {}
         self.constraints = {}
+        self.objective = None
         self.original_objective = model.objective
         self.time_machine = TimeMachine()
         self.transaction_id = None
@@ -75,16 +101,16 @@ class ProblemCache(object):
         (expression, lb, ub, name) = constraint.expression, constraint.lb, constraint.ub, constraint.name
 
         def rebuild():
-            self.model.solver._remove_constraint(constraint)
+            self._model.solver._remove_constraint(constraint)
             new_constraint = self.model.solver.interface.Constraint(expression, lb=lb, ub=ub, name=name)
             self.constraints[name] = new_constraint
-            self.model.solver._add_constraint(new_constraint, sloppy=True)
+            self._model.solver._add_constraint(new_constraint, sloppy=True)
 
         return rebuild
 
     def _append_constraint(self, constraint_id, create, *args, **kwargs):
         self.constraints[constraint_id] = create(self.model, constraint_id, *args, **kwargs)
-        self.model.solver._add_constraint(self.constraints[constraint_id])
+        self._model.solver._add_constraint(self.constraints[constraint_id])
 
     def _remove_constraint(self, constraint_id):
         constraint = self.constraints.pop(constraint_id)
@@ -130,9 +156,7 @@ class ProblemCache(object):
         """
         if constraint_id in self.constraints:
             if update is not None:
-                self.time_machine(
-                    do=partial(update, self.model, self.constraints[constraint_id], *args, **kwargs),
-                    undo=self._rebuild_constraint(self.constraints[constraint_id]))
+                update(self.model, self.constraints[constraint_id], *args, **kwargs)
         else:
             self.time_machine(
                 do=partial(self._append_constraint, constraint_id, create, *args, **kwargs),
@@ -169,6 +193,21 @@ class ProblemCache(object):
                 undo=partial(self._remove_variable, variable_id)
             )
 
+    def add_objective(self, create, update, *args):
+        if self.objective is None:
+            self.objective = create(self.model, *args)
+            self.time_machine(
+                do=partial(setattr, self.model, 'objective', self.objective),
+                undo=partial(setattr, self.model, 'objective', self.model.objective)
+            )
+        else:
+            if update:
+                self.objective = update(self.model, *args)
+                self.time_machine(
+                    do=partial(setattr, self.model, 'objective', self.objective),
+                    undo=partial(setattr, self.model, 'objective', self.model.objective)
+                )
+
     def reset(self):
         """
         Removes all constraints and variables from the cache.
@@ -177,6 +216,7 @@ class ProblemCache(object):
         self.model.solver._remove_variables(self.variables.values())
         self.model.objective = self.original_objective
         self.variables = {}
+        self.objective = None
         self.constraints = {}
         self.transaction_id = None
         self.time_machine.history.clear()
@@ -234,7 +274,7 @@ class Singleton(object):
 
     def __new__(cls, *args, **kwargs):
         if not cls._instance:
-            cls._instance = super(Singleton, cls).__new__(cls, *args, **kwargs)
+            cls._instance = super(Singleton, cls).__new__(cls)
         return cls._instance
 
 
@@ -287,14 +327,14 @@ class TimeMachine(object):
         info += datetime.fromtimestamp(entry['unix_epoch']).strftime('%Y-%m-%d %H:%M:%S') + '\n'
         undo_entry = entry['undo']
         try:
-            elements = undo_entry.func, undo_entry.args, undo_entry.keywords  # partial
+            elements = undo_entry.func, undo_entry.args, undo_entry.keywords or {}  # partial  (if .keywords is None print {} instead)
             info += 'undo: ' + ' '.join([str(elem) for elem in elements]) + '\n'
         except AttributeError:  # normal python function
             info += 'undo: ' + undo_entry.__name__ + '\n'
 
         redo_entry = entry['redo']
         try:
-            elements = redo_entry.func, redo_entry.args, redo_entry.keywords  # partial
+            elements = redo_entry.func, redo_entry.args, redo_entry.keywords or {}  # partial
             info += 'redo: ' + ' '.join([str(elem) for elem in elements]) + '\n'
         except AttributeError:
             info += 'redo: ' + redo_entry.__name__ + '\n'
@@ -388,9 +428,10 @@ class DocInherit(object):
 
         for parent in cls.__mro__[1:]:
             overridden = getattr(parent, self.name, None)
-            if overridden: break
+            if overridden:
+                break
 
-        @wraps(self.mthd, assigned=('__name__','__module__'))
+        @wraps(self.mthd, assigned=('__name__', '__module__'))
         def f(*args, **kwargs):
             return self.mthd(*args, **kwargs)
 
@@ -402,33 +443,8 @@ class DocInherit(object):
         func.__doc__ = source.__doc__
         return func
 
+
 doc_inherit = DocInherit
-
-
-# class DisplayItemsWidget(progressbar.widgets.Widget):
-#     """Display an items[pbar.currval]
-#
-#     Examples
-#     --------
-#     import time
-#     from progressbar import Progressbar, widges
-#     pbar = ProgressBar(widgets=[DisplayItemsWidget(["asdf"+str(i) for i in range(10)]), widgets.Bar()])
-#     pbar.maxval = 10
-#     pbar.start()
-#     for i in range(10):
-#         time.sleep(.2)
-#         pbar.update(i)
-#     pbar.finish()
-#     """
-#
-#     def __init__(self, items):
-#         self.items = items
-#
-#     def update(self, pbar):
-#         try:
-#             return "%s" % self.items[pbar.currval]
-#         except IndexError:
-#             return ""
 
 
 def partition_(lst, n):
@@ -546,3 +562,21 @@ def str_to_valid_variable_name(s):
     s = re.sub('^[^a-zA-Z_]+', '', s)
 
     return s
+
+
+def zip_repeat(long_iter, short_iter):
+    """
+    Zips two iterable objects but repeats the second one if it is shorter than the first one.
+
+    Parameters
+    ----------
+    long_iter: iterable
+
+    short_iter: iterable
+
+    Returns
+    -------
+    generator
+    """
+    for i, j in zip(long_iter, itertools.cycle(short_iter)):
+        yield i, j

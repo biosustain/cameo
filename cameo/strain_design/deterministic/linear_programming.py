@@ -14,37 +14,28 @@
 
 from __future__ import print_function
 
-import warnings
-import numpy
 import logging
-
-from cameo.visualization import plotting
-
-from pandas import DataFrame
-
+import warnings
 from functools import partial
 
-from sympy import Add
-
-from cameo import ui
-from cameo import config
-
-from cameo.util import TimeMachine
-
-from cameo.flux_analysis import flux_balance_impact_degree, phenotypic_phase_plane, flux_variability_analysis
-from cameo.exceptions import SolveError
-
-from cameo.core.solver_based_model import SolverBasedModel
-from cameo.core.solver_based_model_dual import convert_to_dual
-from cameo.core.reaction import Reaction
-
-from cameo.strain_design.strain_design import StrainDesignMethod, StrainDesign, StrainDesignResult
-
+import numpy
 from IProgress.progressbar import ProgressBar
 from IProgress.widgets import Bar, Percentage
+from pandas import DataFrame
+from sympy import Add
+
+from cameo import config
+from cameo import ui
+from cameo.core.reaction import Reaction
+from cameo.core.solver_based_model_dual import convert_to_dual
+from cameo.exceptions import SolveError
+from cameo.flux_analysis.analysis import phenotypic_phase_plane, flux_variability_analysis
+from cameo.flux_analysis.simulation import fba
+from cameo.strain_design.strain_design import StrainDesignMethod, StrainDesign, StrainDesignResult
+from cameo.util import TimeMachine
+from cameo.visualization.plotting import plotter
 
 logger = logging.getLogger(__name__)
-
 
 __all__ = ["OptKnock"]
 
@@ -67,6 +58,11 @@ class OptKnock(StrainDesignMethod):
     remove_blocked : boolean (default True)
         If True, reactions that cannot carry flux (determined by FVA) will be removed from the model.
         This reduces running time significantly.
+    fraction_of_optimum : If not None, this value will be used to constrain the inner objective (e.g. growth) to
+        a fraction of the optimal inner objective value. If inner objective is not constrained manually
+        this argument should be used. (Default: None)
+    exclude_non_gene_reactions : If True (default), reactions that are not associated with genes will not be
+        knocked out. This results in more practically relevant solutions as well as shorter running times.
 
     Examples
     --------
@@ -78,15 +74,17 @@ class OptKnock(StrainDesignMethod):
     >>> optknock = OptKnock(model)
     >>> result = optknock.run(k=2, target="EX_ac_e", max_results=3)
     """
-    def __init__(self, model, exclude_reactions=None, remove_blocked=True, fraction_of_optimum=None, *args, **kwargs):
-        assert isinstance(model, SolverBasedModel)
+
+    def __init__(self, model, exclude_reactions=None, remove_blocked=True, fraction_of_optimum=0.1,
+                 exclude_non_gene_reactions=True, *args, **kwargs):
         super(OptKnock, self).__init__(*args, **kwargs)
         self._model = model.copy()
         self._original_model = model
 
         if "cplex" in config.solvers:
             logger.debug("Changing solver to cplex and tweaking some parameters.")
-            self._model.solver = "cplex"
+            if "cplex_interface" not in self._model.solver.interface.__name__:
+                self._model.solver = "cplex"
             problem = self._model.solver.problem
             problem.parameters.mip.strategy.startalgorithm.set(1)
             problem.parameters.simplex.tolerances.feasibility.set(1e-8)
@@ -102,6 +100,10 @@ class OptKnock(StrainDesignMethod):
             self._model.fix_objective_as_constraint(fraction=fraction_of_optimum)
         if remove_blocked:
             self._remove_blocked_reactions()
+        if not exclude_reactions:
+            exclude_reactions = []
+        if exclude_non_gene_reactions:
+            exclude_reactions += [r for r in self._model.reactions if not r.genes]
 
         self._build_problem(exclude_reactions)
 
@@ -110,8 +112,7 @@ class OptKnock(StrainDesignMethod):
         blocked = [
             self._model.reactions.get_by_id(reaction) for reaction, row in fva_res.data_frame.iterrows()
             if (round(row["lower_bound"], config.ndecimals) ==
-                round(row["upper_bound"], config.ndecimals) == 0)
-        ]
+                round(row["upper_bound"], config.ndecimals) == 0)]
         self._model.remove_reactions(blocked)
 
     def _build_problem(self, essential_reactions):
@@ -119,7 +120,8 @@ class OptKnock(StrainDesignMethod):
 
         self.essential_reactions = self._model.essential_reactions() + self._model.exchanges
         if essential_reactions:
-            for ess_reac in essential_reactions:
+            essential_reactions, essential_reactions_copy = [], list(essential_reactions)
+            for ess_reac in essential_reactions_copy:
                 if isinstance(ess_reac, Reaction):
                     essential_reactions.append(self._model.reactions.get_by_id(ess_reac.id))
                 elif isinstance(essential_reactions, str):
@@ -184,20 +186,20 @@ class OptKnock(StrainDesignMethod):
 
     def _add_knockout_constraints(self, reaction):
         interface = self._model.solver.interface
-        y_var = interface.Variable("y_"+reaction.id, type="binary")
+        y_var = interface.Variable("y_" + reaction.id, type="binary")
 
-        self._model.solver.add(interface.Constraint(reaction.flux_expression-1000*y_var, ub=0))
-        self._model.solver.add(interface.Constraint(reaction.flux_expression+1000*y_var, lb=0))
+        self._model.solver.add(interface.Constraint(reaction.flux_expression - 1000 * y_var, ub=0))
+        self._model.solver.add(interface.Constraint(reaction.flux_expression + 1000 * y_var, lb=0))
 
         constrained_vars = []
 
         if reaction.upper_bound != 0:
-            dual_forward_ub = self._model.solver.variables["dual_"+reaction.forward_variable.name+"_ub"]
-            self._model.solver.add(interface.Constraint(dual_forward_ub-1000*(1-y_var), ub=0))
+            dual_forward_ub = self._model.solver.variables["dual_" + reaction.forward_variable.name + "_ub"]
+            self._model.solver.add(interface.Constraint(dual_forward_ub - 1000 * (1 - y_var), ub=0))
             constrained_vars.append(dual_forward_ub)
         if reaction.lower_bound != 0:
-            dual_reverse_ub = self._model.solver.variables["dual_"+reaction.reverse_variable.name+"_ub"]
-            self._model.solver.add(interface.Constraint(dual_reverse_ub - 1000*(1-y_var), ub=0))
+            dual_reverse_ub = self._model.solver.variables["dual_" + reaction.reverse_variable.name + "_ub"]
+            self._model.solver.add(interface.Constraint(dual_reverse_ub - 1000 * (1 - y_var), ub=0))
             constrained_vars.append(dual_reverse_ub)
 
         return y_var, constrained_vars
@@ -238,7 +240,7 @@ class OptKnock(StrainDesignMethod):
                 try:
                     solution = self._model.solve()
                 except SolveError as e:
-                    logger.debug("Problem could not be solved. Terminating and returning "+str(count)+" solutions")
+                    logger.debug("Problem could not be solved. Terminating and returning " + str(count) + " solutions")
                     logger.debug(str(e))
                     break
 
@@ -254,7 +256,7 @@ class OptKnock(StrainDesignMethod):
                 y_vars_to_cut = [y for y in self._y_vars if round(y.primal, 3) == 0]
                 integer_cut = self._model.solver.interface.Constraint(Add(*y_vars_to_cut),
                                                                       lb=1,
-                                                                      name="integer_cut_"+str(count))
+                                                                      name="integer_cut_" + str(count))
 
                 if len(knockouts) < max_knockouts:
                     self._number_of_knockouts_constraint.lb = self._number_of_knockouts_constraint.ub - len(knockouts)
@@ -287,12 +289,14 @@ class OptKnockResult(StrainDesignResult):
     def _process_knockouts(self):
         progress = ProgressBar(maxval=len(self._designs), widgets=["Processing solutions: ", Bar(), Percentage()])
 
-        self._processed_knockouts = DataFrame(columns=["knockouts", "size", "biomass",
-                                                       self._target, "fva_min", "fva_max"])
+        self._processed_knockouts = DataFrame(columns=["reactions", "size", self._target,
+                                                       "biomass", "fva_min", "fva_max"])
 
         for i, knockouts in progress(enumerate(self._designs)):
             try:
-                fva = flux_variability_analysis(self._model, fraction_of_optimum=0.99, reactions=[self.target])
+                with TimeMachine() as tm:
+                    [self._model.reactions.get_by_id(ko).knock_out(time_machine=tm) for ko in knockouts]
+                    fva = flux_variability_analysis(self._model, fraction_of_optimum=0.99, reactions=[self.target])
                 self._processed_knockouts.loc[i] = [knockouts, len(knockouts), self.production[i], self.biomass[i],
                                                     fva.lower_bound(self.target), fva.upper_bound(self.target)]
             except SolveError:
@@ -318,18 +322,36 @@ class OptKnockResult(StrainDesignResult):
     def target(self):
         return self._target
 
-    def plot(self, index, grid=None, width=None, height=None, title=None, *args, **kwargs):
+    def display_on_map(self, index=0, map_name=None, palette="YlGnBu"):
+        with TimeMachine() as tm:
+            for ko in self.data_frame.loc[index, "reactions"]:
+                self._model.reactions.get_by_id(ko).knock_out(tm)
+            fluxes = fba(self._model)
+            fluxes.display_on_map(map_name=map_name, palette=palette)
+
+    def plot(self, index=0, grid=None, width=None, height=None, title=None, palette=None, **kwargs):
         wt_production = phenotypic_phase_plane(self._model, objective=self._target, variables=[self._biomass.id])
         with TimeMachine() as tm:
-            for ko in self._designs[index]:
+            for ko in self.data_frame.loc[index, "reactions"]:
                 self._model.reactions.get_by_id(ko).knock_out(tm)
 
             mt_production = phenotypic_phase_plane(self._model, objective=self._target, variables=[self._biomass.id])
-        plotting.plot_2_production_envelopes(wt_production.data_frame,
-                                             mt_production.data_frame,
-                                             self._target,
-                                             self._biomass.id,
-                                             **kwargs)
+        if title is None:
+            title = "Production Envelope"
+
+        dataframe = DataFrame(columns=["ub", "lb", "value", "strain"])
+        for _, row in wt_production.iterrows():
+            _df = DataFrame([[row['objective_upper_bound'], row['objective_lower_bound'], row[self._biomass.id], "WT"]],
+                            columns=dataframe.columns)
+            dataframe = dataframe.append(_df)
+        for _, row in mt_production.iterrows():
+            _df = DataFrame([[row['objective_upper_bound'], row['objective_lower_bound'], row[self._biomass.id], "MT"]],
+                            columns=dataframe.columns)
+            dataframe = dataframe.append(_df)
+
+        plot = plotter.production_envelope(dataframe, grid=grid, width=width, height=height, title=title,
+                                           x_axis_label=self._biomass.id, y_axis_label=self._target, palette=palette)
+        plotter.display(plot)
 
     @property
     def data_frame(self):
@@ -337,6 +359,7 @@ class OptKnockResult(StrainDesignResult):
             self._process_knockouts()
         data_frame = DataFrame(self._processed_knockouts)
         data_frame.sort_values("size", inplace=True)
+        data_frame.index = [i for i in range(len(data_frame))]
         return data_frame
 
     def _repr_html_(self):

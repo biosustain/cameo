@@ -14,8 +14,7 @@
 
 from __future__ import absolute_import
 
-__all__ = ['universal']
-
+import sys
 import os
 import glob
 import cameo
@@ -24,6 +23,8 @@ from cameo import util
 
 from functools import partial
 from lazy_object_proxy import Proxy
+
+__all__ = ['universal']
 
 
 class ModelDB(object):
@@ -35,3 +36,5 @@ universal = ModelDB()
 for file_path in glob.glob(os.path.join(os.path.dirname(cameo.__file__), 'models', 'universal_models', '*.json')):
     model_id = os.path.splitext(os.path.basename(file_path))[0]
     setattr(universal, util.str_to_valid_variable_name(model_id), Proxy(partial(load_model, file_path)))
+
+sys.modules[__name__] = universal

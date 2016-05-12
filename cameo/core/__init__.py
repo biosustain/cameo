@@ -13,4 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""This package implements the basic data structures (models, reactions etc.) used in cameo.
+"""
+
 from .solver_based_model import *

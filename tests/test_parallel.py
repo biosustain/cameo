@@ -14,15 +14,14 @@
 
 from __future__ import absolute_import, print_function
 
-import six.moves.queue
-
+import os
 import unittest
 import warnings
-from cameo.parallel import SequentialView
-import subprocess
-from time import sleep
 from multiprocessing import cpu_count
-import os
+
+import six.moves.queue
+
+from cameo.parallel import SequentialView
 
 try:
     with warnings.catch_warnings():
@@ -40,6 +39,12 @@ SOLUTION = [x ** 2 for x in range(100)]
 
 TRAVIS = os.getenv('TRAVIS', False)
 SKIP_PARALLEL = TRAVIS
+
+if os.getenv('REDIS_PORT_6379_TCP_ADDR'):
+    REDIS_HOST = os.getenv('REDIS_PORT_6379_TCP_ADDR')  # wercker
+else:
+    REDIS_HOST = 'localhost'
+
 
 @interactive
 def to_the_power_of_2_interactive(arg):
@@ -64,6 +69,7 @@ class TestSequentialView(unittest.TestCase):
 
 try:
     from cameo.parallel import MultiprocessingView
+
 
     @unittest.skipIf(SKIP_PARALLEL, "This is Travis")
     class TestMultiprocessingView(unittest.TestCase):
@@ -92,13 +98,16 @@ except ImportError:
 try:
     from cameo.parallel import RedisQueue
 
+
     class TestRedisQueue(unittest.TestCase):
         def test_queue_size(self):
-            queue = RedisQueue("test-queue-size-1", maxsize=1)
+            print(REDIS_HOST)
+            print(os.getenv('REDIS_PORT_6379_TCP_ADDR'))
+            queue = RedisQueue("test-queue-size-1", maxsize=1, host=REDIS_HOST)
             queue.put(1)
             self.assertRaises(six.moves.queue.Full, queue.put, 1)
 
-            queue = RedisQueue("test-queue-size-2", maxsize=2)
+            queue = RedisQueue("test-queue-size-2", maxsize=2, host=REDIS_HOST)
             queue.put(1)
             queue.put(1)
             self.assertRaises(six.moves.queue.Full, queue.put, 1)
@@ -107,7 +116,7 @@ try:
             self.assertRaises(six.moves.queue.Empty, queue.get_nowait)
 
         def test_queue_objects(self):
-            queue = RedisQueue("test-queue", maxsize=100)
+            queue = RedisQueue("test-queue", maxsize=100, host=REDIS_HOST)
             # put int
             queue.put(1)
             v = queue.get_nowait()
@@ -140,7 +149,7 @@ try:
             self.assertIsInstance(v, dict)
 
         def test_queue_len(self):
-            queue = RedisQueue("test-queue-len", maxsize=100)
+            queue = RedisQueue("test-queue-len", maxsize=100, host=REDIS_HOST)
             self.assertEqual(queue.length, 0)
             queue.put(1)
             self.assertEqual(queue.length, 1)
@@ -157,7 +166,6 @@ try:
 
 except ImportError:
     print("Skipping MultiprocessingView tests ...")
-
 
 # class TestIPythonParallelView(unittest.TestCase):
 # def setUp(self):

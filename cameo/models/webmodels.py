@@ -22,19 +22,16 @@ http://darwin.di.uminho.pt/models and http://bigg.ucsd.edu databases
 
 from __future__ import absolute_import, print_function
 
-
 __all__ = ['index_models_minho', 'index_models_bigg', 'bigg', 'minho']
 
 import io
 import tempfile
-import json
 from functools import partial
 
 import requests
 from pandas import DataFrame
 import lazy_object_proxy
 import optlang
-
 
 from cobra.io import load_json_model, read_sbml_model
 
@@ -50,6 +47,30 @@ class NotFoundException(Exception):
     def __init__(self, type, index, *args, **kwargs):
         message = "Could not retrieve %s for entry with index %i" % (type, index)
         Exception.__init__(self, message, *args, **kwargs)
+
+
+def load_webmodel(query, solver_interface):
+    logger.debug('Querying webmodels ... trying http://bigg.ucsd.edu first')
+    try:
+        model = get_model_from_bigg(query, solver_interface=solver_interface)
+    except Exception:
+        logger.debug('Querying webmodels ... trying minho next')
+        try:
+            df = index_models_minho()
+        except requests.ConnectionError as e:
+            logger.error("You need to be connected to the internet to load an online model.")
+            raise e
+        except Exception as e:
+            logger.error("Something went wrong while looking up available webmodels.")
+            raise e
+        try:
+            index = df.query('name == "%s"' % query).id.values[0]
+            model = get_model_from_uminho(index)
+            # handle = get_sbml_file(index)
+            # path = handle.name
+        except IndexError:
+            raise ValueError("%s is neither a file nor a model ID." % query)
+    return model
 
 
 def index_models_minho(host="http://darwin.di.uminho.pt/models"):
@@ -147,9 +168,11 @@ bigg = ModelDB()
 try:
     model_ids = index_models_bigg().bigg_id
 except requests.ConnectionError:
-    bigg.no_models_available = "Cameo couldn't reach http://bigg.ucsd.edu at initialization time. Are you connected to the internet?"
+    bigg.no_models_available = "Cameo couldn't reach http://bigg.ucsd.edu at initialization time." \
+                               "Are you connected to the internet?"
 except Exception as e:
-    bigg.no_models_available = "Cameo could reach http://bigg.ucsd.edu at initialization time but something went wrong while decoding the server response."
+    bigg.no_models_available = "Cameo could reach http://bigg.ucsd.edu at initialization time" \
+                               "but something went wrong while decoding the server response."
     logger.debug(e)
 else:
     for id in model_ids:
@@ -159,10 +182,12 @@ minho = ModelDB()
 try:
     minho_models = index_models_minho()
 except requests.ConnectionError as e:
-    minho.no_models_available = "Cameo couldn't reach http://darwin.di.uminho.pt/models at initialization time. Are you connected to the internet?"
+    minho.no_models_available = "Cameo couldn't reach http://darwin.di.uminho.pt/models at initialization time." \
+                                "Are you connected to the internet?"
     logger.debug(e)
 except Exception as e:
-    minho.no_models_available = "Cameo could reach http://darwin.di.uminho.pt/models at initialization time but something went wrong while decoding the server response."
+    minho.no_models_available = "Cameo could reach http://darwin.di.uminho.pt/models at initialization time" \
+                                "but something went wrong while decoding the server response."
     logger.debug(e)
 else:
     model_indices = minho_models.id

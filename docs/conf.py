@@ -13,7 +13,6 @@
 # serve to show the default.
 
 import sys
-import os
 
 import alabaster
 
@@ -58,8 +57,11 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.ifconfig',
     'sphinx.ext.viewcode',
-    'sphinx.ext.napoleon'
+    'sphinx.ext.napoleon',
+    'sphinx.ext.intersphinx'
 ]
+
+intersphinx_mapping = {'cobrapy': ('https://cobrapy.readthedocs.org/en/latest/', None)}
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -84,7 +86,7 @@ copyright = u'2014, Novo Nordisk Foundation Center for Biosustainability'
 # The short X.Y version.
 
 sys.path.insert(0, '.')
-sys.path.insert(0, '../') # to get the versioneer module
+sys.path.insert(0, '../')  # to get the versioneer module
 
 import versioneer
 
@@ -237,7 +239,6 @@ html_sidebars = {
 
 # Output file base name for HTML help builder.
 htmlhelp_basename = 'cameodoc'
-
 
 # -- Options for LaTeX output ---------------------------------------------
 

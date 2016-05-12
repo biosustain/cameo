@@ -14,13 +14,15 @@
 
 from __future__ import absolute_import, print_function
 
-__all__ = ['MultiprocessingMigrator']
-
 import six.moves.queue
 from cameo.parallel import RedisQueue
 from uuid import uuid4
 
 import logging
+
+__all__ = ['MultiprocessingMigrator']
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -55,11 +57,18 @@ class MultiprocessingMigrator(object):
     - *evaluate_migrant* -- should new migrants be evaluated before
       adding them to the population (default False)
 
+    Arguments
+    ---------
+    max_migrants: int
+        Number of migrants in the queue at the same time.
+    connection_kwargs: keyword arguments:
+        see parallel.RedisQueue
+
     """
 
-    def __init__(self, max_migrants=1):
+    def __init__(self, max_migrants=1, **connection_kwargs):
         self.max_migrants = max_migrants
-        self.migrants = RedisQueue(uuid4())
+        self.migrants = RedisQueue(uuid4(), **connection_kwargs)
         self.__name__ = self.__class__.__name__
 
     def __call__(self, random, population, args):
@@ -68,6 +77,7 @@ class MultiprocessingMigrator(object):
         old_migrant = population[migrant_index]
         try:
             migrant = self.migrants.get(block=False)
+            logger.debug("Robinson Crusoe arrives on an island")
             if evaluate_migrant:
                 fit = args["_ec"].evaluator([migrant.candidate], args)
                 migrant.fitness = fit[0]
@@ -76,6 +86,7 @@ class MultiprocessingMigrator(object):
         except six.moves.queue.Empty:
             logger.debug("Empty queue")
         try:
+            logger.debug("Robinson Crusoe leaves an island")
             self.migrants.put_nowait(old_migrant)
         except six.moves.queue.Full:
             logger.debug("Full queue")

@@ -50,13 +50,40 @@ optimization.run(max_evaluations=2000, n=1,
 from __future__ import absolute_import, print_function
 
 import os
+import sys
+from cameo import config
+from cameo.util import get_system_info, in_ipnb
+
+if sys.version_info[0] == 2:
+    import imp
+
+
+    def find_module(name):
+        try:
+            imp.find_module(name)
+            return True
+        except ImportError:
+            return False
+
+elif sys.version_info[0] == 3:
+    if sys.version_info[1] <= 3:
+        from importlib import find_loader as find
+    else:
+        from importlib.util import find_spec as find
+
+
+    def find_module(name):
+        return find(name) is not None
 
 _cameo_path = __path__[0]
 _cameo_data_path = os.path.join(_cameo_path, 'data')
 
-from cameo import config
+# fix - if matplotlib is installed it is not possible to import cameo without importing matplotlib on jupyter notebook.
+if find_module("matplotlib") and in_ipnb():
+    from IPython import get_ipython
 
-from .util import get_system_info
+    ipython = get_ipython()
+    ipython.magic("matplotlib inline")
 
 system_info = get_system_info()
 
@@ -65,10 +92,10 @@ from ._version import get_versions
 __version__ = get_versions()['version']
 del get_versions
 
-try:
-    from cameo.io import load_model
-except ImportError:
-    pass
+from cameo.io import load_model
+#except ImportError:
+#    raise
+#    pass
 
 from cameo import models
 

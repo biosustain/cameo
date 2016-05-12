@@ -19,7 +19,11 @@ __all__ = ['create_adapter_reactions', 'display_pathway']
 from cameo import Reaction
 from cameo.ui import notice
 from cameo.util import in_ipnb
-from IPython.display import display
+
+try:
+    from IPython.display import display
+except:
+    pass
 
 
 def create_adapter_reactions(original_metabolites, database, mapping, compartment_regexp):

@@ -23,27 +23,33 @@ Currently implements:
 """
 
 from __future__ import absolute_import, print_function
-from optlang.interface import OptimizationExpression
-import pandas
-from sympy.parsing.sympy_parser import parse_expr
-import cameo
-from cameo.core.result import Result
-from cameo.core.solution import SolutionBase
 
-__all__ = ['fba', 'pfba', 'moma', 'lmoma', 'room']
-
+import os
 import six
+import math
+
+import pandas
+import numpy
+import cameo
+
+import logging
 
 from functools import partial
 
 import sympy
 from sympy import Add
 from sympy import Mul
+from sympy.parsing.sympy_parser import parse_expr
 
-from cameo.util import TimeMachine, ProblemCache
+from optlang.interface import OptimizationExpression
+from cameo.config import ndecimals
+from cameo.util import TimeMachine, ProblemCache, in_ipnb
 from cameo.exceptions import SolveError
+from cameo.core.result import Result
+from cameo.visualization.palette import mapper, Palette
 
-import logging
+__all__ = ['fba', 'pfba', 'moma', 'lmoma', 'room']
+
 
 logger = logging.getLogger(__name__)
 
@@ -136,42 +142,78 @@ def pfba(model, objective=None, reactions=None, *args, **kwargs):
             raise e
 
 
-def moma(model, reference=None, *args, **kwargs):
+def moma(model, reference=None, cache=None, reactions=None, *args, **kwargs):
     """
-    Minimization of Metabolic Adjustment
+    Minimization of Metabolic Adjustment[1]
+
+    Parameters
+    ----------
+    model: SolverBasedModel
+    reference: FluxDistributionResult, dict
+    cache: ProblemCache
+    reactions: list
+
+    Returns
+    -------
+    FluxDistributionResult
+        Contains the result of the solver.
+
+    References
+    ----------
+    .. [1] Segrè, D., Vitkup, D., & Church, G. M. (2002). Analysis of optimality in natural and perturbed metabolic
+     networks. Proceedings of the National Academy of Sciences of the United States of America, 99(23), 15112–7.
+     doi:10.1073/pnas.232349399
+
     """
-    with TimeMachine() as tm:
-        aux_vars = {}
-        for reac_id in reference.keys():
-            var = model.solver.interface.Variable("moma_aux_"+reac_id)
-            aux_vars[reac_id] = var
-        tm(do=partial(model.solver.add, aux_vars.values()),
-           undo=partial(model.solver.remove, aux_vars.values()))
+    volatile = False
+    if cache is None:
+        volatile = True
+        cache = ProblemCache(model)
 
-        constraints = {}
-        for reac_id, aux_var in aux_vars.items():
-            reac = model.reactions.get_by_id(reac_id)
-            const = model.solver.interface.Constraint(
-                add([mul([One, reac.forward_variable]),
-                     mul([NegativeOne, reac.reverse_variable]),
-                     mul([NegativeOne, aux_var])
-                ]),
-                lb=reference[reac_id],
-                ub=reference[reac_id],
-                sloppy=True
-            )
-            constraints[reac_id] = const
-        tm(do=partial(model.solver.add, constraints.values()),
-           undo=partial(model.solver.remove, constraints.values()))
+    cache.begin_transaction()
+    try:
+        for rid, flux_value in six.iteritems(reference):
 
-        obj = model.solver.interface.Objective(Add(*(FloatOne*var**2 for var in aux_vars.values())), direction="min", sloppy=True)
-        tm(do=partial(setattr, model, "objective", obj),
-           undo=partial(setattr, model, "objective", model.objective))
+            def create_variable(model, variable_id):
+                var = model.solver.interface.Variable(variable_id)
+                return var
 
-        sol = model.solve()
-        result = FluxDistributionResult.from_solution(sol)
+            var_id = "moma_aux_%s" % rid
 
-    return result
+            cache.add_variable(var_id, create_variable, None)
+
+            def create_constraint(model, constraint_id, var, reaction, flux_value):
+                constraint = model.solver.interface.Constraint(reaction.flux_expression - var,
+                                                               lb=flux_value,
+                                                               ub=flux_value,
+                                                               name=constraint_id)
+                return constraint
+
+            def update_constraint(model, constraint, var, reaction, flux_value):
+                constraint.lb = flux_value
+                constraint.ub = flux_value
+
+            constraint_id = "moma_const_%s" % rid
+            reaction = model.reactions.get_by_id(rid)
+            cache.add_constraint(constraint_id, create_constraint, update_constraint,
+                                 cache.variables[var_id], reaction, flux_value)
+
+        def create_objective(model, variables):
+            return model.solver.interface.Objective(Add(*[FloatOne * var ** 2 for var in variables]),
+                                                    direction="min",
+                                                    sloppy=True)
+
+        cache.add_objective(create_objective, None, cache.variables.values())
+
+        solution = model.solve()
+        if reactions is not None:
+            result = FluxDistributionResult({r: solution.get_primal_by_id(r) for r in reactions}, solution.f)
+        else:
+            result = FluxDistributionResult.from_solution(solution)
+        return result
+    finally:
+        if volatile:
+            cache.reset()
 
 
 def lmoma(model, reference=None, cache=None, reactions=None, *args, **kwargs):
@@ -180,22 +222,20 @@ def lmoma(model, reference=None, cache=None, reactions=None, *args, **kwargs):
     Parameters
     ----------
     model: SolverBasedModel
-    reference: dict
-    objective: str or reaction or optlang.Objective
-        An objective to be minimized/maximized for
-    volatile: boolean
-    cache: dict
+    reference: FluxDistributionResult, dict
+    cache: ProblemCache
+    reactions: list
 
     Returns
     -------
     FluxDistributionResult
-        Contains the result of the linear solver.
+        Contains the result of the solver.
 
     References
     ----------
     .. [1] Becker, S. A., Feist, A. M., Mo, M. L., Hannum, G., Palsson, B. Ø., & Herrgard, M. J. (2007).
-    Quantitative prediction of cellular metabolism with constraint-based models: the COBRA Toolbox.
-    Nature Protocols, 2(3), 727–38. doi:10.1038/nprot.2007.99
+     Quantitative prediction of cellular metabolism with constraint-based models: the COBRA Toolbox.
+     Nature Protocols, 2(3), 727–38. doi:10.1038/nprot.2007.99
 
     """
     volatile = False
@@ -249,8 +289,12 @@ def lmoma(model, reference=None, cache=None, reactions=None, *args, **kwargs):
             cache.add_constraint("c_%s_lb" % rid, create_lower_constraint, update_lower_constraint,
                                  cache.variables[neg_var_id], reaction, flux_value)
 
-        model.objective = model.solver.interface.Objective(add([mul([One, var]) for var in cache.variables.values()]),
-                                                           direction="min")
+        def create_objective(model, variables):
+            return model.solver.interface.Objective(add([mul((One, var)) for var in variables]),
+                                                    direction="min",
+                                                    sloppy=True)
+
+        cache.add_objective(create_objective, None, cache.variables.values())
 
         try:
 
@@ -277,7 +321,9 @@ def room(model, reference=None, cache=None, delta=0.03, epsilon=0.001, reactions
     Parameters
     ----------
     model: SolverBasedModel
-    reference: dict
+    reference: FluxDistributionResult, dict
+    delta: float
+    epsilon: float
     cache: ProblemCache
 
     Returns
@@ -288,7 +334,8 @@ def room(model, reference=None, cache=None, delta=0.03, epsilon=0.001, reactions
     References
     ----------
     .. [1] Tomer Shlomi, Omer Berkman and Eytan Ruppin, "Regulatory on/off minimization of metabolic
-    flux changes after genetic perturbations", PNAS 2005 102 (21) 7695-7700; doi:10.1073/pnas.0406346102
+     flux changes after genetic perturbations", PNAS 2005 102 (21) 7695-7700; doi:10.1073/pnas.0406346102
+
     """
     volatile = False
     if cache is None:
@@ -366,9 +413,14 @@ def room(model, reference=None, cache=None, delta=0.03, epsilon=0.001, reactions
 
 
 class FluxDistributionResult(Result):
+    """
+    Contains a flux distribution of a simulation method.
+
+
+    """
     @classmethod
     def from_solution(cls, solution, *args, **kwargs):
-        return  cls(solution.fluxes, solution.f, *args, **kwargs)
+        return cls(solution.fluxes, solution.f, *args, **kwargs)
 
     def __init__(self, fluxes, objective_value, *args, **kwargs):
         super(FluxDistributionResult, self).__init__(*args, **kwargs)
@@ -406,7 +458,7 @@ class FluxDistributionResult(Result):
 
     def plot(self, grid=None, width=None, height=None, title=None):
         # TODO: Add barchart or something similar.
-        pass
+        raise NotImplementedError
 
     def iteritems(self):
         return six.iteritems(self.fluxes)
@@ -422,6 +474,81 @@ class FluxDistributionResult(Result):
 
     def _repr_html_(self):
         return "<strong>objective value: %s</strong>" % self.objective_value
+
+    def plot_scale(self, palette="YlGnBu"):
+        """
+        Generates a color scale based on the flux distribution.
+        It makes an array containing the absolute values and minus absolute values.
+
+        The colors set as follows (p standsfor palette colors array):
+        min   -2*std  -std      0      std      2*std   max
+        |-------|-------|-------|-------|-------|-------|
+        p[2]  p[2] .. p[1] .. p[0] .. p[1] ..  p[2]   p[2]
+
+
+        Arguments
+        ---------
+        palette: Palette, list, str
+            A Palette from palettable of equivalent, a list of colors (size 3) or a palette name
+
+        Returns
+        -------
+        tuple
+            ((-2*std, color), (-std, color) (0 color) (std, color) (2*std, color))
+        """
+        if isinstance(palette, str):
+            palette = mapper.map_palette(palette, 3)
+            palette = palette.hex_colors
+
+        elif isinstance(palette, Palette):
+            palette = palette.hex_colors
+
+        values = [abs(v) for v in self.fluxes.values()]
+        values += [-v for v in values]
+
+        std = numpy.std(values)
+
+        return (-2 * std, palette[2]), (-std, palette[1]), (0, palette[0]), (std, palette[1]), (2 * std, palette[2])
+
+    def display_on_map(self, map_name=None, palette="YlGnBu"):
+        try:
+            import escher
+            if os.path.exists(map_name):
+                map_json = map_name
+                map_name = None
+            else:
+                map_json = None
+
+            scale = self.plot_scale(palette)
+            active_fluxes = {rid: flux for rid, flux in six.iteritems(self.fluxes) if abs(flux) > 10**-ndecimals}
+
+            values = [abs(v) for v in active_fluxes.values()]
+            values += [-v for v in values]
+
+            reaction_scale = [dict(type='min', color=scale[0][1], size=24),
+                              dict(type='value', value=scale[0][0], color=scale[0][1], size=21),
+                              dict(type='value', value=scale[1][0], color=scale[1][1], size=16),
+                              dict(type='value', value=scale[2][0], color=scale[2][1], size=8),
+                              dict(type='value', value=scale[3][0], color=scale[3][1], size=16),
+                              dict(type='value', value=scale[4][0], color=scale[4][1], size=21),
+                              dict(type='max', color=scale[4][1], size=24)]
+
+            active_fluxes = {rid: flux for rid, flux in six.iteritems(self.fluxes) if abs(flux) > 10**-ndecimals}
+
+            active_fluxes['min'] = min(values)
+            active_fluxes['max'] = max(values)
+
+            builder = escher.Builder(map_name=map_name, map_json=map_json, reaction_data=active_fluxes,
+                                     reaction_scale=reaction_scale)
+
+            if in_ipnb():
+                from IPython.display import display
+                display(builder.display_in_notebook())
+            else:
+                builder.display_in_browser()
+
+        except ImportError:
+            print("Escher must be installed in order to visualize maps")
 
 
 if __name__ == '__main__':

@@ -15,9 +15,11 @@
 
 import os
 import re
+
 import nose
-from nose.tools import assert_equal, assert_raises_regexp
 from nose.plugins.skip import SkipTest
+from nose.tools import assert_equal, assert_raises_regexp
+
 from cameo import api
 from cameo.api.products import Compound
 

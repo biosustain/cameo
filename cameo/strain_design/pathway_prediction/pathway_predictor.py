@@ -14,9 +14,7 @@
 
 from __future__ import absolute_import, print_function
 from math import ceil
-from cameo.visualization.plotting import Grid
-
-__all__ = ['PathwayPredictor']
+from cameo.visualization.plotting import plotter
 
 import six
 
@@ -36,6 +34,8 @@ from sympy import Add
 
 import logging
 
+__all__ = ['PathwayPredictor']
+
 logger = logging.getLogger(__name__)
 
 
@@ -53,26 +53,26 @@ class PathwayResult(Pathway, Result):
     def needs_optimization(self, model, objective=None):
         return self.production_envelope(model, objective).area > 1e-5
 
-    def production_envelope(self, model, variables=None):
+    def production_envelope(self, model, objective=None):
         with TimeMachine() as tm:
             self.plug_model(model, tm)
-            return phenotypic_phase_plane(model, variables=variables, objective=self.product)
+            return phenotypic_phase_plane(model, variables=[objective], objective=self.product)
 
     def plug_model(self, model, tm=None, adapters=True, exchanges=True):
         if tm is not None:
             tm(do=partial(model.add_reactions, self.reactions),
-               undo=partial(model.remove_reactions, self.reactions, delete=False))
+               undo=partial(model.remove_reactions, self.reactions, delete=False, remove_orphans=True))
             if adapters:
                 tm(do=partial(model.add_reactions, self.adapters),
-                   undo=partial(model.remove_reactions, self.adapters, delete=False))
+                   undo=partial(model.remove_reactions, self.adapters, delete=False, remove_orphans=True))
             if exchanges:
                 tm(do=partial(model.add_reactions, self.exchanges),
-                   undo=partial(model.remove_reactions, self.exchanges, delete=False))
+                   undo=partial(model.remove_reactions, self.exchanges, delete=False, remove_orphans=True))
             tm(do=partial(setattr, self.product, "lower_bound", 0),
-                undo=partial(setattr, self.product, "lower_bound", self.product.lower_bound))
+               undo=partial(setattr, self.product, "lower_bound", self.product.lower_bound))
             try:
                 tm(do=partial(model.add_reaction, self.product),
-                   undo=partial(model.remove_reactions, [self.product], delete=False))
+                   undo=partial(model.remove_reactions, [self.product], delete=False, remove_orphans=True))
             except Exception:
                 logger.warning("Exchange %s already in model" % self.product.id)
                 pass
@@ -92,8 +92,6 @@ class PathwayResult(Pathway, Result):
 
 
 class PathwayPredictions(Result):
-    def data_frame(self):
-        raise NotImplementedError
 
     def __init__(self, pathways, *args, **kwargs):
         super(PathwayPredictions, self).__init__(*args, **kwargs)
@@ -103,14 +101,11 @@ class PathwayPredictions(Result):
     def plug_model(self, model, index, tm=None):
         self.pathways[index].plug_model(model, tm)
 
-    def _repr_html_(self):
-        return self.data_frame()._repr_html_()
-
     def __str__(self):
         string = str()
         for i, pathway in enumerate(self.pathways):
             string += 'Pathway No. {}'.format(i + 1)
-            for reaction in pathway:
+            for reaction in pathway.reactions:
                 string += '{}, {}:'.format(reaction.id, reaction.name,
                                            reaction.build_reaction_string(use_metabolite_names=True))
         return string
@@ -119,16 +114,21 @@ class PathwayPredictions(Result):
         # TODO: small pathway visualizations would be great.
         raise NotImplementedError
 
-    def plot_production_envelopes(self, model, variables=None):
-        grid = Grid(nrows=int(ceil(len(self.pathways)/2.0)), title="Production envelops for %s" % self.pathways[0].product.name)
+    def plot_production_envelopes(self, model, objective=None, title=None):
+        rows = int(ceil(len(self.pathways) / 2.0))
+        title = "Production envelops for %s" % self.pathways[0].product.name if title is None else title
+        grid = plotter.grid(n_rows=rows, title=title)
         with grid:
             for i, pathway in enumerate(self.pathways):
-                ppp = pathway.production_envelope(model, variables)
-                ppp.plot(grid, width=450, title="Pathway %i" % i)
+                ppp = pathway.production_envelope(model, objective=objective)
+                ppp.plot(grid=grid, width=450, title="Pathway %i" % i)
 
     def __iter__(self):
         for p in self.pathways:
             yield p
+
+    def __len__(self):
+        return len(self.pathways)
 
 
 class PathwayPredictor(object):
@@ -237,7 +237,7 @@ class PathwayPredictor(object):
             while counter <= max_predictions:
                 logger.debug('Predicting pathway No. %d' % counter)
                 try:
-                    solution = self.model.solve()
+                    self.model.solve()
                 except SolveError as e:
                     logger.error('No pathway could be predicted. Terminating pathway predictions.')
                     logger.error(e)
@@ -253,7 +253,7 @@ class PathwayPredictor(object):
                     # no pathway found:
                     logger.info(
                         "It seems %s is a native product in model %s. Let's see if we can find better heterologous pathways." % (
-                        product, self.model))
+                            product, self.model))
                     # knockout adapter with native product
                     for adapter in self.adpater_reactions:
                         if product in adapter.metabolites:
