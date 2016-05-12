@@ -14,6 +14,8 @@
 
 """Methods for stoichiometric analaysis"""
 
+from __future__ import print_function
+
 from copy import copy
 
 import sympy
@@ -181,7 +183,7 @@ class ShortestElementaryFluxModes(six.Iterator):
         while True:
             try:
                 self.model.solve()
-            except SolveError as e:
+            except SolveError:
                 raise StopIteration
             elementary_flux_mode = list()
             exclusion_list = list()
@@ -202,12 +204,12 @@ class ShortestElementaryFluxModes(six.Iterator):
 
     def __generate_elementary_modes_via_fixed_size_constraint(self):
         fixed_size_constraint = self.model.solver.interface.Constraint(
-                sympy.Add(*self.indicator_variables), name='fixed_size_constraint', lb=1, ub=1
+            sympy.Add(*self.indicator_variables), name='fixed_size_constraint', lb=1, ub=1
         )
         self.model.solver._add_constraint(fixed_size_constraint, sloppy=True)
 
         while True:
-            logger.debug("Looking for solutions with cardinality "+str(fixed_size_constraint.lb))
+            logger.debug("Looking for solutions with cardinality " + str(fixed_size_constraint.lb))
             try:
                 self.model.solver.problem.populate_solution_pool()
             except Exception as e:
@@ -310,7 +312,7 @@ class MinimalCutSetsEnumerator(ShortestElementaryFluxModes):
             elif "_reverse_" in name and "_".join(name.split("_")[:-2]) in self._primal_model.reactions:
                 primal_mcs.append("_".join(name.split("_")[:-2]))
             else:
-                raise RuntimeError("Primal reaction could not be found for "+reac.id)
+                raise RuntimeError("Primal reaction could not be found for " + reac.id)
         return set(primal_mcs)
 
     def _make_dual_model(self, model):
@@ -356,7 +358,7 @@ class MinimalCutSetsEnumerator(ShortestElementaryFluxModes):
         u_reactions = []
         for met, stoichiometry in transposed_stoichiometry.items():
             met_id = met.id
-            reac = Reaction("u_"+met_id)
+            reac = Reaction("u_" + met_id)
             reac.lower_bound = -reac.upper_bound  # Make reversible
             reac.add_metabolites(stoichiometry)
             u_reactions.append(reac)
@@ -366,7 +368,7 @@ class MinimalCutSetsEnumerator(ShortestElementaryFluxModes):
         # Add dual "v-reactions"
         v_reactions = []
         for dual_met in dual_model.metabolites:
-            reac = Reaction("v_"+dual_met.id)
+            reac = Reaction("v_" + dual_met.id)
             reac.lower_bound = -reac.upper_bound  # Make reversible
             reac.add_metabolites({dual_met: 1})
             v_reactions.append(reac)
@@ -377,7 +379,7 @@ class MinimalCutSetsEnumerator(ShortestElementaryFluxModes):
         z_reactions = []
         for dual_met in dual_model.metabolites:
             if dual_met.id in irreversibles:
-                reac = Reaction("z_"+dual_met.id)
+                reac = Reaction("z_" + dual_met.id)
                 reac.lower_bound = 0
                 reac.add_metabolites({dual_met: -1})
                 z_reactions.append(reac)
@@ -394,7 +396,7 @@ class MinimalCutSetsEnumerator(ShortestElementaryFluxModes):
                 raise NotImplementedError  # TODO
             else:
                 raise NotImplementedError
-            return constraints
+            return NotImplemented  # return constraints
 
         if isinstance(targets, optlang.interface.Constraint):
             targets = [targets]
@@ -426,7 +428,7 @@ class MinimalCutSetsEnumerator(ShortestElementaryFluxModes):
             if (target.lb is None and target.ub is None) or (target.lb is not None and target.ub is not None):
                 raise ValueError("Target constraints must be one-sided inequalities.")
             coefficients_dict = target.expression.as_coefficients_dict()
-            w_reac = Reaction("w_"+str(i))
+            w_reac = Reaction("w_" + str(i))
             w_reac.lower_bound = c
             if target.ub is not None:
                 coefficients = {
@@ -472,7 +474,7 @@ if __name__ == '__main__':
     from cameo import load_model
 
     model = load_model("e_coli_core")
-    #model = load_model('../../tests/data/EcoliCore.xml')
+    # model = load_model('../../tests/data/EcoliCore.xml')
     model.reactions.ATPM.lower_bound, model.reactions.ATPM.upper_bound = 0, 1000.
     model.reactions.BIOMASS_Ecoli_core_w_GAM.lower_bound = 1
     model.solver = 'cplex'
@@ -482,8 +484,8 @@ if __name__ == '__main__':
     for emo in shortest_emo:
         if count == 1000:
             break
-        count +=1
-        print(str(count)+" "+80*"#")
+        count += 1
+        print(str(count) + " " + 80 * "#")
         print(len(emo))
         for reaction in emo:
             print(reaction, reaction.lower_bound, reaction.upper_bound)
