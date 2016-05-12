@@ -266,7 +266,7 @@ class Reaction(_cobrapy.core.Reaction):
 
     @property
     def objective_coefficient(self):
-        if self.model is not None and self.model.objective is not None:
+        if self.model is not None and isinstance(self.model, cameo.core.SolverBasedModel) and self.model.objective is not None:
             coefficients_dict = self.model.objective.expression.as_coefficients_dict()
             forw_coef = coefficients_dict.get(self.forward_variable, 0)
             rev_coef = coefficients_dict.get(self.reverse_variable, 0)
