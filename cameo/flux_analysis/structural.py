@@ -32,6 +32,7 @@ logger.setLevel(logging.DEBUG)
 from cameo.exceptions import SolveError, Infeasible
 from cameo.util import TimeMachine
 
+__all__ = ['find_dead_end_reactions', 'find_coupled_reactions', 'ShortestElementaryFluxModes']
 
 def find_dead_end_reactions(model):
     """
