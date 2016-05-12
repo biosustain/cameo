@@ -34,6 +34,7 @@ from cameo.util import TimeMachine
 
 __all__ = ['find_dead_end_reactions', 'find_coupled_reactions', 'ShortestElementaryFluxModes']
 
+
 def find_dead_end_reactions(model):
     """
     Identify reactions that are structurally prevented from carrying flux (dead ends).
