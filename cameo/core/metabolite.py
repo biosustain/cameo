@@ -57,6 +57,6 @@ class Metabolite(cobra.core.Metabolite):
             self.model.solver.constraints[self.id].name = value
 
             self._id = value
-            self.model.reactions._generate_index()
+            self.model.metabolites._generate_index()
         else:
             self._id = value
