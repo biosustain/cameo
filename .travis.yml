@@ -45,7 +45,7 @@ install:
 - pip install swiglpk
 - pip install .
 - pip uninstall optlang -y
-- pip install -e git://github.com/biosustain/optlang.git@transactions#egg=optlang
+- pip install -e git://github.com/biosustain/optlang.git@devel#egg=optlang
 before_script:
 - "flake8 ."
 script: nosetests
