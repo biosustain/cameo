@@ -355,9 +355,12 @@ class SolverBasedModel(cobra.core.Model):
         -------
         None
         """
+        fix_objective_name = 'Fixed_objective_{}'.format(self.objective.name)
+        if self.solver.constraints.has_key(fix_objective_name):
+            self.solver.remove(fix_objective_name)
         objective_value = self.solve().objective_value * fraction
         constraint = self.solver.interface.Constraint(self.objective.expression,
-                                                      name='Fixed_objective_{}'.format(self.objective.name))
+                                                      name=fix_objective_name)
         if self.objective.direction == 'max':
             constraint.lb = objective_value
         else:
