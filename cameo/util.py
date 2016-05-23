@@ -22,7 +22,7 @@ import re
 from collections import OrderedDict
 from datetime import datetime
 from functools import partial
-from functools import wraps
+import inspect
 from itertools import islice
 from time import time
 from uuid import uuid1
@@ -396,55 +396,28 @@ class IntelliContainer(object):
         return list(self._dict.keys())
 
 
-class DocInherit(object):
-    """
-    Adapted from http://code.activestate.com/recipes/576862/ (licensed under MIT)
-    Docstring inheriting method descriptor
-
-    The class itself is also used as a decorator
-    """
-
-    def __init__(self, mthd):
-        self.mthd = mthd
-        self.name = mthd.__name__
-
-    def __get__(self, obj, cls):
-        if obj:
-            return self.get_with_inst(obj, cls)
-        else:
-            return self.get_no_inst(cls)
-
-    def get_with_inst(self, obj, cls):
-
-        overridden = getattr(super(cls, obj), self.name, None)
-
-        @wraps(self.mthd, assigned=('__name__', '__module__'))
-        def f(*args, **kwargs):
-            return self.mthd(obj, *args, **kwargs)
-
-        return self.use_parent_doc(f, overridden)
-
-    def get_no_inst(self, cls):
-
-        for parent in cls.__mro__[1:]:
-            overridden = getattr(parent, self.name, None)
-            if overridden:
+def inheritdocstring(name, bases, attrs):
+    """Use as metaclass to inherit class and method docstrings from parent.
+    Adapted from http://stackoverflow.com/questions/13937500/inherit-a-parent-class-docstring-as-doc-attribute"""
+    temp = type('temporaryclass', bases, {})
+    if '__doc__' not in attrs or not attrs["__doc__"]:
+        # create a temporary 'parent' to (greatly) simplify the MRO search
+        for cls in inspect.getmro(temp):
+            if cls.__doc__ is not None:
+                attrs['__doc__'] = cls.__doc__
                 break
 
-        @wraps(self.mthd, assigned=('__name__', '__module__'))
-        def f(*args, **kwargs):
-            return self.mthd(*args, **kwargs)
+    for attr_name, attr in attrs.items():
+        if not attr.__doc__:
+            for cls in inspect.getmro(temp):
+                try:
+                    if getattr(cls, attr_name).__doc__ is not None:
+                        attr.__doc__ = getattr(cls, attr_name).__doc__
+                        break
+                except (AttributeError, TypeError):
+                    continue
 
-        return self.use_parent_doc(f, overridden)
-
-    def use_parent_doc(self, func, source):
-        if source is None:
-            raise NameError("Can't find '%s' in parents" % self.name)
-        func.__doc__ = source.__doc__
-        return func
-
-
-doc_inherit = DocInherit
+    return type(name, bases, attrs)
 
 
 def partition_(lst, n):

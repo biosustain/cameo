@@ -36,7 +36,7 @@ from sympy.core.singleton import S
 import optlang
 from pandas import DataFrame, pandas
 
-from cameo.util import TimeMachine, doc_inherit
+from cameo.util import TimeMachine, inheritdocstring
 from cameo import config
 from cameo import exceptions
 
@@ -72,6 +72,7 @@ def to_solver_based_model(cobrapy_model, solver_interface=optlang):
     return solver_based_model
 
 
+@six.add_metaclass(inheritdocstring)
 class SolverBasedModel(cobra.core.Model):
     """Implements a model with an attached optlang solver instance.
 
@@ -129,7 +130,6 @@ class SolverBasedModel(cobra.core.Model):
     def __deepcopy__(self):
         return self.copy()
 
-    @doc_inherit
     def copy(self):
         """Needed for compatibility with cobrapy."""
         model_copy = super(SolverBasedModel, self).copy()
@@ -227,7 +227,6 @@ class SolverBasedModel(cobra.core.Model):
         """
         return [reaction for reaction in self.reactions if len(reaction.reactants) == 0 or len(reaction.products) == 0]
 
-    @doc_inherit
     def add_metabolites(self, metabolite_list):
         super(SolverBasedModel, self).add_metabolites(metabolite_list)
         for met in metabolite_list:
@@ -290,7 +289,6 @@ class SolverBasedModel(cobra.core.Model):
             self.solver.objective.variables
             self.solver.objective += objective_expression
 
-    @doc_inherit
     def add_reactions(self, reaction_list):
         cloned_reaction_list = list()
         for reaction in reaction_list:  # this is necessary for cobrapy compatibility
@@ -304,7 +302,6 @@ class SolverBasedModel(cobra.core.Model):
 
         self._populate_solver(cloned_reaction_list)
 
-    @doc_inherit
     def remove_reactions(self, the_reactions, delete=True, remove_orphans=False):
         super(SolverBasedModel, self).remove_reactions(the_reactions, delete=delete, remove_orphans=remove_orphans)
 
@@ -403,7 +400,6 @@ class SolverBasedModel(cobra.core.Model):
         self.solver._add_constraint(ratio_constraint, sloppy=True)
         return ratio_constraint
 
-    @doc_inherit
     def optimize(self, objective_sense=None, solution_type=Solution, **kwargs):
         """OptlangBasedModel implementation of optimize.
 

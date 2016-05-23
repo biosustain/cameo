@@ -15,10 +15,12 @@
 import cobra
 import logging
 import six
+from cameo.util import inheritdocstring
 
 logger = logging.getLogger(__name__)
 
 
+@six.add_metaclass(inheritdocstring)
 class Metabolite(cobra.core.Metabolite):
 
     @classmethod
@@ -57,6 +59,6 @@ class Metabolite(cobra.core.Metabolite):
             self.model.solver.constraints[self.id].name = value
 
             self._id = value
-            self.model.reactions._generate_index()
+            self.model.metabolites._generate_index()
         else:
             self._id = value
