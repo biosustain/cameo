@@ -22,23 +22,27 @@ http://darwin.di.uminho.pt/models and http://bigg.ucsd.edu databases
 
 from __future__ import absolute_import, print_function
 
-__all__ = ['index_models_minho', 'index_models_bigg', 'bigg', 'minho']
 
 import io
 import tempfile
-from functools import partial
+import logging
 
 import requests
-from pandas import DataFrame
+
 import lazy_object_proxy
 import optlang
+
+from functools import partial
+
+from pandas import DataFrame
 
 from cobra.io import load_json_model, read_sbml_model
 
 from cameo.util import str_to_valid_variable_name
 from cameo.core.solver_based_model import to_solver_based_model
 
-import logging
+
+__all__ = ['index_models_minho', 'index_models_bigg', 'bigg', 'minho']
 
 logger = logging.getLogger(__name__)
 
@@ -99,7 +103,11 @@ def index_models_minho(host="http://darwin.di.uminho.pt/models"):
             logger.error('No json could be decoded from server response coming from {}.'.format(host))
             raise e
         else:
-            return DataFrame(json, columns=["id", "name", "doi", "author", "year", "formats", "organism", "taxonomy"])
+            index = DataFrame(json, columns=["id", "name", "doi", "author",
+                                             "year", "formats", "organism",
+                                             "taxonomy", "optflux_validated"])
+            index.columns = ["id", "name", "doi", "author", "year", "formats", "organism", "taxonomy", "validated"]
+            return index
     else:
         raise Exception("Could not index available models. %s returned status code %d" % (host, response.status_code))
 
@@ -194,6 +202,15 @@ else:
     model_ids = minho_models.name
     for index, id in zip(model_indices, model_ids):
         setattr(minho, str_to_valid_variable_name(id), lazy_object_proxy.Proxy(partial(get_model_from_uminho, index)))
+
+    validated_models = minho_models[minho_models.validated]
+    minho.validated = ModelDB()
+    model_indices = validated_models.id
+    model_ids = validated_models.name
+    for index, id in zip(model_indices, model_ids):
+        setattr(minho.validated, str_to_valid_variable_name(id),
+                lazy_object_proxy.Proxy(partial(get_model_from_uminho, index)))
+
 
 if __name__ == "__main__":
     print(index_models_minho())
