@@ -12,15 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import logging
 from functools import partial
 
 import cobra
-from cobra.manipulation.delete import find_gene_knockout_reactions
+import logging
+import six
+from cameo.util import inheritdocstring
 
 logger = logging.getLogger(__name__)
 
 
+@six.add_metaclass(inheritdocstring)
 class Gene(cobra.core.Gene):
 
     @classmethod
@@ -38,6 +40,25 @@ class Gene(cobra.core.Gene):
             new_gene._model = model
         return new_gene
 
+    @property
+    def id(self):
+        return getattr(self, "_id", None)  # Returns None if _id is not set
+
+    @id.setter
+    def id(self, value):
+        if value == self.id:
+            pass
+        elif not isinstance(value, six.string_types):
+            raise TypeError("ID must be a string")
+        elif getattr(self, "_model", None) is not None:  # (= if hasattr(self, "_model") and self._model is not None)
+            if value in self.model.genes:
+                raise ValueError("The model already contains a gene with the id:", value)
+
+            self._id = value
+            self.model.genes._generate_index()
+        else:
+            self._id = value
+
     def knock_out(self, time_machine=None):
         """Knockout gene by setting all its affected reactions' bounds to zero.
 
@@ -51,6 +72,7 @@ class Gene(cobra.core.Gene):
         None
         """
 
+        from cobra.manipulation.delete import find_gene_knockout_reactions
         for reaction in find_gene_knockout_reactions(self.model, [self]):
             def _(reaction, lb, ub):
                 reaction.upper_bound = ub

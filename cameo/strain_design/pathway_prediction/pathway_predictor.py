@@ -30,7 +30,10 @@ from cameo.data import metanetx
 from cameo.util import TimeMachine
 from cameo.strain_design.pathway_prediction import util
 
-from sympy import Add
+import sympy
+
+NegativeOne = sympy.singleton.S.NegativeOne
+from sympy import Add, Mul, RealNumber
 
 import logging
 
@@ -92,9 +95,6 @@ class PathwayResult(Pathway, Result):
 
 
 class PathwayPredictions(Result):
-    def data_frame(self):
-        raise NotImplementedError
-
     def __init__(self, pathways, *args, **kwargs):
         super(PathwayPredictions, self).__init__(*args, **kwargs)
         # TODO: sort the pathways to make them easier to read
@@ -103,14 +103,11 @@ class PathwayPredictions(Result):
     def plug_model(self, model, index, tm=None):
         self.pathways[index].plug_model(model, tm)
 
-    def _repr_html_(self):
-        return self.data_frame()._repr_html_()
-
     def __str__(self):
         string = str()
         for i, pathway in enumerate(self.pathways):
             string += 'Pathway No. {}'.format(i + 1)
-            for reaction in pathway:
+            for reaction in pathway.reactions:
                 string += '{}, {}:'.format(reaction.id, reaction.name,
                                            reaction.build_reaction_string(use_metabolite_names=True))
         return string
@@ -205,7 +202,7 @@ class PathwayPredictor(object):
         self.model.add_reactions(self.adpater_reactions)
         self._add_switches(self.new_reactions)
 
-    def run(self, product=None, max_predictions=float("inf"), min_production=.1, timeout=None, silent=False):
+    def run(self, product=None, max_predictions=float("inf"), min_production=.1, timeout=None, callback=None, silent=False):
         """Run pathway prediction for a desired product.
 
         Parameters
@@ -280,6 +277,8 @@ class PathwayPredictor(object):
                     util.display_pathway(pathway, counter)
 
                 pathways.append(pathway)
+                if callback is not None:
+                    callback(pathway)
                 integer_cut = self.model.solver.interface.Constraint(Add(*vars_to_cut),
                                                                      name="integer_cut_" + str(counter),
                                                                      ub=len(vars_to_cut) - 1)
@@ -307,14 +306,25 @@ class PathwayPredictor(object):
 
             y = self.model.solver.interface.Variable('y_' + reaction.id, lb=0, ub=1, type='binary')
             y_vars.append(y)
+            # The following is a complicated but efficient way to write the following constraints
 
-            switch_lb = self.model.solver.interface.Constraint(y * reaction.lower_bound - reaction.flux_expression,
-                                                               name='switch_lb_' + reaction.id, ub=0)
-            switch_ub = self.model.solver.interface.Constraint(y * reaction.upper_bound - reaction.flux_expression,
-                                                               name='switch_ub_' + reaction.id, lb=0)
+            # switch_lb = self.model.solver.interface.Constraint(y * reaction.lower_bound - reaction.flux_expression,
+            #                                                    name='switch_lb_' + reaction.id, ub=0)
+            # switch_ub = self.model.solver.interface.Constraint(y * reaction.upper_bound - reaction.flux_expression,
+            #                                                    name='switch_ub_' + reaction.id, lb=0)
+            forward_var_term = Mul._from_args((RealNumber(-1), reaction.forward_variable))
+            reverse_var_term = Mul._from_args((RealNumber(-1), reaction.reverse_variable))
+            switch_lb_y_term = Mul._from_args((RealNumber(reaction.lower_bound), y))
+            switch_ub_y_term = Mul._from_args((RealNumber(reaction.upper_bound), y))
+            switch_lb = self.model.solver.interface.Constraint(
+                Add._from_args((switch_lb_y_term, forward_var_term, reverse_var_term)), name='switch_lb_' + reaction.id,
+                ub=0, sloppy=True)
+            switch_ub = self.model.solver.interface.Constraint(
+                Add._from_args((switch_ub_y_term, forward_var_term, reverse_var_term)), name='switch_ub_' + reaction.id,
+                lb=0, sloppy=True)
             switches.extend([switch_lb, switch_ub])
-
-        self.model.solver.add(switches)
+        self.model.solver.add(y_vars)
+        self.model.solver.add(switches, sloppy=True)
         logger.info("Setting minimization of switch variables as objective.")
         self.model.objective = self.model.solver.interface.Objective(Add(*y_vars), direction='min')
         self._y_vars_ids = [var.name for var in y_vars]
@@ -352,7 +362,7 @@ class PathwayPredictor(object):
                 if metabolite.name == product:
                     return metabolite
             raise ValueError(
-                "Specified product '{product}' could not be found. Try searching pathway_predictor_obj.universal_metabolites.metabolites".format(
+                "Specified product '{product}' could not be found. Try searching pathway_predictor_obj.universal_model.metabolites".format(
                     product=product))
         elif isinstance(product, Metabolite):
             try:

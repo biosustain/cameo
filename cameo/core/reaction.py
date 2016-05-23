@@ -25,12 +25,13 @@ from cameo.parallel import SequentialView
 
 import logging
 import six
-from cameo.util import doc_inherit
+from cameo.util import inheritdocstring
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
+@six.add_metaclass(inheritdocstring)
 class Reaction(_cobrapy.core.Reaction):
     """This class extends the cobrapy Reaction class to work with SolverBasedModel.
 
@@ -86,6 +87,8 @@ class Reaction(_cobrapy.core.Reaction):
         self._lower_bound = lower_bound
         self._upper_bound = upper_bound
         self._model = None
+        self._reverse_variable = None
+        self._forward_variable = None
 
     def __str__(self):
         return ''.join((self.id, ": ", self.build_reaction_string()))
@@ -115,12 +118,10 @@ class Reaction(_cobrapy.core.Reaction):
 
     @property
     def forward_variable(self):
-        """An optlang variable representing the forward flux (if associated with model), otherwise None.
-        Representing the net flux if model.reversible_encoding == 'unsplit'"""
+        """An optlang variable representing the forward flux (if associated with model), otherwise None."""
         model = self.model
         if model is not None:
-            aux_id = self._get_forward_id()
-            return model.solver.variables[aux_id]
+            return model.solver.variables[self._get_forward_id()]
         else:
             return None
 
@@ -129,8 +130,7 @@ class Reaction(_cobrapy.core.Reaction):
         """An optlang variable representing the reverse flux (if associated with model), otherwise None."""
         model = self.model
         if model is not None:
-            aux_id = self._get_reverse_id()
-            return model.solver.variables[aux_id]
+            return model.solver.variables[self._get_reverse_id()]
         else:
             return None
 
@@ -266,7 +266,7 @@ class Reaction(_cobrapy.core.Reaction):
 
     @property
     def objective_coefficient(self):
-        if self.model is not None and self.model.objective is not None:
+        if self.model is not None and isinstance(self.model, cameo.core.SolverBasedModel) and self.model.objective is not None:
             coefficients_dict = self.model.objective.expression.as_coefficients_dict()
             forw_coef = coefficients_dict.get(self.forward_variable, 0)
             rev_coef = coefficients_dict.get(self.reverse_variable, 0)
@@ -312,7 +312,6 @@ class Reaction(_cobrapy.core.Reaction):
         else:
             return None
 
-    @doc_inherit
     def add_metabolites(self, metabolites, combine=True, **kwargs):
         if not combine:
             old_coefficients = self.metabolites
@@ -404,6 +403,8 @@ class Reaction(_cobrapy.core.Reaction):
         reverse = self.reverse_variable
         super(Reaction, self).delete(remove_orphans)
         model.solver.remove([forward, reverse])
+        # if remove_orphans:
+        #     model.solver.remove([metabolite.model.solver for metabolite in self.metabolites.keys()])
 
     def _repr_html_(self):
         return """
