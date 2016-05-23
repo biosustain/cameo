@@ -26,7 +26,6 @@ from __future__ import absolute_import, print_function
 
 import os
 import six
-import math
 
 import pandas
 import numpy
@@ -216,6 +215,8 @@ def moma(model, reference=None, cache=None, reactions=None, *args, **kwargs):
             cache.reset()
 
 
+# TODO: limiting step seems to be the update function. If the reference and cache can be linked
+# TODO: there is no need for update
 def lmoma(model, reference=None, cache=None, reactions=None, *args, **kwargs):
     """Linear Minimization Of Metabolic Adjustment [1].
 
@@ -475,7 +476,7 @@ class FluxDistributionResult(Result):
     def _repr_html_(self):
         return "<strong>objective value: %s</strong>" % self.objective_value
 
-    def plot_scale(self, palette="YlGnBu"):
+    def plot_scale(self, values, palette="YlGnBu"):
         """
         Generates a color scale based on the flux distribution.
         It makes an array containing the absolute values and minus absolute values.
@@ -503,9 +504,6 @@ class FluxDistributionResult(Result):
         elif isinstance(palette, Palette):
             palette = palette.hex_colors
 
-        values = [abs(v) for v in self.fluxes.values()]
-        values += [-v for v in values]
-
         std = numpy.std(values)
 
         return (-2 * std, palette[2]), (-std, palette[1]), (0, palette[0]), (std, palette[1]), (2 * std, palette[2])
@@ -519,11 +517,12 @@ class FluxDistributionResult(Result):
             else:
                 map_json = None
 
-            scale = self.plot_scale(palette)
             active_fluxes = {rid: flux for rid, flux in six.iteritems(self.fluxes) if abs(flux) > 10**-ndecimals}
 
             values = [abs(v) for v in active_fluxes.values()]
             values += [-v for v in values]
+
+            scale = self.plot_scale(values, palette)
 
             reaction_scale = [dict(type='min', color=scale[0][1], size=24),
                               dict(type='value', value=scale[0][0], color=scale[0][1], size=21),
@@ -533,7 +532,8 @@ class FluxDistributionResult(Result):
                               dict(type='value', value=scale[4][0], color=scale[4][1], size=21),
                               dict(type='max', color=scale[4][1], size=24)]
 
-            active_fluxes = {rid: flux for rid, flux in six.iteritems(self.fluxes) if abs(flux) > 10**-ndecimals}
+            active_fluxes = {rid: round(flux, ndecimals) for rid, flux in six.iteritems(self.fluxes)
+                             if abs(flux) > 10**-ndecimals}
 
             active_fluxes['min'] = min(values)
             active_fluxes['max'] = max(values)
