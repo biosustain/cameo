@@ -87,6 +87,8 @@ class Reaction(_cobrapy.core.Reaction):
         self._lower_bound = lower_bound
         self._upper_bound = upper_bound
         self._model = None
+        self._reverse_variable = None
+        self._forward_variable = None
 
     def __str__(self):
         return ''.join((self.id, ": ", self.build_reaction_string()))
@@ -119,8 +121,7 @@ class Reaction(_cobrapy.core.Reaction):
         """An optlang variable representing the forward flux (if associated with model), otherwise None."""
         model = self.model
         if model is not None:
-            aux_id = self._get_forward_id()
-            return model.solver.variables[aux_id]
+            return model.solver.variables[self._get_forward_id()]
         else:
             return None
 
@@ -129,8 +130,7 @@ class Reaction(_cobrapy.core.Reaction):
         """An optlang variable representing the reverse flux (if associated with model), otherwise None."""
         model = self.model
         if model is not None:
-            aux_id = self._get_reverse_id()
-            return model.solver.variables[aux_id]
+            return model.solver.variables[self._get_reverse_id()]
         else:
             return None
 
@@ -403,6 +403,8 @@ class Reaction(_cobrapy.core.Reaction):
         reverse = self.reverse_variable
         super(Reaction, self).delete(remove_orphans)
         model.solver.remove([forward, reverse])
+        # if remove_orphans:
+        #     model.solver.remove([metabolite.model.solver for metabolite in self.metabolites.keys()])
 
     def _repr_html_(self):
         return """
