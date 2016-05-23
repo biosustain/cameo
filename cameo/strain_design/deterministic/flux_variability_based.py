@@ -739,12 +739,19 @@ class FSEOFResult(StrainDesignResult):
     Object for storing a FSEOF result.
 
     Attributes:
-    reactions: A list of the reactions that are found to increase with product formation.
-    enforced_levels: A list of the fluxes that the enforced reaction was constrained to.
-    data_frame: A pandas DataFrame containing the fluxes for every reaction for each enforced flux.
-    run_args: The arguments that the analysis was run with. To repeat do 'FSEOF.run(**FSEOFResult.run_args)'.
+    -----------
+    reactions: list
+        A list of the reactions that are found to increase with product formation.
+    enforced_levels: list
+        A list of the fluxes that the enforced reaction was constrained to.
+    data_frame: DataFrame
+        A pandas DataFrame containing the fluxes for every reaction for each enforced flux.
+    run_args: dict
+        The arguments that the analysis was run with. To repeat do 'FSEOF.run(**FSEOFResult.run_args)'.
 
     """
+
+    __method_name__ = "FSEOF"
 
     def plot(self, grid=None, width=None, height=None, title=None):
         pass

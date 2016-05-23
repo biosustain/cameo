@@ -275,6 +275,8 @@ class RobustKnock(StrainDesignMethod):
 
 
 class OptKnockResult(StrainDesignResult):
+    __method_name__ = "OptKnock"
+
     def __init__(self, model, designs, fluxes, production_fluxes, biomass_fluxes, target, biomass, *args, **kwargs):
         super(OptKnockResult, self).__init__(*args, **kwargs)
         self._model = model
