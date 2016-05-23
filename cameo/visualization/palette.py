@@ -1,4 +1,4 @@
-# Copyright 2016 Joao Cardoso
+# Copyright 2016 The Novo Nordisk Foundation Center for Biosustainability
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
