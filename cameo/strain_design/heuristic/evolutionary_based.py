@@ -15,6 +15,7 @@
 
 from __future__ import absolute_import, print_function
 
+import logging
 import inspyred
 import numpy
 
@@ -42,6 +43,9 @@ from IProgress.progressbar import ProgressBar
 from IProgress.widgets import Bar, Percentage
 
 __all__ = ["OptGene"]
+
+
+logger = logging.getLogger(__name__)
 
 
 class OptGene(StrainDesignMethod):
@@ -110,7 +114,7 @@ class OptGene(StrainDesignMethod):
             raise ValueError("Invalid manipulation type %s" % manipulation_type)
 
     def run(self, target=None, biomass=None, substrate=None, max_knockouts=5, simulation_method=fba,
-            growth_coupled=False, max_evaluations=20000, population_size=100, time_machine=None,
+            growth_coupled=False, max_evaluations=20000, population_size=200, time_machine=None,
             max_results=50, **kwargs):
         """
         Parameters
@@ -157,11 +161,13 @@ class OptGene(StrainDesignMethod):
         self._optimization_algorithm.simulation_method = simulation_method
         self._optimization_algorithm.archiver = ProductionStrainArchive()
         result = self._optimization_algorithm.run(max_evaluations=max_evaluations,
-                                                  popuplation_size=population_size,
+                                                  pop=population_size,
                                                   max_size=max_knockouts,
                                                   maximize=True,
                                                   max_archive_size=max_results,
                                                   **kwargs)
+
+        kwargs.update(self._optimization_algorithm.simulation_kwargs)
 
         return OptGeneResult(self._model, result, objective_function, simulation_method, self._manipulation_type,
                              biomass, target, substrate, kwargs)
@@ -240,7 +246,8 @@ class OptGeneResult(StrainDesignResult):
                 processed_solutions.loc[i] = process_knockout_solution(
                     self._model, solution, self._simulation_method, self._simulation_kwargs, self._biomass,
                     self._target, self._substrate, [self._objective_function], cache=cache)
-            except SolveError:
+            except SolveError as e:
+                logger.error(e)
                 processed_solutions.loc[i] = [numpy.nan for _ in processed_solutions.columns]
 
         if self._manipulation_type == "reactions":
