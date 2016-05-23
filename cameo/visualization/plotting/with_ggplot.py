@@ -14,21 +14,22 @@
 from __future__ import absolute_import
 
 from math import ceil
+import six
 
 from warnings import warn
 from ggplot import scale_colour_manual, geom_area, geom_tile, scale_x_continuous, scale_y_continuous, aes, facet_grid
 
-from cameo.util import in_ipnb, doc_inherit
+from cameo.util import in_ipnb, inheritdocstring
 from cameo.visualization.plotting import AbstractPlotter
 
 
+@six.add_metaclass(inheritdocstring)
 class GGPlotPlotter(AbstractPlotter):
     def __init__(self, **options):
         warn("ggplot interface is under construction...")
 
         super(GGPlotPlotter, self).__init__(**options)
 
-    @doc_inherit
     def production_envelope(self, dataframe, grid=None, width=None, height=None, title=None, points=None,
                             points_colors=None, palette=None, x_axis_label=None, y_axis_label=None):
 
@@ -46,7 +47,6 @@ class GGPlotPlotter(AbstractPlotter):
 
         return plot
 
-    @doc_inherit
     def flux_variability_analysis(self, dataframe, grid=None, width=None, height=None, title=None, palette=None,
                                   x_axis_label=None, y_axis_label=None):
 

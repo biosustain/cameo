@@ -15,10 +15,12 @@
 import cobra
 import logging
 import six
+from cameo.util import inheritdocstring
 
 logger = logging.getLogger(__name__)
 
 
+@six.add_metaclass(inheritdocstring)
 class Metabolite(cobra.core.Metabolite):
 
     @classmethod

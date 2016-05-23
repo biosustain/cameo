@@ -25,12 +25,13 @@ from cameo.parallel import SequentialView
 
 import logging
 import six
-from cameo.util import doc_inherit
+from cameo.util import inheritdocstring
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
+@six.add_metaclass(inheritdocstring)
 class Reaction(_cobrapy.core.Reaction):
     """This class extends the cobrapy Reaction class to work with SolverBasedModel.
 
@@ -312,7 +313,6 @@ class Reaction(_cobrapy.core.Reaction):
         else:
             return None
 
-    @doc_inherit
     def add_metabolites(self, metabolites, combine=True, **kwargs):
         if not combine:
             old_coefficients = self.metabolites

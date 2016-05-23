@@ -15,14 +15,16 @@
 from __future__ import absolute_import
 
 import math
+import six
 
 import plotly.graph_objs as go
 from plotly import tools
 
-from cameo.util import zip_repeat, in_ipnb, doc_inherit, partition
+from cameo.util import zip_repeat, in_ipnb, inheritdocstring, partition
 from cameo.visualization.plotting.abstract import AbstractPlotter
 
 
+@six.add_metaclass(inheritdocstring)
 class PlotlyPlotter(AbstractPlotter):
     class Figure(object):
         def __init__(self, data=None, layout=None):
@@ -122,7 +124,6 @@ class PlotlyPlotter(AbstractPlotter):
 
         return scatter, path
 
-    @doc_inherit
     def production_envelope(self, dataframe, grid=None, width=None, height=None, title=None, points=None,
                             points_colors=None, palette='RdYlBu', x_axis_label=None, y_axis_label=None):
         variables = dataframe["strain"].unique()
@@ -189,7 +190,6 @@ class PlotlyPlotter(AbstractPlotter):
 
         return scatter, rectangles
 
-    @doc_inherit
     def flux_variability_analysis(self, dataframe, grid=None, width=None, height=None, title=None,
                                   palette=None, x_axis_label=None, y_axis_label=None):
         palette = self.get_option('palette') if palette is None else palette
