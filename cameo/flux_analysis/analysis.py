@@ -94,20 +94,7 @@ def flux_variability_analysis(model, reactions=None, fraction_of_optimum=0., rem
         reactions = model.reactions
     with TimeMachine() as tm:
         if fraction_of_optimum > 0.:
-            try:
-                obj_val = model.solve().f
-            except SolveError as e:
-                logger.debug(
-                    "flux_variability_analyis was not able to determine an optimal solution for objective %s" % model.objective)
-                raise e
-            if model.objective.direction == 'max':
-                fix_obj_constraint = model.solver.interface.Constraint(model.objective.expression,
-                                                                       lb=fraction_of_optimum * obj_val)
-            else:
-                fix_obj_constraint = model.solver.interface.Constraint(model.objective.expression,
-                                                                       ub=fraction_of_optimum * obj_val)
-            tm(do=partial(model.solver.add, fix_obj_constraint),
-               undo=partial(model.solver.remove, fix_obj_constraint))
+            model.fix_objective_as_constraint(fraction=fraction_of_optimum, time_machine=tm)
         tm(do=int, undo=partial(setattr, model, "objective", model.objective))
         reaction_chunks = (chunk for chunk in partition(reactions, len(view)))
         if remove_cycles:

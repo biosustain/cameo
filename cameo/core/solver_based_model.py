@@ -10,6 +10,7 @@
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
@@ -257,8 +258,8 @@ class SolverBasedModel(cobra.core.Model):
                 reverse_variable = self.solver.interface.Variable(reaction._get_reverse_id(),
                                                                   lb=-1 * reaction._upper_bound,
                                                                   ub=-1 * reaction._lower_bound)
-            self.solver._add_variable(forward_variable)
-            self.solver._add_variable(reverse_variable)
+            self.solver.add(forward_variable)
+            self.solver.add(reverse_variable)
 
             for metabolite, coeff in six.iteritems(reaction.metabolites):
                 if metabolite.id in constr_terms:
@@ -273,13 +274,14 @@ class SolverBasedModel(cobra.core.Model):
             if reaction._objective_coefficient != 0.:
                 objective_terms.append(reaction._objective_coefficient * reaction.flux_expression)
 
+        new_constraints = list()
         for met_id, terms in six.iteritems(constr_terms):
             expr = sympy.Add._from_args(terms)
             try:
                 self.solver.constraints[met_id] += expr
             except KeyError:
-                self.solver._add_constraint(self.solver.interface.Constraint(expr, name=met_id, lb=0, ub=0),
-                                            sloppy=True)
+                new_constraints.append(self.solver.interface.Constraint(expr, name=met_id, lb=0, ub=0, sloppy=True))
+        self.solver.add(new_constraints, sloppy=True)
 
         objective_expression = sympy.Add(*objective_terms)
         if self.solver.objective is None:
@@ -299,7 +301,6 @@ class SolverBasedModel(cobra.core.Model):
 
         # cobrapy will raise an exceptions if one of the reactions already exists in the model (before adding any reactions)
         super(SolverBasedModel, self).add_reactions(cloned_reaction_list)
-
         self._populate_solver(cloned_reaction_list)
 
     def remove_reactions(self, the_reactions, delete=True, remove_orphans=False):
@@ -351,9 +352,12 @@ class SolverBasedModel(cobra.core.Model):
         -------
         None
         """
+        fix_objective_name = 'Fixed_objective_{}'.format(self.objective.name)
+        if fix_objective_name in self.solver.constraints:
+            self.solver.remove(fix_objective_name)
         objective_value = self.solve().objective_value * fraction
         constraint = self.solver.interface.Constraint(self.objective.expression,
-                                                      name='Fixed_objective_{}'.format(self.objective.name))
+                                                      name=fix_objective_name)
         if self.objective.direction == 'max':
             constraint.lb = objective_value
         else:
