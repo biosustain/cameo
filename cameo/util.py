@@ -97,17 +97,6 @@ class ProblemCache(object):
     def model(self):
         return self._model
 
-    def _rebuild_constraint(self, constraint):
-        (expression, lb, ub, name) = constraint.expression, constraint.lb, constraint.ub, constraint.name
-
-        def rebuild():
-            self._model.solver._remove_constraint(constraint)
-            new_constraint = self.model.solver.interface.Constraint(expression, lb=lb, ub=ub, name=name)
-            self.constraints[name] = new_constraint
-            self._model.solver._add_constraint(new_constraint, sloppy=True)
-
-        return rebuild
-
     def _append_constraint(self, constraint_id, create, *args, **kwargs):
         self.constraints[constraint_id] = create(self.model, constraint_id, *args, **kwargs)
         self._model.solver._add_constraint(self.constraints[constraint_id])
