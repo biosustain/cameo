@@ -44,8 +44,6 @@ install:
 - pip install cobra==0.4.0b6 --pre
 - pip install swiglpk
 - pip install .
-- pip uninstall optlang -y
-- pip install -e git://github.com/biosustain/optlang.git@devel#egg=optlang
 before_script:
 - "flake8 ."
 script: nosetests
