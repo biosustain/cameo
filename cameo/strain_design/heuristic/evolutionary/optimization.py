@@ -341,9 +341,9 @@ class KnockoutOptimization(HeuristicOptimization):
     @simulation_method.setter
     def simulation_method(self, simulation_method):
         if simulation_method in [lmoma, moma, room] and self._simulation_kwargs.get("reference", None) is None:
-            logger.info("No WT reference found, generating using pfba.")
+            logger.warning("No WT reference found, generating using pfba.")
             self._simulation_kwargs['reference'] = pfba(self.model).fluxes
-            logger.info("Reference successfully computed.")
+            logger.warning("Reference successfully computed.")
         self._simulation_method = simulation_method
 
     @property
@@ -353,8 +353,9 @@ class KnockoutOptimization(HeuristicOptimization):
     @simulation_kwargs.setter
     def simulation_kwargs(self, simulation_kwargs):
         if self.simulation_method in [lmoma, moma, room] and simulation_kwargs.get("reference", None) is None:
-            logger.info("No WT reference found, generating using pfba.")
+            logger.warning("No WT reference found, generating using pfba.")
             simulation_kwargs['reference'] = pfba(self.model).fluxes
+            logger.warning("Reference successfully computed.")
         self._simulation_kwargs = simulation_kwargs
 
     def _evaluator(self, candidates, args):
