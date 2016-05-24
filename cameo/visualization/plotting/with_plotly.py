@@ -94,19 +94,30 @@ class PlotlyPlotter(AbstractPlotter):
     def __init__(self, **options):
         if 'mode' not in options:
             options['mode'] = 'offline'
+
+        self._offline_mode = False
         super(PlotlyPlotter, self).__init__(**options)
-        if self.get_option('mode') is 'offline' and in_ipnb():
+
+    def _oflline(self):
+        if self._offline_mode:
+            return
+        if self.get_option('mode') == 'offline' and in_ipnb():
             from plotly.offline import init_notebook_mode
             init_notebook_mode()
+        self._offline_mode = True
 
     def _make_production_envelope(self, dataframe, variable, color=None):
         alpha = self.get_option('alpha')
         ub = dataframe["ub"].values.tolist()
         lb = dataframe["lb"].values.tolist()
-        var = dataframe["value"].values
+        var = dataframe["value"].values.tolist()
 
         x = [v for v in var] + [v for v in reversed(var)]
         y = [v for v in lb] + [v for v in reversed(ub)]
+
+        if lb[0] != ub[0]:
+            x.extend([var[0], var[0]])
+            y.extend([lb[0], ub[0]])
 
         scatter = go.Scatter(x=x, y=y,
                              mode="line",
@@ -114,15 +125,10 @@ class PlotlyPlotter(AbstractPlotter):
                              hoverinfo='none',
                              fillcolor=color,
                              opacity=alpha,
+                             fill="toself",
                              marker=dict(line=dict(color=color), opacity=alpha))
-        path = self.Path(zip(scatter.x, scatter.y),
-                         close=True,
-                         fill_alpha=alpha,
-                         line_color=color,
-                         line_width=0,
-                         fill_color=color)
 
-        return scatter, path
+        return scatter
 
     def production_envelope(self, dataframe, grid=None, width=None, height=None, title=None, points=None,
                             points_colors=None, palette='RdYlBu', x_axis_label=None, y_axis_label=None):
@@ -133,17 +139,15 @@ class PlotlyPlotter(AbstractPlotter):
         width, height = self.golden_ratio(width, height)
 
         data = []
-        shapes = []
         palette = self._palette(palette, len(variables))
         for variable, color in zip_repeat(variables, palette):
             _dataframe = dataframe[dataframe["strain"] == variable]
-            d, s = self._make_production_envelope(_dataframe, variable, color=color)
-            data.append(d)
-            shapes.append(s)
+            scatter = self._make_production_envelope(_dataframe, variable, color=color)
+            data.append(scatter)
 
         if points is not None:
             x, y = zip(*points)
-            scatter = go.Scatter(x=x, y=y, mode="marker", name="Data Points",
+            scatter = go.Scatter(x=x, y=y, mode="markers", name="Data Points",
                                  marker=dict(color="green" if points_colors is None else points_colors))
             data.append(scatter)
 
@@ -151,7 +155,6 @@ class PlotlyPlotter(AbstractPlotter):
             title=title,
             xaxis=dict(title=x_axis_label),
             yaxis=dict(title=y_axis_label),
-            shapes=[s.to_dict() for s in shapes],
             width=width,
             height=height
         )
@@ -230,6 +233,7 @@ class PlotlyPlotter(AbstractPlotter):
     def _display(self):
         if self.get_option('mode') is "offline":
             from plotly.offline import iplot
+            self._oflline()
         else:
             from plotly.plotly import iplot
 
@@ -247,8 +251,5 @@ class PlotlyPlotter(AbstractPlotter):
             for j, subplot in enumerate(subplots):
                 for trace in subplot.data:
                     plot.append_trace(trace, i + 1, j + 1)
-                plot['layout']['xaxis%i' % (i + j + 1)].update(**subplot.layout['xaxis'])
-                plot['layout']['yaxis%i' % (i + j + 1)].update(**subplot.layout['yaxis'])
-                plot['layout']['shapes%i' % (i + j + 1)].update(**subplot.layout['shapes'])
 
         return plot
