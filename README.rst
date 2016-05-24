@@ -131,4 +131,4 @@ Furthermore, the following dependencies are needed:
 .. |Coverage Status| image:: https://coveralls.io/repos/biosustain/cameo/badge.svg?branch=devel
    :target: https://coveralls.io/r/biosustain/cameo?branch=devel
 .. |DOI| image:: https://zenodo.org/badge/5031/biosustain/cameo.svg
-   :target: https://zenodo.org/badge/latestdoi/5031/biosustain/cameo
+   :target: http://dx.doi.org/10.5281/zenodo.19827
