@@ -28,9 +28,9 @@ except ImportError:
     def display(*args, **kwargs):
         print(*args, **kwargs)
 
-
     def HTML(*args, **kwargs):
         print(*args, **kwargs)
+
 from pandas import DataFrame
 
 from cameo import Metabolite, Model, fba
@@ -65,6 +65,7 @@ class _OptimizationRunner(object):
             opt_gene = OptGene(model=model, plot=False)
             opt_gene_designs = opt_gene.run(target=pathway.product.id, biomass=model.biomass,
                                             substrate=model.carbon_source, max_evaluations=10000)
+            opt_gene_designs._process_solutions()
 
             # TODO: OptKnock is quite slow. Improve OptKnock (model simplification?)
             # opt_knock = OptKnock(model=model)
