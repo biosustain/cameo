@@ -55,13 +55,5 @@ except ImportError:
 
 bokeh_url = 'default'
 
-# Determine if matplotlib is available
-try:
-    import matplotlib
-
-    use_matplotlib = True
-except ImportError:
-    use_matplotlib = False
-
 # Set default parallelization view
 default_view = SequentialView()
