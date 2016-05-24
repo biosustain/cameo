@@ -21,7 +21,7 @@ import numpy as np
 from cameo import config
 
 if config.use_bokeh:
-    from bokeh.plotting import *
+    from bokeh.plotting import output_notebook, figure, show
     from bokeh.models import Range1d
 
 

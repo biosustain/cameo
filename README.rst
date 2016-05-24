@@ -1,7 +1,7 @@
 Cameo—Computer Aided Metabolic Engineering and Optimization
 -----------------------------------------------------------
 
-|Documentation Status| |Build Status| |Coverage Status| |DOI|
+|PyPI| |License| |Build Status| |Coverage Status| |DOI|
 
 What is Cameo?
 ~~~~~~~~~~~~~~
@@ -122,8 +122,10 @@ Furthermore, the following dependencies are needed:
 -  `inspyred <https://pypi.python.org/pypi/inspyred>`__ for evolutionary
    computations.
 
-.. |Documentation Status| image:: https://readthedocs.org/projects/cameo/badge/?version=devel
-   :target: https://readthedocs.org/projects/cameo/?badge=devel
+.. |PyPI| image:: https://img.shields.io/pypi/v/cameo.svg
+   :target: https://pypi.python.org/pypi/cameo
+.. |License| image:: http://img.shields.io/badge/license-APACHE2-blue.svg
+   :target: http://img.shields.io/badge/license-APACHE2-blue.svg
 .. |Build Status| image:: https://travis-ci.org/biosustain/cameo.svg?branch=master
    :target: https://travis-ci.org/biosustain/cameo
 .. |Coverage Status| image:: https://coveralls.io/repos/biosustain/cameo/badge.svg?branch=devel

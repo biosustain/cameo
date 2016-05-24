@@ -10,6 +10,7 @@
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
@@ -18,9 +19,6 @@
 
 from __future__ import absolute_import, print_function
 from functools import partial
-
-from cobra.core import Metabolite
-
 
 import six
 
@@ -39,18 +37,19 @@ from sympy.core.singleton import S
 import optlang
 from pandas import DataFrame, pandas
 
-from cameo.util import TimeMachine, doc_inherit
+from cameo.util import TimeMachine, inheritdocstring
 from cameo import config
 from cameo import exceptions
+
 from cameo.exceptions import SolveError, Infeasible, UndefinedSolution
 from .reaction import Reaction
 from .solution import LazySolution, Solution
+from cameo.core.metabolite import Metabolite
+from cameo.core.gene import Gene
 
 import logging
 
-
 __all__ = ['to_solver_based_model', 'SolverBasedModel']
-
 
 logger = logging.getLogger(__name__)
 
@@ -74,6 +73,7 @@ def to_solver_based_model(cobrapy_model, solver_interface=optlang):
     return solver_based_model
 
 
+@six.add_metaclass(inheritdocstring)
 class SolverBasedModel(cobra.core.Model):
     """Implements a model with an attached optlang solver instance.
 
@@ -89,20 +89,37 @@ class SolverBasedModel(cobra.core.Model):
             else:
                 cleaned_reactions.append(Reaction.clone(reaction, model=self))
         self.reactions = cleaned_reactions
+
+        cleaned_genes = cobra.core.DictList()
         for gene in self.genes:
-            gene._model = self
-            gene_reactions = list()
-            for reaction in gene.reactions:
-                model_reaction = self.reactions.get_by_id(reaction.id)
-                gene_reactions.append(model_reaction)
-            gene._reaction = set(gene_reactions)
+            if isinstance(gene, Gene):
+                cleaned_genes.append(gene)
+            else:
+                cleaned_genes.append(Gene.clone(gene, model=self))
+        self.genes = cleaned_genes
+
+        cleaned_metabolites = cobra.core.DictList()
+        for metabolite in self.metabolites:
+            if isinstance(metabolite, Metabolite):
+                cleaned_metabolites.append(metabolite)
+            else:
+                cleaned_metabolites.append(Metabolite.clone(metabolite, model=self))
+        self.metabolites = cleaned_metabolites
+
         for metabolite in self.metabolites:
             metabolite._model = self
-            metabolite_reactions = list()
-            for reaction in metabolite.reactions:
-                model_reaction = self.reactions.get_by_id(reaction.id)
-                metabolite_reactions.append(model_reaction)
-            metabolite._reaction = set(metabolite_reactions)
+            metabolite._reaction = {self.reactions.get_by_id(re.id) for re in metabolite.reactions}
+
+        for gene in self.genes:
+            gene._model = self
+            gene._reaction = {self.reactions.get_by_id(re.id) for re in gene.reactions}
+
+        for reaction in self.reactions:
+            reaction._genes = {self.genes.get_by_id(gene.id) for gene in reaction.genes}
+            reaction._metabolites = {
+                self.metabolites.get_by_id(met.id): coef for met, coef in reaction.metabolites.items()
+            }
+
         self._solver = solver_interface.Model()
         self._populate_solver(self.reactions)
         self._timestamp_last_optimization = None
@@ -114,7 +131,6 @@ class SolverBasedModel(cobra.core.Model):
     def __deepcopy__(self):
         return self.copy()
 
-    @doc_inherit
     def copy(self):
         """Needed for compatibility with cobrapy."""
         model_copy = super(SolverBasedModel, self).copy()
@@ -212,7 +228,6 @@ class SolverBasedModel(cobra.core.Model):
         """
         return [reaction for reaction in self.reactions if len(reaction.reactants) == 0 or len(reaction.products) == 0]
 
-    @doc_inherit
     def add_metabolites(self, metabolite_list):
         super(SolverBasedModel, self).add_metabolites(metabolite_list)
         for met in metabolite_list:
@@ -243,8 +258,8 @@ class SolverBasedModel(cobra.core.Model):
                 reverse_variable = self.solver.interface.Variable(reaction._get_reverse_id(),
                                                                   lb=-1 * reaction._upper_bound,
                                                                   ub=-1 * reaction._lower_bound)
-            self.solver._add_variable(forward_variable)
-            self.solver._add_variable(reverse_variable)
+            self.solver.add(forward_variable)
+            self.solver.add(reverse_variable)
 
             for metabolite, coeff in six.iteritems(reaction.metabolites):
                 if metabolite.id in constr_terms:
@@ -259,22 +274,23 @@ class SolverBasedModel(cobra.core.Model):
             if reaction._objective_coefficient != 0.:
                 objective_terms.append(reaction._objective_coefficient * reaction.flux_expression)
 
+        new_constraints = list()
         for met_id, terms in six.iteritems(constr_terms):
             expr = sympy.Add._from_args(terms)
             try:
                 self.solver.constraints[met_id] += expr
             except KeyError:
-                self.solver._add_constraint(self.solver.interface.Constraint(expr, name=met_id, lb=0, ub=0),
-                                            sloppy=True)
+                new_constraints.append(self.solver.interface.Constraint(expr, name=met_id, lb=0, ub=0, sloppy=True))
+        self.solver.add(new_constraints, sloppy=True)
 
         objective_expression = sympy.Add(*objective_terms)
         if self.solver.objective is None:
             self.solver.objective = self.solver.interface.Objective(objective_expression, name='obj', direction='max')
         else:
-            self.solver.objective.variables  # TODO: remove this weird hack. Looks like some weird issue with lazy objective expressions in CPLEX and GLPK interface in optlang.
+            # TODO: remove this weird hack. Looks like some weird issue with lazy objective expressions in CPLEX and GLPK interface in optlang.
+            self.solver.objective.variables
             self.solver.objective += objective_expression
 
-    @doc_inherit
     def add_reactions(self, reaction_list):
         cloned_reaction_list = list()
         for reaction in reaction_list:  # this is necessary for cobrapy compatibility
@@ -285,24 +301,28 @@ class SolverBasedModel(cobra.core.Model):
 
         # cobrapy will raise an exceptions if one of the reactions already exists in the model (before adding any reactions)
         super(SolverBasedModel, self).add_reactions(cloned_reaction_list)
-
         self._populate_solver(cloned_reaction_list)
 
-    @doc_inherit
     def remove_reactions(self, the_reactions, delete=True, remove_orphans=False):
-        for reaction in the_reactions:
-            self.solver.remove(reaction.forward_variable)
-            self.solver.remove(reaction.reverse_variable)
         super(SolverBasedModel, self).remove_reactions(the_reactions, delete=delete, remove_orphans=remove_orphans)
 
     def add_demand(self, metabolite, prefix="DM_", time_machine=None):
-        """Add a demand reaction for a metabolite (metabolite --> Ø)
+        from warnings import warn
+        warn('"add_demand" function is replaced with "add_exchange".', PendingDeprecationWarning)
+        return self.add_exchange(metabolite, prefix=prefix, time_machine=time_machine)
+
+    def add_exchange(self, metabolite, demand=True, prefix='DM_', bound=1000.0, time_machine=None):
+        """Add an exchange reaction for a metabolite (demand=TRUE: metabolite --> Ø or demand=False: 0 --> metabolite )
 
         Parameters
         ----------
         metabolite : Metabolite
+        demand : bool, optional
+            True for sink type exchange, False for uptake type exchange
         prefix : str, optional
             A prefix that will be added to the metabolite ID to be used as the demand reaction's ID (defaults to 'DM_').
+        bound : float, optional
+            Upper bound for sink reaction / lower bound for uptake (multiplied by -1)
         time_machine : TimeMachine, optional
             A TimeMachine instance that enables undoing.
 
@@ -312,22 +332,30 @@ class SolverBasedModel(cobra.core.Model):
             The created demand reaction.
         """
         id = str(prefix + metabolite.id)
-        name = "Exchange %s" % metabolite.name if prefix == "EX_" else "Demand %s" % metabolite.name
+        name = "Exchange %s" % metabolite.name if prefix != "DM_" else "Demand %s" % metabolite.name
         if id in self.reactions:
             raise ValueError("The metabolite already has a demand reaction.")
 
-        demand_reaction = Reaction()
-        demand_reaction.id = id
-        demand_reaction.name = name
-        demand_reaction.add_metabolites({metabolite: -1})
-        demand_reaction.lower_bound = 0
-        demand_reaction.upper_bound = 1000
-        if time_machine is not None:
-            time_machine(do=partial(self.add_reactions, [demand_reaction]),
-                         undo=partial(self.remove_reactions, [demand_reaction], delete=False))
+        reaction = Reaction()
+        reaction.id = id
+        reaction.name = name
+
+        reaction.add_metabolites({metabolite: -1})
+        if demand:
+            reaction.upper_bound = bound
+            reaction.lower_bound = 0
         else:
-            self.add_reactions([demand_reaction])
-        return demand_reaction
+            reaction.upper_bound = 0
+            reaction.lower_bound = -bound
+
+
+
+        if time_machine is not None:
+            time_machine(do=partial(self.add_reactions, [reaction]),
+                         undo=partial(self.remove_reactions, [reaction], delete=False))
+        else:
+            self.add_reactions([reaction])
+        return reaction
 
     def fix_objective_as_constraint(self, time_machine=None, fraction=1):
         """Fix current objective as an additional constraint (e.g., ..math`c^T v >= max c^T v`).
@@ -341,9 +369,12 @@ class SolverBasedModel(cobra.core.Model):
         -------
         None
         """
+        fix_objective_name = 'Fixed_objective_{}'.format(self.objective.name)
+        if fix_objective_name in self.solver.constraints:
+            self.solver.remove(fix_objective_name)
         objective_value = self.solve().objective_value * fraction
         constraint = self.solver.interface.Constraint(self.objective.expression,
-                                                      name='Fixed_objective_{}'.format(self.objective.name))
+                                                      name=fix_objective_name)
         if self.objective.direction == 'max':
             constraint.lb = objective_value
         else:
@@ -390,7 +421,6 @@ class SolverBasedModel(cobra.core.Model):
         self.solver._add_constraint(ratio_constraint, sloppy=True)
         return ratio_constraint
 
-    @doc_inherit
     def optimize(self, objective_sense=None, solution_type=Solution, **kwargs):
         """OptlangBasedModel implementation of optimize.
 
@@ -430,7 +460,7 @@ class SolverBasedModel(cobra.core.Model):
             if solution.status is not 'optimal':
                 status = solution.status
                 # GLPK 4.45 hack http://lists.gnu.org/archive/html/help-glpk/2013-09/msg00015.html
-                if status == 'undefined' and self.solver.interface.__name__ == 'optlang.glpk_interface' and self.solver.interface.glp_version() == '4.45':
+                if status == 'undefined' and self.solver.interface.__name__ == 'optlang.glpk_interface':  # and self.solver.interface.glp_version() == '4.45':
                     status = 'infeasible'
                 raise exceptions._OPTLANG_TO_EXCEPTIONS_DICT.get(status, SolveError)(
                     'Solving model %s did not return an optimal solution. The returned solution status is "%s"' % (
@@ -461,21 +491,24 @@ class SolverBasedModel(cobra.core.Model):
         essential = []
         try:
             solution = self.solve()
+
+            for reaction_id, flux in six.iteritems(solution.fluxes):
+                if abs(flux) > 0:
+                    reaction = self.reactions.get_by_id(reaction_id)
+                    with TimeMachine() as tm:
+                        reaction.knock_out(time_machine=tm)
+                        try:
+                            sol = self.solve()
+                        except Infeasible:
+                            essential.append(reaction)
+                        else:
+                            if sol.f < threshold:
+                                essential.append(reaction)
+
         except SolveError as e:
             logger.error('Cannot determine essential reactions for un-optimal model.')
             raise e
-        for reaction_id, flux in six.iteritems(solution.fluxes):
-            if abs(flux) > 0:
-                reaction = self.reactions.get_by_id(reaction_id)
-                with TimeMachine() as tm:
-                    reaction.knock_out(time_machine=tm)
-                    try:
-                        sol = self.solve()
-                    except (Infeasible, UndefinedSolution):
-                        essential.append(reaction)
-                    else:
-                        if sol.f < threshold:
-                            essential.append(reaction)
+
         return essential
 
     def essential_genes(self, threshold=1e-6):
@@ -494,25 +527,25 @@ class SolverBasedModel(cobra.core.Model):
         essential = []
         try:
             solution = self.solve()
+            genes_to_check = set()
+            for reaction_id, flux in six.iteritems(solution.fluxes):
+                if abs(flux) > 0:
+                    genes_to_check.update(self.reactions.get_by_id(reaction_id).genes)
+            for gene in genes_to_check:
+                with TimeMachine() as tm:
+                    gene.knock_out(time_machine=tm)
+                    try:
+                        sol = self.solve()
+                    except Infeasible:
+                        essential.append(gene)
+                    else:
+                        if sol.f < threshold:
+                            essential.append(gene)
+
         except SolveError as e:
             logger.error('Cannot determine essential genes for un-optimal model.')
             raise e
-        genes_to_check = set()
-        for reaction_id, flux in six.iteritems(solution.fluxes):
-            if abs(flux) > 0:
-                genes_to_check.update(self.reactions.get_by_id(reaction_id).genes)
-        for gene in genes_to_check:
-            reactions = cobra.manipulation.delete.find_gene_knockout_reactions(self, [gene])
-            with TimeMachine() as tm:
-                for reaction in reactions:
-                    reaction.knock_out(time_machine=tm)
-                try:
-                    sol = self.solve()
-                except (Infeasible, UndefinedSolution):
-                    essential.append(gene)
-                else:
-                    if sol.f < threshold:
-                        essential.append(gene)
+
         return essential
 
     @property

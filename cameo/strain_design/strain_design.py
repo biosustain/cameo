@@ -56,6 +56,10 @@ class StrainDesign(object):
 class StrainDesignResult(Result):
     __method_name__ = None
 
+    _aggreate_functions_ = {
+        "method": lambda series: tuple(sum(series.values.tolist(), []))
+    }
+
     def __init__(self, *args, **kwargs):
         super(StrainDesignResult, self).__init__(*args, **kwargs)
 
@@ -71,6 +75,7 @@ class StrainDesignResult(Result):
         """
         raise NotImplementedError
 
+    @property
     def data_frame(self):
         return DataFrame([design for design in self],
                          columns=["knockouts", "knock_ins", "over_expression", "down_regulation"])
@@ -82,16 +87,18 @@ class StrainDesignResult(Result):
         df = DataFrame(columns=["knockouts", "knock_ins", "over_expression", "down_regulation", "type", "method"])
         i = 0
         for i, design in enumerate(self):
-            df.loc[i] = list(design) + [design.manipulation_type, self.__method_name__]
+            df.loc[i] = list(design) + [design.manipulation_type, [self.__method_name__]]
 
         for j, design in enumerate(other):
-            df.loc[i + j] = list(design) + [design.manipulation_type, self.__method_name__]
+            df.loc[i + j] = list(design) + [design.manipulation_type, [self.__method_name__]]
 
-        df = df.groupby(["knockouts", "knock_ins", "over_expression", "down_regulation", "type"]).aggregate("method")
+        df = df.groupby(["knockouts", "knock_ins",
+                         "over_expression", "down_regulation", "type"]).aggregate(self._aggreate_functions_)
 
-        designs = [StrainDesign(row.values[:-1]) for _, row in df.iterrows()]
+        return StrainDesignEnsemble(df.index.tolist(), df['method'].tolist())
 
-        return StrainDesignEnsemble(designs, df['method'])
+    def _repr_html_(self):
+        return self.data_frame._repr_html_()
 
 
 class StrainDesignEnsemble(StrainDesignResult):
@@ -108,6 +115,28 @@ class StrainDesignEnsemble(StrainDesignResult):
         return len(self._designs)
 
     def data_frame(self):
-        return DataFrame(zip([design for design in self], self._methods),
-                         columns=["knockouts", "knockins", "over_expression", "downregulation", "method"])
+        data = []
+        for design, method in zip(self._designs, self._methods):
+            row = list(design)
+            row.append(method)
 
+        return DataFrame(data, columns=["knockouts", "knock_ins", "over_expression", "down_regulation", "method"])
+
+    def __add__(self, other):
+        df = DataFrame(columns=["knockouts", "knock_ins", "over_expression", "down_regulation", "type", "method"])
+        i = 0
+        for i, design in enumerate(self):
+            df.loc[i] = list(design) + [design.manipulation_type, self._methods]
+
+        for j, design in enumerate(other):
+            if isinstance(other, StrainDesignEnsemble):
+                df.loc[i + j] = list(design) + [design.manipulation_type, self._methods]
+            else:
+                df.loc[i + j] = list(design) + [design.manipulation_type, [self.__method_name__]]
+
+        df = df.groupby(["knockouts", "knock_ins",
+                         "over_expression", "down_regulation", "type"]).aggregate(self._aggreate_functions_)
+
+        designs = [StrainDesign(row.values[:-1]) for _, row in df.iterrows()]
+
+        return StrainDesignEnsemble(designs, df['method'].tolist())

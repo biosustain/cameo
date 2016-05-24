@@ -14,7 +14,6 @@
 
 from __future__ import absolute_import, print_function
 
-
 import logging
 import time
 from functools import reduce
@@ -39,7 +38,6 @@ from cameo.util import in_ipnb
 from cameo.util import partition, TimeMachine, memoize, ProblemCache
 
 __all__ = ['ReactionKnockoutOptimization', 'GeneKnockoutOptimization']
-
 
 REACTION_KNOCKOUT_TYPE = "reaction"
 GENE_KNOCKOUT_TYPE = "gene"
@@ -140,7 +138,7 @@ class HeuristicOptimization(object):
         self.progress = progress
         if seed is None:
             seed = int(time.time())
-        self.seed = seed
+        self._seed = seed
         self.observers = []
         self.random = Random(seed=seed)
         self.model = model
@@ -154,6 +152,17 @@ class HeuristicOptimization(object):
     @property
     def objective_function(self):
         return self._objective_function
+
+    @property
+    def seed(self):
+        return self._seed
+
+    @seed.setter
+    def seed(self, seed):
+        if seed is None:
+            seed = int(time.time())
+        self._seed = seed
+        self.random = Random(seed=seed)
 
     @objective_function.setter
     def objective_function(self, objective_function):
@@ -332,9 +341,9 @@ class KnockoutOptimization(HeuristicOptimization):
     @simulation_method.setter
     def simulation_method(self, simulation_method):
         if simulation_method in [lmoma, moma, room] and self._simulation_kwargs.get("reference", None) is None:
-            logger.info("No WT reference found, generating using pfba.")
+            logger.warning("No WT reference found, generating using pfba.")
             self._simulation_kwargs['reference'] = pfba(self.model).fluxes
-            logger.info("Reference successfully computed.")
+            logger.warning("Reference successfully computed.")
         self._simulation_method = simulation_method
 
     @property
@@ -344,8 +353,9 @@ class KnockoutOptimization(HeuristicOptimization):
     @simulation_kwargs.setter
     def simulation_kwargs(self, simulation_kwargs):
         if self.simulation_method in [lmoma, moma, room] and simulation_kwargs.get("reference", None) is None:
-            logger.info("No WT reference found, generating using pfba.")
+            logger.warning("No WT reference found, generating using pfba.")
             simulation_kwargs['reference'] = pfba(self.model).fluxes
+            logger.warning("Reference successfully computed.")
         self._simulation_kwargs = simulation_kwargs
 
     def _evaluator(self, candidates, args):
@@ -436,7 +446,6 @@ class KnockoutOptimization(HeuristicOptimization):
 
 
 class KnockoutOptimizationResult(Result):
-
     def __init__(self, model=None, heuristic_method=None, simulation_method=None, simulation_kwargs=None,
                  solutions=None, objective_function=None, ko_type=None, decoder=None, seed=None, *args, **kwargs):
         super(KnockoutOptimizationResult, self).__init__(*args, **kwargs)
@@ -617,7 +626,7 @@ class ReactionKnockoutOptimization(KnockoutOptimization):
             self.reactions = set([r.id for r in self.model.reactions])
         else:
             self.reactions = reactions
-        logger.info("Computing essential reactions...")
+        logger.debug("Computing essential reactions...")
         if essential_reactions is None:
             self.essential_reactions = set([r.id for r in self.model.essential_reactions()])
         else:
@@ -686,7 +695,7 @@ class GeneKnockoutOptimization(KnockoutOptimization):
             self.genes = set([g.id for g in self.model.genes])
         else:
             self.genes = genes
-        logger.info("Computing essential genes...")
+        logger.debug("Computing essential genes...")
         if essential_genes is None:
             self.essential_genes = set([g.id for g in self.model.essential_genes()])
         else:
@@ -698,7 +707,6 @@ class GeneKnockoutOptimization(KnockoutOptimization):
 
 
 class KnockinKnockoutEvaluator(KnockoutEvaluator):
-
     def __init__(self, database, *args, **kwargs):
         super(KnockinKnockoutEvaluator, self).__init__(*args, **kwargs)
         self._database = database

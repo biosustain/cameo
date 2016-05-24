@@ -12,12 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from __future__ import absolute_import, print_function
+
 import time
 
-__all__ = ['BestSolutionArchive']
-
 from bisect import insort
+
 from inspyred.ec import Individual as OriginalIndividual
+
+__all__ = ['BestSolutionArchive', 'ProductionStrainArchive']
 
 
 class BestSolutionArchive(object):
@@ -69,6 +71,14 @@ class BestSolutionArchive(object):
 
     def __len__(self):
         return self.length()
+
+
+class ProductionStrainArchive(BestSolutionArchive):
+    def __call__(self, random, population, archive, args):
+        self.archive = archive
+        max_size = args.get('max_archive_size', 100)
+        [self.add(i.candidate, i.fitness, i.birthdate, True, max_size) for i in population if i.fitness > 0]
+        return self.archive
 
 
 class Individual(OriginalIndividual):
@@ -145,10 +155,6 @@ class Individual(OriginalIndividual):
     def improves(self, other):
         assert isinstance(other, Individual)
         if self.maximize:
-            return self.issubset(other) and \
-                   len(self.symmetric_difference(other)) > 0 and \
-                   self.fitness >= other.fitness
+            return self.issubset(other) and len(self.symmetric_difference(other)) > 0 and self.fitness >= other.fitness
         else:
-            return self.issubset(other) and \
-                   len(self.symmetric_difference(other)) > 0 and \
-                   self.fitness <= other.fitness
+            return self.issubset(other) and len(self.symmetric_difference(other)) > 0 and self.fitness <= other.fitness

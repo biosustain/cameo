@@ -21,7 +21,6 @@ addons:
     - pandoc
     - openbabel
 before_install:
-#- if [ ! -d "cplex/python/$TRAVIS_PYTHON_VERSION/x86-64_linux/" ]; then curl -L SECRET_CPLEX_LINK -o cplex.tar.gz && tar xvf cplex.tar.gz; fi
 - pip install pip --upgrade
 - pip install codecov
 - curl -L $SECRET_CPLEX_LINK -o cplex.tar.gz
@@ -34,35 +33,39 @@ install:
 - if [[ $TRAVIS_PYTHON_VERSION == "3.4" ]]; then pip install pyzmq pandas; fi
 - pip install numpy scipy pyzmq pandas -f http://nikosonnensche.in/wheels/index.html --trusted-host nikosonnensche.in
   --no-index
-- pip install ipython[all]
-- pip install ipyparallel ipywidgets
-- pip install coveralls coverage
-- pip install pypandoc
-- pip install redis
-- pip install rednose
-#- pip install cython>=0.21
-- pip install cobra==0.4.0b6 --pre
-- pip install swiglpk
-- pip install .
+- pip install flake8
+- pip install .[swiglpk,test,parallel]
+before_script:
+- flake8 .
 script: nosetests
 after_success:
-- coveralls
 - codecov
 notifications:
   slack: biosustain:UGm09rOjMCgXko3rS3wUivoX
 before_deploy:
   - pip install twine
-deploy:
-  provider: pypi
-  user: Nikolaus.Sonnenschein
-  password:
-    secure: nxjszXtUzQfnLlfg0cmFjd9gRekXDog6dkkN1rMc7CIWH2gZ1gAX4sNETVChnuSmu9egzhuIkviHstRrdyGoEZ7ZkHlTXmpVAs9AY96eMSejnwHHODhYno0jB7DjGcfejodLF+lo6lWz7S7mXXwML6YLM3xxG+AOjLHlHbPTaKc=
-  distributions: sdist bdist_wheel
-  on:
-    branch: master
-    tags: true
-    repo: biosustain/cameo
-  docs_dir: docs/_build/html
+  - python setup.py sdist bdist_wheel
 env:
   global:
     secure: QgrOXEgpcH6xgToVfWIX6j6CPvycKMPtNnoYAxPrZjkMzd2aCHHeokv0FZkCn3uePO0I8W8TkKBxilGZbWYoseDq+Snds18sBTG9u2NHvYHnDQb4Oki7+NoxhlnGIOj/8ADONOpc0n7PyFDPK8zmKVZvv9p78OHZO5CmV/ktOeg=
+deploy:
+  - provider: releases
+    api_key:
+      secure: VsKdkwYvp7lf65S/pzLWbrk8PaRAzBVClB57s4jYepx+BbJdPJi5Zwz4zmu0Ifa1K7K2Jh0rITV9GZAyC+0Eq2ffXtZsBOsC5+2yKaWV5WiU7kNdUVhD9EFkUaNknT8+B2/sjPsl+GP8DTzCqstgdGo5EAAnvpV53qIAwwF9n0U=
+    file_glob: true
+    file: dist/cameo*.whl
+    skip_cleanup: true
+    on:
+      branch: master
+      tags: true
+      repo: biosustain/cameo
+  - provider: pypi
+    user: Nikolaus.Sonnenschein
+    password:
+      secure: nxjszXtUzQfnLlfg0cmFjd9gRekXDog6dkkN1rMc7CIWH2gZ1gAX4sNETVChnuSmu9egzhuIkviHstRrdyGoEZ7ZkHlTXmpVAs9AY96eMSejnwHHODhYno0jB7DjGcfejodLF+lo6lWz7S7mXXwML6YLM3xxG+AOjLHlHbPTaKc=
+    distributions: sdist bdist_wheel
+    on:
+      branch: master
+      tags: true
+      repo: biosustain/cameo
+    docs_dir: docs/_build/html

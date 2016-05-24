@@ -15,13 +15,14 @@
 
 from __future__ import absolute_import, print_function
 
+import logging
 import inspyred
 import numpy
 
 from pandas import DataFrame
 
 from cameo.exceptions import SolveError
-from cameo.visualization import plotting
+from cameo.visualization.plotting import plotter
 from cameo.util import ProblemCache, TimeMachine
 
 from cameo.flux_analysis.simulation import fba
@@ -31,6 +32,7 @@ from cameo.core.solver_based_model import SolverBasedModel
 
 from cameo.strain_design.strain_design import StrainDesignMethod, StrainDesignResult, StrainDesign
 
+from cameo.strain_design.heuristic.evolutionary.archives import ProductionStrainArchive
 from cameo.strain_design.heuristic.evolutionary.objective_functions import biomass_product_coupled_min_yield, \
     biomass_product_coupled_yield
 from cameo.strain_design.heuristic.evolutionary.optimization import GeneKnockoutOptimization, \
@@ -43,9 +45,12 @@ from IProgress.widgets import Bar, Percentage
 __all__ = ["OptGene"]
 
 
+logger = logging.getLogger(__name__)
+
+
 class OptGene(StrainDesignMethod):
     def __init__(self, model, evolutionary_algorithm=inspyred.ec.GA, manipulation_type="genes", essential_genes=None,
-                 essential_reactions=None, plot=True, exclude_non_gene_reactions=True, *args, **kwargs):
+                 essential_reactions=None, plot=True, exclude_non_gene_reactions=True, seed=None, *args, **kwargs):
         if not isinstance(model, SolverBasedModel):
             raise TypeError("Argument 'model' should be of type 'cameo.core.SolverBasedModel'.")
 
@@ -62,7 +67,17 @@ class OptGene(StrainDesignMethod):
         self._essential_genes = essential_genes
         self._essential_reactions = essential_reactions
         self._plot = plot
+        self._seed = None
         self.manipulation_type = manipulation_type
+
+    @property
+    def seed(self):
+        return self._seed
+
+    @seed.setter
+    def seed(self, seed):
+        self._seed = seed
+        self._optimization_algorithm.seed = seed
 
     @property
     def manipulation_type(self):
@@ -86,18 +101,21 @@ class OptGene(StrainDesignMethod):
                 model=self._model,
                 heuristic_method=self._algorithm,
                 essential_genes=self._essential_genes,
-                plot=self.plot)
+                plot=self.plot,
+                seed=self._seed)
         elif manipulation_type is "reactions":
             self._optimization_algorithm = ReactionKnockoutOptimization(
                 model=self._model,
                 heuristic_method=self._algorithm,
                 essential_reactions=self._essential_reactions,
-                plot=self.plot)
+                plot=self.plot,
+                seed=self._seed)
         else:
             raise ValueError("Invalid manipulation type %s" % manipulation_type)
 
-    def run(self, target=None, biomass=None, substrate=None, max_knockouts=5, simulation_method=fba, robust=True,
-            max_evaluations=20000, population_size=100, time_machine=None, max_results=50, **kwargs):
+    def run(self, target=None, biomass=None, substrate=None, max_knockouts=5, simulation_method=fba,
+            growth_coupled=False, max_evaluations=20000, population_size=200, time_machine=None,
+            max_results=50, **kwargs):
         """
         Parameters
         ----------
@@ -134,19 +152,22 @@ class OptGene(StrainDesignMethod):
         biomass = self._model.reaction_for(biomass, time_machine=time_machine)
         substrate = self._model.reaction_for(substrate, time_machine=time_machine)
 
-        if robust:
+        if growth_coupled:
             objective_function = biomass_product_coupled_min_yield(biomass, target, substrate)
         else:
             objective_function = biomass_product_coupled_yield(biomass, target, substrate)
         self._optimization_algorithm.objective_function = objective_function
         self._optimization_algorithm.simulation_kwargs = kwargs
         self._optimization_algorithm.simulation_method = simulation_method
+        self._optimization_algorithm.archiver = ProductionStrainArchive()
         result = self._optimization_algorithm.run(max_evaluations=max_evaluations,
-                                                  popuplation_size=population_size,
+                                                  pop=population_size,
                                                   max_size=max_knockouts,
                                                   maximize=True,
                                                   max_archive_size=max_results,
                                                   **kwargs)
+
+        kwargs.update(self._optimization_algorithm.simulation_kwargs)
 
         return OptGeneResult(self._model, result, objective_function, simulation_method, self._manipulation_type,
                              biomass, target, substrate, kwargs)
@@ -206,11 +227,12 @@ class OptGeneResult(StrainDesignResult):
         else:
             columns = self._processed_solutions.columns.difference(["reactions", "size"])
             aggregation_functions = {k: self.__aggregation_function.get(k, lambda x: x.values[0]) for k in columns}
-            data_frame = self._processed_solutions.groupby(["reactions", "size"], as_index=False)\
+            data_frame = self._processed_solutions.groupby(["reactions", "size"], as_index=False) \
                 .aggregate(aggregation_functions)
             data_frame = data_frame[self._processed_solutions.columns]
 
         data_frame.sort_values("size", inplace=True)
+        data_frame.index = [i for i in range(len(data_frame))]
         return data_frame
 
     def _process_solutions(self):
@@ -224,22 +246,42 @@ class OptGeneResult(StrainDesignResult):
                 processed_solutions.loc[i] = process_knockout_solution(
                     self._model, solution, self._simulation_method, self._simulation_kwargs, self._biomass,
                     self._target, self._substrate, [self._objective_function], cache=cache)
-            except SolveError:
+            except SolveError as e:
+                logger.error(e)
                 processed_solutions.loc[i] = [numpy.nan for _ in processed_solutions.columns]
 
         if self._manipulation_type == "reactions":
             processed_solutions.drop('genes', axis=1, inplace=True)
+
         self._processed_solutions = processed_solutions
 
-    def plot(self, index=None, grid=None, width=None, height=None, title=None, *args, **kwargs):
+    def display_on_map(self, index=0, map_name=None, palette="YlGnBu"):
+        with TimeMachine() as tm:
+            for ko in self.data_frame.loc[index, "reactions"]:
+                self._model.reactions.get_by_id(ko).knock_out(tm)
+            fluxes = self._simulation_method(self._model, **self._simulation_kwargs)
+            fluxes.display_on_map(map_name=map_name, palette=palette)
+
+    def plot(self, index=0, grid=None, width=None, height=None, title=None, palette=None, **kwargs):
         wt_production = phenotypic_phase_plane(self._model, objective=self._target, variables=[self._biomass])
         with TimeMachine() as tm:
-            for ko in self._designs[index][0]:
+            for ko in self.data_frame.loc[index, "reactions"]:
                 self._model.reactions.get_by_id(ko).knock_out(tm)
-
             mt_production = phenotypic_phase_plane(self._model, objective=self._target, variables=[self._biomass])
-        plotting.plot_2_production_envelopes(wt_production.data_frame,
-                                             mt_production.data_frame,
-                                             self._target,
-                                             self._biomass,
-                                             **kwargs)
+
+        if title is None:
+            title = "Production Envelope"
+
+        dataframe = DataFrame(columns=["ub", "lb", "value", "strain"])
+        for _, row in wt_production.iterrows():
+            _df = DataFrame([[row['objective_upper_bound'], row['objective_lower_bound'], row[self._biomass.id], "WT"]],
+                            columns=dataframe.columns)
+            dataframe = dataframe.append(_df)
+        for _, row in mt_production.iterrows():
+            _df = DataFrame([[row['objective_upper_bound'], row['objective_lower_bound'], row[self._biomass.id], "MT"]],
+                            columns=dataframe.columns)
+            dataframe = dataframe.append(_df)
+
+        plot = plotter.production_envelope(dataframe, grid=grid, width=width, height=height, title=title,
+                                           x_axis_label=self._biomass.id, y_axis_label=self._target.id, palette=palette)
+        plotter.display(plot)

@@ -15,8 +15,6 @@
 
 from __future__ import absolute_import, print_function
 
-import warnings
-
 from functools import partial
 import hashlib
 import cobra as _cobrapy
@@ -27,12 +25,13 @@ from cameo.parallel import SequentialView
 
 import logging
 import six
-from cameo.util import doc_inherit
+from cameo.util import inheritdocstring
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
+@six.add_metaclass(inheritdocstring)
 class Reaction(_cobrapy.core.Reaction):
     """This class extends the cobrapy Reaction class to work with SolverBasedModel.
 
@@ -69,12 +68,12 @@ class Reaction(_cobrapy.core.Reaction):
             new_reaction._model = None
         if model is not None:
             new_reaction._model = model
-        for gene in new_reaction.genes:
-            gene._reaction.remove(reaction)
-            gene._reaction.add(new_reaction)
-        for metabolite in new_reaction.metabolites:
-            metabolite._reaction.remove(reaction)
-            metabolite._reaction.add(new_reaction)
+        # for gene in new_reaction.genes:
+        #     gene._reaction.remove(reaction)
+        #     gene._reaction.add(new_reaction)
+        # for metabolite in new_reaction.metabolites:
+        #     metabolite._reaction.remove(reaction)
+        #     metabolite._reaction.add(new_reaction)
         return new_reaction
 
     def __init__(self, id=None, name='', subsystem="", lower_bound=0, upper_bound=1000):
@@ -88,6 +87,8 @@ class Reaction(_cobrapy.core.Reaction):
         self._lower_bound = lower_bound
         self._upper_bound = upper_bound
         self._model = None
+        self._reverse_variable = None
+        self._forward_variable = None
 
     def __str__(self):
         return ''.join((self.id, ": ", self.build_reaction_string()))
@@ -117,12 +118,10 @@ class Reaction(_cobrapy.core.Reaction):
 
     @property
     def forward_variable(self):
-        """An optlang variable representing the forward flux (if associated with model), otherwise None.
-        Representing the net flux if model.reversible_encoding == 'unsplit'"""
+        """An optlang variable representing the forward flux (if associated with model), otherwise None."""
         model = self.model
         if model is not None:
-            aux_id = self._get_forward_id()
-            return model.solver.variables[aux_id]
+            return model.solver.variables[self._get_forward_id()]
         else:
             return None
 
@@ -131,8 +130,7 @@ class Reaction(_cobrapy.core.Reaction):
         """An optlang variable representing the reverse flux (if associated with model), otherwise None."""
         model = self.model
         if model is not None:
-            aux_id = self._get_reverse_id()
-            return model.solver.variables[aux_id]
+            return model.solver.variables[self._get_reverse_id()]
         else:
             return None
 
@@ -268,12 +266,12 @@ class Reaction(_cobrapy.core.Reaction):
 
     @property
     def objective_coefficient(self):
-        if self.model is not None and self.model.objective is not None:
+        if self.model is not None and isinstance(self.model, cameo.core.SolverBasedModel) and self.model.objective is not None:
             coefficients_dict = self.model.objective.expression.as_coefficients_dict()
             forw_coef = coefficients_dict.get(self.forward_variable, 0)
             rev_coef = coefficients_dict.get(self.reverse_variable, 0)
             if forw_coef == -rev_coef:
-                self._objective_coefficient = forw_coef
+                self._objective_coefficient = float(forw_coef)
             else:
                 self._objective_coefficient = 0
         return self._objective_coefficient
@@ -314,7 +312,6 @@ class Reaction(_cobrapy.core.Reaction):
         else:
             return None
 
-    @doc_inherit
     def add_metabolites(self, metabolites, combine=True, **kwargs):
         if not combine:
             old_coefficients = self.metabolites
@@ -332,6 +329,30 @@ class Reaction(_cobrapy.core.Reaction):
                     else:
                         coefficient = coefficient - old_coefficient
                 model.solver.constraints[metabolite.id] += coefficient * self.flux_expression
+
+    @property
+    def id(self):
+        return getattr(self, "_id", None)  # Returns None if _id is not set
+
+    @id.setter
+    def id(self, value):
+        if value == self.id:
+            pass
+        elif not isinstance(value, six.string_types):
+            raise TypeError("ID must be a string")
+        elif getattr(self, "_model", None) is not None:  # (= if hasattr(self, "_model") and self._model is not None)
+            if value in self.model.reactions:
+                raise ValueError("The model already contains a reaction with the id:", value)
+            forward_variable = self.forward_variable
+            reverse_variable = self.reverse_variable
+
+            self._id = value
+            self.model.reactions._generate_index()
+
+            forward_variable.name = self._get_forward_id()
+            reverse_variable.name = self._get_reverse_id()
+        else:
+            self._id = value
 
     def knock_out(self, time_machine=None):
         """Knockout reaction by setting its bounds to zero.
@@ -368,6 +389,22 @@ class Reaction(_cobrapy.core.Reaction):
             coef = self.metabolites[met]
             self.add_metabolites({met: -coef}, combine=True)
             return coef
+
+    def remove_from_model(self, model=None, remove_orphans=False):
+        reaction_model = self.model
+        forward = self.forward_variable
+        reverse = self.reverse_variable
+        super(Reaction, self).remove_from_model(model, remove_orphans)
+        reaction_model.solver.remove([forward, reverse])
+
+    def delete(self, remove_orphans=False):
+        model = self.model
+        forward = self.forward_variable
+        reverse = self.reverse_variable
+        super(Reaction, self).delete(remove_orphans)
+        model.solver.remove([forward, reverse])
+        # if remove_orphans:
+        #     model.solver.remove([metabolite.model.solver for metabolite in self.metabolites.keys()])
 
     def _repr_html_(self):
         return """

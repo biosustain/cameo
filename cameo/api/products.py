@@ -40,6 +40,7 @@ class Compound(object):
 
 class Products(object):
     """Supported target products."""
+
     def __init__(self):
         self.data_frame = metanetx.chem_prop
 

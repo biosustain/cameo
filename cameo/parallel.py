@@ -14,14 +14,14 @@
 
 from __future__ import absolute_import, print_function
 
-import six.moves.queue
-from multiprocessing import Pool, cpu_count
-from cameo.util import Singleton
-
 import logging
+from multiprocessing import Pool, cpu_count
+
 import six
 from six.moves import map
 from six.moves import range
+
+from cameo.util import Singleton
 
 logger = logging.getLogger(__name__)
 
@@ -86,6 +86,7 @@ class MultiprocessingView(Singleton):
 try:
     import redis
     import six.moves.cPickle as pickle
+
 
     class RedisQueue(object):
         """
@@ -252,6 +253,7 @@ class SequentialView(object):
 if __name__ == '__main__':
     from time import sleep
 
+
     class FunctionObject(object):
         """docstring for FunctionObject"""
 
@@ -261,6 +263,7 @@ if __name__ == '__main__':
         def __call__(self, arg):
             sleep(.1)
             return arg ** 2
+
 
     view = MultiprocessingView(processes=4)
     print(view.map(FunctionObject(), list(range(0, 100))))

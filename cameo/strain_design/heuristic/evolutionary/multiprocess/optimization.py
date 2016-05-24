@@ -18,7 +18,8 @@ from functools import reduce
 
 import inspyred
 from cameo.strain_design.heuristic.evolutionary.multiprocess.migrators import MultiprocessingMigrator
-from cameo.strain_design.heuristic.evolutionary.multiprocess.observers import IPythonNotebookMultiprocessProgressObserver, \
+from cameo.strain_design.heuristic.evolutionary.multiprocess.observers import \
+    IPythonNotebookMultiprocessProgressObserver, \
     CliMultiprocessProgressObserver
 from six.moves import range
 
@@ -27,10 +28,10 @@ from cameo import parallel
 from cameo import util
 from cameo.flux_analysis.simulation import pfba
 from cameo.strain_design.heuristic.evolutionary import ReactionKnockoutOptimization, GeneKnockoutOptimization
-from cameo.strain_design.heuristic.evolutionary.multiprocess.plotters import IPythonNotebookBokehMultiprocessPlotObserver
+from cameo.strain_design.heuristic.evolutionary.multiprocess.plotters import \
+    IPythonNotebookBokehMultiprocessPlotObserver
 from cameo.strain_design.heuristic.evolutionary.optimization import KnockoutOptimizationResult
 from cameo.strain_design.strain_design import StrainDesignMethod
-
 
 __all__ = ['MultiprocessReactionKnockoutOptimization', 'MultiprocessGeneKnockoutOptimization']
 
@@ -69,8 +70,8 @@ class MultiprocessHeuristicOptimization(StrainDesignMethod):
     """
     Heuristic Optimization abstract implementation.
 
-    Arguments
-    ---------
+    Attributes
+    ----------
 
     model: SolverBasedModel
         A model to simulate.
@@ -122,8 +123,8 @@ class MultiprocessKnockoutOptimization(MultiprocessHeuristicOptimization):
     """
     Heuristic Knockout Optimization Abstract implementation.
 
-    Arguments
-    ---------
+    Attributes
+    ----------
 
     model: SolverBasedModel
         A model to simulate.
@@ -187,8 +188,8 @@ class MultiprocessReactionKnockoutOptimization(MultiprocessKnockoutOptimization)
     """
     Heuristic Knockout Optimization Reaction implementation.
 
-    Arguments
-    ---------
+    Attributes
+    ----------
 
     model: SolverBasedModel
         A model to simulate.
@@ -230,8 +231,8 @@ class MultiprocessGeneKnockoutOptimization(MultiprocessKnockoutOptimization):
     """
     Heuristic Knockout Optimization Gene implementation.
 
-    Arguments
-    ---------
+    Attributes
+    ----------
 
     model: SolverBasedModel
         A model to simulate.

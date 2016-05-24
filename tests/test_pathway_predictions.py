@@ -16,9 +16,9 @@ from __future__ import absolute_import, print_function
 
 import os
 import unittest
+
 from cameo import load_model
 from cameo.strain_design.pathway_prediction import PathwayPredictor
-from cameo.models import universal
 
 TESTDIR = os.path.dirname(__file__)
 TESTMODEL = load_model(os.path.join(TESTDIR, 'data/EcoliCore.xml'))

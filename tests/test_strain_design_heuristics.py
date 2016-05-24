@@ -23,18 +23,6 @@ from math import sqrt
 import inspyred
 import numpy
 import six
-from cameo.strain_design.heuristic.evolutionary.archives import Individual, BestSolutionArchive
-from cameo.strain_design.heuristic.evolutionary.decoders import ReactionKnockoutDecoder, KnockoutDecoder, \
-    GeneKnockoutDecoder
-from cameo.strain_design.heuristic.evolutionary.generators import set_generator, unique_set_generator, \
-    multiple_chromosome_set_generator, linear_set_generator
-from cameo.strain_design.heuristic.evolutionary.genomes import MultipleChromosomeGenome
-from cameo.strain_design.heuristic.evolutionary.metrics import euclidean_distance
-from cameo.strain_design.heuristic.evolutionary.metrics import manhattan_distance
-from cameo.strain_design.heuristic.evolutionary.objective_functions import biomass_product_coupled_yield, \
-    product_yield, number_of_knockouts
-from cameo.strain_design.heuristic.evolutionary.variators import _do_set_n_point_crossover, set_n_point_crossover, \
-    set_mutation, set_indel, multiple_chromosome_set_mutation, multiple_chromosome_set_indel
 from cobra.manipulation.delete import find_gene_knockout_reactions
 from inspyred.ec import Bounder
 from ordered_set import OrderedSet
@@ -43,9 +31,21 @@ from six.moves import range
 
 from cameo import load_model, fba
 from cameo.parallel import SequentialView, RedisQueue
+from cameo.strain_design.heuristic.evolutionary.archives import Individual, BestSolutionArchive
+from cameo.strain_design.heuristic.evolutionary.decoders import ReactionKnockoutDecoder, KnockoutDecoder, \
+    GeneKnockoutDecoder
+from cameo.strain_design.heuristic.evolutionary.generators import set_generator, unique_set_generator, \
+    multiple_chromosome_set_generator, linear_set_generator
+from cameo.strain_design.heuristic.evolutionary.genomes import MultipleChromosomeGenome
+from cameo.strain_design.heuristic.evolutionary.metrics import euclidean_distance
+from cameo.strain_design.heuristic.evolutionary.metrics import manhattan_distance
 from cameo.strain_design.heuristic.evolutionary.multiprocess.migrators import MultiprocessingMigrator
+from cameo.strain_design.heuristic.evolutionary.objective_functions import biomass_product_coupled_yield, \
+    product_yield, number_of_knockouts
 from cameo.strain_design.heuristic.evolutionary.optimization import HeuristicOptimization, \
     ReactionKnockoutOptimization, set_distance_function, KnockoutOptimizationResult
+from cameo.strain_design.heuristic.evolutionary.variators import _do_set_n_point_crossover, set_n_point_crossover, \
+    set_mutation, set_indel, multiple_chromosome_set_mutation, multiple_chromosome_set_indel
 from cameo.util import RandomGenerator as Random
 
 TRAVIS = os.getenv('TRAVIS', False)
@@ -79,11 +79,11 @@ SOLUTIONS = [
 class TestMetrics(unittest.TestCase):
     def test_euclidean_distance(self):
         distance = euclidean_distance({'a': 9}, {'a': 3})
-        self.assertEqual(distance, sqrt((9-3)**2))
+        self.assertEqual(distance, sqrt((9 - 3) ** 2))
 
     def test_manhattan_distance(self):
         distance = manhattan_distance({'a': 9}, {'a': 3})
-        self.assertEqual(distance, abs(9-3))
+        self.assertEqual(distance, abs(9 - 3))
 
 
 class TestBestSolutionArchive(unittest.TestCase):
@@ -116,7 +116,6 @@ class TestBestSolutionArchive(unittest.TestCase):
         self.assertFalse(sol1.__gt__(sol1))
         self.assertFalse(sol2.__lt__(sol1))
         self.assertFalse(sol3.__gt__(sol1))
-
 
         # testing issubset
         self.assertTrue(sol1.issubset(sol2), msg="Solution 1 is subset of Solution 2")
@@ -386,11 +385,11 @@ class TestGenerators(unittest.TestCase):
         representation = ["a", "b", "c", "d", "e", "f"]
         max_size = 5
         variable_size = False
-        expected = [[2, 1, 5, 0, 4],
-                    [0, 4, 3, 2, 5],
-                    [1, 0, 3, 2, 5],
-                    [2, 3, 1, 4, 5],
-                    [4, 5, 3, 0, 2]]
+        expected = [[0, 1, 2, 4, 5],
+                    [0, 2, 3, 4, 5],
+                    [0, 1, 2, 3, 5],
+                    [1, 2, 3, 4, 5],
+                    [0, 2, 3, 4, 5]]
 
         for i in range(len(expected)):
             candidate = set_generator(random, dict(representation=representation,
@@ -736,7 +735,6 @@ class TestReactionKnockoutOptimization(unittest.TestCase):
 
 
 class VariatorTestCase(unittest.TestCase):
-
     def test_set_n_point_crossover(self):
         mom = OrderedSet([1, 3, 5, 9, 10])
         dad = OrderedSet([2, 3, 7, 8])
@@ -759,17 +757,20 @@ class VariatorTestCase(unittest.TestCase):
             "mutation_rate": 1
         }
         new_individuals = set_mutation(Random(SEED), [individual], args)
-        self.assertEqual(new_individuals[0], [6, 4, 1, 0])
+        self.assertEqual(len(new_individuals[0]), len(individual))
+        self.assertNotEqual(new_individuals[0], individual)
+        self.assertEqual(new_individuals[0], [0, 2, 4, 6, 7])
 
     def test_set_indel(self):
-        individual = OrderedSet([1, 3, 5, 9, 10])
+        individual = [1, 3, 5, 9, 10]
         representation = list(range(10))
         args = {
             "representation": representation,
             "indel_rate": 1
         }
-        new_individuals = set_indel(Random(SEED + 10), [individual], args)
-        self.assertEqual(new_individuals[0], [1, 3, 5, 9, 10, 8])
+        new_individuals = set_indel(Random(SEED), [individual], args)
+        self.assertNotEqual(len(new_individuals[0]), len(individual))
+        self.assertEqual(new_individuals[0], [1, 3, 5, 6, 9, 10])
 
     def test_do_set_n_point_crossover(self):
         representation = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N"]
@@ -796,8 +797,8 @@ class VariatorTestCase(unittest.TestCase):
         }
 
         new_individuals = multiple_chromosome_set_mutation(Random(SEED), [genome], args)
-        self.assertEqual(new_individuals[0]["A"], OrderedSet([6, 4, 1]))
-        self.assertEqual(new_individuals[0]["B"], OrderedSet([0, 6, 2]))
+        self.assertEqual(new_individuals[0]["A"], OrderedSet([0, 6, 7, 8]))
+        self.assertEqual(new_individuals[0]["B"], OrderedSet([0, 6, 8, 9]))
 
     def test_multiple_chromosome_set_indel(self):
         genome = MultipleChromosomeGenome(["A", "B"])
@@ -813,16 +814,16 @@ class VariatorTestCase(unittest.TestCase):
 
         random = Random(SEED)
         new_individuals = multiple_chromosome_set_indel(random, [genome for _ in range(5)], args)
-        self.assertEqual(new_individuals[0]["A"], OrderedSet([1, 2, 3, 4, 5]))
-        self.assertEqual(new_individuals[0]["B"], OrderedSet([5, 7, 10]))
-        self.assertEqual(new_individuals[1]["A"], OrderedSet([1, 2, 3, 4, 7]))
-        self.assertEqual(new_individuals[1]["B"], OrderedSet([1, 5, 7, 10, 9]))
-        self.assertEqual(new_individuals[2]["A"], OrderedSet([1, 2, 3, 4, 8]))
-        self.assertEqual(new_individuals[2]["B"], OrderedSet([1, 5, 7, 10]))
-        self.assertEqual(new_individuals[3]["A"], OrderedSet([1, 2, 3, 4, 6]))
-        self.assertEqual(new_individuals[3]["B"], OrderedSet([1, 5, 7, 10, 0]))
+        self.assertEqual(new_individuals[0]["A"], OrderedSet([1, 2, 3, 4, 7]))
+        self.assertEqual(new_individuals[0]["B"], OrderedSet([1, 5, 10]))
+        self.assertEqual(new_individuals[1]["A"], OrderedSet([2, 3, 4]))
+        self.assertEqual(new_individuals[1]["B"], OrderedSet([1, 5, 7, 8, 10]))
+        self.assertEqual(new_individuals[2]["A"], OrderedSet([1, 2, 3, 4, 6]))
+        self.assertEqual(new_individuals[2]["B"], OrderedSet([1, 5, 7]))
+        self.assertEqual(new_individuals[3]["A"], OrderedSet([1, 2, 3, 4, 8]))
+        self.assertEqual(new_individuals[3]["B"], OrderedSet([0, 1, 5, 7, 10]))
         self.assertEqual(new_individuals[4]["A"], OrderedSet([1, 2, 3, 4, 7]))
-        self.assertEqual(new_individuals[4]["B"], OrderedSet([1, 10, 7]))
+        self.assertEqual(new_individuals[4]["B"], OrderedSet([1, 5, 7, 8, 10]))
 
 
 class GenomesTestCase(unittest.TestCase):

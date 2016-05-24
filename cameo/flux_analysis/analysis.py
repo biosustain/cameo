@@ -34,13 +34,12 @@ from cameo.util import TimeMachine, partition
 from cameo.parallel import SequentialView
 from cameo.core.result import Result
 from cameo.ui import notice
-from cameo.visualization import plotting
+from cameo.visualization.plotting import plotter
 from cameo.flux_analysis.util import remove_infeasible_cycles
 
 import logging
 
 logger = logging.getLogger(__name__)
-
 
 __all__ = ['find_blocked_reactions', 'flux_variability_analysis', 'phenotypic_phase_plane',
            'flux_balance_impact_degree']
@@ -66,11 +65,9 @@ def find_blocked_reactions(model):
             tm(do=partial(setattr, exchange, 'upper_bound', 9999),
                undo=partial(setattr, exchange, 'upper_bound', exchange.upper_bound))
         fva_solution = flux_variability_analysis(model)
-    return [
-        reaction for reaction in model.reactions
-        if round(fva_solution.data_frame.loc[reaction.id, "lower_bound"], config.ndecimals) == 0 and
-        round(fva_solution.data_frame.loc[reaction.id, "upper_bound"], config.ndecimals) == 0
-    ]
+    return [reaction for reaction in model.reactions
+            if round(fva_solution.data_frame.loc[reaction.id, "lower_bound"], config.ndecimals) == 0 and
+            round(fva_solution.data_frame.loc[reaction.id, "upper_bound"], config.ndecimals) == 0]
 
 
 def flux_variability_analysis(model, reactions=None, fraction_of_optimum=0., remove_cycles=False, view=None):
@@ -97,20 +94,7 @@ def flux_variability_analysis(model, reactions=None, fraction_of_optimum=0., rem
         reactions = model.reactions
     with TimeMachine() as tm:
         if fraction_of_optimum > 0.:
-            try:
-                obj_val = model.solve().f
-            except SolveError as e:
-                logger.debug(
-                    "flux_variability_analyis was not able to determine an optimal solution for objective %s" % model.objective)
-                raise e
-            if model.objective.direction == 'max':
-                fix_obj_constraint = model.solver.interface.Constraint(model.objective.expression,
-                                                                       lb=fraction_of_optimum * obj_val)
-            else:
-                fix_obj_constraint = model.solver.interface.Constraint(model.objective.expression,
-                                                                       ub=fraction_of_optimum * obj_val)
-            tm(do=partial(model.solver.add, fix_obj_constraint),
-               undo=partial(model.solver.remove, fix_obj_constraint))
+            model.fix_objective_as_constraint(fraction=fraction_of_optimum, time_machine=tm)
         tm(do=int, undo=partial(setattr, model, "objective", model.objective))
         reaction_chunks = (chunk for chunk in partition(reactions, len(view)))
         if remove_cycles:
@@ -179,7 +163,16 @@ def phenotypic_phase_plane(model, variables=[], objective=None, points=20, view=
         chunk_results = view.map(evaluator, chunks_of_points)
         envelope = reduce(list.__add__, chunk_results)
 
-    variable_reactions_ids = [reaction.id for reaction in variable_reactions]
+    variable_reactions_ids = []
+    nice_variable_ids = []
+    for reaction in variable_reactions:
+        if hasattr(reaction, "nice_id"):
+            variable_reactions_ids.append(reaction.id)
+            nice_variable_ids.append(reaction.nice_id)
+        else:
+            variable_reactions_ids.append(reaction.id)
+            nice_variable_ids.append(reaction.id)
+
     phase_plane = pandas.DataFrame(envelope, columns=(variable_reactions_ids +
                                                       ['objective_lower_bound', 'objective_upper_bound']))
 
@@ -187,11 +180,18 @@ def phenotypic_phase_plane(model, variables=[], objective=None, points=20, view=
         objective = model.objective
 
     if isinstance(objective, Reaction):
-        objective = objective.id
+        if hasattr(objective, 'nice_id'):
+            nice_objective_id = objective.nice_id
+            objective = objective.id
+        else:
+            objective = objective.id
+            nice_objective_id = objective
     else:
         objective = str(objective)
+        nice_objective_id = str(objective)
 
-    return PhenotypicPhasePlaneResult(phase_plane, variable_reactions_ids, objective)
+    return PhenotypicPhasePlaneResult(phase_plane, variable_reactions_ids, objective,
+                                      nice_variable_ids=nice_variable_ids, nice_objective_id=nice_objective_id)
 
 
 class _FvaFunctionObject(object):
@@ -247,7 +247,7 @@ def _flux_variability_analysis(model, reactions=None):
     try:  # this is an alternative solution to what I did above with flags
         assert ((
                 lb_higher_ub.lower_bound - lb_higher_ub.upper_bound) < 1e-6).all()  # Assert that these cases really only numerical artifacts
-    except AssertionError as e:
+    except AssertionError:
         logger.debug(list(zip(model.reactions, (lb_higher_ub.lower_bound - lb_higher_ub.upper_bound) < 1e-6)))
     df.lower_bound[lb_higher_ub.index] = df.upper_bound[lb_higher_ub.index]
     return df
@@ -299,7 +299,8 @@ def _cycle_free_fva(model, reactions=None, sloppy=True, sloppy_bound=666):
                 v2_one_cycle_fluxes = remove_infeasible_cycles(model, v0_fluxes, fix=[reaction.id])
                 with TimeMachine() as tm:
                     for key, v1_flux in six.iteritems(v1_cycle_free_fluxes):
-                        if round(v1_flux, config.ndecimals) == 0 and round(v2_one_cycle_fluxes[key], config.ndecimals) != 0:
+                        if round(v1_flux, config.ndecimals) == 0 and round(v2_one_cycle_fluxes[key],
+                                                                           config.ndecimals) != 0:
                             knockout_reaction = model.reactions.get_by_id(key)
                             tm(do=partial(setattr, knockout_reaction, 'lower_bound', 0.),
                                undo=partial(setattr, knockout_reaction, 'lower_bound', knockout_reaction.lower_bound))
@@ -341,7 +342,8 @@ def _cycle_free_fva(model, reactions=None, sloppy=True, sloppy_bound=666):
                 v2_one_cycle_fluxes = remove_infeasible_cycles(model, v0_fluxes, fix=[reaction.id])
                 with TimeMachine() as tm:
                     for key, v1_flux in six.iteritems(v1_cycle_free_fluxes):
-                        if round(v1_flux, config.ndecimals) == 0 and round(v2_one_cycle_fluxes[key], config.ndecimals) != 0:
+                        if round(v1_flux, config.ndecimals) == 0 and round(v2_one_cycle_fluxes[key],
+                                                                           config.ndecimals) != 0:
                             knockout_reaction = model.reactions.get_by_id(key)
                             tm(do=partial(setattr, knockout_reaction, 'lower_bound', 0.),
                                undo=partial(setattr, knockout_reaction, 'lower_bound',
@@ -388,7 +390,7 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
             self.model.objective.direction = 'min'
             try:
                 solution = self.model.solve().f
-            except (Infeasible, UndefinedSolution): # Hack to handle GLPK bug
+            except (Infeasible, UndefinedSolution):  # Hack to handle GLPK bug
                 solution = 0
             interval.append(solution)
             self.model.objective.direction = 'max'
@@ -421,7 +423,7 @@ def flux_balance_impact_degree(model, knockouts, view=config.default_view, metho
     """
 
     if method == "fva":
-        reachable_reactions, perturbed_reactions =_fbid_fva(model, knockouts, view)
+        reachable_reactions, perturbed_reactions = _fbid_fva(model, knockouts, view)
     elif method == "em":
         raise NotImplementedError("Elementary modes approach is not implemented")
     else:
@@ -446,7 +448,8 @@ def _fbid_fva(model, knockouts, view):
                    undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
 
         wt_fva = flux_variability_analysis(model, view=view, remove_cycles=False)
-        wt_fva._data_frame = wt_fva._data_frame.apply(numpy.round)
+        wt_fva._data_frame['upper_bound'] = wt_fva._data_frame.upper_bound.apply(numpy.round)
+        wt_fva._data_frame['lower_bound'] = wt_fva._data_frame.lower_bound.apply(numpy.round)
 
         reachable_reactions = wt_fva.data_frame.query("lower_bound != 0 | upper_bound != 0")
 
@@ -454,35 +457,55 @@ def _fbid_fva(model, knockouts, view):
             reaction.knock_out(tm)
 
         mt_fva = flux_variability_analysis(model, reactions=reachable_reactions.index, view=view, remove_cycles=False)
-        mt_fva._data_frame = mt_fva._data_frame.apply(numpy.round)
+        mt_fva._data_frame['upper_bound'] = mt_fva._data_frame.upper_bound.apply(numpy.round)
+        mt_fva._data_frame['lower_bound'] = mt_fva._data_frame.lower_bound.apply(numpy.round)
 
         perturbed_reactions = []
         for reaction in reachable_reactions.index:
-            if wt_fva.upper_bound(reaction) != mt_fva.upper_bound(reaction) or \
-              wt_fva.lower_bound(reaction) != wt_fva.lower_bound(reaction):
+            if wt_fva.upper_bound(reaction) != mt_fva.upper_bound(reaction) or wt_fva.lower_bound(
+                    reaction) != wt_fva.lower_bound(reaction):
                 perturbed_reactions.append(reaction)
 
         return list(reachable_reactions.index), perturbed_reactions
 
 
 class PhenotypicPhasePlaneResult(Result):
-    def __init__(self, phase_plane, variable_ids, objective, *args, **kwargs):
+    def __init__(self, phase_plane, variable_ids, objective,
+                 nice_variable_ids=None, nice_objective_id=None, *args, **kwargs):
         super(PhenotypicPhasePlaneResult, self).__init__(*args, **kwargs)
         self._phase_plane = phase_plane
         self.variable_ids = variable_ids
+        self.nice_variable_ids = nice_variable_ids
         self.objective = objective
+        self.nice_objective_id = nice_objective_id
 
     @property
     def data_frame(self):
         return pandas.DataFrame(self._phase_plane)
 
-    def plot(self, grid=None, width=None, height=None, title=None, axis_font_size=None, color="lightblue", **kwargs):
+    def plot(self, grid=None, width=None, height=None, title=None, axis_font_size=None, palette=None,
+             points=None, points_colors=None, **kwargs):
         if len(self.variable_ids) > 1:
             notice("Multi-dimensional plotting is not supported")
             return
-        plotting.plot_production_envelope(self._phase_plane, objective=self.objective, key=self.variable_ids[0],
-                                          grid=grid, width=width, height=height, title=title, color=color,
-                                          axis_font_size=axis_font_size, **kwargs)
+
+        if title is None:
+            title = "Phenotypic Phase Plane"
+        variable = self.variable_ids[0]
+        x_axis_label = self.nice_variable_ids[0]
+        y_axis_label = self.nice_objective_id
+
+        dataframe = pandas.DataFrame(columns=["ub", "lb", "value", "strain"])
+        for _, row in self.iterrows():
+            _df = pandas.DataFrame([[row['objective_upper_bound'], row['objective_lower_bound'], row[variable], "WT"]],
+                                   columns=dataframe.columns)
+            dataframe = dataframe.append(_df)
+
+        plot = plotter.production_envelope(dataframe, grid=grid, width=width, height=height,
+                                           title=title, y_axis_label=y_axis_label, x_axis_label=x_axis_label,
+                                           palette=palette, points=points, points_colors=points_colors)
+        if grid is None:
+            plotter.display(plot)
 
     def __getitem__(self, item):
         return self._phase_plane[item]
@@ -512,13 +535,24 @@ class FluxVariabilityResult(Result):
     def data_frame(self):
         return self._data_frame
 
-    def plot(self, index=None, grid=None, width=None, height=None, title=None, axis_font_size=None, color="lightblue",
-             **kwargs):
+    def plot(self, index=None, grid=None, width=None, height=None, title=None, palette=None, **kwargs):
         if index is None:
             index = self.data_frame.index[0:10]
         fva_result = self.data_frame.loc[index]
-        plotting.plot_flux_variability_analysis(fva_result, grid=grid, width=width, height=height, title=title,
-                                                axis_font_size=axis_font_size, color=color)
+        if title is None:
+            title = "Flux Variability Analysis"
+
+        dataframe = pandas.DataFrame(columns=["lb", "ub", "strain", "reaction"])
+        for reaction_id, row in fva_result.iterrows():
+            _df = pandas.DataFrame([[row['lower_bound'], row['upper_bound'], "WT", reaction_id]],
+                                   columns=dataframe.columns)
+            dataframe = dataframe.append(_df)
+
+        plot = plotter.flux_variability_analysis(dataframe, grid=grid, width=width, height=height,
+                                                 title=title, x_axis_label="Reactions", y_axis_label="Flux limits",
+                                                 palette=palette)
+        if grid is None:
+            plotter.display(plot)
 
     def __getitem__(self, item):
         return self._data_frame[item]
@@ -538,7 +572,6 @@ class FluxVariabilityResult(Result):
 
 
 class FluxBalanceImpactDegreeResult(Result):
-
     def __init__(self, reachable_reactions, perturbed_reactions, method, *args, **kwargs):
         super(FluxBalanceImpactDegreeResult, self).__init__(*args, **kwargs)
         self._method = method

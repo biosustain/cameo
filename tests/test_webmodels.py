@@ -13,8 +13,10 @@
 # limitations under the License.
 from tempfile import _TemporaryFileWrapper
 from unittest import TestCase
-from pandas import DataFrame
+
 import requests
+from pandas import DataFrame
+
 from cameo.models.webmodels import index_models_minho, get_sbml_file, NotFoundException
 
 
@@ -27,7 +29,7 @@ class WebmodelsTestCase(TestCase):
         index = index_models_minho()
         self.assertIsInstance(index, DataFrame)
         self.assertListEqual(list(index.columns),
-                             ["id", "name", "doi", "author", "year", "formats", "organism", "taxonomy"])
+                             ["id", "name", "doi", "author", "year", "formats", "organism", "taxonomy", "validated"])
 
     def test_get_sbml(self):
         tmp = get_sbml_file(1)

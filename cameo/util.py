@@ -14,28 +14,26 @@
 
 from __future__ import absolute_import, print_function
 
-import six
-from six.moves import range
-
+import colorsys
+import itertools
+import logging
+import platform
 import re
 from collections import OrderedDict
-from uuid import uuid1
-from time import time
 from datetime import datetime
-import colorsys
-from functools import wraps
-import numpy as np
-from numpy.linalg import svd
-
-import pip
-import platform
-from itertools import islice
 from functools import partial
+import inspect
+from itertools import islice
+from time import time
+from uuid import uuid1
 
+import numpy as np
 import pandas
+import pip
+import six
+from numpy.linalg import svd
 from numpy.random import RandomState
-
-import logging
+from six.moves import range
 
 logger = logging.getLogger(__name__)
 
@@ -77,11 +75,13 @@ class ProblemCache(object):
     generates an invalid state.
 
     """
+
     def __init__(self, model):
         self.time_machine = None
         self._model = model
         self.variables = {}
         self.constraints = {}
+        self.objective = None
         self.original_objective = model.objective
         self.time_machine = TimeMachine()
         self.transaction_id = None
@@ -97,20 +97,9 @@ class ProblemCache(object):
     def model(self):
         return self._model
 
-    def _rebuild_constraint(self, constraint):
-        (expression, lb, ub, name) = constraint.expression, constraint.lb, constraint.ub, constraint.name
-
-        def rebuild():
-            self.model.solver._remove_constraint(constraint)
-            new_constraint = self.model.solver.interface.Constraint(expression, lb=lb, ub=ub, name=name)
-            self.constraints[name] = new_constraint
-            self.model.solver._add_constraint(new_constraint, sloppy=True)
-
-        return rebuild
-
     def _append_constraint(self, constraint_id, create, *args, **kwargs):
         self.constraints[constraint_id] = create(self.model, constraint_id, *args, **kwargs)
-        self.model.solver._add_constraint(self.constraints[constraint_id])
+        self._model.solver._add_constraint(self.constraints[constraint_id])
 
     def _remove_constraint(self, constraint_id):
         constraint = self.constraints.pop(constraint_id)
@@ -156,9 +145,7 @@ class ProblemCache(object):
         """
         if constraint_id in self.constraints:
             if update is not None:
-                self.time_machine(
-                    do=partial(update, self.model, self.constraints[constraint_id], *args, **kwargs),
-                    undo=self._rebuild_constraint(self.constraints[constraint_id]))
+                update(self.model, self.constraints[constraint_id], *args, **kwargs)
         else:
             self.time_machine(
                 do=partial(self._append_constraint, constraint_id, create, *args, **kwargs),
@@ -195,6 +182,21 @@ class ProblemCache(object):
                 undo=partial(self._remove_variable, variable_id)
             )
 
+    def add_objective(self, create, update, *args):
+        if self.objective is None:
+            self.objective = create(self.model, *args)
+            self.time_machine(
+                do=partial(setattr, self.model, 'objective', self.objective),
+                undo=partial(setattr, self.model, 'objective', self.model.objective)
+            )
+        else:
+            if update:
+                self.objective = update(self.model, *args)
+                self.time_machine(
+                    do=partial(setattr, self.model, 'objective', self.objective),
+                    undo=partial(setattr, self.model, 'objective', self.model.objective)
+                )
+
     def reset(self):
         """
         Removes all constraints and variables from the cache.
@@ -203,6 +205,7 @@ class ProblemCache(object):
         self.model.solver._remove_variables(self.variables.values())
         self.model.objective = self.original_objective
         self.variables = {}
+        self.objective = None
         self.constraints = {}
         self.transaction_id = None
         self.time_machine.history.clear()
@@ -382,53 +385,28 @@ class IntelliContainer(object):
         return list(self._dict.keys())
 
 
-class DocInherit(object):
-    """
-    Adapted from http://code.activestate.com/recipes/576862/ (licensed under MIT)
-    Docstring inheriting method descriptor
+def inheritdocstring(name, bases, attrs):
+    """Use as metaclass to inherit class and method docstrings from parent.
+    Adapted from http://stackoverflow.com/questions/13937500/inherit-a-parent-class-docstring-as-doc-attribute"""
+    temp = type('temporaryclass', bases, {})
+    if '__doc__' not in attrs or not attrs["__doc__"]:
+        # create a temporary 'parent' to (greatly) simplify the MRO search
+        for cls in inspect.getmro(temp):
+            if cls.__doc__ is not None:
+                attrs['__doc__'] = cls.__doc__
+                break
 
-    The class itself is also used as a decorator
-    """
+    for attr_name, attr in attrs.items():
+        if not attr.__doc__:
+            for cls in inspect.getmro(temp):
+                try:
+                    if getattr(cls, attr_name).__doc__ is not None:
+                        attr.__doc__ = getattr(cls, attr_name).__doc__
+                        break
+                except (AttributeError, TypeError):
+                    continue
 
-    def __init__(self, mthd):
-        self.mthd = mthd
-        self.name = mthd.__name__
-
-    def __get__(self, obj, cls):
-        if obj:
-            return self.get_with_inst(obj, cls)
-        else:
-            return self.get_no_inst(cls)
-
-    def get_with_inst(self, obj, cls):
-
-        overridden = getattr(super(cls, obj), self.name, None)
-
-        @wraps(self.mthd, assigned=('__name__', '__module__'))
-        def f(*args, **kwargs):
-            return self.mthd(obj, *args, **kwargs)
-
-        return self.use_parent_doc(f, overridden)
-
-    def get_no_inst(self, cls):
-
-        for parent in cls.__mro__[1:]:
-            overridden = getattr(parent, self.name, None)
-            if overridden: break
-
-        @wraps(self.mthd, assigned=('__name__','__module__'))
-        def f(*args, **kwargs):
-            return self.mthd(*args, **kwargs)
-
-        return self.use_parent_doc(f, overridden)
-
-    def use_parent_doc(self, func, source):
-        if source is None:
-            raise NameError("Can't find '%s' in parents" % self.name)
-        func.__doc__ = source.__doc__
-        return func
-
-doc_inherit = DocInherit
+    return type(name, bases, attrs)
 
 
 def partition_(lst, n):
@@ -546,3 +524,21 @@ def str_to_valid_variable_name(s):
     s = re.sub('^[^a-zA-Z_]+', '', s)
 
     return s
+
+
+def zip_repeat(long_iter, short_iter):
+    """
+    Zips two iterable objects but repeats the second one if it is shorter than the first one.
+
+    Parameters
+    ----------
+    long_iter: iterable
+
+    short_iter: iterable
+
+    Returns
+    -------
+    generator
+    """
+    for i, j in zip(long_iter, itertools.cycle(short_iter)):
+        yield i, j

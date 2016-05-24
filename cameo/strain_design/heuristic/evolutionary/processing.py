@@ -56,12 +56,12 @@ def process_knockout_solution(model, solution, simulation_method, simulation_kwa
             model.reactions.get_by_id(ko).knock_out(tm)
 
         reactions = reactions2filter(objective_functions)
-        flux_dist = simulation_method(model, cache=cache, reactions=reactions, **simulation_kwargs)
+        flux_dist = simulation_method(model, cache=cache, reactions=reactions, objective=biomass, **simulation_kwargs)
         tm(do=partial(setattr, model, "objective", biomass),
-           undo=partial(setattr, model, "objective", model.objective.expression))
+           undo=partial(setattr, model, "objective", model.objective))
 
         fva = flux_variability_analysis(model, fraction_of_optimum=0.99, reactions=[target])
-        target_yield = flux_dist[target]/abs(flux_dist[substrate])
+        target_yield = flux_dist[target] / abs(flux_dist[substrate])
         return [solution[0], solution[1], len(solution[1]), fva.lower_bound(target),
                 fva.upper_bound(target), flux_dist[target], flux_dist[biomass],
                 target_yield] + [of(model, flux_dist, solution) for of in objective_functions]

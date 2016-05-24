@@ -20,23 +20,25 @@ from __future__ import absolute_import, print_function
 import re
 
 import numpy as np
+
 try:
     from IPython.core.display import display
     from IPython.core.display import HTML
 except ImportError:
     def display(*args, **kwargs):
         print(*args, **kwargs)
+
     def HTML(*args, **kwargs):
         print(*args, **kwargs)
+
 from pandas import DataFrame
 
-from cameo import Metabolite, Model, phenotypic_phase_plane, fba
+from cameo import Metabolite, Model, fba
 from cameo import config, util
 from cameo.core.result import Result
 from cameo.api.hosts import hosts, Host
 from cameo.api.products import products
 from cameo.exceptions import SolveError
-from cameo.strain_design.deterministic import OptKnock
 from cameo.strain_design.heuristic import OptGene
 from cameo.ui import notice, searching, stop_loader
 from cameo.strain_design import pathway_prediction
@@ -44,34 +46,35 @@ from cameo.util import TimeMachine
 from cameo.models import universal
 
 from cameo.visualization import visualization
-from cameo.visualization.plotting import Grid
 
 import logging
 
-
 __all__ = ['design']
 
-
 logger = logging.getLogger(__name__)
+
 
 # TODO: implement cplex preference (if available)
 
 
 class _OptimizationRunner(object):
     def __call__(self, strategy, *args, **kwargs):
-        (host, model, pathway) = (strategy[0], strategy[1], strategy[2])
+        (model, pathway) = (strategy[1], strategy[2])
         with TimeMachine() as tm:
             pathway.plug_model(model, tm)
             opt_gene = OptGene(model=model, plot=False)
             opt_gene_designs = opt_gene.run(target=pathway.product.id, biomass=model.biomass,
                                             substrate=model.carbon_source, max_evaluations=10000)
+            opt_gene_designs._process_solutions()
 
-            opt_knock = OptKnock(model=model)
-            opt_knock_designs = opt_knock.run(5, target=pathway.product.id, max_results=5)
+            # TODO: OptKnock is quite slow. Improve OptKnock (model simplification?)
+            # opt_knock = OptKnock(model=model)
+            # opt_knock_designs = opt_knock.run(max_knockouts=5, target=pathway.product.id,
+            #                                   max_results=5, biomass=model.biomass, substrate=model.carbon_source)
 
-            designs = opt_gene_designs + opt_knock_designs
+            designs = opt_gene_designs  # + opt_knock_designs
 
-            return designs
+            return designs, pathway
 
 
 class DesignerResult(Result):
@@ -131,6 +134,7 @@ class Designer(object):
         notice("Starting searching for compound %s" % product)
         product = self.__translate_product_to_universal_reactions_model_metabolite(product, database)
         pathways = self.predict_pathways(product, hosts=hosts, database=database)
+        print("Optimizing %i pathways" % sum(len(p) for p in pathways.values()))
         optimization_reports = self.optimize_strains(pathways, view)
         return optimization_reports
 
@@ -165,24 +169,18 @@ class Designer(object):
             if isinstance(host, Model):
                 host = Host(name='UNKNOWN_HOST', models=[host])
             for model in list(host.models):
+                identifier = searching()
                 logging.debug('Processing model {} for host {}'.format(model.id, host.name))
                 notice('Predicting pathways for product %s in %s (using model %s).'
                        % (product.name, host, model.id))
-                identifier = searching()
-                try:
-                    logger.debug('Trying to set solver to cplex for pathway predictions.')
-                    model.solver = 'cplex'  # CPLEX is better predicting pathways
-                except ValueError:
-                    logger.debug('Could not set solver to cplex for pathway predictions.')
-                    pass
                 logging.debug('Predicting pathways for model {}'.format(model.id))
                 pathway_predictor = pathway_prediction.PathwayPredictor(model,
                                                                         universal_model=database,
                                                                         compartment_regexp=re.compile(".*_c$"))
                 # TODO adjust these numbers to something reasonable
                 predicted_pathways = pathway_predictor.run(product, max_predictions=4, timeout=3 * 60, silent=True)
-                pathways[(host, model)] = predicted_pathways
                 stop_loader(identifier)
+                pathways[(host, model)] = predicted_pathways
                 self.__display_pathways_information(predicted_pathways, host, model)
         return pathways
 
@@ -277,16 +275,10 @@ class Designer(object):
 
     @staticmethod
     def __display_pathways_information(predicted_pathways, host, original_model):
-        # TODO: remove copy hack.
-        with Grid(nrows=2, title="Production envelopes for %s (%s)" % (host.name, original_model.id)) as grid:
-            for i, pathway in enumerate(predicted_pathways):
-                pathway_id = "Pathway %i" % (i + 1)
-                with TimeMachine() as tm:
-                    pathway.plug_model(original_model, tm)
-                    production_envelope = phenotypic_phase_plane(original_model,
-                                                                 variables=[original_model.biomass],
-                                                                 objective=pathway.product)
-                    production_envelope.plot(grid, title=pathway_id, width=400, height=300)
+        predicted_pathways.plot_production_envelopes(original_model,
+                                                     title="Production envelopes for %s (%s)" % (
+                                                         host.name, original_model.id),
+                                                     objective=original_model.biomass)
 
     @staticmethod
     def calculate_yield(model, source, product):
