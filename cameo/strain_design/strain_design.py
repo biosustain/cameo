@@ -120,7 +120,7 @@ class StrainDesignEnsemble(StrainDesignResult):
             row = list(design)
             row.append(method)
 
-        return DataFrame(data, columns=["knockouts", "knockins", "over_expression", "downregulation", "method"])
+        return DataFrame(data, columns=["knockouts", "knock_ins", "over_expression", "down_regulation", "method"])
 
     def __add__(self, other):
         df = DataFrame(columns=["knockouts", "knock_ins", "over_expression", "down_regulation", "type", "method"])
