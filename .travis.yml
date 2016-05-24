@@ -34,16 +34,8 @@ install:
 - if [[ $TRAVIS_PYTHON_VERSION == "3.4" ]]; then pip install pyzmq pandas; fi
 - pip install numpy scipy pyzmq pandas -f http://nikosonnensche.in/wheels/index.html --trusted-host nikosonnensche.in
   --no-index
-- pip install ipython[all]
-- pip install ipyparallel ipywidgets
-- pip install coverage
-- pip install pypandoc
-- pip install redis
-- pip install rednose
 - pip install flake8
-- pip install cobra==0.4.0b6 --pre
-- pip install swiglpk
-- pip install .
+- pip install .[swiglpk,test,parallel]
 before_script:
 - "flake8 ."
 script: nosetests
