@@ -16,12 +16,12 @@ from __future__ import absolute_import, print_function
 
 from collections import OrderedDict
 
-__all__ = ['set_generator', 'unique_set_generator']
-
 from inspyred.ec.generators import diversify
 from cameo.strain_design.heuristic.evolutionary.genomes import MultipleChromosomeGenome
 from six.moves import range
 from six.moves import zip
+
+__all__ = ['set_generator', 'unique_set_generator']
 
 
 def set_generator(random, args):
@@ -47,14 +47,15 @@ def set_generator(random, args):
         size equals candidate_size
     """
     representation = args.get('representation')
+    indices = list(range(len(representation)))
     max_size = args.get('max_size', 9)
     variable_size = args.get('variable_size', True)
     if variable_size:
         size = random.randint(1, max_size)
     else:
         size = max_size
-    candidate = random.sample(range(len(representation)), size)
-    return list(candidate)
+    candidate = random.sample(indices, size)
+    return sorted(candidate)
 
 
 @diversify
@@ -84,14 +85,15 @@ def unique_set_generator(random, args):
         size equals candidate_size
     """
     representation = args.get('representation')
+    indices = list(range(len(representation)))
     max_size = args.get('max_size', 9)
     variable_size = args.get('variable_size', True)
     if variable_size:
         size = random.randint(1, max_size)
     else:
         size = max_size
-    candidate = random.sample(range(len(representation)), size)
-    return list(candidate)
+    candidate = random.sample(indices, size)
+    return sorted(candidate)
 
 
 def multiple_chromosome_set_generator(random, args):

@@ -14,8 +14,6 @@
 
 from __future__ import absolute_import, print_function
 
-__all__ = ['set_mutation', 'set_indel']
-
 from six.moves import range
 
 from inspyred.ec.variators import mutator, crossover
@@ -25,7 +23,13 @@ from numpy import float32 as float
 
 import logging
 
+__all__ = ['set_mutation', 'set_indel']
+
 logger = logging.getLogger(__name__)
+
+
+def _subtract(list_a, list_b):
+    return [v for v in list_a if v not in list_b]
 
 
 def _do_set_n_point_crossover(representation, mom, dad, points, random, candidate_size):
@@ -58,7 +62,7 @@ def _do_set_n_point_crossover(representation, mom, dad, points, random, candidat
 
 @crossover
 def set_n_point_crossover(random, mom, dad, args):
-    representation = list(set(mom).union(set(dad)))
+    representation = sorted(set(mom).union(set(dad)))
     crossover_rate = args.setdefault('crossover_rate', 1.0)
     num_crossover_points = args.setdefault('num_crossover_points', 1)
     candidate_size = args.setdefault('candidate_size', 9)
@@ -99,15 +103,19 @@ def set_mutation(random, individual, args):
 
     """
     representation = args.get('representation')
+    indices = range(len(representation))
+    indices = _subtract(indices, individual)  # remove indices already present in the individual
     new_individual = []
     mutation_rate = float(args.get('mutation_rate', .1))
-    for index in individual:
-        if random.random() < mutation_rate:
-            new_individual.append(random.randint(0, len(representation) - 1))
+    for value in individual:
+        if random.random() < mutation_rate and len(indices) > 0:
+                index = random.sample(indices, 1)[0]
+                indices.remove(index)
+                new_individual.append(index)
         else:
-            new_individual.append(index)
+            new_individual.append(value)
 
-    return list(OrderedSet(new_individual))
+    return sorted(new_individual)
 
 
 @mutator
@@ -132,17 +140,21 @@ def set_indel(random, individual, args):
     """
     max_size = args.get("max_size", 9)
     representation = args.get('representation')
+    indices = range(len(representation))
+    indices = _subtract(indices, individual)  # remove indices already present in the individual
     indel_rate = float(args.get('indel_rate', .1))
     new_individual = list(individual)
     if random.random() < indel_rate:
         logger.info("Applying indel mutation")
-        if random.random() > 0.5 and len(new_individual) < max_size:
-            new_individual.append(random.sample(range(len(representation)), 1)[0])
+        if random.random() > 0.5 and len(new_individual) < max_size and len(indices) > 0:
+            index = random.sample(indices, 1)[0]
+            indices.remove(index)
+            new_individual.append(index)
         else:
             if len(new_individual) > 1:
                 new_individual = random.sample(new_individual, len(new_individual) - 1)
 
-    return list(OrderedSet(new_individual))
+    return sorted(new_individual)
 
 
 @mutator
@@ -169,13 +181,17 @@ def multiple_chromosome_set_mutation(random, individual, args):
 
     for key in individual.keys:
         representation = args.get('%s_representation' % key)
+        indices = range(len(representation))
+        indices = _subtract(indices, individual[key])  # remove indices already present in the individual
         mutation_rate = args.get('%s_mutation_rate' % key, .1)
         for index in individual[key]:
-            if random.random() < mutation_rate:
-                new_individual[key].append(random.randint(0, len(representation) - 1))
+            if random.random() < mutation_rate and len(indices) > 0:
+                index = random.sample(indices, 1)[0]
+                indices.remove(index)
+                new_individual[key].append(index)
             else:
                 new_individual[key].append(index)
-
+            new_individual[key] = sorted(new_individual[key])
     return new_individual
 
 
@@ -202,14 +218,18 @@ def multiple_chromosome_set_indel(random, individual, args):
     max_size = args.get("max_size", 9)
     for key in individual.keys:
         representation = args.get('%s_representation' % key)
+        indices = range(len(representation))
+        indices = _subtract(indices, individual[key])  # remove indices already present in the individual
         indel_rate = args.get('%s_indel_rate' % key, .1)
         if random.random() < indel_rate:
-            if random.random() > 0.5 and len(new_individual[key]) < max_size:
-                new_individual[key].append(random.sample(range(len(representation)), 1)[0])
+            if random.random() > 0.5 and len(new_individual[key]) < max_size and len(indices) > 0:
+                    index = random.sample(indices, 1)[0]
+                    indices.remove(index)
+                    new_individual[key].append(index)
             else:
                 if len(individual[key]) > 1:
                     new_individual[key] = random.sample(new_individual[key], len(new_individual[key]) - 1)
-
+            new_individual[key] = sorted(new_individual[key])
     return new_individual
 
 
