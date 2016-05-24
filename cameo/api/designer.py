@@ -74,7 +74,7 @@ class _OptimizationRunner(object):
 
             designs = opt_gene_designs  # + opt_knock_designs
 
-            return designs
+            return designs, pathway
 
 
 class DesignerResult(Result):
@@ -134,7 +134,7 @@ class Designer(object):
         notice("Starting searching for compound %s" % product)
         product = self.__translate_product_to_universal_reactions_model_metabolite(product, database)
         pathways = self.predict_pathways(product, hosts=hosts, database=database)
-        print("Optimizing %i pathways" % sum(len(p) for p in pathways))
+        print("Optimizing %i pathways" % sum(len(p) for p in pathways.values()))
         optimization_reports = self.optimize_strains(pathways, view)
         return optimization_reports
 
