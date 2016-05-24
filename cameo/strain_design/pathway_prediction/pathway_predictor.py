@@ -28,24 +28,29 @@ from cameo.exceptions import SolveError
 from cameo import Model, Metabolite
 from cameo.data import metanetx
 from cameo.util import TimeMachine
+
+from cameo.strain_design.strain_design import StrainDesignResult, StrainDesign
 from cameo.strain_design.pathway_prediction import util
 
 import sympy
 
-NegativeOne = sympy.singleton.S.NegativeOne
 from sympy import Add, Mul, RealNumber
 
 import logging
 
 __all__ = ['PathwayPredictor']
 
+NegativeOne = sympy.singleton.S.NegativeOne
+
+
 logger = logging.getLogger(__name__)
 
 
-class PathwayResult(Pathway, Result):
+class PathwayResult(Pathway, Result, StrainDesign):
     def __init__(self, reactions, exchanges, adapters, product, *args, **kwargs):
         Result.__init__(self, *args, **kwargs)
         Pathway.__init__(self, reactions, *args, **kwargs)
+        StrainDesign.__init__(self, knock_ins=[r.id for r in reactions], manipulation_type="reactions")
         self.exchanges = exchanges
         self.adapters = adapters
         self.product = product
@@ -54,7 +59,8 @@ class PathwayResult(Pathway, Result):
         pass
 
     def needs_optimization(self, model, objective=None):
-        return self.production_envelope(model, objective).area > 1e-5
+        area = self.production_envelope(model, objective).area
+        return area > 1e-5
 
     def production_envelope(self, model, objective=None):
         with TimeMachine() as tm:
@@ -94,7 +100,9 @@ class PathwayResult(Pathway, Result):
                 pass
 
 
-class PathwayPredictions(Result):
+class PathwayPredictions(StrainDesignResult):
+    __method_name__ = "PathwayPredictor"
+
     def __init__(self, pathways, *args, **kwargs):
         super(PathwayPredictions, self).__init__(*args, **kwargs)
         # TODO: sort the pathways to make them easier to read
@@ -123,7 +131,7 @@ class PathwayPredictions(Result):
         with grid:
             for i, pathway in enumerate(self.pathways):
                 ppp = pathway.production_envelope(model, objective=objective)
-                ppp.plot(grid=grid, width=450, title="Pathway %i" % i)
+                ppp.plot(grid=grid, width=450, title="Pathway %i" % (i+1))
 
     def __iter__(self):
         for p in self.pathways:
