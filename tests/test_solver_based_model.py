@@ -714,25 +714,27 @@ class WrappedAbstractTestSolverBasedModel:
             for reaction in reactions_to_remove:
                 self.assertIn(reaction, self.model.reactions)
 
-        def test_add_demand(self):
-            for metabolite in self.model.metabolites:
-                demand_reaction = self.model.add_demand(metabolite, prefix="DemandReaction_")
-                self.assertEqual(self.model.reactions.get_by_id(demand_reaction.id), demand_reaction)
-                self.assertEqual(demand_reaction.reactants, [metabolite])
-                self.assertTrue(self.model.solver.constraints[metabolite.id].expression.has(
-                    self.model.solver.variables["DemandReaction_" + metabolite.id]))
-
-        def test_add_demand_time_machine(self):
-            with TimeMachine() as tm:
+        def test_add_exchange(self):
+            for demand, prefix in {True: 'DemandReaction_', False: 'SupplyReaction_'}.items():
                 for metabolite in self.model.metabolites:
-                    demand_reaction = self.model.add_demand(metabolite, time_machine=tm)
+                    demand_reaction = self.model.add_exchange(metabolite, demand=demand, prefix=prefix)
                     self.assertEqual(self.model.reactions.get_by_id(demand_reaction.id), demand_reaction)
                     self.assertEqual(demand_reaction.reactants, [metabolite])
-                    self.assertTrue(-self.model.solver.constraints[metabolite.id].expression.has(
-                        self.model.solver.variables["DM_" + metabolite.id]))
-            for metabolite in self.model.metabolites:
-                self.assertNotIn("DM_" + metabolite.id, self.model.reactions)
-                self.assertNotIn("DM_" + metabolite.id, self.model.solver.variables.keys())
+                    self.assertTrue(self.model.solver.constraints[metabolite.id].expression.has(
+                        self.model.solver.variables[prefix + metabolite.id]))
+
+        def test_add_exchange_time_machine(self):
+            for demand, prefix in {True: 'DemandReaction_', False: 'SupplyReaction_'}.items():
+                with TimeMachine() as tm:
+                    for metabolite in self.model.metabolites:
+                        demand_reaction = self.model.add_exchange(metabolite, demand=demand, prefix=prefix, time_machine=tm)
+                        self.assertEqual(self.model.reactions.get_by_id(demand_reaction.id), demand_reaction)
+                        self.assertEqual(demand_reaction.reactants, [metabolite])
+                        self.assertTrue(-self.model.solver.constraints[metabolite.id].expression.has(
+                            self.model.solver.variables[prefix + metabolite.id]))
+                for metabolite in self.model.metabolites:
+                    self.assertNotIn(prefix + metabolite.id, self.model.reactions)
+                    self.assertNotIn(prefix + metabolite.id, self.model.solver.variables.keys())
 
         def test_objective(self):
             obj = self.model.objective

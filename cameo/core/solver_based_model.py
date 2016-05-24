@@ -307,13 +307,22 @@ class SolverBasedModel(cobra.core.Model):
         super(SolverBasedModel, self).remove_reactions(the_reactions, delete=delete, remove_orphans=remove_orphans)
 
     def add_demand(self, metabolite, prefix="DM_", time_machine=None):
-        """Add a demand reaction for a metabolite (metabolite --> Ø)
+        from warnings import warn
+        warn('"add_demand" function is replaced with "add_exchange".', PendingDeprecationWarning)
+        return self.add_exchange(metabolite, prefix=prefix, time_machine=time_machine)
+
+    def add_exchange(self, metabolite, demand=True, prefix='DM_', bound=1000.0, time_machine=None):
+        """Add an exchange reaction for a metabolite (demand=TRUE: metabolite --> Ø or demand=False: 0 --> metabolite )
 
         Parameters
         ----------
         metabolite : Metabolite
+        demand : bool, optional
+            True for sink type exchange, False for uptake type exchange
         prefix : str, optional
             A prefix that will be added to the metabolite ID to be used as the demand reaction's ID (defaults to 'DM_').
+        bound : float, optional
+            Upper bound for sink reaction / lower bound for uptake (multiplied by -1)
         time_machine : TimeMachine, optional
             A TimeMachine instance that enables undoing.
 
@@ -323,22 +332,30 @@ class SolverBasedModel(cobra.core.Model):
             The created demand reaction.
         """
         id = str(prefix + metabolite.id)
-        name = "Exchange %s" % metabolite.name if prefix == "EX_" else "Demand %s" % metabolite.name
+        name = "Exchange %s" % metabolite.name if prefix != "DM_" else "Demand %s" % metabolite.name
         if id in self.reactions:
             raise ValueError("The metabolite already has a demand reaction.")
 
-        demand_reaction = Reaction()
-        demand_reaction.id = id
-        demand_reaction.name = name
-        demand_reaction.add_metabolites({metabolite: -1})
-        demand_reaction.lower_bound = 0
-        demand_reaction.upper_bound = 1000
-        if time_machine is not None:
-            time_machine(do=partial(self.add_reactions, [demand_reaction]),
-                         undo=partial(self.remove_reactions, [demand_reaction], delete=False))
+        reaction = Reaction()
+        reaction.id = id
+        reaction.name = name
+
+        reaction.add_metabolites({metabolite: -1})
+        if demand:
+            reaction.upper_bound = bound
+            reaction.lower_bound = 0
         else:
-            self.add_reactions([demand_reaction])
-        return demand_reaction
+            reaction.upper_bound = 0
+            reaction.lower_bound = -bound
+
+
+
+        if time_machine is not None:
+            time_machine(do=partial(self.add_reactions, [reaction]),
+                         undo=partial(self.remove_reactions, [reaction], delete=False))
+        else:
+            self.add_reactions([reaction])
+        return reaction
 
     def fix_objective_as_constraint(self, time_machine=None, fraction=1):
         """Fix current objective as an additional constraint (e.g., ..math`c^T v >= max c^T v`).
