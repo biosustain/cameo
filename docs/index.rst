@@ -2,7 +2,7 @@
 Welcome to cameo!
 =================
 
-|Build Status| |Coverage Status| |DOI|
+|PyPI| |License| |Build Status| |Coverage Status| |DOI|
 
 **Cameo** is a high-level python library developed to aid the strain
 design process in metabolic engineering projects. The library provides a
@@ -61,9 +61,13 @@ Indices and tables
 * :ref:`search`
 
 
+.. |PyPI| image:: https://img.shields.io/pypi/v/cameo.svg
+   :target: https://pypi.python.org/pypi/cameo
+.. |License| image:: http://img.shields.io/badge/license-APACHE2-blue.svg
+   :target: http://img.shields.io/badge/license-APACHE2-blue.svg
 .. |Build Status| image:: https://travis-ci.org/biosustain/cameo.svg?branch=master
    :target: https://travis-ci.org/biosustain/cameo
-.. |Coverage Status| image:: https://codecov.io/github/biosustain/cameo/coverage.svg?branch=devel
-   :target: https://codecov.io/github/biosustain/cameo?branch=devel
-.. |DOI| image:: https://zenodo.org/badge/doi/10.5281/zenodo.19827.svg
-   :target: http://dx.doi.org/10.5281/zenodo.19827
+.. |Coverage Status| image:: https://coveralls.io/repos/biosustain/cameo/badge.svg?branch=devel
+   :target: https://coveralls.io/r/biosustain/cameo?branch=devel
+.. |DOI| image:: https://zenodo.org/badge/5031/biosustain/cameo.svg
+   :target: https://zenodo.org/badge/latestdoi/5031/biosustain/cameo

@@ -12,10 +12,18 @@ cameo.visualization.escher_ext module
     :undoc-members:
     :show-inheritance:
 
-cameo.visualization.plotting module
------------------------------------
+cameo.visualization.palette module
+----------------------------------
 
-.. automodule:: cameo.visualization.plotting
+.. automodule:: cameo.visualization.palette
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+cameo.visualization.plotting_old module
+---------------------------------------
+
+.. automodule:: cameo.visualization.plotting_old
     :members:
     :undoc-members:
     :show-inheritance:

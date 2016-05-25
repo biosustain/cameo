@@ -20,6 +20,14 @@ cameo.flux_analysis.simulation module
     :undoc-members:
     :show-inheritance:
 
+cameo.flux_analysis.structural module
+-------------------------------------
+
+.. automodule:: cameo.flux_analysis.structural
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 cameo.flux_analysis.util module
 -------------------------------
 

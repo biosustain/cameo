@@ -4,6 +4,22 @@ cameo.core package
 Submodules
 ----------
 
+cameo.core.gene module
+----------------------
+
+.. automodule:: cameo.core.gene
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+cameo.core.metabolite module
+----------------------------
+
+.. automodule:: cameo.core.metabolite
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 cameo.core.pathway module
 -------------------------
 
