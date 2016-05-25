@@ -4,6 +4,10 @@ Cameo tutorials come in the form of jupyter notebooks (./notebooks) that can be 
 
 ```make ipy2rst```
 
+To update to the latest notebooks run
+
+```git submodule update --remote --merge```
+
 The notebooks folder is a git submodule pointing to [http://github.com/biosustain/cameo-notebooks](http://github.com/biosustain/cameo-notebooks).
 
 To regenerate the API docs run

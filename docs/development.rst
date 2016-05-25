@@ -114,7 +114,7 @@ The LP/MILP solver can be changed in the following way.
 
     model.solver = 'cplex'
 
-Currently ``cplex`` and ``glpk`` are supported.
+Currently `cplex` and `glpk` are supported.
 
 Manipulating the solver object
 ------------------------------
