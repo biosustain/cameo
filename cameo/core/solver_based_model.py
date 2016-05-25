@@ -295,7 +295,7 @@ class SolverBasedModel(cobra.core.Model):
         cloned_reaction_list = list()
         for reaction in reaction_list:  # this is necessary for cobrapy compatibility
             if not isinstance(reaction, Reaction):
-                cloned_reaction_list.append(Reaction.clone(reaction, model=self))
+                cloned_reaction_list.append(Reaction.clone(reaction))
             else:
                 cloned_reaction_list.append(reaction)
 

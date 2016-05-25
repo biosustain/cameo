@@ -30,5 +30,6 @@ def setUp(self):
 for cls in (CobraTestCase, TestReactions, TestCobraFluxAnalysis):
     cls.setUp = types.MethodType(setUp, cls)
 
+del TestReactions.testGPR
 del TestCobraFluxAnalysis.test_single_gene_deletion
 del TestCobraFluxAnalysis.test_phenotype_phase_plane  # Avoid bug in cobra tests (AttributeError on self.skip() )

@@ -21,6 +21,8 @@ from cameo.util import inheritdocstring
 
 logger = logging.getLogger(__name__)
 
+__all__ = ['Gene']
+
 
 @six.add_metaclass(inheritdocstring)
 class Gene(cobra.core.Gene):

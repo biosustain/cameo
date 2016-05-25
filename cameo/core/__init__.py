@@ -17,3 +17,5 @@
 """
 
 from .solver_based_model import *
+from .gene import *
+from .metabolite import *
