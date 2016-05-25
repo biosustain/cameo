@@ -32,7 +32,7 @@ def _subtract(list_a, list_b):
     return [v for v in list_a if v not in list_b]
 
 
-def _do_set_n_point_crossover(representation, mom, dad, points, random, candidate_size):
+def _do_set_n_point_crossover(representation, mom, dad, points, random, max_size):
     chunks = []
     i = 0
     for point in points:
@@ -52,11 +52,11 @@ def _do_set_n_point_crossover(representation, mom, dad, points, random, candidat
                 sis.append(v) if cross else bro.append(v)
         cross = not cross
 
-    if len(bro) > candidate_size:
-        bro = random.sample(bro, candidate_size)
+    if len(bro) > max_size:
+        bro = random.sample(bro, max_size)
 
-    if len(sis) > candidate_size:
-        sis = random.sample(sis, candidate_size)
+    if len(sis) > max_size:
+        sis = random.sample(sis, max_size)
     return bro, sis
 
 
@@ -65,11 +65,11 @@ def set_n_point_crossover(random, mom, dad, args):
     representation = sorted(set(mom).union(set(dad)))
     crossover_rate = args.setdefault('crossover_rate', 1.0)
     num_crossover_points = args.setdefault('num_crossover_points', 1)
-    candidate_size = args.setdefault('candidate_size', 9)
+    max_size = args.setdefault('max_size', 9)
     children = []
     if random.random() <= crossover_rate:
         points = random.sample(representation, num_crossover_points)
-        bro, sis = _do_set_n_point_crossover(representation, mom, dad, points, random, candidate_size)
+        bro, sis = _do_set_n_point_crossover(representation, mom, dad, points, random, max_size)
 
         # ensure number of knockouts > 0 or do not add individual
         if len(bro) > 0:
@@ -79,6 +79,9 @@ def set_n_point_crossover(random, mom, dad, args):
     else:
         children.append(mom)
         children.append(dad)
+
+    assert all(len(individual) <= max_size for individual in children)
+
     return children
 
 
@@ -115,6 +118,7 @@ def set_mutation(random, individual, args):
         else:
             new_individual.append(value)
 
+    assert len(individual) == len(new_individual)
     return sorted(new_individual)
 
 
@@ -138,6 +142,9 @@ def set_indel(random, individual, args):
         created based on an ordered set
 
     """
+    if not args.get("variable_size", True):
+        return list(individual)
+
     max_size = args.get("max_size", 9)
     representation = args.get('representation')
     indices = range(len(representation))
@@ -154,6 +161,7 @@ def set_indel(random, individual, args):
             if len(new_individual) > 1:
                 new_individual = random.sample(new_individual, len(new_individual) - 1)
 
+    assert len(new_individual) <= max_size
     return sorted(new_individual)
 
 
@@ -184,14 +192,18 @@ def multiple_chromosome_set_mutation(random, individual, args):
         indices = range(len(representation))
         indices = _subtract(indices, individual[key])  # remove indices already present in the individual
         mutation_rate = args.get('%s_mutation_rate' % key, .1)
-        for index in individual[key]:
+        for value in individual[key]:
             if random.random() < mutation_rate and len(indices) > 0:
                 index = random.sample(indices, 1)[0]
                 indices.remove(index)
                 new_individual[key].append(index)
             else:
-                new_individual[key].append(index)
-            new_individual[key] = sorted(new_individual[key])
+                new_individual[key].append(value)
+
+        print(new_individual[key], individual[key])
+        assert len(new_individual[key]) == len(individual[key])
+
+        new_individual[key] = sorted(new_individual[key])
     return new_individual
 
 
@@ -229,6 +241,8 @@ def multiple_chromosome_set_indel(random, individual, args):
             else:
                 if len(individual[key]) > 1:
                     new_individual[key] = random.sample(new_individual[key], len(new_individual[key]) - 1)
+
+            assert len(new_individual[key]) <= max_size
             new_individual[key] = sorted(new_individual[key])
     return new_individual
 
