@@ -132,7 +132,10 @@ class Designer(object):
             database = universal.metanetx_universal_model_bigg_rhea
 
         notice("Starting searching for compound %s" % product)
-        product = self.__translate_product_to_universal_reactions_model_metabolite(product, database)
+        try:
+            product = self.__translate_product_to_universal_reactions_model_metabolite(product, database)
+        except KeyError:
+            raise KeyError("Product %s is not in the %s database" % (product, database.id))
         pathways = self.predict_pathways(product, hosts=hosts, database=database)
         print("Optimizing %i pathways" % sum(len(p) for p in pathways.values()))
         optimization_reports = self.optimize_strains(pathways, view)
@@ -162,7 +165,6 @@ class Designer(object):
             ...
         """
         pathways = dict()
-
         product = self.__translate_product_to_universal_reactions_model_metabolite(product, database)
         for host in hosts:
             logging.debug('Processing host {}'.format(host.name))
@@ -207,8 +209,6 @@ class Designer(object):
     def __display_compound(inchi):
         if util.in_ipnb():
             Designer.__display_compound_html(inchi)
-        else:
-            Designer.__display_compound_cli(inchi)
 
     @staticmethod
     def __display_compound_html(inchi):
@@ -218,11 +218,6 @@ class Designer(object):
             %s
         </p>
         """ % svg))
-
-    @staticmethod
-    def __display_compound_cli(inchi):
-        text = Designer.__generate_ascii(inchi)
-        print(text)
 
     @staticmethod
     def __display_product_search_results_html(search_result):
@@ -275,10 +270,11 @@ class Designer(object):
 
     @staticmethod
     def __display_pathways_information(predicted_pathways, host, original_model):
-        predicted_pathways.plot_production_envelopes(original_model,
-                                                     title="Production envelopes for %s (%s)" % (
-                                                         host.name, original_model.id),
-                                                     objective=original_model.biomass)
+        if util.in_ipnb():
+            predicted_pathways.plot_production_envelopes(original_model,
+                                                         title="Production envelopes for %s (%s)" % (
+                                                             host.name, original_model.id),
+                                                         objective=original_model.biomass)
 
     @staticmethod
     def calculate_yield(model, source, product):
