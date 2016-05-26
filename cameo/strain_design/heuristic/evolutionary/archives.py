@@ -19,6 +19,8 @@ from bisect import insort
 
 from inspyred.ec import Individual as OriginalIndividual
 
+from cameo.config import ndecimals
+
 __all__ = ['BestSolutionArchive', 'ProductionStrainArchive']
 
 
@@ -77,7 +79,8 @@ class ProductionStrainArchive(BestSolutionArchive):
     def __call__(self, random, population, archive, args):
         self.archive = archive
         max_size = args.get('max_archive_size', 100)
-        [self.add(i.candidate, i.fitness, i.birthdate, True, max_size) for i in population if i.fitness > 0]
+        [self.add(i.candidate, i.fitness, i.birthdate, True, max_size) for i in population
+         if round(i.fitness, ndecimals) > 0]
         return self.archive
 
 
