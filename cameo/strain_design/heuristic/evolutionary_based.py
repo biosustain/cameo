@@ -239,21 +239,26 @@ class OptGeneResult(StrainDesignResult):
         processed_solutions = DataFrame(columns=["reactions", "genes", "size", "fva_min", "fva_max",
                                                  "target_flux", "biomass_flux", "yield", "fitness"])
 
-        cache = ProblemCache(self._model)
-        progress = ProgressBar(maxval=len(self._designs), widgets=["Processing solutions: ", Bar(), Percentage()])
-        for i, solution in progress(enumerate(self._designs)):
-            try:
-                processed_solutions.loc[i] = process_knockout_solution(
-                    self._model, solution, self._simulation_method, self._simulation_kwargs, self._biomass,
-                    self._target, self._substrate, [self._objective_function], cache=cache)
-            except SolveError as e:
-                logger.error(e)
-                processed_solutions.loc[i] = [numpy.nan for _ in processed_solutions.columns]
+        if len(self._designs) == 0:
+            logger.warn("No solutions found")
+            self._processed_solutions = processed_solutions
 
-        if self._manipulation_type == "reactions":
-            processed_solutions.drop('genes', axis=1, inplace=True)
+        else:
+            cache = ProblemCache(self._model)
+            progress = ProgressBar(maxval=len(self._designs), widgets=["Processing solutions: ", Bar(), Percentage()])
+            for i, solution in progress(enumerate(self._designs)):
+                try:
+                    processed_solutions.loc[i] = process_knockout_solution(
+                        self._model, solution, self._simulation_method, self._simulation_kwargs, self._biomass,
+                        self._target, self._substrate, [self._objective_function], cache=cache)
+                except SolveError as e:
+                    logger.error(e)
+                    processed_solutions.loc[i] = [numpy.nan for _ in processed_solutions.columns]
 
-        self._processed_solutions = processed_solutions
+            if self._manipulation_type == "reactions":
+                processed_solutions.drop('genes', axis=1, inplace=True)
+
+            self._processed_solutions = processed_solutions
 
     def display_on_map(self, index=0, map_name=None, palette="YlGnBu"):
         with TimeMachine() as tm:
