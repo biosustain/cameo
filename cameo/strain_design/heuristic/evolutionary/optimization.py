@@ -405,10 +405,6 @@ class KnockoutOptimization(HeuristicOptimization):
                     self.observers.append(plotters.IPythonBokehParetoPlotter(self.objective_function))
                 else:
                     self.observers.append(plotters.IPythonBokehFitnessPlotter())
-            elif config.use_matplotlib:
-                pass
-            else:
-                pass
 
         else:
             if config.use_bokeh:
@@ -465,7 +461,10 @@ class KnockoutOptimizationResult(Result):
     def _decode_solutions(self, solutions):
         decoded_solutions = DataFrame(columns=["reactions", "knockouts", "fitness"])
         for index, solution in enumerate(solutions):
-            decoded_solutions.loc[index] = self._decoder(solution, flat=True) + [solution.fitness]
+            reactions, knockouts = self._decoder(solution, flat=True)
+            if len(reactions) > 0:
+                decoded_solutions.loc[index] = [reactions, knockouts, solution.fitness]
+
         return decoded_solutions
 
     def __len__(self):
