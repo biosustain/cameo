@@ -452,20 +452,9 @@ class SolverBasedModel(cobra.core.Model):
         """
         solution = self.optimize(solution_type=solution_type, *args, **kwargs)
         if solution.status is not 'optimal':
-            logger.debug('No optimal solution found. Turning on presolve.')
-            self.solver.configuration.presolve = True
-            solution = self.optimize(solution_type=solution_type, *args, **kwargs)
-            logger.debug('hey, %s, %s' % (solution.status, self.solver.status))
-            self.solver.configuration.presolve = False
-            if solution.status is not 'optimal':
-                status = solution.status
-                # GLPK 4.45 hack http://lists.gnu.org/archive/html/help-glpk/2013-09/msg00015.html
-                if status == 'undefined' and self.solver.interface.__name__ == 'optlang.glpk_interface':  # and self.solver.interface.glp_version() == '4.45':
-                    status = 'infeasible'
-                raise exceptions._OPTLANG_TO_EXCEPTIONS_DICT.get(status, SolveError)(
-                    'Solving model %s did not return an optimal solution. The returned solution status is "%s"' % (
-                        self, status))
-            return solution
+            raise exceptions._OPTLANG_TO_EXCEPTIONS_DICT.get(solution.status, SolveError)(
+                'Solving model %s did not return an optimal solution. The returned solution status is "%s"' % (
+                    self, solution.status))
         else:
             return solution
 
