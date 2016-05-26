@@ -68,13 +68,33 @@ class Reaction(_cobrapy.core.Reaction):
             new_reaction._model = None
         if model is not None:
             new_reaction._model = model
-        # for gene in new_reaction.genes:
-        #     gene._reaction.remove(reaction)
-        #     gene._reaction.add(new_reaction)
-        # for metabolite in new_reaction.metabolites:
-        #     metabolite._reaction.remove(reaction)
-        #     metabolite._reaction.add(new_reaction)
+        new_reaction._clone_genes(model)
+        new_reaction._clone_metabolites(model)
         return new_reaction
+
+    def _clone_genes(self, model):
+        cloned_genes = []
+        for gene in self._genes:
+            if isinstance(gene, cameo.core.Gene):
+                cloned_genes.append(gene)
+            else:
+                cloned_gene = cameo.core.Gene.clone(gene)
+                cloned_genes.append(cloned_gene)
+                if model is not None:
+                    model.genes._replace_on_id(cloned_gene)
+        self._genes = set(cloned_genes)
+
+    def _clone_metabolites(self, model):
+        cloned_metabolites = {}
+        for metabolite, coeff in self.metabolites.items():
+            if isinstance(metabolite, cameo.core.Metabolite):
+                cloned_metabolites[metabolite] = coeff
+            else:
+                cloned_metabolite = cameo.core.Metabolite.clone(metabolite)
+                cloned_metabolites[cloned_metabolite] = coeff
+                if model is not None:
+                    model.metabolites._replace_on_id(cloned_metabolite)
+        self._metabolites = cloned_metabolites
 
     def __init__(self, id=None, name='', subsystem="", lower_bound=0, upper_bound=1000):
         """
@@ -92,6 +112,11 @@ class Reaction(_cobrapy.core.Reaction):
 
     def __str__(self):
         return ''.join((self.id, ": ", self.build_reaction_string()))
+
+    @_cobrapy.core.Reaction.gene_reaction_rule.setter
+    def gene_reaction_rule(self, rule):
+        _cobrapy.core.Reaction.gene_reaction_rule.fset(self, rule)
+        self._clone_genes(self.model)
 
     @property
     def reversibility(self):

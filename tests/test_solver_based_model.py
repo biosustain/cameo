@@ -92,15 +92,59 @@ class TestLazySolutionCPLEX(AbstractTestLazySolution):
 
 class WrappedAbstractTestReaction:
     class AbstractTestReaction(unittest.TestCase):
+
         def test_clone_cobrapy_reaction(self):
             for reaction in self.cobrapy_model.reactions:
                 cloned_reaction = Reaction.clone(reaction)
                 self.assertEqual(cloned_reaction.objective_coefficient, reaction.objective_coefficient)
                 self.assertEqual(cloned_reaction.gene_reaction_rule, reaction.gene_reaction_rule)
-                self.assertEqual(cloned_reaction.genes, reaction.genes)
-                self.assertEqual(cloned_reaction.metabolites, reaction.metabolites)
-                self.assertEqual(cloned_reaction.products, reaction.products)
-                self.assertEqual(cloned_reaction.reactants, reaction.reactants)
+                self.assertSetEqual(set([gene.id for gene in cloned_reaction.genes]),
+                                    set([gene.id for gene in reaction.genes]))
+                self.assertTrue(all(isinstance(gene, cameo.core.Gene) for gene in list(reaction.genes)))
+                self.assertSetEqual(set([metabolite.id for metabolite in cloned_reaction.metabolites]),
+                                    set([metabolite.id for metabolite in reaction.metabolites]))
+                self.assertTrue(
+                    all(isinstance(metabolite, cameo.core.Metabolite) for metabolite in reaction.metabolites))
+                self.assertSetEqual(set([metabolite.id for metabolite in cloned_reaction.products]),
+                                    set([metabolite.id for metabolite in reaction.products]))
+                self.assertSetEqual(set([metabolite.id for metabolite in cloned_reaction.reactants]),
+                                    set([metabolite.id for metabolite in reaction.reactants]))
+
+        def test_gene_reaction_rule_setter(self):
+            m = self.model
+            rxn = Reaction('rxn')
+            rxn.add_metabolites({Metabolite('A'): -1,
+                                 Metabolite('B'): 1})
+            rxn.gene_reaction_rule = 'A2B'
+            print(list(rxn.genes)[0], type(list(rxn.genes)[0]))
+            self.assertTrue(hasattr(list(rxn.genes)[0], 'knock_out'))
+            m.add_reaction(rxn)
+            tm = cameo.util.TimeMachine()
+            for gene in m.genes:
+                try:
+                    gene.knock_out(time_machine=tm)
+                except AttributeError:
+                    print(gene.id)
+                except:
+                    pass
+
+        def test_gene_reaction_rule_setter_reaction_already_added_to_model(self):
+            m = self.model
+            rxn = Reaction('rxn')
+            rxn.add_metabolites({Metabolite('A'): -1,
+                                 Metabolite('B'): 1})
+            m.add_reaction(rxn)
+            rxn.gene_reaction_rule = 'A2B'
+            print(list(rxn.genes)[0], type(list(rxn.genes)[0]))
+            self.assertTrue(hasattr(list(rxn.genes)[0], 'knock_out'))
+            tm = cameo.util.TimeMachine()
+            for gene in m.genes:
+                try:
+                    gene.knock_out(time_machine=tm)
+                except AttributeError:
+                    print(gene.id)
+                except:
+                    pass
 
         def test_str(self):
             self.assertTrue(self.model.reactions[0].__str__().startswith('ACALD'))
@@ -582,7 +626,6 @@ class TestReactionCPLEX(WrappedAbstractTestReaction.AbstractTestReaction):
         self.cobrapy_model = COBRAPYTESTMODEL.copy()
         self.model = TESTMODEL.copy()
         self.model.solver = 'cplex'
-
 
 class WrappedAbstractTestSolverBasedModel:
     class AbstractTestSolverBasedModel(unittest.TestCase):

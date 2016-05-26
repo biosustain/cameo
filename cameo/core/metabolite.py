@@ -19,6 +19,8 @@ from cameo.util import inheritdocstring
 
 logger = logging.getLogger(__name__)
 
+__all__ = ['Metabolite']
+
 
 @six.add_metaclass(inheritdocstring)
 class Metabolite(cobra.core.Metabolite):
