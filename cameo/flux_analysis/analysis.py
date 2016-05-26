@@ -521,8 +521,9 @@ class PhenotypicPhasePlaneResult(Result):
         return area
 
     def area_for(self, variable_id):
-        auc_max = trapz(self._phase_plane.objective_upper_bound.values, x=self._phase_plane[variable_id])
-        auc_min = trapz(self._phase_plane.objective_lower_bound.values, x=self._phase_plane[variable_id])
+        data_frame = self._phase_plane.sort_values(by=variable_id, ascending=True)
+        auc_max = trapz(data_frame.objective_upper_bound.values, x=data_frame[variable_id])
+        auc_min = trapz(data_frame.objective_lower_bound.values, x=data_frame[variable_id])
         return auc_max - auc_min
 
 
