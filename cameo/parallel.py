@@ -29,50 +29,53 @@ logger = logging.getLogger(__name__)
 class MultiprocessingView(Singleton):
     """Provides a parallel view (similar to IPython)"""
 
-    def __init__(self, *args, **kwargs):
-        self._args = args
+    def __init__(self, processes=cpu_count(), **kwargs):
+        self._processes = processes
         self._kwargs = kwargs
-        if not hasattr(self, 'pool'):
-            self.pool = None
+        if not hasattr(self, '_pool'):
+            self._pool = None
+
+    @property
+    def pool(self):
+        if self._pool is None:
+            self._pool = Pool(processes=self._processes, **self._kwargs)
+        return self._pool
+
+    def __getstate__(self):
+        return {
+            'processes': self._processes,
+            'kwargs': self._kwargs
+        }
+
+    def __setstate__(self, state):
+        self._kwargs = state['kwargs']
+        self._processes = state['processes']
 
     def map(self, *args, **kwargs):
-        if self.pool is None:
-            self.pool = Pool(*self._args, **self._kwargs)
         return self.pool.map(*args, **kwargs)
 
     def apply(self, func, *args, **kwargs):
-        if self.pool is None:
-            self.pool = Pool(*self._args, **self._kwargs)
         return self.pool.apply(func, args=args, **kwargs)
 
     def apply_async(self, func, *args, **kwargs):
-        if self.pool is None:
-            self.pool = Pool(*self._args, **self._kwargs)
         self.pool.apply_async(func, args=args, **kwargs)
 
     def imap(self, func, *args, **kwargs):
-        if self.pool is None:
-            self.pool = Pool(*self._args, **self._kwargs)
         return self.pool.imap(func, *args, **kwargs)
 
     def __len__(self):
-        if len(self._args) > 0:
-            return self._args[0]
-        elif "processes" in self._kwargs:
-            return self._kwargs["processes"]
-        else:
-            return cpu_count()
+        return self._processes
 
     def shutdown(self):
-        if self.pool is not None:
+        if self._pool is not None:
             logger.debug('Terminating multiprocessing pool')
             try:
-                self.pool.terminate()
+                self._pool.terminate()
             except Exception as e:
                 logger.debug('Could not terminate multiprocessing pool.')
                 raise e
             else:
-                self.pool = None
+                self._pool = None
         else:
             logger.debug('No multiprocessing pool to shut down.')
 
