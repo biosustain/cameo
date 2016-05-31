@@ -258,10 +258,11 @@ class KnockoutEvaluator(object):
         except Exception as e:
             logger.error(e)
             res = None
-        finally:
-            self.cache.reset()
 
         return res
+
+    def reset(self):
+        self.cache.reset()
 
     @memoize
     def _evaluate_individual(self, individual):
@@ -330,6 +331,7 @@ class KnockoutOptimization(HeuristicOptimization):
         self._simulation_method = None
         self.simulation_method = simulation_method
         self.representation = None
+        self._knockout_evaluator = None
         self._ko_type = None
         self._decoder = None
         self._generator = generators.set_generator
@@ -361,10 +363,8 @@ class KnockoutOptimization(HeuristicOptimization):
     def _evaluator(self, candidates, args):
         view = args.get('view')
         population_chunks = (chunk for chunk in partition(candidates, len(view)))
-        func_obj = KnockoutEvaluator(self.model, self._decoder, self.objective_function,
-                                     self.simulation_method, self._simulation_kwargs)
         try:
-            results = view.map(func_obj, population_chunks)
+            results = view.map(self._knockout_evaluator, population_chunks)
         except KeyboardInterrupt as e:
             view.shutdown()
             raise e
@@ -426,19 +426,24 @@ class KnockoutOptimization(HeuristicOptimization):
 
         """
         self.heuristic_method.observer = self.observers
-        super(KnockoutOptimization, self).run(
-            distance_function=set_distance_function,
-            representation=self.representation,
-            **kwargs)
-        return KnockoutOptimizationResult(model=self.model,
-                                          heuristic_method=self.heuristic_method,
-                                          simulation_method=self.simulation_method,
-                                          simulation_kwargs=self._simulation_kwargs,
-                                          solutions=self.heuristic_method.archive,
-                                          objective_function=self.objective_function,
-                                          ko_type=self._ko_type,
-                                          decoder=self._decoder,
-                                          seed=self.seed)
+        self._knockout_evaluator = KnockoutEvaluator(self.model, self._decoder, self.objective_function,
+                                                     self._simulation_method, self._simulation_kwargs)
+        try:
+            super(KnockoutOptimization, self).run(distance_function=set_distance_function,
+                                                  representation=self.representation,
+                                                  **kwargs)
+
+            return KnockoutOptimizationResult(model=self.model,
+                                              heuristic_method=self.heuristic_method,
+                                              simulation_method=self.simulation_method,
+                                              simulation_kwargs=self._simulation_kwargs,
+                                              solutions=self.heuristic_method.archive,
+                                              objective_function=self.objective_function,
+                                              ko_type=self._ko_type,
+                                              decoder=self._decoder,
+                                              seed=self.seed)
+        finally:
+            self._knockout_evaluator.reset()
 
 
 class KnockoutOptimizationResult(Result):
