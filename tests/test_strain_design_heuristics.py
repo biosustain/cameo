@@ -472,7 +472,6 @@ class TestHeuristicOptimization(unittest.TestCase):
             objective_function=self.single_objective_function
         )
 
-        self.assertIsNone(heuristic_optimization._generator)
         self.assertIsNot(heuristic_optimization.seed, SEED)
         self.assertEqual(heuristic_optimization.model, self.model)
         self.assertEqual(heuristic_optimization.objective_function, self.single_objective_function)
@@ -483,7 +482,6 @@ class TestHeuristicOptimization(unittest.TestCase):
             seed=SEED
         )
 
-        self.assertIsNone(heuristic_optimization._generator)
         self.assertEqual(heuristic_optimization.seed, SEED)
         self.assertEqual(heuristic_optimization.model, self.model)
         self.assertEqual(heuristic_optimization.objective_function, self.single_objective_function)
@@ -495,7 +493,6 @@ class TestHeuristicOptimization(unittest.TestCase):
             heuristic_method=inspyred.ec.emo.NSGA2
         )
 
-        self.assertIsNone(heuristic_optimization._generator)
         self.assertIsNot(heuristic_optimization.seed, SEED)
         self.assertEqual(heuristic_optimization.model, self.model)
         self.assertEqual(len(heuristic_optimization.objective_function), 2)
@@ -507,7 +504,6 @@ class TestHeuristicOptimization(unittest.TestCase):
             seed=SEED
         )
 
-        self.assertIsNone(heuristic_optimization._generator)
         self.assertEqual(heuristic_optimization.seed, SEED)
         self.assertEqual(heuristic_optimization.model, self.model)
         self.assertEqual(len(heuristic_optimization.objective_function), 2)
@@ -685,11 +681,7 @@ class TestReactionKnockoutOptimization(unittest.TestCase):
                                            objective_function=objective,
                                            seed=SEED)
 
-        # self.assertEqual(rko.random.random(), 0.1915194503788923)
-
         results = rko.run(max_evaluations=3000, pop_size=10, view=SequentialView())
-
-        # self.assertEqual(rko.random.random(), 0.9268454219291495)
 
         with open(result_file, 'rb') as in_file:
             if six.PY3:
@@ -697,7 +689,7 @@ class TestReactionKnockoutOptimization(unittest.TestCase):
             else:
                 expected_results = pickle.load(in_file)
 
-        assert_frame_equal(results.solutions, expected_results.solutions)
+        assert_frame_equal(results._solutions, expected_results)
 
     @unittest.skipIf(True, 'Broken ..')
     def test_run_multiobjective(self):
@@ -716,11 +708,7 @@ class TestReactionKnockoutOptimization(unittest.TestCase):
                                            heuristic_method=inspyred.ec.emo.NSGA2,
                                            seed=SEED)
 
-        # self.assertEqual(rko.random.random(), 0.1915194503788923)
-
         results = rko.run(max_evaluations=3000, pop_size=10, view=SequentialView())
-
-        # print(rko.random.random(), 0.545818634701)
 
         with open(result_file, 'rb') as in_file:
             if six.PY3:
