@@ -316,7 +316,7 @@ class TestPhenotypicPhasePlaneCPLEX(Wrapper.AbstractTestPhenotypicPhasePlane):
 
 class TestSimulationMethodsGLPK(Wrapper.AbstractTestSimulationMethods):
     def setUp(self):
-        self.model = CORE_MODEL
+        self.model = CORE_MODEL.copy()
         self.model.solver = 'glpk'
 
     def test_moma(self):
@@ -328,7 +328,7 @@ class TestSimulationMethodsGLPK(Wrapper.AbstractTestSimulationMethods):
 
 class TestSimulationMethodsCPLEX(Wrapper.AbstractTestSimulationMethods):
     def setUp(self):
-        self.model = CORE_MODEL
+        self.model = CORE_MODEL.copy()
         self.model.solver = 'cplex'
 
 
