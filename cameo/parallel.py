@@ -74,7 +74,8 @@ class MultiprocessingView(Singleton):
             except Exception as e:
                 logger.debug('Could not terminate multiprocessing pool.')
                 raise e
-            else:
+            finally:
+                # TODO: fix the pool
                 self._pool = None
         else:
             logger.debug('No multiprocessing pool to shut down.')
