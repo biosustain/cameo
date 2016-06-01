@@ -147,7 +147,14 @@ class HeuristicOptimization(object):
         self._heuristic_method = None
         self.heuristic_method = heuristic_method
         self.heuristic_method.terminator = termination
-        self._generator = None
+
+    @property
+    def archiver(self):
+        return self._heuristic_method.archiver
+
+    @archiver.setter
+    def archiver(self, archiver):
+        self._heuristic_method.archiver = archiver
 
     @property
     def objective_function(self):
@@ -191,18 +198,14 @@ class HeuristicOptimization(object):
                 raise TypeError("single objective heuristics do not support multiple objective functions")
         self._heuristic_method = heuristic_method(self.random)
 
-    def _evaluator(self, candidates, args):
-        raise NotImplementedError
-
-    def run(self, view=config.default_view, maximize=True, **kwargs):
+    def run(self, evaluator=None, generator=None, view=config.default_view, maximize=True, **kwargs):
         for observer in self.observers:
             observer.reset()
         t = time.time()
         print(time.strftime("Starting optimization at %a, %d %b %Y %H:%M:%S", time.localtime(t)))
-        res = self.heuristic_method.evolve(generator=self._generator,
+        res = self.heuristic_method.evolve(generator=generator,
                                            maximize=maximize,
-                                           view=view,
-                                           evaluator=self._evaluator,
+                                           evaluator=evaluator,
                                            **kwargs)
         for observer in self.observers:
             observer.end()
@@ -213,6 +216,31 @@ class HeuristicOptimization(object):
 
     def is_mo(self):
         return isinstance(self.objective_function, list)
+
+
+class EvaluatorWrapper(object):
+    def __init__(self, view, evaluator):
+        self.view = view
+        self.evaluator = evaluator
+        self.__name__ = "Wrapped %s" % EvaluatorWrapper.__class__.__name__
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.evaluator.reset()
+
+    def __call__(self, candidates, args):
+        population_chunks = (chunk for chunk in partition(candidates, len(self.view)))
+        try:
+            chunked_results = self.view.map(self.evaluator, population_chunks)
+        except KeyboardInterrupt as e:
+            self.view.shutdown()
+            raise e
+
+        fitness = reduce(list.__add__, chunked_results)
+
+        return fitness
 
 
 class KnockoutEvaluator(object):
@@ -334,7 +362,6 @@ class KnockoutOptimization(HeuristicOptimization):
         self._knockout_evaluator = None
         self._ko_type = None
         self._decoder = None
-        self._generator = generators.set_generator
 
     @property
     def simulation_method(self):
@@ -359,19 +386,6 @@ class KnockoutOptimization(HeuristicOptimization):
             simulation_kwargs['reference'] = pfba(self.model).fluxes
             logger.warning("Reference successfully computed.")
         self._simulation_kwargs = simulation_kwargs
-
-    def _evaluator(self, candidates, args):
-        view = args.get('view')
-        population_chunks = (chunk for chunk in partition(candidates, len(view)))
-        try:
-            results = view.map(self._knockout_evaluator, population_chunks)
-        except KeyboardInterrupt as e:
-            view.shutdown()
-            raise e
-
-        fitness = reduce(list.__add__, results)
-
-        return fitness
 
     @HeuristicOptimization.heuristic_method.setter
     def heuristic_method(self, heuristic_method):
@@ -414,7 +428,7 @@ class KnockoutOptimization(HeuristicOptimization):
         if self.progress:
             self.observers.append(observers.ProgressObserver())
 
-    def run(self, max_size=10, variable_size=True, **kwargs):
+    def run(self, view=config.default_view, max_size=10, variable_size=True, **kwargs):
         """
         Parameters
         ----------
@@ -426,11 +440,15 @@ class KnockoutOptimization(HeuristicOptimization):
 
         """
         self.heuristic_method.observer = self.observers
-        self._knockout_evaluator = KnockoutEvaluator(self.model, self._decoder, self.objective_function,
-                                                     self._simulation_method, self._simulation_kwargs)
-        try:
+        knockout_evaluator = KnockoutEvaluator(self.model, self._decoder, self.objective_function,
+                                               self._simulation_method, self._simulation_kwargs)
+
+        with EvaluatorWrapper(view, knockout_evaluator) as evaluator:
+
             super(KnockoutOptimization, self).run(distance_function=set_distance_function,
                                                   representation=self.representation,
+                                                  evaluator=evaluator,
+                                                  generator=generators.set_generator,
                                                   **kwargs)
 
             return KnockoutOptimizationResult(model=self.model,
@@ -442,8 +460,6 @@ class KnockoutOptimization(HeuristicOptimization):
                                               ko_type=self._ko_type,
                                               decoder=self._decoder,
                                               seed=self.seed)
-        finally:
-            self._knockout_evaluator.reset()
 
 
 class KnockoutOptimizationResult(Result):
