@@ -80,7 +80,7 @@ def set_n_point_crossover(random, mom, dad, args):
         children.append(mom)
         children.append(dad)
 
-    assert all(len(individual) <= max_size for individual in children)
+    assert all(0 < len(individual) <= max_size for individual in children)
 
     return children
 
@@ -161,7 +161,7 @@ def set_indel(random, individual, args):
             if len(new_individual) > 1:
                 new_individual = random.sample(new_individual, len(new_individual) - 1)
 
-    assert len(new_individual) <= max_size
+    assert 0 < len(new_individual) <= max_size
     return sorted(new_individual)
 
 
@@ -200,7 +200,6 @@ def multiple_chromosome_set_mutation(random, individual, args):
             else:
                 new_individual[key].append(value)
 
-        print(new_individual[key], individual[key])
         assert len(new_individual[key]) == len(individual[key])
 
         new_individual[key] = sorted(new_individual[key])

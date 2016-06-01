@@ -829,8 +829,8 @@ class VariatorTestCase(unittest.TestCase):
 class GenomesTestCase(unittest.TestCase):
     def test_two_chromosomes(self):
         genome = MultipleChromosomeGenome(["A", "B"])
-        self.assertIsInstance(genome["A"], OrderedSet)
-        self.assertIsInstance(genome["B"], OrderedSet)
+        self.assertIsInstance(genome["A"], list)
+        self.assertIsInstance(genome["B"], list)
         genome["A"] = [1, 2, 3, 4]
         genome["B"] = ["A", "B", "C"]
 
