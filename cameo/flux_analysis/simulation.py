@@ -86,7 +86,7 @@ def fba(model, objective=None, reactions=None, *args, **kwargs):
         return result
 
 
-def pfba(model, objective=None, reactions=None, *args, **kwargs):
+def pfba(model, objective=None, reactions=None, fraction_of_optimum=1, *args, **kwargs):
     """Parsimonious Enzyme Usage Flux Balance Analysis [1].
 
     Parameters
@@ -112,17 +112,7 @@ def pfba(model, objective=None, reactions=None, *args, **kwargs):
         if objective is not None:
             tm(do=partial(setattr, model, 'objective', objective),
                undo=partial(setattr, model, 'objective', original_objective))
-        try:
-            obj_val = model.solve().f
-        except SolveError as e:
-            logger.debug("pfba could not determine maximum objective value for\n%s." % model.objective)
-            raise e
-        if model.objective.direction == 'max':
-            fix_obj_constraint = model.solver.interface.Constraint(model.objective.expression, lb=obj_val)
-        else:
-            fix_obj_constraint = model.solver.interface.Constraint(model.objective.expression, ub=obj_val)
-        tm(do=partial(model.solver._add_constraint, fix_obj_constraint),
-           undo=partial(model.solver._remove_constraint, fix_obj_constraint))
+        model.fix_objective_as_constraint(time_machine=tm, fraction=fraction_of_optimum)
         pfba_obj = model.solver.interface.Objective(add(
             [mul((sympy.singleton.S.One, variable)) for variable in list(model.solver.variables.values())]),
             direction='min', sloppy=True)
