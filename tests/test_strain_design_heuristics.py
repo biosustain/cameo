@@ -42,7 +42,7 @@ from cameo.strain_design.heuristic.evolutionary.metrics import euclidean_distanc
 from cameo.strain_design.heuristic.evolutionary.metrics import manhattan_distance
 from cameo.strain_design.heuristic.evolutionary.multiprocess.migrators import MultiprocessingMigrator
 from cameo.strain_design.heuristic.evolutionary.objective_functions import biomass_product_coupled_yield, \
-    product_yield, number_of_knockouts
+    product_yield, number_of_knockouts, biomass_product_coupled_min_yield
 from cameo.strain_design.heuristic.evolutionary.optimization import HeuristicOptimization, \
     ReactionKnockoutOptimization, set_distance_function, KnockoutOptimizationResult, EvaluatorWrapper, KnockoutEvaluator
 from cameo.strain_design.heuristic.evolutionary.variators import _do_set_n_point_crossover, set_n_point_crossover, \
@@ -321,6 +321,24 @@ class TestObjectiveFunctions(unittest.TestCase):
 
         fitness = of(None, solution, None)
         self.assertEquals(0, fitness)
+
+    def test_biomass_product_coupled_min_yield(self):
+        biomass = "Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2"
+        product = "EX_ac_LPAREN_e_RPAREN_"
+        substrate = "EX_glc_LPAREN_e_RPAREN_"
+        solution = self._MockupSolution()
+        solution.set_primal(biomass, 0.263136)
+        solution.set_primal(product, 16.000731)
+        solution.set_primal(substrate, -10)
+
+        of = biomass_product_coupled_min_yield(
+            biomass,
+            product,
+            substrate)
+        self.assertEqual(of.name, "bpcy = (%s * min(%s)) / %s" % (biomass, product, substrate))
+        fitness = of(TEST_MODEL, solution, [['ATPS4r', 'CO2t', 'GLUDy', 'PPS', 'PYK'],
+                                            ['ATPS4r', 'CO2t', 'GLUDy', 'PPS', 'PYK']])
+        self.assertAlmostEqual(0.407436, fitness)
 
     def test_yield(self):
         solution = self._MockupSolution()
