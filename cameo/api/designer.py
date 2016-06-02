@@ -64,7 +64,8 @@ class _OptimizationRunner(object):
             pathway.plug_model(model, tm)
             opt_gene = OptGene(model=model, plot=False)
             opt_gene_designs = opt_gene.run(target=pathway.product.id, biomass=model.biomass,
-                                            substrate=model.carbon_source, max_evaluations=10000)
+                                            substrate=model.carbon_source, max_evaluations=10000,
+                                            growth_coupled=True)
             opt_gene_designs._process_solutions()
 
             # TODO: OptKnock is quite slow. Improve OptKnock (model simplification?)
