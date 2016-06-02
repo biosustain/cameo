@@ -160,8 +160,8 @@ class biomass_product_coupled_min_yield(ObjectiveFunction):
                 biomass_reaction = model.reactions.get_by_id(self.biomass)
                 tm(do=partial(setattr, biomass_reaction, 'lower_bound', biomass_flux),
                    undo=partial(setattr, biomass_reaction, 'lower_bound', biomass_reaction.lower_bound))
-                for reaction_ko in decoded_representation[0]:
-                    reaction_ko.knock_out(tm)
+                for reaction in decoded_representation[0]:
+                    model.reaction_for(reaction).knock_out(tm)
 
             fva_res = flux_variability_analysis(model, reactions=[self.product])
 
