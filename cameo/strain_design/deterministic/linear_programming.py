@@ -120,18 +120,7 @@ class OptKnock(StrainDesignMethod):
 
         self.essential_reactions = self._model.essential_reactions() + self._model.exchanges
         if essential_reactions:
-            essential_reactions, essential_reactions_copy = [], list(essential_reactions)
-            for ess_reac in essential_reactions_copy:
-                if isinstance(ess_reac, Reaction):
-                    essential_reactions.append(self._model.reactions.get_by_id(ess_reac.id))
-                elif isinstance(essential_reactions, str):
-                    essential_reactions.append(self._model.reactions.get_by_id(ess_reac))
-                else:
-                    raise TypeError(
-                        "Excluded reactions must be an iterable of reactions or strings. Got object of type " +
-                        str(type(ess_reac))
-                    )
-            self.essential_reactions += essential_reactions
+            self.essential_reactions += [self._model.reaction_for(r) for r in essential_reactions]
 
         self._make_dual()
 
