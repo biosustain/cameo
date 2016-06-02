@@ -16,6 +16,7 @@ from __future__ import absolute_import, print_function
 
 import logging
 import time
+import types
 from functools import reduce
 
 import inspyred
@@ -32,6 +33,8 @@ from cameo.strain_design.heuristic.evolutionary import observers
 from cameo.strain_design.heuristic.evolutionary import plotters
 from cameo.strain_design.heuristic.evolutionary import variators
 from cameo.strain_design.heuristic.evolutionary import stats
+from cameo.strain_design.heuristic.evolutionary.decoders import KnockoutDecoder
+from cameo.strain_design.heuristic.evolutionary.objective_functions import ObjectiveFunction
 from cameo.strain_design.heuristic.evolutionary.processing import reactions2filter
 from cameo.util import RandomGenerator as Random
 from cameo.util import in_ipnb
@@ -220,6 +223,10 @@ class HeuristicOptimization(object):
 
 class EvaluatorWrapper(object):
     def __init__(self, view, evaluator):
+        if not hasattr(view, 'map'):
+            raise ValueError("View %s does not contain the required map function")
+        if not (hasattr(evaluator, '__call__') or isinstance(evaluator, types.FunctionType)):
+            raise ValueError("evaluator %s must be a function or callable")
         self.view = view
         self.evaluator = evaluator
         self.__name__ = "Wrapped %s" % EvaluatorWrapper.__class__.__name__
@@ -274,23 +281,37 @@ class KnockoutEvaluator(object):
 
     def __init__(self, model, decoder, objective_function, simulation_method, simulation_kwargs):
         self.model = model
+        if not isinstance(decoder, KnockoutDecoder):
+            raise ValueError("Invalid decoder %s" % decoder)
         self.decoder = decoder
+
+        if isinstance(objective_function, list):
+            if not len(objective_function) > 0:
+                raise ValueError("list of objectives cannot be empty")
+            invalid = []
+            for index, of in enumerate(objective_function):
+                if not isinstance(of, ObjectiveFunction):
+                    invalid.append((index, of))
+            if len(invalid) > 0:
+                raise ValueError("objectives %s must be instance of ObjectiveFunction (%s)"
+                                 % (",".join(str(i[0]) for i in invalid), [i[1] for i in invalid]))
+        elif not isinstance(objective_function, ObjectiveFunction):
+            raise ValueError("'objective_function' must be instance of ObjectiveFunction (%s)" % objective_function)
+
         self.objective_function = objective_function
         self.simulation_method = simulation_method
         self.simulation_kwargs = simulation_kwargs
         self.cache = ProblemCache(model)
 
     def __call__(self, population):
-        try:
-            res = [self._evaluate_individual(frozenset(i)) for i in population]
-        except Exception as e:
-            logger.error(e)
-            res = None
-
-        return res
+        return [self._evaluate_individual(tuple(i)) for i in population]
 
     def reset(self):
         self.cache.reset()
+
+    @property
+    def is_mo(self):
+        return isinstance(self.objective_function, list)
 
     @memoize
     def _evaluate_individual(self, individual):
@@ -324,15 +345,15 @@ class KnockoutEvaluator(object):
                 fitness = self._calculate_fitness(solution, decoded)
             except SolveError as e:
                 logger.debug(e)
-                if isinstance(self.objective_function, list):
+                if self.is_mo:
                     fitness = inspyred.ec.emo.Pareto(values=[0 for _ in self.objective_function])
                 else:
-                    fitness = 0
+                    fitness = 0.
 
             return fitness
 
     def _calculate_fitness(self, solution, decoded):
-        if isinstance(self.objective_function, list):
+        if self.is_mo:
             logger.debug("evaluate multiobjective solution")
             return inspyred.ec.emo.Pareto(values=[of(self.model, solution, decoded) for of in self.objective_function])
         else:

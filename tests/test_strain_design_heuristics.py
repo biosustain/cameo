@@ -25,11 +25,12 @@ import numpy
 import six
 from cobra.manipulation.delete import find_gene_knockout_reactions
 from inspyred.ec import Bounder
+from inspyred.ec.emo import Pareto
 from ordered_set import OrderedSet
 from pandas.util.testing import assert_frame_equal
 from six.moves import range
 
-from cameo import load_model, fba
+from cameo import load_model, fba, config
 from cameo.parallel import SequentialView, RedisQueue
 from cameo.strain_design.heuristic.evolutionary.archives import Individual, BestSolutionArchive
 from cameo.strain_design.heuristic.evolutionary.decoders import ReactionKnockoutDecoder, KnockoutDecoder, \
@@ -43,7 +44,7 @@ from cameo.strain_design.heuristic.evolutionary.multiprocess.migrators import Mu
 from cameo.strain_design.heuristic.evolutionary.objective_functions import biomass_product_coupled_yield, \
     product_yield, number_of_knockouts
 from cameo.strain_design.heuristic.evolutionary.optimization import HeuristicOptimization, \
-    ReactionKnockoutOptimization, set_distance_function, KnockoutOptimizationResult
+    ReactionKnockoutOptimization, set_distance_function, KnockoutOptimizationResult, EvaluatorWrapper, KnockoutEvaluator
 from cameo.strain_design.heuristic.evolutionary.variators import _do_set_n_point_crossover, set_n_point_crossover, \
     set_mutation, set_indel, multiple_chromosome_set_mutation, multiple_chromosome_set_indel
 from cameo.util import RandomGenerator as Random
@@ -349,6 +350,103 @@ class TestObjectiveFunctions(unittest.TestCase):
         f1 = of_min(None, None, [['a', 'b'], ['a', 'b']])
         f2 = of_min(None, None, [['a', 'b'], ['a', 'b', 'c']])
         self.assertGreater(f1, f2)
+
+
+class TestKnockoutEvaluator(unittest.TestCase):
+    def test_initializer(self):
+        objective1 = biomass_product_coupled_yield(
+            "Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2",
+            "EX_ac_LPAREN_e_RPAREN_",
+            "EX_glc_LPAREN_e_RPAREN_")
+        decoder = ReactionKnockoutDecoder(["PGI", "PDH", "FUM", "FBA", "G6PDH2r", "FRD7", "PGL", "PPC"], TEST_MODEL)
+        evaluator = KnockoutEvaluator(TEST_MODEL, decoder, objective1, fba, {})
+        self.assertEquals(evaluator.decoder, decoder)
+        self.assertEquals(evaluator.objective_function, objective1)
+        self.assertFalse(evaluator.is_mo)
+        self.assertTrue(hasattr(evaluator, "__call__"))
+
+        objective2 = product_yield("EX_ac_LPAREN_e_RPAREN_", "EX_glc_LPAREN_e_RPAREN_")
+        evaluator = KnockoutEvaluator(TEST_MODEL, decoder, [objective1, objective2], fba, {})
+        self.assertEquals(evaluator.objective_function, [objective1, objective2])
+        self.assertTrue(evaluator.is_mo)
+
+    def test_invalid_initializers(self):
+        objective1 = biomass_product_coupled_yield(
+            "Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2",
+            "EX_ac_LPAREN_e_RPAREN_",
+            "EX_glc_LPAREN_e_RPAREN_")
+        decoder = ReactionKnockoutDecoder(["PGI", "PDH", "FUM", "FBA", "G6PDH2r", "FRD7", "PGL", "PPC"], TEST_MODEL)
+        self.assertRaises(ValueError, KnockoutEvaluator, TEST_MODEL, decoder, 1, fba, {})
+        self.assertRaises(ValueError, KnockoutEvaluator, TEST_MODEL, decoder, None, fba, {})
+        self.assertRaises(ValueError, KnockoutEvaluator, TEST_MODEL, decoder, [], fba, {})
+        self.assertRaises(ValueError, KnockoutEvaluator, TEST_MODEL, decoder, [2, 3], fba, {})
+        self.assertRaises(ValueError, KnockoutEvaluator, TEST_MODEL, decoder, [objective1, 2], fba, {})
+        self.assertRaises(ValueError, KnockoutEvaluator, TEST_MODEL, None, [], fba, {})
+        self.assertRaises(ValueError, KnockoutEvaluator, TEST_MODEL, True, [], fba, {})
+
+    def test_evaluate_single_objective(self):
+        representation = ["ATPS4r", "PYK", "GLUDy", "PPS", "CO2t", "PDH",
+                          "FUM", "FBA", "G6PDH2r", "FRD7", "PGL", "PPC"]
+        decoder = ReactionKnockoutDecoder(representation, TEST_MODEL)
+        objective1 = biomass_product_coupled_yield(
+            "Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2",
+            "EX_ac_LPAREN_e_RPAREN_",
+            "EX_glc_LPAREN_e_RPAREN_")
+        evaluator = KnockoutEvaluator(TEST_MODEL, decoder, objective1, fba, {})
+        fitness = evaluator([[0, 1, 2, 3, 4]])[0]
+
+        self.assertAlmostEqual(fitness, 0.41, delta=0.02)
+
+    def test_evaluate_multiobjective(self):
+        representation = ["ATPS4r", "PYK", "GLUDy", "PPS", "CO2t", "PDH",
+                          "FUM", "FBA", "G6PDH2r", "FRD7", "PGL", "PPC"]
+        decoder = ReactionKnockoutDecoder(representation, TEST_MODEL)
+        objective1 = biomass_product_coupled_yield(
+            "Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2",
+            "EX_ac_LPAREN_e_RPAREN_",
+            "EX_glc_LPAREN_e_RPAREN_")
+        objective2 = product_yield("EX_ac_LPAREN_e_RPAREN_", "EX_glc_LPAREN_e_RPAREN_")
+
+        evaluator = KnockoutEvaluator(TEST_MODEL, decoder, [objective1, objective2], fba, {})
+        fitness = evaluator([[0, 1, 2, 3, 4]])[0]
+
+        self.assertIsInstance(fitness, Pareto)
+        self.assertAlmostEqual(fitness[0], 0.41, delta=0.02)
+        self.assertAlmostEqual(fitness[1], 1.57, delta=0.035)
+
+    def test_evaluate_infeasibile_solution(self):
+        representation = ["ENO", "ATPS4r", "PYK", "GLUDy", "PPS", "CO2t", "PDH",
+                          "FUM", "FBA", "G6PDH2r", "FRD7", "PGL", "PPC"]
+
+        decoder = ReactionKnockoutDecoder(representation, TEST_MODEL)
+        objective1 = biomass_product_coupled_yield(
+            "Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2",
+            "EX_ac_LPAREN_e_RPAREN_",
+            "EX_glc_LPAREN_e_RPAREN_")
+        evaluator = KnockoutEvaluator(TEST_MODEL, decoder, objective1, fba, {})
+        fitness = evaluator([[0]])[0]
+        self.assertEquals(fitness, 0)
+
+
+
+class TestWrappedEvaluator(unittest.TestCase):
+    def test_initializer(self):
+        def evaluation_function(x):
+            return 1
+        evaluator = EvaluatorWrapper(config.default_view, evaluation_function)
+        self.assertTrue(hasattr(evaluator, '__call__'))
+        self.assertTrue(hasattr(evaluator, 'view'))
+        self.assertTrue(hasattr(evaluator, 'evaluator'))
+        self.assertEquals(evaluator.view, config.default_view)
+        self.assertEquals(evaluator.evaluator, evaluation_function)
+
+    def test_invalid_initializer(self):
+        self.assertRaises(ValueError, EvaluatorWrapper, config.default_view, None)
+        self.assertRaises(ValueError, EvaluatorWrapper, config.default_view, 1)
+        self.assertRaises(ValueError, EvaluatorWrapper, config.default_view, [1, 2, 3])
+        self.assertRaises(ValueError, EvaluatorWrapper, lambda x: 1, config.default_view)
+        self.assertRaises(ValueError, EvaluatorWrapper, None, lambda x: 1)
+        self.assertRaises(ValueError, EvaluatorWrapper, 123, lambda x: 1)
 
 
 class TestDecoders(unittest.TestCase):
