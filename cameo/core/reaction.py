@@ -150,7 +150,7 @@ class Reaction(_cobrapy.core.Reaction):
             if getattr(self, "_forward_variable", None) is None:
                 self._forward_variable = model.solver.variables[self._get_forward_id()]
             return self._forward_variable
-            #return model.solver.variables[self._get_forward_id()]
+            # return model.solver.variables[self._get_forward_id()]
         else:
             return None
 
@@ -162,7 +162,7 @@ class Reaction(_cobrapy.core.Reaction):
             if getattr(self, "_reverse_variable", None) is None:
                 self._reverse_variable = model.solver.variables[self._get_reverse_id()]
             return self._reverse_variable
-            #return model.solver.variables[self._get_reverse_id()]
+            # return model.solver.variables[self._get_reverse_id()]
         else:
             return None
 
