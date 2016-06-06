@@ -338,7 +338,7 @@ class TestObjectiveFunctions(unittest.TestCase):
         self.assertEqual(of.name, "bpcy = (%s * min(%s)) / %s" % (biomass, product, substrate))
         fitness = of(TEST_MODEL, solution, [['ATPS4r', 'CO2t', 'GLUDy', 'PPS', 'PYK'],
                                             ['ATPS4r', 'CO2t', 'GLUDy', 'PPS', 'PYK']])
-        self.assertAlmostEqual(0.407436, fitness)
+        self.assertAlmostEqual(0.414851, fitness, places=5)
 
     def test_yield(self):
         solution = self._MockupSolution()
