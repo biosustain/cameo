@@ -550,7 +550,7 @@ class FluxVariabilityResult(Result):
             dataframe = dataframe.append(_df)
 
         plot = plotter.flux_variability_analysis(dataframe, grid=grid, width=width, height=height,
-                                                 title=title, x_axis_label="Reactions", y_axis_label="Flux limits",
+                                                 title=title, y_axis_label="Reactions", x_axis_label="Flux limits",
                                                  palette=palette)
         if grid is None:
             plotter.display(plot)
