@@ -18,6 +18,7 @@ from __future__ import absolute_import, print_function
 from functools import partial
 import hashlib
 import cobra as _cobrapy
+from copy import copy, deepcopy
 
 import cameo
 from cameo import flux_analysis
@@ -146,7 +147,10 @@ class Reaction(_cobrapy.core.Reaction):
         """An optlang variable representing the forward flux (if associated with model), otherwise None."""
         model = self.model
         if model is not None:
-            return model.solver.variables[self._get_forward_id()]
+            if getattr(self, "_forward_variable", None) is None:
+                self._forward_variable = model.solver.variables[self._get_forward_id()]
+            return self._forward_variable
+            #return model.solver.variables[self._get_forward_id()]
         else:
             return None
 
@@ -155,9 +159,28 @@ class Reaction(_cobrapy.core.Reaction):
         """An optlang variable representing the reverse flux (if associated with model), otherwise None."""
         model = self.model
         if model is not None:
-            return model.solver.variables[self._get_reverse_id()]
+            if getattr(self, "_reverse_variable", None) is None:
+                self._reverse_variable = model.solver.variables[self._get_reverse_id()]
+            return self._reverse_variable
+            #return model.solver.variables[self._get_reverse_id()]
         else:
             return None
+
+    def _reset_var_cache(self):
+        self._forward_variable = None
+        self._reverse_variable = None
+
+    def __copy__(self):
+        print("copying", self.id)
+        cop = copy(super(Reaction, self))
+        cop._reset_var_cache()
+        return cop
+
+    def __deepcopy__(self, memo):
+        print("deep-copying", self.id)
+        cop = deepcopy(super(Reaction, self), memo)
+        cop._reset_var_cache()
+        return cop
 
     @property
     def lower_bound(self):
@@ -287,6 +310,7 @@ class Reaction(_cobrapy.core.Reaction):
             self.objective_coefficient  # Get objective coefficient from model
         elif not isinstance(value, cameo.core.SolverBasedModel):
             raise ValueError("Must be an instance of cameo.core.SolverBasedModel, not %s" % type(value))
+        self._reset_var_cache()
         self._model = value
 
     @property
@@ -421,6 +445,7 @@ class Reaction(_cobrapy.core.Reaction):
         reverse = self.reverse_variable
         super(Reaction, self).remove_from_model(model, remove_orphans)
         reaction_model.solver.remove([forward, reverse])
+        self.model = None  # Trigger model setter, since cobrapy only sets _model
 
     def delete(self, remove_orphans=False):
         model = self.model
@@ -428,6 +453,7 @@ class Reaction(_cobrapy.core.Reaction):
         reverse = self.reverse_variable
         super(Reaction, self).delete(remove_orphans)
         model.solver.remove([forward, reverse])
+        self.model = None  # Trigger model setter, since cobrapy only sets _model
         # if remove_orphans:
         #     model.solver.remove([metabolite.model.solver for metabolite in self.metabolites.keys()])
 
