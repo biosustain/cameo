@@ -134,6 +134,8 @@ class SolverBasedModel(cobra.core.Model):
     def copy(self):
         """Needed for compatibility with cobrapy."""
         model_copy = super(SolverBasedModel, self).copy()
+        for reac in model_copy.reactions:
+            reac._reset_var_cache()
         try:
             model_copy._solver = deepcopy(self.solver)
         except Exception:  # pragma: no cover # Cplex has an issue with deep copies
@@ -218,6 +220,8 @@ class SolverBasedModel(cobra.core.Model):
             interface = value
         else:
             raise not_valid_interface
+        for reac in self.reactions:
+            reac._reset_var_cache()
         self._solver = interface.Model.clone(self._solver)
 
     @property
