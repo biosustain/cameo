@@ -64,3 +64,18 @@ class Metabolite(cobra.core.Metabolite):
             self.model.metabolites._generate_index()
         else:
             self._id = value
+
+    def _repr_html_(self):
+        return """
+        <table>
+            <tr>
+                <td><strong>Id</strong></td><td>%s</td>
+            </tr>
+            <tr>
+                <td><strong>Name</strong></td><td>%s</td>
+            </tr>
+            <tr>
+                <td><strong>Formula</strong></td><td>%s</td>
+            </tr>
+        </table>
+        """ % (self.id, self.name, self.formula)
