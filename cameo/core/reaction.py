@@ -149,6 +149,7 @@ class Reaction(_cobrapy.core.Reaction):
         if model is not None:
             if getattr(self, "_forward_variable", None) is None:
                 self._forward_variable = model.solver.variables[self._get_forward_id()]
+            # assert self._forward_variable.problem is self.model.solver
             return self._forward_variable
             # return model.solver.variables[self._get_forward_id()]
         else:
@@ -161,6 +162,7 @@ class Reaction(_cobrapy.core.Reaction):
         if model is not None:
             if getattr(self, "_reverse_variable", None) is None:
                 self._reverse_variable = model.solver.variables[self._get_reverse_id()]
+            # assert self._reverse_variable.problem is self.model.solver
             return self._reverse_variable
             # return model.solver.variables[self._get_reverse_id()]
         else:

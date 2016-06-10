@@ -220,6 +220,8 @@ class SolverBasedModel(cobra.core.Model):
             interface = value
         else:
             raise not_valid_interface
+        for reac in self.reactions:
+            reac._reset_var_cache()
         self._solver = interface.Model.clone(self._solver)
 
     @property
