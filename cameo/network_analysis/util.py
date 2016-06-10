@@ -36,7 +36,7 @@ def distance_based_on_molecular_formula(metabolite1, metabolite2, normalize=True
     """
     if len(metabolite1.formula.elements) == 0 or len(metabolite2.formula.elements) == 0:
         raise ValueError('Cannot calculate distance between metabolites %s and %s' % (metabolite1, metabolite2))
-    elements = set(list(metabolite1.formula.elements.keys()) + list(metabolite2.formula.elements.keys()))
+    elements = set(list(metabolite1.elements.keys()) + list(metabolite2.elements.keys()))
     distance = 0.
     for element in elements:
         distance += abs(metabolite1.formula.elements.get(element, 0) - metabolite2.formula.elements.get(element, 0))
