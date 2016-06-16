@@ -228,6 +228,30 @@ class WrappedAbstractTestReaction:
             self.assertEqual(acald_reaction.reverse_variable.lb, 0)
             self.assertEqual(acald_reaction.reverse_variable.ub, 1100.0)
 
+        def test_set_bounds_scenario_3(self):
+            model = self.model
+            reac = model.reactions.ACALD
+            reac.upper_bound = -10
+            reac.lower_bound = -10
+            self.assertEqual(reac.lower_bound, -10)
+            self.assertEqual(reac.upper_bound, -10)
+            reac.lower_bound = -9
+            self.assertEqual(reac.lower_bound, -9)
+            self.assertEqual(reac.upper_bound, -9)
+            reac.lower_bound = 2
+            self.assertEqual(reac.lower_bound, 2)
+            self.assertEqual(reac.upper_bound, 2)
+
+            reac.upper_bound = -10
+            self.assertEqual(reac.lower_bound, -10)
+            self.assertEqual(reac.upper_bound, -10)
+            reac.upper_bound = -11
+            self.assertEqual(reac.lower_bound, -11)
+            self.assertEqual(reac.upper_bound, -11)
+            reac.upper_bound = 2
+            self.assertEqual(reac.lower_bound, -11)
+            self.assertEqual(reac.upper_bound, 2)
+
         def test_set_upper_before_lower_bound_to_0(self):
             model = self.model
             model.reactions.GAPD.upper_bound = 0
@@ -599,19 +623,18 @@ class WrappedAbstractTestReaction:
             self.assertFalse(pgi._get_forward_id() in self.model.solver.variables)
             self.assertFalse(pgi._get_reverse_id() in self.model.solver.variables)
 
-        @unittest.skip('Not implemented yet.')
         def test_change_id_is_reflected_in_solver(self):
             for i, reaction in enumerate(self.model.reactions):
                 old_reaction_id = reaction.id
-                self.assertTrue(self.model.solver.variables[old_reaction_id].name, old_reaction_id)
+                self.assertEqual(self.model.solver.variables[old_reaction_id].name, old_reaction_id)
                 self.assertIn(old_reaction_id, self.model.solver.variables)
-                self.assertTrue(old_reaction_id in self.model.solver)
                 new_reaction_id = reaction.id + '_' + str(i)
                 reaction.id = new_reaction_id
                 self.assertEqual(reaction.id, new_reaction_id)
-                self.assertFalse(old_reaction_id in self.model.solver)
-                self.assertTrue(new_reaction_id in self.model.solver)
-                self.assertTrue(self.model.solver.variables[new_reaction_id].name, new_reaction_id)
+                self.assertFalse(old_reaction_id in self.model.solver.variables)
+                self.assertTrue(reaction._get_forward_id() in self.model.solver.variables)
+                self.assertTrue(reaction._get_reverse_id() in self.model.solver.variables)
+                self.assertEqual(self.model.solver.variables[reaction._get_forward_id()].name, reaction._get_forward_id())
 
 
 class TestReactionGLPK(WrappedAbstractTestReaction.AbstractTestReaction):
@@ -1019,6 +1042,7 @@ class TestMetaboliteCPLEX(WrappedAbstractTestMetabolite.AbstractTestMetabolite):
         self.cobrapy_model = COBRAPYTESTMODEL.copy()
         self.model = TESTMODEL.copy()
         self.model.solver = 'cplex'
+
 
 
 if __name__ == '__main__':
