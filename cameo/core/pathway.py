@@ -174,8 +174,8 @@ def _parse_equation(equation, metabolites):
 
 def _build_equation(stoichiometry):
     products = {m: v for m, v in six.iteritems(stoichiometry) if v > 0}
-    reactants = {m: v for m, v in six.iteritems(stoichiometry) if v > 0}
+    reactants = {m: v for m, v in six.iteritems(stoichiometry) if v < 0}
 
-    products = " + ".join(["%f * %s#%s" % (v, m.name, m.id) for m, v in products])
-    reactants = " + ".join(["%f * %s#%s" % (-v, m.name, m.id) for m, v in reactants])
+    products = " + ".join(["%f * %s#%s" % (v, m.name, m.id) for m, v in six.iteritems(products)])
+    reactants = " + ".join(["%f * %s#%s" % (-v, m.name, m.id) for m, v in six.iteritems(reactants)])
     return reactants + " <=> " + products
