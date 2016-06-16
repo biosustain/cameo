@@ -22,7 +22,7 @@ from cobra import Metabolite
 from six.moves import range
 
 from cameo.network_analysis.util import distance_based_on_molecular_formula
-from cameo.util import TimeMachine, generate_colors, Singleton, partition, RandomGenerator
+from cameo.util import TimeMachine, generate_colors, Singleton, partition, RandomGenerator, frozendict
 
 
 class TimeMachineTestCase(unittest.TestCase):
@@ -154,6 +154,21 @@ class TestUtils(unittest.TestCase):
 
         self.assertEqual(distance_based_on_molecular_formula(met1, met3, normalize=False), 21)
         self.assertEqual(distance_based_on_molecular_formula(met1, met3, normalize=True), 21. / 27)
+
+
+class FrozendictTestCase(unittest.TestCase):
+    def setUp(self):
+        self.frozen_dict = frozendict({"A": 1, "B": 2, "C": 3, "D": 4, "E": [2, 3, 4, 5]})
+
+    def test_frozen_attributes(self):
+        self.assertRaises(AttributeError, self.frozen_dict.popitem)
+        self.assertRaises(AttributeError, self.frozen_dict.pop, "A")
+        self.assertRaises(AttributeError, self.frozen_dict.__setitem__, "C", 1)
+        self.assertRaises(AttributeError, self.frozen_dict.setdefault, "K")
+        self.assertRaises(AttributeError, self.frozen_dict.__delitem__, "A")
+        self.assertRaises(AttributeError, self.frozen_dict.update)
+
+        self.assertTrue(hasattr(self.frozen_dict, "__hash__"))
 
 
 class TestSingleton(unittest.TestCase):

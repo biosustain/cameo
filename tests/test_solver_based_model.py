@@ -25,7 +25,7 @@ import numpy
 import optlang
 import pandas
 import six
-from cobra import Metabolite
+import cobra
 from cobra.io import read_sbml_model
 
 import cameo
@@ -705,6 +705,11 @@ class WrappedAbstractTestSolverBasedModel:
             self.assertEqual(coefficients_dict[self.model.reactions.r2.forward_variable], 3.)
             self.assertEqual(coefficients_dict[self.model.reactions.r2.reverse_variable], -3.)
 
+        def test_add_cobra_reaction(self):
+            r = cobra.Reaction(id="c1")
+            self.model.add_reaction(r)
+            self.assertIsInstance(self.model.reactions.c1, Reaction)
+
         def test_all_objects_point_to_all_other_correct_objects(self):
             model = load_model(os.path.join(TESTDIR, 'data/EcoliCore.xml'))
             for reaction in model.reactions:
@@ -778,6 +783,11 @@ class WrappedAbstractTestSolverBasedModel:
                 for metabolite in self.model.metabolites:
                     self.assertNotIn(prefix + metabolite.id, self.model.reactions)
                     self.assertNotIn(prefix + metabolite.id, self.model.solver.variables.keys())
+
+        def test_add_existing_exchange(self):
+            for metabolite in self.model.metabolites:
+                self.model.add_exchange(metabolite, prefix="test")
+                self.assertRaises(ValueError, self.model.add_exchange, metabolite, prefix="test")
 
         def test_objective(self):
             obj = self.model.objective
@@ -964,11 +974,37 @@ class TestSolverBasedModelCPLEX(WrappedAbstractTestSolverBasedModel.AbstractTest
 
 class WrappedAbstractTestMetabolite:
     class AbstractTestMetabolite(unittest.TestCase):
+
+        def test_set_id(self):
+            met = Metabolite("test")
+            self.assertRaises(TypeError, setattr, met, 'id', 1)
+            g6p = self.model.metabolites.get_by_id("g6p_c")
+            self.model.add_metabolite(met)
+            self.assertRaises(ValueError, setattr, met, "id", 'g6p_c')
+            met.id = "test2"
+            self.assertIn("test2", self.model.metabolites)
+            self.assertNotIn("test", self.model.metabolites)
+
         def test_remove_from_model(self):
             met = self.model.metabolites.get_by_id("g6p_c")
             met.remove_from_model()
             self.assertFalse(met.id in self.model.metabolites)
             self.assertFalse(met.id in self.model.solver.constraints)
+
+        def test_notebook_repr(self):
+            met = Metabolite(id="test", name="test metabolites", formula="CH4")
+            self.assertEqual(met._repr_html_(), """
+        <table>
+            <tr>
+                <td><strong>Id</strong></td><td>test</td>
+            </tr>
+            <tr>
+                <td><strong>Name</strong></td><td>test metabolites</td>
+            </tr>
+            <tr>
+                <td><strong>Formula</strong></td><td>CH4</td>
+            </tr>
+        </table>""")
 
 
 class TestMetaboliteGLPK(WrappedAbstractTestMetabolite.AbstractTestMetabolite):
