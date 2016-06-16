@@ -28,6 +28,11 @@ exclude_lines =
     if 0:
     if __name__ == .__main__.:
 
+    # Don't test visualization stuff
+    def display_on_map.*
+    def plot.*
+
+
 ignore_errors = True
 
 [html]
