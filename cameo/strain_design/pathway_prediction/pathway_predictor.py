@@ -111,6 +111,9 @@ class PathwayPredictions(StrainDesignResult):
     def plug_model(self, model, index, tm=None):
         self.pathways[index].plug_model(model, tm)
 
+    def __getitem__(self, item):
+        return self.pathways[item]
+
     def __str__(self):
         string = str()
         for i, pathway in enumerate(self.pathways):
