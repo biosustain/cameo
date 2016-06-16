@@ -485,25 +485,48 @@ class PhenotypicPhasePlaneResult(Result):
 
     def plot(self, grid=None, width=None, height=None, title=None, axis_font_size=None, palette=None,
              points=None, points_colors=None, **kwargs):
-        if len(self.variable_ids) > 1:
+        if title is None:
+                title = "Phenotypic Phase Plane"
+        if len(self.variable_ids) == 1:
+
+            variable = self.variable_ids[0]
+            x_axis_label = self.nice_variable_ids[0]
+            y_axis_label = self.nice_objective_id
+
+            dataframe = pandas.DataFrame(columns=["ub", "lb", "value", "strain"])
+            for _, row in self.iterrows():
+                _df = pandas.DataFrame([[row['objective_upper_bound'], row['objective_lower_bound'], row[variable], "WT"]],
+                                       columns=dataframe.columns)
+                dataframe = dataframe.append(_df)
+
+            plot = plotter.production_envelope(dataframe, grid=grid, width=width, height=height,
+                                               title=title, y_axis_label=y_axis_label, x_axis_label=x_axis_label,
+                                               palette=palette, points=points, points_colors=points_colors)
+
+        elif len(self.variable_ids) == 2:
+            var_1 = self.variable_ids[0]
+            var_2 = self.variable_ids[1]
+            x_axis_label = self.nice_variable_ids[0]
+            y_axis_label = self.nice_variable_ids[1]
+            z_axis_label = self.nice_objective_id
+
+            dataframe = pandas.DataFrame(columns=["ub", "lb", "value1", "value2", "strain"])
+            for _, row in self.iterrows():
+                _df = pandas.DataFrame([[row['objective_upper_bound'], row['objective_lower_bound'],
+                                         row[var_1], row[var_2], "WT"]],
+                                       columns=dataframe.columns)
+                dataframe = dataframe.append(_df)
+
+            plot = plotter.production_envelope_3d(dataframe, grid=grid, width=width, height=height,
+                                                  title=title, y_axis_label=y_axis_label, x_axis_label=x_axis_label,
+                                                  z_axis_label=z_axis_label, palette=palette, points=points,
+                                                  points_colors=points_colors)
+
+        else:
             notice("Multi-dimensional plotting is not supported")
             return
 
-        if title is None:
-            title = "Phenotypic Phase Plane"
-        variable = self.variable_ids[0]
-        x_axis_label = self.nice_variable_ids[0]
-        y_axis_label = self.nice_objective_id
 
-        dataframe = pandas.DataFrame(columns=["ub", "lb", "value", "strain"])
-        for _, row in self.iterrows():
-            _df = pandas.DataFrame([[row['objective_upper_bound'], row['objective_lower_bound'], row[variable], "WT"]],
-                                   columns=dataframe.columns)
-            dataframe = dataframe.append(_df)
-
-        plot = plotter.production_envelope(dataframe, grid=grid, width=width, height=height,
-                                           title=title, y_axis_label=y_axis_label, x_axis_label=x_axis_label,
-                                           palette=palette, points=points, points_colors=points_colors)
         if grid is None:
             plotter.display(plot)
 
