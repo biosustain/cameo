@@ -113,6 +113,52 @@ class AbstractPlotter(object):
         """
         raise NotImplementedError
 
+    def production_envelope_3d(self, dataframe, grid=None, width=None, height=None, title=None,
+                               points=None, points_colors=None, palette=None, x_axis_label=None,
+                               y_axis_label=None, z_axis_label=None):
+        """
+        Plots production envelopes from a pandas.DataFrame.
+
+        The DataFrame format is:
+            ub     lb     strain    value1  value2
+            10     0      WT        0.4     0.0
+            5      0      WT        0.5     0.2
+            10     0      WT        0.4     0.5
+            2      0      WT        0.5     0.3
+
+        Arguments
+        ---------
+        dataframe: pandas.DataFrame
+            The data to plot.
+
+        grid: AbstractGrid
+            An instance of AbstractGrid compatible with the plotter implementation. see AbstractPlotter.grid
+        width: int
+            Plot width
+        height: int
+            Plot height
+        title:
+            Plot title
+        points: list
+            list of (x, y, z) points to add to the plot
+        points_colors: list
+            list of colors for each point
+        palette: list
+            see color brewer
+        x_axis_label: str
+            X-axis label
+        y_axis_label: str
+            Y-axis label
+        z_axis_label: str
+            Z-axis label
+
+        Returns
+        -------
+        a plottable object
+            see AbstractPlotter.display
+        """
+        raise NotImplementedError
+
     def flux_variability_analysis(self, dataframe, grid=None, width=None, height=None, title=None,
                                   palette=None, x_axis_label=None, y_axis_label=None):
         """

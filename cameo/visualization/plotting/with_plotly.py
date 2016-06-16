@@ -20,6 +20,8 @@ import six
 import plotly.graph_objs as go
 from plotly import tools
 
+from numpy import concatenate
+
 from cameo.util import zip_repeat, in_ipnb, inheritdocstring, partition
 from cameo.visualization.plotting.abstract import AbstractPlotter
 
@@ -155,6 +157,59 @@ class PlotlyPlotter(AbstractPlotter):
             title=title,
             xaxis=dict(title=x_axis_label),
             yaxis=dict(title=y_axis_label),
+            width=width,
+            height=height
+        )
+
+        if grid is not None:
+            plot = self.Figure(data=data, layout=layout)
+            grid.append(plot)
+            return grid
+        else:
+            plot = go.Figure(data=data, layout=layout)
+        return plot
+
+    def _make_production_envelope_3d(self, dataframe, variable, color=None):
+        lb_data = dataframe.pivot('value1', 'value2', 'lb')
+        ub_data = dataframe.pivot('value1', 'value2', 'ub')
+
+        surface = go.Surface(x=lb_data.index.tolist(),
+                             y=lb_data.columns.tolist() + ub_data.columns.tolist(),
+                             z=concatenate([ub_data.as_matrix(), lb_data.as_matrix()]),
+                             name=variable,
+                             hoverinfo='none',
+                             surfacecolor=color)
+
+        return surface
+
+    def production_envelope_3d(self, dataframe, grid=None, width=None, height=None, title=None,
+                               points=None, points_colors=None, palette=None, x_axis_label=None,
+                               y_axis_label=None, z_axis_label=None):
+
+        variables = dataframe["strain"].unique()
+        palette = self.get_option('palette') if palette is None else palette
+        width = self.get_option('width') if width is None else width
+
+        width, height = self.golden_ratio(width, height)
+        data = []
+        palette = self._palette(palette, len(variables))
+        for variable, color in zip_repeat(variables, palette):
+            _dataframe = dataframe[dataframe["strain"] == variable]
+            surface = self._make_production_envelope_3d(_dataframe, variable, color=color)
+            data.append(surface)
+
+        if points is not None:
+            x, y, z = zip(*points)
+            scatter = go.Scatter3d(x=x, y=y, z=z, mode="markers", name="Data Points",
+                                   marker=dict(color="green" if points_colors is None else points_colors))
+            data.append(scatter)
+
+        layout = go.Layout(
+            title=title,
+            scene=go.Scene(
+                xaxis=dict(title=x_axis_label),
+                yaxis=dict(title=y_axis_label),
+                zaxis=dict(title=z_axis_label)),
             width=width,
             height=height
         )
