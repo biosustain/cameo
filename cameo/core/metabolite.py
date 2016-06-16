@@ -25,6 +25,7 @@ __all__ = ['Metabolite']
 @six.add_metaclass(inheritdocstring)
 class Metabolite(cobra.core.Metabolite):
 
+    # TODO: figure out how to handle the _reaction attribute
     @classmethod
     def clone(cls, metabolite, model=None):
         new_metabolite = cls(id=metabolite.id)
@@ -77,5 +78,4 @@ class Metabolite(cobra.core.Metabolite):
             <tr>
                 <td><strong>Formula</strong></td><td>%s</td>
             </tr>
-        </table>
-        """ % (self.id, self.name, self.formula)
+        </table>""" % (self.id, self.name, self.formula)
