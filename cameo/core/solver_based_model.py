@@ -238,6 +238,9 @@ class SolverBasedModel(cobra.core.Model):
             if met.id not in self.solver.constraints:
                 self.solver.add(self.solver.interface.Constraint(S.Zero, name=met.id, lb=0, ub=0))
 
+    def add_metabolite(self, metabolite):
+        self.add_metabolites([metabolite])
+
     def _populate_solver(self, reaction_list):
         """Populate attached solver with constraints and variables that model the provided reactions."""
         constr_terms = dict()
