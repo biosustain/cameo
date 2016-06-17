@@ -190,12 +190,12 @@ class ShortestElementaryFluxModes(six.Iterator):
             elementary_flux_mode = list()
             exclusion_list = list()
             for reaction in self._reactions:
-                if reaction._indicator_variable_fwd.primal == 1.:
+                if reaction._indicator_variable_fwd.primal >= 0.9:
                     reaction_copy = copy(reaction)
                     reaction_copy.lower_bound = 0
                     elementary_flux_mode.append(reaction_copy)
                     exclusion_list.append(reaction._indicator_variable_fwd)
-                elif reaction._indicator_variable_rev.primal == 1.:
+                elif reaction._indicator_variable_rev.primal >= 0.9:
                     reaction_copy = copy(reaction)
                     reaction_copy.upper_bound = 0
                     elementary_flux_mode.append(reaction_copy)
@@ -223,12 +223,12 @@ class ShortestElementaryFluxModes(six.Iterator):
                     elementary_flux_mode = list()
                     exclusion_list = list()
                     for reaction in self._reactions:
-                        if self.model.solver.problem.solution.pool.get_values(i, reaction._indicator_variable_fwd.name) == 1.:
+                        if self.model.solver.problem.solution.pool.get_values(i, reaction._indicator_variable_fwd.name) >= 0.9:
                             reaction_copy = copy(reaction)
                             reaction_copy.lower_bound = 0
                             elementary_flux_mode.append(reaction_copy)
                             exclusion_list.append(reaction._indicator_variable_fwd)
-                        elif self.model.solver.problem.solution.pool.get_values(i, reaction._indicator_variable_rev.name) == 1.:
+                        elif self.model.solver.problem.solution.pool.get_values(i, reaction._indicator_variable_rev.name) >= 0.9:
                             reaction_copy = copy(reaction)
                             reaction_copy.upper_bound = 0
                             elementary_flux_mode.append(reaction_copy)
