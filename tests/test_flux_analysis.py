@@ -256,6 +256,21 @@ class Wrapper:
                 self.assertAlmostEqual(expected[k], result.fluxes[k], delta=0.1, msg="%s: %f | %f")
             self.assertIs(self.model.objective, original_objective)
 
+    class AbstractTestRemoveCycles(unittest.TestCase):
+
+        def test_remove_cyles(self):
+            with TimeMachine() as tm:
+                self.model.fix_objective_as_constraint(time_machine=tm)
+                original_objective = copy.copy(self.model.objective)
+                self.model.objective = self.model.solver.interface.Objective(Add(*self.model.solver.variables.values()),
+                                                                             name='Max all fluxes')
+                solution = self.model.solve()
+                self.assertAlmostEqual(solution.data_frame.fluxes.abs().sum(), 2508.293334, delta=1e-6)
+                fluxes = solution.fluxes
+                self.model.objective = original_objective
+            clean_fluxes = remove_infeasible_cycles(self.model, fluxes)
+            self.assertAlmostEqual(pandas.Series(clean_fluxes).abs().sum(), 518.42208550050827, delta=1e-6)
+
     class AbstractTestStructural(unittest.TestCase):
         def test_find_dead_end_reactions(self):
             self.assertEqual(len(structural.find_dead_end_reactions(self.model)), 0)
@@ -310,25 +325,6 @@ class TestFluxVariabilityAnalysisCPLEX(Wrapper.AbstractTestFluxVariabilityAnalys
         self.model.solver = 'cplex'
 
 
-
-class TestRemoveCycles(unittest.TestCase):
-    def setUp(self):
-        self.model = CORE_MODEL.copy()
-
-    def test_remove_cyles(self):
-        with TimeMachine() as tm:
-            self.model.fix_objective_as_constraint(time_machine=tm)
-            original_objective = copy.copy(self.model.objective)
-            self.model.objective = self.model.solver.interface.Objective(Add(*self.model.solver.variables.values()),
-                                                                         name='Max all fluxes')
-            solution = self.model.solve()
-            self.assertAlmostEqual(solution.data_frame.fluxes.abs().sum(), 2508.293334, delta=1e-6)
-            self.model.objective = original_objective
-            fluxes = solution.fluxes
-        clean_fluxes = remove_infeasible_cycles(self.model, fluxes)
-        self.assertAlmostEqual(pandas.Series(clean_fluxes).abs().sum(), 518.42208550050827, delta=1e-6)
-
-
 class TestPhenotypicPhasePlaneGLPK(Wrapper.AbstractTestPhenotypicPhasePlane):
     def setUp(self):
         self.model = CORE_MODEL.copy()
@@ -380,6 +376,19 @@ class TestStructuralMethodsCPLEX(Wrapper.AbstractTestStructural):
         else:
             self.model = CORE_MODEL.copy()
         self.model.solver = "cplex"
+
+
+class TestRemoveCyclesGLPK(Wrapper.AbstractTestRemoveCycles):
+    def setUp(self):
+        self.model = CORE_MODEL.copy()
+        self.model.solver = "glpk"
+
+
+class TestRemoveCyclesCPLEX(Wrapper.AbstractTestRemoveCycles):
+    def setUp(self):
+        self.model = CORE_MODEL.copy()
+        self.model.solver = "cplex"
+
 
 if __name__ == '__main__':
     import nose
