@@ -279,8 +279,12 @@ class Wrapper:
         def test_shortest_elementary_flux_modes(self):
             sefm = structural.ShortestElementaryFluxModes(self.model)
             ems = []
+            if TRAVIS:
+                num_of_ems = 2
+            else:
+                num_of_ems = 10
             for i, em in enumerate(sefm):
-                if i > 10:
+                if i > num_of_ems:
                     break
                 ems.append(em)
             self.assertEqual(list(map(len, ems)), sorted(map(len, ems)))
