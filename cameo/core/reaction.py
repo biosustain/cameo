@@ -173,13 +173,11 @@ class Reaction(_cobrapy.core.Reaction):
         self._reverse_variable = None
 
     def __copy__(self):
-        print("copying", self.id)
         cop = copy(super(Reaction, self))
         cop._reset_var_cache()
         return cop
 
     def __deepcopy__(self, memo):
-        print("deep-copying", self.id)
         cop = deepcopy(super(Reaction, self), memo)
         cop._reset_var_cache()
         return cop
