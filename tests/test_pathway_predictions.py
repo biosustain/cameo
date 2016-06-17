@@ -18,7 +18,11 @@ import os
 import unittest
 
 from cameo import load_model
+from cameo.core.pathway import Pathway
+from cameo.flux_analysis.analysis import PhenotypicPhasePlaneResult
 from cameo.strain_design.pathway_prediction import PathwayPredictor
+from cameo.strain_design.pathway_prediction.pathway_predictor import PathwayResult
+from cameo.util import TimeMachine
 
 TESTDIR = os.path.dirname(__file__)
 TESTMODEL = load_model(os.path.join(TESTDIR, 'data/EcoliCore.xml'))
@@ -45,6 +49,47 @@ class TestPathwayPredictor(unittest.TestCase):
 
     def test_predict_non_native_compound(self):
         result = self.pathway_predictor.run(product='L-Serine', max_predictions=1)
+        self.assertTrue(len(result) == 1)
         self.assertTrue(len(result.pathways) == 1)
         self.assertTrue(len(result.pathways[0].reactions) == 3)
         self.assertTrue(len(result.pathways[0].adapters) == 0)
+
+
+class PathwayPredictionsTestCase(unittest.TestCase):
+    def setUp(self):
+        self.result = PATHWAYPREDICTOR.run(product='L-Serine', max_predictions=1)
+
+    def test_pathway(self):
+        model = TESTMODEL.copy()
+        pathway = self.result[0]
+        biomass = 'Biomass_Ecoli_core_N_lp_w_fsh_GAM_rp__Nmet2'
+        self.assertIsInstance(pathway, PathwayResult)
+        self.assertIsInstance(pathway, Pathway)
+        self.assertIsInstance(pathway.production_envelope(model, objective=biomass), PhenotypicPhasePlaneResult)
+        self.assertTrue(pathway.needs_optimization(model, objective=biomass))
+
+    def test_plug_model_without_time_machine(self):
+        model = TESTMODEL.copy()
+        self.result[0].plug_model(model)
+        for reaction in self.result[0].reactions:
+            self.assertIn(reaction, model.reactions)
+
+        for reaction in self.result[0].exchanges:
+            self.assertIn(reaction, model.reactions)
+
+        for reaction in self.result[0].adapters:
+            self.assertIn(reaction, model.reactions)
+
+    def test_plug_model_with_time_machine(self):
+        model = TESTMODEL.copy()
+        with TimeMachine() as tm:
+            self.result[0].plug_model(model, tm=tm)
+
+        for reaction in self.result[0].reactions:
+            self.assertNotIn(reaction, model.reactions)
+
+        for reaction in self.result[0].exchanges:
+            self.assertNotIn(reaction, model.reactions)
+
+        for reaction in self.result[0].adapters:
+            self.assertNotIn(reaction, model.reactions)
