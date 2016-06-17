@@ -24,12 +24,15 @@ import pandas
 from pandas.util.testing import assert_frame_equal
 from sympy import Add
 
+import cameo
 from cameo.flux_analysis import remove_infeasible_cycles
 from cameo.flux_analysis.analysis import flux_variability_analysis, phenotypic_phase_plane, find_blocked_reactions
 from cameo.flux_analysis.simulation import fba, pfba, lmoma, room, moma
 from cameo.io import load_model
 from cameo.parallel import SequentialView, MultiprocessingView
 from cameo.util import TimeMachine
+from cameo.flux_analysis import structural
+from optlang.exceptions import IndicatorConstraintsNotSupported
 
 TRAVIS = os.getenv('TRAVIS', False)
 
@@ -253,6 +256,35 @@ class Wrapper:
                 self.assertAlmostEqual(expected[k], result.fluxes[k], delta=0.1, msg="%s: %f | %f")
             self.assertIs(self.model.objective, original_objective)
 
+    class AbstractTestStructural(unittest.TestCase):
+        def test_find_dead_end_reactions(self):
+            self.assertEqual(len(structural.find_dead_end_reactions(self.model)), 0)
+            met1 = cameo.Metabolite("fake_metabolite_1")
+            met2 = cameo.Metabolite("fake_metabolite_2")
+            reac = cameo.Reaction("fake_reac")
+            reac.add_metabolites({met1: -1, met2: 1})
+            self.model.add_reaction(reac)
+            self.assertEqual(structural.find_dead_end_reactions(self.model), {reac.id})
+
+        def test_find_coupled_reactions(self):
+            couples = structural.find_coupled_reactions(self.model)
+            fluxes = self.model.solve().fluxes
+            for coupled_set in couples:
+                coupled_set = list(coupled_set)
+                self.assertAlmostEqual(fluxes[coupled_set[0]], fluxes[coupled_set[1]])
+
+            couples, blocked = structural.find_coupled_reactions(self.model, return_dead_ends=True)
+            self.assertEqual(blocked, structural.find_dead_end_reactions(self.model))
+
+        def test_shortest_elementary_flux_modes(self):
+            sefm = structural.ShortestElementaryFluxModes(self.model)
+            ems = []
+            for i, em in enumerate(sefm):
+                if i > 10:
+                    break
+                ems.append(em)
+            self.assertEqual(list(map(len, ems)), sorted(map(len, ems)))
+
 
 class TestFindBlockedReactionsGLPK(Wrapper.AbstractTestFindBlockedReactions):
     def setUp(self):
@@ -331,6 +363,20 @@ class TestSimulationMethodsCPLEX(Wrapper.AbstractTestSimulationMethods):
         self.model = CORE_MODEL.copy()
         self.model.solver = 'cplex'
 
+
+class TestStructuralMethodsGLPK(Wrapper.AbstractTestStructural):
+    def setUp(self):
+        self.model = CORE_MODEL.copy()
+        self.model.solver = "glpk"
+
+    def test_shortest_elementary_flux_modes(self):
+        self.assertRaises(IndicatorConstraintsNotSupported, structural.ShortestElementaryFluxModes, self.model)
+
+
+class TestStructuralMethodsCPLEX(Wrapper.AbstractTestStructural):
+    def setUp(self):
+        self.model = CORE_MODEL.copy()
+        self.model.solver = "cplex"
 
 if __name__ == '__main__':
     import nose
