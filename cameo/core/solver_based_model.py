@@ -308,6 +308,8 @@ class SolverBasedModel(cobra.core.Model):
 
         # cobrapy will raise an exceptions if one of the reactions already exists in the model (before adding any reactions)
         super(SolverBasedModel, self).add_reactions(cloned_reaction_list)
+        for reac in cloned_reaction_list:
+            reac.model = self
         self._populate_solver(cloned_reaction_list)
 
     def remove_reactions(self, the_reactions, delete=True, remove_orphans=False):
