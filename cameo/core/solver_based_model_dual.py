@@ -110,7 +110,7 @@ def to_dual_model(solver_based_model, solver_interface=None):
     return SolverBasedModelDual(solver_based_model, solver_interface=solver_interface)
 
 
-class SolverBasedModelDual(SolverBasedModel):
+class SolverBasedModelDual(SolverBasedModel):  # pragma: no cover  # don't test until it works
     """
     A SolverBasedModel that also contains the dual variables and constraints, allowing primal and dual
     problems to be combined.

@@ -259,7 +259,7 @@ class ShortestElementaryFluxModes(six.Iterator):
         return six.next(self._elementary_mode_generator)
 
 
-class MinimalCutSetsEnumerator(ShortestElementaryFluxModes):
+class MinimalCutSetsEnumerator(ShortestElementaryFluxModes):  # pragma: no cover # don't test until it works
     def __init__(self, model, targets, constraints=None, exclude=None, c=1e-5):
         if exclude is not None:
             exclude_copy = []
