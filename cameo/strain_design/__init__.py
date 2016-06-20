@@ -13,3 +13,6 @@
 # limitations under the License.
 
 from __future__ import absolute_import
+
+from cameo.strain_design.deterministic import OptKnock, FSEOF, DifferentialFVA
+from cameo.strain_design.heuristic import OptGene
