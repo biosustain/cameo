@@ -106,7 +106,7 @@ class IPythonBokehParetoPlotter(object):
     def _update(self):
         self.ds.data['x'] = [e[self.x] for e in self.fitness]
         self.ds.data['y'] = [e[self.y] for e in self.fitness]
-        self.ds.push_notebook()
+        push_notebook()
 
     def reset(self):
         self.fitness = []
