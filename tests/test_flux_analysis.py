@@ -112,6 +112,15 @@ class Wrapper:
                     self.assertAlmostEqual(fva_solution['upper_bound'][key],
                                            REFERENCE_FVA_SOLUTION_ECOLI_CORE['upper_bound'][key], delta=0.0001)
 
+            cycle_reac = cameo.Reaction("minus_PGI")  # Create fake cycle
+            cycle_reac.lower_bound = -1000
+            self.model.add_reaction(cycle_reac)
+            cycle_reac.add_metabolites({met: -c for met, c in self.model.reactions.PGI.metabolites.items()})
+            fva_solution = flux_variability_analysis(self.model, remove_cycles=False, reactions=["PGI"])
+            self.assertEqual(fva_solution.data_frame.loc["PGI", "upper_bound"], 1000)
+            fva_solution = flux_variability_analysis(self.model, remove_cycles=True, reactions=["PGI"])
+            self.assertTrue(fva_solution.data_frame.loc["PGI", "upper_bound"] < 666)
+
     class AbstractTestPhenotypicPhasePlane(unittest.TestCase):
         @unittest.skipIf(TRAVIS, 'Running in Travis')
         def test_one_variable_parallel(self):
