@@ -23,7 +23,7 @@ from cameo.core.solver_based_model import to_solver_based_model, SolverBasedMode
 
 def setUp(self):
     # Make Model pickable and then load a solver based version of test_pickle
-    self.model = to_solver_based_model(create_test_model())
+    self.model = to_solver_based_model(create_test_model("textbook"))
     self.model_class = SolverBasedModel
 
 
