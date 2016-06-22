@@ -28,6 +28,7 @@ from cameo.exceptions import SolveError
 from cameo import Model, Metabolite
 from cameo.data import metanetx
 from cameo.util import TimeMachine
+from cameo.config import non_zero_flux_threshold
 
 from cameo.strain_design.strain_design import StrainDesignResult, StrainDesign
 from cameo.strain_design.pathway_prediction import util
@@ -278,10 +279,12 @@ class PathwayPredictor(object):
                 logger.info('Pathway predicted: %s' % '\t'.join(
                     [r.build_reaction_string(use_metabolite_names=True) for r in pathway]))
                 # Figure out adapter reactions to include
-                adapters = [adapter for adapter in self.adpater_reactions if abs(adapter.flux) != 0]
+                adapters = [adapter for adapter in self.adpater_reactions
+                            if abs(adapter.flux) > non_zero_flux_threshold]
 
                 # Figure out exchange reactions to include
-                exchanges = [exchange for exchange in self._exchanges if abs(exchange.flux) != 0]
+                exchanges = [exchange for exchange in self._exchanges
+                             if abs(exchange.flux) > non_zero_flux_threshold]
 
                 pathway = PathwayResult(pathway, exchanges, adapters, demand_reaction)
                 if not silent:

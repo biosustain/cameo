@@ -33,26 +33,51 @@ TRAVIS = os.getenv('TRAVIS', False)
 PATHWAYPREDICTOR = PathwayPredictor(TESTMODEL, universal_model=UNIVERSALMODEL)
 
 
-class TestPathwayPredictor(unittest.TestCase):
+class Wrapper:
+    class AbstractPathwayPredictorTestCase(unittest.TestCase):
+
+        def test_setting_incorrect_universal_model_raises(self):
+            with self.assertRaisesRegexp(ValueError, 'Provided universal_model.*'):
+                PathwayPredictor(TESTMODEL, universal_model='Mickey_Mouse')
+
+        # def test_predict_native_compound_returns_shorter_alternatives(self):
+        #     result = self.pathway_predictor.run(product='Phosphoenolpyruvate', max_predictions=1)
+        #     self.assertTrue(len(result.pathways) == 1)
+        #     self.assertTrue(len(result.pathways[0].pathway) == 3)
+        #     self.assertTrue(len(result.pathways[0].adapters) == 0)
+
+        def test_predict_non_native_compound(self):
+            result = self.pathway_predictor.run(product='L-Serine', max_predictions=1)
+            self.assertTrue(len(result) == 1)
+            self.assertTrue(len(result.pathways) == 1)
+            self.assertTrue(len(result.pathways[0].reactions) == 3)
+            self.assertTrue(len(result.pathways[0].adapters) == 0)
+
+        def test_contains_right_adapters_and_exchanges(self):
+            result = self.pathway_predictor.run(product='L-Serine', max_predictions=1)
+            for pathway in result:
+                for reaction in pathway.reactions:
+                    for metabolite in reaction.metabolites:
+                        try:
+                            met = TESTMODEL.metabolites.get_by_id(metabolite.id)
+                        except KeyError:
+                            in_adapters = any(metabolite in adapter.metabolites for adapter in pathway.adapters)
+                            in_exchanges = any(metabolite in exchange.metabolites for exchange in pathway.exchanges)
+                            in_other_reaction = any(metabolite in r.metabolites for r in pathway.reactions
+                                                    if r != reaction)
+                            self.assertTrue(in_adapters or in_exchanges or in_other_reaction)
+
+
+class PathwayPredictorCPLEXTestCase(Wrapper.AbstractPathwayPredictorTestCase):
     def setUp(self):
-        self.pathway_predictor = PATHWAYPREDICTOR
+            TESTMODEL.solver = "cplex"
+            self.pathway_predictor = PathwayPredictor(TESTMODEL, universal_model=UNIVERSALMODEL)
 
-    def test_setting_incorrect_universal_model_raises(self):
-        with self.assertRaisesRegexp(ValueError, 'Provided universal_model.*'):
-            PathwayPredictor(TESTMODEL, universal_model='Mickey_Mouse')
 
-    # def test_predict_native_compound_returns_shorter_alternatives(self):
-    #     result = self.pathway_predictor.run(product='Phosphoenolpyruvate', max_predictions=1)
-    #     self.assertTrue(len(result.pathways) == 1)
-    #     self.assertTrue(len(result.pathways[0].pathway) == 3)
-    #     self.assertTrue(len(result.pathways[0].adapters) == 0)
-
-    def test_predict_non_native_compound(self):
-        result = self.pathway_predictor.run(product='L-Serine', max_predictions=1)
-        self.assertTrue(len(result) == 1)
-        self.assertTrue(len(result.pathways) == 1)
-        self.assertTrue(len(result.pathways[0].reactions) == 3)
-        self.assertTrue(len(result.pathways[0].adapters) == 0)
+class PathwayPredictorGLPKTestCase(Wrapper.AbstractPathwayPredictorTestCase):
+    def setUp(self):
+            TESTMODEL.solver = "glpk"
+            self.pathway_predictor = PathwayPredictor(TESTMODEL, universal_model=UNIVERSALMODEL)
 
 
 class PathwayPredictionsTestCase(unittest.TestCase):
