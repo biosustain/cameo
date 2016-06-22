@@ -34,13 +34,13 @@ def distance_based_on_molecular_formula(metabolite1, metabolite2, normalize=True
     float
         The distance between metabolite1 and metabolite2.
     """
-    if len(metabolite1.formula.elements) == 0 or len(metabolite2.formula.elements) == 0:
+    if len(metabolite1.elements) == 0 or len(metabolite2.elements) == 0:
         raise ValueError('Cannot calculate distance between metabolites %s and %s' % (metabolite1, metabolite2))
     elements = set(list(metabolite1.elements.keys()) + list(metabolite2.elements.keys()))
     distance = 0.
     for element in elements:
-        distance += abs(metabolite1.formula.elements.get(element, 0) - metabolite2.formula.elements.get(element, 0))
+        distance += abs(metabolite1.elements.get(element, 0) - metabolite2.elements.get(element, 0))
     if normalize:
-        return distance / sum(list(metabolite1.formula.elements.values()) + list(metabolite2.formula.elements.values()))
+        return distance / sum(list(metabolite1.elements.values()) + list(metabolite2.elements.values()))
     else:
         return distance
