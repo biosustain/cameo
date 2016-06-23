@@ -27,6 +27,7 @@ from cameo.util import TimeMachine
 TESTDIR = os.path.dirname(__file__)
 TESTMODEL = load_model(os.path.join(TESTDIR, 'data/EcoliCore.xml'))
 UNIVERSALMODEL = load_model(os.path.join(TESTDIR, 'data/iJO1366.xml'))
+UNIVERSALMODEL.remove_reactions(UNIVERSALMODEL.exchanges)
 
 TRAVIS = os.getenv('TRAVIS', False)
 
@@ -61,11 +62,18 @@ class Wrapper:
                         try:
                             met = TESTMODEL.metabolites.get_by_id(metabolite.id)
                         except KeyError:
-                            in_adapters = any(metabolite in adapter.metabolites for adapter in pathway.adapters)
-                            in_exchanges = any(metabolite in exchange.metabolites for exchange in pathway.exchanges)
-                            in_other_reaction = any(metabolite in r.metabolites for r in pathway.reactions
-                                                    if r != reaction)
-                            self.assertTrue(in_adapters or in_exchanges or in_other_reaction)
+                            metabolite_ids = [met.id in adapter for adapter in pathway.adapters
+                                              for met in adapter.metabolites]
+
+                            metabolite_ids += [met.id in exchange for exchange in pathway.exchanges
+                                               for met in exchange.metabolites]
+                            for r in pathway.reactions:
+                                if r != reaction:
+                                    metabolite_ids += [met.id for met in r.metabolites]
+
+                            metabolite_ids += [met.id for met in pathway.product.metabolites]
+
+                            self.assertTrue(metabolite.id in metabolite_ids)
 
 
 class PathwayPredictorCPLEXTestCase(Wrapper.AbstractPathwayPredictorTestCase):
