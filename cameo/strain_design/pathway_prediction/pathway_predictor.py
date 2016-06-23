@@ -246,7 +246,8 @@ class PathwayPredictor(object):
             except KeyError:
                 demand_reaction = self.model.add_demand(product)
                 tm(do=str, undo=partial(self.model.remove_reactions, [demand_reaction], delete=False))
-            demand_reaction.lower_bound = min_production
+            tm(do=partial(setattr, demand_reaction, 'lower_bound', min_production),
+               undo=partial(setattr, demand_reaction, 'lower_bound', demand_reaction.lower_bound))
             counter = 1
             while counter <= max_predictions:
                 logger.debug('Predicting pathway No. %d' % counter)
