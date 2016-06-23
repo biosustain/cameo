@@ -56,8 +56,6 @@ from cameo.flux_analysis.simulation import pfba, fba
 from cameo.strain_design.strain_design import StrainDesignMethod, StrainDesignResult, StrainDesign
 
 
-
-
 with warnings.catch_warnings():
     warnings.simplefilter("ignore")
     try:
@@ -299,13 +297,15 @@ class DifferentialFVA(StrainDesignMethod):
             gaps = [self._interval_gap(interval1, interval2) for interval1, interval2 in
                     my_zip(reference_intervals, intervals)]
             sol['gaps'] = gaps
-        if self.normalize_ranges_by is not None:
-            for sol in six.itervalues(solutions):
+            if self.normalize_ranges_by is not None:
                 normalized_intervals = sol[['lower_bound', 'upper_bound']].values / sol.lower_bound[
                     self.normalize_ranges_by]
                 normalized_gaps = [self._interval_gap(interval1, interval2) for interval1, interval2 in
                                    my_zip(reference_intervals, normalized_intervals)]
                 sol['normalized_gaps'] = normalized_gaps
+            else:
+                sol['normalized_gaps'] = gaps
+
         chopped_ref_lower_bounds = self.reference_flux_ranges.lower_bound.apply(lambda x: 0 if abs(x) < non_zero_flux_threshold else x)
         chopped_ref_upper_bounds = self.reference_flux_ranges.upper_bound.apply(lambda x: 0 if abs(x) < non_zero_flux_threshold else x)
         for df in six.itervalues(solutions):
