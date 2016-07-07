@@ -54,6 +54,12 @@ class Flux(Real):
     def __round__(self, n=None):
         return round(self.value, n)
 
+    def __div__(self, other):
+        return self.__truediv__(other)
+
+    def __rdiv__(self, other):
+        return self.__rtruediv__(other)
+
     def __truediv__(self, other):
         if isinstance(other, Flux):
             value = self.value / other.real
@@ -120,7 +126,7 @@ class Flux(Real):
         return Flux(self.value**exponent, self.precision)
 
     def __rtruediv__(self, other):
-        return self / other
+        return other / self.real
 
     def __abs__(self):
         return Flux(abs(self.value), self.precision)
