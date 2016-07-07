@@ -156,7 +156,8 @@ def sanitize_ids(model):
         rxn_id = reaction.id
         reaction.id = _apply_sanitize_rules(rxn_id, ID_SANITIZE_RULES_TAB_COMPLETION)
         reaction.nice_id = _apply_sanitize_rules(rxn_id, ID_SANITIZE_RULES_SIMPHENY)
-        reaction.name = _apply_sanitize_rules(reaction.name, ID_SANITIZE_RULES_SIMPHENY)
+        if reaction.name is not None:
+            reaction.name = _apply_sanitize_rules(reaction.name, ID_SANITIZE_RULES_SIMPHENY)
         if isinstance(model, SolverBasedModel):
             forward_variable.name = reaction.id
             if reverse_variable is not None:
