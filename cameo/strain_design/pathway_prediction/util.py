@@ -34,7 +34,7 @@ def create_adapter_reactions(original_metabolites, database, mapping, compartmen
 
         name = metabolite.id[0:-2]
         try:
-            mapped_name = mapping[name]
+            mapped_name = mapping['bigg:' + name]  # assuming that model uses BIGG ids
         except KeyError:
             continue
             # print name, 'N/A'
