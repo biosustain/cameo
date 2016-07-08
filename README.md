@@ -1,5 +1,6 @@
 ## Cameo—Computer Aided Metabolic Engineering and Optimization
 
+[![Join the chat at https://gitter.im/biosustain/cameo](https://badges.gitter.im/biosustain/cameo.svg)](https://gitter.im/biosustain/cameo?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![PyPI](https://img.shields.io/pypi/v/cameo.svg)](https://pypi.python.org/pypi/cameo)
 [![License](http://img.shields.io/badge/license-APACHE2-blue.svg)](http://img.shields.io/badge/license-APACHE2-blue.svg)
 [![Build Status](https://travis-ci.org/biosustain/cameo.svg?branch=master)](https://travis-ci.org/biosustain/cameo)
