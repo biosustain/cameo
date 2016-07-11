@@ -195,7 +195,7 @@ if __name__ == '__main__':
         add_to_all_mapping(xref, metanetx['all2mnx'])
 
     with open('../cameo/data/metanetx.pickle', 'wb') as f:
-        pickle.dump(metanetx, f)
+        pickle.dump(metanetx, f, protocol=2)
 
     # generate universal reaction models
     db_combinations = [('bigg',), ('rhea',), ('bigg', 'rhea'), ('bigg', 'rhea', 'kegg'),
@@ -214,4 +214,4 @@ if __name__ == '__main__':
     ]
     chem_prop_filtered = chem_prop_filtered.dropna(subset=['name'])
     with gzip.open('../cameo/data/metanetx_chem_prop.pklz', 'wb') as f:
-        pickle.dump(chem_prop_filtered, f)
+        pickle.dump(chem_prop_filtered, f, protocol=2)
