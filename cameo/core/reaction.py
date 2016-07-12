@@ -457,6 +457,22 @@ class Reaction(_cobrapy.core.Reaction):
         # if remove_orphans:
         #     model.solver.remove([metabolite.model.solver for metabolite in self.metabolites.keys()])
 
+    def change_bounds(self, lb=None, ub=None, time_machine=None):
+        """Changes one or both of the reaction bounds and allows the changes to be reversed with a TimeMachine"""
+        if time_machine is None:
+            if lb is not None:
+                self.lower_bound = lb
+            if ub is not None:
+                self.upper_bound = ub
+        else:
+            old_lb, old_ub = self.lower_bound, self.upper_bound
+            if lb is not None:
+                time_machine(do=partial(setattr, self, "lower_bound", lb),
+                             undo=partial(setattr, self, "lower_bound", old_lb))
+            if ub is not None:
+                time_machine(do=partial(setattr, self, "upper_bound", ub),
+                             undo=partial(setattr, self, "upper_bound", old_ub))
+
     def _repr_html_(self):
         return """
         <table>

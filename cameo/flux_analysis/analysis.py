@@ -60,10 +60,7 @@ def find_blocked_reactions(model):
     """
     with TimeMachine() as tm:
         for exchange in model.exchanges:
-            tm(do=partial(setattr, exchange, 'lower_bound', -9999),
-               undo=partial(setattr, exchange, 'lower_bound', exchange.lower_bound))
-            tm(do=partial(setattr, exchange, 'upper_bound', 9999),
-               undo=partial(setattr, exchange, 'upper_bound', exchange.upper_bound))
+            exchange.change_bounds(-9999, 9999, tm)
         fva_solution = flux_variability_analysis(model)
     return [reaction for reaction in model.reactions
             if round(fva_solution.data_frame.loc[reaction.id, "lower_bound"], config.ndecimals) == 0 and
@@ -148,8 +145,7 @@ def phenotypic_phase_plane(model, variables=[], objective=None, points=20, view=
             except KeyError:
                 pass
 
-            tm(do=partial(setattr, model, 'objective', objective),
-               undo=partial(setattr, model, 'objective', model.objective))
+            model.change_objective(objective, time_machine=tm)
 
         variable_reactions = model._ids_to_reactions(variables)
         variables_min_max = flux_variability_analysis(model, reactions=variable_reactions, view=SequentialView())
@@ -302,10 +298,7 @@ def _cycle_free_fva(model, reactions=None, sloppy=True, sloppy_bound=666):
                         if round(v1_flux, config.ndecimals) == 0 and round(v2_one_cycle_fluxes[key],
                                                                            config.ndecimals) != 0:
                             knockout_reaction = model.reactions.get_by_id(key)
-                            tm(do=partial(setattr, knockout_reaction, 'lower_bound', 0.),
-                               undo=partial(setattr, knockout_reaction, 'lower_bound', knockout_reaction.lower_bound))
-                            tm(do=partial(setattr, knockout_reaction, 'upper_bound', 0.),
-                               undo=partial(setattr, knockout_reaction, 'upper_bound', knockout_reaction.upper_bound))
+                            knockout_reaction.knock_out(time_machine=tm)
                     model.objective.direction = 'min'
                     try:
                         solution = model.solve()
@@ -345,12 +338,7 @@ def _cycle_free_fva(model, reactions=None, sloppy=True, sloppy_bound=666):
                         if round(v1_flux, config.ndecimals) == 0 and round(v2_one_cycle_fluxes[key],
                                                                            config.ndecimals) != 0:
                             knockout_reaction = model.reactions.get_by_id(key)
-                            tm(do=partial(setattr, knockout_reaction, 'lower_bound', 0.),
-                               undo=partial(setattr, knockout_reaction, 'lower_bound',
-                                            knockout_reaction.lower_bound))
-                            tm(do=partial(setattr, knockout_reaction, 'upper_bound', 0.),
-                               undo=partial(setattr, knockout_reaction, 'upper_bound',
-                                            knockout_reaction.upper_bound))
+                            knockout_reaction.knock_out()
                     model.objective.direction = 'max'
                     try:
                         solution = model.solve()
@@ -381,10 +369,7 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
     def _production_envelope_inner(self, point):
         with TimeMachine() as tm:
             for (reaction, coordinate) in zip(self.variable_reactions, point):
-                tm(do=partial(setattr, reaction, 'lower_bound', coordinate),
-                   undo=partial(setattr, reaction, 'lower_bound', reaction.lower_bound))
-                tm(do=partial(setattr, reaction, 'upper_bound', coordinate),
-                   undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
+                reaction.change_bounds(coordinate, coordinate, time_machine=tm)
             interval = []
             tm(do=int, undo=partial(setattr, self.model.objective, 'direction', self.model.objective.direction))
             self.model.objective.direction = 'min'
@@ -437,15 +422,9 @@ def _fbid_fva(model, knockouts, view):
 
         for reaction in model.reactions:
             if reaction.reversibility:
-                tm(do=partial(setattr, reaction, 'lower_bound', -1),
-                   undo=partial(setattr, reaction, 'lower_bound', reaction.lower_bound))
-                tm(do=partial(setattr, reaction, 'upper_bound', 1),
-                   undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
+                reaction.change_bounds(-1, 1, time_machine=tm)
             else:
-                tm(do=partial(setattr, reaction, 'lower_bound', 0),
-                   undo=partial(setattr, reaction, 'lower_bound', reaction.lower_bound))
-                tm(do=partial(setattr, reaction, 'upper_bound', 1),
-                   undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
+                reaction.change_bounds(0, 1, time_machine=tm)
 
         wt_fva = flux_variability_analysis(model, view=view, remove_cycles=False)
         wt_fva._data_frame['upper_bound'] = wt_fva._data_frame.upper_bound.apply(numpy.round)
