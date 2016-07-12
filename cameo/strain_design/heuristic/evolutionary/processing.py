@@ -18,7 +18,7 @@ from cameo.util import TimeMachine
 
 
 def process_knockout_solution(model, solution, simulation_method, simulation_kwargs,
-                              biomass, target, substrate, objective_functions, cache=None):
+                              biomass, target, substrate, objective_functions):
     """
 
     Arguments
@@ -56,7 +56,7 @@ def process_knockout_solution(model, solution, simulation_method, simulation_kwa
             model.reactions.get_by_id(ko).knock_out(tm)
 
         reactions = reactions2filter(objective_functions)
-        flux_dist = simulation_method(model, cache=cache, reactions=reactions, objective=biomass, **simulation_kwargs)
+        flux_dist = simulation_method(model, reactions=reactions, objective=biomass, **simulation_kwargs)
         tm(do=partial(setattr, model, "objective", biomass),
            undo=partial(setattr, model, "objective", model.objective))
 

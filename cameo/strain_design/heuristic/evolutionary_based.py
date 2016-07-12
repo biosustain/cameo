@@ -23,7 +23,7 @@ from pandas import DataFrame
 
 from cameo.exceptions import SolveError
 from cameo.visualization.plotting import plotter
-from cameo.util import ProblemCache, TimeMachine
+from cameo.util import TimeMachine
 
 from cameo.flux_analysis.simulation import fba
 from cameo.flux_analysis.analysis import phenotypic_phase_plane
@@ -244,20 +244,18 @@ class OptGeneResult(StrainDesignResult):
             self._processed_solutions = processed_solutions
 
         else:
-            cache = ProblemCache(self._model)
             progress = ProgressBar(maxval=len(self._designs), widgets=["Processing solutions: ", Bar(), Percentage()])
             for i, solution in progress(enumerate(self._designs)):
                 try:
                     processed_solutions.loc[i] = process_knockout_solution(
                         self._model, solution, self._simulation_method, self._simulation_kwargs, self._biomass,
-                        self._target, self._substrate, [self._objective_function], cache=cache)
+                        self._target, self._substrate, [self._objective_function])
                 except SolveError as e:
                     logger.error(e)
                     processed_solutions.loc[i] = [numpy.nan for _ in processed_solutions.columns]
 
             if self._manipulation_type == "reactions":
                 processed_solutions.drop('genes', axis=1, inplace=True)
-
             self._processed_solutions = processed_solutions
 
     def display_on_map(self, index=0, map_name=None, palette="YlGnBu"):
