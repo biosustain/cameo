@@ -124,11 +124,10 @@ def pfba(model, objective=None, reactions=None, fraction_of_optimum=1, *args, **
                 result = FluxDistributionResult({r: solution.get_primal_by_id(r) for r in reactions}, solution.f)
             else:
                 result = FluxDistributionResult.from_solution(solution)
-            tm.reset()
-            return result
         except SolveError as e:
             logger.error("pfba could not determine an optimal solution for objective %s" % model.objective)
             raise e
+    return result
 
 
 def moma(model, reference=None, cache=None, reactions=None, *args, **kwargs):

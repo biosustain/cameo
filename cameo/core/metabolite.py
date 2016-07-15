@@ -41,10 +41,24 @@ class Metabolite(cobra.core.Metabolite):
             new_metabolite._model = model
         return new_metabolite
 
+    def __init__(self, id=None, formula=None, name="", compartment=None):
+        super(Metabolite, self).__init__(id, formula, name, compartment)
+        self._constraint = None
+
     def remove_from_model(self, method="subtractive", **kwargs):
         model = self.model
         super(Metabolite, self).remove_from_model(method, **kwargs)
-        model.solver.remove(model.solver.constraints[self.id])
+        model.solver.remove(self.constraint)
+        self._constraint = None
+
+    def _reset_constraint_cache(self):
+        self._constraint = None
+
+    @property
+    def constraint(self):
+        if self.model is not None and self._constraint is None:
+            self._constraint = self.model.solver.constraints[self.id]
+        return self._constraint
 
     @property
     def id(self):

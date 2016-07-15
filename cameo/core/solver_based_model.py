@@ -33,14 +33,14 @@ import sympy
 from sympy import Add
 from sympy import Mul
 
-from sympy.core.singleton import S
 import optlang
 from pandas import DataFrame, pandas
 
-from cameo.util import TimeMachine, inheritdocstring
+from cameo.util import TimeMachine, inheritdocstring, AutoVivification
 from cameo import config
 from cameo import exceptions
 
+from sympy.core.singleton import S
 from cameo.exceptions import SolveError, Infeasible, UndefinedSolution
 from .reaction import Reaction
 from .solution import LazySolution, Solution
@@ -85,6 +85,7 @@ class SolverBasedModel(cobra.core.Model):
         cleaned_reactions = cobra.core.DictList()
         for reaction in self.reactions:
             if isinstance(reaction, Reaction):
+                reaction.model = self
                 cleaned_reactions.append(reaction)
             else:
                 cleaned_reactions.append(Reaction.clone(reaction, model=self))
@@ -101,6 +102,7 @@ class SolverBasedModel(cobra.core.Model):
         cleaned_metabolites = cobra.core.DictList()
         for metabolite in self.metabolites:
             if isinstance(metabolite, Metabolite):
+                metabolite._model = self
                 cleaned_metabolites.append(metabolite)
             else:
                 cleaned_metabolites.append(Metabolite.clone(metabolite, model=self))
@@ -117,10 +119,11 @@ class SolverBasedModel(cobra.core.Model):
         for reaction in self.reactions:
             reaction._genes = {self.genes.get_by_id(gene.id) for gene in reaction.genes}
             reaction._metabolites = {
-                self.metabolites.get_by_id(met.id): coef for met, coef in reaction.metabolites.items()
+                self.metabolites.get_by_id(met.id): coef for met, coef in six.iteritems(reaction.metabolites)
             }
 
         self._solver = solver_interface.Model()
+        self._solver.objective = solver_interface.Objective(S.Zero)
         self._populate_solver(self.reactions)
         self._timestamp_last_optimization = None
         self.solution = LazySolution(self)
@@ -134,6 +137,8 @@ class SolverBasedModel(cobra.core.Model):
     def copy(self):
         """Needed for compatibility with cobrapy."""
         model_copy = super(SolverBasedModel, self).copy()
+        for metabolite in model_copy.metabolites:
+            metabolite._reset_constraint_cache()
         for reac in model_copy.reactions:
             reac._reset_var_cache()
         try:
@@ -220,8 +225,10 @@ class SolverBasedModel(cobra.core.Model):
             interface = value
         else:
             raise not_valid_interface
-        for reac in self.reactions:
-            reac._reset_var_cache()
+        for reaction in self.reactions:
+            reaction._reset_var_cache()
+        for metabolite in self.metabolites:
+            metabolite._reset_constraint_cache()
         self._solver = interface.Model.clone(self._solver)
 
     @property
@@ -236,16 +243,19 @@ class SolverBasedModel(cobra.core.Model):
         super(SolverBasedModel, self).add_metabolites(metabolite_list)
         for met in metabolite_list:
             if met.id not in self.solver.constraints:
-                self.solver.add(self.solver.interface.Constraint(S.Zero, name=met.id, lb=0, ub=0))
+                constraint = self.solver.interface.Constraint(S.Zero, name=met.id, lb=0, ub=0)
+                self.solver.add(constraint)
+            else:
+                constraint = self.solver.constraints[met.id]
+
+            setattr(met, "_constraint", constraint)
 
     def add_metabolite(self, metabolite):
         self.add_metabolites([metabolite])
 
     def _populate_solver(self, reaction_list):
         """Populate attached solver with constraints and variables that model the provided reactions."""
-        constr_terms = dict()
-        objective_terms = list()
-        metabolites = {}
+        constraint_terms = AutoVivification()
         for reaction in reaction_list:
 
             if reaction.reversibility:
@@ -265,38 +275,33 @@ class SolverBasedModel(cobra.core.Model):
                 reverse_variable = self.solver.interface.Variable(reaction._get_reverse_id(),
                                                                   lb=-1 * reaction._upper_bound,
                                                                   ub=-1 * reaction._lower_bound)
+
             self.solver.add(forward_variable)
             self.solver.add(reverse_variable)
+            self.solver.update()
 
             for metabolite, coeff in six.iteritems(reaction.metabolites):
-                if metabolite.id in constr_terms:
-                    constr_terms[metabolite.id].append(
-                        sympy.Mul._from_args([sympy.RealNumber(coeff), forward_variable]))
+                if self.solver.constraints.has_key(metabolite.id):
+                    constraint = self.solver.constraints[metabolite.id]
                 else:
-                    constr_terms[metabolite.id] = [sympy.Mul._from_args([sympy.RealNumber(coeff), forward_variable])]
-                    metabolites[metabolite.id] = metabolite
-                constr_terms[metabolite.id].append(
-                    sympy.Mul._from_args([sympy.RealNumber(-1 * coeff), reverse_variable]))
+                    constraint = self.solver.interface.Constraint(S.Zero, name=metabolite.id, lb=0, ub=0)
+                    self.solver.add(constraint, sloppy=True)
 
-            if reaction._objective_coefficient != 0.:
-                objective_terms.append(reaction._objective_coefficient * reaction.flux_expression)
+                constraint_terms[constraint][forward_variable] = coeff
+                constraint_terms[constraint][reverse_variable] = -coeff
 
-        new_constraints = list()
-        for met_id, terms in six.iteritems(constr_terms):
-            expr = sympy.Add._from_args(terms)
-            try:
-                self.solver.constraints[met_id] += expr
-            except KeyError:
-                new_constraints.append(self.solver.interface.Constraint(expr, name=met_id, lb=0, ub=0, sloppy=True))
-        self.solver.add(new_constraints, sloppy=True)
+            objective_coeff = reaction._objective_coefficient
+            if objective_coeff != 0.:
+                if self.solver.objective is None:
+                    self.solver.objective = self.solver.interface.Objective(0, direction='max')
+                if self.solver.objective.direction == 'min':
+                    self.solver.objective.direction = 'max'
+                self.solver._set_linear_objective_term(forward_variable, objective_coeff)
+                self.solver._set_linear_objective_term(reverse_variable, -objective_coeff)
 
-        objective_expression = sympy.Add(*objective_terms)
-        if self.solver.objective is None:
-            self.solver.objective = self.solver.interface.Objective(objective_expression, name='obj', direction='max')
-        else:
-            # TODO: remove this weird hack. Looks like some weird issue with lazy objective expressions in CPLEX and GLPK interface in optlang.
-            self.solver.objective.variables
-            self.solver.objective += objective_expression
+        self.solver.update()
+        for constraint, terms in six.iteritems(constraint_terms):
+            constraint.set_linear_coefficients_from_dictionary(terms)
 
     def add_reactions(self, reaction_list):
         cloned_reaction_list = list()
