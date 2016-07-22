@@ -209,9 +209,6 @@ if __name__ == '__main__':
         with open('../cameo/models/universal_models/{model_name}.json'.format(model_name=universal_model.id), 'w') as f:
             save_json_model(universal_model, f)
 
-    chem_prop_filtered = chem_prop[
-        [any([source.startswith(db) for db in ('bigg', 'rhea', 'kegg', 'brenda', 'chebi')]) for source in chem_prop.source]
-    ]
-    chem_prop_filtered = chem_prop_filtered.dropna(subset=['name'])
+    chem_prop_filtered = chem_prop.dropna(subset=['name'])
     with gzip.open('../cameo/data/metanetx_chem_prop.pklz', 'wb') as f:
         pickle.dump(chem_prop_filtered, f, protocol=2)
