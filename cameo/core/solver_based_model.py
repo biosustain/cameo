@@ -427,7 +427,7 @@ class SolverBasedModel(cobra.core.Model):
         ratio_constraint = self.solver.interface.Constraint(
             reaction1.flux_expression - ratio * reaction2.flux_expression, lb=0, ub=0,
             name=prefix + reaction1.id + '_' + reaction2.id)
-        self.solver._add_constraint(ratio_constraint, sloppy=True)
+        self.solver.add(ratio_constraint, sloppy=True)
         return ratio_constraint
 
     def optimize(self, objective_sense=None, solution_type=Solution, **kwargs):
