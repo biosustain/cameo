@@ -55,10 +55,10 @@ class IPythonBokehFitnessPlotter(object):
         else:
             self.fitness.append(None)
 
-        if self.iteration % args.get('n', 1) == 0:
-            self._update_plot()
+        if self.iteration % args.get('n', 1) == 0 and self.plotted:
+            self._update()
 
-    def _update_plot(self):
+    def _update(self):
         self.ds.data['x'] = self.iterations[-self.window_size:]
         self.ds.data['y'] = self.fitness[-self.window_size:]
         push_notebook()
@@ -70,8 +70,8 @@ class IPythonBokehFitnessPlotter(object):
         self.plotted = False
 
     def end(self):
-        # end is not necessary
-        pass
+        if self.plotted:
+            self._update()
 
 
 class IPythonBokehParetoPlotter(object):
@@ -100,7 +100,7 @@ class IPythonBokehParetoPlotter(object):
             self._set_plot()
 
         self.fitness = [i.fitness for i in population]
-        if num_evaluations % args.get('n', 1) == 0:
+        if num_evaluations % args.get('n', 1) == 0 and self.plotted:
             self._update()
 
     def _update(self):
@@ -113,8 +113,8 @@ class IPythonBokehParetoPlotter(object):
         self.plotted = False
 
     def end(self):
-        # does not need end
-        pass
+        if self.plotted:
+            self._update()
 
 
 class GeneFrequencyPlotter(object):
