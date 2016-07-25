@@ -281,7 +281,7 @@ class SolverBasedModel(cobra.core.Model):
             self.solver.update()
 
             for metabolite, coeff in six.iteritems(reaction.metabolites):
-                if self.solver.constraints.has_key(metabolite.id):
+                if metabolite.id in self.solver.constraints:
                     constraint = self.solver.constraints[metabolite.id]
                 else:
                     constraint = self.solver.interface.Constraint(S.Zero, name=metabolite.id, lb=0, ub=0)
