@@ -650,6 +650,7 @@ class TestReactionCPLEX(WrappedAbstractTestReaction.AbstractTestReaction):
         self.model = TESTMODEL.copy()
         self.model.solver = 'cplex'
 
+
 class WrappedAbstractTestSolverBasedModel:
     class AbstractTestSolverBasedModel(unittest.TestCase):
         def setUp(self):

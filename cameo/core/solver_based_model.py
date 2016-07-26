@@ -18,36 +18,31 @@
 """
 
 from __future__ import absolute_import, print_function
+
+import csv
+import logging
+import time
+import types
+from copy import copy, deepcopy
 from functools import partial
 
-import six
-
-import time
-import csv
-from copy import copy, deepcopy
-
-import types
-
 import cobra
+import optlang
+import six
 import sympy
+from pandas import DataFrame, pandas
 from sympy import Add
 from sympy import Mul
+from sympy.core.singleton import S
 
-import optlang
-from pandas import DataFrame, pandas
-
-from cameo.util import TimeMachine, inheritdocstring, AutoVivification
 from cameo import config
 from cameo import exceptions
-
-from sympy.core.singleton import S
-from cameo.exceptions import SolveError, Infeasible, UndefinedSolution
+from cameo.core.gene import Gene
+from cameo.core.metabolite import Metabolite
+from cameo.exceptions import SolveError, Infeasible
+from cameo.util import TimeMachine, inheritdocstring, AutoVivification
 from .reaction import Reaction
 from .solution import LazySolution, Solution
-from cameo.core.metabolite import Metabolite
-from cameo.core.gene import Gene
-
-import logging
 
 __all__ = ['to_solver_based_model', 'SolverBasedModel']
 
@@ -137,8 +132,6 @@ class SolverBasedModel(cobra.core.Model):
     def copy(self):
         """Needed for compatibility with cobrapy."""
         model_copy = super(SolverBasedModel, self).copy()
-        for metabolite in model_copy.metabolites:
-            metabolite._reset_constraint_cache()
         for reac in model_copy.reactions:
             reac._reset_var_cache()
         try:
@@ -227,8 +220,6 @@ class SolverBasedModel(cobra.core.Model):
             raise not_valid_interface
         for reaction in self.reactions:
             reaction._reset_var_cache()
-        for metabolite in self.metabolites:
-            metabolite._reset_constraint_cache()
         self._solver = interface.Model.clone(self._solver)
 
     @property
@@ -245,10 +236,6 @@ class SolverBasedModel(cobra.core.Model):
             if met.id not in self.solver.constraints:
                 constraint = self.solver.interface.Constraint(S.Zero, name=met.id, lb=0, ub=0)
                 self.solver.add(constraint)
-            else:
-                constraint = self.solver.constraints[met.id]
-
-            setattr(met, "_constraint", constraint)
 
     def add_metabolite(self, metabolite):
         self.add_metabolites([metabolite])
@@ -296,12 +283,12 @@ class SolverBasedModel(cobra.core.Model):
                     self.solver.objective = self.solver.interface.Objective(0, direction='max')
                 if self.solver.objective.direction == 'min':
                     self.solver.objective.direction = 'max'
-                self.solver._set_linear_objective_term(forward_variable, objective_coeff)
-                self.solver._set_linear_objective_term(reverse_variable, -objective_coeff)
+                self.solver.objective.set_linear_coefficients(
+                    {forward_variable: objective_coeff, reverse_variable: -objective_coeff})
 
         self.solver.update()
         for constraint, terms in six.iteritems(constraint_terms):
-            constraint.set_linear_coefficients_from_dictionary(terms)
+            constraint.set_linear_coefficients(terms)
 
     def add_reactions(self, reaction_list):
         cloned_reaction_list = list()
@@ -361,8 +348,6 @@ class SolverBasedModel(cobra.core.Model):
         else:
             reaction.upper_bound = 0
             reaction.lower_bound = -bound
-
-
 
         if time_machine is not None:
             time_machine(do=partial(self.add_reactions, [reaction]),

@@ -363,7 +363,7 @@ class Reaction(_cobrapy.core.Reaction):
             return None
 
     def add_metabolites(self, metabolites, combine=True, **kwargs):
-        if not combine:
+        if combine:
             old_coefficients = self.metabolites
         super(Reaction, self).add_metabolites(metabolites, combine=combine, **kwargs)
         model = self.model
@@ -372,15 +372,15 @@ class Reaction(_cobrapy.core.Reaction):
 
                 if isinstance(metabolite, six.string_types):  # support metabolites added as strings.
                     metabolite = model.metabolites.get_by_id(metabolite)
-                if not combine:
+                if combine:
                     try:
                         old_coefficient = old_coefficients[metabolite]
                     except KeyError:
                         pass
                     else:
-                        coefficient = coefficient - old_coefficient
+                        coefficient = coefficient + old_coefficient
 
-                model.solver.constraints[metabolite.id].set_linear_coefficients_from_dictionary({
+                model.solver.constraints[metabolite.id].set_linear_coefficients({
                     self.forward_variable: coefficient,
                     self.reverse_variable: -coefficient
                 })
