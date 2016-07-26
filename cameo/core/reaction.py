@@ -147,9 +147,10 @@ class Reaction(_cobrapy.core.Reaction):
         """An optlang variable representing the forward flux (if associated with model), otherwise None."""
         model = self.model
         if model is not None:
-            if getattr(self, "_forward_variable", None) is None:
+            if self._forward_variable is None:
                 self._forward_variable = model.solver.variables[self._get_forward_id()]
             assert self._forward_variable.problem is self.model.solver
+
             return self._forward_variable
             # return model.solver.variables[self._get_forward_id()]
         else:
@@ -160,7 +161,7 @@ class Reaction(_cobrapy.core.Reaction):
         """An optlang variable representing the reverse flux (if associated with model), otherwise None."""
         model = self.model
         if model is not None:
-            if getattr(self, "_reverse_variable", None) is None:
+            if self._reverse_variable is None:
                 self._reverse_variable = model.solver.variables[self._get_reverse_id()]
             assert self._reverse_variable.problem is self.model.solver
             return self._reverse_variable
@@ -362,22 +363,27 @@ class Reaction(_cobrapy.core.Reaction):
             return None
 
     def add_metabolites(self, metabolites, combine=True, **kwargs):
-        if not combine:
+        if combine:
             old_coefficients = self.metabolites
         super(Reaction, self).add_metabolites(metabolites, combine=combine, **kwargs)
         model = self.model
         if model is not None:
             for metabolite, coefficient in six.iteritems(metabolites):
+
                 if isinstance(metabolite, six.string_types):  # support metabolites added as strings.
                     metabolite = model.metabolites.get_by_id(metabolite)
-                if not combine:
+                if combine:
                     try:
                         old_coefficient = old_coefficients[metabolite]
                     except KeyError:
                         pass
                     else:
-                        coefficient = coefficient - old_coefficient
-                model.solver.constraints[metabolite.id] += coefficient * self.flux_expression
+                        coefficient = coefficient + old_coefficient
+
+                model.solver.constraints[metabolite.id].set_linear_coefficients({
+                    self.forward_variable: coefficient,
+                    self.reverse_variable: -coefficient
+                })
 
     @property
     def id(self):

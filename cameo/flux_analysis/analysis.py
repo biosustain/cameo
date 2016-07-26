@@ -140,10 +140,15 @@ def phenotypic_phase_plane(model, variables=[], objective=None, points=20, view=
         view = config.default_view
     with TimeMachine() as tm:
         if objective is not None:
-            try:
-                objective = model.reaction_for(objective, time_machine=tm)
-            except KeyError:
-                pass
+            if isinstance(objective, Metabolite):
+                try:
+                    objective = model.reactions.get_by_id("DM_%s" % objective.id)
+                except KeyError:
+                    objective = model.add_demand(objective, time_machine=tm)
+            # try:
+            #     objective = model.reaction_for(objective, time_machine=tm)
+            # except KeyError:
+            #     pass
 
             model.change_objective(objective, time_machine=tm)
 

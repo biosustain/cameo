@@ -47,6 +47,13 @@ class Metabolite(cobra.core.Metabolite):
         model.solver.remove(model.solver.constraints[self.id])
 
     @property
+    def constraint(self):
+        if self.model is not None:
+            return self.model.solver.constraints[self.id]
+        else:
+            return None
+
+    @property
     def id(self):
         return getattr(self, "_id", None)  # Returns None if _id is not set
 
