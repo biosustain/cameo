@@ -14,7 +14,11 @@
 
 import logging
 import re
+import gzip
+import pickle
+import sys
 
+import requests
 import optlang
 from cobra.core.Formula import Formula
 from cobra.io.json import save_json_model
@@ -119,20 +123,61 @@ def construct_universal_model(list_of_db_prefixes):
     return model
 
 
+def load_metanetx_files():
+    BASE_URL = 'http://www.metanetx.org/cgi-bin/mnxget/mnxref/{}.tsv'
+    for filename in ['chem_prop', 'chem_xref', 'reac_prop', 'reac_xref', 'comp_prop', 'comp_xref']:
+        response = requests.get(BASE_URL.format(filename))
+        filepath = '../data/metanetx/{}.tsv.gz'.format(filename)
+        compress_by_lines(response, filepath)
+
+
+def compress_by_lines(response, filepath):
+    prev_line = next(response.iter_lines())
+    with gzip.open(filepath, 'wb') as f:
+        for line in response.iter_lines(decode_unicode=response.encoding):
+            if line.startswith('#'):
+                prev_line = line
+                continue
+            if prev_line:
+                f.write(str.encode(prev_line + '\n'))
+                prev_line = None
+            f.write(str.encode(line + '\n'))
+
+
+def add_to_all_mapping(dataframe, mapping):
+    for other_id, mnx_id in dataframe[['XREF', 'MNX_ID']].values:
+        cleaned_key = _apply_sanitize_rules(
+            _apply_sanitize_rules(other_id, REVERSE_ID_SANITIZE_RULES_SIMPHENY),
+            ID_SANITIZE_RULES_TAB_COMPLETION)
+        mapping[cleaned_key] = mnx_id
+
+
+def add_to_bigg_mapping(xref, bigg2mnx, mnx2bigg):
+    bigg_selection = xref[['bigg' in blub for blub in xref.XREF]]
+    sanitized_XREF = [
+        _apply_sanitize_rules(_apply_sanitize_rules(id, REVERSE_ID_SANITIZE_RULES_SIMPHENY),
+                              ID_SANITIZE_RULES_TAB_COMPLETION) for id in bigg_selection.XREF]
+    bigg2mnx.update(dict(zip(sanitized_XREF, bigg_selection.MNX_ID)))
+    mnx2bigg.update(dict(zip(bigg_selection.MNX_ID, sanitized_XREF)))
+
+
 if __name__ == '__main__':
 
     import logging
 
     logging.basicConfig(level='INFO')
 
+    if len(sys.argv) > 1 and sys.argv[1] == '--load':
+        load_metanetx_files()
+
     # load metanetx data
-    chem_xref = read_table('../data/metanetx/chem_xref.tsv.gz', skiprows=124, compression='gzip')
+    chem_xref = read_table('../data/metanetx/chem_xref.tsv.gz', compression='gzip')
     chem_xref.columns = [name.replace('#', '') for name in chem_xref.columns]
-    reac_xref = read_table('../data/metanetx/reac_xref.tsv.gz', skiprows=107, compression='gzip')
+    reac_xref = read_table('../data/metanetx/reac_xref.tsv.gz', compression='gzip')
     reac_xref.columns = [name.replace('#', '') for name in reac_xref.columns]
-    reac_prop = read_table('../data/metanetx/reac_prop.tsv.gz', skiprows=107, compression='gzip', index_col=0)
+    reac_prop = read_table('../data/metanetx/reac_prop.tsv.gz', compression='gzip', index_col=0)
     reac_prop.columns = [name.replace('#', '') for name in reac_prop.columns]
-    chem_prop = read_table('../data/metanetx/chem_prop.tsv.gz', skiprows=125, compression='gzip', index_col=0,
+    chem_prop = read_table('../data/metanetx/chem_prop.tsv.gz', compression='gzip', index_col=0,
                            names=['name', 'formula', 'charge', 'mass', 'InChI', 'SMILES', 'source'])
 
     # replace NaN with None
@@ -141,41 +186,16 @@ if __name__ == '__main__':
     REVERSE_ID_SANITIZE_RULES_SIMPHENY = [(value, key) for key, value in ID_SANITIZE_RULES_SIMPHENY]
 
     metanetx = dict()
+    metanetx['all2mnx'] = dict()
+    metanetx['bigg2mnx'] = dict()
+    metanetx['mnx2bigg'] = dict()
     # Metabolites
-    bigg_selection = chem_xref[['bigg' in blub for blub in chem_xref.XREF]]
-    sanitized_XREF = [
-        _apply_sanitize_rules(_apply_sanitize_rules(id.replace('bigg:', ''), REVERSE_ID_SANITIZE_RULES_SIMPHENY),
-                              ID_SANITIZE_RULES_TAB_COMPLETION) for id in bigg_selection.XREF]
-    bigg2mnx = dict(zip(sanitized_XREF, bigg_selection.MNX_ID))
-    mnx2bigg = dict(zip(bigg_selection.MNX_ID, sanitized_XREF))
+    for xref in [chem_xref, reac_xref]:
+        add_to_bigg_mapping(xref, metanetx['bigg2mnx'], metanetx['mnx2bigg'])
+        add_to_all_mapping(xref, metanetx['all2mnx'])
 
-    # Reactions
-    bigg_selection = reac_xref[['bigg' in blub for blub in reac_xref.XREF]]
-    sanitized_XREF = [
-        _apply_sanitize_rules(_apply_sanitize_rules(id.replace('bigg:', ''), REVERSE_ID_SANITIZE_RULES_SIMPHENY),
-                              ID_SANITIZE_RULES_TAB_COMPLETION) for id in bigg_selection.XREF]
-    bigg2mnx.update(dict(zip(sanitized_XREF, bigg_selection.MNX_ID)))
-    mnx2bigg.update(dict(zip(bigg_selection.MNX_ID, sanitized_XREF)))
-
-    # put into final result dict
-    metanetx['bigg2mnx'] = bigg2mnx
-    metanetx['mnx2bigg'] = mnx2bigg
-
-    all2mnx = dict()
-    for other_id, mnx_id in chem_xref[['XREF', 'MNX_ID']].values:
-        cleaned_key = _apply_sanitize_rules(
-            _apply_sanitize_rules(other_id.split(':')[1], REVERSE_ID_SANITIZE_RULES_SIMPHENY),
-            ID_SANITIZE_RULES_TAB_COMPLETION)
-        all2mnx[cleaned_key] = mnx_id
-    for other_id, mnx_id in reac_xref[['XREF', 'MNX_ID']].values:
-        cleaned_key = _apply_sanitize_rules(
-            _apply_sanitize_rules(other_id.split(':')[1], REVERSE_ID_SANITIZE_RULES_SIMPHENY),
-            ID_SANITIZE_RULES_TAB_COMPLETION)
-        all2mnx[cleaned_key] = mnx_id
-
-    metanetx['all2mnx'] = all2mnx
-    # with open('../cameo/data/metanetx.pickle', 'wb') as f:
-    #    pickle.dump(metanetx, f)
+    with open('../cameo/data/metanetx.pickle', 'wb') as f:
+        pickle.dump(metanetx, f, protocol=2)
 
     # generate universal reaction models
     db_combinations = [('bigg',), ('rhea',), ('bigg', 'rhea'), ('bigg', 'rhea', 'kegg'),
@@ -186,14 +206,9 @@ if __name__ == '__main__':
         from cobra.io.json import _REQUIRED_REACTION_ATTRIBUTES
 
         _REQUIRED_REACTION_ATTRIBUTES.add('annotation')
-        # d_model = _to_dict(universal_model)
         with open('../cameo/models/universal_models/{model_name}.json'.format(model_name=universal_model.id), 'w') as f:
             save_json_model(universal_model, f)
-            # json.dump(d_model, f)
-            # save_json_model(universal_model, '../cameo/models/universal_models/{model_name}.json'.format(model_name=universal_model.id))
-    chem_prop_filtered = chem_prop[
-        [any([source.startswith(db) for db in ('bigg', 'rhea', 'kegg', 'brenda', 'chebi')]) for source in
-         chem_prop.source]]
-    chem_prop_filtered = chem_prop_filtered.dropna(subset=['name'])
-    # with gzip.open('../cameo/data/metanetx_chem_prop.pklz', 'wb') as f:
-    #    pickle.dump(chem_prop_filtered, f)
+
+    chem_prop_filtered = chem_prop.dropna(subset=['name'])
+    with gzip.open('../cameo/data/metanetx_chem_prop.pklz', 'wb') as f:
+        pickle.dump(chem_prop_filtered, f, protocol=2)

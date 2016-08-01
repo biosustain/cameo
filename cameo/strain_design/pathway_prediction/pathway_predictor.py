@@ -351,7 +351,7 @@ class PathwayPredictor(object):
 
         logger.info("Adding reactions from universal model to host model.")
         new_reactions = list()
-        original_model_metabolites = [self.mapping.get(m.id[0:-2], m.id) for
+        original_model_metabolites = [self.mapping.get('bigg:' + m.id[0:-2], m.id) for
                                       r in original_exchanges for m, coeff in six.iteritems(r.metabolites)
                                       if len(r.metabolites) == 1 and coeff < 0 < r.upper_bound]
 
