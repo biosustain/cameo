@@ -609,7 +609,7 @@ class SolverBasedModel(cobra.core.Model):
             time_machine(do=partial(setattr, self, "objective", value),
                          undo=partial(setattr, self, "objective", self.objective))
 
-    def reaction_for(self, value, time_machine=None, add=True):
+    def _reaction_for(self, value, time_machine=None, add=True):
         """
         Converts an object into a reaction.
 

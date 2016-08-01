@@ -148,9 +148,9 @@ class OptGene(StrainDesignMethod):
         OptGeneResult
         """
 
-        target = self._model.reaction_for(target, time_machine=time_machine)
-        biomass = self._model.reaction_for(biomass, time_machine=time_machine)
-        substrate = self._model.reaction_for(substrate, time_machine=time_machine)
+        target = self._model._reaction_for(target, time_machine=time_machine)
+        biomass = self._model._reaction_for(biomass, time_machine=time_machine)
+        substrate = self._model._reaction_for(substrate, time_machine=time_machine)
 
         if growth_coupled:
             objective_function = biomass_product_coupled_min_yield(biomass, target, substrate)

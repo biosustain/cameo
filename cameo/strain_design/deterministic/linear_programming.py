@@ -120,7 +120,7 @@ class OptKnock(StrainDesignMethod):
 
         self.essential_reactions = self._model.essential_reactions() + self._model.exchanges
         if essential_reactions:
-            self.essential_reactions += [self._model.reaction_for(r) for r in essential_reactions]
+            self.essential_reactions += [self._model._reaction_for(r) for r in essential_reactions]
 
         self._make_dual()
 
@@ -213,8 +213,8 @@ class OptKnock(StrainDesignMethod):
         OptKnockResult
         """
 
-        target = self._model.reaction_for(target, add=False)
-        biomass = self._model.reaction_for(biomass, add=False)
+        target = self._model._reaction_for(target, add=False)
+        biomass = self._model._reaction_for(biomass, add=False)
 
         knockout_list = []
         fluxes_list = []

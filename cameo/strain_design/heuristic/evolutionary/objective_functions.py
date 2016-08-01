@@ -158,7 +158,7 @@ class biomass_product_coupled_min_yield(ObjectiveFunction):
             biomass_flux = round(solution.fluxes[self.biomass], config.ndecimals)
             with TimeMachine() as tm:
                 for reaction in decoded_representation[0]:
-                    model.reaction_for(reaction).knock_out(tm)
+                    model._reaction_for(reaction).knock_out(tm)
 
                 fva_res = flux_variability_analysis(model, reactions=[self.product], fraction_of_optimum=1)
                 min_product_flux = fva_res["lower_bound"][self.product]

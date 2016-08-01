@@ -665,7 +665,7 @@ class FSEOF(StrainDesignMethod):
 
         """
         model = self.model
-        target = model.reaction_for(target)
+        target = model._reaction_for(target)
 
         simulation_kwargs = simulation_kwargs if simulation_kwargs is not None else {}
         simulation_kwargs['objective'] = self.primary_objective

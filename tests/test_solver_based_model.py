@@ -963,15 +963,15 @@ class WrappedAbstractTestSolverBasedModel:
         def test_reactions_for(self):
             with TimeMachine() as tm:
                 for r in self.model.reactions:
-                    self.assertIsInstance(self.model.reaction_for(r.id, time_machine=tm), Reaction)
-                    self.assertIsInstance(self.model.reaction_for(r, time_machine=tm), Reaction)
+                    self.assertIsInstance(self.model._reaction_for(r.id, time_machine=tm), Reaction)
+                    self.assertIsInstance(self.model._reaction_for(r, time_machine=tm), Reaction)
                 for m in self.model.metabolites:
-                    self.assertIsInstance(self.model.reaction_for(m.id, time_machine=tm), Reaction)
-                    self.assertIsInstance(self.model.reaction_for(m, time_machine=tm), Reaction)
+                    self.assertIsInstance(self.model._reaction_for(m.id, time_machine=tm), Reaction)
+                    self.assertIsInstance(self.model._reaction_for(m, time_machine=tm), Reaction)
 
-            self.assertRaises(KeyError, self.model.reaction_for, None)
-            self.assertRaises(KeyError, self.model.reaction_for, "blablabla")
-            self.assertRaises(KeyError, self.model.reaction_for, "accoa_lp_c_lp_", add=False)
+            self.assertRaises(KeyError, self.model._reaction_for, None)
+            self.assertRaises(KeyError, self.model._reaction_for, "blablabla")
+            self.assertRaises(KeyError, self.model._reaction_for, "accoa_lp_c_lp_", add=False)
 
 
 class TestSolverBasedModelGLPK(WrappedAbstractTestSolverBasedModel.AbstractTestSolverBasedModel):
