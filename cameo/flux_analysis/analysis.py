@@ -48,6 +48,7 @@ __all__ = ['find_blocked_reactions', 'flux_variability_analysis', 'phenotypic_ph
 class NoSourceError(Exception):
     pass
 
+
 def find_blocked_reactions(model):
     """Determine reactions that cannot carry steady-state flux.
 
@@ -259,9 +260,10 @@ def _flux_variability_analysis(model, reactions=None):
 
     df = pandas.DataFrame.from_dict(fva_sol, orient='index')
     lb_higher_ub = df[df.lower_bound > df.upper_bound]
-    try:  # this is an alternative solution to what I did above with flags
-        assert ((
-                lb_higher_ub.lower_bound - lb_higher_ub.upper_bound) < 1e-6).all()  # Assert that these cases really only numerical artifacts
+    # this is an alternative solution to what I did above with flags
+    # Assert that these cases really only numerical artifacts
+    try:
+        assert ((lb_higher_ub.lower_bound - lb_higher_ub.upper_bound) < 1e-6).all()
     except AssertionError:
         logger.debug(list(zip(model.reactions, (lb_higher_ub.lower_bound - lb_higher_ub.upper_bound) < 1e-6)))
     df.lower_bound[lb_higher_ub.index] = df.upper_bound[lb_higher_ub.index]
@@ -501,9 +503,7 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
             interval.append(solution)
             interval_carbon_yield.append(self.carbon_yield())
             interval_mass_yield.append(self.mass_yield())
-        intervals = tuple(interval) + \
-                    tuple(interval_carbon_yield) + \
-                    tuple(interval_mass_yield)
+        intervals = tuple(interval) + tuple(interval_carbon_yield) + tuple(interval_mass_yield)
         return point + intervals
 
 
@@ -623,7 +623,7 @@ class PhenotypicPhasePlaneResult(Result):
                             ', '.join(possible_estimates.keys()))
         upper, lower, description = possible_estimates[estimate]
         if title is None:
-                title = "Phenotypic Phase Plane ({})".format(description)
+            title = "Phenotypic Phase Plane ({})".format(description)
         if len(self.variable_ids) == 1:
 
             variable = self.variable_ids[0]
