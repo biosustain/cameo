@@ -119,7 +119,7 @@ class SolverBasedModel(cobra.core.Model):
 
         self._solver = solver_interface.Model()
         self._solver.objective = solver_interface.Objective(S.Zero)
-        self._populate_solver(self.reactions)
+        self._populate_solver(self.reactions, self.metabolites)
         self._timestamp_last_optimization = None
         self.solution = LazySolution(self)
 
@@ -240,9 +240,14 @@ class SolverBasedModel(cobra.core.Model):
     def add_metabolite(self, metabolite):
         self.add_metabolites([metabolite])
 
-    def _populate_solver(self, reaction_list):
+    def _populate_solver(self, reaction_list, metabolite_list=None):
         """Populate attached solver with constraints and variables that model the provided reactions."""
         constraint_terms = AutoVivification()
+        if metabolite_list is not None:
+            for met in metabolite_list:
+                constraint = self.solver.interface.Constraint(S.Zero, name=met.id, lb=0, ub=0)
+                self.solver.add(constraint)
+
         for reaction in reaction_list:
 
             if reaction.reversibility:
