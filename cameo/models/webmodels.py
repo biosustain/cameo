@@ -92,7 +92,7 @@ def index_models_minho(host="http://darwin.di.uminho.pt/models"):
     """
     uri = host + "/models.json"
     try:
-        response = requests.get(uri)
+        response = requests.get(uri, timeout=3)
     except requests.ConnectionError as e:
         logger.error("Cannot reach %s. Are you sure that you are connected to the internet?" % host)
         raise e
@@ -137,7 +137,7 @@ def get_sbml_file(index, host="http://darwin.di.uminho.pt/models"):
 
 def index_models_bigg():
     try:
-        response = requests.get('http://bigg.ucsd.edu/api/v2/models')
+        response = requests.get('http://bigg.ucsd.edu/api/v2/models', timeout=3)
     except requests.ConnectionError as e:
         logger.error("Cannot reach http://bigg.ucsd.edu. Are you sure that you are connected to the internet?")
         raise e

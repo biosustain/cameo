@@ -119,9 +119,7 @@ class SolverBasedModel(cobra.core.Model):
 
         self._solver = solver_interface.Model()
         self._solver.objective = solver_interface.Objective(S.Zero)
-        self._populate_solver(reaction_list=self.reactions,
-                              orphan_metabolites=[met for met in self.metabolites
-                                                  if len(met.reactions) == 0])
+        self._populate_solver(self.reactions, self.metabolites)
         self._timestamp_last_optimization = None
         self.solution = LazySolution(self)
 
@@ -242,9 +240,14 @@ class SolverBasedModel(cobra.core.Model):
     def add_metabolite(self, metabolite):
         self.add_metabolites([metabolite])
 
-    def _populate_solver(self, reaction_list, orphan_metabolites=None):
+    def _populate_solver(self, reaction_list, metabolite_list=None):
         """Populate attached solver with constraints and variables that model the provided reactions."""
         constraint_terms = AutoVivification()
+        if metabolite_list is not None:
+            for met in metabolite_list:
+                constraint = self.solver.interface.Constraint(S.Zero, name=met.id, lb=0, ub=0)
+                self.solver.add(constraint)
+
         for reaction in reaction_list:
 
             if reaction.reversibility:
@@ -287,12 +290,6 @@ class SolverBasedModel(cobra.core.Model):
                     self.solver.objective.direction = 'max'
                 self.solver.objective.set_linear_coefficients(
                     {forward_variable: objective_coeff, reverse_variable: -objective_coeff})
-
-        if orphan_metabolites:
-            for met in orphan_metabolites:
-                if met.id not in self.solver.constraints:
-                    constraint = self.solver.interface.Constraint(S.Zero, name=met.id, lb=0, ub=0)
-                    self.solver.add(constraint)
 
         self.solver.update()
         for constraint, terms in six.iteritems(constraint_terms):
