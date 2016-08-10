@@ -169,47 +169,82 @@ def get_model_from_bigg(id, solver_interface=optlang):
 
 
 class ModelDB(object):
-    pass
+    def __init__(self, index_method, get_model_method):
+        self._index_method = index_method
+        self._get_model_method = get_model_method
+        self._index = None
+
+    def _index_models(self):
+        try:
+            index = self._index_method()
+        except requests.ConnectionError():
+            self._index = ["no_models_available"]
+            self.no_models_available = "The server could not be reached. Make sure you are connected to the internet"
+        self._index = list(index)
+
+    def __dir__(self):
+        if self._index is None:
+            self._index_models()
+        return list(self._index)
+
+    def __getattr__(self, item):
+        if self._index is None:
+            self._index_models()
+        if item in self._index:
+            return self._get_model_method(item)
+        else:
+            super(ModelDB, self).__getattribute__(item)
+
+bigg = ModelDB(lambda: index_models_bigg().bigg_id, get_model_from_bigg)
+
+minho = ModelDB(lambda: index_models_minho().name, get_model_from_uminho)
 
 
-bigg = ModelDB()
-try:
-    model_ids = index_models_bigg().bigg_id
-except requests.ConnectionError:
-    bigg.no_models_available = "Cameo couldn't reach http://bigg.ucsd.edu at initialization time." \
-                               "Are you connected to the internet?"
-except Exception as e:
-    bigg.no_models_available = "Cameo could reach http://bigg.ucsd.edu at initialization time" \
-                               "but something went wrong while decoding the server response."
-    logger.debug(e)
-else:
-    for id in model_ids:
-        setattr(bigg, str_to_valid_variable_name(id), lazy_object_proxy.Proxy(partial(get_model_from_bigg, id)))
+def validated_minho_names():
+    minho = index_models_minho()
+    minho_validated = minho[minho.validated]
+    return minho_validated.name
 
-minho = ModelDB()
-try:
-    minho_models = index_models_minho()
-except requests.ConnectionError as e:
-    minho.no_models_available = "Cameo couldn't reach http://darwin.di.uminho.pt/models at initialization time." \
-                                "Are you connected to the internet?"
-    logger.debug(e)
-except Exception as e:
-    minho.no_models_available = "Cameo could reach http://darwin.di.uminho.pt/models at initialization time" \
-                                "but something went wrong while decoding the server response."
-    logger.debug(e)
-else:
-    model_indices = minho_models.id
-    model_ids = minho_models.name
-    for index, id in zip(model_indices, model_ids):
-        setattr(minho, str_to_valid_variable_name(id), lazy_object_proxy.Proxy(partial(get_model_from_uminho, index)))
+minho.validated = ModelDB(validated_minho_names, get_model_from_uminho)
 
-    validated_models = minho_models[minho_models.validated]
-    minho.validated = ModelDB()
-    model_indices = validated_models.id
-    model_ids = validated_models.name
-    for index, id in zip(model_indices, model_ids):
-        setattr(minho.validated, str_to_valid_variable_name(id),
-                lazy_object_proxy.Proxy(partial(get_model_from_uminho, index)))
+# bigg = ModelDB()
+# try:
+#     model_ids = index_models_bigg().bigg_id
+# except requests.ConnectionError:
+#     bigg.no_models_available = "Cameo couldn't reach http://bigg.ucsd.edu at initialization time." \
+#                                "Are you connected to the internet?"
+# except Exception as e:
+#     bigg.no_models_available = "Cameo could reach http://bigg.ucsd.edu at initialization time" \
+#                                "but something went wrong while decoding the server response."
+#     logger.debug(e)
+# else:
+#     for id in model_ids:
+#         setattr(bigg, str_to_valid_variable_name(id), lazy_object_proxy.Proxy(partial(get_model_from_bigg, id)))
+#
+# minho = ModelDB()
+# try:
+#     minho_models = index_models_minho()
+# except requests.ConnectionError as e:
+#     minho.no_models_available = "Cameo couldn't reach http://darwin.di.uminho.pt/models at initialization time." \
+#                                 "Are you connected to the internet?"
+#     logger.debug(e)
+# except Exception as e:
+#     minho.no_models_available = "Cameo could reach http://darwin.di.uminho.pt/models at initialization time" \
+#                                 "but something went wrong while decoding the server response."
+#     logger.debug(e)
+# else:
+#     model_indices = minho_models.id
+#     model_ids = minho_models.name
+#     for index, id in zip(model_indices, model_ids):
+#         setattr(minho, str_to_valid_variable_name(id), lazy_object_proxy.Proxy(partial(get_model_from_uminho, index)))
+#
+#     validated_models = minho_models[minho_models.validated]
+#     minho.validated = ModelDB()
+#     model_indices = validated_models.id
+#     model_ids = validated_models.name
+#     for index, id in zip(model_indices, model_ids):
+#         setattr(minho.validated, str_to_valid_variable_name(id),
+#                 lazy_object_proxy.Proxy(partial(get_model_from_uminho, index)))
 
 
 if __name__ == "__main__":
