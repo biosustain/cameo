@@ -238,7 +238,6 @@ class Reaction(_cobrapy.core.Reaction):
                         self._upper_bound = value
                         reverse_variable.ub = -1 * value
             else:
-                print({'value': value, 'self._lower_bound': self._lower_bound, 'self._upper_bound': self._upper_bound})
                 raise ValueError('lower_bound issue')
 
         self._lower_bound = value
