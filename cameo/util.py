@@ -225,7 +225,7 @@ class RandomGenerator(object):
         self._random = RandomState(seed=seed)
 
     def seed(self, seed):
-        self._random.seed(seed)
+        self._random = RandomState(seed=seed)
 
     def random(self):
         return self._random.rand()
