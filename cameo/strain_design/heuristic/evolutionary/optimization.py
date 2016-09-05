@@ -139,12 +139,9 @@ class HeuristicOptimization(object):
         logger.debug("Seed: %s" % seed)
         self.plot = plot
         self.progress = progress
-        if seed is None:
-            seed = int(time.time())
-        self._seed = seed
         self.observers = []
-        self.random = Random(seed=seed)
         self.model = model
+        self._random = None
         self.termination = termination
         self._objective_function = objective_function
         self._heuristic_method = None
@@ -163,17 +160,6 @@ class HeuristicOptimization(object):
     def objective_function(self):
         return self._objective_function
 
-    @property
-    def seed(self):
-        return self._seed
-
-    @seed.setter
-    def seed(self, seed):
-        if seed is None:
-            seed = int(time.time())
-        self._seed = seed
-        self.random = Random(seed=seed)
-
     @objective_function.setter
     def objective_function(self, objective_function):
         if self._heuristic_method.__module__ == inspyred.ec.ec.__name__ and isinstance(objective_function, list):
@@ -185,6 +171,12 @@ class HeuristicOptimization(object):
             self._objective_function = [objective_function]
         else:
             self._objective_function = objective_function
+
+    @property
+    def random(self):
+        if self._random is None:
+            self._random = Random()
+        return self._random
 
     @property
     def heuristic_method(self):
@@ -202,6 +194,11 @@ class HeuristicOptimization(object):
         self._heuristic_method = heuristic_method(self.random)
 
     def run(self, evaluator=None, generator=None, view=config.default_view, maximize=True, **kwargs):
+        if kwargs.get('seed', None) is None:
+            kwargs['seed'] = int(time.time())
+
+        self._heuristic_method._random.seed(kwargs['seed'])
+
         for observer in self.observers:
             observer.reset()
         t = time.time()
@@ -480,7 +477,7 @@ class KnockoutOptimization(HeuristicOptimization):
                                               objective_function=self.objective_function,
                                               ko_type=self._ko_type,
                                               decoder=self._decoder,
-                                              seed=self.seed)
+                                              seed=kwargs['seed'])
 
 
 class KnockoutOptimizationResult(Result):
@@ -503,7 +500,7 @@ class KnockoutOptimizationResult(Result):
     def _decode_solutions(self, solutions):
         decoded_solutions = DataFrame(columns=["reactions", "knockouts", "fitness"])
         for index, solution in enumerate(solutions):
-            reactions, knockouts = self._decoder(solution, flat=True)
+            reactions, knockouts = self._decoder(solution.candidate, flat=True)
             if len(reactions) > 0:
                 decoded_solutions.loc[index] = [reactions, knockouts, solution.fitness]
 
@@ -522,6 +519,7 @@ class KnockoutOptimizationResult(Result):
                 'heuristic_method.variator': self.heuristic_method.variator,
                 'heuristic_method.terminator': self.heuristic_method.terminator,
                 'heuristic_method.archiver': self.heuristic_method.archiver,
+                'heuristic_method.archive': self.heuristic_method.archive,
                 'heuristic_method.termination_cause': self.heuristic_method.termination_cause,
                 'heuristic_method._random': self.heuristic_method._random,
                 'heuristic_method.generator': self.heuristic_method.generator,
@@ -541,6 +539,7 @@ class KnockoutOptimizationResult(Result):
         self.heuristic_method.maximize = d['heuristic_method.maximize']
         self.heuristic_method.terminator = d['heuristic_method.terminator']
         self.heuristic_method.termination_cause = d['heuristic_method.termination_cause']
+        self.heuristic_method.archiver = d['heuristic_method.archiver']
         self.heuristic_method.archive = d['heuristic_method.archive']
         self.heuristic_method._kwargs = d['heuristic_method._kwargs']
         self.objective_functions = d['objective_functions']
