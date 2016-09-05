@@ -159,7 +159,7 @@ class OptGene(StrainDesignMethod):
                                                   variable_size=variable_size,
                                                   maximize=True,
                                                   max_archive_size=max_results,
-                                                  sedd=seed,
+                                                  seed=seed,
                                                   **kwargs)
 
         kwargs.update(self._optimization_algorithm.simulation_kwargs)
