@@ -457,6 +457,10 @@ class KnockoutOptimization(HeuristicOptimization):
             max_size. Otherwise it only produces knockout solutions with a fixed number of knockouts.
 
         """
+
+        if kwargs.get('seed', None) is None:
+            kwargs['seed'] = int(time.time())
+
         self.heuristic_method.observer = self.observers
         knockout_evaluator = KnockoutEvaluator(self.model, self._decoder, self.objective_function,
                                                self._simulation_method, self._simulation_kwargs)
