@@ -50,7 +50,7 @@ logger = logging.getLogger(__name__)
 
 class OptGene(StrainDesignMethod):
     def __init__(self, model, evolutionary_algorithm=inspyred.ec.GA, manipulation_type="genes", essential_genes=None,
-                 essential_reactions=None, plot=True, exclude_non_gene_reactions=True, seed=None, *args, **kwargs):
+                 essential_reactions=None, plot=True, exclude_non_gene_reactions=True, *args, **kwargs):
         if not isinstance(model, SolverBasedModel):
             raise TypeError("Argument 'model' should be of type 'cameo.core.SolverBasedModel'.")
 
@@ -67,17 +67,7 @@ class OptGene(StrainDesignMethod):
         self._essential_genes = essential_genes
         self._essential_reactions = essential_reactions
         self._plot = plot
-        self._seed = None
         self.manipulation_type = manipulation_type
-
-    @property
-    def seed(self):
-        return self._seed
-
-    @seed.setter
-    def seed(self, seed):
-        self._seed = seed
-        self._optimization_algorithm.seed = seed
 
     @property
     def manipulation_type(self):
@@ -101,21 +91,19 @@ class OptGene(StrainDesignMethod):
                 model=self._model,
                 heuristic_method=self._algorithm,
                 essential_genes=self._essential_genes,
-                plot=self.plot,
-                seed=self._seed)
+                plot=self.plot)
         elif manipulation_type is "reactions":
             self._optimization_algorithm = ReactionKnockoutOptimization(
                 model=self._model,
                 heuristic_method=self._algorithm,
                 essential_reactions=self._essential_reactions,
-                plot=self.plot,
-                seed=self._seed)
+                plot=self.plot)
         else:
             raise ValueError("Invalid manipulation type %s" % manipulation_type)
 
-    def run(self, target=None, biomass=None, substrate=None, max_knockouts=5, simulation_method=fba,
-            growth_coupled=False, max_evaluations=20000, population_size=200, time_machine=None,
-            max_results=50, **kwargs):
+    def run(self, target=None, biomass=None, substrate=None, max_knockouts=5, variable_size=True,
+            simulation_method=fba, growth_coupled=False, max_evaluations=20000, population_size=200,
+            time_machine=None, max_results=50, seed=None, **kwargs):
         """
         Parameters
         ----------
@@ -127,6 +115,8 @@ class OptGene(StrainDesignMethod):
             The main carbon source
         max_knockouts: int
             Max number of knockouts allowed
+        variable_size: bool
+            If true, all candidates have the same size. Otherwise the candidate size can be from 1 to max_knockouts.
         simulation_method: function
             Any method from cameo.flux_analysis.simulation or equivalent
         robust: bool
@@ -138,9 +128,11 @@ class OptGene(StrainDesignMethod):
         time_machine: TimeMachine
             See TimeMachine
         max_results: int
-            Max number of different designs to return if found
+            Max number of different designs to return if found.
         kwargs: dict
             Arguments for the simulation method.
+        seed: int
+            A seed for random.
 
 
         Returns
@@ -160,11 +152,14 @@ class OptGene(StrainDesignMethod):
         self._optimization_algorithm.simulation_kwargs = kwargs
         self._optimization_algorithm.simulation_method = simulation_method
         self._optimization_algorithm.archiver = ProductionStrainArchive()
+
         result = self._optimization_algorithm.run(max_evaluations=max_evaluations,
-                                                  pop=population_size,
+                                                  pop_size=population_size,
                                                   max_size=max_knockouts,
+                                                  variable_size=variable_size,
                                                   maximize=True,
                                                   max_archive_size=max_results,
+                                                  seed=seed,
                                                   **kwargs)
 
         kwargs.update(self._optimization_algorithm.simulation_kwargs)

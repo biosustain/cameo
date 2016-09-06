@@ -23,12 +23,16 @@ from math import sqrt
 import inspyred
 import numpy
 import six
-from cobra.manipulation.delete import find_gene_knockout_reactions
+
+from six.moves import range
+
 from inspyred.ec import Bounder
 from inspyred.ec.emo import Pareto
+
+from cobra.manipulation.delete import find_gene_knockout_reactions
+
 from ordered_set import OrderedSet
 from pandas.util.testing import assert_frame_equal
-from six.moves import range
 
 from cameo import load_model, fba, config
 from cameo.parallel import SequentialView, RedisQueue
@@ -446,7 +450,6 @@ class TestKnockoutEvaluator(unittest.TestCase):
         self.assertEquals(fitness, 0)
 
 
-
 class TestWrappedEvaluator(unittest.TestCase):
     def test_initializer(self):
         def evaluation_function(x):
@@ -526,7 +529,11 @@ class TestGenerators(unittest.TestCase):
         self.assertEqual(len(candidate['test_key_2']), 5)
 
     def test_fixed_size_set_generator(self):
+        candidates_file = os.path.join(CURRENT_PATH, "data", "fix_size_candidates.pkl")
+        self.random.seed(SEED)
         self.args.setdefault('variable_size', False)
+
+        candidates = []
 
         self.args['max_size'] = 10
         for _ in range(1000):
@@ -534,6 +541,15 @@ class TestGenerators(unittest.TestCase):
             self.assertEqual(len(candidate), 10)
             candidate = unique_set_generator(self.random, self.args)
             self.assertEqual(len(candidate), 10)
+            candidates.append(candidate)
+
+        with open(candidates_file, 'rb') as in_file:
+            if six.PY3:
+                expected_candidates = pickle.load(in_file, encoding="latin1")
+            else:
+                expected_candidates = pickle.load(in_file)
+
+        self.assertEqual(candidates, expected_candidates)
 
         self.args['max_size'] = 20
         for _ in range(1000):
@@ -543,14 +559,25 @@ class TestGenerators(unittest.TestCase):
             self.assertEqual(len(candidate), 20)
 
     def test_variable_size_set_generator(self):
+        candidates_file = os.path.join(CURRENT_PATH, "data", "variable_size_candidates.pkl")
         self.args.setdefault('variable_size', True)
-
+        self.random.seed(SEED)
+        candidates = []
         self.args['max_size'] = 10
         for _ in range(1000):
             candidate = set_generator(self.random, self.args)
             self.assertLessEqual(len(candidate), 10)
             candidate = unique_set_generator(self.random, self.args)
             self.assertLessEqual(len(candidate), 10)
+            candidates.append(candidate)
+
+        with open(candidates_file, 'rb') as in_file:
+            if six.PY3:
+                expected_candidates = pickle.load(in_file, encoding="latin1")
+            else:
+                expected_candidates = pickle.load(in_file)
+
+        self.assertEqual(candidates, expected_candidates)
 
         self.args['max_size'] = 20
         for _ in range(1000):
@@ -561,7 +588,7 @@ class TestGenerators(unittest.TestCase):
 
     def test_fixed_size_linear_set_generator(self):
         ec = self.mockup_evolutionary_algorithm(Bounder(-10, 10))
-        self.args.setdefault('variable_size', True)
+        self.args.setdefault('variable_size', False)
         self.args['max_size'] = 10
         self.args['_ec'] = ec
         for _ in range(1000):
@@ -588,17 +615,14 @@ class TestHeuristicOptimization(unittest.TestCase):
             objective_function=self.single_objective_function
         )
 
-        self.assertIsNot(heuristic_optimization.seed, SEED)
         self.assertEqual(heuristic_optimization.model, self.model)
         self.assertEqual(heuristic_optimization.objective_function, self.single_objective_function)
 
         heuristic_optimization = HeuristicOptimization(
             model=self.model,
             objective_function=self.single_objective_function,
-            seed=SEED
         )
 
-        self.assertEqual(heuristic_optimization.seed, SEED)
         self.assertEqual(heuristic_optimization.model, self.model)
         self.assertEqual(heuristic_optimization.objective_function, self.single_objective_function)
 
@@ -609,7 +633,6 @@ class TestHeuristicOptimization(unittest.TestCase):
             heuristic_method=inspyred.ec.emo.NSGA2
         )
 
-        self.assertIsNot(heuristic_optimization.seed, SEED)
         self.assertEqual(heuristic_optimization.model, self.model)
         self.assertEqual(len(heuristic_optimization.objective_function), 2)
 
@@ -617,10 +640,8 @@ class TestHeuristicOptimization(unittest.TestCase):
             model=self.model,
             objective_function=self.multiobjective_function,
             heuristic_method=inspyred.ec.emo.NSGA2,
-            seed=SEED
         )
 
-        self.assertEqual(heuristic_optimization.seed, SEED)
         self.assertEqual(heuristic_optimization.model, self.model)
         self.assertEqual(len(heuristic_optimization.objective_function), 2)
 
@@ -777,14 +798,13 @@ class TestReactionKnockoutOptimization(unittest.TestCase):
 
     def test_initialize(self):
         rko = ReactionKnockoutOptimization(model=self.model,
-                                           simulation_method=fba,
-                                           seed=SEED)
+                                           simulation_method=fba)
 
         self.assertTrue(sorted(self.essential_reactions) == sorted(rko.essential_reactions))
         self.assertEqual(rko._ko_type, "reaction")
         self.assertTrue(isinstance(rko._decoder, ReactionKnockoutDecoder))
 
-    @unittest.skipIf(True, 'Broken ..')
+    @unittest.skipIf(os.getenv('TRAVIS', False), 'Broken ..')
     def test_run_single_objective(self):
         result_file = os.path.join(CURRENT_PATH, "data", "reaction_knockout_single_objective.pkl")
         objective = biomass_product_coupled_yield(
@@ -794,10 +814,9 @@ class TestReactionKnockoutOptimization(unittest.TestCase):
 
         rko = ReactionKnockoutOptimization(model=self.model,
                                            simulation_method=fba,
-                                           objective_function=objective,
-                                           seed=SEED)
+                                           objective_function=objective)
 
-        results = rko.run(max_evaluations=3000, pop_size=10, view=SequentialView())
+        results = rko.run(max_evaluations=3000, pop_size=10, view=SequentialView(), seed=SEED)
 
         with open(result_file, 'rb') as in_file:
             if six.PY3:
@@ -805,9 +824,9 @@ class TestReactionKnockoutOptimization(unittest.TestCase):
             else:
                 expected_results = pickle.load(in_file)
 
-        assert_frame_equal(results._solutions, expected_results)
+        assert_frame_equal(results.data_frame, expected_results.data_frame)
 
-    @unittest.skipIf(True, 'Broken ..')
+    @unittest.skipIf(os.getenv('TRAVIS', False), 'Broken ..')
     def test_run_multiobjective(self):
         result_file = os.path.join(CURRENT_PATH, "data", "reaction_knockout_multi_objective.pkl")
         objective1 = biomass_product_coupled_yield(
@@ -821,10 +840,9 @@ class TestReactionKnockoutOptimization(unittest.TestCase):
         rko = ReactionKnockoutOptimization(model=self.model,
                                            simulation_method=fba,
                                            objective_function=objective,
-                                           heuristic_method=inspyred.ec.emo.NSGA2,
-                                           seed=SEED)
+                                           heuristic_method=inspyred.ec.emo.NSGA2)
 
-        results = rko.run(max_evaluations=3000, pop_size=10, view=SequentialView())
+        results = rko.run(max_evaluations=3000, pop_size=10, view=SequentialView(), seed=SEED)
 
         with open(result_file, 'rb') as in_file:
             if six.PY3:
@@ -832,7 +850,7 @@ class TestReactionKnockoutOptimization(unittest.TestCase):
             else:
                 expected_results = pickle.load(in_file)
 
-        assert_frame_equal(results.solutions, expected_results.solutions)
+        assert_frame_equal(results.data_frame, expected_results.data_frame)
 
     def test_evaluator(self):
         pass
