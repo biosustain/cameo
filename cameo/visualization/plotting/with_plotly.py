@@ -295,7 +295,7 @@ class PlotlyPlotter(AbstractPlotter):
         indice = dataframe.index.tolist()
         traces = []
 
-        for index, color in zip(indice , self._palette(palette, len(indice))):
+        for index, color in zip(indice, self._palette(palette, len(indice))):
             y = dataframe.loc[index]
             x = list(range(len(y)))
             traces.append(go.Scatter(x=x, y=y, mode='lines', name=index))
@@ -315,8 +315,6 @@ class PlotlyPlotter(AbstractPlotter):
         else:
             plot = go.Figure(data=traces, layout=layout)
         return plot
-
-
 
     @property
     def _display(self):
