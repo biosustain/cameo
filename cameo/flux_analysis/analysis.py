@@ -510,7 +510,6 @@ class PhenotypicPhasePlaneResult(Result):
             notice("Multi-dimensional plotting is not supported")
             return
 
-
         if grid is None:
             plotter.display(plot)
 

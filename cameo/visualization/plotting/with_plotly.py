@@ -284,6 +284,40 @@ class PlotlyPlotter(AbstractPlotter):
             plot = go.Figure(data=data, layout=layout)
         return plot
 
+    def line(self, dataframe, width=None, height=None, palette=None, title="Line",
+             x_axis_label=None, y_axis_label=None, grid=None):
+
+        palette = self.get_option('palette') if palette is None else palette
+        width = self.get_option('width') if width is None else width
+
+        width, height = self.golden_ratio(width, height)
+
+        indice = dataframe.index.tolist()
+        traces = []
+
+        for index, color in zip(indice , self._palette(palette, len(indice))):
+            y = dataframe.loc[index]
+            x = list(range(len(y)))
+            traces.append(go.Scatter(x=x, y=y, mode='lines', name=index))
+
+        layout = go.Layout(
+            title=title,
+            xaxis=dict(title=x_axis_label),
+            yaxis=dict(title=y_axis_label),
+            width=width,
+            height=height,
+        )
+
+        if grid is not None:
+            plot = self.Figure(data=traces, layout=layout)
+            grid.append(plot)
+            return grid
+        else:
+            plot = go.Figure(data=traces, layout=layout)
+        return plot
+
+
+
     @property
     def _display(self):
         if self.get_option('mode') is "offline":

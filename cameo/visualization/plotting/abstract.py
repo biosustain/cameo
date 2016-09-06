@@ -201,6 +201,49 @@ class AbstractPlotter(object):
         """
         raise NotImplementedError
 
+    def line(self, dataframe, width=None, height=None, palette=None, title="Line",
+             x_axis_label=None, y_axis_label=None, grid=None):
+        """
+        Plots lines for series of data.
+
+        The DataFrame format is:
+            index     c1     c2     cn
+            1         0      12     100
+            2         0      11     0
+            3         -10    0      1
+            4         0      1      -10
+
+        Arguments
+        ---------
+        dataframe: pandas.DataFrame
+            The data to plot.
+        grid: AbstractGrid
+            An instance of AbstractGrid compatible with the plotter implementation. see AbstractPlotter.grid
+        width: int
+            Plot width
+        height: int
+            Plot height
+        title:
+            Plot title
+        palette: list
+            see color brewer
+        x_axis_label: str
+            X-axis label
+        y_axis_label: str
+            Y-axis label
+
+        Returns
+        -------
+        a displayable object.
+            If a grid is given, returns the grid with the plot in it's specific position.
+
+        See Also
+        --------
+        AbstractPlotter.display
+        """
+
+        raise NotImplementedError
+
     @property
     def _display(self):
         raise NotImplementedError
