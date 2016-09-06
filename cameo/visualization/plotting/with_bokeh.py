@@ -14,16 +14,20 @@
 from __future__ import absolute_import
 
 import six
+from bokeh.charts import Line
 from bokeh.models import GridPlot, FactorRange
 from bokeh.plotting import figure, show
 
-from cameo.util import partition, inheritdocstring
+from cameo.util import partition, inheritdocstring, in_ipnb
 from cameo.visualization.plotting.abstract import AbstractPlotter
 
 
 @six.add_metaclass(inheritdocstring)
 class BokehPlotter(AbstractPlotter):
     def __init__(self, **options):
+        if in_ipnb():
+            from bokeh.io import output_notebook
+            output_notebook(hide_banner=True)
         super(BokehPlotter, self).__init__(**options)
 
     def _add_fva_bars(self, plot, factors, dataframe, height, step, color, strain):
@@ -110,6 +114,26 @@ class BokehPlotter(AbstractPlotter):
             return grid
 
         return plot
+
+    def line(self, dataframe, width=None, height=None, palette=None, title="Line",
+             x_axis_label=None, y_axis_label=None, grid=None):
+
+        palette = self.get_option('palette') if palette is None else palette
+        width = self.get_option('width') if width is None else width
+
+        if not height:
+            width, height = self.golden_ratio(width, height)
+
+        palette = self._palette(palette, len(dataframe.index))
+
+        line = Line(dataframe.T, legend="top_right", color=palette, ylabel=y_axis_label, xlabel=y_axis_label,
+                    title=title, width=width, height=height)
+
+        if grid is not None:
+            grid.append(line)
+            return grid
+
+        return line
 
     @property
     def _display(self):

@@ -753,8 +753,14 @@ class FSEOFResult(StrainDesignResult):
 
     __method_name__ = "FSEOF"
 
-    def plot(self, grid=None, width=None, height=None, title=None):
-        pass
+    def plot(self, grid=None, width=None, height=None, title=None, *args, **kwargs):
+        if title is None:
+            title = "FSEOF fluxes"
+
+        plot = plotter.line(self.data_frame, grid=grid, width=width, height=height, title=title, **kwargs)
+
+        if grid is None:
+            plotter.display(plot)
 
     def __init__(self, reactions, target, model, primary_objective, enforced_levels, reaction_results,
                  run_args, reference, *args, **kwargs):
