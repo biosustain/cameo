@@ -292,13 +292,12 @@ class PlotlyPlotter(AbstractPlotter):
 
         width, height = self.golden_ratio(width, height)
 
-        indice = dataframe.index.tolist()
         traces = []
 
-        for index, color in zip(indice, self._palette(palette, len(indice))):
-            y = dataframe.loc[index]
+        for i, color in zip(dataframe.index, self._palette(palette, len(dataframe.index))):
+            y = dataframe.loc[i]
             x = list(range(len(y)))
-            traces.append(go.Scatter(x=x, y=y, mode='lines', name=index))
+            traces.append(go.Scatter(x=x, y=y, mode='lines', name=i))
 
         layout = go.Layout(
             title=title,
