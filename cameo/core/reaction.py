@@ -357,7 +357,7 @@ class Reaction(_cobrapy.core.Reaction):
 
     @property
     def reduced_cost(self):
-        if self.model is not None:
+        if self.model is not None and self.forward_variable.dual is not None:
             return self.forward_variable.dual - self.reverse_variable.dual
         else:
             return None
