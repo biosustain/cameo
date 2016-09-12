@@ -392,25 +392,11 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
         medium_reactions = [self.model.reactions.get_by_id(reaction) for
                             reaction in self.model.medium.reaction_id]
         source_reactions = [reaction for reaction in medium_reactions if
-                            (self.n_carbon_reaction(reaction) > 0) and
+                            (reaction.n_carbon() > 0) and
                             (reaction.flux < 0)]
         if len(source_reactions) == 0:
             raise NoSourceError()
         return source_reactions
-
-    @classmethod
-    def n_carbon(cls, metabolite):
-        """ :return: int, number of carbons in metabolite"""
-        try:
-            return metabolite.elements['C']
-        except KeyError:
-            return 0
-
-    @classmethod
-    def n_carbon_reaction(cls, reaction):
-        """ :return: int, number of carbons for all metabolites involved in
-        a reaction """
-        return sum([cls.n_carbon(m) for m in reaction.metabolites])
 
     @classmethod
     def total_flux(cls, reactions, by_carbon=True):
@@ -425,8 +411,7 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
         for rxn in reactions:
             carbon = 1
             if by_carbon:
-                carbon = sum([cls.n_carbon(metabolite) for metabolite
-                              in rxn.reactants])
+                carbon = sum(metabolite.n_carbon() for metabolite in rxn.reactants)
             try:
                 flux += rxn.flux * carbon
             except AssertionError:
@@ -464,7 +449,6 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
                         len(source_reactions[0].metabolites) > 1,
                         len(self.product_reactions[0].metabolites) > 1)
             if any(too_long):
-                print(source_reactions)
                 return None
             source_flux = self.total_flux(source_reactions, False)
             product_flux = self.total_flux(self.product_reactions, False)
