@@ -45,6 +45,9 @@ __all__ = ['find_blocked_reactions', 'flux_variability_analysis', 'phenotypic_ph
            'flux_balance_impact_degree']
 
 
+class NoSourceError(Exception):
+    pass
+
 def find_blocked_reactions(model):
     """Determine reactions that cannot carry steady-state flux.
 
@@ -388,9 +391,12 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
         flux """
         medium_reactions = [self.model.reactions.get_by_id(reaction) for
                             reaction in self.model.medium.reaction_id]
-        return [reaction for reaction in medium_reactions if
-                (self.n_carbon_reaction(reaction) > 0) and
-                (reaction.flux < 0)]
+        source_reactions = [reaction for reaction in medium_reactions if
+                            (self.n_carbon_reaction(reaction) > 0) and
+                            (reaction.flux < 0)]
+        if len(source_reactions) == 0:
+            raise NoSourceError()
+        return source_reactions
 
     @classmethod
     def n_carbon(cls, metabolite):
@@ -421,7 +427,11 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
             if by_carbon:
                 carbon = sum([cls.n_carbon(metabolite) for metabolite
                               in rxn.reactants])
-            flux += rxn.flux * carbon
+            try:
+                flux += rxn.flux * carbon
+            except AssertionError:
+                # optimized flux can be out of bounds, in that case treat as zero flux
+                return 0
         return flux
 
     def carbon_yield(self):
@@ -434,7 +444,7 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
             carbon_input_flux = self.total_flux(self.c_source_reactions())
             carbon_output_flux = self.total_flux(self.product_reactions)
             return carbon_output_flux / (carbon_input_flux * -1)
-        except (Infeasible, UndefinedSolution):
+        except (Infeasible, UndefinedSolution, ZeroDivisionError, NoSourceError):
             return 0
 
     def mass_yield(self):
@@ -454,6 +464,7 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
                         len(source_reactions[0].metabolites) > 1,
                         len(self.product_reactions[0].metabolites) > 1)
             if any(too_long):
+                print(source_reactions)
                 return None
             source_flux = self.total_flux(source_reactions, False)
             product_flux = self.total_flux(self.product_reactions, False)
@@ -463,7 +474,7 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
             product_mass = product_metabolite.formula_weight
             source_mass = source_metabolite.formula_weight
             return (mol_prod_mol_src * product_mass) / source_mass
-        except (Infeasible, UndefinedSolution):
+        except (Infeasible, UndefinedSolution, ZeroDivisionError, NoSourceError):
             return 0
 
     def __call__(self, points):
