@@ -48,6 +48,13 @@ class Metabolite(cobra.core.Metabolite):
         super(Metabolite, self).remove_from_model(method, **kwargs)
         model.solver.remove(model.solver.constraints[self.id])
 
+    def n_carbon(self):
+        """ :return: int, number of carbons in metabolite"""
+        try:
+            return self.elements['C']
+        except KeyError:
+            return 0
+
     @property
     def n_carbon(self):
         """number of carbon atoms
