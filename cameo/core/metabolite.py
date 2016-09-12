@@ -16,7 +16,6 @@ from functools import partial
 
 import cobra
 import six
-
 from cameo.util import inheritdocstring
 
 logger = logging.getLogger(__name__)

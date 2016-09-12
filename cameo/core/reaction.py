@@ -503,6 +503,11 @@ class Reaction(_cobrapy.core.Reaction):
         """
         return sum(metabolite.n_carbon for metabolite in self.metabolites)
 
+    def n_carbon(self):
+        """ :return: int, number of carbons for all metabolites involved in
+        a reaction """
+        return sum(metabolite.n_carbon() for metabolite in self.metabolites)
+
     def _repr_html_(self):
         return """
         <table>
