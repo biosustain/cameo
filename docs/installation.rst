@@ -16,6 +16,14 @@ be installed using virtualenv-burrito_. Once you installed virtualenv_ and virtu
 
 and then continue with the installation instructions described below.
 
+Alternatively you could use `conda` if you're already an anaconda user (there is no conda recipe for cameo though so you'll
+still need install using `pip`).
+
+.. code-block:: bash
+
+    $ mkvirtualenv cameo  # or whatever you'd like to call your virtual environment
+    $ workon cameo
+
 Non-python dependencies
 =======================
 
