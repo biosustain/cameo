@@ -26,5 +26,7 @@ we suggest you work through the following material.
     11-multiprocess
     12-advanced-usage-of-heuristic-optimization.rst
 
+Furthermore, course materials are available for a 2-day course in [cell factory engineering](https://biosustain.github.io/cell-factory-design-course/).
+
 .. _try.cameo.bio: http://try.cameo.bio
 .. _Jupyter: http://jupyter.org/

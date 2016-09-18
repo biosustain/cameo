@@ -14,7 +14,7 @@ clusters using the IPython parallelization framework (see example and
 documentation for more details). The default fallback is python's
 multiprocessing library.
 
-Furthermore, it will expose a high-level API to users that simply want to compute
+Furthermore, it will expose (in the near future) a high-level API to users that simply want to compute
 promising strain designs (work in progress ...).
 
 ::
