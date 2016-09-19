@@ -387,8 +387,10 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
     def c_source_reactions(self):
         """ carbon source reactions
 
-        :return: reactions, the medium reaction currently with negative
-        flux """
+        Returns
+        -------
+        list
+           list of media reaction currently with negative flux """
         medium_reactions = [self.model.reactions.get_by_id(reaction) for
                             reaction in self.model.medium.reaction_id]
         source_reactions = [reaction for reaction in medium_reactions if
@@ -402,11 +404,18 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
     def total_flux(cls, reactions, by_carbon=True):
         """ sum flux for reactions
 
-        :param reactions: the reactions to sum flux for
-        :param by_carbon: return flux of carbon instead of summed metabolites
+        Parameters
+        ----------
+        reactions : list
+            list of reactions the reactions to sum flux for
 
-        :return: float, summed flux for a set of reactions. Possibly the
-        flux of carbon """
+        by_carbon : bool
+            return flux of carbon instead of summed metabolites
+
+        Returns
+        -------
+        float
+            summed flux for a set of reactions. Possibly the flux of carbon """
         flux = 0
         for rxn in reactions:
             carbon = 1
@@ -422,9 +431,11 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
     def carbon_yield(self):
         """ mol product per mol carbon input
 
-        :returns: float, the mol carbon atoms in the product (as defined by
-        the model objective) divided by the mol carbon in the input
-        reactions (as defined by the model medium) """
+        Returns
+        -------
+        float
+            the mol carbon atoms in the product (as defined by the model objective) divided by the mol carbon in the
+            input reactions (as defined by the model medium) """
         try:
             carbon_input_flux = self.total_flux(self.c_source_reactions())
             carbon_output_flux = self.total_flux(self.product_reactions)
@@ -439,8 +450,10 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
         objective) and only one compound as carbon source (as defined by the
         model medium).
 
-         :returns: float, gram product per 1 g of feeding source or None if
-         more than one product or feeding source
+        Returns
+        -------
+        float
+            gram product per 1 g of feeding source or None if more than one product or feeding source
         """
         try:
             source_reactions = self.c_source_reactions()
@@ -575,25 +588,26 @@ class PhenotypicPhasePlaneResult(Result):
 
         create a plot of a phenotypic phase plane analysis
 
-        :param grid: the grid for plotting
-
-        :param width: the width of the plot
-
-        :param height: the height of the plot
-
-        :param title: the height of the plot
-
-        :param axis_font_size: the font sizes for the axis
-
-        :param palette: name of color palette to use, e.g. RdYlBlu
-
-        :param points: additional points to plot as x, y iterable
-
-        :param points_colors: iterable with colors for the points
-
-        :param estimate: either flux, mass_yield (g output / g output) or
-        c_yield (mol carbon output / mol carbon input)
-
+        Parameters
+        ----------
+        grid: plotting grid
+            the grid for plotting
+        param: int
+            the width of the plot
+        height: int
+            the height of the plot
+        title: string
+            the height of the plot
+        axis_font_size: int
+            the font sizes for the axis
+        palette: string
+            name of color palette to use, e.g. RdYlBlu
+        points: iterable of points
+            additional points to plot as x, y iterable
+        points_colors: iterable of strings
+            iterable with colors for the points
+        estimate: string
+            either flux, mass_yield (g output / g output) or c_yield (mol carbon output / mol carbon input)
         """
         possible_estimates = {'flux': ('flux_upper_bound',
                                        'flux_lower_bound',
