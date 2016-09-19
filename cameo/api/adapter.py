@@ -15,9 +15,12 @@ def get_existing_metabolite(mnx_id, model, compartment):
 
     Parameters
     ----------
-    mnx_id - Metanetx id
-    model - cobra model
-    compartment - f.e "_c"
+    mnx_id : string
+        Metanetx id
+    model
+        cobra model
+    compartment : string
+        f.e "_c"
 
     Returns
     -------
@@ -45,10 +48,15 @@ def contains_carbon(metabolite):  # TODO: use method from Metabolite class when 
 def find_metabolite_info(met_id):
     """Find chemical formula of metabolite in metanetx.chem_prop dictionary
 
-    :param met_id: string of format "<metabolite_id>_<compartment_id>", where <metabolite_id> is a BIGG id or a
-    Metanetx id
+    Parameters
+    ----------
+    met_id : string
+        string of format "<metabolite_id>_<compartment_id>", where <metabolite_id> is a BIGG id or a Metanetx id
 
-    :return:
+    Returns
+    -------
+    pandas row or None
+
     """
     met_id = met_id[:-2]
     try:
@@ -72,9 +80,16 @@ class ModelModification(object):
         b) adapter reaction A_c <--> A_e
         c) exchange reaction A_e -->
 
-        :param metabolite: metabolite id in format <bigg_id>_c, f.e. Nacsertn_c
-        :param gene_name: gene associated with the metabolite
-        :return:
+        Parameters
+        ----------
+        gene_name : string
+            metabolite id in format <bigg_id>_c, f.e. Nacsertn_c
+        metabolite : Metabolite
+            gene associated with the metabolite
+
+        Returns
+        -------
+
         """
         exchange_metabolite = Metabolite(metabolite.id.replace('_c', '_e'), formula=metabolite.formula, compartment='e')
         self.add_adapter_reaction(metabolite, exchange_metabolite, gene_name)
@@ -84,8 +99,14 @@ class ModelModification(object):
         """Add exchange reaction "A --> " for given metabolite A
          If reaction exists, log and pass
 
-        :param metabolite: metabolite id in format <bigg_id>_<compartment_id>, f.e. Nacsertn_c
-        :return:
+        Parameters
+        ----------
+        metabolite : basestring
+            metabolite id in format <bigg_id>_<compartment_id>, f.e. Nacsertn_c
+
+        Returns
+        -------
+
         """
         try:
             logger.debug('Add exchange reaction for metabolite: {}'.format(metabolite.id))
@@ -97,10 +118,18 @@ class ModelModification(object):
     def add_adapter_reaction(self, metabolite, existing_metabolite, gene_name):
         """Add adapter reaction A <--> B for metabolites A and B
 
-        :param metabolite: metabolites A
-        :param existing_metabolite: metabolites B
-        :param gene_name: gene associated with the metabolites
-        :return:
+        Parameters
+        ----------
+        metabolite : Metabolite
+            metabolite A
+        existing_metabolite : Metabolite
+            metabolite B
+        gene_name : basestring
+            gene associated with the metabolites
+
+        Returns
+        -------
+
         """
         try:
             adapter_reaction = Reaction(str('adapter_' + metabolite.id + '_' + existing_metabolite.id))
@@ -117,8 +146,14 @@ class ModelModification(object):
         """For metabolite in e compartment with existing exchange reaction, make it possible to consume metabolite
         by decreasing the lower bound of exchange reaction
 
-        :param metabolite: metabolite from e compartment, f.e. melatn_e
-        :return:
+        Parameters
+        ----------
+        metabolite : Metabolite
+            metabolite from e compartment, f.e. melatn_e
+
+        Returns
+        -------
+
         """
         exchange_reaction = list(set(metabolite.reactions).intersection(self.model.exchanges))[0]
         if exchange_reaction.lower_bound >= 0:
@@ -128,8 +163,14 @@ class ModelModification(object):
     def annotate_new_metabolite(metabolite):
         """Find information about new metabolite in chem_prop dictionary and add it to model
 
-        :param metabolite: new metabolite
-        :return:
+        Parameters
+        ----------
+        metabolite : Metabolite
+            new metabolite
+
+        Returns
+        -------
+
         """
         info = find_metabolite_info(metabolite.id)
         if info is not None:
