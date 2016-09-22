@@ -35,6 +35,7 @@ from ordered_set import OrderedSet
 from pandas.util.testing import assert_frame_equal
 
 from cameo import load_model, fba, config
+from cameo.util import TimeMachine
 from cameo.parallel import SequentialView, RedisQueue
 from cameo.strain_design.heuristic.evolutionary.archives import Individual, BestSolutionArchive
 from cameo.strain_design.heuristic.evolutionary.decoders import ReactionKnockoutDecoder, KnockoutDecoder, \
@@ -48,7 +49,8 @@ from cameo.strain_design.heuristic.evolutionary.multiprocess.migrators import Mu
 from cameo.strain_design.heuristic.evolutionary.objective_functions import biomass_product_coupled_yield, \
     product_yield, number_of_knockouts, biomass_product_coupled_min_yield
 from cameo.strain_design.heuristic.evolutionary.optimization import HeuristicOptimization, \
-    ReactionKnockoutOptimization, set_distance_function, KnockoutOptimizationResult, EvaluatorWrapper, KnockoutEvaluator
+    ReactionKnockoutOptimization, set_distance_function, KnockoutOptimizationResult, EvaluatorWrapper, \
+    KnockoutEvaluator, SwapperModel, NADH_NADPH, SwapEvaluator
 from cameo.strain_design.heuristic.evolutionary.variators import _do_set_n_point_crossover, set_n_point_crossover, \
     set_mutation, set_indel, multiple_chromosome_set_mutation, multiple_chromosome_set_indel
 from cameo.util import RandomGenerator as Random
@@ -468,6 +470,38 @@ class TestWrappedEvaluator(unittest.TestCase):
         self.assertRaises(ValueError, EvaluatorWrapper, lambda x: 1, config.default_view)
         self.assertRaises(ValueError, EvaluatorWrapper, None, lambda x: 1)
         self.assertRaises(ValueError, EvaluatorWrapper, 123, lambda x: 1)
+
+
+class TestSwapEvaluator(unittest.TestCase):
+    def test_swapper(self):
+        swapper_model = SwapperModel(TEST_MODEL, NADH_NADPH)
+        expected_reactions = ['ACALD', 'AKGDH', 'ALCD2x', 'G6PDH2r', 'GAPD', 'GLUDy', 'GLUSy', 'GND', 'ICDHyr',
+                              'LDH_D', 'MDH', 'ME1', 'ME2', 'NADH16', 'PDH']
+        result = list(swapper_model.swapped_reactions.keys())
+        result.sort()
+        swapper_model.add_swap_reaction('PGI')
+        swapper_model.swap_reaction('GAPD')
+        swapper_model.remove_swap_reaction('PDH')
+        with TimeMachine() as tm:
+            swapper_model.swap_reaction('MDH', tm)
+        self.assertEquals(swapper_model.reactions.MDH.upper_bound, 1000.)
+        self.assertEquals(expected_reactions, result)
+        self.assertEquals(swapper_model.reactions.ACALD_swap.upper_bound, 0.)
+        self.assertEquals(swapper_model.reactions.GAPD.upper_bound, 0.)
+        self.assertEquals(swapper_model.reactions.GAPD_swap.upper_bound, 1000.)
+        self.assertTrue('PGI' not in swapper_model.swapped_reactions)
+        self.assertTrue('PDH' not in swapper_model.swapped_reactions)
+
+    def test_evaluate_swap(self):
+        TEST_MODEL.objective = TEST_MODEL.reactions.EX_etoh_LPAREN_e_RPAREN_
+        py = product_yield(TEST_MODEL.reactions.EX_etoh_LPAREN_e_RPAREN_, TEST_MODEL.reactions.EX_glc_LPAREN_e_RPAREN_)
+        swapper_model = SwapperModel(TEST_MODEL, NADH_NADPH)
+        reactions = ['ACALD', 'AKGDH', 'ALCD2x', 'G6PDH2r', 'GAPD', 'GLUDy', 'GLUSy', 'GND', 'ICDHyr',
+                     'LDH_D', 'MDH', 'ME1', 'ME2', 'NADH16', 'PDH']
+        decoder = ReactionKnockoutDecoder(reactions, swapper_model)
+        evaluator = SwapEvaluator(swapper_model, decoder, py, fba, {})
+        fitness = evaluator([[0, 7]])[0]
+        self.assertAlmostEqual(fitness, 2.0)
 
 
 class TestDecoders(unittest.TestCase):

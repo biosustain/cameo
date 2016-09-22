@@ -210,6 +210,7 @@ class product_yield(ObjectiveFunction):
 
     def __call__(self, model, solution, decoded_representation):
         try:
+            # this should be adjusted for carbon content?
             product_flux = round(solution.fluxes[self.product], config.ndecimals)
             substrate_flux = round(abs(solution.fluxes[self.substrate]), config.ndecimals)
             return round(product_flux / substrate_flux, config.ndecimals)

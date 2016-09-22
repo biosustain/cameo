@@ -370,9 +370,9 @@ class SwapEvaluator(KnockoutEvaluator):
     @memoize
     def _evaluate_individual(self, individual):
         decoded = self.decoder(individual)
-        swappable_reactions = decoded[0]
+        swap_reactions = decoded[0]
         with TimeMachine() as tm:
-            for reaction in swappable_reactions:
+            for reaction in swap_reactions:
                 self.model.swap_reaction(reaction.id, tm)
             try:
                 solution = self.simulation_method(self.model,
