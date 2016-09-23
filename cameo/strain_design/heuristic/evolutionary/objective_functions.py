@@ -186,6 +186,8 @@ class product_yield(ObjectiveFunction):
     """
     Product Yield Objective function: v[product]/v[substrate]
 
+    scaled to carbon content if the product and substrate are given as `Reaction` objects
+
     Parameters
     ----------
     product: str or Reaction
@@ -202,17 +204,18 @@ class product_yield(ObjectiveFunction):
     def __init__(self, product, substrate, *args, **kwargs):
         super(product_yield, self).__init__(*args, **kwargs)
         if isinstance(product, Reaction):
+            self.n_c_product = product.reactants[0].elements.get('C', 1)
             product = product.id
         self.product = product
         if isinstance(substrate, Reaction):
+            self.n_c_substrate = substrate.reactants[0].elements.get('C', 1)
             substrate = substrate.id
         self.substrate = substrate
 
     def __call__(self, model, solution, decoded_representation):
         try:
-            # this should be adjusted for carbon content?
-            product_flux = round(solution.fluxes[self.product], config.ndecimals)
-            substrate_flux = round(abs(solution.fluxes[self.substrate]), config.ndecimals)
+            product_flux = round(solution.fluxes[self.product], config.ndecimals) * self.n_c_product
+            substrate_flux = round(abs(solution.fluxes[self.substrate]), config.ndecimals) * self.n_c_substrate
             return round(product_flux / substrate_flux, config.ndecimals)
         except ZeroDivisionError:
             return 0.0

@@ -501,7 +501,7 @@ class TestSwapEvaluator(unittest.TestCase):
         decoder = ReactionKnockoutDecoder(reactions, swapper_model)
         evaluator = SwapEvaluator(swapper_model, decoder, py, fba, {})
         fitness = evaluator([[0, 7]])[0]
-        self.assertAlmostEqual(fitness, 2.0)
+        self.assertAlmostEqual(fitness, 0.66667, places=3)
 
 
 class TestDecoders(unittest.TestCase):
