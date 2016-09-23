@@ -1006,9 +1006,7 @@ class SwapperModel(SolverBasedModel):
         from_reaction = self.reactions.get_by_id(reaction_id)
         to_reaction = self.swapped_reactions[reaction_id]
         if abs(from_reaction.lower_bound) < 1e-6 and abs(from_reaction.upper_bound) < 1e-6:
-            tmp_reaction = from_reaction
-            from_reaction = to_reaction
-            to_reaction = tmp_reaction
+            from_reaction, to_reaction = to_reaction, from_reaction
 
         def do_change(reaction_a, reaction_b, ub, lb):
             reaction_b.upper_bound = ub
