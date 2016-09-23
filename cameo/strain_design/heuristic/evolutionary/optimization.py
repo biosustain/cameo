@@ -855,8 +855,7 @@ class CofactorSwapOptimization(KnockoutOptimization):
     co-factor. This class implements a search for reactions when swapped improve the given objective. Briefly,
     the approach is to
 
-    - find reactions that can safely be swapped e.g. (nad_c -> nadp_c, nadh_c -> nadph_c) without resulting in an
-      infeasible model
+    - find reactions that have all the targeted co-factor pairs e.g. (nad_c -> nadp_c, nadh_c -> nadph_c)
 
     - add reactions that have the co-factors swapped and then by a search algorithm switching one off in favor of the
       other
@@ -890,11 +889,13 @@ class CofactorSwapOptimization(KnockoutOptimization):
     Examples
     --------
     >>> from cameo import models
+    >>> from cameo.strain_design.heuristic.evolutionary.objective_functions import product_yield
     >>> model = models.bigg.iJO1366
-    >>> from cameo.strain_design.heuristic.evolutionary.objective_functions import biomass_product_coupled_yield
-    >>> py = biomass_product_coupled_yield(model.reactions.EX_cys__L_e, model.reactions.EX_glc__D_e)
+    >>> model.objective = model.reactions.EX_thr__L_e
+    >>> model.reactions.BIOMASS_Ec_iJO1366_core_53p95M.lower_bound = 0.1
+    >>> py = product_yield(model.reactions.EX_thr__L_e, model.reactions.EX_glc__D_e)
     >>> swap_optimization = CofactorSwapOptimization(model=model, objective_function=py)
-    >>> swap_optimization.run(max_evaluations=2000, max_size=3)
+    >>> swap_optimization.run(max_evaluations=2000, max_size=2)
     """
 
     def __init__(self, model, cofactor_id_swaps=NADH_NADPH, candidate_reactions=None,
@@ -907,8 +908,8 @@ class CofactorSwapOptimization(KnockoutOptimization):
 
 
 class SwapperModel(SolverBasedModel):
-    """
-    An extension of the `SolverBasedModel` to add functions to easily add reactions that have co-factors swapped etc.
+    """An extension of the `SolverBasedModel` to add functions to easily add reactions that have co-factors swapped
+    etc.
 
     Attributes
     ----------
@@ -996,9 +997,8 @@ class SwapperModel(SolverBasedModel):
         del self.swapped_reactions[reaction_id]
 
     def swap_reaction(self, reaction_id, time_machine=None):
-        """
-        Knock-out the native reaction in and knock-in the reaction that has the co-factors swapped. Do it in reverse
-        if the native reaction is already knocker.
+        """Knock-out the native reaction in and knock-in the reaction that has the co-factors swapped. Do it in
+        reverse if the native reaction is already knocker.
 
         Parameters
         ----------
@@ -1027,21 +1027,15 @@ class SwapperModel(SolverBasedModel):
         else:
             do_change(from_reaction, to_reaction, from_reaction.upper_bound, from_reaction.lower_bound)
 
-    def find_swappable_reactions(self, threshold=1e-6):
-        """
-        get all reactions that can be swapped, i.e. can undergo cofactor swapping without resulting in an infeasible
-        model
+    def find_swappable_reactions(self):
+        """Get all reactions that can be swapped
 
-        Parameters
-        ----------
-        threshold : float
-            how small the objective function flux can be and still considered viable
+        find reactions that have one set of the cofactors targeted for swapping and are mass balances
 
         Returns
         -------
         list
            identifiers of the reactions that safely can be swapped
-
         """
         def swap_search(metabolites):
             from_to = [all(metabolite in metabolites for metabolite in self.cofactor_swaps[0]),
@@ -1054,14 +1048,6 @@ class SwapperModel(SolverBasedModel):
                     reaction.check_mass_balance() or \
                     re.match(r'.*_swap$', reaction.id):
                 self.unswappable_reactions.append(reaction.id)
-            with TimeMachine() as tm:
-                self.add_swap_reaction(reaction.id, tm)
-                self.swap_reaction(reaction.id, tm)
-                try:
-                    solution = self.solve()
-                except SolveError:
-                    self.unswappable_reactions.append(reaction.id)
-                else:
-                    if solution.f > threshold:
-                        self.candidate_reactions.append(reaction.id)
+            else:
+                self.candidate_reactions.append(reaction.id)
 
