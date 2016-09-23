@@ -47,7 +47,7 @@ __all__ = ['ReactionKnockoutOptimization', 'GeneKnockoutOptimization']
 REACTION_KNOCKOUT_TYPE = "reaction"
 SWAP_KNOCKOUT_TYPE = "cofactor-swap"
 GENE_KNOCKOUT_TYPE = "gene"
-NADH_NADPH = [['nad_c', 'nadh_c'], ['nadp_c', 'nadph_c']]
+NADH_NADPH = (['nad_c', 'nadh_c'], ['nadp_c', 'nadph_c'])
 
 SIZE = 'Size'
 BIOMASS = 'Biomass'
@@ -871,10 +871,9 @@ class CofactorSwapOptimization(KnockoutOptimization):
     ----------
     model : SolverBasedModel
        the model to operator on
-    cofactor_id_swaps : list
-       a list of length 2 where the first element contains a list of metabolite identifiers to swap-out by replacing
-       them with the metabolites listed in the second element of the same list, see e.g. `NADH_NADPH` which is also
-       the default
+    cofactor_id_swaps : tuple
+       a tuple of length 2 that defines two lists of metabolite identifiers that should be interchanged during the
+       swap optimization see e.g. `NADH_NADPH` which is also the default.
     candidate_reactions : list
        reactions to consider for co-factor swap - if not given then search for all reactions that include the given
        cofactors
@@ -913,10 +912,9 @@ class SwapperModel(SolverBasedModel):
     ----------
     model : SolverBasedModel
        the model to convert
-    cofactor_id_swaps : list
-       a list of length 2 where the first element contains a list of metabolite identifiers to swap-out by replacing
-       them with the metabolites listed in the second element of the same list, see e.g. `NADH_NADPH` which is also
-       the default
+    cofactor_id_swaps : tuple
+       a tuple of length 2 that defines two lists of metabolite identifiers that should be interchanged during the
+       swap optimization see e.g. `NADH_NADPH` which is also the default.
     candidate_reactions : list
        reactions to consider for co-factor swap - if not given then search for all reactions that include the given
        cofactors
@@ -926,9 +924,9 @@ class SwapperModel(SolverBasedModel):
     def __init__(self, model, cofactor_id_swaps, candidate_reactions=None, skip_reactions=None):
         super(SwapperModel, self).__init__()
         self.__dict__ = model.copy().__dict__
-        check_swap = isinstance(cofactor_id_swaps, list) and len(cofactor_id_swaps) == 2
+        check_swap = isinstance(cofactor_id_swaps, tuple) and len(cofactor_id_swaps) == 2
         if not check_swap:
-            raise Exception('parameter cofactor_id_swap should be a list of length 2')
+            raise Exception('parameter cofactor_id_swap should be a tuple of length 2')
         if skip_reactions is None:
             skip_reactions = {reaction.id for reaction in model.reactions if reaction.objective_coefficient > 0}
         self.cofactor_id_swap = cofactor_id_swaps
