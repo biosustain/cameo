@@ -411,9 +411,7 @@ class KnockoutOptimization(HeuristicOptimization):
         self._simulation_method = None
         self.simulation_method = simulation_method
         self.representation = None
-        if knockout_evaluator is None:
-            knockout_evaluator = KnockoutEvaluator
-        self.knockout_evaluator = knockout_evaluator
+        self.knockout_evaluator = knockout_evaluator or KnockoutEvaluator
         self._ko_type = None
         self._decoder = None
 
