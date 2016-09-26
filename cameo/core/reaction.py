@@ -238,7 +238,6 @@ class Reaction(_cobrapy.core.Reaction):
                         self._upper_bound = value
                         reverse_variable.ub = -1 * value
             else:
-                print({'value': value, 'self._lower_bound': self._lower_bound, 'self._upper_bound': self._upper_bound})
                 raise ValueError('lower_bound issue')
 
         self._lower_bound = value
@@ -296,7 +295,6 @@ class Reaction(_cobrapy.core.Reaction):
                     forward_variable.ub = value
                     reverse_variable.lb = 0
             else:
-                print({'value': value, 'self._lower_bound': self._lower_bound, 'self._upper_bound': self._upper_bound})
                 raise ValueError('upper_bound issue')
 
         self._upper_bound = value
@@ -357,7 +355,7 @@ class Reaction(_cobrapy.core.Reaction):
 
     @property
     def reduced_cost(self):
-        if self.model is not None:
+        if self.model is not None and self.forward_variable.dual is not None:
             return self.forward_variable.dual - self.reverse_variable.dual
         else:
             return None
