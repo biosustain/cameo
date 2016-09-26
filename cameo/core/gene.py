@@ -74,13 +74,20 @@ class Gene(cobra.core.Gene):
         None
         """
 
-        from cobra.manipulation.delete import find_gene_knockout_reactions
-        for reaction in find_gene_knockout_reactions(self.model, [self]):
-            def _(reaction, lb, ub):
-                reaction.upper_bound = ub
-                reaction.lower_bound = lb
+        if time_machine:
+            time_machine(do=partial(setattr, self, 'functional', False),
+                         undo=partial(setattr, self, 'functional', True))
+        else:
+            self.functional = False
 
-            if time_machine is not None:
-                time_machine(do=reaction.knock_out, undo=partial(_, reaction, reaction.lower_bound, reaction.upper_bound))
-            else:
-                reaction.knock_out()
+        for reaction in self.reactions:
+            if reaction.functional:
+                def _(reaction, lb, ub):
+                    reaction.upper_bound = ub
+                    reaction.lower_bound = lb
+
+                if time_machine is not None:
+                    time_machine(do=reaction.knock_out,
+                                 undo=partial(_, reaction, reaction.lower_bound, reaction.upper_bound))
+                else:
+                    reaction.knock_out()

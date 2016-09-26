@@ -30,6 +30,7 @@ import cobra
 import optlang
 import six
 import sympy
+from cobra.manipulation import find_gene_knockout_reactions
 from pandas import DataFrame, pandas
 from sympy import Add
 from sympy import Mul
@@ -122,6 +123,10 @@ class SolverBasedModel(cobra.core.Model):
         self._populate_solver(self.reactions, self.metabolites)
         self._timestamp_last_optimization = None
         self.solution = LazySolution(self)
+
+    @property
+    def non_functional_genes(self):
+        return frozenset(gene for gene in self.genes if not gene.functional)
 
     def __copy__(self):
         return self.__deepcopy__()

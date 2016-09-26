@@ -18,6 +18,7 @@ from __future__ import absolute_import, print_function
 from functools import partial
 import hashlib
 import cobra as _cobrapy
+from cobra.manipulation.delete import parse_gpr, eval_gpr
 from copy import copy, deepcopy
 
 import cameo
@@ -186,6 +187,13 @@ class Reaction(_cobrapy.core.Reaction):
     @property
     def lower_bound(self):
         return self._lower_bound
+
+    @property
+    def functional(self):
+        if self._model:
+            tree, _ = parse_gpr(self.gene_reaction_rule)
+            return eval_gpr(tree, {g.id for g in self.genes if not g.functional})
+        return True
 
     @lower_bound.setter
     def lower_bound(self, value):
