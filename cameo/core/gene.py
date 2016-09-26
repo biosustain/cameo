@@ -81,7 +81,7 @@ class Gene(cobra.core.Gene):
             self.functional = False
 
         for reaction in self.reactions:
-            if reaction.functional:
+            if not reaction.functional:
                 def _(reaction, lb, ub):
                     reaction.upper_bound = ub
                     reaction.lower_bound = lb
