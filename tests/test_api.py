@@ -18,10 +18,13 @@ import re
 
 import nose
 from nose.plugins.skip import SkipTest
-from nose.tools import assert_equal, assert_raises_regexp
+from nose.tools import assert_equal, assert_raises_regexp, assert_in, assert_not_in, assert_is_none, assert_is_not_none
 
-from cameo import api
+from cameo import api, load_model
 from cameo.api.products import Compound
+from cameo.api.adapter import ModelModification
+
+TESTDIR = os.path.dirname(__file__)
 
 
 def test_compound_repr():
@@ -52,6 +55,23 @@ def test_products():
 def test_hosts():
     assert_equal(api.hosts.ecoli.models.iJO1366.id, 'iJO1366')
     assert_equal(api.hosts.scerevisiae.models.iMM904.id, 'iMM904')
+
+
+# ModelModification is a mixin that provides certain functionality, instances shoudn't be created
+class TestAdapter(ModelModification):  # TODO: rename to ModelModificationMixin
+    def __init__(self, model):
+        self.added_reactions = set()
+        self.model = model
+
+
+def test_model_modification():
+    model = load_model(os.path.join(TESTDIR, 'data/EcoliCore.xml'), sanitize=False)
+    adapter = TestAdapter(model)
+    metabolite = model.metabolites.get_by_id('13dpg_c')
+    assert_not_in('13dpg_e', model.metabolites)
+    adapter.create_exchange('gene', metabolite)
+    assert_in('13dpg_e', model.metabolites)
+    assert_equal(model.metabolites.get_by_id('13dpg_e').formula, metabolite.formula)
 
 
 if __name__ == '__main__':
