@@ -74,7 +74,7 @@ class ModelModification(object):
     model = None
     added_reactions = None
 
-    def create_exchange(self, gene_name, metabolite):
+    def create_exchange(self, metabolite):
         """For given metabolite A_c from c compartment, create:
         a) corresponding metabolite A_e from e compartment;
         b) adapter reaction A_c <--> A_e
@@ -82,17 +82,15 @@ class ModelModification(object):
 
         Parameters
         ----------
-        gene_name : string
-            metabolite id in format <bigg_id>_c, f.e. Nacsertn_c
         metabolite : Metabolite
-            gene associated with the metabolite
+            metabolite id in format <bigg_id>_c, f.e. Nacsertn_c
 
         Returns
         -------
 
         """
         exchange_metabolite = Metabolite(metabolite.id.replace('_c', '_e'), formula=metabolite.formula, compartment='e')
-        self.add_adapter_reaction(metabolite, exchange_metabolite, gene_name)
+        self.add_adapter_reaction(metabolite, exchange_metabolite)
         self.add_exchange_reaction(exchange_metabolite)
 
     def add_exchange_reaction(self, metabolite):
@@ -115,7 +113,7 @@ class ModelModification(object):
         except ValueError:
             logger.debug('Exchange reaction exists for metabolite {}'.format(metabolite.id))
 
-    def add_adapter_reaction(self, metabolite, existing_metabolite, gene_name):
+    def add_adapter_reaction(self, metabolite, existing_metabolite):
         """Add adapter reaction A <--> B for metabolites A and B
 
         Parameters
@@ -124,8 +122,6 @@ class ModelModification(object):
             metabolite A
         existing_metabolite : Metabolite
             metabolite B
-        gene_name : basestring
-            gene associated with the metabolites
 
         Returns
         -------
@@ -135,7 +131,6 @@ class ModelModification(object):
             adapter_reaction = Reaction(str('adapter_' + metabolite.id + '_' + existing_metabolite.id))
             adapter_reaction.lower_bound = -1000
             adapter_reaction.add_metabolites({metabolite: -1, existing_metabolite: 1})
-            adapter_reaction.gene_reaction_rule = gene_name
             self.model.add_reactions([adapter_reaction])
             self.added_reactions.add(adapter_reaction.id)
             logger.debug('Adapter reaction added: {} <--> {}'.format(metabolite.id, existing_metabolite.id))

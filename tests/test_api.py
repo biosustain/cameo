@@ -69,7 +69,7 @@ def test_model_modification():
     adapter = TestAdapter(model)
     metabolite = model.metabolites.get_by_id('13dpg_c')
     assert_not_in('13dpg_e', model.metabolites)
-    adapter.create_exchange('gene', metabolite)
+    adapter.create_exchange(metabolite)
     assert_in('13dpg_e', model.metabolites)
     assert_equal(model.metabolites.get_by_id('13dpg_e').formula, metabolite.formula)
 
