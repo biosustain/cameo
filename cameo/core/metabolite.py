@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from functools import partial
 
 import cobra
 import logging
@@ -52,6 +53,45 @@ class Metabolite(cobra.core.Metabolite):
             return self.model.solver.constraints[self.id]
         else:
             return None
+
+    def _relax_mass_balance_constrain(self, time_machine, k):
+        if time_machine:
+            time_machine(do=partial(setattr, self.constraint, "lb", -k),
+                         undo=partial(setattr, self.constraint, "lb", self.constraint.lb))
+            time_machine(do=partial(setattr, self.constraint, "ub", k),
+                         undo=partial(setattr, self.constraint, "ub", self.constraint.ub))
+        else:
+            self.constraint.lb = -k
+            self.constraint.ub = k
+
+    def knock_out(self, time_machine=None, k=10000):
+        """'Knockout' a metabolite [1].
+
+        Implementation according to the paper:
+            "All fluxes around the metabolite M should be restricted to only produce the metabolite,
+             for which balancing constraint of mass conservation is relaxed to allow nonzero values
+             of the incoming fluxes whereas all outgoing fluxes are limited to zero."
+
+        Parameters
+        ----------
+        time_machine : TimeMachine
+            An action stack to reverse actions.
+        k: number
+            A large number
+
+        References
+        ----------
+        .. [1] Kim, P.-J., Lee, D.-Y., Kim, T. Y., Lee, K. H., Jeong, H., Lee, S. Y., & Park, S. (2007).
+         Metabolite essentiality elucidates robustness of Escherichia coli metabolism. PNAS, 104(34), 13638–13642
+        """
+        # restrict reactions to produce metabolite
+        for reaction in self.reactions:
+            if reaction.metabolites[self] > 0:  # for positive stoichiometric coefficient set lb to 0
+                reaction.change_bounds(lb=0, time_machine=time_machine)
+            elif reaction.metabolites[self] < 0:  # for negative stoichiometric coefficient set ub to 0
+                reaction.change_bounds(ub=0, time_machine=time_machine)
+
+        self._relax_mass_balance_constrain(time_machine, k)  # relax mass balance constraint (k >= Si >= k)
 
     @property
     def id(self):

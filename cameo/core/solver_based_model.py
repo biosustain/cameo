@@ -207,7 +207,8 @@ class SolverBasedModel(cobra.core.Model):
     @solver.setter
     def solver(self, value):
         not_valid_interface = ValueError(
-            '%s is not a valid solver interface. Pick from %s, or specify an optlang interface (e.g. optlang.glpk_interface).' % (
+            '%s is not a valid solver interface. '
+            'Pick from %s, or specify an optlang interface (e.g. optlang.glpk_interface).' % (
                 value, list(config.solvers.keys())))
         if isinstance(value, six.string_types):
             try:
@@ -468,6 +469,41 @@ class SolverBasedModel(cobra.core.Model):
         fields.remove('optimize')
         return fields
 
+    def essential_metabolites(self, threshold=1e-6, k=100000):
+        """Return a list of essential metabolites [1].
+
+        Implementation according to the paper:
+            "All fluxes around the metabolite M should be restricted to only produce the metabolite,
+             for which balancing constraint of mass conservation is relaxed to allow nonzero values
+             of the incoming fluxes whereas all outgoing fluxes are limited to zero."
+
+        Parameters
+        ----------
+        threshold : float (default 1e-6)
+            Minimal objective flux to be considered viable.
+        k: number
+            A large number
+
+        References
+        ----------
+        .. [1] Kim, P.-J., Lee, D.-Y., Kim, T. Y., Lee, K. H., Jeong, H., Lee, S. Y., & Park, S. (2007).
+         Metabolite essentiality elucidates robustness of Escherichia coli metabolism. PNAS, 104(34), 13638–13642
+        """
+
+        essential_metabolites = []
+        for metabolite in self.metabolites:
+            with TimeMachine() as tm:
+                metabolite.knock_out(tm, k)
+
+                try:
+                    solution = self.solve()
+                    if solution.f < threshold:
+                        essential_metabolites.append(metabolite)
+                except Infeasible:
+                    essential_metabolites.append(metabolite)
+
+        return essential_metabolites
+
     def essential_reactions(self, threshold=1e-6):
         """Return a list of essential reactions.
 
@@ -479,7 +515,7 @@ class SolverBasedModel(cobra.core.Model):
         Returns
         -------
         list
-            List of essential reactions
+            List of essential reactions.
         """
         essential = []
         try:
