@@ -82,7 +82,7 @@ class Metabolite(cobra.core.Metabolite):
         References
         ----------
         .. [1] Kim, P.-J., Lee, D.-Y., Kim, T. Y., Lee, K. H., Jeong, H., Lee, S. Y., & Park, S. (2007).
-           Metabolite essentiality elucidates robustness of Escherichia coli metabolism. PNAS, 104(34), 13638–13642
+          Metabolite essentiality elucidates robustness of Escherichia coli metabolism. PNAS, 104(34), 13638-13642
         """
         # restrict reactions to produce metabolite
         for reaction in self.reactions:
