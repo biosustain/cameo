@@ -471,6 +471,7 @@ class KnockoutOptimization(HeuristicOptimization):
                                                   representation=self.representation,
                                                   evaluator=evaluator,
                                                   generator=generators.set_generator,
+                                                  max_size=max_size,
                                                   **kwargs)
 
             return KnockoutOptimizationResult(model=self.model,
