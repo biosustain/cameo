@@ -42,7 +42,7 @@ from cameo.util import RandomGenerator as Random
 from cameo.util import in_ipnb
 from cameo.util import partition, TimeMachine, memoize, ProblemCache
 
-__all__ = ['ReactionKnockoutOptimization', 'GeneKnockoutOptimization']
+__all__ = ['ReactionKnockoutOptimization', 'GeneKnockoutOptimization', 'CofactorSwapOptimization']
 
 REACTION_KNOCKOUT_TYPE = "reaction"
 SWAP_KNOCKOUT_TYPE = "cofactor-swap"
@@ -364,6 +364,7 @@ class KnockoutEvaluator(object):
 
 class SwapEvaluator(KnockoutEvaluator):
     """ evaluate reaction swaps where we knock one reaction in favor of another """
+
     def __init__(self, *args, **kwargs):
         super(SwapEvaluator, self).__init__(*args, **kwargs)
 
@@ -397,13 +398,21 @@ class KnockoutOptimization(HeuristicOptimization):
     Abstract class for knockout optimization.
     """
 
-    def __init__(self, simulation_method=pfba, wt_reference=None, knockout_evaluator=None, *args, **kwargs):
+    def __init__(self, simulation_method=pfba, wt_reference=None, knockout_evaluator=None,
+                 result_handler=None, *args, **kwargs):
         """
-         Attributes
+        Class for generic optimization algorithms for knockout (or similar) strain design methods
+
+        Attributes
         ----------
-        same as HeuristicOptimization
         simulation_method: see flux_analysis.simulation
         wt_reference: dict
+        simulation_method: method
+           the simulation method to use for evaluating results
+        knockout_evaluator: class
+           the class used to evaluate results
+        result_handler: clas
+           the class used to represent results, e.g. create a data frame representing solutions
         """
         super(KnockoutOptimization, self).__init__(*args, **kwargs)
         self._simulation_kwargs = dict()
@@ -412,6 +421,7 @@ class KnockoutOptimization(HeuristicOptimization):
         self.simulation_method = simulation_method
         self.representation = None
         self.knockout_evaluator = knockout_evaluator or KnockoutEvaluator
+        self.result_handler = result_handler or KnockoutOptimizationResult
         self._ko_type = None
         self._decoder = None
 
@@ -510,15 +520,15 @@ class KnockoutOptimization(HeuristicOptimization):
                                                   max_size=max_size,
                                                   **kwargs)
 
-            return KnockoutOptimizationResult(model=self.model,
-                                              heuristic_method=self.heuristic_method,
-                                              simulation_method=self.simulation_method,
-                                              simulation_kwargs=self._simulation_kwargs,
-                                              solutions=self.heuristic_method.archive,
-                                              objective_function=self.objective_function,
-                                              ko_type=self._ko_type,
-                                              decoder=self._decoder,
-                                              seed=kwargs['seed'])
+            return self.result_handler(model=self.model,
+                                       heuristic_method=self.heuristic_method,
+                                       simulation_method=self.simulation_method,
+                                       simulation_kwargs=self._simulation_kwargs,
+                                       solutions=self.heuristic_method.archive,
+                                       objective_function=self.objective_function,
+                                       ko_type=self._ko_type,
+                                       decoder=self._decoder,
+                                       seed=kwargs['seed'])
 
 
 class KnockoutOptimizationResult(Result):
@@ -641,11 +651,21 @@ class KnockoutOptimizationResult(Result):
         stats_data.display()
 
     def plot(self, grid=None, width=None, height=None, title=None):
-        pass
+        raise NotImplementedError
 
     @property
     def data_frame(self):
         return DataFrame(self._solutions)
+
+
+class SwapOptimizationResult(KnockoutOptimizationResult):
+    def _decode_solutions(self, solutions):
+        decoded_solutions = DataFrame(columns=["reaction", "fitness"])
+        for index, solution in enumerate(solutions):
+            reactions, _ = self._decoder(solution.candidate, flat=True)
+            if len(reactions) > 0:
+                decoded_solutions.loc[index] = [reactions, solution.fitness]
+        return decoded_solutions
 
 
 class ReactionKnockoutOptimization(KnockoutOptimization):
@@ -897,7 +917,8 @@ class CofactorSwapOptimization(KnockoutOptimization):
 
     def __init__(self, model, cofactor_id_swaps=NADH_NADPH, candidate_reactions=None,
                  skip_reactions=None, *args, **kwargs):
-        super(self.__class__, self).__init__(model=model, knockout_evaluator=SwapEvaluator, *args, **kwargs)
+        super(self.__class__, self).__init__(model=model, knockout_evaluator=SwapEvaluator,
+                                             result_handler=SwapOptimizationResult, *args, **kwargs)
         self.model = SwapperModel(model, cofactor_id_swaps, candidate_reactions, skip_reactions)
         self._ko_type = SWAP_KNOCKOUT_TYPE
         self.representation = list(self.model.swapped_reactions.keys())
@@ -921,6 +942,7 @@ class SwapperModel(SolverBasedModel):
     skip_reactions : list
        reactions to not consider for co-factor swap, defaults to the objective function if not provided
     """
+
     def __init__(self, model, cofactor_id_swaps, candidate_reactions=None, skip_reactions=None):
         super(SwapperModel, self).__init__()
         self.__dict__ = model.copy().__dict__
@@ -1022,15 +1044,12 @@ class SwapperModel(SolverBasedModel):
             do_change(from_reaction, to_reaction, from_reaction.upper_bound, from_reaction.lower_bound)
 
     def find_swappable_reactions(self):
-        """Get all reactions that can be swapped
+        """Get all reactions that can undergo co-factor swapping
 
-        find reactions that have one set of the cofactors targeted for swapping and are mass balances
-
-        Returns
-        -------
-        list
-           identifiers of the reactions that safely can be swapped
+        find reactions that have one set of the cofactors targeted for swapping and are mass balanced and updates the
+        `candidate_reactions` attribute
         """
+
         def swap_search(metabolites):
             from_to = [all(metabolite in metabolites for metabolite in self.cofactor_swaps[0]),
                        all(metabolite in metabolites for metabolite in self.cofactor_swaps[1])]
@@ -1044,4 +1063,3 @@ class SwapperModel(SolverBasedModel):
                 self.unswappable_reactions.append(reaction.id)
             else:
                 self.candidate_reactions.append(reaction.id)
-

@@ -50,7 +50,7 @@ from cameo.strain_design.heuristic.evolutionary.objective_functions import bioma
     product_yield, number_of_knockouts, biomass_product_coupled_min_yield
 from cameo.strain_design.heuristic.evolutionary.optimization import HeuristicOptimization, \
     ReactionKnockoutOptimization, set_distance_function, KnockoutOptimizationResult, EvaluatorWrapper, \
-    KnockoutEvaluator, SwapperModel, NADH_NADPH, SwapEvaluator
+    KnockoutEvaluator, SwapperModel, NADH_NADPH, CofactorSwapOptimization
 from cameo.strain_design.heuristic.evolutionary.variators import _do_set_n_point_crossover, set_n_point_crossover, \
     set_mutation, set_indel, multiple_chromosome_set_mutation, multiple_chromosome_set_indel
 from cameo.util import RandomGenerator as Random
@@ -495,12 +495,10 @@ class TestSwapEvaluator(unittest.TestCase):
     def test_evaluate_swap(self):
         TEST_MODEL.objective = TEST_MODEL.reactions.EX_etoh_LPAREN_e_RPAREN_
         py = product_yield(TEST_MODEL.reactions.EX_etoh_LPAREN_e_RPAREN_, TEST_MODEL.reactions.EX_glc_LPAREN_e_RPAREN_)
-        swapper_model = SwapperModel(TEST_MODEL, NADH_NADPH)
-        reactions = ['ACALD', 'AKGDH', 'ALCD2x', 'G6PDH2r', 'GAPD', 'GLUDy', 'GLUSy', 'GND', 'ICDHyr',
-                     'LDH_D', 'MDH', 'ME1', 'ME2', 'NADH16', 'PDH']
-        decoder = ReactionKnockoutDecoder(reactions, swapper_model)
-        evaluator = SwapEvaluator(swapper_model, decoder, py, fba, {})
-        fitness = evaluator([[0, 7]])[0]
+        reactions = ['ACALD', 'ALCD2x', 'G6PDH2r', 'GAPD']
+        optimization = CofactorSwapOptimization(TEST_MODEL, objective_function=py, candidate_reactions=reactions)
+        optimization_result = optimization.run(max_evaluations=16, max_size=2)
+        fitness = optimization_result.data_frame.iloc[0].fitness
         self.assertAlmostEqual(fitness, 0.66667, places=3)
 
 

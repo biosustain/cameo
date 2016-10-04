@@ -12,5 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from cameo.strain_design.heuristic.evolutionary.optimization import ReactionKnockoutOptimization, \
-    GeneKnockoutOptimization
+from cameo.strain_design.heuristic.evolutionary.optimization import *

@@ -221,7 +221,7 @@ class product_yield(ObjectiveFunction):
             return 0.0
 
     def _repr_latex_(self):
-        return "$$yield = \\frac{%s}{%s}$$" % (self.product, self.substrate)
+        return "$$yield = \\frac{%s}{%s}$$" % (self.product.replace('_', '\\_'), self.substrate.replace('_', '\\_'))
 
     @property
     def name(self):
