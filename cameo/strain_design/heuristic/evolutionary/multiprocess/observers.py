@@ -28,7 +28,6 @@ try:
     from cameo.parallel import RedisQueue
 except ImportError:
     RedisQueue = None
-    pass
 from IProgress.progressbar import ProgressBar
 from IProgress.widgets import Percentage, Bar
 

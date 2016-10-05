@@ -19,7 +19,6 @@ try:
     from cameo.parallel import RedisQueue
 except ImportError:
     RedisQueue = None
-    pass
 from uuid import uuid4
 
 import logging
