@@ -105,10 +105,9 @@ Before you submit a pull request, check that it meets these guidelines:
 1. The pull request should include tests. Except in very rare circumstances, code coverage must not decrease (as
    reported by codecov which runs automatically when you submit your pull request)
 2. If the pull request adds functionality, the docs should be updated. Put
-   your new functionality into a function with a docstring, and add the
-   feature to the list in README.rst.
+   your new functionality into a function with a docstring and consider creating a notebook that demonstrates the usage in `docs`
 3. The pull request should work for Python 2.7, 3.4 and 3.5. Check
    https://travis-ci.org/biosustain/cameo/pull_requests
    and make sure that the tests pass for all supported Python versions.
-4. Assign a reviewer to your pull request. If in doubt you can assign Niko Sonnenschein. Your pull request must be
+4. Assign a reviewer to your pull request. If in doubt, assign Niko Sonnenschein. Your pull request must be
    approved by all reviewers before it can be merged.
