@@ -35,7 +35,13 @@ from ordered_set import OrderedSet
 from pandas.util.testing import assert_frame_equal
 
 from cameo import load_model, fba, config
-from cameo.parallel import SequentialView, RedisQueue
+from cameo.config import solvers
+from cameo.parallel import SequentialView
+try:
+    from cameo.parallel import RedisQueue
+except ImportError:
+    pass
+
 from cameo.strain_design.heuristic.evolutionary.archives import Individual, BestSolutionArchive
 from cameo.strain_design.heuristic.evolutionary.decoders import ReactionKnockoutDecoder, KnockoutDecoder, \
     GeneKnockoutDecoder
@@ -44,7 +50,11 @@ from cameo.strain_design.heuristic.evolutionary.generators import set_generator,
 from cameo.strain_design.heuristic.evolutionary.genomes import MultipleChromosomeGenome
 from cameo.strain_design.heuristic.evolutionary.metrics import euclidean_distance
 from cameo.strain_design.heuristic.evolutionary.metrics import manhattan_distance
-from cameo.strain_design.heuristic.evolutionary.multiprocess.migrators import MultiprocessingMigrator
+try:
+    from cameo.strain_design.heuristic.evolutionary.multiprocess.migrators import MultiprocessingMigrator
+except ImportError:
+    MultiprocessingMigrator = None
+    pass
 from cameo.strain_design.heuristic.evolutionary.objective_functions import biomass_product_coupled_yield, \
     product_yield, number_of_knockouts, biomass_product_coupled_min_yield
 from cameo.strain_design.heuristic.evolutionary.optimization import HeuristicOptimization, \
@@ -730,6 +740,7 @@ class TestMigrators(unittest.TestCase):
         self.random = Random(SEED)
 
     # unittest.skipIf(os.getenv('WERCKER', False), 'Currently not working on wercker as redis is not running on localhost')
+    @unittest.skipIf('RedisQueue' not in locals(), 'redis not available')
     def test_migrator_constructor(self):
         migrator = MultiprocessingMigrator(max_migrants=1, host=REDIS_HOST)
         self.assertIsInstance(migrator.migrants, RedisQueue)
@@ -744,6 +755,7 @@ class TestMigrators(unittest.TestCase):
         self.assertEqual(migrator.max_migrants, 3)
 
     # unittest.skipIf(os.getenv('WERCKER', False), 'Currently not working on wercker as redis is not running on localhost')
+    @unittest.skipIf('RedisQueue' not in locals(), 'redis not available')
     def test_migrate_individuals_without_evaluation(self):
         migrator = MultiprocessingMigrator(max_migrants=1, host=REDIS_HOST)
         self.assertIsInstance(migrator.migrants, RedisQueue)
