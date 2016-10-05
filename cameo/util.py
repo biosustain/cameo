@@ -436,7 +436,7 @@ def generate_colors(n):
     color_map = {}
     for i in range(n):
         rgb = colorsys.hsv_to_rgb(*hsv_tuples[i])
-        color = tuple([rgb[0] * 256, rgb[1] * 256, rgb[2] * 256])
+        color = tuple([int(rgb[0] * 256), int(rgb[1] * 256), int(rgb[2] * 256)])
         color_map[i] = '#%02x%02x%02x' % color
     return color_map
 
