@@ -126,7 +126,7 @@ Furthermore, the following dependencies are needed:
 Contributions
 ~~~~~~~~~~~~~
 
-..are very welcome! Please read the `guideline <CONTRIBUTIONS.rst>`__ for instructions how to contribute.
+..are very welcome! Please read the `guideline <CONTRIBUTING.rst>`__ for instructions how to contribute.
 
 
 .. |Join the chat at https://gitter.im/biosustain/cameo| image:: https://badges.gitter.im/biosustain/cameo.svg
