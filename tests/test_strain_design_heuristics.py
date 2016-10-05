@@ -804,7 +804,7 @@ class TestReactionKnockoutOptimization(unittest.TestCase):
         self.assertEqual(rko._ko_type, "reaction")
         self.assertTrue(isinstance(rko._decoder, ReactionKnockoutDecoder))
 
-    @unittest.skipIf(os.getenv('TRAVIS', False), 'Broken ..')
+    @unittest.skipIf(os.getenv('TRAVIS', False) or 'cplex' not in solvers, 'Broken ..')
     def test_run_single_objective(self):
         result_file = os.path.join(CURRENT_PATH, "data", "reaction_knockout_single_objective.pkl")
         objective = biomass_product_coupled_yield(

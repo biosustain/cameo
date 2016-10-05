@@ -25,6 +25,7 @@ from pandas.util.testing import assert_frame_equal
 from sympy import Add
 
 import cameo
+from cameo.config import solvers
 from cameo.flux_analysis import remove_infeasible_cycles
 from cameo.flux_analysis.analysis import flux_variability_analysis, phenotypic_phase_plane, find_blocked_reactions
 from cameo.flux_analysis.simulation import fba, pfba, lmoma, room, moma
@@ -316,6 +317,7 @@ class TestFindBlockedReactionsGLPK(Wrapper.AbstractTestFindBlockedReactions):
         self.model.solver = 'glpk'
 
 
+@unittest.skipIf('cplex' not in solvers, "No cplex interface available")
 class TestFindBlockedReactionsCPLEX(Wrapper.AbstractTestFindBlockedReactions):
     def setUp(self):
         self.model = CORE_MODEL.copy()
@@ -328,6 +330,7 @@ class TestFluxVariabilityAnalysisGLPK(Wrapper.AbstractTestFluxVariabilityAnalysi
         self.model.solver = 'glpk'
 
 
+@unittest.skipIf('cplex' not in solvers, "No cplex interface available")
 class TestFluxVariabilityAnalysisCPLEX(Wrapper.AbstractTestFluxVariabilityAnalysis):
     def setUp(self):
         self.model = CORE_MODEL.copy()
@@ -345,6 +348,7 @@ class TestPhenotypicPhasePlaneGLPK(Wrapper.AbstractTestPhenotypicPhasePlane):
         assert_dataframes_equal(ppp, REFERENCE_PPP_o2_EcoliCore)
 
 
+@unittest.skipIf('cplex' not in solvers, "No cplex interface available")
 class TestPhenotypicPhasePlaneCPLEX(Wrapper.AbstractTestPhenotypicPhasePlane):
     def setUp(self):
         self.model = CORE_MODEL.copy()
@@ -363,6 +367,7 @@ class TestSimulationMethodsGLPK(Wrapper.AbstractTestSimulationMethods):
         self.assertRaises(ValueError, super(TestSimulationMethodsGLPK, self).test_moma)  # GLPK has no QP support
 
 
+@unittest.skipIf('cplex' not in solvers, "No cplex interface available")
 class TestSimulationMethodsCPLEX(Wrapper.AbstractTestSimulationMethods):
     def setUp(self):
         self.model = CORE_MODEL.copy()
@@ -378,6 +383,7 @@ class TestStructuralMethodsGLPK(Wrapper.AbstractTestStructural):
         self.assertRaises(IndicatorConstraintsNotSupported, structural.ShortestElementaryFluxModes, self.model)
 
 
+@unittest.skipIf('cplex' not in solvers, "No cplex interface available")
 class TestStructuralMethodsCPLEX(Wrapper.AbstractTestStructural):
     def setUp(self):
         if TRAVIS:
@@ -393,6 +399,7 @@ class TestRemoveCyclesGLPK(Wrapper.AbstractTestRemoveCycles):
         self.model.solver = "glpk"
 
 
+@unittest.skipIf('cplex' not in solvers, "No cplex interface available")
 class TestRemoveCyclesCPLEX(Wrapper.AbstractTestRemoveCycles):
     def setUp(self):
         self.model = CORE_MODEL.copy()
