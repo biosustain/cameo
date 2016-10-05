@@ -25,7 +25,7 @@ from cameo.api.products import Compound
 
 
 def test_compound_repr():
-    if not re.match('Open Babel!.*', os.popen('obabel').read()):
+    if not re.match('Open Babel.*', os.popen('obabel').read()):
         raise SkipTest('Skipping because OpenBabel is not installed.')
     compound = Compound('InChI=1S/H2O/h1H2')
     reference_output = '''<?xml version="1.0"?>
