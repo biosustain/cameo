@@ -885,7 +885,7 @@ class CofactorSwapOptimization(KnockoutOptimization):
    ----------
    .. [1] King, Zachary A., and Adam M. Feist. "Optimizing Cofactor Specificity of Oxidoreductase Enzymes for the
       Generation of Microbial Production Strains - OptSwap." Industrial Biotechnology 9, no. 4 (August 1,
-      2013): 236–46. - doi:10.1089/ind.2013.0005.
+      2013): 236-46. - doi:10.1089/ind.2013.0005.
 
     Parameters
     ----------
