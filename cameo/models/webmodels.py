@@ -112,8 +112,9 @@ def index_models_minho(host="http://darwin.di.uminho.pt/models"):
         raise Exception("Could not index available models. %s returned status code %d" % (host, response.status_code))
 
 
-def get_model_from_uminho(index, host="http://darwin.di.uminho.pt/models"):
-    sbml_file = get_sbml_file(index, host)
+def get_model_from_uminho(i, index, host="http://darwin.di.uminho.pt/models"):
+    model_index = index.query("name == @i")['id'].values[0]
+    sbml_file = get_sbml_file(model_index, host)
     sbml_file.close()
     return to_solver_based_model(read_sbml_model(sbml_file.name))
 
@@ -154,7 +155,7 @@ def index_models_bigg():
             "Could not index available models. bigg.ucsd.edu returned status code {}".format(response.status_code))
 
 
-def get_model_from_bigg(id, solver_interface=optlang):
+def get_model_from_bigg(id, index, solver_interface=optlang):
     try:
         response = requests.get('http://bigg.ucsd.edu/api/v2/models/{}/download'.format(id))
     except requests.ConnectionError as e:
@@ -169,44 +170,43 @@ def get_model_from_bigg(id, solver_interface=optlang):
 
 
 class ModelDB(object):
-    def __init__(self, index_method, get_model_method):
+    def __init__(self, index_method, index_key, get_model_method):
         self._index_method = index_method
+        self._index_key = index_key
         self._get_model_method = get_model_method
         self._index = None
 
     def _index_models(self):
         try:
-            index = self._index_method()
+            self._index = self._index_method()
         except requests.ConnectionError:
             self._index = ["no_models_available"]
             self.no_models_available = "The server could not be reached. Make sure you are connected to the internet"
-        else:
-            self._index = list(index)
 
     def __dir__(self):
         if self._index is None:
             self._index_models()
-        return list(self._index)
+        return list(self._index[self._index_key])
 
     def __getattr__(self, item):
         if self._index is None:
             self._index_models()
-        if item in self._index:
-            return self._get_model_method(item)
+        if item in self._index[self._index_key].values:
+            return self._get_model_method(item, self._index)
         else:
             super(ModelDB, self).__getattribute__(item)
 
-bigg = ModelDB(lambda: index_models_bigg().bigg_id, get_model_from_bigg)
+bigg = ModelDB(lambda: index_models_bigg(), 'bigg_id', get_model_from_bigg)
 
-minho = ModelDB(lambda: index_models_minho().name, get_model_from_uminho)
+minho = ModelDB(lambda: index_models_minho(), 'name', get_model_from_uminho)
 
 
 def validated_minho_names():
     minho = index_models_minho()
     minho_validated = minho[minho.validated]
-    return minho_validated.name
+    return minho_validated
 
-minho.validated = ModelDB(validated_minho_names, get_model_from_uminho)
+minho.validated = ModelDB(validated_minho_names, 'name', get_model_from_uminho)
 
 # bigg = ModelDB()
 # try:

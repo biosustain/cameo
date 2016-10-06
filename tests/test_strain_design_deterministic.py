@@ -23,6 +23,7 @@ from pandas import DataFrame
 from pandas.util.testing import assert_frame_equal
 
 import cameo
+from cameo.config import solvers
 from cameo import load_model
 from cameo.strain_design.deterministic.flux_variability_based import FSEOF, FSEOFResult, DifferentialFVA
 from cameo.strain_design.deterministic.linear_programming import OptKnock
@@ -86,6 +87,7 @@ class TestDifferentialFVA(unittest.TestCase):
         pandas.util.testing.assert_frame_equal(result.data_frame.iloc[0].sort_index(axis=1), ref_df)
 
 
+@unittest.skipIf('cplex' not in solvers, "No cplex interface available")
 class TestOptKnock(unittest.TestCase):
     def setUp(self):
         self.model = ECOLICORE.copy()
