@@ -40,7 +40,7 @@ from cameo.parallel import SequentialView
 try:
     from cameo.parallel import RedisQueue
 except ImportError:
-    pass
+    RedisQueue = None
 
 from cameo.strain_design.heuristic.evolutionary.archives import Individual, BestSolutionArchive
 from cameo.strain_design.heuristic.evolutionary.decoders import ReactionKnockoutDecoder, KnockoutDecoder, \
@@ -772,7 +772,7 @@ class TestMigrators(unittest.TestCase):
         self.random = Random(SEED)
 
     # unittest.skipIf(os.getenv('WERCKER', False), 'Currently not working on wercker as redis is not running on localhost')
-    @unittest.skipIf('RedisQueue' not in locals(), 'redis not available')
+    @unittest.skipIf(RedisQueue is None, 'redis not available')
     def test_migrator_constructor(self):
         migrator = MultiprocessingMigrator(max_migrants=1, host=REDIS_HOST)
         self.assertIsInstance(migrator.migrants, RedisQueue)
@@ -787,7 +787,7 @@ class TestMigrators(unittest.TestCase):
         self.assertEqual(migrator.max_migrants, 3)
 
     # unittest.skipIf(os.getenv('WERCKER', False), 'Currently not working on wercker as redis is not running on localhost')
-    @unittest.skipIf('RedisQueue' not in locals(), 'redis not available')
+    @unittest.skipIf(RedisQueue is None, 'redis not available')
     def test_migrate_individuals_without_evaluation(self):
         migrator = MultiprocessingMigrator(max_migrants=1, host=REDIS_HOST)
         self.assertIsInstance(migrator.migrants, RedisQueue)
