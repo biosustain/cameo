@@ -83,6 +83,7 @@ class TestLazySolutionGLPK(AbstractTestLazySolution):
         self.solution = self.model.optimize()
 
 
+@unittest.skipIf('cplex' not in solvers, "No cplex interface available")
 class TestLazySolutionCPLEX(AbstractTestLazySolution):
     def setUp(self):
         super(TestLazySolutionCPLEX, self).setUp()
@@ -644,6 +645,7 @@ class TestReactionGLPK(WrappedAbstractTestReaction.AbstractTestReaction):
         self.model.solver = 'glpk'
 
 
+@unittest.skipIf('cplex' not in solvers, "No cplex interface available")
 class TestReactionCPLEX(WrappedAbstractTestReaction.AbstractTestReaction):
     def setUp(self):
         self.cobrapy_model = COBRAPYTESTMODEL.copy()
@@ -990,6 +992,7 @@ class TestSolverBasedModelGLPK(WrappedAbstractTestSolverBasedModel.AbstractTestS
         self.assertEqual(resurrected.solver.constraints.keys(), all_constraint_ids)
 
 
+@unittest.skipIf('cplex' not in solvers, "No cplex interface available")
 class TestSolverBasedModelCPLEX(WrappedAbstractTestSolverBasedModel.AbstractTestSolverBasedModel):
     def setUp(self):
         super(TestSolverBasedModelCPLEX, self).setUp()
@@ -1038,6 +1041,7 @@ class TestMetaboliteGLPK(WrappedAbstractTestMetabolite.AbstractTestMetabolite):
         self.model.solver = 'glpk'
 
 
+@unittest.skipIf('cplex' not in solvers, "No cplex interface available")
 class TestMetaboliteCPLEX(WrappedAbstractTestMetabolite.AbstractTestMetabolite):
     def setUp(self):
         self.cobrapy_model = COBRAPYTESTMODEL.copy()
