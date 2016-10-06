@@ -18,6 +18,7 @@ import os
 import unittest
 
 from cameo import load_model
+from cameo.config import solvers
 from cameo.core.pathway import Pathway
 from cameo.flux_analysis.analysis import PhenotypicPhasePlaneResult
 from cameo.strain_design.pathway_prediction import PathwayPredictor
@@ -76,6 +77,7 @@ class Wrapper:
                             self.assertTrue(metabolite.id in metabolite_ids)
 
 
+@unittest.skipIf('cplex' not in solvers, "No cplex interface available")
 class PathwayPredictorCPLEXTestCase(Wrapper.AbstractPathwayPredictorTestCase):
     def setUp(self):
             TESTMODEL.solver = "cplex"

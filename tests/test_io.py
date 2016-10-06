@@ -21,6 +21,7 @@ import cobra
 import optlang
 
 import cameo
+from cameo.config import solvers
 from cameo import load_model
 
 TESTDIR = os.path.dirname(__file__)
@@ -73,6 +74,7 @@ class TestModelLoadingGLPK(AbstractTestModelLoading, unittest.TestCase):
 
 
 # @unittest.skipIf(six.PY2, 'Build stalling in python 2.7.')
+@unittest.skipIf('cplex' not in solvers, "No cplex interface available")
 class TestModelLoadingCPLEX(AbstractTestModelLoading, unittest.TestCase):
     def setUp(self):
         self.interface = optlang.cplex_interface

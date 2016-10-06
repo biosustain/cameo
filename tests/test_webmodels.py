@@ -16,7 +16,7 @@ from unittest import TestCase
 
 import requests
 from pandas import DataFrame
-
+from nose.plugins.skip import SkipTest
 from cameo.models.webmodels import index_models_minho, get_sbml_file, NotFoundException
 
 
@@ -26,12 +26,18 @@ class WebmodelsTestCase(TestCase):
         self.assertRaises(requests.ConnectionError, get_sbml_file, 1, host="http://blabla")
 
     def test_index(self):
-        index = index_models_minho()
+        try:
+            index = index_models_minho()
+        except requests.ConnectionError:
+            raise SkipTest('skipping web test due to connection error')
         self.assertIsInstance(index, DataFrame)
         self.assertListEqual(list(index.columns),
                              ["id", "name", "doi", "author", "year", "formats", "organism", "taxonomy", "validated"])
 
     def test_get_sbml(self):
-        tmp = get_sbml_file(1)
+        try:
+            tmp = get_sbml_file(1)
+        except requests.ConnectionError:
+            raise SkipTest('skipping web test due to connection error')
         self.assertIsInstance(tmp, _TemporaryFileWrapper)
         self.assertRaises(NotFoundException, get_sbml_file, -1)
