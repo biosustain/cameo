@@ -15,7 +15,10 @@
 from __future__ import absolute_import, print_function
 
 import six.moves.queue
-from cameo.parallel import RedisQueue
+try:
+    from cameo.parallel import RedisQueue
+except ImportError:
+    RedisQueue = None
 from uuid import uuid4
 
 import logging

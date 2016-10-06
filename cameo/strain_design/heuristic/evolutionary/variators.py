@@ -63,9 +63,9 @@ def _do_set_n_point_crossover(representation, mom, dad, points, random, max_size
 @crossover
 def set_n_point_crossover(random, mom, dad, args):
     representation = sorted(set(mom).union(set(dad)))
-    crossover_rate = args.setdefault('crossover_rate', 1.0)
-    num_crossover_points = args.setdefault('num_crossover_points', 1)
-    max_size = args.setdefault('max_size', 9)
+    crossover_rate = args.get('crossover_rate', 1.0)
+    num_crossover_points = args.get('num_crossover_points', 1)
+    max_size = args.get('max_size', 9)
     children = []
     if random.random() <= crossover_rate:
         points = random.sample(representation, num_crossover_points)

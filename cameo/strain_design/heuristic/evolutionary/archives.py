@@ -33,11 +33,11 @@ class BestSolutionArchive(object):
     def __call__(self, random, population, archive, args):
         self.archive = archive
         maximize = args.get("maximize", True)
-        max_size = args.get('max_archive_size', 100)
-        [self.add(i.candidate, i.fitness, i.birthdate, maximize, max_size) for i in population]
+        max_archive_size = args.get('max_archive_size', 100)
+        [self.add(i.candidate, i.fitness, i.birthdate, maximize, max_archive_size) for i in population]
         return self.archive
 
-    def add(self, candidate, fitness, birthdate, maximize, max_size):
+    def add(self, candidate, fitness, birthdate, maximize, max_archive_size):
         if self.worst_fitness is None:
             self.worst_fitness = fitness
 
@@ -56,7 +56,7 @@ class BestSolutionArchive(object):
             if add:
                 insort(self.archive, candidate)
 
-            while self.length() > max_size:
+            while self.length() > max_archive_size:
                 self.archive.pop()
 
             self.worst_fitness = self.archive[len(self.archive) - 1].fitness
@@ -78,8 +78,8 @@ class BestSolutionArchive(object):
 class ProductionStrainArchive(BestSolutionArchive):
     def __call__(self, random, population, archive, args):
         self.archive = archive
-        max_size = args.get('max_archive_size', 100)
-        [self.add(i.candidate, i.fitness, i.birthdate, True, max_size) for i in population
+        max_archive_size = args.get('max_archive_size', 100)
+        [self.add(i.candidate, i.fitness, i.birthdate, True, max_archive_size) for i in population
          if round(i.fitness, ndecimals) > 0]
         return self.archive
 
