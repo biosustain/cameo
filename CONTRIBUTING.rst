@@ -37,8 +37,8 @@ wants to implement it.
 Write Documentation
 ~~~~~~~~~~~~~~~~~~~
 
-cameo could always use more documentation, whether as part of the official cameo using data on iloop docs, in
-docstrings, or even on the web in blog posts, articles, and such - all contributions are welcome!
+cameo could always use more documentation, whether as part of the official cameo docs, in docstrings, or even on the web
+in blog posts, articles, and such - all contributions are welcome!
 
 Submit Feedback
 ~~~~~~~~~~~~~~~
@@ -61,7 +61,7 @@ suggestions on how to best proceed, e.g. there may be half-finished work in some
 
 Here's how to set up `cameo` for local development.
 
-1. Fork the `cameo` repo on GitHub.
+1. Fork the `cameo` repository on GitHub.
 2. Clone your fork locally::
 
     git clone git@github.com:your_name_here/cameo.git
@@ -111,3 +111,24 @@ Before you submit a pull request, check that it meets these guidelines:
    and make sure that the tests pass for all supported Python versions.
 4. Assign a reviewer to your pull request. If in doubt, assign Niko Sonnenschein. Your pull request must be
    approved by all reviewers before it can be merged.
+
+Branching model and non-free dependencies
+-----------------------------------------
+
+At its core, cameo is a package for using mixed linear integer programming (MILP) techniques to support metabolic
+engineering / strain design. However, cameo does not implement the algorithms that actually solve these problems, rather
+it makes use of third-party libraries to do this after the problems have been carefully formulated to be possible to
+feed to these general solvers. For certain problems, some solvers are better than others and not all of these are
+available under free/libre licenses. Unit test in cameo that have non-free dependencies are not run during continuous
+integration for the `devel` branch to enable pull requests (which cannot have access to these dependencies). The
+branching model we use therefore looks like this
+
+`devel`
+    Is the branch all pull-requests from non-maintainers should be based on and that does not run unit tests with
+    non-free dependencies.
+`devel-nonfree`
+    Is only touched by maintainers and used to also run unit tests with non-free dependencies. It therefore has a higher
+    code coverage than `devel`.
+`master`
+    Is only touched by maintainers and is the branch with only tested, reviewed code that is released or ready for the
+    next release.
