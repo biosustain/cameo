@@ -397,7 +397,7 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
                             (reaction.n_carbon() > 0) and
                             (reaction.flux < 0)]
         if len(source_reactions) == 0:
-            raise NoSourceError()
+            raise NoSourceError
         return source_reactions
 
     @classmethod
@@ -453,7 +453,7 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
         Returns
         -------
         float
-            gram product per 1 g of feeding source or None if more than one product or feeding source
+            gram product per 1 g of feeding source or 0 if more than one product or feeding source
         """
         try:
             source_reactions = self.c_source_reactions()
