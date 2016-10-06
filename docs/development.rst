@@ -20,10 +20,8 @@ Cameo deviates from cobrapy in the way optimization problems are solved by using
 the optlang package (see :ref:`optlang_interface`). The following benefits ....
 
 * Methods that require solving multiple succession will run a lot faster since previously found solution will be reused.
-* Implementation of novel or published becomes a lot easier since optlang (based on the very popular symbolic math library
-sympy) facilitates the formulation of constraints and objectives using equations (similar to GAMS) instead of matrix formalism.
-* Adding of additional constraints (even non-metabolic ), is straight forwards and eliminates the problem in cobrapy of having
-to define opti (check out the ice cream sandwich ...)
+* Implementation of novel or published becomes a lot easier since optlang (based on the very popular symbolic math library sympy) facilitates the formulation of constraints and objectives using equations (similar to GAMS) instead of matrix formalism.
+* Adding of additional constraints (even non-metabolic ), is straight forwards and eliminates the problem in cobrapy of having to define opti (check out the ice cream sandwich ...)
 * The optimization problem is always accessible and has a one-to-one correspondence to the model.
 
 Importing a model
@@ -101,8 +99,8 @@ The optlang solver interface
 ============================
 
 For efficiency reasons, cameo does not utilize the cobrapy's interface to LP and MILP solver.
-Instead it utilizes `optlang`_, which is a generic interface to a number of free and commercial optimization solvers.
-It is based on the popular symbolic math library `sympy`_ and thus enables the formulation of optimization problems
+Instead it utilizes optlang_, which is a generic interface to a number of free and commercial optimization solvers.
+It is based on the popular symbolic math library sympy_ and thus enables the formulation of optimization problems
 using equations instead of matrix formalism.
 
 Changing the solver

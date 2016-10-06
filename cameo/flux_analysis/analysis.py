@@ -343,7 +343,7 @@ def _cycle_free_fva(model, reactions=None, sloppy=True, sloppy_bound=666):
                         if round(v1_flux, config.ndecimals) == 0 and round(v2_one_cycle_fluxes[key],
                                                                            config.ndecimals) != 0:
                             knockout_reaction = model.reactions.get_by_id(key)
-                            knockout_reaction.knock_out()
+                            knockout_reaction.knock_out(time_machine=tm)
                     model.objective.direction = 'max'
                     try:
                         solution = model.solve()
