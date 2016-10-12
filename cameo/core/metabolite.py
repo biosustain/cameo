@@ -72,6 +72,8 @@ class Metabolite(cobra.core.Metabolite):
              for which balancing constraint of mass conservation is relaxed to allow nonzero values
              of the incoming fluxes whereas all outgoing fluxes are limited to zero."
 
+        Knocking out a metabolite overrules the constraints set on the reactions producing the metabolite.
+
         Parameters
         ----------
         time_machine : TimeMachine
@@ -88,9 +90,15 @@ class Metabolite(cobra.core.Metabolite):
         # restrict reactions to produce metabolite
         for reaction in self.reactions:
             if reaction.metabolites[self] > 0:  # for positive stoichiometric coefficient set lb to 0
-                reaction.change_bounds(lb=0, time_machine=time_machine)
+                if reaction.upper_bound < 0:
+                    reaction.change_bounds(lb=0, ub=0, time_machine=time_machine)
+                else:
+                    reaction.change_bounds(lb=0, time_machine=time_machine)
             elif reaction.metabolites[self] < 0:  # for negative stoichiometric coefficient set ub to 0
-                reaction.change_bounds(ub=0, time_machine=time_machine)
+                if reaction.lower_bound > 0:
+                    reaction.change_bounds(lb=0, ub=0, time_machine=time_machine)
+                else:
+                    reaction.change_bounds(ub=0, time_machine=time_machine)
 
         self._relax_mass_balance_constrain(time_machine, absolute_bound)
 
