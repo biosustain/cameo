@@ -30,6 +30,7 @@ import cobra
 import optlang
 import six
 import sympy
+from cobra.manipulation import find_gene_knockout_reactions
 from pandas import DataFrame, pandas
 from sympy import Add
 from sympy import Mul
