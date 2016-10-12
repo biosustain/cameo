@@ -69,7 +69,7 @@ def process_knockout_solution(model, solution, simulation_method, simulation_kwa
 
 def reactions2filter(objective_function):
     """
-    Retrieve from the solvers memory only the reactions required by the objective functions. This is faster then
+    Retrieve from the solvers memory only the reactions required by the objective functions. This is faster than
     reading all reactions from the solver output.
     """
     if isinstance(objective_function, list):

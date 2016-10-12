@@ -123,6 +123,12 @@ Furthermore, the following dependencies are needed:
 -  `inspyred <https://pypi.python.org/pypi/inspyred>`__ for evolutionary
    computations.
 
+Contributions
+~~~~~~~~~~~~~
+
+..are very welcome! Please read the `guideline <CONTRIBUTING.rst>`__ for instructions how to contribute.
+
+
 .. |Join the chat at https://gitter.im/biosustain/cameo| image:: https://badges.gitter.im/biosustain/cameo.svg
    :target: https://gitter.im/biosustain/cameo?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
 .. |PyPI| image:: https://img.shields.io/pypi/v/cameo.svg
@@ -135,3 +141,4 @@ Furthermore, the following dependencies are needed:
    :target: https://coveralls.io/r/biosustain/cameo?branch=devel
 .. |DOI| image:: https://zenodo.org/badge/5031/biosustain/cameo.svg
    :target: https://zenodo.org/badge/latestdoi/5031/biosustain/cameo
+

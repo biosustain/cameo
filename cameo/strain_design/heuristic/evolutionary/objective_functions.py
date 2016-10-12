@@ -59,7 +59,26 @@ class ObjectiveFunction(object):
         return self.__class__.__name__
 
 
-class biomass_product_coupled_yield(ObjectiveFunction):
+class YieldFunction(ObjectiveFunction):
+    def __init__(self, product, substrate, *args, **kwargs):
+        super(YieldFunction, self).__init__(*args, **kwargs)
+        self.n_c_substrate = 1
+        self.n_c_product = 1
+        if isinstance(product, Reaction):
+            self.n_c_product = product.reactants[0].elements.get('C', 1)
+            product = product.id
+        self.product = product
+        if isinstance(substrate, Reaction):
+            self.n_c_substrate = substrate.reactants[0].elements.get('C', 1)
+            substrate = substrate.id
+        self.substrate = substrate
+        self.__name__ = self.__class__.__name__
+
+    def __call__(self, model, solution, decoded_representation):
+        raise NotImplementedError
+
+
+class biomass_product_coupled_yield(YieldFunction):
     """
     Biomass-Product Coupled Yield: (v[biomass] * v[product]) / v[substrate] [1]
 
@@ -85,17 +104,10 @@ class biomass_product_coupled_yield(ObjectiveFunction):
     """
 
     def __init__(self, biomass, product, substrate, *args, **kwargs):
-        super(biomass_product_coupled_yield, self).__init__(*args, **kwargs)
+        super(biomass_product_coupled_yield, self).__init__(product, substrate, *args, **kwargs)
         if isinstance(biomass, Reaction):
             biomass = biomass.id
         self.biomass = biomass
-        if isinstance(product, Reaction):
-            product = product.id
-        self.product = product
-        if isinstance(substrate, Reaction):
-            substrate = substrate.id
-        self.substrate = substrate
-        self.__name__ = self.__class__.__name__
 
     def __call__(self, model, solution, decoded_representation):
         try:
@@ -120,7 +132,7 @@ class biomass_product_coupled_yield(ObjectiveFunction):
         return [self.biomass, self.product, self.substrate]
 
 
-class biomass_product_coupled_min_yield(ObjectiveFunction):
+class biomass_product_coupled_min_yield(YieldFunction):
     """
     Biomass-Product Coupled Minimum Yield: (v[biomass] * min(v[product])) / v[substrate] [1]
 
@@ -141,17 +153,10 @@ class biomass_product_coupled_min_yield(ObjectiveFunction):
     """
 
     def __init__(self, biomass, product, substrate, *args, **kwargs):
-        super(biomass_product_coupled_min_yield, self).__init__(*args, **kwargs)
+        super(biomass_product_coupled_min_yield, self).__init__(product, substrate, *args, **kwargs)
         if isinstance(biomass, Reaction):
             biomass = biomass.id
         self.biomass = biomass
-        if isinstance(product, Reaction):
-            product = product.id
-        self.product = product
-        if isinstance(substrate, Reaction):
-            substrate = substrate.id
-        self.substrate = substrate
-        self.__name__ = self.__class__.__name__
 
     def __call__(self, model, solution, decoded_representation):
         try:
@@ -182,9 +187,11 @@ class biomass_product_coupled_min_yield(ObjectiveFunction):
         return [self.biomass, self.product, self.substrate]
 
 
-class product_yield(ObjectiveFunction):
+class product_yield(YieldFunction):
     """
     Product Yield Objective function: v[product]/v[substrate]
+
+    scaled to carbon content if the product and substrate are given as `Reaction` objects
 
     Parameters
     ----------
@@ -200,24 +207,18 @@ class product_yield(ObjectiveFunction):
     """
 
     def __init__(self, product, substrate, *args, **kwargs):
-        super(product_yield, self).__init__(*args, **kwargs)
-        if isinstance(product, Reaction):
-            product = product.id
-        self.product = product
-        if isinstance(substrate, Reaction):
-            substrate = substrate.id
-        self.substrate = substrate
+        super(product_yield, self).__init__(product, substrate, *args, **kwargs)
 
     def __call__(self, model, solution, decoded_representation):
         try:
-            product_flux = round(solution.fluxes[self.product], config.ndecimals)
-            substrate_flux = round(abs(solution.fluxes[self.substrate]), config.ndecimals)
+            product_flux = round(solution.fluxes[self.product], config.ndecimals) * self.n_c_product
+            substrate_flux = round(abs(solution.fluxes[self.substrate]), config.ndecimals) * self.n_c_substrate
             return round(product_flux / substrate_flux, config.ndecimals)
         except ZeroDivisionError:
             return 0.0
 
     def _repr_latex_(self):
-        return "$$yield = \\frac{%s}{%s}$$" % (self.product, self.substrate)
+        return "$$yield = \\frac{%s}{%s}$$" % (self.product.replace('_', '\\_'), self.substrate.replace('_', '\\_'))
 
     @property
     def name(self):

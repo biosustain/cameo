@@ -24,7 +24,10 @@ from uuid import uuid4
 
 from blessings import Terminal
 
-from cameo.parallel import RedisQueue
+try:
+    from cameo.parallel import RedisQueue
+except ImportError:
+    RedisQueue = None
 from IProgress.progressbar import ProgressBar
 from IProgress.widgets import Percentage, Bar
 
