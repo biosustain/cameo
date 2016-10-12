@@ -469,10 +469,10 @@ class SolverBasedModel(cobra.core.Model):
         fields.remove('optimize')
         return fields
 
-    def essential_metabolites(self, threshold=1e-6, k=100000):
-        """Return a list of essential metabolites [1].
+    def essential_metabolites(self, threshold=1e-6, absolute_bound=100000):
+        """Return a list of essential metabolites
 
-        Implementation according to the paper:
+        Implementation follows the description in [1]:
             "All fluxes around the metabolite M should be restricted to only produce the metabolite,
              for which balancing constraint of mass conservation is relaxed to allow nonzero values
              of the incoming fluxes whereas all outgoing fluxes are limited to zero."
@@ -481,8 +481,9 @@ class SolverBasedModel(cobra.core.Model):
         ----------
         threshold : float (default 1e-6)
             Minimal objective flux to be considered viable.
-        k: number
-            A large number
+        absolute_bound: number
+            The metabolites is 'knocked-out' by setting the associated constraints in the S-matrix to -absolute_bound
+            <= Si <= absolute_bound so should be a large number to make it effectively unconstrained.
 
         References
         ----------
@@ -493,8 +494,7 @@ class SolverBasedModel(cobra.core.Model):
         essential_metabolites = []
         for metabolite in self.metabolites:
             with TimeMachine() as tm:
-                metabolite.knock_out(tm, k)
-
+                metabolite.knock_out(tm, absolute_bound)
                 try:
                     solution = self.solve()
                     if solution.f < threshold:

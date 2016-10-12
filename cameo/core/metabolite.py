@@ -54,20 +54,20 @@ class Metabolite(cobra.core.Metabolite):
         else:
             return None
 
-    def _relax_mass_balance_constrain(self, time_machine, k):
+    def _relax_mass_balance_constrain(self, time_machine, absolute_bound):
         if time_machine:
-            time_machine(do=partial(setattr, self.constraint, "lb", -k),
+            time_machine(do=partial(setattr, self.constraint, "lb", -absolute_bound),
                          undo=partial(setattr, self.constraint, "lb", self.constraint.lb))
-            time_machine(do=partial(setattr, self.constraint, "ub", k),
+            time_machine(do=partial(setattr, self.constraint, "ub", absolute_bound),
                          undo=partial(setattr, self.constraint, "ub", self.constraint.ub))
         else:
-            self.constraint.lb = -k
-            self.constraint.ub = k
+            self.constraint.lb = -absolute_bound
+            self.constraint.ub = absolute_bound
 
-    def knock_out(self, time_machine=None, k=10000):
-        """'Knockout' a metabolite [1].
+    def knock_out(self, time_machine=None, absolute_bound=10000):
+        """'Knockout' a metabolite
 
-        Implementation according to the paper:
+        Implementation follows the description in [1]
             "All fluxes around the metabolite M should be restricted to only produce the metabolite,
              for which balancing constraint of mass conservation is relaxed to allow nonzero values
              of the incoming fluxes whereas all outgoing fluxes are limited to zero."
@@ -76,8 +76,9 @@ class Metabolite(cobra.core.Metabolite):
         ----------
         time_machine : TimeMachine
             An action stack to reverse actions.
-        k: number
-            A large number
+        absolute_bound: number
+            The metabolites is 'knocked-out' by setting the associated constraints in the S-matrix to -absolute_bound
+            <= Si <= absolute_bound so should be a large number to make it effectively unconstrained.
 
         References
         ----------
@@ -91,7 +92,7 @@ class Metabolite(cobra.core.Metabolite):
             elif reaction.metabolites[self] < 0:  # for negative stoichiometric coefficient set ub to 0
                 reaction.change_bounds(ub=0, time_machine=time_machine)
 
-        self._relax_mass_balance_constrain(time_machine, k)  # relax mass balance constraint (k >= Si >= k)
+        self._relax_mass_balance_constrain(time_machine, absolute_bound)
 
     @property
     def id(self):
