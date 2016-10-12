@@ -126,6 +126,12 @@ class SolverBasedModel(cobra.core.Model):
 
     @property
     def non_functional_genes(self):
+        """All non-functional genes in this model
+        Returns
+        -------
+        frozenset
+            set with the genes that are marked as non-functional
+        """
         return frozenset(gene for gene in self.genes if not gene.functional)
 
     def __copy__(self):

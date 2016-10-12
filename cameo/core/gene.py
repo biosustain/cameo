@@ -62,12 +62,12 @@ class Gene(cobra.core.Gene):
             self._id = value
 
     def knock_out(self, time_machine=None):
-        """Knockout gene by setting all its affected reactions' bounds to zero.
+        """Knockout gene by marking as non-functional and set all its affected reactions' bounds to zero
 
         Parameters
         ----------
         time_machine = TimeMachine
-            A time TimeMachine instance can be provided to undo the knockout eventually.
+            A time TimeMachine instance can be provided to easily undo the knockout.
 
         Returns
         -------
@@ -82,12 +82,9 @@ class Gene(cobra.core.Gene):
 
         for reaction in self.reactions:
             if not reaction.functional:
-                def _(reaction, lb, ub):
-                    reaction.upper_bound = ub
-                    reaction.lower_bound = lb
-
                 if time_machine is not None:
                     time_machine(do=reaction.knock_out,
-                                 undo=partial(_, reaction, reaction.lower_bound, reaction.upper_bound))
+                                 undo=partial(reaction.change_bounds,
+                                              reaction.lower_bound, reaction.upper_bound))
                 else:
                     reaction.knock_out()
