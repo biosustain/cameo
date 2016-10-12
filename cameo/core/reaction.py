@@ -18,6 +18,7 @@ from __future__ import absolute_import, print_function
 from functools import partial
 import hashlib
 import cobra as _cobrapy
+from cobra.manipulation.delete import parse_gpr, eval_gpr
 from copy import copy, deepcopy
 
 import cameo
@@ -186,6 +187,21 @@ class Reaction(_cobrapy.core.Reaction):
     @property
     def lower_bound(self):
         return self._lower_bound
+
+    @property
+    def functional(self):
+        """ reaction is functional
+
+        Returns
+        -------
+        bool
+            True if the gene-protein-reaction (GPR) rule is fulfilled for this reaction, or if reaction is not
+            associated to a model, otherwise False.
+        """
+        if self._model:
+            tree, _ = parse_gpr(self.gene_reaction_rule)
+            return eval_gpr(tree, {gene.id for gene in self.genes if not gene.functional})
+        return True
 
     @lower_bound.setter
     def lower_bound(self, value):
