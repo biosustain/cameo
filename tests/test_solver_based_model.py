@@ -112,22 +112,27 @@ class WrappedAbstractTestReaction:
                                     set([metabolite.id for metabolite in reaction.reactants]))
 
         def test_gene_reaction_rule_setter(self):
-            m = self.model
+            m = self.model.copy()
             rxn = Reaction('rxn')
             rxn.add_metabolites({Metabolite('A'): -1,
                                  Metabolite('B'): 1})
-            rxn.gene_reaction_rule = 'A2B'
-            print(list(rxn.genes)[0], type(list(rxn.genes)[0]))
+            rxn.gene_reaction_rule = 'A2B1 or A2B2 and A2B3'
             self.assertTrue(hasattr(list(rxn.genes)[0], 'knock_out'))
             m.add_reaction(rxn)
-            tm = cameo.util.TimeMachine()
-            for gene in m.genes:
-                try:
-                    gene.knock_out(time_machine=tm)
-                except AttributeError:
-                    print(gene.id)
-                except:
-                    pass
+            with cameo.util.TimeMachine() as tm:
+                m.genes.A2B1.knock_out(time_machine=tm)
+                self.assertFalse(m.genes.A2B1.functional)
+                m.genes.A2B3.knock_out(time_machine=tm)
+                self.assertFalse(rxn.functional)
+            self.assertTrue(m.genes.A2B3.functional)
+            self.assertTrue(rxn.functional)
+            m.genes.A2B1.knock_out()
+            self.assertFalse(m.genes.A2B1.functional)
+            self.assertTrue(m.reactions.rxn.functional)
+            m.genes.A2B3.knock_out()
+            self.assertFalse(m.reactions.rxn.functional)
+            non_functional = [gene.id for gene in m.non_functional_genes]
+            self.assertTrue(all(gene in non_functional for gene in ['A2B3', 'A2B1']))
 
         def test_gene_reaction_rule_setter_reaction_already_added_to_model(self):
             m = self.model
