@@ -19,9 +19,9 @@ from __future__ import absolute_import
 import copy
 import os
 import unittest
+from nose.tools import assert_almost_equal
 
 import pandas
-from pandas.util.testing import assert_frame_equal
 from sympy import Add
 
 import cameo
@@ -38,18 +38,23 @@ from optlang.exceptions import IndicatorConstraintsNotSupported
 TRAVIS = os.getenv('TRAVIS', False)
 
 
-def assert_dataframes_equal(df, expected):
-    try:
-        assert_frame_equal(df, expected, check_names=False)
-        return True
-    except AssertionError:
-        return False
+def assert_data_frames_equal(obj, expected, delta=0.0001, sort_by=None):
+    df = obj.data_frame
+    common_names = set(df.columns.values).intersection(expected.columns.values)
+    if sort_by:
+        df = df.sort_values(sort_by).reset_index(drop=True)
+        expected = expected.sort_values(sort_by).reset_index(drop=True)
+    for column in common_names:
+        for key in df.index:
+            assert_almost_equal(df[column][key], expected[column][key], delta=delta)
+
 
 
 TESTDIR = os.path.dirname(__file__)
 REFERENCE_FVA_SOLUTION_ECOLI_CORE = pandas.read_csv(os.path.join(TESTDIR, 'data/REFERENCE_flux_ranges_EcoliCore.csv'),
                                                     index_col=0)
 REFERENCE_PPP_o2_EcoliCore = pandas.read_csv(os.path.join(TESTDIR, 'data/REFERENCE_PPP_o2_EcoliCore.csv'))
+REFERENCE_PPP_o2_EcoliCore_ac = pandas.read_csv(os.path.join(TESTDIR, 'data/REFERENCE_PPP_o2_EcoliCore_ac.csv'))
 REFERENCE_PPP_o2_glc_EcoliCore = pandas.read_csv(os.path.join(TESTDIR, 'data/REFERENCE_PPP_o2_glc_EcoliCore.csv'))
 
 CORE_MODEL = load_model(os.path.join(TESTDIR, 'data/EcoliCore.xml'), sanitize=False)
@@ -71,34 +76,35 @@ class Wrapper:
 
         def test_flux_variability_parallel(self):
             mp_view = MultiprocessingView(2)
-            fva_solution = flux_variability_analysis(self.model, remove_cycles=False, view=mp_view)
+            fva_solution = flux_variability_analysis(self.model, fraction_of_optimum=0.999999419892,
+                                                     remove_cycles=False, view=mp_view)
             mp_view.shutdown()
-            assert_dataframes_equal(fva_solution, REFERENCE_FVA_SOLUTION_ECOLI_CORE)
+            assert_data_frames_equal(fva_solution, REFERENCE_FVA_SOLUTION_ECOLI_CORE)
 
         @unittest.skipIf(TRAVIS, 'Skip multiprocessing in Travis')
         def test_flux_variability_parallel_remove_cycles(self):
-            fva_solution = flux_variability_analysis(self.model, fraction_of_optimum=0.999999419892, remove_cycles=True,
-                                                     view=MultiprocessingView())
+            fva_solution = flux_variability_analysis(self.model, fraction_of_optimum=0.999999419892,
+                                                     remove_cycles=True, view=MultiprocessingView())
             self.assertGreater(REFERENCE_FVA_SOLUTION_ECOLI_CORE['upper_bound']['FRD7'], 666.)
             self.assertAlmostEqual(fva_solution['upper_bound']['FRD7'], 0.)
             for key in fva_solution.data_frame.index:
-                if abs(REFERENCE_FVA_SOLUTION_ECOLI_CORE['lower_bound'][key]) > -666:
+                if REFERENCE_FVA_SOLUTION_ECOLI_CORE['lower_bound'][key] > -666:
                     self.assertAlmostEqual(fva_solution['lower_bound'][key],
                                            REFERENCE_FVA_SOLUTION_ECOLI_CORE['lower_bound'][key], delta=0.0001)
-                if abs(REFERENCE_FVA_SOLUTION_ECOLI_CORE['upper_bound'][key]) < 666:
+                if REFERENCE_FVA_SOLUTION_ECOLI_CORE['upper_bound'][key] < 666:
                     self.assertAlmostEqual(fva_solution['upper_bound'][key],
                                            REFERENCE_FVA_SOLUTION_ECOLI_CORE['upper_bound'][key], delta=0.0001)
 
         def test_flux_variability_sequential(self):
             fva_solution = flux_variability_analysis(self.model, fraction_of_optimum=0.999999419892,
                                                      remove_cycles=False, view=SequentialView())
-            assert_dataframes_equal(fva_solution, REFERENCE_FVA_SOLUTION_ECOLI_CORE)
+            assert_data_frames_equal(fva_solution, REFERENCE_FVA_SOLUTION_ECOLI_CORE)
             for key in fva_solution.data_frame.index:
                 self.assertAlmostEqual(fva_solution['lower_bound'][key],
                                        REFERENCE_FVA_SOLUTION_ECOLI_CORE['lower_bound'][key], delta=0.00001)
                 self.assertAlmostEqual(fva_solution['upper_bound'][key],
                                        REFERENCE_FVA_SOLUTION_ECOLI_CORE['upper_bound'][key], delta=0.00001)
-            assert_dataframes_equal(fva_solution, REFERENCE_FVA_SOLUTION_ECOLI_CORE)
+            assert_data_frames_equal(fva_solution, REFERENCE_FVA_SOLUTION_ECOLI_CORE)
 
         def test_flux_variability_sequential_remove_cycles(self):
             fva_solution = flux_variability_analysis(self.model, fraction_of_optimum=0.999999419892, remove_cycles=True,
@@ -106,10 +112,10 @@ class Wrapper:
             self.assertGreater(REFERENCE_FVA_SOLUTION_ECOLI_CORE['upper_bound']['FRD7'], 666.)
             self.assertAlmostEqual(fva_solution['upper_bound']['FRD7'], 0.)
             for key in fva_solution.data_frame.index:
-                if abs(REFERENCE_FVA_SOLUTION_ECOLI_CORE['lower_bound'][key]) > -666:
+                if REFERENCE_FVA_SOLUTION_ECOLI_CORE['lower_bound'][key] > -666:
                     self.assertAlmostEqual(fva_solution['lower_bound'][key],
                                            REFERENCE_FVA_SOLUTION_ECOLI_CORE['lower_bound'][key], delta=0.0001)
-                if abs(REFERENCE_FVA_SOLUTION_ECOLI_CORE['upper_bound'][key]) < 666:
+                if REFERENCE_FVA_SOLUTION_ECOLI_CORE['upper_bound'][key] < 666:
                     self.assertAlmostEqual(fva_solution['upper_bound'][key],
                                            REFERENCE_FVA_SOLUTION_ECOLI_CORE['upper_bound'][key], delta=0.0001)
 
@@ -126,15 +132,15 @@ class Wrapper:
         @unittest.skipIf(TRAVIS, 'Running in Travis')
         def test_one_variable_parallel(self):
             ppp = phenotypic_phase_plane(self.model, ['EX_o2_LPAREN_e_RPAREN_'], view=MultiprocessingView())
-            assert_dataframes_equal(ppp, REFERENCE_PPP_o2_EcoliCore)
+            assert_data_frames_equal(ppp, REFERENCE_PPP_o2_EcoliCore, sort_by=['EX_o2_LPAREN_e_RPAREN_'])
             ppp = phenotypic_phase_plane(self.model, 'EX_o2_LPAREN_e_RPAREN_', view=MultiprocessingView())
-            assert_dataframes_equal(ppp, REFERENCE_PPP_o2_EcoliCore)
+            assert_data_frames_equal(ppp, REFERENCE_PPP_o2_EcoliCore, sort_by=['EX_o2_LPAREN_e_RPAREN_'])
 
         def test_one_variable_sequential(self):
             ppp = phenotypic_phase_plane(self.model, ['EX_o2_LPAREN_e_RPAREN_'], view=SequentialView())
-            assert_dataframes_equal(ppp, REFERENCE_PPP_o2_EcoliCore)
+            assert_data_frames_equal(ppp, REFERENCE_PPP_o2_EcoliCore, sort_by=['EX_o2_LPAREN_e_RPAREN_'])
             ppp = phenotypic_phase_plane(self.model, 'EX_o2_LPAREN_e_RPAREN_', view=SequentialView())
-            assert_dataframes_equal(ppp, REFERENCE_PPP_o2_EcoliCore)
+            assert_data_frames_equal(ppp, REFERENCE_PPP_o2_EcoliCore, sort_by=['EX_o2_LPAREN_e_RPAREN_'])
 
         def test_one_variable_sequential_yield(self):
             ppp = phenotypic_phase_plane(self.model, ['EX_o2_LPAREN_e_RPAREN_'], view=SequentialView())
@@ -146,12 +152,14 @@ class Wrapper:
         def test_two_variables_parallel(self):
             ppp2d = phenotypic_phase_plane(self.model, ['EX_o2_LPAREN_e_RPAREN_', 'EX_glc_LPAREN_e_RPAREN_'],
                                            view=MultiprocessingView())
-            assert_dataframes_equal(ppp2d, REFERENCE_PPP_o2_glc_EcoliCore)
+            assert_data_frames_equal(ppp2d, REFERENCE_PPP_o2_glc_EcoliCore,
+                                     sort_by=['EX_o2_LPAREN_e_RPAREN_', 'EX_glc_LPAREN_e_RPAREN_'])
 
         def test_two_variables_sequential(self):
             ppp2d = phenotypic_phase_plane(self.model, ['EX_o2_LPAREN_e_RPAREN_', 'EX_glc_LPAREN_e_RPAREN_'],
                                            view=SequentialView())
-            assert_dataframes_equal(ppp2d, REFERENCE_PPP_o2_glc_EcoliCore)
+            assert_data_frames_equal(ppp2d, REFERENCE_PPP_o2_glc_EcoliCore,
+                                     sort_by=['EX_o2_LPAREN_e_RPAREN_', 'EX_glc_LPAREN_e_RPAREN_'])
 
     class AbstractTestSimulationMethods(unittest.TestCase):
         def setUp(self):
@@ -349,9 +357,9 @@ class TestPhenotypicPhasePlaneGLPK(Wrapper.AbstractTestPhenotypicPhasePlane):
         self.model.solver = 'glpk'
 
     def test_one_variable_sequential_metabolite(self):
-        ppp = phenotypic_phase_plane(self.model, ['EX_o2_LPAREN_e_RPAREN_'], self.model.metabolites.o2_c,
+        ppp = phenotypic_phase_plane(self.model, ['EX_o2_LPAREN_e_RPAREN_'], self.model.metabolites.ac_c,
                                      view=SequentialView())
-        assert_dataframes_equal(ppp, REFERENCE_PPP_o2_EcoliCore)
+        assert_data_frames_equal(ppp, REFERENCE_PPP_o2_EcoliCore_ac, sort_by=['EX_o2_LPAREN_e_RPAREN_'])
 
 
 @unittest.skipIf('cplex' not in solvers, "No cplex interface available")

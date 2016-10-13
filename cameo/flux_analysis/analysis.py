@@ -165,9 +165,8 @@ def phenotypic_phase_plane(model, variables=[], objective=None, points=20, view=
         variables_min_max = flux_variability_analysis(model, reactions=variable_reactions, view=SequentialView())
         grid = [numpy.linspace(lower_bound, upper_bound, points, endpoint=True) for
                 reaction_id, lower_bound, upper_bound in
-                variables_min_max.data_frame.itertuples()]
+                variables_min_max.data_frame.loc[variables].itertuples()]
         grid_generator = itertools.product(*grid)
-
         chunks_of_points = partition(list(grid_generator), len(view))
         evaluator = _PhenotypicPhasePlaneChunkEvaluator(model, variable_reactions)
         chunk_results = view.map(evaluator, chunks_of_points)
