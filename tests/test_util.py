@@ -14,6 +14,7 @@
 
 from __future__ import absolute_import, print_function
 
+import os
 import unittest
 from functools import partial
 from itertools import chain
@@ -21,8 +22,14 @@ from itertools import chain
 from cobra import Metabolite
 from six.moves import range
 
+from cameo.io import load_model
+from cameo.flux_analysis.simulation import lmoma
 from cameo.network_analysis.util import distance_based_on_molecular_formula
-from cameo.util import TimeMachine, generate_colors, Singleton, partition, RandomGenerator, frozendict
+from cameo.util import TimeMachine, generate_colors, Singleton, partition, RandomGenerator, frozendict, ProblemCache
+
+
+TESTDIR = os.path.dirname(__file__)
+TESTMODEL = load_model(os.path.join(TESTDIR, 'data/EcoliCore.xml'), sanitize=False)
 
 
 class TimeMachineTestCase(unittest.TestCase):
@@ -52,6 +59,43 @@ class TimeMachineTestCase(unittest.TestCase):
             tm(do=partial(l.append, 66), undo=partial(l.pop))
             tm(do=partial(l.append, 99), undo=partial(l.pop))
         self.assertEqual(l, [1, 2, 3, 4])
+
+
+class TestProblemCache(unittest.TestCase):
+    def setUp(self):
+        self.reference = TESTMODEL.solve().fluxes
+        self.n_constraints = len(TESTMODEL.solver.constraints)
+        self.n_variables = len(TESTMODEL.solver.variables)
+
+    def test_cache_problem(self):
+        lmoma(model=TESTMODEL, reference=self.reference)
+
+        # After running lmoma without cache, the number of variables and constraints remains the same
+        self.assertEqual(self.n_constraints, len(TESTMODEL.solver.constraints))
+        self.assertEqual(self.n_variables, len(TESTMODEL.solver.variables))
+
+        cache = ProblemCache(TESTMODEL)
+        lmoma(model=TESTMODEL, reference=self.reference, cache=cache)
+        # After running lmoma with cache, the number of variables is 2 times the original number
+        self.assertEqual(2*self.n_variables, len(TESTMODEL.solver.variables))
+        # And has 2 more constraints per reactions
+        self.assertEqual(self.n_constraints + 2 * len(TESTMODEL.reactions), len(TESTMODEL.solver.constraints))
+
+        cache.reset()
+        # After reset cache, the problem should return to its original size
+        self.assertEqual(self.n_constraints, len(TESTMODEL.solver.constraints))
+        self.assertEqual(self.n_variables, len(TESTMODEL.solver.variables))
+
+    def test_with(self):
+        with ProblemCache(TESTMODEL) as cache:
+            lmoma(model=TESTMODEL, reference=self.reference, cache=cache)
+            # After running lmoma with cache, the number of variables and constraints are 2 times bigger
+            self.assertEqual(2*self.n_variables, len(TESTMODEL.solver.variables))
+            # And has 2 more constraints per reactions
+            self.assertEqual(self.n_constraints + 2 * len(TESTMODEL.reactions), len(TESTMODEL.solver.constraints))
+        # After reset cache, the problem should return to its original size
+        self.assertEqual(self.n_constraints, len(TESTMODEL.solver.constraints))
+        self.assertEqual(self.n_variables, len(TESTMODEL.solver.variables))
 
 
 class TestRandomGenerator(unittest.TestCase):

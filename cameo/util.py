@@ -68,12 +68,11 @@ class ProblemCache(object):
     """
     Variable and constraint cache for models.
 
-    To be used in complex methods that require many extra variables when one must run
-    multiple simulations.
+    To be used in complex methods that require many extra variables and constraints when one must run
+    simulations with the same method many times.
 
     It allows rollback to the previous state in case one iteration fails to build the problem or
     generates an invalid state.
-
     """
 
     def __init__(self, model):
@@ -99,28 +98,28 @@ class ProblemCache(object):
 
     def _append_constraint(self, constraint_id, create, *args, **kwargs):
         self.constraints[constraint_id] = create(self.model, constraint_id, *args, **kwargs)
-        self._model.solver._add_constraint(self.constraints[constraint_id])
+        self._model.solver.add(self.constraints[constraint_id])
 
     def _remove_constraint(self, constraint_id):
         constraint = self.constraints.pop(constraint_id)
-        self.model.solver._remove_constraint(constraint)
+        self.model.solver.remove(constraint)
 
     def _append_variable(self, variable_id, create, *args, **kwargs):
         self.variables[variable_id] = create(self.model, variable_id, *args, **kwargs)
-        self.model.solver._add_variable(self.variables[variable_id])
+        self.model.solver.add(self.variables[variable_id])
 
     def _remove_variable(self, variable_id):
         variable = self.variables.pop(variable_id)
-        self.model.solver._remove_variable(variable)
+        self.model.solver.remove(variable)
 
     def _rebuild_variable(self, variable):
         (type, lb, ub, name) = variable.type, variable.lb, variable.ub, variable.name
 
         def rebuild():
-            self.model.solver._remove_variable(variable)
+            self.model.solver.remove(variable)
             new_variable = self.model.solver.interface.Variable(name, lb=lb, ub=ub, type=type)
             self.variables[name] = variable
-            self.model.solver._add_variable(new_variable, sloppy=True)
+            self.model.solver.add(new_variable, sloppy=True)
 
         return rebuild
 
@@ -201,8 +200,8 @@ class ProblemCache(object):
         """
         Removes all constraints and variables from the cache.
         """
-        self.model.solver._remove_constraints(self.constraints.values())
-        self.model.solver._remove_variables(self.variables.values())
+        self.model.solver.remove(self.constraints.values())
+        self.model.solver.remove(self.variables.values())
         self.model.objective = self.original_objective
         self.variables = {}
         self.objective = None
@@ -218,6 +217,27 @@ class ProblemCache(object):
             raise RuntimeError("Start transaction must be called before rollback")
         self.time_machine.undo(self.transaction_id)
         self.transaction_id = None
+
+    def __enter__(self):
+        """
+        Allows problem cache to be used with a _with_ statement.
+
+        Examples
+        --------
+        You want to run room/lmoma for every single knockout.
+        >>> with ProblemCache(model) as cache:
+        >>>     for reaction in reactions:
+        >>>         result = lmoma(model, reference=reference, cache=cache)
+
+        Returns
+        -------
+        ProblemCache
+            returns itself
+        """
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.reset()
 
 
 class RandomGenerator(object):
