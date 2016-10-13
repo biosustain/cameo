@@ -154,7 +154,7 @@ def linear_set_generator(random, args):
     bounder = args.get("_ec").bounder
     representation = args.get('representation')
     max_size = args.get('max_size', 9)
-    variable_size = args.get('variable__size', True)
+    variable_size = args.get('variable_size', True)
     if variable_size:
         size = random.randint(1, max_size)
     else:

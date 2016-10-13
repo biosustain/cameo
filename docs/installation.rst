@@ -16,10 +16,17 @@ be installed using virtualenv-burrito_. Once you installed virtualenv_ and virtu
 
 and then continue with the installation instructions described below.
 
+Alternatively you can use ``conda`` if you're already an anaconda user (there is no conda recipe for cameo though so you'll
+still need to install it using ``pip``). Do the following to create a virtual environment and get some of the heavier dependencies out of the way.
+
+.. code-block:: bash
+
+    $ conda create -y -n cameo3.4 python=3.4 scipy numpy pandas numexpr matplotlib
+
 Non-python dependencies
 =======================
 
-cameo relies on optlang_ to solve optimization problems. Currently, optlang supports either glpk_ (open source) or cplex_
+Cameo relies on optlang_ to solve optimization problems. Currently, optlang supports either glpk_ (open source) or cplex_
 (academic licenses available), which are not python tools. At least one of them has to be installed before one can proceed
 with the cameo installation.
 
@@ -52,62 +59,37 @@ this directory run
 
 to install the python bindings.
 
-Hard dependencies
-=================
+Installation
+============
 
-Cameo has the following hard dependencies.
-
-* [optlang](https://pypi.python.org/pypi/optlang) (for defining optimization problems)
-* [numpy](http://www.numpy.org/) and [scipy](http://www.scipy.org/) (for obvious reasons)
-* [inspyred](https://pypi.python.org/pypi/inspyred) (for heuristic optimizations)
-* [escher](https://pypi.python.org/pypi/Escher) (for pathway visualizations)
-* [blessings](https://pypi.python.org/pypi/blessings) and [IProgress](https://pypi.python.org/pypi/IProgress) (for displaying progress bars)
-* [lazy-proxy-object](https://pypi.python.org/pypi/lazy-object-proxy) (for keeping models unevaluated)
-
-
-Normal installation
-===================
-
-.. warning::
-    cameo is still under heavy development. We recommend installing the development version (see below)
-    if you would like to stay up-to-date with the latest changes.
-
-cameo can be installed using `pip`.
+Cameo can be installed using ``pip`` (don't forget to activate your virtual environment in case you created one).
 
 .. code-block:: bash
 
     $ pip install cameo
 
-This will also install the hard dependencies mentioned above.
 
 Soft dependencies
 =================
 
-We highly recommend installing the following soft dependencies to provide a richer user experience when working with cameo.
+The following soft dependencies can be installed all at once using ``pip install cameo[all]`` or individually
+by specifying individual categories of dependencies (for example ``pip install cameo[swiglpk, sbml, ...]``).
+The following categories are available::
 
-- [Jupyter notebook](https://pypi.python.org/pypi/jupyter)) >= 1.0.0 (for interactive modeling environment)
-- [bokeh](https://pypi.python.org/pypi/bokeh)) >= 0.11.0 (for plotting)
-- [escher](https://pypi.python.org/pypi/escher)) >= 1.2.1 (for pathway visualizations)
-
-All of these soft dependencies can be installed using pip.
-
-.. code-block:: bash
-
-    $ pip install jupyter bokeh escher
-
-Furthermore, the following dependencies are needed for developing and contributing to cameo.
-
--  `sphinx`_) (for generating documentation)
--  `numpydoc`_ (for using numpy doc strings)
--  `nose`_ (for running unit tests)
--  `rednose`_ (for running unit tests)
--  `codecov`_ (for determining test coverage)
+    'docs': ['Sphinx>=1.3.5', 'numpydoc>=0.5'],
+    'swiglpk': ['swiglpk>=1.2.14'],
+    'plotly': ['plotly>=1.9.6'],
+    'bokeh': ['bokeh>=0.11.1'],
+    'jupyter': ['jupyter>=1.0.0', 'ipywidgets>=4.1.1'],
+    'test': ['nose>=1.3.7', 'rednose>=0.4.3', 'coverage>=4.0.3'],
+    'parallel': ['redis>=2.10.5', 'ipyparallel>=5.0.1'],
+    'sbml': ['python-libsbml>=5.13.0', 'lxml>=3.6.0']
 
 
 Development setup
 =================
 
-`pip` can also be used to install cameo directly from the `github repository <https://github.com/biosustain/cameo>`_.
+``pip`` can also be used to install cameo directly from the `github repository <https://github.com/biosustain/cameo>`_.
 
 .. code-block:: bash
 

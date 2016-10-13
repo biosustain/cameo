@@ -23,15 +23,25 @@ from math import sqrt
 import inspyred
 import numpy
 import six
-from cobra.manipulation.delete import find_gene_knockout_reactions
-from inspyred.ec import Bounder
-from inspyred.ec.emo import Pareto
-from ordered_set import OrderedSet
-from pandas.util.testing import assert_frame_equal
+
 from six.moves import range
 
+from inspyred.ec import Bounder
+from inspyred.ec.emo import Pareto
+
+from cobra.manipulation.delete import find_gene_knockout_reactions
+
+from ordered_set import OrderedSet
+from pandas.util.testing import assert_frame_equal
+
 from cameo import load_model, fba, config
-from cameo.parallel import SequentialView, RedisQueue
+from cameo.config import solvers
+from cameo.parallel import SequentialView
+try:
+    from cameo.parallel import RedisQueue
+except ImportError:
+    RedisQueue = None
+
 from cameo.strain_design.heuristic.evolutionary.archives import Individual, BestSolutionArchive
 from cameo.strain_design.heuristic.evolutionary.decoders import ReactionKnockoutDecoder, KnockoutDecoder, \
     GeneKnockoutDecoder
@@ -40,11 +50,17 @@ from cameo.strain_design.heuristic.evolutionary.generators import set_generator,
 from cameo.strain_design.heuristic.evolutionary.genomes import MultipleChromosomeGenome
 from cameo.strain_design.heuristic.evolutionary.metrics import euclidean_distance
 from cameo.strain_design.heuristic.evolutionary.metrics import manhattan_distance
-from cameo.strain_design.heuristic.evolutionary.multiprocess.migrators import MultiprocessingMigrator
+from cameo.util import TimeMachine
+try:
+    from cameo.strain_design.heuristic.evolutionary.multiprocess.migrators import MultiprocessingMigrator
+except ImportError:
+    MultiprocessingMigrator = None
+    pass
 from cameo.strain_design.heuristic.evolutionary.objective_functions import biomass_product_coupled_yield, \
     product_yield, number_of_knockouts, biomass_product_coupled_min_yield
 from cameo.strain_design.heuristic.evolutionary.optimization import HeuristicOptimization, \
-    ReactionKnockoutOptimization, set_distance_function, KnockoutOptimizationResult, EvaluatorWrapper, KnockoutEvaluator
+    ReactionKnockoutOptimization, set_distance_function, KnockoutOptimizationResult, EvaluatorWrapper, \
+    KnockoutEvaluator, SwapperModel, NADH_NADPH, CofactorSwapOptimization
 from cameo.strain_design.heuristic.evolutionary.variators import _do_set_n_point_crossover, set_n_point_crossover, \
     set_mutation, set_indel, multiple_chromosome_set_mutation, multiple_chromosome_set_indel
 from cameo.util import RandomGenerator as Random
@@ -446,7 +462,6 @@ class TestKnockoutEvaluator(unittest.TestCase):
         self.assertEquals(fitness, 0)
 
 
-
 class TestWrappedEvaluator(unittest.TestCase):
     def test_initializer(self):
         def evaluation_function(x):
@@ -465,6 +480,36 @@ class TestWrappedEvaluator(unittest.TestCase):
         self.assertRaises(ValueError, EvaluatorWrapper, lambda x: 1, config.default_view)
         self.assertRaises(ValueError, EvaluatorWrapper, None, lambda x: 1)
         self.assertRaises(ValueError, EvaluatorWrapper, 123, lambda x: 1)
+
+
+class TestSwapEvaluator(unittest.TestCase):
+    def test_swapper(self):
+        swapper_model = SwapperModel(TEST_MODEL, NADH_NADPH)
+        expected_reactions = ['ACALD', 'AKGDH', 'ALCD2x', 'G6PDH2r', 'GAPD', 'GLUDy', 'GLUSy', 'GND', 'ICDHyr',
+                              'LDH_D', 'MDH', 'ME1', 'ME2', 'NADH16', 'PDH']
+        result = list(swapper_model.swapped_reactions.keys())
+        result.sort()
+        swapper_model.add_swap_reaction('PGI')
+        swapper_model.swap_reaction('GAPD')
+        swapper_model.remove_swap_reaction('PDH')
+        with TimeMachine() as tm:
+            swapper_model.swap_reaction('MDH', tm)
+        self.assertEquals(swapper_model.reactions.MDH.upper_bound, 1000.)
+        self.assertEquals(expected_reactions, result)
+        self.assertEquals(swapper_model.reactions.ACALD_swap.upper_bound, 0.)
+        self.assertEquals(swapper_model.reactions.GAPD.upper_bound, 0.)
+        self.assertEquals(swapper_model.reactions.GAPD_swap.upper_bound, 1000.)
+        self.assertTrue('PGI' not in swapper_model.swapped_reactions)
+        self.assertTrue('PDH' not in swapper_model.swapped_reactions)
+
+    def test_evaluate_swap(self):
+        TEST_MODEL.objective = TEST_MODEL.reactions.EX_etoh_LPAREN_e_RPAREN_
+        py = product_yield(TEST_MODEL.reactions.EX_etoh_LPAREN_e_RPAREN_, TEST_MODEL.reactions.EX_glc_LPAREN_e_RPAREN_)
+        reactions = ['ACALD', 'ALCD2x', 'G6PDH2r', 'GAPD']
+        optimization = CofactorSwapOptimization(TEST_MODEL, objective_function=py, candidate_reactions=reactions)
+        optimization_result = optimization.run(max_evaluations=16, max_size=2)
+        fitness = optimization_result.data_frame.iloc[0].fitness
+        self.assertAlmostEqual(fitness, 0.66667, places=3)
 
 
 class TestDecoders(unittest.TestCase):
@@ -526,7 +571,11 @@ class TestGenerators(unittest.TestCase):
         self.assertEqual(len(candidate['test_key_2']), 5)
 
     def test_fixed_size_set_generator(self):
+        candidates_file = os.path.join(CURRENT_PATH, "data", "fix_size_candidates.pkl")
+        self.random.seed(SEED)
         self.args.setdefault('variable_size', False)
+
+        candidates = []
 
         self.args['max_size'] = 10
         for _ in range(1000):
@@ -534,6 +583,15 @@ class TestGenerators(unittest.TestCase):
             self.assertEqual(len(candidate), 10)
             candidate = unique_set_generator(self.random, self.args)
             self.assertEqual(len(candidate), 10)
+            candidates.append(candidate)
+
+        with open(candidates_file, 'rb') as in_file:
+            if six.PY3:
+                expected_candidates = pickle.load(in_file, encoding="latin1")
+            else:
+                expected_candidates = pickle.load(in_file)
+
+        self.assertEqual(candidates, expected_candidates)
 
         self.args['max_size'] = 20
         for _ in range(1000):
@@ -543,14 +601,25 @@ class TestGenerators(unittest.TestCase):
             self.assertEqual(len(candidate), 20)
 
     def test_variable_size_set_generator(self):
+        candidates_file = os.path.join(CURRENT_PATH, "data", "variable_size_candidates.pkl")
         self.args.setdefault('variable_size', True)
-
+        self.random.seed(SEED)
+        candidates = []
         self.args['max_size'] = 10
         for _ in range(1000):
             candidate = set_generator(self.random, self.args)
             self.assertLessEqual(len(candidate), 10)
             candidate = unique_set_generator(self.random, self.args)
             self.assertLessEqual(len(candidate), 10)
+            candidates.append(candidate)
+
+        with open(candidates_file, 'rb') as in_file:
+            if six.PY3:
+                expected_candidates = pickle.load(in_file, encoding="latin1")
+            else:
+                expected_candidates = pickle.load(in_file)
+
+        self.assertEqual(candidates, expected_candidates)
 
         self.args['max_size'] = 20
         for _ in range(1000):
@@ -561,7 +630,7 @@ class TestGenerators(unittest.TestCase):
 
     def test_fixed_size_linear_set_generator(self):
         ec = self.mockup_evolutionary_algorithm(Bounder(-10, 10))
-        self.args.setdefault('variable_size', True)
+        self.args.setdefault('variable_size', False)
         self.args['max_size'] = 10
         self.args['_ec'] = ec
         for _ in range(1000):
@@ -588,17 +657,14 @@ class TestHeuristicOptimization(unittest.TestCase):
             objective_function=self.single_objective_function
         )
 
-        self.assertIsNot(heuristic_optimization.seed, SEED)
         self.assertEqual(heuristic_optimization.model, self.model)
         self.assertEqual(heuristic_optimization.objective_function, self.single_objective_function)
 
         heuristic_optimization = HeuristicOptimization(
             model=self.model,
             objective_function=self.single_objective_function,
-            seed=SEED
         )
 
-        self.assertEqual(heuristic_optimization.seed, SEED)
         self.assertEqual(heuristic_optimization.model, self.model)
         self.assertEqual(heuristic_optimization.objective_function, self.single_objective_function)
 
@@ -609,7 +675,6 @@ class TestHeuristicOptimization(unittest.TestCase):
             heuristic_method=inspyred.ec.emo.NSGA2
         )
 
-        self.assertIsNot(heuristic_optimization.seed, SEED)
         self.assertEqual(heuristic_optimization.model, self.model)
         self.assertEqual(len(heuristic_optimization.objective_function), 2)
 
@@ -617,10 +682,8 @@ class TestHeuristicOptimization(unittest.TestCase):
             model=self.model,
             objective_function=self.multiobjective_function,
             heuristic_method=inspyred.ec.emo.NSGA2,
-            seed=SEED
         )
 
-        self.assertEqual(heuristic_optimization.seed, SEED)
         self.assertEqual(heuristic_optimization.model, self.model)
         self.assertEqual(len(heuristic_optimization.objective_function), 2)
 
@@ -709,6 +772,7 @@ class TestMigrators(unittest.TestCase):
         self.random = Random(SEED)
 
     # unittest.skipIf(os.getenv('WERCKER', False), 'Currently not working on wercker as redis is not running on localhost')
+    @unittest.skipIf(RedisQueue is None, 'redis not available')
     def test_migrator_constructor(self):
         migrator = MultiprocessingMigrator(max_migrants=1, host=REDIS_HOST)
         self.assertIsInstance(migrator.migrants, RedisQueue)
@@ -723,6 +787,7 @@ class TestMigrators(unittest.TestCase):
         self.assertEqual(migrator.max_migrants, 3)
 
     # unittest.skipIf(os.getenv('WERCKER', False), 'Currently not working on wercker as redis is not running on localhost')
+    @unittest.skipIf(RedisQueue is None, 'redis not available')
     def test_migrate_individuals_without_evaluation(self):
         migrator = MultiprocessingMigrator(max_migrants=1, host=REDIS_HOST)
         self.assertIsInstance(migrator.migrants, RedisQueue)
@@ -777,14 +842,13 @@ class TestReactionKnockoutOptimization(unittest.TestCase):
 
     def test_initialize(self):
         rko = ReactionKnockoutOptimization(model=self.model,
-                                           simulation_method=fba,
-                                           seed=SEED)
+                                           simulation_method=fba)
 
         self.assertTrue(sorted(self.essential_reactions) == sorted(rko.essential_reactions))
         self.assertEqual(rko._ko_type, "reaction")
         self.assertTrue(isinstance(rko._decoder, ReactionKnockoutDecoder))
 
-    @unittest.skipIf(True, 'Broken ..')
+    @unittest.skipIf(os.getenv('TRAVIS', False) or 'cplex' not in solvers, 'Missing cplex (or Travis)')
     def test_run_single_objective(self):
         result_file = os.path.join(CURRENT_PATH, "data", "reaction_knockout_single_objective.pkl")
         objective = biomass_product_coupled_yield(
@@ -794,10 +858,9 @@ class TestReactionKnockoutOptimization(unittest.TestCase):
 
         rko = ReactionKnockoutOptimization(model=self.model,
                                            simulation_method=fba,
-                                           objective_function=objective,
-                                           seed=SEED)
+                                           objective_function=objective)
 
-        results = rko.run(max_evaluations=3000, pop_size=10, view=SequentialView())
+        results = rko.run(max_evaluations=3000, pop_size=10, view=SequentialView(), seed=SEED)
 
         with open(result_file, 'rb') as in_file:
             if six.PY3:
@@ -805,9 +868,9 @@ class TestReactionKnockoutOptimization(unittest.TestCase):
             else:
                 expected_results = pickle.load(in_file)
 
-        assert_frame_equal(results._solutions, expected_results)
+        assert_frame_equal(results.data_frame, expected_results.data_frame)
 
-    @unittest.skipIf(True, 'Broken ..')
+    @unittest.skipIf(os.getenv('TRAVIS', False) or 'cplex' not in solvers, 'Missing cplex (or Travis)')
     def test_run_multiobjective(self):
         result_file = os.path.join(CURRENT_PATH, "data", "reaction_knockout_multi_objective.pkl")
         objective1 = biomass_product_coupled_yield(
@@ -821,10 +884,9 @@ class TestReactionKnockoutOptimization(unittest.TestCase):
         rko = ReactionKnockoutOptimization(model=self.model,
                                            simulation_method=fba,
                                            objective_function=objective,
-                                           heuristic_method=inspyred.ec.emo.NSGA2,
-                                           seed=SEED)
+                                           heuristic_method=inspyred.ec.emo.NSGA2)
 
-        results = rko.run(max_evaluations=3000, pop_size=10, view=SequentialView())
+        results = rko.run(max_evaluations=3000, pop_size=10, view=SequentialView(), seed=SEED)
 
         with open(result_file, 'rb') as in_file:
             if six.PY3:
@@ -832,7 +894,7 @@ class TestReactionKnockoutOptimization(unittest.TestCase):
             else:
                 expected_results = pickle.load(in_file)
 
-        assert_frame_equal(results.solutions, expected_results.solutions)
+        assert_frame_equal(results.data_frame, expected_results.data_frame)
 
     def test_evaluator(self):
         pass

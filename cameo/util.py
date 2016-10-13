@@ -225,7 +225,7 @@ class RandomGenerator(object):
         self._random = RandomState(seed=seed)
 
     def seed(self, seed):
-        self._random.seed(seed)
+        self._random = RandomState(seed=seed)
 
     def random(self):
         return self._random.rand()
@@ -436,7 +436,7 @@ def generate_colors(n):
     color_map = {}
     for i in range(n):
         rgb = colorsys.hsv_to_rgb(*hsv_tuples[i])
-        color = tuple([rgb[0] * 256, rgb[1] * 256, rgb[2] * 256])
+        color = tuple(int(channel * 256) for channel in rgb)
         color_map[i] = '#%02x%02x%02x' % color
     return color_map
 
