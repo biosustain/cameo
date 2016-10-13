@@ -30,6 +30,7 @@ import cobra
 import optlang
 import six
 import sympy
+from cobra.manipulation import find_gene_knockout_reactions
 from pandas import DataFrame, pandas
 from sympy import Add
 from sympy import Mul
@@ -123,6 +124,16 @@ class SolverBasedModel(cobra.core.Model):
         self._timestamp_last_optimization = None
         self.solution = LazySolution(self)
 
+    @property
+    def non_functional_genes(self):
+        """All non-functional genes in this model
+        Returns
+        -------
+        frozenset
+            set with the genes that are marked as non-functional
+        """
+        return frozenset(gene for gene in self.genes if not gene.functional)
+
     def __copy__(self):
         return self.__deepcopy__()
 
@@ -207,7 +218,8 @@ class SolverBasedModel(cobra.core.Model):
     @solver.setter
     def solver(self, value):
         not_valid_interface = ValueError(
-            '%s is not a valid solver interface. Pick from %s, or specify an optlang interface (e.g. optlang.glpk_interface).' % (
+            '%s is not a valid solver interface. '
+            'Pick from %s, or specify an optlang interface (e.g. optlang.glpk_interface).' % (
                 value, list(config.solvers.keys())))
         if isinstance(value, six.string_types):
             try:
@@ -468,6 +480,45 @@ class SolverBasedModel(cobra.core.Model):
         fields.remove('optimize')
         return fields
 
+    def essential_metabolites(self, threshold=1e-6, absolute_bound=100000):
+        """Return a list of essential metabolites
+
+        Implementation follows the description in [1]:
+            "All fluxes around the metabolite M should be restricted to only produce the metabolite,
+             for which balancing constraint of mass conservation is relaxed to allow nonzero values
+             of the incoming fluxes whereas all outgoing fluxes are limited to zero."
+
+        Briefly, for each metabolite, all reactions that consume that metabolite are knocked and if that makes the
+        model either infeasible or results in near-zero flux in the model objective, then the metabolite is
+        considered essential.
+
+        Parameters
+        ----------
+        threshold : float (default 1e-6)
+            Minimal objective flux to be considered viable.
+        absolute_bound: number
+            The metabolites is 'knocked-out' by setting the associated constraints in the S-matrix to -absolute_bound
+            <= Si <= absolute_bound so should be a large number to make it effectively unconstrained.
+
+        References
+        ----------
+        .. [1] Kim, P.-J., Lee, D.-Y., Kim, T. Y., Lee, K. H., Jeong, H., Lee, S. Y., & Park, S. (2007).
+         Metabolite essentiality elucidates robustness of Escherichia coli metabolism. PNAS, 104(34), 13638–13642
+        """
+
+        essential_metabolites = []
+        for metabolite in self.metabolites:
+            with TimeMachine() as tm:
+                metabolite.knock_out(tm, absolute_bound)
+                try:
+                    solution = self.solve()
+                    if solution.f < threshold:
+                        essential_metabolites.append(metabolite)
+                except Infeasible:
+                    essential_metabolites.append(metabolite)
+
+        return essential_metabolites
+
     def essential_reactions(self, threshold=1e-6):
         """Return a list of essential reactions.
 
@@ -479,7 +530,7 @@ class SolverBasedModel(cobra.core.Model):
         Returns
         -------
         list
-            List of essential reactions
+            List of essential reactions.
         """
         essential = []
         try:

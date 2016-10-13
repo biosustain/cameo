@@ -18,6 +18,7 @@ from __future__ import absolute_import, print_function
 from functools import partial
 import hashlib
 import cobra as _cobrapy
+from cobra.manipulation.delete import parse_gpr, eval_gpr
 from copy import copy, deepcopy
 
 import cameo
@@ -187,6 +188,21 @@ class Reaction(_cobrapy.core.Reaction):
     def lower_bound(self):
         return self._lower_bound
 
+    @property
+    def functional(self):
+        """ reaction is functional
+
+        Returns
+        -------
+        bool
+            True if the gene-protein-reaction (GPR) rule is fulfilled for this reaction, or if reaction is not
+            associated to a model, otherwise False.
+        """
+        if self._model:
+            tree, _ = parse_gpr(self.gene_reaction_rule)
+            return eval_gpr(tree, {gene.id for gene in self.genes if not gene.functional})
+        return True
+
     @lower_bound.setter
     def lower_bound(self, value):
         model = self.model
@@ -210,6 +226,7 @@ class Reaction(_cobrapy.core.Reaction):
                     reverse_variable.ub = -1 * value
                 elif value >= 0:
                     forward_variable.ub = value
+                    self._upper_bound = value
                     forward_variable.lb = value
             elif self._lower_bound >= 0:  # forward irreversible
                 if value < 0:
@@ -268,6 +285,8 @@ class Reaction(_cobrapy.core.Reaction):
                     forward_variable.ub = value
                 elif value <= 0:
                     reverse_variable.ub = -1 * value
+                    self._lower_bound = value
+                    reverse_variable.lb = -1 * value
             elif self._lower_bound >= 0:  # forward irreversible
                 if value > 0:
                     try:
@@ -463,19 +482,15 @@ class Reaction(_cobrapy.core.Reaction):
 
     def change_bounds(self, lb=None, ub=None, time_machine=None):
         """Changes one or both of the reaction bounds and allows the changes to be reversed with a TimeMachine"""
-        if time_machine is None:
-            if lb is not None:
-                self.lower_bound = lb
-            if ub is not None:
-                self.upper_bound = ub
-        else:
-            old_lb, old_ub = self.lower_bound, self.upper_bound
-            if lb is not None:
-                time_machine(do=partial(setattr, self, "lower_bound", lb),
-                             undo=partial(setattr, self, "lower_bound", old_lb))
-            if ub is not None:
-                time_machine(do=partial(setattr, self, "upper_bound", ub),
-                             undo=partial(setattr, self, "upper_bound", old_ub))
+        if time_machine is not None:
+            time_machine(do=int,
+                         undo=partial(setattr, self, "lower_bound", self.lower_bound))
+            time_machine(do=int,
+                         undo=partial(setattr, self, "upper_bound", self.upper_bound))
+        if lb is not None:
+            self.lower_bound = lb
+        if ub is not None:
+            self.upper_bound = ub
 
     def _repr_html_(self):
         return """
