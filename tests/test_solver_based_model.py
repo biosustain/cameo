@@ -254,7 +254,7 @@ class WrappedAbstractTestReaction:
 
         def test_set_bounds_scenario_4(self):
             reac = self.model.reactions.ACALD
-            reac.knock_out()
+            reac.lower_bound = reac.upper_bound = 0
             reac.lower_bound = 2
             self.assertEqual(reac.lower_bound, 2)
             self.assertEqual(reac.upper_bound, 2)
