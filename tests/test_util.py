@@ -61,25 +61,99 @@ class TimeMachineTestCase(unittest.TestCase):
         self.assertEqual(l, [1, 2, 3, 4])
 
 
+def some_method_that_adds_stuff(model, cache):
+    assert isinstance(cache, ProblemCache)
+
+    def create_variable(model, var_id, lb, ub):
+        return model.solver.interface.Variable(var_id, ub=ub, lb=lb)
+
+    def update_variable(model, var, lb, ub):
+        var.lb = lb
+        var.ub = ub
+
+    def create_constraint(model, cid, vars, lb, ub):
+        return model.solver.interface.Constraint(vars[0] + vars[1], ub=ub, lb=lb)
+
+    def update_constraint(model, constraint, vars, lb, ub):
+        constraint.lb = lb
+        constraint.ub = ub
+
+    for i in range(10):
+        cache.add_variable("var_%i" % (i+1), create_variable, update_variable, 10, 15)
+
+    for i in range(9):
+        v1 = cache.variables["var_%i" % (i+1)]
+        v2 = cache.variables["var_%i" % (i+2)]
+        cache.add_constraint("c_%i" % (i+1), create_constraint, update_constraint, [v1, v2], -20, 100)
+
+
 class TestProblemCache(unittest.TestCase):
     def setUp(self):
         self.reference = TESTMODEL.solve().fluxes
         self.n_constraints = len(TESTMODEL.solver.constraints)
         self.n_variables = len(TESTMODEL.solver.variables)
 
-    def test_cache_problem(self):
-        lmoma(model=TESTMODEL, reference=self.reference)
+    def test_add_variable(self):
+        cache = ProblemCache(TESTMODEL)
+        add_var = lambda model, var_id: model.solver.interface.Variable(var_id, ub=0)
+        update_var = lambda model, var: setattr(var, "ub", 1000)
+        for i in range(10):
+            cache.add_variable("%i" % i, add_var, update_var)
 
-        # After running lmoma without cache, the number of variables and constraints remains the same
+        for i in range(10):
+            self.assertIn(cache.variables["%i" % i], TESTMODEL.solver.variables)
+            self.assertEqual(cache.variables["%i" % i].ub, 0)
+            self.assertEqual(TESTMODEL.solver.variables["%i" % i].ub, 0)
+
+        for i in range(10):
+            cache.add_variable("%i" % i, add_var, update_var)
+            self.assertEqual(cache.variables["%i" % i].ub, 1000)
+            self.assertEqual(TESTMODEL.solver.variables["%i" % i].ub, 1000)
+
+        cache.reset()
+
+        for i in range(10):
+            self.assertRaises(KeyError, TESTMODEL.solver.variables.__getitem__, "%i" % i)
+
+    def test_add_constraint(self):
+        cache = ProblemCache(TESTMODEL)
+
+        add_var = lambda model, var_id: model.solver.interface.Variable(var_id, ub=0)
+        add_constraint = lambda m, const_id, var: m.solver.interface.Constraint(var, lb=-10, ub=10, name=const_id)
+        update_constraint = lambda model, const, var: setattr(const, "ub", 1000)
+
+        for i in range(10):
+            cache.add_variable("%i" % i, add_var, None)
+            cache.add_constraint("c%i" % i, add_constraint, update_constraint, cache.variables["%i" % i])
+
+        for i in range(10):
+            self.assertIn(cache.constraints["c%i" % i], TESTMODEL.solver.constraints)
+            self.assertEqual(cache.constraints["c%i" % i].ub, 10)
+            self.assertEqual(cache.constraints["c%i" % i].lb, -10)
+            self.assertEqual(TESTMODEL.solver.constraints["c%i" % i].ub, 10)
+            self.assertEqual(TESTMODEL.solver.constraints["c%i" % i].lb, -10)
+
+        for i in range(10):
+            cache.add_constraint("c%i" % i, add_constraint, update_constraint, cache.variables["%i" % i])
+            self.assertEqual(TESTMODEL.solver.constraints["c%i" % i].ub, 1000)
+
+        cache.reset()
+
+        for i in range(10):
+            self.assertRaises(KeyError, TESTMODEL.solver.variables.__getitem__, "%i" % i)
+            self.assertRaises(KeyError, TESTMODEL.solver.constraints.__getitem__, "c%i" % i)
+
+    def test_cache_problem(self):
+        # After the number of variables and constraints remains the same if nothing happens
         self.assertEqual(self.n_constraints, len(TESTMODEL.solver.constraints))
         self.assertEqual(self.n_variables, len(TESTMODEL.solver.variables))
 
         cache = ProblemCache(TESTMODEL)
-        lmoma(model=TESTMODEL, reference=self.reference, cache=cache)
-        # After running lmoma with cache, the number of variables is 2 times the original number
-        self.assertEqual(2*self.n_variables, len(TESTMODEL.solver.variables))
-        # And has 2 more constraints per reactions
-        self.assertEqual(self.n_constraints + 2 * len(TESTMODEL.reactions), len(TESTMODEL.solver.constraints))
+        some_method_that_adds_stuff(TESTMODEL, cache)
+        # After running some_method_that_adds_stuff with cache, problem has 10 more variables
+        self.assertEqual(self.n_variables+10, len(TESTMODEL.solver.variables))
+        # And has 9 more more constraints
+        self.assertEqual(self.n_constraints+9, len(TESTMODEL.solver.constraints))
 
         cache.reset()
         # After reset cache, the problem should return to its original size
@@ -88,11 +162,19 @@ class TestProblemCache(unittest.TestCase):
 
     def test_with(self):
         with ProblemCache(TESTMODEL) as cache:
-            lmoma(model=TESTMODEL, reference=self.reference, cache=cache)
-            # After running lmoma with cache, the number of variables and constraints are 2 times bigger
-            self.assertEqual(2*self.n_variables, len(TESTMODEL.solver.variables))
-            # And has 2 more constraints per reactions
-            self.assertEqual(self.n_constraints + 2 * len(TESTMODEL.reactions), len(TESTMODEL.solver.constraints))
+            some_method_that_adds_stuff(TESTMODEL, cache)
+            # After running some_method_that_adds_stuff with cache, problem has 10 more variables
+            self.assertEqual(self.n_variables+10, len(TESTMODEL.solver.variables))
+            # And has 9 more more constraints
+            self.assertEqual(self.n_constraints+9, len(TESTMODEL.solver.constraints))
+
+            # If the method runs again, it does not add repeated variables
+            some_method_that_adds_stuff(TESTMODEL, cache)
+            # After running some_method_that_adds_stuff with cache, problem has 10 more variables
+            self.assertEqual(self.n_variables+10, len(TESTMODEL.solver.variables))
+            # And has 9 more more constraints
+            self.assertEqual(self.n_constraints+9, len(TESTMODEL.solver.constraints))
+
         # After reset cache, the problem should return to its original size
         self.assertEqual(self.n_constraints, len(TESTMODEL.solver.constraints))
         self.assertEqual(self.n_variables, len(TESTMODEL.solver.variables))
