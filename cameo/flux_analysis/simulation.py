@@ -178,8 +178,9 @@ def moma(model, reference=None, cache=None, reactions=None, *args, **kwargs):
                 return constraint
 
             def update_constraint(model, constraint, var, reaction, flux_value):
-                constraint.lb = flux_value
-                constraint.ub = flux_value
+                if constraint.lb != flux_value:
+                    constraint.lb = flux_value
+                    constraint.ub = flux_value
 
             constraint_id = "moma_const_%s" % rid
             reaction = model.reactions.get_by_id(rid)
