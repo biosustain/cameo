@@ -210,6 +210,17 @@ class Wrapper:
                                    msg="lmoma distance without knockouts must be 0 (was %f)" % distance)
             self.assertIs(self.model.objective, original_objective)
 
+        def test_lmoma_change_ref(self):
+            original_objective = self.model.objective
+            pfba_solution = pfba(self.model)
+            fluxes = {rid: 10*flux for rid, flux in pfba_solution.items()}
+            solution = lmoma(self.model, reference=fluxes)
+            distance = sum((abs(solution[v] - pfba_solution[v]) for v in pfba_solution.keys()))
+            self.assertNotAlmostEqual(0, distance,
+                                   delta=1e-6,
+                                   msg="lmoma distance without knockouts must be 0 (was %f)" % distance)
+            self.assertIs(self.model.objective, original_objective)
+
         def test_lmoma_with_reaction_filter(self):
             original_objective = self.model.objective
             pfba_solution = pfba(self.model)
@@ -273,6 +284,28 @@ class Wrapper:
             for k in reference.keys():
                 self.assertAlmostEqual(expected[k], result.fluxes[k], delta=0.1, msg="%s: %f | %f")
             self.assertIs(self.model.objective, original_objective)
+
+        def test_moma_shlomi_2005_change_ref(self):
+            original_objective = self.model.objective
+            reference = {"b1": 10, "v1": 10, "v2": 5, "v3": 0, "v4": 0, "v5": 0, "v6": 5, "b2": 5, "b3": 5}
+            expected = {'b1': 8.8, 'b2': 4.4, 'b3': 4.4, 'v1': 8.8,
+                        'v2': 3.1, 'v3': 1.3, 'v4': 4.4, 'v5': 3.1, 'v6': 0.0}
+
+            TOY_MODEL_PAPIN_2003.solver = self.model.solver.interface
+            with TimeMachine() as tm:
+                TOY_MODEL_PAPIN_2003.reactions.v6.knock_out(tm)
+                result = moma(TOY_MODEL_PAPIN_2003, reference=reference)
+
+            for k in reference.keys():
+                self.assertAlmostEqual(expected[k], result.fluxes[k], delta=0.1, msg="%s: %f | %f")
+            self.assertIs(self.model.objective, original_objective)
+
+            reference_changed = {"b1": 5, "v1": 5, "v2": 5, "v3": 0, "v4": 0, "v5": 0, "v6": 5, "b2": 5, "b3": 5}
+            with TimeMachine() as tm:
+                TOY_MODEL_PAPIN_2003.reactions.v6.knock_out(tm)
+                result_changed = moma(TOY_MODEL_PAPIN_2003, reference=reference_changed)
+
+            self.assertNotEqual(expected, result_changed.fluxes)
 
     class AbstractTestRemoveCycles(unittest.TestCase):
 
@@ -372,6 +405,9 @@ class TestSimulationMethodsGLPK(Wrapper.AbstractTestSimulationMethods):
         self.assertRaises(ValueError, super(TestSimulationMethodsGLPK, self).test_moma)  # GLPK has no QP support
 
     def test_moma_shlomi_2005(self):
+        self.assertRaises(ValueError, super(TestSimulationMethodsGLPK, self).test_moma)  # GLPK has no QP support
+
+    def test_moma_shlomi_2005_change_ref(self):
         self.assertRaises(ValueError, super(TestSimulationMethodsGLPK, self).test_moma)  # GLPK has no QP support
 
 
