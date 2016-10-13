@@ -16,14 +16,16 @@ from __future__ import absolute_import, print_function
 
 import logging
 import time
+import re
 import types
-from functools import reduce
+from functools import reduce, partial
 
 import inspyred
 from pandas import DataFrame
 
 from cameo import config
 from cameo.core.result import Result
+from cameo.core.solver_based_model import SolverBasedModel
 from cameo.exceptions import SolveError
 from cameo.flux_analysis.simulation import pfba, lmoma, moma, room
 from cameo.strain_design.heuristic.evolutionary import archives
@@ -40,10 +42,12 @@ from cameo.util import RandomGenerator as Random
 from cameo.util import in_ipnb
 from cameo.util import partition, TimeMachine, memoize, ProblemCache
 
-__all__ = ['ReactionKnockoutOptimization', 'GeneKnockoutOptimization']
+__all__ = ['ReactionKnockoutOptimization', 'GeneKnockoutOptimization', 'CofactorSwapOptimization']
 
 REACTION_KNOCKOUT_TYPE = "reaction"
+SWAP_KNOCKOUT_TYPE = "cofactor-swap"
 GENE_KNOCKOUT_TYPE = "gene"
+NADH_NADPH = (['nad_c', 'nadh_c'], ['nadp_c', 'nadph_c'])
 
 SIZE = 'Size'
 BIOMASS = 'Biomass'
@@ -358,18 +362,57 @@ class KnockoutEvaluator(object):
             return self.objective_function(self.model, solution, decoded)
 
 
+class SwapEvaluator(KnockoutEvaluator):
+    """ evaluate reaction swaps where we knock one reaction in favor of another """
+
+    def __init__(self, *args, **kwargs):
+        super(SwapEvaluator, self).__init__(*args, **kwargs)
+
+    @memoize
+    def _evaluate_individual(self, individual):
+        decoded = self.decoder(individual)
+        swap_reactions = decoded[0]
+        with TimeMachine() as tm:
+            for reaction in swap_reactions:
+                self.model.swap_reaction(reaction.id, tm)
+            try:
+                solution = self.simulation_method(self.model,
+                                                  cache=self.cache,
+                                                  volatile=False,
+                                                  raw=True,
+                                                  reactions=reactions2filter(self.objective_function),
+                                                  **self.simulation_kwargs)
+                fitness = self._calculate_fitness(solution, decoded)
+            except SolveError as e:
+                logger.debug(e)
+                if self.is_mo:
+                    fitness = inspyred.ec.emo.Pareto(values=[0 for _ in self.objective_function])
+                else:
+                    fitness = 0.
+
+            return fitness
+
+
 class KnockoutOptimization(HeuristicOptimization):
     """
     Abstract class for knockout optimization.
     """
 
-    def __init__(self, simulation_method=pfba, wt_reference=None, *args, **kwargs):
+    def __init__(self, simulation_method=pfba, wt_reference=None, knockout_evaluator=None,
+                 result_handler=None, *args, **kwargs):
         """
-         Attributes
+        Class for generic optimization algorithms for knockout (or similar) strain design methods
+
+        Attributes
         ----------
-        same as HeuristicOptimization
         simulation_method: see flux_analysis.simulation
         wt_reference: dict
+        simulation_method: method
+           the simulation method to use for evaluating results
+        knockout_evaluator: class
+           the class used to evaluate results
+        result_handler: clas
+           the class used to represent results, e.g. create a data frame representing solutions
         """
         super(KnockoutOptimization, self).__init__(*args, **kwargs)
         self._simulation_kwargs = dict()
@@ -377,7 +420,8 @@ class KnockoutOptimization(HeuristicOptimization):
         self._simulation_method = None
         self.simulation_method = simulation_method
         self.representation = None
-        self._knockout_evaluator = None
+        self.knockout_evaluator = knockout_evaluator or KnockoutEvaluator
+        self.result_handler = result_handler or KnockoutOptimizationResult
         self._ko_type = None
         self._decoder = None
 
@@ -451,7 +495,7 @@ class KnockoutOptimization(HeuristicOptimization):
         Parameters
         ----------
         max_size: int
-            Maximum size of a solution.
+            Maximum size of a solution, e.g., the maximum number of reactions or genes to knock-out or swap
         variable_size: boolean
             If true, the solution size can change meaning that the combination of knockouts can have different sizes up to
             max_size. Otherwise it only produces knockout solutions with a fixed number of knockouts.
@@ -462,26 +506,29 @@ class KnockoutOptimization(HeuristicOptimization):
             kwargs['seed'] = int(time.time())
 
         self.heuristic_method.observer = self.observers
-        knockout_evaluator = KnockoutEvaluator(self.model, self._decoder, self.objective_function,
-                                               self._simulation_method, self._simulation_kwargs)
+        knockout_evaluator = self.knockout_evaluator(model=self.model,
+                                                     decoder=self._decoder,
+                                                     objective_function=self.objective_function,
+                                                     simulation_method=self._simulation_method,
+                                                     simulation_kwargs=self._simulation_kwargs)
 
         with EvaluatorWrapper(view, knockout_evaluator) as evaluator:
-
             super(KnockoutOptimization, self).run(distance_function=set_distance_function,
                                                   representation=self.representation,
                                                   evaluator=evaluator,
                                                   generator=generators.set_generator,
+                                                  max_size=max_size,
                                                   **kwargs)
 
-            return KnockoutOptimizationResult(model=self.model,
-                                              heuristic_method=self.heuristic_method,
-                                              simulation_method=self.simulation_method,
-                                              simulation_kwargs=self._simulation_kwargs,
-                                              solutions=self.heuristic_method.archive,
-                                              objective_function=self.objective_function,
-                                              ko_type=self._ko_type,
-                                              decoder=self._decoder,
-                                              seed=kwargs['seed'])
+            return self.result_handler(model=self.model,
+                                       heuristic_method=self.heuristic_method,
+                                       simulation_method=self.simulation_method,
+                                       simulation_kwargs=self._simulation_kwargs,
+                                       solutions=self.heuristic_method.archive,
+                                       objective_function=self.objective_function,
+                                       ko_type=self._ko_type,
+                                       decoder=self._decoder,
+                                       seed=kwargs['seed'])
 
 
 class KnockoutOptimizationResult(Result):
@@ -604,11 +651,21 @@ class KnockoutOptimizationResult(Result):
         stats_data.display()
 
     def plot(self, grid=None, width=None, height=None, title=None):
-        pass
+        raise NotImplementedError
 
     @property
     def data_frame(self):
         return DataFrame(self._solutions)
+
+
+class SwapOptimizationResult(KnockoutOptimizationResult):
+    def _decode_solutions(self, solutions):
+        decoded_solutions = DataFrame(columns=["reaction", "fitness"])
+        for index, solution in enumerate(solutions):
+            reactions, _ = self._decoder(solution.candidate, flat=True)
+            if len(reactions) > 0:
+                decoded_solutions.loc[index] = [reactions, solution.fitness]
+        return decoded_solutions
 
 
 class ReactionKnockoutOptimization(KnockoutOptimization):
@@ -806,3 +863,203 @@ class ReactionKnockinKnockoutOptimization(ReactionKnockoutOptimization, KnockinK
 
     def run(self, **kwargs):
         KnockinKnockoutOptimization.run(self, **kwargs)
+
+
+class CofactorSwapOptimization(KnockoutOptimization):
+    """
+    Optimize co-factor swapping
+
+    As suggested in [1]_, flux through a given reaction can sometimes be optimized by swapping complementary
+    co-factor. This class implements a search for reactions when swapped improve the given objective. Briefly,
+    the approach is to
+
+    - find reactions that have all the targeted co-factor pairs e.g. (nad_c -> nadp_c, nadh_c -> nadph_c)
+
+    - add reactions that have the co-factors swapped and then by a search algorithm switching one off in favor of the
+      other
+
+   The implementation here differs from that in [1]_ in that we use a general purpose search algorithm rather than
+   formulating the search as a mixed integer linear programming problem.
+
+   References
+   ----------
+   .. [1] King, Zachary A., and Adam M. Feist. "Optimizing Cofactor Specificity of Oxidoreductase Enzymes for the
+      Generation of Microbial Production Strains - OptSwap." Industrial Biotechnology 9, no. 4 (August 1,
+      2013): 236-46. - doi:10.1089/ind.2013.0005.
+
+    Parameters
+    ----------
+    model : SolverBasedModel
+       the model to operator on
+    cofactor_id_swaps : tuple
+       a tuple of length 2 that defines two lists of metabolite identifiers that should be interchanged during the
+       swap optimization see e.g. `NADH_NADPH` which is also the default.
+    candidate_reactions : list
+       reactions to consider for co-factor swap - if not given then search for all reactions that include the given
+       cofactors
+    skip_reactions : list
+       reactions to not consider for co-factor swap, defaults to the objective function if not provided
+    args, kwargs : keyword arguments
+       passed on to super-classes, see in particular `objective_function`, `heuristic_method`, `termination`,
+       `simulation_method`, `wt_reference`, of `HeuristicOptimization` and `max_size` of `HeuristicOptimization.run`
+
+    Examples
+    --------
+    >>> from cameo import models
+    >>> from cameo.strain_design.heuristic.evolutionary.objective_functions import product_yield
+    >>> model = models.bigg.iJO1366
+    >>> model.objective = model.reactions.EX_thr__L_e
+    >>> model.reactions.BIOMASS_Ec_iJO1366_core_53p95M.lower_bound = 0.1
+    >>> py = product_yield(model.reactions.EX_thr__L_e, model.reactions.EX_glc__D_e)
+    >>> swap_optimization = CofactorSwapOptimization(model=model, objective_function=py)
+    >>> swap_optimization.run(max_evaluations=2000, max_size=2)
+    """
+
+    def __init__(self, model, cofactor_id_swaps=NADH_NADPH, candidate_reactions=None,
+                 skip_reactions=None, *args, **kwargs):
+        super(self.__class__, self).__init__(model=model, knockout_evaluator=SwapEvaluator,
+                                             result_handler=SwapOptimizationResult, *args, **kwargs)
+        self.model = SwapperModel(model, cofactor_id_swaps, candidate_reactions, skip_reactions)
+        self._ko_type = SWAP_KNOCKOUT_TYPE
+        self.representation = list(self.model.swapped_reactions.keys())
+        self._decoder = decoders.ReactionKnockoutDecoder(self.representation, self.model)
+
+
+class SwapperModel(SolverBasedModel):
+    """An extension of the `SolverBasedModel` to add functions to easily add reactions that have co-factors swapped
+    etc.
+
+    Attributes
+    ----------
+    model : SolverBasedModel
+       the model to convert
+    cofactor_id_swaps : tuple
+       a tuple of length 2 that defines two lists of metabolite identifiers that should be interchanged during the
+       swap optimization see e.g. `NADH_NADPH` which is also the default.
+    candidate_reactions : list
+       reactions to consider for co-factor swap - if not given then search for all reactions that include the given
+       cofactors
+    skip_reactions : list
+       reactions to not consider for co-factor swap, defaults to the objective function if not provided
+    """
+
+    def __init__(self, model, cofactor_id_swaps, candidate_reactions=None, skip_reactions=None):
+        super(SwapperModel, self).__init__()
+        self.__dict__ = model.copy().__dict__
+        check_swap = isinstance(cofactor_id_swaps, tuple) and len(cofactor_id_swaps) == 2
+        if not check_swap:
+            raise Exception('parameter cofactor_id_swap should be a tuple of length 2')
+        if skip_reactions is None:
+            skip_reactions = {reaction.id for reaction in model.reactions if reaction.objective_coefficient > 0}
+        self.cofactor_id_swap = cofactor_id_swaps
+        self.skip_reactions = skip_reactions
+        self.unswappable_reactions = []
+        self.swapped_reactions = {}
+        self.cofactor_swaps = [[self.metabolites.get_by_id(mid) for mid in self.cofactor_id_swap[0]],
+                               [self.metabolites.get_by_id(mid) for mid in self.cofactor_id_swap[1]]]
+        self.candidate_reactions = candidate_reactions
+        if candidate_reactions is None:
+            self.candidate_reactions = []
+            self.find_swappable_reactions()
+        for reaction_id in self.candidate_reactions:
+            self.add_swap_reaction(reaction_id)
+
+    def add_swap_reaction(self, reaction_id, time_machine=None):
+        """
+        add a swap reaction to a model by adding a new reaction that has all metabolites swapped according to the
+        dictionary of replacements. The newly added reaction is knocked out.
+
+        Parameters
+        ----------
+        reaction_id : string
+            identifier for the reaction to swap metabolites in
+        time_machine : TimeMachine
+            enable undo for the added swap reaction
+        """
+        parent = self.reactions.get_by_id(reaction_id)
+        if parent.check_mass_balance():
+            raise Exception('refusing to swap unbalanced reaction')
+        from_to = [all(metabolite in parent.metabolites for metabolite in self.cofactor_swaps[0]),
+                   all(metabolite in parent.metabolites for metabolite in self.cofactor_swaps[1])]
+        if any(from_to):
+            swapped = parent.clone(parent)
+            swapped.id = "{}_swap".format(swapped.id)
+            swapped.knock_out()
+            from_set = self.cofactor_swaps[from_to.index(True)]
+            to_set = self.cofactor_swaps[from_to.index(False)]
+            for index, metabolite in enumerate(to_set):
+                new_reactant = {metabolite: swapped.metabolites[from_set[index]]}
+                swapped.add_metabolites(new_reactant)
+            for metabolite in from_set:
+                metabolite._reaction.add(swapped)
+                swapped.pop(metabolite)
+            if swapped.check_mass_balance():
+                raise Exception('created reaction not mass balanced')
+            self.swapped_reactions[reaction_id] = swapped
+            if time_machine is not None:
+                time_machine(do=partial(self.add_reactions, [swapped]),
+                             undo=partial(self.remove_swap_reaction, reaction_id))
+            else:
+                self.add_reactions([swapped])
+
+    def remove_swap_reaction(self, reaction_id):
+        """
+        remove a swapped reaction and update the dictionary of reactions swaps
+
+        Parameters
+        ----------
+        reaction_id : string
+           identifier of the swapped reaction, must be member of `swapped_reactions`
+        """
+        self.remove_reactions([self.swapped_reactions[reaction_id]])
+        del self.swapped_reactions[reaction_id]
+
+    def swap_reaction(self, reaction_id, time_machine=None):
+        """Knock-out the native reaction in and knock-in the reaction that has the co-factors swapped. Do it in
+        reverse if the native reaction is already knocker.
+
+        Parameters
+        ----------
+        reaction_id : string
+            the identifier of the reaction to swap
+        time_machine : TimeMachine
+            enable undo of the swap
+        """
+        from_reaction = self.reactions.get_by_id(reaction_id)
+        to_reaction = self.swapped_reactions[reaction_id]
+        if abs(from_reaction.lower_bound) < 1e-6 and abs(from_reaction.upper_bound) < 1e-6:
+            from_reaction, to_reaction = to_reaction, from_reaction
+
+        def do_change(reaction_a, reaction_b, ub, lb):
+            reaction_b.upper_bound = ub
+            reaction_b.lower_bound = lb
+            reaction_a.knock_out()
+
+        if time_machine is not None:
+            time_machine(do=partial(do_change, from_reaction, to_reaction,
+                                    from_reaction.upper_bound, from_reaction.lower_bound),
+                         undo=partial(do_change, to_reaction, from_reaction,
+                                      from_reaction.upper_bound, from_reaction.lower_bound))
+        else:
+            do_change(from_reaction, to_reaction, from_reaction.upper_bound, from_reaction.lower_bound)
+
+    def find_swappable_reactions(self):
+        """Get all reactions that can undergo co-factor swapping
+
+        find reactions that have one set of the cofactors targeted for swapping and are mass balanced and updates the
+        `candidate_reactions` attribute
+        """
+
+        def swap_search(metabolites):
+            from_to = [all(metabolite in metabolites for metabolite in self.cofactor_swaps[0]),
+                       all(metabolite in metabolites for metabolite in self.cofactor_swaps[1])]
+            return sum(from_to) == 1
+
+        candidates = self.reactions.query(search_function=swap_search, attribute='metabolites')
+        for reaction in candidates:
+            if reaction.id in self.skip_reactions or \
+                    reaction.check_mass_balance() or \
+                    re.match(r'.*_swap$', reaction.id):
+                self.unswappable_reactions.append(reaction.id)
+            else:
+                self.candidate_reactions.append(reaction.id)
