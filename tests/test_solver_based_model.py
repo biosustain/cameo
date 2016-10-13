@@ -44,6 +44,10 @@ REFERENCE_FVA_SOLUTION_ECOLI_CORE = pandas.read_csv(os.path.join(TESTDIR, 'data/
 TESTMODEL = load_model(os.path.join(TESTDIR, 'data/EcoliCore.xml'), sanitize=False)
 COBRAPYTESTMODEL = read_sbml_model(os.path.join(TESTDIR, 'data/EcoliCore.xml'))
 ESSENTIAL_GENES = ['b2779', 'b1779', 'b0720', 'b0451', 'b2416', 'b2926', 'b1136', 'b2415']
+ESSENTIAL_METABOLITES = ['13dpg_c', '2pg_c', '3pg_c', 'accoa_c', 'acon_DASH_C_c', 'adp_c', 'akg_c', 'atp_c', 'cit_c',
+                         'coa_c', 'e4p_c', 'f6p_c', 'g3p_c', 'g6p_c', 'glc_DASH_D_e', 'gln_DASH_L_c', 'glu_DASH_L_c',
+                         'h2o_c', 'h_c', 'h_e', 'icit_c', 'nad_c', 'nadh_c', 'nadp_c', 'nadph_c', 'nh4_c', 'nh4_e',
+                         'oaa_c', 'pep_c', 'pi_c', 'pi_e', 'pyr_c', 'r5p_c']
 ESSENTIAL_REACTIONS = ['GLNS', 'Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2', 'PIt2r', 'GAPD', 'ACONTb',
                        'EX_nh4_LPAREN_e_RPAREN_', 'ENO', 'EX_h_LPAREN_e_RPAREN_', 'EX_glc_LPAREN_e_RPAREN_', 'ICDHyr',
                        'CS', 'NH4t', 'GLCpts', 'PGM', 'EX_pi_LPAREN_e_RPAREN_', 'PGK', 'RPI', 'ACONTa']
@@ -670,7 +674,8 @@ class WrappedAbstractTestReaction:
                 self.assertFalse(old_reaction_id in self.model.solver.variables)
                 self.assertTrue(reaction._get_forward_id() in self.model.solver.variables)
                 self.assertTrue(reaction._get_reverse_id() in self.model.solver.variables)
-                self.assertEqual(self.model.solver.variables[reaction._get_forward_id()].name, reaction._get_forward_id())
+                self.assertEqual(self.model.solver.variables[reaction._get_forward_id()].name,
+                                 reaction._get_forward_id())
 
 
 class TestReactionGLPK(WrappedAbstractTestReaction.AbstractTestReaction):
@@ -836,7 +841,8 @@ class WrappedAbstractTestSolverBasedModel:
             for demand, prefix in {True: 'DemandReaction_', False: 'SupplyReaction_'}.items():
                 with TimeMachine() as tm:
                     for metabolite in self.model.metabolites:
-                        demand_reaction = self.model.add_exchange(metabolite, demand=demand, prefix=prefix, time_machine=tm)
+                        demand_reaction = self.model.add_exchange(metabolite, demand=demand, prefix=prefix,
+                                                                  time_machine=tm)
                         self.assertEqual(self.model.reactions.get_by_id(demand_reaction.id), demand_reaction)
                         self.assertEqual(demand_reaction.reactants, [metabolite])
                         self.assertTrue(-self.model.solver.constraints[metabolite.id].expression.has(
@@ -1036,7 +1042,6 @@ class TestSolverBasedModelCPLEX(WrappedAbstractTestSolverBasedModel.AbstractTest
 
 class WrappedAbstractTestMetabolite:
     class AbstractTestMetabolite(unittest.TestCase):
-
         def test_set_id(self):
             met = Metabolite("test")
             self.assertRaises(TypeError, setattr, met, 'id', 1)
@@ -1046,6 +1051,33 @@ class WrappedAbstractTestMetabolite:
             met.id = "test2"
             self.assertIn("test2", self.model.metabolites)
             self.assertNotIn("test", self.model.metabolites)
+
+        def test_knock_out(self):
+            model = self.model.copy()
+            rxn = Reaction('rxn', upper_bound=10, lower_bound=-10)
+            metabolite_a = Metabolite('A')
+            metabolite_b = Metabolite('B')
+            rxn.add_metabolites({metabolite_a: -1, metabolite_b: 1})
+            model.add_reaction(rxn)
+            with TimeMachine() as tm:
+                metabolite_a.knock_out(time_machine=tm, absolute_bound=10000)
+                self.assertEquals(rxn.upper_bound, 0)
+                metabolite_b.knock_out(time_machine=tm, absolute_bound=10000)
+                self.assertEquals(rxn.lower_bound, 0)
+                self.assertEquals(metabolite_a.constraint.lb, -10000)
+                self.assertEquals(metabolite_a.constraint.ub, 10000)
+            self.assertEquals(metabolite_a.constraint.lb, 0)
+            self.assertEquals(metabolite_a.constraint.ub, 0)
+            self.assertEquals(rxn.upper_bound, 10)
+            self.assertEquals(rxn.lower_bound, -10)
+
+        def test_essential_metabolites(self):
+            model = self.model.copy()
+            essential_metabolites = [m.id for m in model.essential_metabolites()]
+            self.assertTrue(sorted(essential_metabolites) == sorted(ESSENTIAL_METABOLITES))
+            with self.assertRaises(cameo.exceptions.SolveError):
+                self.model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = 999999.
+                self.model.essential_genes()
 
         def test_remove_from_model(self):
             met = self.model.metabolites.get_by_id("g6p_c")
@@ -1082,7 +1114,6 @@ class TestMetaboliteCPLEX(WrappedAbstractTestMetabolite.AbstractTestMetabolite):
         self.cobrapy_model = COBRAPYTESTMODEL.copy()
         self.model = TESTMODEL.copy()
         self.model.solver = 'cplex'
-
 
 
 if __name__ == '__main__':
