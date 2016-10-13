@@ -156,9 +156,8 @@ def phenotypic_phase_plane(model, variables=[], objective=None, points=20, view=
         variables_min_max = flux_variability_analysis(model, reactions=variable_reactions, view=SequentialView())
         grid = [numpy.linspace(lower_bound, upper_bound, points, endpoint=True) for
                 reaction_id, lower_bound, upper_bound in
-                variables_min_max.data_frame.itertuples()]
+                variables_min_max.data_frame.loc[variables].itertuples()]
         grid_generator = itertools.product(*grid)
-
         chunks_of_points = partition(list(grid_generator), len(view))
         evaluator = _PhenotypicPhasePlaneChunkEvaluator(model, variable_reactions)
         chunk_results = view.map(evaluator, chunks_of_points)
@@ -245,9 +244,10 @@ def _flux_variability_analysis(model, reactions=None):
 
     df = pandas.DataFrame.from_dict(fva_sol, orient='index')
     lb_higher_ub = df[df.lower_bound > df.upper_bound]
-    try:  # this is an alternative solution to what I did above with flags
-        assert ((
-                lb_higher_ub.lower_bound - lb_higher_ub.upper_bound) < 1e-6).all()  # Assert that these cases really only numerical artifacts
+    # this is an alternative solution to what I did above with flags
+    # Assert that these cases really only numerical artifacts
+    try:
+        assert ((lb_higher_ub.lower_bound - lb_higher_ub.upper_bound) < 1e-6).all()
     except AssertionError:
         logger.debug(list(zip(model.reactions, (lb_higher_ub.lower_bound - lb_higher_ub.upper_bound) < 1e-6)))
     df.lower_bound[lb_higher_ub.index] = df.upper_bound[lb_higher_ub.index]
@@ -470,7 +470,7 @@ class PhenotypicPhasePlaneResult(Result):
     def plot(self, grid=None, width=None, height=None, title=None, axis_font_size=None, palette=None,
              points=None, points_colors=None, **kwargs):
         if title is None:
-                title = "Phenotypic Phase Plane"
+            title = "Phenotypic Phase Plane"
         if len(self.variable_ids) == 1:
 
             variable = self.variable_ids[0]
@@ -479,8 +479,9 @@ class PhenotypicPhasePlaneResult(Result):
 
             dataframe = pandas.DataFrame(columns=["ub", "lb", "value", "strain"])
             for _, row in self.iterrows():
-                _df = pandas.DataFrame([[row['objective_upper_bound'], row['objective_lower_bound'], row[variable], "WT"]],
-                                       columns=dataframe.columns)
+                _df = pandas.DataFrame(
+                    [[row['objective_upper_bound'], row['objective_lower_bound'], row[variable], "WT"]],
+                    columns=dataframe.columns)
                 dataframe = dataframe.append(_df)
 
             plot = plotter.production_envelope(dataframe, grid=grid, width=width, height=height,
