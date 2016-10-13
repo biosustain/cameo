@@ -144,9 +144,9 @@ class Wrapper:
 
         def test_one_variable_sequential_yield(self):
             ppp = phenotypic_phase_plane(self.model, ['EX_o2_LPAREN_e_RPAREN_'], view=SequentialView())
-            assert_dataframes_equal(ppp, REFERENCE_PPP_o2_EcoliCore)
+            assert_data_frames_equal(ppp, REFERENCE_PPP_o2_EcoliCore)
             ppp = phenotypic_phase_plane(self.model, 'EX_o2_LPAREN_e_RPAREN_', view=SequentialView())
-            assert_dataframes_equal(ppp, REFERENCE_PPP_o2_EcoliCore)
+            assert_data_frames_equal(ppp, REFERENCE_PPP_o2_EcoliCore)
 
         @unittest.skipIf(TRAVIS, 'Running in Travis')
         def test_two_variables_parallel(self):
