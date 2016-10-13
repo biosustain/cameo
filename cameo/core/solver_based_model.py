@@ -488,6 +488,10 @@ class SolverBasedModel(cobra.core.Model):
              for which balancing constraint of mass conservation is relaxed to allow nonzero values
              of the incoming fluxes whereas all outgoing fluxes are limited to zero."
 
+        Briefly, for each metabolite, all reactions that consume that metabolite are knocked and if that makes the
+        model either infeasible or results in near-zero flux in the model objective, then the metabolite is
+        considered essential.
+
         Parameters
         ----------
         threshold : float (default 1e-6)
