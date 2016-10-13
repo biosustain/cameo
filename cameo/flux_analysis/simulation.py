@@ -178,8 +178,9 @@ def moma(model, reference=None, cache=None, reactions=None, *args, **kwargs):
                 return constraint
 
             def update_constraint(model, constraint, var, reaction, flux_value):
-                constraint.lb = flux_value
-                constraint.ub = flux_value
+                if constraint.lb != flux_value:
+                    constraint.lb = flux_value
+                    constraint.ub = flux_value
 
             constraint_id = "moma_const_%s" % rid
             reaction = model.reactions.get_by_id(rid)
@@ -254,7 +255,8 @@ def lmoma(model, reference=None, cache=None, reactions=None, *args, **kwargs):
 
             # ui = vi - wt
             def update_upper_constraint(model, constraint, var, reaction, flux_value):
-                constraint.lb = flux_value
+                if constraint.lb != flux_value:
+                    constraint.lb = flux_value
 
             def create_upper_constraint(model, constraint_id, var, reaction, flux_value):
                 constraint = model.solver.interface.Constraint(reaction.flux_expression + var,
@@ -267,7 +269,8 @@ def lmoma(model, reference=None, cache=None, reactions=None, *args, **kwargs):
                                  cache.variables[pos_var_id], reaction, flux_value)
 
             def update_lower_constraint(model, constraint, var, reaction, flux_value):
-                constraint.ub = flux_value
+                if constraint.ub != flux_value:
+                    constraint.ub = flux_value
 
             def create_lower_constraint(model, constraint_id, var, reaction, flux_value):
                 constraint = model.solver.interface.Constraint(reaction.flux_expression - var,
