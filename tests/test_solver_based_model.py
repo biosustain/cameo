@@ -258,6 +258,22 @@ class WrappedAbstractTestReaction:
             self.assertEqual(reac.lower_bound, -11)
             self.assertEqual(reac.upper_bound, 2)
 
+        def test_set_bounds_scenario_4(self):
+            reac = self.model.reactions.ACALD
+            reac.lower_bound = reac.upper_bound = 0
+            reac.lower_bound = 2
+            self.assertEqual(reac.lower_bound, 2)
+            self.assertEqual(reac.upper_bound, 2)
+            self.assertEqual(reac.forward_variable.lb, 2)
+            self.assertEqual(reac.forward_variable.ub, 2)
+
+            reac.knock_out()
+            reac.upper_bound = -2
+            self.assertEqual(reac.lower_bound, -2)
+            self.assertEqual(reac.upper_bound, -2)
+            self.assertEqual(reac.reverse_variable.lb, 2)
+            self.assertEqual(reac.reverse_variable.ub, 2)
+
         def test_set_upper_before_lower_bound_to_0(self):
             model = self.model
             model.reactions.GAPD.upper_bound = 0
@@ -292,6 +308,20 @@ class WrappedAbstractTestReaction:
             self.assertEqual(acald_reaction.forward_variable.ub, 1100.)
             self.assertEqual(acald_reaction.reverse_variable.lb, 0)
             self.assertEqual(acald_reaction.reverse_variable.ub, 100)
+
+        def test_change_bounds(self):
+            model = self.model
+            reac = model.reactions.ACALD
+            reac.change_bounds(lb=2, ub=2)
+            self.assertEqual(reac.lower_bound, 2)
+            self.assertEqual(reac.upper_bound, 2)
+
+            with TimeMachine() as tm:
+                reac.change_bounds(lb=5, time_machine=tm)
+                self.assertEqual(reac.lower_bound, 5)
+                self.assertEqual(reac.upper_bound, 5)
+            self.assertEqual(reac.lower_bound, 2)
+            self.assertEqual(reac.upper_bound, 2)
 
         def test_make_irreversible(self):
             model = self.model
