@@ -25,6 +25,7 @@ import pandas
 from sympy import Add
 
 import cameo
+import re
 from cameo.config import solvers
 from cameo.flux_analysis import remove_infeasible_cycles
 from cameo.flux_analysis.analysis import flux_variability_analysis, phenotypic_phase_plane, find_blocked_reactions
@@ -40,11 +41,11 @@ TRAVIS = os.getenv('TRAVIS', False)
 
 def assert_data_frames_equal(obj, expected, delta=0.0001, sort_by=None):
     df = obj.data_frame
-    common_names = set(df.columns.values).intersection(expected.columns.values)
+    expected_names = [name for name in expected.columns.values if not re.match(r'^Unnamed.*', name)]
     if sort_by:
         df = df.sort_values(sort_by).reset_index(drop=True)
         expected = expected.sort_values(sort_by).reset_index(drop=True)
-    for column in common_names:
+    for column in expected_names:
         for key in df.index:
             assert_almost_equal(df[column][key], expected[column][key], delta=delta)
 

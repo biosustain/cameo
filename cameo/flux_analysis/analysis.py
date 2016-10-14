@@ -29,7 +29,7 @@ import pandas
 
 import cameo
 from cameo import config
-from cameo.exceptions import Infeasible, Unbounded, SolveError, UndefinedSolution
+from cameo.exceptions import Infeasible, Unbounded, UndefinedSolution
 from cameo.util import TimeMachine, partition
 from cameo.parallel import SequentialView
 from cameo.core.result import Result
@@ -43,10 +43,6 @@ logger = logging.getLogger(__name__)
 
 __all__ = ['find_blocked_reactions', 'flux_variability_analysis', 'phenotypic_phase_plane',
            'flux_balance_impact_degree']
-
-
-class NoSourceError(Exception):
-    pass
 
 
 def find_blocked_reactions(model):
@@ -184,8 +180,8 @@ def phenotypic_phase_plane(model, variables=[], objective=None, points=20, view=
 
     phase_plane = pandas.DataFrame(envelope,
                                    columns=(variable_reactions_ids +
-                                            ['flux_lower_bound',
-                                             'flux_upper_bound',
+                                            ['objective_lower_bound',
+                                             'objective_upper_bound',
                                              'c_yield_lower_bound',
                                              'c_yield_upper_bound',
                                              'mass_yield_lower_bound',
@@ -382,23 +378,27 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
     def __init__(self, model, variable_reactions):
         self.model = model
         self.variable_reactions = variable_reactions
-        self.product_reactions = [reaction for reaction in model.reactions
-                                  if reaction.objective_coefficient != 0]
+        objective_reactions = [reaction for reaction in model.reactions
+                               if reaction.objective_coefficient != 0]
+        if len(objective_reactions) != 1:
+            raise Exception('multiple objectives not supported')
+        self.product_reaction = objective_reactions[0]
+        self.c_source_reactions = self.get_c_source_reactions()
 
-    def c_source_reactions(self):
+    def get_c_source_reactions(self):
         """ carbon source reactions
 
         Returns
         -------
         list
-           list of media reaction currently with negative flux """
-        medium_reactions = [self.model.reactions.get_by_id(reaction) for
-                            reaction in self.model.medium.reaction_id]
+           list of media reaction currently with negative flux or 0 if non defined
+        """
+        medium_reactions = [self.model.reactions.get_by_id(reaction) for reaction in self.model.medium.reaction_id]
+        self.model.solve()
         source_reactions = [reaction for reaction in medium_reactions if
-                            (reaction.n_carbon() > 0) and
-                            (reaction.flux < 0)]
+                            (reaction.n_carbon() > 0) and (reaction.flux < 0)]
         if len(source_reactions) == 0:
-            raise NoSourceError
+            return 0
         return source_reactions
 
     @classmethod
@@ -438,10 +438,10 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
             the mol carbon atoms in the product (as defined by the model objective) divided by the mol carbon in the
             input reactions (as defined by the model medium) """
         try:
-            carbon_input_flux = self.total_flux(self.c_source_reactions())
-            carbon_output_flux = self.total_flux(self.product_reactions)
+            carbon_input_flux = self.total_flux(self.c_source_reactions)
+            carbon_output_flux = self.total_flux([self.product_reaction])
             return carbon_output_flux / (carbon_input_flux * -1)
-        except (Infeasible, UndefinedSolution, ZeroDivisionError, NoSourceError):
+        except (Infeasible, UndefinedSolution, ZeroDivisionError):
             return 0
 
     def mass_yield(self):
@@ -457,22 +457,20 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
             gram product per 1 g of feeding source or 0 if more than one product or feeding source
         """
         try:
-            source_reactions = self.c_source_reactions()
-            too_long = (len(source_reactions) > 1,
-                        len(self.product_reactions) > 1,
-                        len(source_reactions[0].metabolites) > 1,
-                        len(self.product_reactions[0].metabolites) > 1)
+            too_long = (len(self.c_source_reactions) > 1,
+                        len(self.c_source_reactions[0].metabolites) > 1,
+                        len(self.product_reaction.metabolites) > 1)
             if any(too_long):
                 return None
-            source_flux = self.total_flux(source_reactions, False)
-            product_flux = self.total_flux(self.product_reactions, False)
+            source_flux = self.total_flux(self.c_source_reactions, False)
+            product_flux = self.total_flux([self.product_reaction], False)
             mol_prod_mol_src = product_flux / (source_flux * -1)
-            source_metabolite = list(source_reactions[0].metabolites)[0]
-            product_metabolite = list(self.product_reactions[0].metabolites)[0]
+            source_metabolite = list(self.c_source_reactions[0].metabolites)[0]
+            product_metabolite = list(self.product_reaction.metabolites)[0]
             product_mass = product_metabolite.formula_weight
             source_mass = source_metabolite.formula_weight
             return (mol_prod_mol_src * product_mass) / source_mass
-        except (Infeasible, UndefinedSolution, ZeroDivisionError, NoSourceError):
+        except (Infeasible, UndefinedSolution, ZeroDivisionError):
             return 0
 
     def __call__(self, points):
@@ -608,8 +606,8 @@ class PhenotypicPhasePlaneResult(Result):
         estimate: string
             either flux, mass_yield (g output / g output) or c_yield (mol carbon output / mol carbon input)
         """
-        possible_estimates = {'flux': ('flux_upper_bound',
-                                       'flux_lower_bound',
+        possible_estimates = {'flux': ('objective_upper_bound',
+                                       'objective_lower_bound',
                                        'flux product / flux source'),
                               'mass_yield': ('mass_yield_upper_bound',
                                              'mass_yield_lower_bound',
