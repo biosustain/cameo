@@ -461,7 +461,7 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
                         len(self.c_source_reactions[0].metabolites) > 1,
                         len(self.product_reaction.metabolites) > 1)
             if any(too_long):
-                return None
+                return 0
             source_flux = self.total_flux(self.c_source_reactions, False)
             product_flux = self.total_flux([self.product_reaction], False)
             mol_prod_mol_src = product_flux / (source_flux * -1)
