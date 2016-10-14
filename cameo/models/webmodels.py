@@ -22,24 +22,13 @@ http://darwin.di.uminho.pt/models and http://bigg.ucsd.edu databases
 
 from __future__ import absolute_import, print_function
 
-
 import io
-import tempfile
 import logging
+import tempfile
 
-import requests
-
-import lazy_object_proxy
 import optlang
-
-from functools import partial
-
+import requests
 from pandas import DataFrame
-
-from cobra.io import load_json_model, read_sbml_model
-
-from cameo.util import str_to_valid_variable_name
-from cameo.core.solver_based_model import to_solver_based_model
 
 
 __all__ = ['index_models_minho', 'index_models_bigg', 'bigg', 'minho']
@@ -116,7 +105,7 @@ def get_model_from_uminho(i, index, host="http://darwin.di.uminho.pt/models"):
     model_index = index.query("name == @i")['id'].values[0]
     sbml_file = get_sbml_file(model_index, host)
     sbml_file.close()
-    return to_solver_based_model(read_sbml_model(sbml_file.name))
+    return load_model(sbml_file.name)
 
 
 def get_sbml_file(index, host="http://darwin.di.uminho.pt/models"):
@@ -163,7 +152,7 @@ def get_model_from_bigg(id, index, solver_interface=optlang):
         raise e
     if response.ok:
         with io.StringIO(response.text) as f:
-            return to_solver_based_model(load_json_model(f), solver_interface=solver_interface)
+            return load_model(f, solver_interface=solver_interface)
     else:
         raise Exception(
             "Could not download model {}. bigg.ucsd.edu returned status code {}".format(id, response.status_code))
