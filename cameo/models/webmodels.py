@@ -30,6 +30,8 @@ import optlang
 import requests
 from pandas import DataFrame
 
+from cameo.io import load_model
+
 
 __all__ = ['index_models_minho', 'index_models_bigg', 'bigg', 'minho']
 
