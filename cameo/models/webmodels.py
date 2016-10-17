@@ -28,10 +28,12 @@ import tempfile
 
 import optlang
 import requests
+from cobra.io import load_json_model, read_sbml_model
+
+from cameo.core import to_solver_based_model
 from pandas import DataFrame
 
-from cameo.io import load_model
-
+from cameo.io import sanitize_ids
 
 __all__ = ['index_models_minho', 'index_models_bigg', 'bigg', 'minho']
 
@@ -44,10 +46,10 @@ class NotFoundException(Exception):
         Exception.__init__(self, message, *args, **kwargs)
 
 
-def load_webmodel(query, solver_interface):
+def load_webmodel(query, solver_interface, sanitize=True):
     logger.debug('Querying webmodels ... trying http://bigg.ucsd.edu first')
     try:
-        model = get_model_from_bigg(query, solver_interface=solver_interface)
+        model = get_model_from_bigg(query, solver_interface=solver_interface, sanitize=sanitize)
     except Exception:
         logger.debug('Querying webmodels ... trying minho next')
         try:
@@ -60,9 +62,7 @@ def load_webmodel(query, solver_interface):
             raise e
         try:
             index = df.query('name == "%s"' % query).id.values[0]
-            model = get_model_from_uminho(index)
-            # handle = get_sbml_file(index)
-            # path = handle.name
+            model = get_model_from_uminho(index, solver_interface=solver_interface, sanitize=sanitize)
         except IndexError:
             raise ValueError("%s is neither a file nor a model ID." % query)
     return model
@@ -103,11 +103,14 @@ def index_models_minho(host="http://darwin.di.uminho.pt/models"):
         raise Exception("Could not index available models. %s returned status code %d" % (host, response.status_code))
 
 
-def get_model_from_uminho(i, index, host="http://darwin.di.uminho.pt/models"):
+def get_model_from_uminho(i, index, host="http://darwin.di.uminho.pt/models", solver_interface=optlang, sanitize=True):
     model_index = index.query("name == @i")['id'].values[0]
     sbml_file = get_sbml_file(model_index, host)
     sbml_file.close()
-    return load_model(sbml_file.name)
+    model = to_solver_based_model(read_sbml_model(sbml_file.name), solver_interface)
+    if sanitize:
+        sanitize_ids(model)
+    return model
 
 
 def get_sbml_file(index, host="http://darwin.di.uminho.pt/models"):
@@ -146,7 +149,7 @@ def index_models_bigg():
             "Could not index available models. bigg.ucsd.edu returned status code {}".format(response.status_code))
 
 
-def get_model_from_bigg(id, index, solver_interface=optlang):
+def get_model_from_bigg(id, index, solver_interface=optlang, sanitize=True):
     try:
         response = requests.get('http://bigg.ucsd.edu/api/v2/models/{}/download'.format(id))
     except requests.ConnectionError as e:
@@ -154,7 +157,10 @@ def get_model_from_bigg(id, index, solver_interface=optlang):
         raise e
     if response.ok:
         with io.StringIO(response.text) as f:
-            return load_model(f, solver_interface=solver_interface)
+            model = to_solver_based_model(load_json_model(f), solver_interface=solver_interface)
+            if sanitize:
+                sanitize_ids(model)
+            return model
     else:
         raise Exception(
             "Could not download model {}. bigg.ucsd.edu returned status code {}".format(id, response.status_code))
@@ -241,6 +247,7 @@ minho.validated = ModelDB(validated_minho_names, 'name', get_model_from_uminho)
 
 if __name__ == "__main__":
     print(index_models_minho())
+    from cameo.io import load_model
 
     model = load_model(get_sbml_file(2))
     print(model.objective)
