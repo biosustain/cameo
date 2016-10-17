@@ -241,7 +241,6 @@ minho.validated = ModelDB(validated_minho_names, 'name', get_model_from_uminho)
 
 if __name__ == "__main__":
     print(index_models_minho())
-    from cameo import load_model
 
     model = load_model(get_sbml_file(2))
     print(model.objective)
