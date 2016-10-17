@@ -958,6 +958,21 @@ class WrappedAbstractTestSolverBasedModel:
                 self.model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = 999999.
                 self.model.essential_reactions()
 
+        def test_essential_metabolites(self):
+            model = self.model.copy()
+            essential_metabolites_unbalanced = [m.id for m in model.essential_metabolites(force_steady_state=False)]
+            essential_metabolites_balanced = [m.id for m in model.essential_metabolites(force_steady_state=True)]
+            self.assertTrue(sorted(essential_metabolites_unbalanced) == sorted(ESSENTIAL_METABOLITES))
+            self.assertTrue(sorted(essential_metabolites_balanced) == sorted(ESSENTIAL_METABOLITES))
+
+            with self.assertRaises(cameo.exceptions.SolveError):
+                self.model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = 999999.
+                self.model.essential_metabolites(force_steady_state=False)
+
+            with self.assertRaises(cameo.exceptions.SolveError):
+                self.model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = 999999.
+                self.model.essential_metabolites(force_steady_state=True)
+
         def test_effective_bounds(self):
             self.model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = 0.873921
             for reaction in self.model.reactions:
@@ -1070,14 +1085,6 @@ class WrappedAbstractTestMetabolite:
             self.assertEquals(metabolite_a.constraint.ub, 0)
             self.assertEquals(rxn.upper_bound, 10)
             self.assertEquals(rxn.lower_bound, -10)
-
-        def test_essential_metabolites(self):
-            model = self.model.copy()
-            essential_metabolites = [m.id for m in model.essential_metabolites()]
-            self.assertTrue(sorted(essential_metabolites) == sorted(ESSENTIAL_METABOLITES))
-            with self.assertRaises(cameo.exceptions.SolveError):
-                self.model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = 999999.
-                self.model.essential_genes()
 
         def test_remove_from_model(self):
             met = self.model.metabolites.get_by_id("g6p_c")

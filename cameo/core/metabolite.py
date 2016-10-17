@@ -64,13 +64,19 @@ class Metabolite(cobra.core.Metabolite):
             self.constraint.lb = -absolute_bound
             self.constraint.ub = absolute_bound
 
-    def knock_out(self, time_machine=None, absolute_bound=10000):
-        """'Knockout' a metabolite
+    def knock_out(self, time_machine=None, absolute_bound=10000, force_steady_state=False):
+        """'Knockout' a metabolite. This can be done in 2 ways:
 
-        Implementation follows the description in [1]
+        1. Implementation follows the description in [1]
             "All fluxes around the metabolite M should be restricted to only produce the metabolite,
              for which balancing constraint of mass conservation is relaxed to allow nonzero values
              of the incoming fluxes whereas all outgoing fluxes are limited to zero."
+
+        2. Force steady state
+            All reactions consuming the metabolite are restricted to only produce the metabolite. A demand
+            reaction is added to sink the metabolite produced to keep the problem feasible under
+            the S.v = 0 constraint.
+
 
         Knocking out a metabolite overrules the constraints set on the reactions producing the metabolite.
 
@@ -81,6 +87,8 @@ class Metabolite(cobra.core.Metabolite):
         absolute_bound: number
             The metabolites is 'knocked-out' by setting the associated constraints in the S-matrix to -absolute_bound
             <= Si <= absolute_bound so should be a large number to make it effectively unconstrained.
+        force_steady_state: bool
+            If True, uses approach 2.
 
         References
         ----------
@@ -99,8 +107,10 @@ class Metabolite(cobra.core.Metabolite):
                     reaction.change_bounds(lb=0, ub=0, time_machine=time_machine)
                 else:
                     reaction.change_bounds(ub=0, time_machine=time_machine)
-
-        self._relax_mass_balance_constrain(time_machine, absolute_bound)
+        if force_steady_state:
+            self.model.add_exchange(self, prefix="KO_", time_machine=time_machine)
+        else:
+            self._relax_mass_balance_constrain(time_machine, absolute_bound)
 
     @property
     def id(self):
