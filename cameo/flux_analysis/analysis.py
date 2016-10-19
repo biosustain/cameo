@@ -391,14 +391,12 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
         Returns
         -------
         list
-           list of media reaction currently with negative flux or 0 if non defined
+           list of media reaction currently with negative flux
         """
         medium_reactions = [self.model.reactions.get_by_id(reaction) for reaction in self.model.medium.reaction_id]
         self.model.solve()
         source_reactions = [reaction for reaction in medium_reactions if
                             (reaction.n_carbon > 0) and (reaction.flux < 0)]
-        if len(source_reactions) == 0:
-            return 0
         return source_reactions
 
     @classmethod
