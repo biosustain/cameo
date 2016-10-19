@@ -394,9 +394,12 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
            list of media reaction currently with negative flux
         """
         medium_reactions = [self.model.reactions.get_by_id(reaction) for reaction in self.model.medium.reaction_id]
-        self.model.solve()
-        source_reactions = [reaction for reaction in medium_reactions if
-                            (reaction.n_carbon > 0) and (reaction.flux < 0)]
+        try:
+            self.model.solve()
+            source_reactions = [reaction for reaction in medium_reactions if
+                                (reaction.n_carbon > 0) and (reaction.flux < 0)]
+        except (Infeasible, AssertionError):
+            return []
         return source_reactions
 
     @classmethod
@@ -435,9 +438,9 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
         float
             the mol carbon atoms in the product (as defined by the model objective) divided by the mol carbon in the
             input reactions (as defined by the model medium) """
+        carbon_input_flux = self.total_flux(self.c_source_reactions)
+        carbon_output_flux = self.total_flux([self.product_reaction])
         try:
-            carbon_input_flux = self.total_flux(self.c_source_reactions)
-            carbon_output_flux = self.total_flux([self.product_reaction])
             return carbon_output_flux / (carbon_input_flux * -1)
         except ZeroDivisionError:
             return 0
@@ -452,21 +455,21 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
         Returns
         -------
         float
-            gram product per 1 g of feeding source or 0 if more than one product or feeding source
+            gram product per 1 g of feeding source or nan if more than one product or feeding source
         """
+        too_long = (len(self.c_source_reactions) > 1,
+                    len(self.c_source_reactions[0].metabolites) > 1,
+                    len(self.product_reaction.metabolites) > 1)
+        if any(too_long):
+            return numpy.nan
+        source_flux = self.total_flux(self.c_source_reactions, False)
+        product_flux = self.total_flux([self.product_reaction], False)
+        source_metabolite = list(self.c_source_reactions[0].metabolites)[0]
+        product_metabolite = list(self.product_reaction.metabolites)[0]
+        product_mass = product_metabolite.formula_weight
+        source_mass = source_metabolite.formula_weight
         try:
-            too_long = (len(self.c_source_reactions) > 1,
-                        len(self.c_source_reactions[0].metabolites) > 1,
-                        len(self.product_reaction.metabolites) > 1)
-            if any(too_long):
-                return 0
-            source_flux = self.total_flux(self.c_source_reactions, False)
-            product_flux = self.total_flux([self.product_reaction], False)
             mol_prod_mol_src = product_flux / (source_flux * -1)
-            source_metabolite = list(self.c_source_reactions[0].metabolites)[0]
-            product_metabolite = list(self.product_reaction.metabolites)[0]
-            product_mass = product_metabolite.formula_weight
-            source_mass = source_metabolite.formula_weight
             return (mol_prod_mol_src * product_mass) / source_mass
         except ZeroDivisionError:
             return 0
@@ -485,7 +488,7 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
             self.model.objective.direction = 'min'
             try:
                 solution = self.model.solve().f
-            except (Infeasible, UndefinedSolution):  # Hack to handle GLPK bug
+            except Infeasible:
                 solution = 0
             interval.append(solution)
             interval_carbon_yield.append(self.carbon_yield())
@@ -493,7 +496,7 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
             self.model.objective.direction = 'max'
             try:
                 solution = self.model.solve().f
-            except (Infeasible, UndefinedSolution):
+            except Infeasible:
                 solution = 0
             interval.append(solution)
             interval_carbon_yield.append(self.carbon_yield())
