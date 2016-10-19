@@ -441,7 +441,7 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
             carbon_input_flux = self.total_flux(self.c_source_reactions)
             carbon_output_flux = self.total_flux([self.product_reaction])
             return carbon_output_flux / (carbon_input_flux * -1)
-        except (Infeasible, ZeroDivisionError):
+        except ZeroDivisionError:
             return 0
 
     def mass_yield(self):
@@ -470,7 +470,7 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
             product_mass = product_metabolite.formula_weight
             source_mass = source_metabolite.formula_weight
             return (mol_prod_mol_src * product_mass) / source_mass
-        except (Infeasible, ZeroDivisionError):
+        except ZeroDivisionError:
             return 0
 
     def __call__(self, points):
