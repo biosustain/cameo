@@ -36,12 +36,12 @@ from cameo.util import TimeMachine
 from cameo.flux_analysis import structural
 from optlang.exceptions import IndicatorConstraintsNotSupported
 
-TRAVIS = os.getenv('TRAVIS', False)
 
-
-def assert_data_frames_equal(obj, expected, delta=0.0001, sort_by=None):
+def assert_data_frames_equal(obj, expected, delta=0.0001, sort_by=None, nan=0):
     df = obj.data_frame
     expected_names = [name for name in expected.columns.values if not re.match(r'^Unnamed.*', name)]
+    df = df.fillna(value=0)
+    expected = expected.fillna(value=0)
     if sort_by:
         df = df.sort_values(sort_by).reset_index(drop=True)
         expected = expected.sort_values(sort_by).reset_index(drop=True)
@@ -49,8 +49,7 @@ def assert_data_frames_equal(obj, expected, delta=0.0001, sort_by=None):
         for key in df.index:
             assert_almost_equal(df[column][key], expected[column][key], delta=delta)
 
-
-
+TRAVIS = os.getenv('TRAVIS', False)
 TESTDIR = os.path.dirname(__file__)
 REFERENCE_FVA_SOLUTION_ECOLI_CORE = pandas.read_csv(os.path.join(TESTDIR, 'data/REFERENCE_flux_ranges_EcoliCore.csv'),
                                                     index_col=0)

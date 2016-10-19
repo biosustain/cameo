@@ -26,6 +26,7 @@ from collections import OrderedDict
 from functools import partial, reduce
 import numpy
 import pandas
+import math
 
 import cameo
 from cameo import config
@@ -396,7 +397,7 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
         medium_reactions = [self.model.reactions.get_by_id(reaction) for reaction in self.model.medium.reaction_id]
         self.model.solve()
         source_reactions = [reaction for reaction in medium_reactions if
-                            (reaction.n_carbon() > 0) and (reaction.flux < 0)]
+                            (reaction.n_carbon > 0) and (reaction.flux < 0)]
         if len(source_reactions) == 0:
             return 0
         return source_reactions
@@ -421,12 +422,12 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
         for rxn in reactions:
             carbon = 1
             if by_carbon:
-                carbon = sum(metabolite.n_carbon() for metabolite in rxn.reactants)
+                carbon = sum(metabolite.n_carbon for metabolite in rxn.reactants)
             try:
                 flux += rxn.flux * carbon
             except AssertionError:
-                # optimized flux can be out of bounds, in that case treat as zero flux
-                return 0
+                # optimized flux can be out of bounds, in that case return as missing value
+                return math.nan
         return flux
 
     def carbon_yield(self):
@@ -441,7 +442,7 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
             carbon_input_flux = self.total_flux(self.c_source_reactions)
             carbon_output_flux = self.total_flux([self.product_reaction])
             return carbon_output_flux / (carbon_input_flux * -1)
-        except (Infeasible, UndefinedSolution, ZeroDivisionError):
+        except (Infeasible, ZeroDivisionError):
             return 0
 
     def mass_yield(self):
@@ -470,7 +471,7 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
             product_mass = product_metabolite.formula_weight
             source_mass = source_metabolite.formula_weight
             return (mol_prod_mol_src * product_mass) / source_mass
-        except (Infeasible, UndefinedSolution, ZeroDivisionError):
+        except (Infeasible, ZeroDivisionError):
             return 0
 
     def __call__(self, points):
@@ -608,24 +609,27 @@ class PhenotypicPhasePlaneResult(Result):
         """
         possible_estimates = {'flux': ('objective_upper_bound',
                                        'objective_lower_bound',
-                                       'flux product / flux source'),
+                                       'flux',
+                                       '[h^-1]'),
                               'mass_yield': ('mass_yield_upper_bound',
                                              'mass_yield_lower_bound',
-                                             'gram product / gram source'),
+                                             'mass yield',
+                                             '[g(product) g(source)^-1 h^-1]'),
                               'c_yield': ('c_yield_upper_bound',
                                           'c_yield_lower_bound',
-                                          'mol C product / mol C source')}
+                                          'carbon yield',
+                                          '[mmol(C(product)) mmol(C(source))^-1 h^-1]')}
         if estimate not in possible_estimates:
             raise Exception('estimate must be one of %s' %
                             ', '.join(possible_estimates.keys()))
-        upper, lower, description = possible_estimates[estimate]
+        upper, lower, description, unit = possible_estimates[estimate]
         if title is None:
             title = "Phenotypic Phase Plane ({})".format(description)
         if len(self.variable_ids) == 1:
 
             variable = self.variable_ids[0]
-            x_axis_label = self.nice_variable_ids[0]
-            y_axis_label = self.nice_objective_id
+            x_axis_label = '{} [mmol gDW^-1 h^-1]'.format(self.nice_variable_ids[0])
+            y_axis_label = '{} {}'.format(self.nice_objective_id, unit)
 
             dataframe = pandas.DataFrame(columns=["ub", "lb", "value", "strain"])
             for _, row in self.iterrows():
@@ -640,9 +644,9 @@ class PhenotypicPhasePlaneResult(Result):
         elif len(self.variable_ids) == 2:
             var_1 = self.variable_ids[0]
             var_2 = self.variable_ids[1]
-            x_axis_label = self.nice_variable_ids[0]
-            y_axis_label = self.nice_variable_ids[1]
-            z_axis_label = self.nice_objective_id
+            x_axis_label = '{} [mmol gDW^-1 h^-1]'.format(self.nice_variable_ids[0])
+            y_axis_label = '{} [mmol gDW^-1 h^-1]'.format(self.nice_variable_ids[1])
+            z_axis_label = '{} {}'.format(self.nice_objective_id, unit)
 
             dataframe = pandas.DataFrame(columns=["ub", "lb", "value1", "value2", "strain"])
             for _, row in self.iterrows():
