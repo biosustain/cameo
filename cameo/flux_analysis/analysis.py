@@ -26,7 +26,6 @@ from collections import OrderedDict
 from functools import partial, reduce
 import numpy
 import pandas
-import math
 
 import cameo
 from cameo import config
@@ -427,7 +426,7 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
                 flux += rxn.flux * carbon
             except AssertionError:
                 # optimized flux can be out of bounds, in that case return as missing value
-                return math.nan
+                return numpy.nan
         return flux
 
     def carbon_yield(self):
