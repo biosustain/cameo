@@ -477,6 +477,17 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
     def __call__(self, points):
         return [self._production_envelope_inner(point) for point in points]
 
+    def _interval_estimates(self):
+        try:
+            flux = self.model.solve().f
+            carbon_yield = self.carbon_yield()
+            mass_yield = self.mass_yield()
+        except Infeasible:
+            flux = 0
+            carbon_yield = 0
+            mass_yield = 0
+        return flux, carbon_yield, mass_yield
+
     def _production_envelope_inner(self, point):
         with TimeMachine() as tm:
             for (reaction, coordinate) in zip(self.variable_reactions, point):
@@ -485,22 +496,19 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
             interval_carbon_yield = []
             interval_mass_yield = []
             tm(do=int, undo=partial(setattr, self.model.objective, 'direction', self.model.objective.direction))
+
             self.model.objective.direction = 'min'
-            try:
-                solution = self.model.solve().f
-            except Infeasible:
-                solution = 0
-            interval.append(solution)
-            interval_carbon_yield.append(self.carbon_yield())
-            interval_mass_yield.append(self.mass_yield())
+            flux, carbon_yield, mass_yield = self._interval_estimates()
+            interval.append(flux)
+            interval_carbon_yield.append(carbon_yield)
+            interval_mass_yield.append(mass_yield)
+
             self.model.objective.direction = 'max'
-            try:
-                solution = self.model.solve().f
-            except Infeasible:
-                solution = 0
-            interval.append(solution)
-            interval_carbon_yield.append(self.carbon_yield())
-            interval_mass_yield.append(self.mass_yield())
+            flux, carbon_yield, mass_yield = self._interval_estimates()
+            interval.append(flux)
+            interval_carbon_yield.append(carbon_yield)
+            interval_mass_yield.append(mass_yield)
+
         intervals = tuple(interval) + tuple(interval_carbon_yield) + tuple(interval_mass_yield)
         return point + intervals
 
