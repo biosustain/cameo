@@ -37,7 +37,7 @@ from cameo.flux_analysis import structural
 from optlang.exceptions import IndicatorConstraintsNotSupported
 
 
-def assert_data_frames_equal(obj, expected, delta=0.0001, sort_by=None):
+def assert_data_frames_equal(obj, expected, delta=0.0001, sort_by=None, nan=0):
     df = obj.data_frame
     expected_names = [name for name in expected.columns.values if not re.match(r'^Unnamed.*', name)]
     df = df.fillna(value=0)
