@@ -30,7 +30,6 @@ import cobra
 import optlang
 import six
 import sympy
-from cobra.manipulation import find_gene_knockout_reactions
 from pandas import DataFrame, pandas
 from sympy import Add
 from sympy import Mul
@@ -480,7 +479,7 @@ class SolverBasedModel(cobra.core.Model):
         fields.remove('optimize')
         return fields
 
-    def essential_metabolites(self, threshold=1e-6, absolute_bound=100000, force_steady_state=False):
+    def essential_metabolites(self, threshold=1e-6, force_steady_state=False):
         """Return a list of essential metabolites.
 
         This can be done in 2 ways:
@@ -503,9 +502,8 @@ class SolverBasedModel(cobra.core.Model):
         ----------
         threshold : float (default 1e-6)
             Minimal objective flux to be considered viable.
-        absolute_bound: number
-            The metabolites is 'knocked-out' by setting the associated constraints in the S-matrix to -absolute_bound
-            <= Si <= absolute_bound so should be a large number to make it effectively unconstrained.
+        force_steady_state: bool
+            If True, uses approach 2.
 
         References
         ----------
@@ -526,9 +524,7 @@ class SolverBasedModel(cobra.core.Model):
 
         for metabolite in metabolites:
             with TimeMachine() as tm:
-                metabolite.knock_out(time_machine=tm,
-                                     absolute_bound=absolute_bound,
-                                     force_steady_state=force_steady_state)
+                metabolite.knock_out(time_machine=tm, force_steady_state=force_steady_state)
                 try:
                     solution = self.solve()
                     if solution.f < threshold:

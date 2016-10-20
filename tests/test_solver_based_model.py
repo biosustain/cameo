@@ -21,20 +21,20 @@ import os
 import pickle
 import unittest
 
+import cobra
 import numpy
 import optlang
 import pandas
 import six
-import cobra
 from cobra.io import read_sbml_model
 
 import cameo
 from cameo import load_model, Model
 from cameo.config import solvers
+from cameo.core.gene import Gene
+from cameo.core.metabolite import Metabolite
 from cameo.core.solver_based_model import Reaction
 from cameo.exceptions import UndefinedSolution
-from cameo.core.metabolite import Metabolite
-from cameo.core.gene import Gene
 from cameo.util import TimeMachine
 
 TRAVIS = os.getenv('TRAVIS', False)
@@ -1075,12 +1075,12 @@ class WrappedAbstractTestMetabolite:
             rxn.add_metabolites({metabolite_a: -1, metabolite_b: 1})
             model.add_reaction(rxn)
             with TimeMachine() as tm:
-                metabolite_a.knock_out(time_machine=tm, absolute_bound=10000)
+                metabolite_a.knock_out(time_machine=tm)
                 self.assertEquals(rxn.upper_bound, 0)
-                metabolite_b.knock_out(time_machine=tm, absolute_bound=10000)
+                metabolite_b.knock_out(time_machine=tm)
                 self.assertEquals(rxn.lower_bound, 0)
-                self.assertEquals(metabolite_a.constraint.lb, -10000)
-                self.assertEquals(metabolite_a.constraint.ub, 10000)
+                self.assertEquals(metabolite_a.constraint.lb, -1000 * len(metabolite_a.reactions))
+                self.assertEquals(metabolite_a.constraint.ub, 1000 * len(metabolite_a.reactions))
             self.assertEquals(metabolite_a.constraint.lb, 0)
             self.assertEquals(metabolite_a.constraint.ub, 0)
             self.assertEquals(rxn.upper_bound, 10)

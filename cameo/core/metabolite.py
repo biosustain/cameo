@@ -11,11 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 from functools import partial
 
 import cobra
-import logging
 import six
+
 from cameo.util import inheritdocstring
 
 logger = logging.getLogger(__name__)
@@ -54,17 +55,17 @@ class Metabolite(cobra.core.Metabolite):
         else:
             return None
 
-    def _relax_mass_balance_constrain(self, time_machine, absolute_bound):
+    def _relax_mass_balance_constrain(self, time_machine):
         if time_machine:
-            time_machine(do=partial(setattr, self.constraint, "lb", -absolute_bound),
+            time_machine(do=partial(setattr, self.constraint, "lb", -1000 * len(self.reactions)),
                          undo=partial(setattr, self.constraint, "lb", self.constraint.lb))
-            time_machine(do=partial(setattr, self.constraint, "ub", absolute_bound),
+            time_machine(do=partial(setattr, self.constraint, "ub", 1000 * len(self.reactions)),
                          undo=partial(setattr, self.constraint, "ub", self.constraint.ub))
         else:
-            self.constraint.lb = -absolute_bound
-            self.constraint.ub = absolute_bound
+            self.constraint.lb = None
+            self.constraint.ub = None
 
-    def knock_out(self, time_machine=None, absolute_bound=10000, force_steady_state=False):
+    def knock_out(self, time_machine=None, force_steady_state=False):
         """'Knockout' a metabolite. This can be done in 2 ways:
 
         1. Implementation follows the description in [1]
@@ -83,10 +84,7 @@ class Metabolite(cobra.core.Metabolite):
         Parameters
         ----------
         time_machine : TimeMachine
-            An action stack to reverse actions.
-        absolute_bound: number
-            The metabolites is 'knocked-out' by setting the associated constraints in the S-matrix to -absolute_bound
-            <= Si <= absolute_bound so should be a large number to make it effectively unconstrained.
+            An action stack to reverse actions
         force_steady_state: bool
             If True, uses approach 2.
 
@@ -110,7 +108,7 @@ class Metabolite(cobra.core.Metabolite):
         if force_steady_state:
             self.model.add_exchange(self, prefix="KO_", time_machine=time_machine)
         else:
-            self._relax_mass_balance_constrain(time_machine, absolute_bound)
+            self._relax_mass_balance_constrain(time_machine)
 
     @property
     def id(self):
