@@ -514,7 +514,17 @@ class SolverBasedModel(cobra.core.Model):
         """
 
         essential_metabolites = []
-        for metabolite in self.metabolites:
+
+        # Essential metabolites are only in reactions that carry flux.
+        metabolites = set()
+        solution = self.solve()
+
+        for reaction_id, flux in six.iteritems(solution.fluxes):
+            if abs(flux) > 0:
+                reaction = self.reactions.get_by_id(reaction_id)
+                metabolites.update(reaction.metabolites.keys())
+
+        for metabolite in metabolites:
             with TimeMachine() as tm:
                 metabolite.knock_out(time_machine=tm,
                                      absolute_bound=absolute_bound,
