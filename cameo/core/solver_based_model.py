@@ -30,7 +30,6 @@ import cobra
 import optlang
 import six
 import sympy
-from cobra.manipulation import find_gene_knockout_reactions
 from pandas import DataFrame, pandas
 from sympy import Add
 from sympy import Mul
@@ -480,15 +479,22 @@ class SolverBasedModel(cobra.core.Model):
         fields.remove('optimize')
         return fields
 
-    def essential_metabolites(self, threshold=1e-6, absolute_bound=100000):
-        """Return a list of essential metabolites
+    def essential_metabolites(self, threshold=1e-6, force_steady_state=False):
+        """Return a list of essential metabolites.
 
-        Implementation follows the description in [1]:
+        This can be done in 2 ways:
+
+        1. Implementation follows the description in [1]:
             "All fluxes around the metabolite M should be restricted to only produce the metabolite,
              for which balancing constraint of mass conservation is relaxed to allow nonzero values
              of the incoming fluxes whereas all outgoing fluxes are limited to zero."
 
-        Briefly, for each metabolite, all reactions that consume that metabolite are knocked and if that makes the
+        2. Force Steady State approach:
+            All reactions consuming the metabolite are restricted to only produce the metabolite. A demand
+            reaction is added to sink the metabolite produced to keep the problem feasible under
+            the S.v = 0 constraint.
+
+        Briefly, for each metabolite, all reactions that consume that metabolite are blocked and if that makes the
         model either infeasible or results in near-zero flux in the model objective, then the metabolite is
         considered essential.
 
@@ -496,9 +502,8 @@ class SolverBasedModel(cobra.core.Model):
         ----------
         threshold : float (default 1e-6)
             Minimal objective flux to be considered viable.
-        absolute_bound: number
-            The metabolites is 'knocked-out' by setting the associated constraints in the S-matrix to -absolute_bound
-            <= Si <= absolute_bound so should be a large number to make it effectively unconstrained.
+        force_steady_state: bool
+            If True, uses approach 2.
 
         References
         ----------
@@ -507,9 +512,19 @@ class SolverBasedModel(cobra.core.Model):
         """
 
         essential_metabolites = []
-        for metabolite in self.metabolites:
+
+        # Essential metabolites are only in reactions that carry flux.
+        metabolites = set()
+        solution = self.solve()
+
+        for reaction_id, flux in six.iteritems(solution.fluxes):
+            if abs(flux) > 0:
+                reaction = self.reactions.get_by_id(reaction_id)
+                metabolites.update(reaction.metabolites.keys())
+
+        for metabolite in metabolites:
             with TimeMachine() as tm:
-                metabolite.knock_out(tm, absolute_bound)
+                metabolite.knock_out(time_machine=tm, force_steady_state=force_steady_state)
                 try:
                     solution = self.solve()
                     if solution.f < threshold:

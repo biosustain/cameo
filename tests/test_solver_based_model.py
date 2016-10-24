@@ -21,20 +21,20 @@ import os
 import pickle
 import unittest
 
+import cobra
 import numpy
 import optlang
 import pandas
 import six
-import cobra
 from cobra.io import read_sbml_model
 
 import cameo
 from cameo import load_model, Model
 from cameo.config import solvers
+from cameo.core.gene import Gene
+from cameo.core.metabolite import Metabolite
 from cameo.core.solver_based_model import Reaction
 from cameo.exceptions import UndefinedSolution
-from cameo.core.metabolite import Metabolite
-from cameo.core.gene import Gene
 from cameo.util import TimeMachine
 
 TRAVIS = os.getenv('TRAVIS', False)
@@ -958,6 +958,21 @@ class WrappedAbstractTestSolverBasedModel:
                 self.model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = 999999.
                 self.model.essential_reactions()
 
+        def test_essential_metabolites(self):
+            model = self.model.copy()
+            essential_metabolites_unbalanced = [m.id for m in model.essential_metabolites(force_steady_state=False)]
+            essential_metabolites_balanced = [m.id for m in model.essential_metabolites(force_steady_state=True)]
+            self.assertTrue(sorted(essential_metabolites_unbalanced) == sorted(ESSENTIAL_METABOLITES))
+            self.assertTrue(sorted(essential_metabolites_balanced) == sorted(ESSENTIAL_METABOLITES))
+
+            with self.assertRaises(cameo.exceptions.SolveError):
+                self.model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = 999999.
+                self.model.essential_metabolites(force_steady_state=False)
+
+            with self.assertRaises(cameo.exceptions.SolveError):
+                self.model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = 999999.
+                self.model.essential_metabolites(force_steady_state=True)
+
         def test_effective_bounds(self):
             self.model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = 0.873921
             for reaction in self.model.reactions:
@@ -1060,24 +1075,16 @@ class WrappedAbstractTestMetabolite:
             rxn.add_metabolites({metabolite_a: -1, metabolite_b: 1})
             model.add_reaction(rxn)
             with TimeMachine() as tm:
-                metabolite_a.knock_out(time_machine=tm, absolute_bound=10000)
+                metabolite_a.knock_out(time_machine=tm)
                 self.assertEquals(rxn.upper_bound, 0)
-                metabolite_b.knock_out(time_machine=tm, absolute_bound=10000)
+                metabolite_b.knock_out(time_machine=tm)
                 self.assertEquals(rxn.lower_bound, 0)
-                self.assertEquals(metabolite_a.constraint.lb, -10000)
-                self.assertEquals(metabolite_a.constraint.ub, 10000)
+                self.assertEquals(metabolite_a.constraint.lb, -1000 * len(metabolite_a.reactions))
+                self.assertEquals(metabolite_a.constraint.ub, 1000 * len(metabolite_a.reactions))
             self.assertEquals(metabolite_a.constraint.lb, 0)
             self.assertEquals(metabolite_a.constraint.ub, 0)
             self.assertEquals(rxn.upper_bound, 10)
             self.assertEquals(rxn.lower_bound, -10)
-
-        def test_essential_metabolites(self):
-            model = self.model.copy()
-            essential_metabolites = [m.id for m in model.essential_metabolites()]
-            self.assertTrue(sorted(essential_metabolites) == sorted(ESSENTIAL_METABOLITES))
-            with self.assertRaises(cameo.exceptions.SolveError):
-                self.model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = 999999.
-                self.model.essential_genes()
 
         def test_remove_from_model(self):
             met = self.model.metabolites.get_by_id("g6p_c")

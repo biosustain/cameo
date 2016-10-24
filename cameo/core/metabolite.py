@@ -11,11 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 from functools import partial
 
 import cobra
-import logging
 import six
+
 from cameo.util import inheritdocstring
 
 logger = logging.getLogger(__name__)
@@ -54,33 +55,38 @@ class Metabolite(cobra.core.Metabolite):
         else:
             return None
 
-    def _relax_mass_balance_constrain(self, time_machine, absolute_bound):
+    def _relax_mass_balance_constrain(self, time_machine):
         if time_machine:
-            time_machine(do=partial(setattr, self.constraint, "lb", -absolute_bound),
+            time_machine(do=partial(setattr, self.constraint, "lb", -1000 * len(self.reactions)),
                          undo=partial(setattr, self.constraint, "lb", self.constraint.lb))
-            time_machine(do=partial(setattr, self.constraint, "ub", absolute_bound),
+            time_machine(do=partial(setattr, self.constraint, "ub", 1000 * len(self.reactions)),
                          undo=partial(setattr, self.constraint, "ub", self.constraint.ub))
         else:
-            self.constraint.lb = -absolute_bound
-            self.constraint.ub = absolute_bound
+            self.constraint.lb = None
+            self.constraint.ub = None
 
-    def knock_out(self, time_machine=None, absolute_bound=10000):
-        """'Knockout' a metabolite
+    def knock_out(self, time_machine=None, force_steady_state=False):
+        """'Knockout' a metabolite. This can be done in 2 ways:
 
-        Implementation follows the description in [1]
+        1. Implementation follows the description in [1]
             "All fluxes around the metabolite M should be restricted to only produce the metabolite,
              for which balancing constraint of mass conservation is relaxed to allow nonzero values
              of the incoming fluxes whereas all outgoing fluxes are limited to zero."
+
+        2. Force steady state
+            All reactions consuming the metabolite are restricted to only produce the metabolite. A demand
+            reaction is added to sink the metabolite produced to keep the problem feasible under
+            the S.v = 0 constraint.
+
 
         Knocking out a metabolite overrules the constraints set on the reactions producing the metabolite.
 
         Parameters
         ----------
         time_machine : TimeMachine
-            An action stack to reverse actions.
-        absolute_bound: number
-            The metabolites is 'knocked-out' by setting the associated constraints in the S-matrix to -absolute_bound
-            <= Si <= absolute_bound so should be a large number to make it effectively unconstrained.
+            An action stack to reverse actions
+        force_steady_state: bool
+            If True, uses approach 2.
 
         References
         ----------
@@ -99,8 +105,10 @@ class Metabolite(cobra.core.Metabolite):
                     reaction.change_bounds(lb=0, ub=0, time_machine=time_machine)
                 else:
                     reaction.change_bounds(ub=0, time_machine=time_machine)
-
-        self._relax_mass_balance_constrain(time_machine, absolute_bound)
+        if force_steady_state:
+            self.model.add_exchange(self, prefix="KO_", time_machine=time_machine)
+        else:
+            self._relax_mass_balance_constrain(time_machine)
 
     @property
     def id(self):
