@@ -61,8 +61,7 @@ def load_webmodel(query, solver_interface, sanitize=True):
             logger.error("Something went wrong while looking up available webmodels.")
             raise e
         try:
-            index = df.query('name == "%s"' % query).id.values[0]
-            model = get_model_from_uminho(index, solver_interface=solver_interface, sanitize=sanitize)
+            model = get_model_from_uminho(query, df, solver_interface=solver_interface, sanitize=sanitize)
         except IndexError:
             raise ValueError("%s is neither a file nor a model ID." % query)
     return model
@@ -103,8 +102,8 @@ def index_models_minho(host="http://darwin.di.uminho.pt/models"):
         raise Exception("Could not index available models. %s returned status code %d" % (host, response.status_code))
 
 
-def get_model_from_uminho(i, index, host="http://darwin.di.uminho.pt/models", solver_interface=optlang, sanitize=True):
-    model_index = index.query("name == @i")['id'].values[0]
+def get_model_from_uminho(query, index, host="http://darwin.di.uminho.pt/models", solver_interface=optlang, sanitize=True):
+    model_index = index[index["name"] == query]['id'].values[0]
     sbml_file = get_sbml_file(model_index, host)
     sbml_file.close()
     model = to_solver_based_model(read_sbml_model(sbml_file.name), solver_interface)
