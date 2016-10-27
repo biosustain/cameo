@@ -61,8 +61,7 @@ def load_webmodel(query, solver_interface, sanitize=True):
             logger.error("Something went wrong while looking up available webmodels.")
             raise e
         try:
-            index = df.query('name == "%s"' % query).id.values[0]
-            model = get_model_from_uminho(index, solver_interface=solver_interface, sanitize=sanitize)
+            model = get_model_from_uminho(query, df, solver_interface=solver_interface, sanitize=sanitize)
         except IndexError:
             raise ValueError("%s is neither a file nor a model ID." % query)
     return model
@@ -103,8 +102,8 @@ def index_models_minho(host="http://darwin.di.uminho.pt/models"):
         raise Exception("Could not index available models. %s returned status code %d" % (host, response.status_code))
 
 
-def get_model_from_uminho(i, index, host="http://darwin.di.uminho.pt/models", solver_interface=optlang, sanitize=True):
-    model_index = index.query("name == @i")['id'].values[0]
+def get_model_from_uminho(query, index, host="http://darwin.di.uminho.pt/models", solver_interface=optlang, sanitize=True):
+    model_index = index[index["name"] == query]['id'].values[0]
     sbml_file = get_sbml_file(model_index, host)
     sbml_file.close()
     model = to_solver_based_model(read_sbml_model(sbml_file.name), solver_interface)
@@ -149,7 +148,7 @@ def index_models_bigg():
             "Could not index available models. bigg.ucsd.edu returned status code {}".format(response.status_code))
 
 
-def get_model_from_bigg(id, index, solver_interface=optlang, sanitize=True):
+def get_model_from_bigg(id, solver_interface=optlang, sanitize=True):
     try:
         response = requests.get('http://bigg.ucsd.edu/api/v2/models/{}/download'.format(id))
     except requests.ConnectionError as e:
@@ -193,9 +192,9 @@ class ModelDB(object):
         else:
             super(ModelDB, self).__getattribute__(item)
 
-bigg = ModelDB(lambda: index_models_bigg(), 'bigg_id', get_model_from_bigg)
+bigg = ModelDB(index_models_bigg, 'bigg_id', lambda q, idx: get_model_from_bigg(q))
 
-minho = ModelDB(lambda: index_models_minho(), 'name', get_model_from_uminho)
+minho = ModelDB(index_models_minho, 'name', get_model_from_uminho)
 
 
 def validated_minho_names():
