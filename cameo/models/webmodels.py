@@ -149,7 +149,7 @@ def index_models_bigg():
             "Could not index available models. bigg.ucsd.edu returned status code {}".format(response.status_code))
 
 
-def get_model_from_bigg(id, index, solver_interface=optlang, sanitize=True):
+def get_model_from_bigg(id, solver_interface=optlang, sanitize=True):
     try:
         response = requests.get('http://bigg.ucsd.edu/api/v2/models/{}/download'.format(id))
     except requests.ConnectionError as e:
@@ -193,9 +193,9 @@ class ModelDB(object):
         else:
             super(ModelDB, self).__getattribute__(item)
 
-bigg = ModelDB(lambda: index_models_bigg(), 'bigg_id', get_model_from_bigg)
+bigg = ModelDB(index_models_bigg, 'bigg_id', lambda q, idx: get_model_from_bigg(q))
 
-minho = ModelDB(lambda: index_models_minho(), 'name', get_model_from_uminho)
+minho = ModelDB(index_models_minho, 'name', get_model_from_uminho)
 
 
 def validated_minho_names():
