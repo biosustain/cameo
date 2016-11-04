@@ -42,10 +42,10 @@ class Metabolite(cobra.core.Metabolite):
             new_metabolite._model = model
         return new_metabolite
 
-    def remove_from_model(self, method="subtractive", **kwargs):
-        model = self.model
-        super(Metabolite, self).remove_from_model(method, **kwargs)
-        model.solver.remove(model.solver.constraints[self.id])
+    # def remove_from_model(self, method="subtractive", **kwargs):
+    #     model = self.model
+    #     super(Metabolite, self).remove_from_model(method, **kwargs)
+    #     model.solver.remove(model.solver.constraints[self.id])
 
     @property
     def n_carbon(self):

@@ -125,15 +125,6 @@ class Reaction(_cobrapy.core.Reaction):
     def reversibility(self):
         return self._lower_bound < 0 < self._upper_bound
 
-    def _get_reverse_id(self):
-        """Generate the id of reverse_variable from the reaction's id."""
-        return '_'.join((self.id, 'reverse', hashlib.md5(self.id.encode('utf-8')).hexdigest()[0:5]))
-
-    def _get_forward_id(self):
-        """Generate the id of forward_variable from the reaction's id."""
-        return self.id
-        # return '_'.join((self.id, 'forward', hashlib.md5(self.id.encode('utf-8')).hexdigest()[0:5]))
-
     @property
     def flux_expression(self):
         """An optlang variable representing the forward flux (if associated with model), otherwise None.
@@ -150,11 +141,10 @@ class Reaction(_cobrapy.core.Reaction):
         model = self.model
         if model is not None:
             if self._forward_variable is None:
-                self._forward_variable = model.solver.variables[self._get_forward_id()]
+                self._forward_variable = model.solver.variables[self.id]
             assert self._forward_variable.problem is self.model.solver
 
             return self._forward_variable
-            # return model.solver.variables[self._get_forward_id()]
         else:
             return None
 
@@ -164,16 +154,11 @@ class Reaction(_cobrapy.core.Reaction):
         model = self.model
         if model is not None:
             if self._reverse_variable is None:
-                self._reverse_variable = model.solver.variables[self._get_reverse_id()]
+                self._reverse_variable = model.solver.variables[self.reverse_id]
             assert self._reverse_variable.problem is self.model.solver
             return self._reverse_variable
-            # return model.solver.variables[self._get_reverse_id()]
         else:
             return None
-
-    def _reset_var_cache(self):
-        self._forward_variable = None
-        self._reverse_variable = None
 
     def __copy__(self):
         cop = copy(super(Reaction, self))
@@ -325,33 +310,33 @@ class Reaction(_cobrapy.core.Reaction):
 
     @model.setter
     def model(self, value):
-        if value is None:
-            self.objective_coefficient  # Get objective coefficient from model
-        elif not isinstance(value, cameo.core.SolverBasedModel):
-            raise ValueError("Must be an instance of cameo.core.SolverBasedModel, not %s" % type(value))
+        # if value is None:
+        #     self.objective_coefficient  # Get objective coefficient from model
+        # elif not isinstance(value, cameo.core.SolverBasedModel):
+        #     raise ValueError("Must be an instance of cameo.core.SolverBasedModel, not %s" % type(value))
         self._reset_var_cache()
         self._model = value
 
-    @property
-    def objective_coefficient(self):
-        if self.model is not None and isinstance(self.model,
-                                                 cameo.core.SolverBasedModel) and self.model.objective is not None:
-            coefficients_dict = self.model.objective.expression.as_coefficients_dict()
-            forw_coef = coefficients_dict.get(self.forward_variable, 0)
-            rev_coef = coefficients_dict.get(self.reverse_variable, 0)
-            if forw_coef == -rev_coef:
-                self._objective_coefficient = float(forw_coef)
-            else:
-                self._objective_coefficient = 0
-        return self._objective_coefficient
-
-    @objective_coefficient.setter
-    def objective_coefficient(self, value):
-        model = self.model
-        if model is not None:
-            coef_difference = value - self.objective_coefficient
-            model.objective += coef_difference * self.flux_expression
-        self._objective_coefficient = value
+    # @property
+    # def objective_coefficient(self):
+    #     if self.model is not None and isinstance(self.model,
+    #                                              cameo.core.SolverBasedModel) and self.model.objective is not None:
+    #         coefficients_dict = self.model.objective.expression.as_coefficients_dict()
+    #         forw_coef = coefficients_dict.get(self.forward_variable, 0)
+    #         rev_coef = coefficients_dict.get(self.reverse_variable, 0)
+    #         if forw_coef == -rev_coef:
+    #             self._objective_coefficient = float(forw_coef)
+    #         else:
+    #             self._objective_coefficient = 0
+    #     return self._objective_coefficient
+    #
+    # @objective_coefficient.setter
+    # def objective_coefficient(self, value):
+    #     model = self.model
+    #     if model is not None:
+    #         coef_difference = value - self.objective_coefficient
+    #         model.objective += coef_difference * self.flux_expression
+    #     self._objective_coefficient = value
 
     @property
     def effective_lower_bound(self):
@@ -408,30 +393,6 @@ class Reaction(_cobrapy.core.Reaction):
                     self.reverse_variable: -coefficient
                 })
 
-    @property
-    def id(self):
-        return getattr(self, "_id", None)  # Returns None if _id is not set
-
-    @id.setter
-    def id(self, value):
-        if value == self.id:
-            pass
-        elif not isinstance(value, six.string_types):
-            raise TypeError("ID must be a string")
-        elif getattr(self, "_model", None) is not None:  # (= if hasattr(self, "_model") and self._model is not None)
-            if value in self.model.reactions:
-                raise ValueError("The model already contains a reaction with the id:", value)
-            forward_variable = self.forward_variable
-            reverse_variable = self.reverse_variable
-
-            self._id = value
-            self.model.reactions._generate_index()
-
-            forward_variable.name = self._get_forward_id()
-            reverse_variable.name = self._get_reverse_id()
-        else:
-            self._id = value
-
     def knock_out(self, time_machine=None):
         """Knockout reaction by setting its bounds to zero.
 
@@ -472,22 +433,22 @@ class Reaction(_cobrapy.core.Reaction):
             self.add_metabolites({met: -coef}, combine=True)
             return coef
 
-    def remove_from_model(self, model=None, remove_orphans=False):
-        reaction_model = self.model
-        forward = self.forward_variable
-        reverse = self.reverse_variable
-        super(Reaction, self).remove_from_model(model, remove_orphans)
-        reaction_model.solver.remove([forward, reverse])
-        self.model = None  # Trigger model setter, since cobrapy only sets _model
+    # def remove_from_model(self, model=None, remove_orphans=False):
+    #     reaction_model = self.model
+    #     forward = self.forward_variable
+    #     reverse = self.reverse_variable
+    #     super(Reaction, self).remove_from_model(model, remove_orphans)
+    #     reaction_model.solver.remove([forward, reverse])
+    #     self.model = None  # Trigger model setter, since cobrapy only sets _model
 
-    def delete(self, remove_orphans=False):
-        model = self.model
-        forward = self.forward_variable
-        reverse = self.reverse_variable
-        super(Reaction, self).delete(remove_orphans)
-        model.solver.remove([forward, reverse])
-        self.model = None  # Trigger model setter, since cobrapy only sets _model
-        # if remove_orphans:
+    # def delete(self, remove_orphans=False):
+    #     model = self.model
+    #     forward = self.forward_variable
+    #     reverse = self.reverse_variable
+    #     super(Reaction, self).delete(remove_orphans)
+    #     model.solver.remove([forward, reverse])
+    #     self.model = None  # Trigger model setter, since cobrapy only sets _model
+    #     # if remove_orphans:
         #     model.solver.remove([metabolite.model.solver for metabolite in self.metabolites.keys()])
 
     def change_bounds(self, lb=None, ub=None, time_machine=None):

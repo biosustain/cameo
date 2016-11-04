@@ -117,10 +117,10 @@ class SolverBasedModel(cobra.core.Model):
             reaction._metabolites = {
                 self.metabolites.get_by_id(met.id): coef for met, coef in six.iteritems(reaction.metabolites)
             }
-
-        self._solver = solver_interface.Model()
-        self._solver.objective = solver_interface.Objective(S.Zero)
-        self._populate_solver(self.reactions, self.metabolites)
+        #
+        # self._solver = solver_interface.Model()
+        # self._solver.objective = solver_interface.Objective(S.Zero)
+        # self._populate_solver(self.reactions, self.metabolites)
         self._timestamp_last_optimization = None
         self.solution = LazySolution(self)
 
@@ -174,161 +174,161 @@ class SolverBasedModel(cobra.core.Model):
                            'num_reactions': len(self.reactions),
                            'reactions': '<br>'.join([r.build_reaction_string() for r in self.reactions])}
 
-    @property
-    def objective(self):
-        """The model objective."""
-        return self.solver.objective
+    # @property
+    # def objective(self):
+    #     """The model objective."""
+    #     return self.solver.objective
+    #
+    # @objective.setter
+    # def objective(self, value):
+    #     if isinstance(value, six.string_types):
+    #         try:
+    #             value = self.reactions.get_by_id(value)
+    #         except KeyError:
+    #             raise ValueError("No reaction with the id %s in the model" % value)
+    #     if isinstance(value, Reaction):
+    #         if value.model is not self:
+    #             raise ValueError("%r does not belong to the model" % value)
+    #         self.solver.objective = self.solver.interface.Objective(value.flux_expression, sloppy=True)
+    #     elif isinstance(value, self.solver.interface.Objective):
+    #         self.solver.objective = value
+    #     # TODO: maybe the following should be allowed
+    #     # elif isinstance(value, optlang.interface.Objective):
+    #     # self.solver.objective = self.solver.interface.Objective.clone(value)
+    #     elif isinstance(value, sympy.Basic):
+    #         self.solver.objective = self.solver.interface.Objective(value, sloppy=False)
+    #     else:
+    #         raise TypeError('%r is not a valid objective for %r.' % (value, self.solver))
 
-    @objective.setter
-    def objective(self, value):
-        if isinstance(value, six.string_types):
-            try:
-                value = self.reactions.get_by_id(value)
-            except KeyError:
-                raise ValueError("No reaction with the id %s in the model" % value)
-        if isinstance(value, Reaction):
-            if value.model is not self:
-                raise ValueError("%r does not belong to the model" % value)
-            self.solver.objective = self.solver.interface.Objective(value.flux_expression, sloppy=True)
-        elif isinstance(value, self.solver.interface.Objective):
-            self.solver.objective = value
-        # TODO: maybe the following should be allowed
-        # elif isinstance(value, optlang.interface.Objective):
-        # self.solver.objective = self.solver.interface.Objective.clone(value)
-        elif isinstance(value, sympy.Basic):
-            self.solver.objective = self.solver.interface.Objective(value, sloppy=False)
-        else:
-            raise TypeError('%r is not a valid objective for %r.' % (value, self.solver))
+    # @property
+    # def solver(self):
+    #     """Attached solver instance.
+    #
+    #     Very useful for accessing the optimization problem directly. Furthermore, can be used to define additional
+    #     non-metabolic constraints.
+    #
+    #     Examples
+    #     --------
+    #     >>> new_constraint_from_objective = model.solver.interface.Constraint(model.objective.expression, lb=0.99)
+    #     >>> model.solver.add(new_constraint)
+    #
+    #     """
+    #     return self._solver
+    #
+    # @solver.setter
+    # def solver(self, value):
+    #     not_valid_interface = ValueError(
+    #         '%s is not a valid solver interface. '
+    #         'Pick from %s, or specify an optlang interface (e.g. optlang.glpk_interface).' % (
+    #             value, list(config.solvers.keys())))
+    #     if isinstance(value, six.string_types):
+    #         try:
+    #             interface = config.solvers[value]
+    #         except KeyError:
+    #             raise not_valid_interface
+    #     elif isinstance(value, types.ModuleType) and hasattr(value, 'Model'):
+    #         interface = value
+    #     else:
+    #         raise not_valid_interface
+    #     for reaction in self.reactions:
+    #         reaction._reset_var_cache()
+    #     self._solver = interface.Model.clone(self._solver)
+    #
+    # @property
+    # def exchanges(self):
+    #     """Exchange reactions in model.
+    #
+    #     Reactions that either don't have products or substrates.
+    #     """
+    #     return [reaction for reaction in self.reactions if reaction.is_exchange]
 
-    @property
-    def solver(self):
-        """Attached solver instance.
+    # def add_metabolites(self, metabolite_list):
+    #     super(SolverBasedModel, self).add_metabolites(metabolite_list)
+    #     for met in metabolite_list:
+    #         if met.id not in self.solver.constraints:
+    #             constraint = self.solver.interface.Constraint(S.Zero, name=met.id, lb=0, ub=0)
+    #             self.solver.add(constraint)
+    #
+    # def add_metabolite(self, metabolite):
+    #     self.add_metabolites([metabolite])
 
-        Very useful for accessing the optimization problem directly. Furthermore, can be used to define additional
-        non-metabolic constraints.
+    # def _populate_solver(self, reaction_list, metabolite_list=None):
+    #     """Populate attached solver with constraints and variables that model the provided reactions."""
+    #     constraint_terms = AutoVivification()
+    #     if metabolite_list is not None:
+    #         for met in metabolite_list:
+    #             constraint = self.solver.interface.Constraint(S.Zero, name=met.id, lb=0, ub=0)
+    #             self.solver.add(constraint)
+    #
+    #     for reaction in reaction_list:
+    #
+    #         if reaction.reversibility:
+    #             forward_variable = self.solver.interface.Variable(reaction.id(), lb=0,
+    #                                                               ub=reaction._upper_bound)
+    #             reverse_variable = self.solver.interface.Variable(reaction.reverse_id(), lb=0,
+    #                                                               ub=-1 * reaction._lower_bound)
+    #         elif 0 == reaction.lower_bound and reaction.upper_bound == 0:
+    #             forward_variable = self.solver.interface.Variable(reaction.id(), lb=0, ub=0)
+    #             reverse_variable = self.solver.interface.Variable(reaction.reverse_id(), lb=0, ub=0)
+    #         elif reaction.lower_bound >= 0:
+    #             forward_variable = self.solver.interface.Variable(reaction.id, lb=reaction._lower_bound,
+    #                                                               ub=reaction._upper_bound)
+    #             reverse_variable = self.solver.interface.Variable(reaction.reverse_id(), lb=0, ub=0)
+    #         elif reaction.upper_bound <= 0:
+    #             forward_variable = self.solver.interface.Variable(reaction.id, lb=0, ub=0)
+    #             reverse_variable = self.solver.interface.Variable(reaction.reverse_id(),
+    #                                                               lb=-1 * reaction._upper_bound,
+    #                                                               ub=-1 * reaction._lower_bound)
+    #
+    #         self.solver.add(forward_variable)
+    #         self.solver.add(reverse_variable)
+    #         self.solver.update()
+    #
+    #         for metabolite, coeff in six.iteritems(reaction.metabolites):
+    #             if metabolite.id in self.solver.constraints:
+    #                 constraint = self.solver.constraints[metabolite.id]
+    #             else:
+    #                 constraint = self.solver.interface.Constraint(S.Zero, name=metabolite.id, lb=0, ub=0)
+    #                 self.solver.add(constraint, sloppy=True)
+    #
+    #             constraint_terms[constraint][forward_variable] = coeff
+    #             constraint_terms[constraint][reverse_variable] = -coeff
+    #
+    #         objective_coeff = reaction._objective_coefficient
+    #         if objective_coeff != 0.:
+    #             if self.solver.objective is None:
+    #                 self.solver.objective = self.solver.interface.Objective(0, direction='max')
+    #             if self.solver.objective.direction == 'min':
+    #                 self.solver.objective.direction = 'max'
+    #             self.solver.objective.set_linear_coefficients(
+    #                 {forward_variable: objective_coeff, reverse_variable: -objective_coeff})
+    #
+    #     self.solver.update()
+    #     for constraint, terms in six.iteritems(constraint_terms):
+    #         constraint.set_linear_coefficients(terms)
 
-        Examples
-        --------
-        >>> new_constraint_from_objective = model.solver.interface.Constraint(model.objective.expression, lb=0.99)
-        >>> model.solver.add(new_constraint)
+    # def add_reactions(self, reaction_list):
+    #     cloned_reaction_list = list()
+    #     for reaction in reaction_list:  # this is necessary for cobrapy compatibility
+    #         if not isinstance(reaction, Reaction):
+    #             cloned_reaction_list.append(Reaction.clone(reaction))
+    #         else:
+    #             cloned_reaction_list.append(reaction)
+    #
+    #     # cobrapy will raise an exceptions if one of the reactions already exists in the model (before adding any
+    #     # reactions)
+    #     super(SolverBasedModel, self).add_reactions(cloned_reaction_list)
+    #     for reac in cloned_reaction_list:
+    #         reac.model = self
+    #     self._populate_solver(cloned_reaction_list)
+    #
+    # def remove_reactions(self, the_reactions, delete=True, remove_orphans=False):
+    #     super(SolverBasedModel, self).remove_reactions(the_reactions, delete=delete, remove_orphans=remove_orphans)
 
-        """
-        return self._solver
-
-    @solver.setter
-    def solver(self, value):
-        not_valid_interface = ValueError(
-            '%s is not a valid solver interface. '
-            'Pick from %s, or specify an optlang interface (e.g. optlang.glpk_interface).' % (
-                value, list(config.solvers.keys())))
-        if isinstance(value, six.string_types):
-            try:
-                interface = config.solvers[value]
-            except KeyError:
-                raise not_valid_interface
-        elif isinstance(value, types.ModuleType) and hasattr(value, 'Model'):
-            interface = value
-        else:
-            raise not_valid_interface
-        for reaction in self.reactions:
-            reaction._reset_var_cache()
-        self._solver = interface.Model.clone(self._solver)
-
-    @property
-    def exchanges(self):
-        """Exchange reactions in model.
-
-        Reactions that either don't have products or substrates.
-        """
-        return [reaction for reaction in self.reactions if reaction.is_exchange]
-
-    def add_metabolites(self, metabolite_list):
-        super(SolverBasedModel, self).add_metabolites(metabolite_list)
-        for met in metabolite_list:
-            if met.id not in self.solver.constraints:
-                constraint = self.solver.interface.Constraint(S.Zero, name=met.id, lb=0, ub=0)
-                self.solver.add(constraint)
-
-    def add_metabolite(self, metabolite):
-        self.add_metabolites([metabolite])
-
-    def _populate_solver(self, reaction_list, metabolite_list=None):
-        """Populate attached solver with constraints and variables that model the provided reactions."""
-        constraint_terms = AutoVivification()
-        if metabolite_list is not None:
-            for met in metabolite_list:
-                constraint = self.solver.interface.Constraint(S.Zero, name=met.id, lb=0, ub=0)
-                self.solver.add(constraint)
-
-        for reaction in reaction_list:
-
-            if reaction.reversibility:
-                forward_variable = self.solver.interface.Variable(reaction._get_forward_id(), lb=0,
-                                                                  ub=reaction._upper_bound)
-                reverse_variable = self.solver.interface.Variable(reaction._get_reverse_id(), lb=0,
-                                                                  ub=-1 * reaction._lower_bound)
-            elif 0 == reaction.lower_bound and reaction.upper_bound == 0:
-                forward_variable = self.solver.interface.Variable(reaction._get_forward_id(), lb=0, ub=0)
-                reverse_variable = self.solver.interface.Variable(reaction._get_reverse_id(), lb=0, ub=0)
-            elif reaction.lower_bound >= 0:
-                forward_variable = self.solver.interface.Variable(reaction.id, lb=reaction._lower_bound,
-                                                                  ub=reaction._upper_bound)
-                reverse_variable = self.solver.interface.Variable(reaction._get_reverse_id(), lb=0, ub=0)
-            elif reaction.upper_bound <= 0:
-                forward_variable = self.solver.interface.Variable(reaction.id, lb=0, ub=0)
-                reverse_variable = self.solver.interface.Variable(reaction._get_reverse_id(),
-                                                                  lb=-1 * reaction._upper_bound,
-                                                                  ub=-1 * reaction._lower_bound)
-
-            self.solver.add(forward_variable)
-            self.solver.add(reverse_variable)
-            self.solver.update()
-
-            for metabolite, coeff in six.iteritems(reaction.metabolites):
-                if metabolite.id in self.solver.constraints:
-                    constraint = self.solver.constraints[metabolite.id]
-                else:
-                    constraint = self.solver.interface.Constraint(S.Zero, name=metabolite.id, lb=0, ub=0)
-                    self.solver.add(constraint, sloppy=True)
-
-                constraint_terms[constraint][forward_variable] = coeff
-                constraint_terms[constraint][reverse_variable] = -coeff
-
-            objective_coeff = reaction._objective_coefficient
-            if objective_coeff != 0.:
-                if self.solver.objective is None:
-                    self.solver.objective = self.solver.interface.Objective(0, direction='max')
-                if self.solver.objective.direction == 'min':
-                    self.solver.objective.direction = 'max'
-                self.solver.objective.set_linear_coefficients(
-                    {forward_variable: objective_coeff, reverse_variable: -objective_coeff})
-
-        self.solver.update()
-        for constraint, terms in six.iteritems(constraint_terms):
-            constraint.set_linear_coefficients(terms)
-
-    def add_reactions(self, reaction_list):
-        cloned_reaction_list = list()
-        for reaction in reaction_list:  # this is necessary for cobrapy compatibility
-            if not isinstance(reaction, Reaction):
-                cloned_reaction_list.append(Reaction.clone(reaction))
-            else:
-                cloned_reaction_list.append(reaction)
-
-        # cobrapy will raise an exceptions if one of the reactions already exists in the model (before adding any
-        # reactions)
-        super(SolverBasedModel, self).add_reactions(cloned_reaction_list)
-        for reac in cloned_reaction_list:
-            reac.model = self
-        self._populate_solver(cloned_reaction_list)
-
-    def remove_reactions(self, the_reactions, delete=True, remove_orphans=False):
-        super(SolverBasedModel, self).remove_reactions(the_reactions, delete=delete, remove_orphans=remove_orphans)
-
-    def add_demand(self, metabolite, prefix="DM_", time_machine=None):
-        from warnings import warn
-        warn('"add_demand" function is replaced with "add_exchange".', PendingDeprecationWarning)
-        return self.add_exchange(metabolite, prefix=prefix, time_machine=time_machine)
+    # def add_demand(self, metabolite, prefix="DM_", time_machine=None):
+    #     from warnings import warn
+    #     warn('"add_demand" function is replaced with "add_exchange".', PendingDeprecationWarning)
+    #     return self.add_exchange(metabolite, prefix=prefix, time_machine=time_machine)
 
     def add_exchange(self, metabolite, demand=True, prefix='DM_', bound=1000.0, time_machine=None):
         """Add an exchange reaction for a metabolite (demand=TRUE: metabolite --> Ø or demand=False: 0 --> metabolite )
@@ -779,7 +779,7 @@ class SolverBasedModel(cobra.core.Model):
                     value = self.reactions.get_by_id("DM_%s" % value.id)
                 except KeyError as e:
                     if add:
-                        value = self.add_demand(value, time_machine=time_machine)
+                        value = self.add_exchange(value, time_machine=time_machine)
                     else:
                         raise e
 
