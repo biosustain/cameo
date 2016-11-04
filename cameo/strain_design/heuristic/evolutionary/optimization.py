@@ -28,7 +28,8 @@ from cameo import config
 from cameo.core.result import Result
 from cameo.core.solver_based_model import SolverBasedModel
 from cameo.flux_analysis.simulation import pfba, lmoma, moma, room, logger as simulation_logger
-from cameo.flux_analysis.structural import find_blocked_reactions_nullspace, find_coupled_reactions_nullspace, nullspace, \
+from cameo.flux_analysis.structural import find_blocked_reactions_nullspace, find_coupled_reactions_nullspace, \
+    nullspace, \
     create_stoichiometric_array
 from cameo.strain_design.heuristic.evolutionary import archives
 from cameo.strain_design.heuristic.evolutionary import decoders
@@ -43,7 +44,6 @@ from cameo.strain_design.heuristic.evolutionary.objective_functions import Multi
 from cameo.util import RandomGenerator as Random, reduce_reaction_set
 from cameo.util import in_ipnb
 from cameo.util import partition
-
 
 __all__ = ['ReactionKnockoutOptimization', 'GeneKnockoutOptimization', 'CofactorSwapOptimization']
 
@@ -399,6 +399,7 @@ class KnockoutOptimization(TargetOptimization):
     """
     Abstract knockout optimization class.
     """
+
     def __init__(self, simulation_method=pfba, wt_reference=None, *args, **kwargs):
         super(KnockoutOptimization, self).__init__(simulation_method=simulation_method,
                                                    wt_reference=wt_reference,
@@ -409,6 +410,7 @@ class SolutionSimplification(object):
     """
     Solution Simplification Method
     """
+
     def __init__(self, evaluator):
         if not isinstance(evaluator, evaluators.Evaluator):
             raise ValueError("Evaluator must be instance of "
@@ -419,7 +421,8 @@ class SolutionSimplification(object):
         return [self.simplify(individual) for individual in population]
 
     def simplify(self, individual):
-        new_individual = Individual(individual.candidate, individual.fitness, individual.maximize, birthdate=individual.birthdate)
+        new_individual = Individual(individual.candidate, individual.fitness, individual.maximize,
+                                    birthdate=individual.birthdate)
 
         for target in individual.candidate:
             new_individual.candidate.remove(target)

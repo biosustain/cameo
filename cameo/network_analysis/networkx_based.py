@@ -49,8 +49,8 @@ def reactions_to_network(reactions, max_distance=0.3):
     reactions : list
         The list of reactions.
     max_distance : float, optional
-        A threshold on the normalized distance between two compounds. If distance is above this threshold, no edge between
-        those compounds will be created.
+        A threshold on the normalized distance between two compounds. If distance is above this threshold,
+        no edge between those compounds will be created.
 
     Returns
     -------

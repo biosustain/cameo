@@ -317,8 +317,10 @@ class DifferentialFVA(StrainDesignMethod):
             else:
                 sol['normalized_gaps'] = gaps
 
-        ref_upper_bound = self.reference_flux_ranges.upper_bound.apply(lambda v: 0 if abs(v) < non_zero_flux_threshold else v)
-        ref_lower_bound = self.reference_flux_ranges.lower_bound.apply(lambda v: 0 if abs(v) < non_zero_flux_threshold else v)
+        ref_upper_bound = self.reference_flux_ranges.upper_bound.apply(
+            lambda v: 0 if abs(v) < non_zero_flux_threshold else v)
+        ref_lower_bound = self.reference_flux_ranges.lower_bound.apply(
+            lambda v: 0 if abs(v) < non_zero_flux_threshold else v)
 
         for df in six.itervalues(solutions):
             df['KO'] = False
@@ -773,7 +775,8 @@ class FSEOF(StrainDesignMethod):
         target: str, Reaction, Metabolite
             The target for optimization.
         max_enforced_flux : float, optional
-            The maximal flux of secondary_objective that will be enforced, relative to the theoretical maximum (defaults to 0.9).
+            The maximal flux of secondary_objective that will be enforced, relative to the theoretical maximum (
+            defaults to 0.9).
         number_of_results : int, optional
             The number of enforced flux levels (defaults to 10).
         exclude : Iterable of reactions or reaction ids that will not be included in the output.
@@ -962,66 +965,3 @@ class FSEOFResult(StrainDesignMethodResult):
         df.columns = (i + 1 for i in range(len(self._enforced_levels)))
         df.loc[self.target.id] = self._enforced_levels
         return df
-
-        # if __name__ == '__main__':
-        #     from cameo.io import load_model
-        #     from cameo.util import Timer
-        #
-        #     model = load_model(
-        #         '/Users/niko/Arbejder/Dev/cameo/tests/data/EcoliCore.xml')
-        #
-        #     solution = model.solve()
-        #     max_growth = solution.f
-        #
-        #     reference_model = model.copy()
-        #     biomass_rxn = model.reactions.get_by_id('Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2')
-        #     reference_model.reactions.get_by_id(
-        #         'Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2').lower_bound = max_growth
-        #
-        #     diffFVA = DifferentialFVA(design_space_model=model,
-        #                               reference_model=reference_model,
-        #                               objective='EX_succ_LPAREN_e_RPAREN_',
-        #                               variables=['Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2',
-        #                                          'EX_o2_LPAREN_e_RPAREN_'],
-        #                               normalize_ranges_by='Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2',
-        #                               points=10
-        #                               )
-        #     result = diffFVA.run(surface_only=True, view=SequentialView())
-        #
-        #     with Timer('Sequential'):
-        #         result = diffFVA.run(surface_only=True, view=SequentialView())
-        #     with Timer('Multiprocessing'):
-        #         result = diffFVA.run(surface_only=True, view=MultiprocessingView())
-        # try:
-        # from IPython.parallel import Client
-        #     client = Client()
-        #     view = client.load_balanced_view()
-        #     view.block = True
-        # except:
-        #     pass
-        # else:
-        #     with Timer('IPython'):
-        #         result = diffFVA.run(surface_only=False, view=view)
-
-        # model = load_model(
-        #     '/Users/niko/Arbejder/Dev/cameo/tests/data/iJO1366.xml')
-        #
-        # reference_model = model.copy()
-        # biomass_rxn = reference_model.reactions.get_by_id('Ec_biomass_iJO1366_core_53p95M')
-        # biomass_rxn.lower_bound = .9 * reference_model.solve().f
-        #
-        #
-        # diffFVA = DifferentialFVA(model, reference_model, 'EX_trp_DASH_L_LPAREN_e_RPAREN_', ['Ec_biomass_iJO1366_core_53p95M'],
-        #                       normalize_ranges_by='Ec_biomass_iJO1366_core_53p95M', points=10)
-        # with Timer('Sequential'):
-        #     result = diffFVA.run(surface_only=True, view=SequentialView())
-        # with Timer('Multiprocessing'):
-        #     result = diffFVA.run(surface_only=True, view=MultiprocessingView())
-        # try:
-        #     from IPython.parallel import Client
-        #     client = Client()
-        #     view = client.load_balanced_view()
-        #     with Timer('IPython'):
-        #         result = diffFVA.run(surface_only=True, view=())
-        # except:
-        #     pass

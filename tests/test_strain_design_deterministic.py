@@ -15,127 +15,110 @@
 from __future__ import absolute_import, print_function
 
 import os
-import unittest
 
 import pandas
+import pytest
 from pandas import DataFrame
 from pandas.util.testing import assert_frame_equal
 
 import cameo
 from cameo import fba
-from cameo import load_model
 from cameo.config import solvers
+from cameo.strain_design.deterministic.flux_variability_based import (FSEOF,
+                                                                      DifferentialFVA,
+                                                                      FSEOFResult)
 from cameo.exceptions import Infeasible
-from cameo.strain_design.deterministic.flux_variability_based import FSEOF, FSEOFResult, DifferentialFVA
 from cameo.strain_design.deterministic.linear_programming import OptKnock
 from cameo.util import TimeMachine
 
-TRAVIS = os.getenv('TRAVIS', False)
+TRAVIS = bool(os.getenv('TRAVIS', False))
 TESTDIR = os.path.dirname(__file__)
-ECOLICORE = load_model(os.path.join(TESTDIR, 'data/EcoliCore.xml'))
 
 
-def assert_dataframes_equal(df, expected):
-    try:
-        assert_frame_equal(df, expected, check_names=False)
-        return True
-    except AssertionError:
-        return False
+@pytest.fixture(scope='module')
+def cplex_optknock(model):
+    cplex_core = model.copy()
+    cplex_core.reactions.Biomass_Ecoli_core_N_lp_w_fsh_GAM_rp__Nmet2.lower_bound = 0.1
+    cplex_core.solver = "cplex"
+    return cplex_core, OptKnock(cplex_core)
 
 
-class TestFSEOF(unittest.TestCase):
-    def setUp(self):
-        self.model = ECOLICORE.copy()
-        self.model.solver = 'glpk'
-
-    def test_fseof(self):
-        objective = self.model.objective
-        fseof = FSEOF(self.model)
+class TestFSEOF:
+    def test_fseof(self, model):
+        objective = model.objective
+        fseof = FSEOF(model)
         fseof_result = fseof.run(target="EX_succ_lp_e_rp_")
-        self.assertIsInstance(fseof_result, FSEOFResult)
-        self.assertIs(objective, self.model.objective)
+        assert isinstance(fseof_result, FSEOFResult)
+        assert objective is model.objective
 
-    def test_fseof_result(self):
-        fseof = FSEOF(self.model)
-        fseof_result = fseof.run(target=self.model.reactions.EX_ac_lp_e_rp_)
-        self.assertIsInstance(fseof_result.data_frame, DataFrame)
-        self.assertIs(fseof_result.target, self.model.reactions.EX_ac_lp_e_rp_)
-        self.assertIs(fseof_result.model, self.model)
+    def test_fseof_result(self, model):
+        fseof = FSEOF(model)
+        fseof_result = fseof.run(target=model.reactions.EX_ac_lp_e_rp_)
+        assert isinstance(fseof_result.data_frame, DataFrame)
+        assert fseof_result.target is model.reactions.EX_ac_lp_e_rp_
+        assert fseof_result.model is model
 
 
-# if six.PY2:  # Make these test cases work with PY3 as well
-class TestDifferentialFVA(unittest.TestCase):
-    def setUp(self):
-        self.model = ECOLICORE.copy()
-
-    def test_minimal_input(self):
-        result = DifferentialFVA(self.model, self.model.reactions.EX_succ_lp_e_rp_, points=5).run()
-
-        # result.data_frame.iloc[0].to_csv(os.path.join(TESTDIR, 'data/REFERENCE_DiffFVA1.csv'))
-        ref_df = pandas.read_csv(os.path.join(TESTDIR, 'data/REFERENCE_DiffFVA1.csv'), index_col=0).astype(
-            "O").sort_index(axis=1)
+class TestDifferentialFVA:
+    def test_minimal_input(self, model):
+        result = DifferentialFVA(model, model.reactions.EX_succ_lp_e_rp_, points=5).run()
+        ref_df = (pandas.read_csv(os.path.join(TESTDIR, 'data/REFERENCE_DiffFVA1.csv'), index_col=0)
+                  .astype("O")
+                  .sort_index(axis=1))
         pandas.util.testing.assert_frame_equal(result.data_frame.iloc[0].sort_index(axis=1), ref_df)
 
-    def test_apply_designs(self):
-        result = DifferentialFVA(self.model, self.model.reactions.EX_succ_lp_e_rp_, points=5).run()
+    def test_apply_designs(self, model):
+        result = DifferentialFVA(model, model.reactions.EX_succ_lp_e_rp_, points=5).run()
         works = []
         for strain_design in result:
             with TimeMachine() as tm:
-                strain_design.apply(self.model, tm)
+                strain_design.apply(model, tm)
                 try:
-                    solution = fba(self.model, objective="Biomass_Ecoli_core_N_lp_w_fsh_GAM_rp__Nmet2")
+                    solution = fba(model, objective="Biomass_Ecoli_core_N_lp_w_fsh_GAM_rp__Nmet2")
                     works.append(solution["EX_succ_lp_e_rp_"] > 1e-6 and solution.objective_value > 1e-6)
                 except Infeasible:
                     works.append(False)
+        assert any(works)
 
-        self.assertTrue(any(works))
-
-    def test_with_reference_model(self):
-        reference_model = self.model.copy()
+    def test_with_reference_model(self, model):
+        reference_model = model.copy()
         biomass_rxn = reference_model.reactions.Biomass_Ecoli_core_N_lp_w_fsh_GAM_rp__Nmet2
         biomass_rxn.lower_bound = 0.3
         target = reference_model.reactions.EX_succ_lp_e_rp_
         target.lower_bound = 2
-        result = DifferentialFVA(self.model, target, reference_model=reference_model, points=5).run()
-        # result.data_frame.iloc[0].to_csv(os.path.join(TESTDIR, 'data/REFERENCE_DiffFVA2.csv'))
-        ref_df = pandas.read_csv(os.path.join(TESTDIR, 'data/REFERENCE_DiffFVA2.csv'), index_col=0).astype(
-            "O").sort_index(axis=1)
+        result = DifferentialFVA(model, target, reference_model=reference_model, points=5).run()
+        ref_df = (pandas.read_csv(os.path.join(TESTDIR, 'data/REFERENCE_DiffFVA2.csv'), index_col=0)
+                  .astype("O")
+                  .sort_index(axis=1))
         pandas.util.testing.assert_frame_equal(result.data_frame.iloc[0].sort_index(axis=1), ref_df)
 
 
-@unittest.skipIf('cplex' not in solvers, "No cplex interface available")
-class TestOptKnock(unittest.TestCase):
-    def setUp(self):
-        self.model = ECOLICORE.copy()
-        self.model.reactions.Biomass_Ecoli_core_N_lp_w_fsh_GAM_rp__Nmet2.lower_bound = 0.1
-        self.model.solver = "cplex"
-        self.optknock = OptKnock(self.model)
+@pytest.mark.skipif('cplex' not in solvers, reason="No cplex interface available")
+class TestOptKnock:
+    def test_optknock_runs(self, cplex_optknock):
+        _, optknock = cplex_optknock
+        result = optknock.run(max_knockouts=0, target="EX_ac_lp_e_rp_",
+                              biomass="Biomass_Ecoli_core_N_lp_w_fsh_GAM_rp__Nmet2", max_results=1)
+        assert len(result) == 1
+        assert len(result.knockouts[0]) == 0
+        assert len(list(result)) == 1
+        assert isinstance(result.data_frame, DataFrame)
 
-    def test_optknock_runs(self):
-        result = self.optknock.run(max_knockouts=0, target="EX_ac_lp_e_rp_",
-                                   biomass="Biomass_Ecoli_core_N_lp_w_fsh_GAM_rp__Nmet2", max_results=1)
-        self.assertEqual(len(result), 1)
-        self.assertEqual(len(result.knockouts[0]), 0)
-        self.assertEqual(len(list(result)), 1)
-        self.assertIsInstance(result.data_frame, DataFrame)
-
-    def test_result_is_correct(self):
-        result = self.optknock.run(max_knockouts=1, target="EX_ac_lp_e_rp_",
-                                   biomass="Biomass_Ecoli_core_N_lp_w_fsh_GAM_rp__Nmet2", max_results=1)
+    def test_result_is_correct(self, cplex_optknock):
+        model, optknock = cplex_optknock
+        result = optknock.run(max_knockouts=1, target="EX_ac_lp_e_rp_",
+                              biomass="Biomass_Ecoli_core_N_lp_w_fsh_GAM_rp__Nmet2", max_results=1)
         production = result.production[0]
         knockouts = result.knockouts[0]
         for knockout in knockouts:
-            self.model.reactions.get_by_id(knockout).knock_out()
-        fva = cameo.flux_variability_analysis(self.model, fraction_of_optimum=1, remove_cycles=False,
+            model.reactions.get_by_id(knockout).knock_out()
+        fva = cameo.flux_variability_analysis(model, fraction_of_optimum=1, remove_cycles=False,
                                               reactions=["EX_ac_lp_e_rp_"])
-        self.assertAlmostEqual(fva["upper_bound"][0], production, delta=1e-6)
+        assert abs(fva["upper_bound"][0] - production) < 1e-6
 
-    def test_invalid_input(self):
-        self.assertRaises(KeyError, self.optknock.run, target="EX_ac_lp_e_rp_")
-        self.assertRaises(KeyError, self.optknock.run, biomass="Biomass_Ecoli_core_N_lp_w_fsh_GAM_rp__Nmet2")
-
-
-if __name__ == "__main__":
-    import nose
-
-    nose.runmodule()
+    def test_invalid_input(self, cplex_optknock):
+        _, optknock = cplex_optknock
+        with pytest.raises(KeyError):
+            optknock.run(target="EX_ac_lp_e_rp_")
+        with pytest.raises(KeyError):
+            optknock.run(biomass="Biomass_Ecoli_core_N_lp_w_fsh_GAM_rp__Nmet2")

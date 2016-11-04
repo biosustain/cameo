@@ -36,9 +36,7 @@ from cameo.core import SolverBasedModel
 from cameo.exceptions import SolveError, Infeasible
 from cameo.util import TimeMachine
 
-
 __all__ = ['find_dead_end_reactions', 'find_coupled_reactions', 'ShortestElementaryFluxModes']
-
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -204,8 +202,7 @@ def find_dead_end_reactions(model):
         # Remove blocked reactions from stoichiometries
         stoichiometries = {
             met_id: {reac: coef for reac, coef in stoichiometry.items() if reac not in new_blocked}
-            for met_id, stoichiometry in stoichiometries.items()
-        }
+            for met_id, stoichiometry in stoichiometries.items()}
         blocked_reactions.update(new_blocked)
 
     return frozenset(blocked_reactions)
@@ -348,7 +345,8 @@ class ShortestElementaryFluxModes(six.Iterator):
                     reaction_copy.upper_bound = 0
                     elementary_flux_mode.append(reaction_copy)
                     exclusion_list.append(reaction._indicator_variable_rev)
-            exclusion_constraint = self.model.solver.interface.Constraint(sympy.Add(*exclusion_list), ub=len(exclusion_list) - 1)
+            exclusion_constraint = self.model.solver.interface.Constraint(sympy.Add(*exclusion_list),
+                                                                          ub=len(exclusion_list) - 1)
             self.model.solver._add_constraint(exclusion_constraint, sloppy=True)
             yield elementary_flux_mode
 
@@ -370,13 +368,14 @@ class ShortestElementaryFluxModes(six.Iterator):
                 for i in range(solution_num):
                     elementary_flux_mode = list()
                     exclusion_list = list()
+                    problem_solution = self.model.solver.problem.solution
                     for reaction in self._reactions:
-                        if self.model.solver.problem.solution.pool.get_values(i, reaction._indicator_variable_fwd.name) >= 0.9:
+                        if problem_solution.pool.get_values(i, reaction._indicator_variable_fwd.name) >= 0.9:
                             reaction_copy = copy(reaction)
                             reaction_copy.lower_bound = 0
                             elementary_flux_mode.append(reaction_copy)
                             exclusion_list.append(reaction._indicator_variable_fwd)
-                        elif self.model.solver.problem.solution.pool.get_values(i, reaction._indicator_variable_rev.name) >= 0.9:
+                        elif problem_solution.pool.get_values(i, reaction._indicator_variable_rev.name) >= 0.9:
                             reaction_copy = copy(reaction)
                             reaction_copy.upper_bound = 0
                             elementary_flux_mode.append(reaction_copy)
@@ -384,13 +383,13 @@ class ShortestElementaryFluxModes(six.Iterator):
                     exclusion_lists.append(exclusion_list)
                     yield elementary_flux_mode
                 for exclusion_list in exclusion_lists:
-                    exclusion_constraint = self.model.solver.interface.Constraint(sympy.Add(*exclusion_list), ub=len(exclusion_list) - 1)
+                    exclusion_constraint = self.model.solver.interface.Constraint(sympy.Add(*exclusion_list),
+                                                                                  ub=len(exclusion_list) - 1)
                     self.model.solver._add_constraint(exclusion_constraint, sloppy=True)
             new_fixed_size = fixed_size_constraint.ub + 1
             if new_fixed_size > len(self._reactions):
                 break
             fixed_size_constraint.ub, fixed_size_constraint.lb = new_fixed_size, new_fixed_size
-
 
     @property
     def model(self):
@@ -501,7 +500,8 @@ class MinimalCutSetsEnumerator(ShortestElementaryFluxModes):  # pragma: no cover
                 if reaction._get_forward_id() in dual_metabolite_names:
                     transposed_stoichiometry.setdefault(met, {})[
                         dual_model.metabolites.get_by_id(reaction._get_forward_id())] = coef
-                elif reaction.id in dual_metabolite_names:  # This should be the same as forward_var.name but in general it might not be
+                # This should be the same as forward_var.name but in general it might not be
+                elif reaction.id in dual_metabolite_names:
                     transposed_stoichiometry.setdefault(met, {})[
                         dual_model.metabolites.get_by_id(reaction.id)] = coef
 
@@ -583,13 +583,11 @@ class MinimalCutSetsEnumerator(ShortestElementaryFluxModes):  # pragma: no cover
             if target.ub is not None:
                 coefficients = {
                     self._dual_model.metabolites.get_by_id(var.name): coef for var, coef in coefficients_dict.items()
-                    if var.name in self._dual_model.metabolites
-                }
+                    if var.name in self._dual_model.metabolites}
             elif target.lb is not None:
                 coefficients = {
                     self._dual_model.metabolites.get_by_id(var.name): -coef for var, coef in coefficients_dict.items()
-                    if var.name in self._dual_model.metabolites
-                }
+                    if var.name in self._dual_model.metabolites}
             w_reac.add_metabolites(coefficients)
             w_reactions.append(w_reac)
         self._dual_model.add_reactions(w_reactions)
@@ -603,8 +601,7 @@ class MinimalCutSetsEnumerator(ShortestElementaryFluxModes):  # pragma: no cover
         else:
             cloned_constraints = [
                 self._primal_model.solver.interface.Constraint.clone(constraint, model=self._primal_model.solver)
-                for constraint in constraints
-            ]
+                for constraint in constraints]
             self._primal_model.solver.add(cloned_constraints)
             illegal_knockouts = []
             for reaction in self._primal_model.reactions:
