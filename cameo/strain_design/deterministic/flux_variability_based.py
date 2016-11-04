@@ -15,17 +15,15 @@
 
 from __future__ import absolute_import, print_function
 
-
+import logging
 import os
 import re
-import six
 import warnings
-import logging
-
-import numpy
-
 from functools import partial
 from uuid import uuid4
+
+import numpy
+import six
 
 
 try:
@@ -53,8 +51,8 @@ from cameo.visualization.palette import mapper, Palette
 from cameo.flux_analysis.analysis import flux_variability_analysis, phenotypic_phase_plane, PhenotypicPhasePlaneResult
 from cameo.flux_analysis.simulation import pfba, fba
 
-from cameo.strain_design.strain_design import StrainDesignMethod, StrainDesignResult, StrainDesign
-
+from cameo.strain_design.core import StrainDesignMethod, StrainDesignMethodResult, StrainDesign, ReactionKnockoutTarget, \
+    ReactionModulationTarget
 
 with warnings.catch_warnings():
     warnings.simplefilter("ignore")
@@ -352,13 +350,19 @@ class DifferentialFVA(StrainDesignMethod):
                                      nice_variable_ids=self.variables)
 
 
-class DifferentialFVAResult(PhenotypicPhasePlaneResult):
+class DifferentialFVAResult(StrainDesignMethodResult, PhenotypicPhasePlaneResult):
     def __init__(self, solutions, phase_plane, reference_fva, variables_ids, objective, *args, **kwargs):
         if isinstance(phase_plane, PhenotypicPhasePlaneResult):
             phase_plane = phase_plane._phase_plane
-        super(DifferentialFVAResult, self).__init__(phase_plane, variables_ids, objective, *args, **kwargs)
+        PhenotypicPhasePlaneResult.__init__(self, phase_plane, variables_ids, objective, *args, **kwargs)
+        # TODO: Convert solutions to designs
+        StrainDesignMethodResult.__init__(self, self._generate_designs(solutions))
         self.reference_fva = reference_fva
         self.solutions = solutions
+
+    @staticmethod
+    def _generate_designs(solutions):
+        return []
 
     def __getitem__(self, item):
         columns = ["lower_bound", "upper_bound", "gaps", "normalized_gaps", "KO", "flux_reversal", "suddenly_essential"]
@@ -734,7 +738,7 @@ class FSEOF(StrainDesignMethod):
         return FSEOFResult(fseof_reactions, target, model, self.primary_objective, levels, results, run_args, reference)
 
 
-class FSEOFResult(StrainDesignResult):
+class FSEOFResult(StrainDesignMethodResult):
     """
     Object for storing a FSEOF result.
 
@@ -764,7 +768,8 @@ class FSEOFResult(StrainDesignResult):
 
     def __init__(self, reactions, target, model, primary_objective, enforced_levels, reaction_results,
                  run_args, reference, *args, **kwargs):
-        super(FSEOFResult, self).__init__(*args, **kwargs)
+
+        super(FSEOFResult, self).__init__(self._generate_designs(reference, enforced_levels, reaction_results), *args, **kwargs)
         self._reactions = reactions
         self._target = target
         self._model = model
@@ -777,14 +782,19 @@ class FSEOFResult(StrainDesignResult):
     def __len__(self):
         return len(self.reactions)
 
-    def __iter__(self):
-        ref_fluxes = self._reference_fluxes
-        for i, level in enumerate(self.enforced_levels):
-            knockouts = [r for r, v in six.iteritems(self._reaction_results) if ref_fluxes[r.id] > 0 and v[i] == 0]
-            over_expression = {r: v for r, v in six.iteritems(self._reaction_results) if v[i] > ref_fluxes[r.id]}
-            down_regulation = {r: v for r, v in six.iteritems(self._reaction_results) if v[i] < ref_fluxes[r.id]}
-            yield StrainDesign(knockouts=knockouts, over_expression=over_expression,
-                               down_regulation=down_regulation, manipulation_type="reactions")
+    @staticmethod
+    def _generate_designs(reference, enforced_levels, reaction_results):
+        for i, level in enumerate(enforced_levels):
+            targets = []
+            for reaction, value in six.iteritems(reaction_results):
+                if abs(reference[reaction.id]) > 0:
+                    if value[i] == 0:
+                        targets.append(ReactionKnockoutTarget(reaction.id))
+                    elif value[i] > reference[reaction.id]:  # fold change (B - A)/A
+                        fold_change = (value[i] - reference[reaction.id]) / reference[reaction.id]
+                        targets.append(ReactionModulationTarget(reaction.id, fold_change, reference[reaction.id]))
+
+            yield StrainDesign(targets)
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) and self.target == other.target and self.reactions == other.reactions

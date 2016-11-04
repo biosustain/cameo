@@ -16,31 +16,27 @@
 from __future__ import absolute_import, print_function
 
 import logging
+
 import inspyred
 import numpy
-
+from IProgress.progressbar import ProgressBar
+from IProgress.widgets import Bar, Percentage
 from pandas import DataFrame
 
-from cameo.exceptions import SolveError
-from cameo.visualization.plotting import plotter
-from cameo.util import TimeMachine
-
-from cameo.flux_analysis.simulation import fba
-from cameo.flux_analysis.analysis import phenotypic_phase_plane
-
 from cameo.core.solver_based_model import SolverBasedModel
-
-from cameo.strain_design.strain_design import StrainDesignMethod, StrainDesignResult, StrainDesign
-
+from cameo.exceptions import SolveError
+from cameo.flux_analysis.analysis import phenotypic_phase_plane
+from cameo.flux_analysis.simulation import fba
+from cameo.strain_design.core import StrainDesignMethod, StrainDesignMethodResult, StrainDesign, ReactionKnockoutTarget, \
+    GeneKnockoutTarget
 from cameo.strain_design.heuristic.evolutionary.archives import ProductionStrainArchive
 from cameo.strain_design.heuristic.evolutionary.objective_functions import biomass_product_coupled_min_yield, \
     biomass_product_coupled_yield
 from cameo.strain_design.heuristic.evolutionary.optimization import GeneKnockoutOptimization, \
     ReactionKnockoutOptimization
 from cameo.strain_design.heuristic.evolutionary.processing import process_knockout_solution
-
-from IProgress.progressbar import ProgressBar
-from IProgress.widgets import Bar, Percentage
+from cameo.util import TimeMachine
+from cameo.visualization.plotting import plotter
 
 __all__ = ["OptGene"]
 
@@ -168,20 +164,20 @@ class OptGene(StrainDesignMethod):
                              biomass, target, substrate, kwargs)
 
 
-class OptGeneResult(StrainDesignResult):
+class OptGeneResult(StrainDesignMethodResult):
     __method_name__ = "OptGene"
 
     __aggregation_function = {
         "genes": lambda x: tuple(tuple(e for e in elements) for elements in x.values)
     }
 
-    def __init__(self, model, designs, objective_function, simulation_method, manipulation_type,
+    def __init__(self, model, knockouts, objective_function, simulation_method, manipulation_type,
                  biomass, target, substrate, simulation_kwargs, *args, **kwargs):
-        super(OptGeneResult, self).__init__(*args, **kwargs)
+        super(OptGeneResult, self).__init__(self._generate_designs(knockouts, manipulation_type), *args, **kwargs)
         assert isinstance(model, SolverBasedModel)
 
         self._model = model
-        self._designs = designs
+        self._knockouts = knockouts
         self._objective_function = objective_function
         self._simulation_method = simulation_method
         self._manipulation_type = manipulation_type
@@ -191,9 +187,17 @@ class OptGeneResult(StrainDesignResult):
         self._processed_solutions = None
         self._simulation_kwargs = simulation_kwargs
 
-    def __iter__(self):
-        for solution in self._designs:
-            yield StrainDesign(knockouts=solution, manipulation_type=self._manipulation_type)
+    @staticmethod
+    def _generate_designs(knockouts, manipulation_type):
+        if manipulation_type == "reactions":
+            target_class = ReactionKnockoutTarget
+        elif manipulation_type == "genes":
+            target_class = GeneKnockoutTarget
+        else:
+            raise ValueError("Invalid 'manipulation_type' %s" % manipulation_type)
+
+        for knockout_design in knockouts:
+            yield StrainDesign([target_class(ko) for ko in knockout_design])
 
     def __len__(self):
         if self._processed_solutions is None:
@@ -234,13 +238,13 @@ class OptGeneResult(StrainDesignResult):
         processed_solutions = DataFrame(columns=["reactions", "genes", "size", "fva_min", "fva_max",
                                                  "target_flux", "biomass_flux", "yield", "fitness"])
 
-        if len(self._designs) == 0:
+        if len(self._knockouts) == 0:
             logger.warn("No solutions found")
             self._processed_solutions = processed_solutions
 
         else:
-            progress = ProgressBar(maxval=len(self._designs), widgets=["Processing solutions: ", Bar(), Percentage()])
-            for i, solution in progress(enumerate(self._designs)):
+            progress = ProgressBar(maxval=len(self._knockouts), widgets=["Processing solutions: ", Bar(), Percentage()])
+            for i, solution in progress(enumerate(self._knockouts)):
                 try:
                     processed_solutions.loc[i] = process_knockout_solution(
                         self._model, solution, self._simulation_method, self._simulation_kwargs, self._biomass,
