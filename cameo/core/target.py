@@ -287,8 +287,6 @@ class ReactionKnockinTarget(KnockinTarget):
         super(ReactionKnockinTarget, self).__init__(id, value)
 
     def apply(self, model, time_machine=None):
-        # TODO: this is an hack. The objective_coefficient becomes 1 w/o explicitly being changed.
-        self._value.objective_coefficient = 0
         if time_machine is None:
             model.add_reaction(self._value)
         else:

@@ -20,7 +20,7 @@ import six
 from cobra.flux_analysis import calculate_phenotype_phase_plane, single_gene_deletion
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def model():
     return to_solver_based_model(create_test_model("textbook"))
 
@@ -36,9 +36,9 @@ class TestCobrapyCompatibility:
     def test_single_gene_deletion_fba(self, model):
         growth_dict = {"b0008": 0.87, "b0114": 0.80, "b0116": 0.78,
                        "b2276": 0.21, "b1779": 0.00}
-        rates, statuses = single_gene_deletion(model,
-                                               gene_list=growth_dict.keys(),
-                                               method="fba")
+        deletion = single_gene_deletion(model,
+                                        gene_list=growth_dict.keys(),
+                                        method="fba")
         for gene, expected_value in six.iteritems(growth_dict):
-            assert statuses[gene] == 'optimal'
-            assert abs(rates[gene] - expected_value) < 0.01
+            assert deletion.loc[gene].status == 'optimal'
+            assert abs(deletion.loc[gene].flux - expected_value) < 0.01
