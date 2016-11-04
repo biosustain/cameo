@@ -59,7 +59,6 @@ class TestModelLoading(object):
         model = load_model(os.path.join(TESTDIR, 'data/EcoliCore.xml'), solver_interface=None)
         assert abs(model.optimize().f - 0.8739215069684306) < 10e-6
         assert isinstance(model, cobra.core.Model)
-        assert not hasattr(model, 'solver')
 
     def test_import_model_bigg(self):
         model = cameo.models.bigg.e_coli_core

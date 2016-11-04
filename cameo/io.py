@@ -161,7 +161,7 @@ def sanitize_ids(model):
         if isinstance(model, SolverBasedModel):
             forward_variable.name = reaction.id
             if reverse_variable is not None:
-                reverse_variable.name = reaction._get_reverse_id()
+                reverse_variable.name = reaction.reverse_id
 
     if isinstance(model, SolverBasedModel):
         for constraint in model.solver.constraints:

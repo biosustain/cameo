@@ -162,11 +162,11 @@ class Solution(SolutionBase):
         self._reduced_values = model.solver.reduced_costs
 
         for reaction in model.reactions:
-            self.fluxes[reaction.id] = self._primal_values[reaction._get_forward_id()] - self._primal_values[
-                reaction._get_reverse_id()]
+            self.fluxes[reaction.id] = self._primal_values[reaction.id] - self._primal_values[
+                reaction.reverse_id]
 
-            self.reduced_costs[reaction.id] = self._reduced_values[reaction._get_forward_id()] - self._reduced_values[
-                reaction._get_reverse_id()]
+            self.reduced_costs[reaction.id] = self._reduced_values[reaction.id] - self._reduced_values[
+                reaction.reverse_id]
 
         self.status = model.solver.status
         self._reaction_ids = [r.id for r in self.model.reactions]
@@ -260,7 +260,7 @@ class LazySolution(SolutionBase):
 
         fluxes = OrderedDict()
         for reaction in self.model.reactions:
-            fluxes[reaction.id] = primal_values[reaction._get_forward_id()] - primal_values[reaction._get_reverse_id()]
+            fluxes[reaction.id] = primal_values[reaction.id] - primal_values[reaction.reverse_id]
 
         return fluxes
 
@@ -271,8 +271,8 @@ class LazySolution(SolutionBase):
 
         reduced_costs = OrderedDict()
         for reaction in self.model.reactions:
-            reduced_costs[reaction.id] = reduced_values[reaction._get_forward_id()] - reduced_values[
-                reaction._get_reverse_id()]
+            reduced_costs[reaction.id] = reduced_values[reaction.id] - reduced_values[
+                reaction.reverse_id]
         return reduced_costs
 
     @property
