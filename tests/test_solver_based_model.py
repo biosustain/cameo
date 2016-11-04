@@ -21,8 +21,8 @@ import os
 import pickle
 
 import cobra.test
+from cobra.util import SolverNotFound
 import numpy
-import optlang
 import pandas
 import pytest
 import six
@@ -95,7 +95,6 @@ class TestReaction:
         model = cobra.test.create_test_model('textbook')
         for reaction in model.reactions:
             cloned_reaction = Reaction.clone(reaction)
-            assert cloned_reaction.objective_coefficient == reaction.objective_coefficient
             assert cloned_reaction.gene_reaction_rule == reaction.gene_reaction_rule
             assert set([gene.id for gene in cloned_reaction.genes]) == set([gene.id for gene in reaction.genes])
             assert all(isinstance(gene, cameo.core.Gene) for gene in list(cloned_reaction.genes))
@@ -580,16 +579,16 @@ class TestReaction:
         pgi.remove_from_model()
         assert pgi.model is None
         assert not ("PGI" in core_model.reactions)
-        assert not (pgi._get_forward_id() in core_model.solver.variables)
-        assert not (pgi._get_reverse_id() in core_model.solver.variables)
+        assert not (pgi.id in core_model.solver.variables)
+        assert not (pgi.reverse_id in core_model.solver.variables)
 
     def test_delete(self, core_model):
         pgi = core_model.reactions.PGI
         pgi.delete()
         assert pgi.model is None
         assert not ("PGI" in core_model.reactions)
-        assert not (pgi._get_forward_id() in core_model.solver.variables)
-        assert not (pgi._get_reverse_id() in core_model.solver.variables)
+        assert not (pgi.id in core_model.solver.variables)
+        assert not (pgi.reverse_id in core_model.solver.variables)
 
     def test_change_id_is_reflected_in_solver(self, core_model):
         for i, reaction in enumerate(core_model.reactions):
@@ -600,10 +599,10 @@ class TestReaction:
             reaction.id = new_reaction_id
             assert reaction.id == new_reaction_id
             assert not (old_reaction_id in core_model.solver.variables)
-            assert reaction._get_forward_id() in core_model.solver.variables
-            assert reaction._get_reverse_id() in core_model.solver.variables
-            name = core_model.solver.variables[reaction._get_forward_id()].name
-            assert name == reaction._get_forward_id()
+            assert reaction.id in core_model.solver.variables
+            assert reaction.reverse_id in core_model.solver.variables
+            name = core_model.solver.variables[reaction.id].name
+            assert name == reaction.id
 
 
 class TestSolverBasedModel:
@@ -666,9 +665,9 @@ class TestSolverBasedModel:
         r2.add_metabolites(
             {Metabolite('A'): -1, Metabolite('C'): 1, Metabolite('D'): 1})
         r2.lower_bound, r2.upper_bound = 0., 999999.
+        core_model.add_reactions([r1, r2])
         r2.objective_coefficient = 3.
         assert r2.objective_coefficient == 3.
-        core_model.add_reactions([r1, r2])
         assert core_model.reactions[-2] == r1
         assert core_model.reactions[-1] == r2
         assert isinstance(core_model.reactions[-2].reverse_variable, core_model.solver.interface.Variable)
@@ -714,10 +713,10 @@ class TestSolverBasedModel:
         assert "PGI" in model_copy.reactions
         assert "PGK" in model_copy.reactions
 
-    def test_add_cobra_reaction(self, core_model):
-        r = cobra.Reaction(id="c1")
-        core_model.add_reaction(r)
-        assert isinstance(core_model.reactions.c1, Reaction)
+    # def test_add_cobra_reaction(self, core_model):
+    #     r = cobra.Reaction(id="c1")
+    #     core_model.add_reaction(r)
+    #     assert isinstance(core_model.reactions.c1, Reaction)
 
     def test_all_objects_point_to_all_other_correct_objects(self, core_model):
         for reaction in core_model.reactions:
@@ -822,38 +821,35 @@ class TestSolverBasedModel:
             setattr(core_model, 'objective', 'This is not a valid objective!')
         with pytest.raises(TypeError):
             setattr(core_model, 'objective', 3.)
-
-    def test_solver_change(self, core_model):
-        solver_id = id(core_model.solver)
-        problem_id = id(core_model.solver.problem)
-        solution = core_model.solve().x_dict
-        core_model.solver = 'glpk'
-        assert id(core_model.solver) != solver_id
-        assert id(core_model.solver.problem) != problem_id
-        new_solution = core_model.solve()
-        for key in list(solution.keys()):
-            assert round(abs(new_solution.x_dict[key] - solution[key]),
-                         7) == 0
-
-    def test_solver_change_with_optlang_interface(self, core_model):
-        solver_id = id(core_model.solver)
-        problem_id = id(core_model.solver.problem)
-        solution = core_model.solve().x_dict
-        core_model.solver = optlang.glpk_interface
-        assert id(core_model.solver) != solver_id
-        assert id(core_model.solver.problem) != problem_id
-        new_solution = core_model.solve()
-        for key in list(solution.keys()):
-            assert round(abs(new_solution.x_dict[key] - solution[key]),
-                         7) == 0
+    #
+    # def test_solver_change(self, core_model):
+    #     solver_id = id(core_model.solver)
+    #     problem_id = id(core_model.solver.problem)
+    #     solution = core_model.solve().x_dict
+    #     core_model.solver = 'glpk'
+    #     assert id(core_model.solver) != solver_id
+    #     assert id(core_model.solver.problem) != problem_id
+    #     new_solution = core_model.solve()
+    #     for key in list(solution.keys()):
+    #         assert round(abs(new_solution.x_dict[key] - solution[key]), 7) == 0
+    #
+    # def test_solver_change_with_optlang_interface(self, core_model):
+    #     solver_id = id(core_model.solver)
+    #     problem_id = id(core_model.solver.problem)
+    #     solution = core_model.solve().x_dict
+    #     core_model.solver = optlang.glpk_interface
+    #     assert id(core_model.solver) != solver_id
+    #     assert id(core_model.solver.problem) != problem_id
+    #     new_solution = core_model.solve()
+    #     for key in list(solution.keys()):
+    #         assert round(abs(new_solution.x_dict[key] - solution[key]), 7) == 0
 
     def test_invalid_solver_change_raises(self, core_model):
-        with pytest.raises(ValueError):
+        with pytest.raises(SolverNotFound):
             setattr(core_model, 'solver', [1, 2, 3])
-        with pytest.raises(ValueError):
-            setattr(core_model, 'solver',
-                    'ThisIsDefinitelyNotAvalidSolver')
-        with pytest.raises(ValueError):
+        with pytest.raises(SolverNotFound):
+            setattr(core_model, 'solver', 'ThisIsDefinitelyNotAvalidSolver')
+        with pytest.raises(SolverNotFound):
             setattr(core_model, 'solver', os)
 
     @pytest.mark.skipif('cplex' not in solvers, reason='no cplex')
@@ -911,9 +907,9 @@ class TestSolverBasedModel:
             assert abs(reaction.effective_upper_bound - REFERENCE_FVA_SOLUTION_ECOLI_CORE['upper_bound'][
                 reaction.id]) < 0.000001
 
-    def test_add_demand_for_non_existing_metabolite(self, core_model):
+    def test_add_exchange_for_non_existing_metabolite(self, core_model):
         metabolite = Metabolite(id="a_metabolite")
-        core_model.add_demand(metabolite)
+        core_model.add_exchange(metabolite)
         assert core_model.solver.constraints[metabolite.id].expression.has(
             core_model.solver.variables["DM_" + metabolite.id])
 

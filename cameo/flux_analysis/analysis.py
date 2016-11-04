@@ -168,7 +168,7 @@ def phenotypic_phase_plane(model, variables=[], objective=None, source=None, poi
                 try:
                     objective = model.reactions.get_by_id("DM_%s" % objective.id)
                 except KeyError:
-                    objective = model.add_demand(objective, time_machine=tm)
+                    objective = model.add_exchange(objective, time_machine=tm)
             # try:
             #     objective = model.reaction_for(objective, time_machine=tm)
             # except KeyError:

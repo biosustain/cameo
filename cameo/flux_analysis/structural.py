@@ -492,8 +492,8 @@ class MinimalCutSetsEnumerator(ShortestElementaryFluxModes):  # pragma: no cover
         irreversibles = []  # Metabolites for which a z-reaction must be added
         self._dual_to_primal_mapping = {}
         for re in model.reactions:
-            forward_id = re._get_forward_id()
-            reverse_id = re._get_reverse_id()
+            forward_id = re.id()
+            reverse_id = re.reverse_id()
             if forward_id in self._split_vars or reverse_id in self._split_vars:
                 if re.upper_bound > 0 or forward_id in self._split_vars:
                     dual_metabolite_names.append(forward_id)
@@ -514,12 +514,12 @@ class MinimalCutSetsEnumerator(ShortestElementaryFluxModes):  # pragma: no cover
         transposed_stoichiometry = {}
         for reaction in model.reactions:
             for met, coef in reaction.metabolites.items():
-                if reaction._get_reverse_id() in dual_metabolite_names:
+                if reaction.reverse_id() in dual_metabolite_names:
                     transposed_stoichiometry.setdefault(met, {})[
-                        dual_model.metabolites.get_by_id(reaction._get_reverse_id())] = -coef
-                if reaction._get_forward_id() in dual_metabolite_names:
+                        dual_model.metabolites.get_by_id(reaction.reverse_id())] = -coef
+                if reaction.id() in dual_metabolite_names:
                     transposed_stoichiometry.setdefault(met, {})[
-                        dual_model.metabolites.get_by_id(reaction._get_forward_id())] = coef
+                        dual_model.metabolites.get_by_id(reaction.id())] = coef
                 # This should be the same as forward_var.name but in general it might not be
                 elif reaction.id in dual_metabolite_names:
                     transposed_stoichiometry.setdefault(met, {})[
