@@ -48,7 +48,7 @@ from cameo.core.metabolite import Metabolite
 from cameo.visualization.escher_ext import NotebookBuilder
 from cameo.visualization.palette import mapper, Palette
 
-from cameo.flux_analysis.analysis import flux_variability_analysis, phenotypic_phase_plane, PhenotypicPhasePlaneResult
+from cameo.flux_analysis.analysis import flux_variability_analysis, phenotypic_phase_plane
 from cameo.flux_analysis.simulation import pfba, fba
 
 from cameo.strain_design.core import StrainDesignMethod, StrainDesignMethodResult, StrainDesign, ReactionKnockoutTarget, \
@@ -329,34 +329,14 @@ class DifferentialFVA(StrainDesignMethod):
             df['suddenly_essential'] = False
             df.loc[suddenly_essential_selection.index, 'suddenly_essential'] = True
 
-        if self.objective is None:
-            objective = self.reference_model.objective
-        else:
-            objective = self.objective
-
-        if isinstance(objective, Reaction):
-            if hasattr(self.objective, 'nice_id'):
-                nice_objective_id = objective.nice_id
-                objective = objective.id
-            else:
-                objective = objective.id
-                nice_objective_id = objective
-        else:
-            objective = str(self.objective)
-            nice_objective_id = str(objective)
-
-        return DifferentialFVAResult(pandas.Panel(solutions), self.envelope, self.reference_flux_ranges,
-                                     self.variables, objective, nice_objective_id=nice_objective_id,
-                                     nice_variable_ids=self.variables)
+        return DifferentialFVAResult(pandas.Panel(solutions), self.envelope, self.reference_flux_ranges)
 
 
-class DifferentialFVAResult(StrainDesignMethodResult, PhenotypicPhasePlaneResult):
-    def __init__(self, solutions, phase_plane, reference_fva, variables_ids, objective, *args, **kwargs):
-        if isinstance(phase_plane, PhenotypicPhasePlaneResult):
-            phase_plane = phase_plane._phase_plane
-        PhenotypicPhasePlaneResult.__init__(self, phase_plane, variables_ids, objective, *args, **kwargs)
+class DifferentialFVAResult(StrainDesignMethodResult):
+    def __init__(self, solutions, phase_plane, reference_fva, *args, **kwargs):
+        self.phase_plane = phase_plane
         # TODO: Convert solutions to designs
-        StrainDesignMethodResult.__init__(self, self._generate_designs(solutions))
+        super(DifferentialFVAResult, self).__init__(self._generate_designs(solutions))
         self.reference_fva = reference_fva
         self.solutions = solutions
 
@@ -378,9 +358,6 @@ class DifferentialFVAResult(StrainDesignMethodResult, PhenotypicPhasePlaneResult
         return data
 
     def plot(self, index=None, variables=None, grid=None, width=None, height=None, title=None, palette=None, **kwargs):
-        if len(self.variable_ids) > 1:
-            notice("Multi-dimensional plotting is not supported")
-            return
         if index is not None:
             self._plot_flux_variability_analysis(index, variables=variables, width=width, grid=grid, palette=palette)
         else:
@@ -418,8 +395,7 @@ class DifferentialFVAResult(StrainDesignMethodResult, PhenotypicPhasePlaneResult
         y = [elem[1][1] for elem in list(self.solutions.items)]
         colors = ["red" for _ in x]
         points = zip(x, y)
-        super(DifferentialFVAResult, self).plot(title=title, grid=grid, width=width, heigth=height,
-                                                points=points, points_colors=colors)
+        self.phase_plane.plot(title=title, grid=grid, width=width, heigth=height, points=points, points_colors=colors)
 
     def _repr_html_(self):
         def _data_frame(solution):
