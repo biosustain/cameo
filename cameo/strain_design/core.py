@@ -18,7 +18,7 @@ from cameo import ui
 from cameo.core.result import Result
 
 
-class Target(object):
+class Target:
     def __init__(self, identifier):
         self._identifier = identifier
 
