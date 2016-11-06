@@ -13,31 +13,27 @@
 # limitations under the License.
 
 from __future__ import absolute_import, print_function
-from math import ceil
-from cameo.visualization.plotting import plotter
 
-import six
-
+import logging
 import re
 from functools import partial
 
-from cameo.core.result import Result
-from cameo.core.pathway import Pathway
-from cameo import models, phenotypic_phase_plane
-from cameo.exceptions import SolveError
-from cameo import Model, Metabolite
-from cameo.data import metanetx
-from cameo.util import TimeMachine
-from cameo.config import non_zero_flux_threshold
-
-from cameo.strain_design.strain_design import StrainDesignResult, StrainDesign
-from cameo.strain_design.pathway_prediction import util
-
+import six
 import sympy
-
+from math import ceil
 from sympy import Add, Mul, RealNumber
 
-import logging
+from cameo import Model, Metabolite
+from cameo import models, phenotypic_phase_plane
+from cameo.config import non_zero_flux_threshold
+from cameo.core.pathway import Pathway
+from cameo.core.result import Result
+from cameo.data import metanetx
+from cameo.exceptions import SolveError
+from cameo.strain_design.core import StrainDesignMethodResult, StrainDesign
+from cameo.strain_design.pathway_prediction import util
+from cameo.util import TimeMachine
+from cameo.visualization.plotting import plotter
 
 __all__ = ['PathwayPredictor']
 
@@ -101,11 +97,12 @@ class PathwayResult(Pathway, Result, StrainDesign):
                 pass
 
 
-class PathwayPredictions(StrainDesignResult):
+class PathwayPredictions(StrainDesignMethodResult):
     __method_name__ = "PathwayPredictor"
 
     def __init__(self, pathways, *args, **kwargs):
-        super(PathwayPredictions, self).__init__(*args, **kwargs)
+        # TODO: Discuss what to do with this
+        super(PathwayPredictions, self).__init__([], *args, **kwargs)
         # TODO: sort the pathways to make them easier to read
         self.pathways = pathways
 
