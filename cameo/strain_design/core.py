@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from functools import partial
+
 from cobra import DictList
 from pandas import DataFrame
 
@@ -69,6 +71,24 @@ class FluxModulationTarget(Target):
 class SwapTarget(Target):
     def __init__(self, identifier):
         super(SwapTarget, self).__init__(identifier)
+
+
+class KnockinTarget(Target):
+    def __init__(self, identifier, value):
+        super(KnockinTarget, self).__init__(identifier)
+        self._value = value
+
+
+class ReactionKnockinTarget(KnockinTarget):
+    def __init__(self, identifier, value):
+        super(ReactionKnockinTarget, self).__init__(identifier, value)
+
+    def apply(self, model, time_machine=None):
+        if time_machine is None:
+            model.add_reaction(self._value)
+        else:
+            time_machine(do=partial(model.add_reaction, self._value),
+                         undo=partial(model.remove_reactions, self._value, delete=False, remove_orphans=True))
 
 
 class GeneModulationTarget(FluxModulationTarget):

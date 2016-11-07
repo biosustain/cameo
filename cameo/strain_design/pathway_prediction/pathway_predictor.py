@@ -27,10 +27,10 @@ from cameo import Model, Metabolite
 from cameo import models, phenotypic_phase_plane
 from cameo.config import non_zero_flux_threshold
 from cameo.core.pathway import Pathway
-from cameo.core.result import Result
+from cameo.core.result import Result, MetaInformation
 from cameo.data import metanetx
 from cameo.exceptions import SolveError
-from cameo.strain_design.core import StrainDesignMethodResult, StrainDesign
+from cameo.strain_design.core import StrainDesignMethodResult, StrainDesign, ReactionKnockinTarget
 from cameo.strain_design.pathway_prediction import util
 from cameo.util import TimeMachine
 from cameo.visualization.plotting import plotter
@@ -45,9 +45,9 @@ logger = logging.getLogger(__name__)
 
 class PathwayResult(Pathway, Result, StrainDesign):
     def __init__(self, reactions, exchanges, adapters, product, *args, **kwargs):
-        Result.__init__(self, *args, **kwargs)
-        Pathway.__init__(self, reactions, *args, **kwargs)
-        StrainDesign.__init__(self, knock_ins=[r.id for r in reactions], manipulation_type="reactions")
+        self._meta_information = MetaInformation()
+        self.reactions = reactions
+        self.targets = [ReactionKnockinTarget(reaction.id, reaction) for reaction in reactions]
         self.exchanges = exchanges
         self.adapters = adapters
         self.product = product
