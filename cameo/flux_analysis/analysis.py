@@ -140,6 +140,7 @@ def phenotypic_phase_plane(model, variables=[], objective=None, points=20, view=
         variables = [variables]
     elif isinstance(variables, cameo.core.reaction.Reaction):
         variables = [variables]
+    variable_ids = [var if isinstance(var, str) else var.id for var in variables]
 
     if view is None:
         view = config.default_view
@@ -161,7 +162,7 @@ def phenotypic_phase_plane(model, variables=[], objective=None, points=20, view=
         variables_min_max = flux_variability_analysis(model, reactions=variable_reactions, view=SequentialView())
         grid = [numpy.linspace(lower_bound, upper_bound, points, endpoint=True) for
                 reaction_id, lower_bound, upper_bound in
-                variables_min_max.data_frame.loc[variables].itertuples()]
+                variables_min_max.data_frame.loc[variable_ids].itertuples()]
         grid_generator = itertools.product(*grid)
         chunks_of_points = partition(list(grid_generator), len(view))
         evaluator = _PhenotypicPhasePlaneChunkEvaluator(model, variable_reactions)
@@ -383,7 +384,6 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
         if len(objective_reactions) != 1:
             raise Exception('multiple objectives not supported')
         self.product_reaction = objective_reactions[0]
-        self.c_source_reactions = self.get_c_source_reactions()
 
     def get_c_source_reactions(self):
         """ carbon source reactions
@@ -479,6 +479,7 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
 
     def _interval_estimates(self):
         try:
+            self.c_source_reactions = self.get_c_source_reactions()
             flux = self.model.solve().f
             carbon_yield = self.carbon_yield()
             mass_yield = self.mass_yield()
