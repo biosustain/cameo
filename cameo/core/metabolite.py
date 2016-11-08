@@ -59,17 +59,6 @@ class Metabolite(cobra.core.Metabolite):
         return self.elements.get('C', 0)
 
     @property
-    def n_carbon(self):
-        """number of carbon atoms
-
-        Returns
-        -------
-        int
-            number of carbons in this metabolite
-        """
-        return self.elements.get('C', 0)
-
-    @property
     def constraint(self):
         if self.model is not None:
             return self.model.solver.constraints[self.id]
