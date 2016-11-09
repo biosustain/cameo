@@ -15,18 +15,18 @@
 
 from __future__ import absolute_import, print_function
 
-from functools import partial
 import hashlib
-import cobra as _cobrapy
-from cobra.manipulation.delete import parse_gpr, eval_gpr
+import logging
 from copy import copy, deepcopy
+from functools import partial
+
+import cobra as _cobrapy
+import six
+from cobra.manipulation.delete import parse_gpr, eval_gpr
 
 import cameo
 from cameo import flux_analysis
 from cameo.parallel import SequentialView
-
-import logging
-import six
 from cameo.util import inheritdocstring
 
 logger = logging.getLogger(__name__)
@@ -447,6 +447,26 @@ class Reaction(_cobrapy.core.Reaction):
             time_machine(do=super(Reaction, self).knock_out, undo=partial(_, self, self.lower_bound, self.upper_bound))
         else:
             super(Reaction, self).knock_out()
+
+    def swap_cofactors(self, swap_pairs, time_machine=None):
+        if all(self.metabolites.get(met, False) for met in swap_pairs[0]):
+            new_coefficients = {met: -self.metabolites[met] for met in swap_pairs[0]}
+            new_coefficients.update({new_met: self.metabolites[met] for met, new_met in zip(*swap_pairs)})
+            revert_coefficients = {met: -coeff for met, coeff in six.iteritems(new_coefficients)}
+        elif all(self.metabolites.get(met, False) for met in swap_pairs[1]):
+            new_coefficients = {met: -self.metabolites[met] for met in swap_pairs[1]}
+            new_coefficients.update({new_met: self.metabolites[met] for new_met, met in zip(*swap_pairs)})
+            revert_coefficients = {met: -coeff for met, coeff in six.iteritems(new_coefficients)}
+        else:
+            raise ValueError("%s: Invalid swap pairs %s (%s)" % (self.id, str(swap_pairs), self.reaction))
+
+        def _(reaction, stoichiometry):
+            reaction.add_metabolites(stoichiometry, combine=True)
+
+        if time_machine:
+            time_machine(do=partial(_, self, new_coefficients), undo=partial(_, self, revert_coefficients))
+        else:
+            _(self, new_coefficients)
 
     def pop(self, metabolite_id):
         """Removes a given metabolite from the reaction stoichiometry, and returns the coefficient.
