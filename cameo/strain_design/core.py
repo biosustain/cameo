@@ -20,7 +20,7 @@ from cameo import ui
 from cameo.core.result import Result
 
 
-class Target:
+class Target(object):
     def __init__(self, identifier):
         self._identifier = identifier
 
@@ -60,17 +60,29 @@ class FluxModulationTarget(Target):
             return False
 
     def __str__(self):
-        if self._value > 0:
-            return ui.upreg(self._value) + self._identifier
-        elif self._value < 0:
-            return ui.downreg(self._value) + self._identifier
-        else:
+        fold_change = (self._value - self._reference_value) / self._reference_value
+
+        if self._value > self._reference_value:
+            return ui.upreg(fold_change) + self._identifier
+        elif self._value < self._reference_value:
+            return ui.downreg(fold_change) + self._identifier
+        elif self._value == 0:
             return ui.delta() + self._identifier
 
 
 class SwapTarget(Target):
     def __init__(self, identifier):
         super(SwapTarget, self).__init__(identifier)
+
+
+class ReactionCofactorSwapTarget(Target):
+    def __init__(self, identifier, swap_pairs):
+        super(ReactionCofactorSwapTarget, self).__init__(identifier)
+        self.swap_pairs = swap_pairs
+
+    def apply(self, model, time_machine=None):
+        reaction = model.reactions.get_by_id(self._identifier)
+        reaction.swap_cofactors(self.swap_pairs, time_machine=time_machine)
 
 
 class KnockinTarget(Target):
