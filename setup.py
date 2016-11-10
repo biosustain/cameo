@@ -17,7 +17,6 @@
 from __future__ import absolute_import, print_function
 
 from itertools import chain
-
 from setuptools import setup, find_packages
 
 import versioneer
@@ -43,7 +42,8 @@ requirements = ['numpy>=1.9.1',
                 'IProgress>=0.4',
                 'inspyred>=1.0',
                 'lazy-object-proxy>=1.2.0',
-                'palettable>=2.1.1']
+                'palettable>=2.1.1',
+                'gnomic-0.2.0']
 
 extra_requirements = {
     'docs': ['Sphinx>=1.3.5', 'numpydoc>=0.5'],

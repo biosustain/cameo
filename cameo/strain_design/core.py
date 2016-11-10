@@ -14,6 +14,8 @@
 from functools import partial
 
 from cobra import DictList
+from gnomic import Genotype, Mutation
+from gnomic.models import Feature, Accession, Del, Ins, Sub
 from pandas import DataFrame
 
 from cameo import ui
@@ -33,8 +35,13 @@ class Target(object):
         else:
             return False
 
+    def to_gnomic(self):
+        return Accession(identifier=self.id)
+
 
 class FluxModulationTarget(Target):
+    __gnomic_feature_type__ = 'flux'
+
     def __init__(self, id, value, reference_value):
         super(FluxModulationTarget, self).__init__(id)
         self._reference_value = reference_value
@@ -59,15 +66,31 @@ class FluxModulationTarget(Target):
         else:
             return False
 
-    def __str__(self):
-        fold_change = (self._value - self._reference_value) / self._reference_value
+    @property
+    def fold_change(self):
+        return (self._value - self._reference_value) / self._reference_value
 
+    def __str__(self):
         if self._value == 0:
             return ui.delta() + self.id
         elif self._value > self._reference_value:
-            return ui.upreg(fold_change) + self.id
+            return ui.upreg(self.fold_change) + self.id
         elif self._value < self._reference_value:
-            return ui.downreg(fold_change) + self.id
+            return ui.downreg(self.fold_change) + self.id
+
+    def to_gnomic(self):
+        accession = Target.to_gnomic(self)
+        feature = Feature(accession=accession, type=self.__gnomic_feature_type__)
+        if self._value == 0:
+            return Del(feature)
+        elif self._value > self._reference_value:
+            over_expression = Feature(accession=accession, type=self.__gnomic_feature_type__,
+                                      variant="over-expression(%f)" % self.fold_change)
+            return Mutation(feature, over_expression)
+        elif self._value < self._reference_value:
+            under_expression = Feature(accession=accession, type=self.__gnomic_feature_type__,
+                                       variant="down-regulation(%f)" % self.fold_change)
+            return Mutation(feature, under_expression)
 
 
 class SwapTarget(Target):
@@ -84,11 +107,25 @@ class ReactionCofactorSwapTarget(Target):
         reaction = model.reactions.get_by_id(self.id)
         reaction.swap_cofactors(self.swap_pairs, time_machine=time_machine)
 
+    @property
+    def swap_str(self):
+        return "+".join(str(s) for s in self.swap_pairs[0]) + "<->" + "+".join(str(s) for s in self.swap_pairs[1])
+
+    def to_gnomic(self):
+        accession = Target.to_gnomic(self)
+        new_accession = Accession(self.id + self.swap_str)
+        original_feature = Feature(accession=accession, type='reaction')
+        new_feature = Feature(accession=new_accession, type='reaction')
+        return Sub(original_feature, new_feature)
+
 
 class KnockinTarget(Target):
     def __init__(self, id, value):
         super(KnockinTarget, self).__init__(id)
         self._value = value
+
+    def to_gnomic(self):
+        raise NotImplemented
 
 
 class ReactionKnockinTarget(KnockinTarget):
@@ -102,8 +139,15 @@ class ReactionKnockinTarget(KnockinTarget):
             time_machine(do=partial(model.add_reaction, self._value),
                          undo=partial(model.remove_reactions, self._value, delete=False, remove_orphans=True))
 
+    def to_gnomic(self):
+        accession = Target.to_gnomic(self)
+        feature = Feature(accession=accession, type='reaction')
+        return Ins(feature)
+
 
 class GeneModulationTarget(FluxModulationTarget):
+    __gnomic_feature_type__ = "gene"
+
     def __init__(self, id, value, reference_value):
         super(GeneModulationTarget, self).__init__(id, value, reference_value)
 
@@ -121,6 +165,8 @@ class GeneKnockoutTarget(GeneModulationTarget):
 
 
 class ReactionModulationTarget(FluxModulationTarget):
+    __gnomic_feature_type__ = "reaction"
+
     def __init__(self, id, value, reference_value):
         super(ReactionModulationTarget, self).__init__(id, value, reference_value)
 
@@ -152,8 +198,11 @@ class StrainDesign(object):
     def __init__(self, targets):
         self.targets = DictList(targets)
 
-    def __repr__(self):
+    def __str__(self):
         return "".join(str(t) for t in self.targets)
+
+    def __repr__(self):
+        return str(self)
 
     def __iter__(self):
         for t in self.targets:
@@ -177,6 +226,9 @@ class StrainDesign(object):
 
     def __add__(self, other):
         return StrainDesign(self.targets + other.targets)
+
+    def to_gnomic(self):
+        return Genotype([target.to_gnomic() for target in self.targets])
 
 
 class StrainDesignMethodResult(Result):
