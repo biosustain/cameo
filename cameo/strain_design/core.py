@@ -62,12 +62,12 @@ class FluxModulationTarget(Target):
     def __str__(self):
         fold_change = (self._value - self._reference_value) / self._reference_value
 
-        if self._value > self._reference_value:
+        if self._value == 0:
+            return ui.delta() + self._identifier
+        elif self._value > self._reference_value:
             return ui.upreg(fold_change) + self._identifier
         elif self._value < self._reference_value:
             return ui.downreg(fold_change) + self._identifier
-        elif self._value == 0:
-            return ui.delta() + self._identifier
 
 
 class SwapTarget(Target):
@@ -113,7 +113,7 @@ class GeneModulationTarget(FluxModulationTarget):
 
 class GeneKnockoutTarget(GeneModulationTarget):
     def __init__(self, identifier):
-        super(GeneKnockoutTarget, self).__init__(identifier, 0)
+        super(GeneKnockoutTarget, self).__init__(identifier, 0, None)
 
     def apply(self, model, time_machine=None):
         target = self.get_target(model)
@@ -130,7 +130,7 @@ class ReactionModulationTarget(FluxModulationTarget):
 
 class ReactionKnockoutTarget(ReactionModulationTarget):
     def __init__(self, identifier):
-        super(ReactionKnockoutTarget, self).__init__(identifier, 0)
+        super(ReactionKnockoutTarget, self).__init__(identifier, 0, None)
 
     def apply(self, model, time_machine=None):
         target = self.get_target(model)
