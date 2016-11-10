@@ -21,22 +21,22 @@ from cameo.core.result import Result
 
 
 class Target(object):
-    def __init__(self, identifier):
-        self._identifier = identifier
+    def __init__(self, id):
+        self.id = id
 
     def apply(self, model, time_machine=None):
         raise NotImplemented
 
     def __eq__(self, other):
         if isinstance(other, Target):
-            return other._identifier == self._identifier
+            return other.id == self.id
         else:
             return False
 
 
 class FluxModulationTarget(Target):
-    def __init__(self, identifier, value, reference_value):
-        super(FluxModulationTarget, self).__init__(identifier)
+    def __init__(self, id, value, reference_value):
+        super(FluxModulationTarget, self).__init__(id)
         self._reference_value = reference_value
         self._value = value
 
@@ -55,7 +55,7 @@ class FluxModulationTarget(Target):
 
     def __eq__(self, other):
         if isinstance(other, FluxModulationTarget):
-            return self._identifier == other._identifier and self._value == other._value
+            return self.id == other.id and self._value == other._value
         else:
             return False
 
@@ -63,37 +63,37 @@ class FluxModulationTarget(Target):
         fold_change = (self._value - self._reference_value) / self._reference_value
 
         if self._value == 0:
-            return ui.delta() + self._identifier
+            return ui.delta() + self.id
         elif self._value > self._reference_value:
-            return ui.upreg(fold_change) + self._identifier
+            return ui.upreg(fold_change) + self.id
         elif self._value < self._reference_value:
-            return ui.downreg(fold_change) + self._identifier
+            return ui.downreg(fold_change) + self.id
 
 
 class SwapTarget(Target):
-    def __init__(self, identifier):
-        super(SwapTarget, self).__init__(identifier)
+    def __init__(self, id):
+        super(SwapTarget, self).__init__(id)
 
 
 class ReactionCofactorSwapTarget(Target):
-    def __init__(self, identifier, swap_pairs):
-        super(ReactionCofactorSwapTarget, self).__init__(identifier)
+    def __init__(self, id, swap_pairs):
+        super(ReactionCofactorSwapTarget, self).__init__(id)
         self.swap_pairs = swap_pairs
 
     def apply(self, model, time_machine=None):
-        reaction = model.reactions.get_by_id(self._identifier)
+        reaction = model.reactions.get_by_id(self.id)
         reaction.swap_cofactors(self.swap_pairs, time_machine=time_machine)
 
 
 class KnockinTarget(Target):
-    def __init__(self, identifier, value):
-        super(KnockinTarget, self).__init__(identifier)
+    def __init__(self, id, value):
+        super(KnockinTarget, self).__init__(id)
         self._value = value
 
 
 class ReactionKnockinTarget(KnockinTarget):
-    def __init__(self, identifier, value):
-        super(ReactionKnockinTarget, self).__init__(identifier, value)
+    def __init__(self, id, value):
+        super(ReactionKnockinTarget, self).__init__(id, value)
 
     def apply(self, model, time_machine=None):
         if time_machine is None:
@@ -104,16 +104,16 @@ class ReactionKnockinTarget(KnockinTarget):
 
 
 class GeneModulationTarget(FluxModulationTarget):
-    def __init__(self, identifier, value, reference_value):
-        super(GeneModulationTarget, self).__init__(identifier, value, reference_value)
+    def __init__(self, id, value, reference_value):
+        super(GeneModulationTarget, self).__init__(id, value, reference_value)
 
     def get_target(self, model):
-        return model.genes.get_by_id(self._identifier)
+        return model.genes.get_by_id(self.id)
 
 
 class GeneKnockoutTarget(GeneModulationTarget):
-    def __init__(self, identifier):
-        super(GeneKnockoutTarget, self).__init__(identifier, 0, None)
+    def __init__(self, id):
+        super(GeneKnockoutTarget, self).__init__(id, 0, None)
 
     def apply(self, model, time_machine=None):
         target = self.get_target(model)
@@ -121,16 +121,16 @@ class GeneKnockoutTarget(GeneModulationTarget):
 
 
 class ReactionModulationTarget(FluxModulationTarget):
-    def __init__(self, identifier, value, reference_value):
-        super(ReactionModulationTarget, self).__init__(identifier, value, reference_value)
+    def __init__(self, id, value, reference_value):
+        super(ReactionModulationTarget, self).__init__(id, value, reference_value)
 
     def get_target(self, model):
-        return model.reactions.get_by_id(self._identifier)
+        return model.reactions.get_by_id(self.id)
 
 
 class ReactionKnockoutTarget(ReactionModulationTarget):
-    def __init__(self, identifier):
-        super(ReactionKnockoutTarget, self).__init__(identifier, 0, None)
+    def __init__(self, id):
+        super(ReactionKnockoutTarget, self).__init__(id, 0, None)
 
     def apply(self, model, time_machine=None):
         target = self.get_target(model)
@@ -174,6 +174,9 @@ class StrainDesign(object):
     def apply(self, model, time_machine=None):
         for target in self.targets:
             target.apply(model, time_machine)
+
+    def __add__(self, other):
+        return StrainDesign(self.targets + other.targets)
 
 
 class StrainDesignMethodResult(Result):
