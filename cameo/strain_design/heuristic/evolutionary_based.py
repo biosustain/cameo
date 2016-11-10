@@ -28,13 +28,14 @@ from cameo.exceptions import SolveError
 from cameo.flux_analysis.analysis import phenotypic_phase_plane
 from cameo.flux_analysis.simulation import fba
 from cameo.strain_design.core import StrainDesignMethod, StrainDesignMethodResult, StrainDesign, ReactionKnockoutTarget, \
-    GeneKnockoutTarget
+    GeneKnockoutTarget, ReactionCofactorSwapTarget
 from cameo.strain_design.heuristic.evolutionary.archives import ProductionStrainArchive
 from cameo.strain_design.heuristic.evolutionary.objective_functions import biomass_product_coupled_min_yield, \
     biomass_product_coupled_yield
 from cameo.strain_design.heuristic.evolutionary.optimization import GeneKnockoutOptimization, \
-    ReactionKnockoutOptimization
-from cameo.strain_design.heuristic.evolutionary.processing import process_knockout_solution
+    ReactionKnockoutOptimization, CofactorSwapOptimization, NADH_NADPH
+from cameo.strain_design.heuristic.evolutionary.processing import process_reaction_knockout_solution, \
+    process_gene_knockout_solution, process_reaction_swap_solution
 from cameo.util import TimeMachine
 from cameo.visualization.plotting import plotter
 
@@ -115,7 +116,7 @@ class OptGene(StrainDesignMethod):
             If true, all candidates have the same size. Otherwise the candidate size can be from 1 to max_knockouts.
         simulation_method: function
             Any method from cameo.flux_analysis.simulation or equivalent
-        robust: bool
+        growth_coupled: bool
             If true will use the minimum flux rate to compute the fitness
         max_evaluations: int
             Number of evaluations before stop
@@ -189,6 +190,7 @@ class OptGeneResult(StrainDesignMethodResult):
 
     @staticmethod
     def _generate_designs(knockouts, manipulation_type):
+        designs = []
         if manipulation_type == "reactions":
             target_class = ReactionKnockoutTarget
         elif manipulation_type == "genes":
@@ -197,12 +199,9 @@ class OptGeneResult(StrainDesignMethodResult):
             raise ValueError("Invalid 'manipulation_type' %s" % manipulation_type)
 
         for knockout_design in knockouts:
-            yield StrainDesign([target_class(ko) for ko in knockout_design])
+            designs.append(StrainDesign([target_class(ko) for ko in knockout_design]))
 
-    def __len__(self):
-        if self._processed_solutions is None:
-            self._process_solutions()
-        return len(self._processed_solutions)
+        return designs
 
     def _repr_html_(self):
         return """
@@ -235,6 +234,12 @@ class OptGeneResult(StrainDesignMethodResult):
         return data_frame
 
     def _process_solutions(self):
+        if self._manipulation_type == "reactions":
+            self._process_reaction_knockout_solutions()
+        elif self._manipulation_type == "genes":
+            self._process_gene_knockout_solutions()
+
+    def _process_gene_knockout_solutions(self):
         processed_solutions = DataFrame(columns=["reactions", "genes", "size", "fva_min", "fva_max",
                                                  "target_flux", "biomass_flux", "yield", "fitness"])
 
@@ -246,15 +251,34 @@ class OptGeneResult(StrainDesignMethodResult):
             progress = ProgressBar(maxval=len(self._knockouts), widgets=["Processing solutions: ", Bar(), Percentage()])
             for i, solution in progress(enumerate(self._knockouts)):
                 try:
-                    processed_solutions.loc[i] = process_knockout_solution(
-                        self._model, solution, self._simulation_method, self._simulation_kwargs, self._biomass,
+                    processed_solutions.loc[i] = process_gene_knockout_solution(
+                        self._model, solution[0], self._simulation_method, self._simulation_kwargs, self._biomass,
                         self._target, self._substrate, [self._objective_function])
                 except SolveError as e:
                     logger.error(e)
                     processed_solutions.loc[i] = [numpy.nan for _ in processed_solutions.columns]
 
-            if self._manipulation_type == "reactions":
-                processed_solutions.drop('genes', axis=1, inplace=True)
+            self._processed_solutions = processed_solutions
+
+    def _process_reaction_knockout_solutions(self):
+        processed_solutions = DataFrame(columns=["reactions", "size", "fva_min", "fva_max",
+                                                 "target_flux", "biomass_flux", "yield", "fitness"])
+
+        if len(self._knockouts) == 0:
+            logger.warn("No solutions found")
+            self._processed_solutions = processed_solutions
+
+        else:
+            progress = ProgressBar(maxval=len(self._knockouts), widgets=["Processing solutions: ", Bar(), Percentage()])
+            for i, solution in progress(enumerate(self._knockouts)):
+                try:
+                    processed_solutions.loc[i] = process_reaction_knockout_solution(
+                        self._model, solution[0], self._simulation_method, self._simulation_kwargs, self._biomass,
+                        self._target, self._substrate, [self._objective_function])
+                except SolveError as e:
+                    logger.error(e)
+                    processed_solutions.loc[i] = [numpy.nan for _ in processed_solutions.columns]
+
             self._processed_solutions = processed_solutions
 
     def display_on_map(self, index=0, map_name=None, palette="YlGnBu"):
@@ -269,6 +293,191 @@ class OptGeneResult(StrainDesignMethodResult):
         with TimeMachine() as tm:
             for ko in self.data_frame.loc[index, "reactions"]:
                 self._model.reactions.get_by_id(ko).knock_out(tm)
+            mt_production = phenotypic_phase_plane(self._model, objective=self._target, variables=[self._biomass])
+
+        if title is None:
+            title = "Production Envelope"
+
+        dataframe = DataFrame(columns=["ub", "lb", "value", "strain"])
+        for _, row in wt_production.iterrows():
+            _df = DataFrame([[row['objective_upper_bound'], row['objective_lower_bound'], row[self._biomass.id], "WT"]],
+                            columns=dataframe.columns)
+            dataframe = dataframe.append(_df)
+        for _, row in mt_production.iterrows():
+            _df = DataFrame([[row['objective_upper_bound'], row['objective_lower_bound'], row[self._biomass.id], "MT"]],
+                            columns=dataframe.columns)
+            dataframe = dataframe.append(_df)
+
+        plot = plotter.production_envelope(dataframe, grid=grid, width=width, height=height, title=title,
+                                           x_axis_label=self._biomass.id, y_axis_label=self._target.id, palette=palette)
+        plotter.display(plot)
+
+
+class OptSwap(StrainDesignMethod):
+    def __init__(self, model, evolutionary_algorithm=inspyred.ec.GA, plot=True, cofactor_id_swaps=NADH_NADPH,
+                 exclude_non_gene_reactions=True, *args, **kwargs):
+        super(OptSwap, self).__init__(*args, **kwargs)
+        self._skip_reactions = []
+        if exclude_non_gene_reactions:
+            self._skip_reactions += [r for r in model.reactions if not r.genes]
+
+        self._algorithm = evolutionary_algorithm
+        self._swap_pairs = cofactor_id_swaps
+        self._optimization_algorithm = CofactorSwapOptimization(model, cofactor_id_swaps=cofactor_id_swaps,
+                                                                skip_reactions=self._skip_reactions)
+        self._model = self._optimization_algorithm.model
+        self._plot = plot
+
+    def run(self, target=None, biomass=None, substrate=None, max_swaps=5, variable_size=True,
+            simulation_method=fba, growth_coupled=False, max_evaluations=20000, population_size=200,
+            time_machine=None, max_results=50, seed=None, **kwargs):
+        """
+        Parameters
+        ----------
+        target: str, Metabolite or Reaction
+            The design target.
+        biomass: str, Metabolite or Reaction
+            The biomass definition in the model.
+        substrate: str, Metabolite or Reaction
+            The main carbon source.
+        max_swaps: int
+            Max number of swaps allowed.
+        variable_size: bool
+            If true, all candidates have the same size. Otherwise the candidate size can be from 1 to max_knockouts.
+        simulation_method: function
+            Any method from cameo.flux_analysis.simulation or equivalent.
+        growth_coupled: bool
+            If true will use the minimum flux rate to compute the fitness.
+        max_evaluations: int
+            Number of evaluations before stop.
+        population_size: int
+            Number of individuals in each generation.
+        time_machine: TimeMachine
+            See TimeMachine.
+        max_results: int
+            Max number of different designs to return if found.
+        kwargs: dict
+            Arguments for the simulation method.
+        seed: int
+            A seed for random.
+
+
+        Returns
+        -------
+        OptSwapResult
+        """
+
+        target = self._model._reaction_for(target, time_machine=time_machine)
+        biomass = self._model._reaction_for(biomass, time_machine=time_machine)
+        substrate = self._model._reaction_for(substrate, time_machine=time_machine)
+
+        if growth_coupled:
+            objective_function = biomass_product_coupled_min_yield(biomass, target, substrate)
+        else:
+            objective_function = biomass_product_coupled_yield(biomass, target, substrate)
+        self._optimization_algorithm.objective_function = objective_function
+        self._optimization_algorithm.simulation_kwargs = kwargs
+        self._optimization_algorithm.simulation_method = simulation_method
+        self._optimization_algorithm.archiver = ProductionStrainArchive()
+
+        result = self._optimization_algorithm.run(max_evaluations=max_evaluations,
+                                                  pop_size=population_size,
+                                                  max_size=max_swaps,
+                                                  variable_size=variable_size,
+                                                  maximize=True,
+                                                  max_archive_size=max_results,
+                                                  seed=seed,
+                                                  **kwargs)
+
+        kwargs.update(self._optimization_algorithm.simulation_kwargs)
+
+        return OptSwapResult(self._model, result, self._swap_pairs, objective_function,
+                             simulation_method, biomass, target, substrate, kwargs)
+
+
+class OptSwapResult(StrainDesignMethodResult):
+    __method_name__ = "OptSwap"
+
+    def __init__(self, model, swaps, swap_pairs, objective_function, simulation_method, biomass, target,
+                 substrate, simulation_kwargs, *args, **kwargs):
+        super(OptSwapResult, self).__init__(self._generate_designs(swaps, swap_pairs), *args, **kwargs)
+        assert isinstance(model, SolverBasedModel)
+
+        self._model = model
+        self._swaps = swaps
+        self._swap_pairs = swap_pairs
+        self._objective_function = objective_function
+        self._simulation_method = simulation_method
+        self._biomass = biomass
+        self._target = target
+        self._substrate = substrate
+        self._processed_solutions = None
+        self._simulation_kwargs = simulation_kwargs
+
+    @staticmethod
+    def _generate_designs(swaps, swap_pair):
+        designs = []
+        for swap_design in swaps:
+            designs.append(StrainDesign([ReactionCofactorSwapTarget(swap, swap_pair) for swap in swap_design]))
+
+        return designs
+
+    def _repr_html_(self):
+        return """
+        <h3>OptSwap Result</h3>
+        <ul>
+            <li>Simulation: %s<br/></li>
+            <li>Objective Function: %s<br/></li>
+        </ul>
+        %s
+        """ % (self._simulation_method.__name__,
+               self._objective_function._repr_latex_(),
+               self.data_frame._repr_html_())
+
+    @property
+    def data_frame(self):
+        if self._processed_solutions is None:
+            self._process_solutions()
+
+        data_frame = DataFrame(self._processed_solutions)
+
+        data_frame.sort_values("size", inplace=True)
+        data_frame.index = [i for i in range(len(data_frame))]
+        return data_frame
+
+    def _process_solutions(self):
+        processed_solutions = DataFrame(columns=["reactions", "size", "fva_min", "fva_max",
+                                                 "target_flux", "biomass_flux", "yield", "fitness"])
+
+        if len(self._swaps) == 0:
+            logger.warn("No solutions found")
+            self._processed_solutions = processed_solutions
+
+        else:
+            progress = ProgressBar(maxval=len(self._swaps), widgets=["Processing solutions: ", Bar(), Percentage()])
+            for i, solution in progress(enumerate(self._swaps)):
+                try:
+                    processed_solutions.loc[i] = process_reaction_swap_solution(
+                        self._model, solution[0], self._simulation_method, self._simulation_kwargs, self._biomass,
+                        self._target, self._substrate, [self._objective_function], self._swap_pairs)
+                except SolveError as e:
+                    logger.error(e)
+                    processed_solutions.loc[i] = [numpy.nan for _ in processed_solutions.columns]
+
+            self._processed_solutions = processed_solutions
+
+    def display_on_map(self, index=0, map_name=None, palette="YlGnBu"):
+        with TimeMachine() as tm:
+            for ko in self.data_frame.loc[index, "reactions"]:
+                self._model.reactions.get_by_id(ko).swap_cofactors(self._swap_pairs, tm)
+            fluxes = self._simulation_method(self._model, **self._simulation_kwargs)
+            fluxes.display_on_map(map_name=map_name, palette=palette)
+
+    def plot(self, index=0, grid=None, width=None, height=None, title=None, palette=None, **kwargs):
+        wt_production = phenotypic_phase_plane(self._model, objective=self._target, variables=[self._biomass])
+        with TimeMachine() as tm:
+            for ko in self.data_frame.loc[index, "reactions"]:
+                self._model.reactions.get_by_id(ko).swap_cofactors(self._swap_pairs, tm)
             mt_production = phenotypic_phase_plane(self._model, objective=self._target, variables=[self._biomass])
 
         if title is None:
