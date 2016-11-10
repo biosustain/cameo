@@ -343,16 +343,16 @@ class DifferentialFVAResult(StrainDesignMethodResult):
     def _generate_designs(solutions, reference_fva):
         designs = []
 
-        for _, solution in solutions.iteritmes():
+        for _, solution in solutions.iteritems():
             relevant_targets = solution[solution.normalized_gaps != 0]
             for rid, relevant_target in relevant_targets.iterrows():
                 if relevant_target.normalized_gaps > 0:
                     designs.append(ReactionModulationTarget(rid,
-                                                            reference_fva.upper_bound(rid),
+                                                            reference_fva['upper_bound'][rid],
                                                             relevant_target.lower_bound))
                 else:
                     designs.append(ReactionModulationTarget(rid,
-                                                            reference_fva.lower_bound(rid),
+                                                            reference_fva['lower_bound'][rid],
                                                             relevant_target.upper_bound))
 
         return designs
