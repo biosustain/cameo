@@ -185,30 +185,30 @@ class StrainDesignMethodResult(Result):
 
     def __init__(self, designs, *args, **kwargs):
         super(StrainDesignMethodResult, self).__init__(*args, **kwargs)
-        self._knockouts = designs
+        self._designs = designs
 
     def __len__(self):
         """
         Return the number of designs found.
         """
-        return len(self._knockouts)
+        return len(self._designs)
 
     def __iter__(self):
         """
         Returns an iterator that yields StrainDesign objects.
         """
-        for design in self._knockouts:
+        for design in self._designs:
             yield design
 
     @property
     def data_frame(self):
-        return DataFrame([design.targets for design in self._knockouts], columns=["targets"])
+        return DataFrame([design.targets for design in self._designs], columns=["targets"])
 
     def display_on_map(self, index, map_name):
         raise NotImplementedError
 
     def __add__(self, other):
-        df = DataFrame([design.targets for design in self._knockouts], columns=["targets"])
+        df = DataFrame([design.targets for design in self._designs], columns=["targets"])
         df['method'] = self.__method_name__
 
         i = len(df)
@@ -231,7 +231,7 @@ class StrainDesignMethodEnsemble(StrainDesignMethodResult):
     @property
     def data_frame(self):
         data = []
-        for design, method in zip(self._knockouts, self._methods):
+        for design, method in zip(self._designs, self._methods):
             data.append([design.targets, method])
 
         return DataFrame(data, columns=["design", "method"])
