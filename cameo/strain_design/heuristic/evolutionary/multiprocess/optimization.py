@@ -30,7 +30,7 @@ from cameo.strain_design.heuristic.evolutionary.multiprocess.observers import \
     CliMultiprocessProgressObserver
 from cameo.strain_design.heuristic.evolutionary.multiprocess.plotters import \
     IPythonNotebookBokehMultiprocessPlotObserver
-from cameo.strain_design.heuristic.evolutionary.optimization import KnockoutOptimizationResult, HeuristicOptimization
+from cameo.strain_design.heuristic.evolutionary.optimization import TargetOptimizationResult, HeuristicOptimization
 
 __all__ = ['MultiprocessReactionKnockoutOptimization', 'MultiprocessGeneKnockoutOptimization']
 
@@ -156,8 +156,6 @@ class MultiprocessKnockoutOptimization(MultiprocessHeuristicOptimization):
             if config.use_bokeh:
                 plotting_observer = IPythonNotebookBokehMultiprocessPlotObserver(number_of_islands=number_of_islands,
                                                                                  color_map=color_map)
-            elif config.use_matplotlib:
-                pass
         else:
             progress_observer = CliMultiprocessProgressObserver(number_of_islands=number_of_islands)
 
@@ -180,7 +178,7 @@ class MultiprocessKnockoutOptimization(MultiprocessHeuristicOptimization):
         for observer in self.observers:
             observer.finish()
 
-        return reduce(KnockoutOptimizationResult.__iadd__, results)
+        return reduce(TargetOptimizationResult.__iadd__, results)
 
 
 class MultiprocessReactionKnockoutOptimization(MultiprocessKnockoutOptimization):
