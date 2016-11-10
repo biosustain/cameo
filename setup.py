@@ -43,7 +43,7 @@ requirements = ['numpy>=1.9.1',
                 'inspyred>=1.0',
                 'lazy-object-proxy>=1.2.0',
                 'palettable>=2.1.1',
-                'gnomic-0.2.0']
+                'gnomic>=0.2.0']
 
 extra_requirements = {
     'docs': ['Sphinx>=1.3.5', 'numpydoc>=0.5'],
