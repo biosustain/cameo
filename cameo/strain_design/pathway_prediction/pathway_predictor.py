@@ -101,10 +101,11 @@ class PathwayPredictions(StrainDesignMethodResult):
     __method_name__ = "PathwayPredictor"
 
     def __init__(self, pathways, *args, **kwargs):
-        # TODO: Discuss what to do with this
-        super(PathwayPredictions, self).__init__([], *args, **kwargs)
-        # TODO: sort the pathways to make them easier to read
-        self.pathways = pathways
+        super(PathwayPredictions, self).__init__(pathways, *args, **kwargs)
+
+    @property
+    def pathways(self):
+        return self._designs
 
     def plug_model(self, model, index, tm=None):
         self.pathways[index].plug_model(model, tm)
