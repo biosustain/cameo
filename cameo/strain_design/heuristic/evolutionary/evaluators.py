@@ -1,0 +1,187 @@
+# Copyright 2016 The Novo Nordisk Foundation Center for Biosustainability, DTU.
+
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+
+# http://www.apache.org/licenses/LICENSE-2.0
+
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+import logging
+
+import inspyred
+
+from cameo.exceptions import SolveError
+from cameo.strain_design.heuristic.evolutionary.decoders import SetDecoder
+from cameo.strain_design.heuristic.evolutionary.objective_functions import ObjectiveFunction
+from cameo.strain_design.heuristic.evolutionary.processing import reactions2filter
+from cameo.util import ProblemCache, memoize, TimeMachine
+
+logger = logging.getLogger(__name__)
+
+__all__ = ['KnockoutEvaluator', 'SwapEvaluator']
+
+
+class Evaluator(object):
+    def __call__(self, population):
+        raise NotImplemented
+
+
+class TargetEvaluator(Evaluator):
+    """
+    Evaluator for targets in a model. It gets a representation, decodes into targets and simulates
+    the model with a given method.
+
+    Attributes
+    ----------
+    model : SolverBasedModel
+        A constraint-based model
+    decoder : SetDecoder
+        A decoder to convert the representation into knockouts
+    objective_function : objective_function or list(objective_function)
+        The objectives of the algorithm
+    simulation_method : see flux_analysis.simulation
+        The method use to simulate the knockouts
+    simulation_kwargs : dict
+        The extra parameters used by the simulation method
+
+    See Also
+    --------
+    cameo.strain_design.heuristic.objective_function
+
+    Methods
+    -------
+    __call__(population)
+        calling the object will evaluate a population (see inspyred)
+
+    """
+
+    def __init__(self, model, decoder, objective_function, simulation_method, simulation_kwargs):
+        self.model = model
+        if not isinstance(decoder, SetDecoder):
+            raise ValueError("Invalid decoder %s" % decoder)
+        self.decoder = decoder
+
+        if isinstance(objective_function, list):
+            if not len(objective_function) > 0:
+                raise ValueError("list of objectives cannot be empty")
+            invalid = []
+            for index, of in enumerate(objective_function):
+                if not isinstance(of, ObjectiveFunction):
+                    invalid.append((index, of))
+            if len(invalid) > 0:
+                raise ValueError("objectives %s must be instance of ObjectiveFunction (%s)"
+                                 % (",".join(str(i[0]) for i in invalid), [i[1] for i in invalid]))
+        elif not isinstance(objective_function, ObjectiveFunction):
+            raise ValueError("'objective_function' must be instance of ObjectiveFunction (%s)" % objective_function)
+
+        self.objective_function = objective_function
+        self.simulation_method = simulation_method
+        self.simulation_kwargs = simulation_kwargs
+        self.cache = ProblemCache(model)
+
+    def __call__(self, population):
+        return [self._evaluate_individual(tuple(i)) for i in population]
+
+    def reset(self):
+        self.cache.reset()
+
+    @property
+    def is_mo(self):
+        return isinstance(self.objective_function, list)
+
+    def _evaluate_individual(self, individual):
+        raise NotImplemented
+
+    def _calculate_fitness(self, solution, targets):
+        if self.is_mo:
+            logger.debug("evaluate multiobjective solution")
+            return inspyred.ec.emo.Pareto(values=[of(self.model, solution, targets) for of in self.objective_function])
+        else:
+            logger.debug("evaluate single objective solution")
+            return self.objective_function(self.model, solution, targets)
+
+
+class KnockoutEvaluator(TargetEvaluator):
+    """
+    Knockout evaluator for genes or reactions.
+    """
+
+    @memoize
+    def _evaluate_individual(self, individual):
+        """
+        Evaluates a single individual.
+
+        Arguments
+        ---------
+
+        individual: set
+            The encoded representation of a single individual.
+
+
+        Returns
+        -------
+        fitness
+            A single real value or a Pareto, depending on the number of objectives.
+        """
+        targets = self.decoder(individual)
+        with TimeMachine() as tm:
+            for target in targets:
+                target.knock_out(time_machine=tm)
+            try:
+                solution = self.simulation_method(self.model,
+                                                  cache=self.cache,
+                                                  volatile=False,
+                                                  raw=True,
+                                                  reactions=reactions2filter(self.objective_function),
+                                                  **self.simulation_kwargs)
+                fitness = self._calculate_fitness(solution, targets)
+            except SolveError as e:
+                logger.debug(e)
+                if self.is_mo:
+                    fitness = inspyred.ec.emo.Pareto(values=[0 for _ in self.objective_function])
+                else:
+                    fitness = 0.
+
+            return fitness
+
+
+class SwapEvaluator(TargetEvaluator):
+    """ Evaluate reaction swaps where we knock one reaction in favor of another """
+
+    def __init__(self, swap_pair=None, *args, **kwargs):
+        super(SwapEvaluator, self).__init__(*args, **kwargs)
+        self.swap_pair = swap_pair
+
+    @memoize
+    def _evaluate_individual(self, individual):
+        swap_reactions = self.decoder(individual)
+        with TimeMachine() as tm:
+            for reaction in swap_reactions:
+                reaction.swap_cofactors(self.swap_pair, time_machine=tm)
+            try:
+                solution = self.simulation_method(self.model,
+                                                  cache=self.cache,
+                                                  volatile=False,
+                                                  raw=True,
+                                                  reactions=reactions2filter(self.objective_function),
+                                                  **self.simulation_kwargs)
+                fitness = self._calculate_fitness(solution, swap_reactions)
+            except SolveError as e:
+                logger.debug(e)
+                if self.is_mo:
+                    fitness = inspyred.ec.emo.Pareto(values=[0 for _ in self.objective_function])
+                else:
+                    fitness = 0.
+
+            return fitness
+
+
+class KnockinKnockoutEvaluator(KnockoutEvaluator):
+    def __init__(self, database, *args, **kwargs):
+        super(KnockinKnockoutEvaluator, self).__init__(*args, **kwargs)
+        self._database = database
