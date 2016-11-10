@@ -15,9 +15,8 @@
 
 from __future__ import absolute_import, print_function
 
-from functools import partial
-
 from cobra import Reaction
+
 from cameo import config, flux_variability_analysis
 from cameo.util import TimeMachine
 
@@ -74,7 +73,7 @@ class YieldFunction(ObjectiveFunction):
         self.substrate = substrate
         self.__name__ = self.__class__.__name__
 
-    def __call__(self, model, solution, decoded_representation):
+    def __call__(self, model, solution, targets):
         raise NotImplementedError
 
 
@@ -109,7 +108,7 @@ class biomass_product_coupled_yield(YieldFunction):
             biomass = biomass.id
         self.biomass = biomass
 
-    def __call__(self, model, solution, decoded_representation):
+    def __call__(self, model, solution, targets):
         try:
             biomass_flux = round(solution.fluxes[self.biomass], config.ndecimals)
             product_flux = round(solution.fluxes[self.product], config.ndecimals)
@@ -158,12 +157,12 @@ class biomass_product_coupled_min_yield(YieldFunction):
             biomass = biomass.id
         self.biomass = biomass
 
-    def __call__(self, model, solution, decoded_representation):
+    def __call__(self, model, solution, targets):
         try:
             biomass_flux = round(solution.fluxes[self.biomass], config.ndecimals)
             with TimeMachine() as tm:
-                for reaction in decoded_representation[0]:
-                    model._reaction_for(reaction).knock_out(tm)
+                for target in targets:
+                    target.knock_out(tm)
 
                 fva_res = flux_variability_analysis(model, reactions=[self.product], fraction_of_optimum=1)
                 min_product_flux = fva_res["lower_bound"][self.product]
@@ -209,7 +208,7 @@ class product_yield(YieldFunction):
     def __init__(self, product, substrate, *args, **kwargs):
         super(product_yield, self).__init__(product, substrate, *args, **kwargs)
 
-    def __call__(self, model, solution, decoded_representation):
+    def __call__(self, model, solution, targets):
         try:
             product_flux = round(solution.fluxes[self.product], config.ndecimals) * self.n_c_product
             substrate_flux = round(abs(solution.fluxes[self.substrate]), config.ndecimals) * self.n_c_substrate
@@ -249,11 +248,11 @@ class number_of_knockouts(ObjectiveFunction):
         super(number_of_knockouts, self).__init__(*args, **kwargs)
         self.sense = sense
 
-    def __call__(self, model, solution, decoded_representation):
+    def __call__(self, model, solution, targets):
         if self.sense == 'max':
-            return len(decoded_representation[1])
+            return len(targets)
         else:
-            return round(1.0 / len(decoded_representation[1]), config.ndecimals)
+            return round(1.0 / len(targets), config.ndecimals)
 
     def _repr_latex_(self):
         return "$$ %s\\:\\#knockouts $$" % self.sense
