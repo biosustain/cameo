@@ -14,8 +14,8 @@
 from functools import partial
 
 from cobra import DictList
-from gnomic import Genotype, Mutation
-from gnomic.models import Feature, Accession, Del, Ins, Sub
+from gnomic import Genotype
+from gnomic.models import Feature, Accession, Del, Ins, Sub, Mutation
 from pandas import DataFrame
 
 from cameo import ui
