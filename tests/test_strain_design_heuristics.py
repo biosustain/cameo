@@ -18,21 +18,16 @@ import os
 import pickle
 import unittest
 from collections import namedtuple
-from math import sqrt
 
 import inspyred
 import numpy
 import six
-
-from six.moves import range
-
 from inspyred.ec import Bounder
 from inspyred.ec.emo import Pareto
-
-from cobra.manipulation.delete import find_gene_knockout_reactions
-
+from math import sqrt
 from ordered_set import OrderedSet
 from pandas.util.testing import assert_frame_equal
+from six.moves import range
 
 from cameo import load_model, fba, config
 from cameo.config import solvers
@@ -43,24 +38,24 @@ except ImportError:
     RedisQueue = None
 
 from cameo.strain_design.heuristic.evolutionary.archives import Individual, BestSolutionArchive
-from cameo.strain_design.heuristic.evolutionary.decoders import ReactionKnockoutDecoder, KnockoutDecoder, \
-    GeneKnockoutDecoder
+from cameo.strain_design.heuristic.evolutionary.decoders import ReactionSetDecoder, SetDecoder, \
+    GeneSetDecoder
 from cameo.strain_design.heuristic.evolutionary.generators import set_generator, unique_set_generator, \
     multiple_chromosome_set_generator, linear_set_generator
 from cameo.strain_design.heuristic.evolutionary.genomes import MultipleChromosomeGenome
 from cameo.strain_design.heuristic.evolutionary.metrics import euclidean_distance
 from cameo.strain_design.heuristic.evolutionary.metrics import manhattan_distance
-from cameo.util import TimeMachine
-try:
-    from cameo.strain_design.heuristic.evolutionary.multiprocess.migrators import MultiprocessingMigrator
-except ImportError:
-    MultiprocessingMigrator = None
-    pass
+
+from cameo.strain_design.heuristic.evolutionary.multiprocess.migrators import MultiprocessingMigrator
+
 from cameo.strain_design.heuristic.evolutionary.objective_functions import biomass_product_coupled_yield, \
     product_yield, number_of_knockouts, biomass_product_coupled_min_yield
 from cameo.strain_design.heuristic.evolutionary.optimization import HeuristicOptimization, \
-    ReactionKnockoutOptimization, set_distance_function, KnockoutOptimizationResult, EvaluatorWrapper, \
-    KnockoutEvaluator, SwapperModel, NADH_NADPH, CofactorSwapOptimization
+    ReactionKnockoutOptimization, set_distance_function, TargetOptimizationResult, EvaluatorWrapper, \
+    CofactorSwapOptimization
+
+from cameo.strain_design.heuristic.evolutionary.evaluators import KnockoutEvaluator
+
 from cameo.strain_design.heuristic.evolutionary.variators import _do_set_n_point_crossover, set_n_point_crossover, \
     set_mutation, set_indel, multiple_chromosome_set_mutation, multiple_chromosome_set_indel
 from cameo.util import RandomGenerator as Random
@@ -352,8 +347,8 @@ class TestObjectiveFunctions(unittest.TestCase):
             product,
             substrate)
         self.assertEqual(of.name, "bpcy = (%s * min(%s)) / %s" % (biomass, product, substrate))
-        fitness = of(TEST_MODEL, solution, [['ATPS4r', 'CO2t', 'GLUDy', 'PPS', 'PYK'],
-                                            ['ATPS4r', 'CO2t', 'GLUDy', 'PPS', 'PYK']])
+        reactions = [TEST_MODEL.reactions.get_by_id(r) for r in ['ATPS4r', 'CO2t', 'GLUDy', 'PPS', 'PYK']]
+        fitness = of(TEST_MODEL, solution, reactions)
         self.assertAlmostEqual(0.414851, fitness, places=5)
 
     def test_yield(self):
@@ -377,12 +372,12 @@ class TestObjectiveFunctions(unittest.TestCase):
         of_min = number_of_knockouts(sense='min')
         self.assertEqual(of_min.name, "min knockouts")
 
-        f1 = of_max(None, None, [['a', 'b'], ['a', 'b']])
-        f2 = of_max(None, None, [['a', 'b'], ['a', 'b', 'c']])
+        f1 = of_max(None, None, ['a', 'b'])
+        f2 = of_max(None, None, ['a', 'b', 'c'])
         self.assertGreater(f2, f1)
 
-        f1 = of_min(None, None, [['a', 'b'], ['a', 'b']])
-        f2 = of_min(None, None, [['a', 'b'], ['a', 'b', 'c']])
+        f1 = of_min(None, None, ['a', 'b'])
+        f2 = of_min(None, None, ['a', 'b', 'c'])
         self.assertGreater(f1, f2)
 
 
@@ -392,7 +387,7 @@ class TestKnockoutEvaluator(unittest.TestCase):
             "Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2",
             "EX_ac_LPAREN_e_RPAREN_",
             "EX_glc_LPAREN_e_RPAREN_")
-        decoder = ReactionKnockoutDecoder(["PGI", "PDH", "FUM", "FBA", "G6PDH2r", "FRD7", "PGL", "PPC"], TEST_MODEL)
+        decoder = ReactionSetDecoder(["PGI", "PDH", "FUM", "FBA", "G6PDH2r", "FRD7", "PGL", "PPC"], TEST_MODEL)
         evaluator = KnockoutEvaluator(TEST_MODEL, decoder, objective1, fba, {})
         self.assertEquals(evaluator.decoder, decoder)
         self.assertEquals(evaluator.objective_function, objective1)
@@ -409,7 +404,7 @@ class TestKnockoutEvaluator(unittest.TestCase):
             "Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2",
             "EX_ac_LPAREN_e_RPAREN_",
             "EX_glc_LPAREN_e_RPAREN_")
-        decoder = ReactionKnockoutDecoder(["PGI", "PDH", "FUM", "FBA", "G6PDH2r", "FRD7", "PGL", "PPC"], TEST_MODEL)
+        decoder = ReactionSetDecoder(["PGI", "PDH", "FUM", "FBA", "G6PDH2r", "FRD7", "PGL", "PPC"], TEST_MODEL)
         self.assertRaises(ValueError, KnockoutEvaluator, TEST_MODEL, decoder, 1, fba, {})
         self.assertRaises(ValueError, KnockoutEvaluator, TEST_MODEL, decoder, None, fba, {})
         self.assertRaises(ValueError, KnockoutEvaluator, TEST_MODEL, decoder, [], fba, {})
@@ -421,7 +416,7 @@ class TestKnockoutEvaluator(unittest.TestCase):
     def test_evaluate_single_objective(self):
         representation = ["ATPS4r", "PYK", "GLUDy", "PPS", "CO2t", "PDH",
                           "FUM", "FBA", "G6PDH2r", "FRD7", "PGL", "PPC"]
-        decoder = ReactionKnockoutDecoder(representation, TEST_MODEL)
+        decoder = ReactionSetDecoder(representation, TEST_MODEL)
         objective1 = biomass_product_coupled_yield(
             "Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2",
             "EX_ac_LPAREN_e_RPAREN_",
@@ -434,7 +429,7 @@ class TestKnockoutEvaluator(unittest.TestCase):
     def test_evaluate_multiobjective(self):
         representation = ["ATPS4r", "PYK", "GLUDy", "PPS", "CO2t", "PDH",
                           "FUM", "FBA", "G6PDH2r", "FRD7", "PGL", "PPC"]
-        decoder = ReactionKnockoutDecoder(representation, TEST_MODEL)
+        decoder = ReactionSetDecoder(representation, TEST_MODEL)
         objective1 = biomass_product_coupled_yield(
             "Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2",
             "EX_ac_LPAREN_e_RPAREN_",
@@ -452,7 +447,7 @@ class TestKnockoutEvaluator(unittest.TestCase):
         representation = ["ENO", "ATPS4r", "PYK", "GLUDy", "PPS", "CO2t", "PDH",
                           "FUM", "FBA", "G6PDH2r", "FRD7", "PGL", "PPC"]
 
-        decoder = ReactionKnockoutDecoder(representation, TEST_MODEL)
+        decoder = ReactionSetDecoder(representation, TEST_MODEL)
         objective1 = biomass_product_coupled_yield(
             "Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2",
             "EX_ac_LPAREN_e_RPAREN_",
@@ -483,30 +478,21 @@ class TestWrappedEvaluator(unittest.TestCase):
 
 
 class TestSwapEvaluator(unittest.TestCase):
-    def test_swapper(self):
-        swapper_model = SwapperModel(TEST_MODEL, NADH_NADPH)
+    def test_swap_reaction_identification(self):
         expected_reactions = ['ACALD', 'AKGDH', 'ALCD2x', 'G6PDH2r', 'GAPD', 'GLUDy', 'GLUSy', 'GND', 'ICDHyr',
                               'LDH_D', 'MDH', 'ME1', 'ME2', 'NADH16', 'PDH']
-        result = list(swapper_model.swapped_reactions.keys())
-        result.sort()
-        swapper_model.add_swap_reaction('PGI')
-        swapper_model.swap_reaction('GAPD')
-        swapper_model.remove_swap_reaction('PDH')
-        with TimeMachine() as tm:
-            swapper_model.swap_reaction('MDH', tm)
-        self.assertEquals(swapper_model.reactions.MDH.upper_bound, 1000.)
-        self.assertEquals(expected_reactions, result)
-        self.assertEquals(swapper_model.reactions.ACALD_swap.upper_bound, 0.)
-        self.assertEquals(swapper_model.reactions.GAPD.upper_bound, 0.)
-        self.assertEquals(swapper_model.reactions.GAPD_swap.upper_bound, 1000.)
-        self.assertTrue('PGI' not in swapper_model.swapped_reactions)
-        self.assertTrue('PDH' not in swapper_model.swapped_reactions)
+
+        py = product_yield(TEST_MODEL.reactions.EX_etoh_LPAREN_e_RPAREN_, TEST_MODEL.reactions.EX_glc_LPAREN_e_RPAREN_)
+        optimization = CofactorSwapOptimization(model=TEST_MODEL, objective_function=py)
+
+        self.assertEquals(expected_reactions, optimization.representation)
+        self.assertNotIn('PGI', optimization.representation)
 
     def test_evaluate_swap(self):
         TEST_MODEL.objective = TEST_MODEL.reactions.EX_etoh_LPAREN_e_RPAREN_
         py = product_yield(TEST_MODEL.reactions.EX_etoh_LPAREN_e_RPAREN_, TEST_MODEL.reactions.EX_glc_LPAREN_e_RPAREN_)
         reactions = ['ACALD', 'ALCD2x', 'G6PDH2r', 'GAPD']
-        optimization = CofactorSwapOptimization(TEST_MODEL, objective_function=py, candidate_reactions=reactions)
+        optimization = CofactorSwapOptimization(model=TEST_MODEL, objective_function=py, candidate_reactions=reactions)
         optimization_result = optimization.run(max_evaluations=16, max_size=2)
         fitness = optimization_result.data_frame.iloc[0].fitness
         self.assertAlmostEqual(fitness, 0.66667, places=3)
@@ -517,19 +503,20 @@ class TestDecoders(unittest.TestCase):
         self.model = TEST_MODEL
 
     def test_abstract_decoder(self):
-        decoder = KnockoutDecoder(None, self.model)
+        decoder = SetDecoder(None, self.model)
         self.assertRaises(NotImplementedError, decoder, [])
 
-    def test_reaction_knockout_decoder(self):
-        decoder = ReactionKnockoutDecoder([r.id for r in self.model.reactions], self.model)
-        reactions1, reactions2 = decoder([1, 2, 3, 4])
-        self.assertTrue(sorted(reactions1, key=lambda x: x.id) == sorted(reactions2, key=lambda x: x.id))
+    def test_reaction_set_decoder(self):
+        decoder = ReactionSetDecoder([r.id for r in self.model.reactions], self.model)
+        reactions = decoder([1, 2, 3, 4])
+        for i in range(1, 5):
+            self.assertEqual(self.model.reactions[i], reactions[i-1])
 
-    def test_gene_knockout_decoder(self):
-        decoder = GeneKnockoutDecoder([g.id for g in self.model.genes], self.model)
-        reactions1, genes = decoder([1, 2, 3, 4])
-        reactions2 = find_gene_knockout_reactions(self.model, genes)
-        self.assertTrue(sorted(reactions1, key=lambda x: x.id) == sorted(reactions2, key=lambda x: x.id))
+    def test_gene_set_decoder(self):
+        decoder = GeneSetDecoder([g.id for g in self.model.genes], self.model)
+        genes = decoder([1, 2, 3, 4])
+        for i in range(1, 5):
+            self.assertEqual(self.model.genes[i], genes[i-1])
 
 
 class TestGenerators(unittest.TestCase):
@@ -800,7 +787,7 @@ class TestMigrators(unittest.TestCase):
         self.assertEqual(len(migrator.migrants), 1)
 
 
-class TestKnockoutOptimizationResult(unittest.TestCase):
+class TestOptimizationResult(unittest.TestCase):
     def setUp(self):
         self.model = TEST_MODEL
         self.representation = [r.id for r in self.model.reactions]
@@ -809,26 +796,26 @@ class TestKnockoutOptimizationResult(unittest.TestCase):
         self.solutions = BestSolutionArchive()
         for _ in range(10000):
             self.solutions.add(set_generator(random, args), random.random(), None, True, 100)
-        self.decoder = ReactionKnockoutDecoder(self.representation, self.model)
+        self.decoder = ReactionSetDecoder(self.representation, self.model)
 
     def test_reaction_result(self):
-        result = KnockoutOptimizationResult(
+        result = TargetOptimizationResult(
             model=self.model,
             heuristic_method=None,
             simulation_method=fba,
             simulation_kwargs=None,
             solutions=self.solutions,
             objective_function=None,
-            ko_type="reaction",
+            target_type="reaction",
             decoder=self.decoder,
             seed=SEED)
 
-        self.assertEqual(result.ko_type, "reaction")
+        self.assertEqual(result.target_type, "reaction")
 
         individuals = []
         for row in result:
             encoded = set(self.representation.index(v) for v in row[0])
-            individual = Individual(encoded, row[2])
+            individual = Individual(encoded, row[1])
             self.assertNotIn(individual, individuals, msg="%s is repeated on result")
             individuals.append(individual)
             self.assertIn(individual, self.solutions.archive)
@@ -840,13 +827,18 @@ class TestReactionKnockoutOptimization(unittest.TestCase):
         self.model = TEST_MODEL
         self.essential_reactions = set([r.id for r in self.model.essential_reactions()])
 
-    def test_initialize(self):
+    def test_initializer(self):
+        objective = biomass_product_coupled_yield(
+            "Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2",
+            "EX_ac_LPAREN_e_RPAREN_",
+            "EX_glc_LPAREN_e_RPAREN_")
         rko = ReactionKnockoutOptimization(model=self.model,
-                                           simulation_method=fba)
+                                           simulation_method=fba,
+                                           objective_function=objective)
 
         self.assertTrue(sorted(self.essential_reactions) == sorted(rko.essential_reactions))
-        self.assertEqual(rko._ko_type, "reaction")
-        self.assertTrue(isinstance(rko._decoder, ReactionKnockoutDecoder))
+        self.assertEqual(rko._target_type, "reaction")
+        self.assertTrue(isinstance(rko._decoder, ReactionSetDecoder))
 
     @unittest.skipIf(os.getenv('TRAVIS', False) or 'cplex' not in solvers, 'Missing cplex (or Travis)')
     def test_run_single_objective(self):
