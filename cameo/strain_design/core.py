@@ -228,9 +228,6 @@ class StrainDesignMethodEnsemble(StrainDesignMethodResult):
         super(StrainDesignMethodEnsemble, self).__init__(designs, *args, **kwargs)
         self._methods = methods
 
-    def __len__(self):
-        return len(self._knockouts)
-
     @property
     def data_frame(self):
         data = []
