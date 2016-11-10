@@ -134,13 +134,6 @@ class PathwayPredictions(StrainDesignMethodResult):
                 ppp = pathway.production_envelope(model, objective=objective)
                 ppp.plot(grid=grid, width=450, title="Pathway %i" % (i + 1))
 
-    def __iter__(self):
-        for p in self.pathways:
-            yield p
-
-    def __len__(self):
-        return len(self.pathways)
-
 
 class PathwayPredictor(object):
     """Pathway predictions from a universal set of reaction.
