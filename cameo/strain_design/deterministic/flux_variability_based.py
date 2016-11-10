@@ -335,14 +335,27 @@ class DifferentialFVA(StrainDesignMethod):
 class DifferentialFVAResult(StrainDesignMethodResult):
     def __init__(self, solutions, phase_plane, reference_fva, *args, **kwargs):
         self.phase_plane = phase_plane
-        # TODO: Convert solutions to designs
-        super(DifferentialFVAResult, self).__init__(self._generate_designs(solutions))
+        super(DifferentialFVAResult, self).__init__(self._generate_designs(solutions, reference_fva))
         self.reference_fva = reference_fva
         self.solutions = solutions
 
     @staticmethod
-    def _generate_designs(solutions):
-        return []
+    def _generate_designs(solutions, reference_fva):
+        designs = []
+
+        for _, solution in solutions.iteritmes():
+            relevant_targets = solution[solution.normalized_gaps != 0]
+            for rid, relevant_target in relevant_targets.iterrows():
+                if relevant_target.normalized_gaps > 0:
+                    designs.append(ReactionModulationTarget(rid,
+                                                            reference_fva.upper_bound(rid),
+                                                            relevant_target.lower_bound))
+                else:
+                    designs.append(ReactionModulationTarget(rid,
+                                                            reference_fva.lower_bound(rid),
+                                                            relevant_target.upper_bound))
+
+        return designs
 
     def __getitem__(self, item):
         columns = ["lower_bound", "upper_bound", "gaps", "normalized_gaps", "KO", "flux_reversal", "suddenly_essential"]
@@ -755,9 +768,6 @@ class FSEOFResult(StrainDesignMethodResult):
         self._reaction_results = reaction_results
         self._reference_fluxes = {r: reference.fluxes[r.id] for r in reactions}
 
-    def __len__(self):
-        return len(self.reactions)
-
     @staticmethod
     def _generate_designs(reference, enforced_levels, reaction_results):
         for i, level in enumerate(enforced_levels):
@@ -766,9 +776,8 @@ class FSEOFResult(StrainDesignMethodResult):
                 if abs(reference[reaction.id]) > 0:
                     if value[i] == 0:
                         targets.append(ReactionKnockoutTarget(reaction.id))
-                    elif value[i] > reference[reaction.id]:  # fold change (B - A)/A
-                        fold_change = (value[i] - reference[reaction.id]) / reference[reaction.id]
-                        targets.append(ReactionModulationTarget(reaction.id, fold_change, reference[reaction.id]))
+                    elif value[i] > reference[reaction.id]:
+                        targets.append(ReactionModulationTarget(reaction.id, value[i], reference[reaction.id]))
 
             yield StrainDesign(targets)
 
