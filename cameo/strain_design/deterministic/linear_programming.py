@@ -278,8 +278,11 @@ class OptKnockResult(StrainDesignMethodResult):
 
     @staticmethod
     def _generate_designs(knockouts):
+        designs = []
         for knockout_design in knockouts:
-            yield StrainDesign([ReactionKnockoutTarget(ko for ko in knockout_design)])
+            designs.append(StrainDesign([ReactionKnockoutTarget(ko for ko in knockout_design)]))
+
+        return designs
 
     def _process_knockouts(self):
         progress = ProgressBar(maxval=len(self._knockouts), widgets=["Processing solutions: ", Bar(), Percentage()])
