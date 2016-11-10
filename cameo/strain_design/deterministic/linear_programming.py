@@ -365,6 +365,3 @@ class OptKnockResult(StrainDesignMethodResult):
         </ul>
         %s""" % (self._target, self.data_frame._repr_html_())
         return html_string
-
-    def __len__(self):
-        return len(self.knockouts)
