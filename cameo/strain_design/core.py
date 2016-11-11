@@ -13,13 +13,19 @@
 # limitations under the License.
 from functools import partial
 
+import sys
 from cobra import DictList
-from gnomic import Genotype
-from gnomic.models import Feature, Accession, Del, Ins, Sub, Mutation
 from pandas import DataFrame
 
 from cameo import ui
 from cameo.core.result import Result
+
+try:
+    from gnomic import Genotype
+    from gnomic.models import Feature, Accession, Del, Ins, Sub, Mutation
+    _gnomic_available = True
+except Exception:
+    _gnomic_available = False
 
 
 class Target(object):
@@ -36,7 +42,11 @@ class Target(object):
             return False
 
     def to_gnomic(self):
-        return Accession(identifier=self.id)
+        if _gnomic_available:
+            return Accession(identifier=self.id)
+        else:
+            raise SystemError("Gnomic is output is only compatible with python >= 3 (%i.%i)" %
+                              (sys.version_info.major, sys.version_info.minor))
 
 
 class FluxModulationTarget(Target):
