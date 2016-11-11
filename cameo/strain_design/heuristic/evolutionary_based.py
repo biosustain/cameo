@@ -64,7 +64,7 @@ class OptGene(StrainDesignMethod):
         self._essential_genes = essential_genes
         self._essential_reactions = essential_reactions
         self._plot = plot
-        self.manipulation_type = manipulation_type
+        self._manipulation_type = manipulation_type
 
     @property
     def manipulation_type(self):
@@ -83,20 +83,6 @@ class OptGene(StrainDesignMethod):
     @manipulation_type.setter
     def manipulation_type(self, manipulation_type):
         self._manipulation_type = manipulation_type
-        if manipulation_type is "genes":
-            self._optimization_algorithm = GeneKnockoutOptimization(
-                model=self._model,
-                heuristic_method=self._algorithm,
-                essential_genes=self._essential_genes,
-                plot=self.plot)
-        elif manipulation_type is "reactions":
-            self._optimization_algorithm = ReactionKnockoutOptimization(
-                model=self._model,
-                heuristic_method=self._algorithm,
-                essential_reactions=self._essential_reactions,
-                plot=self.plot)
-        else:
-            raise ValueError("Invalid manipulation type %s" % manipulation_type)
 
     def run(self, target=None, biomass=None, substrate=None, max_knockouts=5, variable_size=True,
             simulation_method=fba, growth_coupled=False, max_evaluations=20000, population_size=200,
@@ -145,23 +131,39 @@ class OptGene(StrainDesignMethod):
             objective_function = biomass_product_coupled_min_yield(biomass, target, substrate)
         else:
             objective_function = biomass_product_coupled_yield(biomass, target, substrate)
-        self._optimization_algorithm.objective_function = objective_function
-        self._optimization_algorithm.simulation_kwargs = kwargs
-        self._optimization_algorithm.simulation_method = simulation_method
-        self._optimization_algorithm.archiver = ProductionStrainArchive()
 
-        result = self._optimization_algorithm.run(max_evaluations=max_evaluations,
-                                                  pop_size=population_size,
-                                                  max_size=max_knockouts,
-                                                  variable_size=variable_size,
-                                                  maximize=True,
-                                                  max_archive_size=max_results,
-                                                  seed=seed,
-                                                  **kwargs)
+        if self.manipulation_type is "genes":
+            optimization_algorithm = GeneKnockoutOptimization(
+                model=self._model,
+                heuristic_method=self._algorithm,
+                essential_genes=self._essential_genes,
+                plot=self.plot)
+        elif self.manipulation_type is "reactions":
+            optimization_algorithm = ReactionKnockoutOptimization(
+                model=self._model,
+                heuristic_method=self._algorithm,
+                essential_reactions=self._essential_reactions,
+                plot=self.plot)
+        else:
+            raise ValueError("Invalid manipulation type %s" % self.manipulation_type)
 
-        kwargs.update(self._optimization_algorithm.simulation_kwargs)
+        optimization_algorithm.objective_function = objective_function
+        optimization_algorithm.simulation_kwargs = kwargs
+        optimization_algorithm.simulation_method = simulation_method
+        optimization_algorithm.archiver = ProductionStrainArchive()
 
-        return OptGeneResult(self._model, result, objective_function, simulation_method, self._manipulation_type,
+        result = optimization_algorithm.run(max_evaluations=max_evaluations,
+                                            pop_size=population_size,
+                                            max_size=max_knockouts,
+                                            variable_size=variable_size,
+                                            maximize=True,
+                                            max_archive_size=max_results,
+                                            seed=seed,
+                                            **kwargs)
+
+        kwargs.update(optimization_algorithm.simulation_kwargs)
+
+        return OptGeneResult(self._model, result, objective_function, simulation_method, self.manipulation_type,
                              biomass, target, substrate, kwargs)
 
 
@@ -323,8 +325,7 @@ class OptSwap(StrainDesignMethod):
 
         self._algorithm = evolutionary_algorithm
         self._swap_pairs = cofactor_id_swaps
-        self._optimization_algorithm = CofactorSwapOptimization(model, cofactor_id_swaps=cofactor_id_swaps,
-                                                                skip_reactions=self._skip_reactions)
+        self._optimization_algorithm = None
         self._model = self._optimization_algorithm.model
         self._plot = plot
 
@@ -375,21 +376,26 @@ class OptSwap(StrainDesignMethod):
             objective_function = biomass_product_coupled_min_yield(biomass, target, substrate)
         else:
             objective_function = biomass_product_coupled_yield(biomass, target, substrate)
-        self._optimization_algorithm.objective_function = objective_function
-        self._optimization_algorithm.simulation_kwargs = kwargs
-        self._optimization_algorithm.simulation_method = simulation_method
-        self._optimization_algorithm.archiver = ProductionStrainArchive()
 
-        result = self._optimization_algorithm.run(max_evaluations=max_evaluations,
-                                                  pop_size=population_size,
-                                                  max_size=max_swaps,
-                                                  variable_size=variable_size,
-                                                  maximize=True,
-                                                  max_archive_size=max_results,
-                                                  seed=seed,
-                                                  **kwargs)
+        optimization_algorithm = CofactorSwapOptimization(model=self._model,
+                                                          cofactor_id_swaps=self._cofactor_id_swaps,
+                                                          skip_reactions=self._skip_reactions,
+                                                          objective_function=objective_function)
 
-        kwargs.update(self._optimization_algorithm.simulation_kwargs)
+        optimization_algorithm.simulation_kwargs = kwargs
+        optimization_algorithm.simulation_method = simulation_method
+        optimization_algorithm.archiver = ProductionStrainArchive()
+
+        result = optimization_algorithm.run(max_evaluations=max_evaluations,
+                                            pop_size=population_size,
+                                            max_size=max_swaps,
+                                            variable_size=variable_size,
+                                            maximize=True,
+                                            max_archive_size=max_results,
+                                            seed=seed,
+                                            **kwargs)
+
+        kwargs.update(optimization_algorithm.simulation_kwargs)
 
         return OptSwapResult(self._model, result, self._swap_pairs, objective_function,
                              simulation_method, biomass, target, substrate, kwargs)
