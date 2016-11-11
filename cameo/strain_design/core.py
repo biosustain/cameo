@@ -45,7 +45,7 @@ class Target(object):
         if _gnomic_available:
             return Accession(identifier=self.id)
         else:
-            raise SystemError("Gnomic is output is only compatible with python >= 3 (%i.%i)" %
+            raise SystemError("Gnomic is only compatible with python >= 3 (%i.%i)" %
                               (sys.version_info.major, sys.version_info.minor))
 
 
