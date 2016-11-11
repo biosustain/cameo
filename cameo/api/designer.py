@@ -20,6 +20,7 @@ from __future__ import absolute_import, print_function
 import re
 
 import numpy as np
+from six.moves import reduce
 
 try:
     from IPython.core.display import display
@@ -39,7 +40,7 @@ from cameo.core.result import Result
 from cameo.api.hosts import hosts, Host
 from cameo.api.products import products
 from cameo.exceptions import SolveError
-from cameo.strain_design.heuristic import OptGene
+from cameo.strain_design import OptGene, DifferentialFVA
 from cameo.ui import notice, searching, stop_loader
 from cameo.strain_design import pathway_prediction
 from cameo.util import TimeMachine
@@ -58,22 +59,29 @@ logger = logging.getLogger(__name__)
 
 
 class _OptimizationRunner(object):
-    def __call__(self, strategy, *args, **kwargs):
+    def __call__(self, strategy):
+        raise NotImplementedError
+
+
+class _OptGeneRunner(_OptimizationRunner):
+    def __call__(self, strategy):
         (model, pathway) = (strategy[1], strategy[2])
         with TimeMachine() as tm:
             pathway.plug_model(model, tm)
             opt_gene = OptGene(model=model, plot=False)
-            opt_gene_designs = opt_gene.run(target=pathway.product.id, biomass=model.biomass,
-                                            substrate=model.carbon_source, max_evaluations=10000,
-                                            growth_coupled=True)
-            opt_gene_designs._process_solutions()
+            designs = opt_gene.run(target=pathway.product.id, biomass=model.biomass, substrate=model.carbon_source,
+                                   max_evaluations=10000)
 
-            # TODO: OptKnock is quite slow. Improve OptKnock (model simplification?)
-            # opt_knock = OptKnock(model=model)
-            # opt_knock_designs = opt_knock.run(max_knockouts=5, target=pathway.product.id,
-            #                                   max_results=5, biomass=model.biomass, substrate=model.carbon_source)
+            return designs, pathway
 
-            designs = opt_gene_designs  # + opt_knock_designs
+
+class _DifferentialFVARunner(_OptimizationRunner):
+    def __call__(self, strategy):
+        (model, pathway) = (strategy[1], strategy[2])
+        with TimeMachine() as tm:
+            pathway.plug_model(model, tm)
+            opt_gene = DifferentialFVA(design_space_model=model, objective=pathway.product.id)
+            designs = opt_gene.run()
 
             return designs, pathway
 
@@ -142,14 +150,41 @@ class Designer(object):
         optimization_reports = self.optimize_strains(pathways, view)
         return optimization_reports
 
-    @staticmethod
-    def optimize_strains(pathways, view):
+    def optimize_strains(self, pathways, view):
         """
+        Optimize targets for the identified pathways. The optimization will only run if the patwhay can be optimized.
+
+        Arguments
+        ---------
+        pathways: list
+            A list of dictionaries to optimize.
+        view: object
+            A view for multi, single os distributed processing.
+
         """
-        runner = _OptimizationRunner()
+        opt_gene_runner = _OptGeneRunner()
+        differential_fva_runner = _DifferentialFVARunner()
         designs = [(host, model, pathway) for (host, model) in pathways for pathway in pathways[host, model]
                    if pathway.needs_optimization(model, objective=model.biomass)]
-        return view.map(runner, designs)
+
+        final_designs = []
+
+        results = view.map(opt_gene_runner, designs)
+        final_designs += self.process_strain_design_results(results)
+        results = view.map(differential_fva_runner, designs)
+        final_designs += self.process_strain_design_results(results)
+
+        return reduce(lambda x, y: x + y, final_designs)
+
+    @staticmethod
+    def process_strain_design_results(results):
+        designs = []
+        for res in results:
+            (design_result, pathway) = (res[0], res[1])
+            for strain_design in design_result:
+                strain_design += pathway
+            designs.append(design_result)
+        return designs
 
     def predict_pathways(self, product, hosts=None, database=None):  # TODO: make this work with a single host or model
         """Predict production routes for a desired product and host spectrum.

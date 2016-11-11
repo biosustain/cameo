@@ -237,6 +237,9 @@ class StrainDesign(object):
     def __add__(self, other):
         return StrainDesign(self.targets + other.targets)
 
+    def __iadd__(self, other):
+        self.targets += other.targets
+
     def to_gnomic(self):
         return Genotype([target.to_gnomic() for target in self.targets])
 
