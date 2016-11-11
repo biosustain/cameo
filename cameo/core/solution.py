@@ -216,7 +216,7 @@ class LazySolution(SolutionBase):
         self._f = None
         self._primal_values = None
         self._dual_values = None
-        self._reduced_costs_values = None
+        self._reduced_values = None
 
     def _check_freshness(self):
         """Raises an exceptions if the solution might have become invalid due to re-optimization of the attached model.
