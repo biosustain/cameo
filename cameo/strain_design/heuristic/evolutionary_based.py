@@ -137,13 +137,15 @@ class OptGene(StrainDesignMethod):
                 model=self._model,
                 heuristic_method=self._algorithm,
                 essential_genes=self._essential_genes,
-                plot=self.plot)
+                plot=self.plot,
+                objective_function=objective_function)
         elif self.manipulation_type is "reactions":
             optimization_algorithm = ReactionKnockoutOptimization(
                 model=self._model,
                 heuristic_method=self._algorithm,
                 essential_reactions=self._essential_reactions,
-                plot=self.plot)
+                plot=self.plot,
+                objective_function=objective_function)
         else:
             raise ValueError("Invalid manipulation type %s" % self.manipulation_type)
 
