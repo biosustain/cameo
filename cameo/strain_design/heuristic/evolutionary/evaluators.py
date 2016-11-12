@@ -27,8 +27,11 @@ __all__ = ['KnockoutEvaluator', 'SwapEvaluator']
 
 
 class Evaluator(object):
+    """
+    Any evaluator that takes a population and returns a fitness.
+    """
     def __call__(self, population):
-        raise NotImplemented
+        raise NotImplementedError
 
 
 class TargetEvaluator(Evaluator):
@@ -95,7 +98,7 @@ class TargetEvaluator(Evaluator):
         return isinstance(self.objective_function, list)
 
     def _evaluate_individual(self, individual):
-        raise NotImplemented
+        raise NotImplementedError
 
     def _calculate_fitness(self, solution, targets):
         if self.is_mo:

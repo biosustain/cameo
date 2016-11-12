@@ -11,9 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import sys
 from functools import partial
 
-import sys
 from cobra import DictList
 from pandas import DataFrame
 
@@ -33,7 +33,7 @@ class Target(object):
         self.id = id
 
     def apply(self, model, time_machine=None):
-        raise NotImplemented
+        raise NotImplementedError
 
     def __eq__(self, other):
         if isinstance(other, Target):
@@ -58,7 +58,7 @@ class FluxModulationTarget(Target):
         self._value = value
 
     def get_target(self, model):
-        raise NotImplemented
+        raise NotImplementedError
 
     def apply(self, model, time_machine=None):
         target = self.get_target(model)
@@ -135,7 +135,7 @@ class KnockinTarget(Target):
         self._value = value
 
     def to_gnomic(self):
-        raise NotImplemented
+        raise NotImplementedError
 
 
 class ReactionKnockinTarget(KnockinTarget):
@@ -238,7 +238,7 @@ class StrainDesign(object):
         return StrainDesign(self.targets + other.targets)
 
     def __iadd__(self, other):
-        self.targets += other.targets
+        self.targets.extend(other.targets)
 
     def to_gnomic(self):
         return Genotype([target.to_gnomic() for target in self.targets])
