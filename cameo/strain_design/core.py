@@ -215,8 +215,7 @@ class StrainDesign(object):
         return str(self)
 
     def __iter__(self):
-        for t in self.targets:
-            yield t
+        return iter(self.targets)
 
     def __len__(self):
         return len(self.targets)
@@ -265,8 +264,7 @@ class StrainDesignMethodResult(Result):
         """
         Returns an iterator that yields StrainDesign objects.
         """
-        for design in self._designs:
-            yield design
+        return iter(self._designs)
 
     @property
     def data_frame(self):
