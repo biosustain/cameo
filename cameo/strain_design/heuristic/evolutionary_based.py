@@ -202,7 +202,7 @@ class OptGeneResult(StrainDesignMethodResult):
         else:
             raise ValueError("Invalid 'manipulation_type' %s" % manipulation_type)
 
-        for knockout_design in knockouts:
+        for knockout_design, _ in knockouts:
             designs.append(StrainDesign([target_class(ko) for ko in knockout_design]))
 
         return designs
@@ -425,7 +425,7 @@ class OptSwapResult(StrainDesignMethodResult):
     @staticmethod
     def _generate_designs(swaps, swap_pair):
         designs = []
-        for swap_design in swaps:
+        for swap_design, _ in swaps:
             designs.append(StrainDesign([ReactionCofactorSwapTarget(swap, swap_pair) for swap in swap_design]))
 
         return designs
