@@ -17,10 +17,10 @@ from __future__ import absolute_import, print_function
 
 import datetime
 import logging
+import time
 from collections import OrderedDict
 
 import cobra
-import time
 from pandas import DataFrame, Series
 
 import cameo
@@ -156,18 +156,15 @@ class Solution(SolutionBase):
         super(Solution, self).__init__(model, *args, **kwargs)
         self.f = model.solver.objective.value
         self.fluxes = OrderedDict()
-        self.shadow_prices = OrderedDict()
+        self.shadow_prices = model.solver.shadow_prices
         self.reduced_costs = OrderedDict()
         self._primal_values = model.solver.primal_values
-        self._dual_values = model.solver.dual_values
         self._reduced_values = model.solver.reduced_costs
 
         for reaction in model.reactions:
             self.fluxes[reaction.id] = self._primal_values[reaction._get_forward_id()] - self._primal_values[reaction._get_reverse_id()]
 
             self.reduced_costs[reaction.id] = self._reduced_values[reaction._get_forward_id()] - self._reduced_values[reaction._get_reverse_id()]
-        for metabolite in model.metabolites:
-            self.shadow_prices[metabolite.id] = self._dual_values[metabolite.id]
 
         self.status = model.solver.status
         self._reaction_ids = [r.id for r in self.model.reactions]
@@ -215,7 +212,6 @@ class LazySolution(SolutionBase):
             self._time_stamp = time.time()
         self._f = None
         self._primal_values = None
-        self._dual_values = None
         self._reduced_values = None
 
     def _check_freshness(self):
@@ -278,11 +274,7 @@ class LazySolution(SolutionBase):
     @property
     def shadow_prices(self):
         self._check_freshness()
-        dual_values = self.model.solver.dual_values
-        shadow_prices = {}
-        for metabolite in self.model.metabolites:
-            shadow_prices[metabolite.id] = dual_values[metabolite.id]
-        return shadow_prices
+        return self.model.solver.shadow_prices
 
     def get_primal_by_id(self, reaction_id):
         """Return a flux/primal value for a reaction.
