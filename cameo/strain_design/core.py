@@ -11,6 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""
+Core implementation of strain design. It contains core structures.
+Targets (and subclasses) are identified by strain design methods.
+"""
+
 import sys
 from functools import partial
 
@@ -19,6 +24,7 @@ from pandas import DataFrame
 
 from cameo import ui
 from cameo.core.result import Result
+from cameo.exceptions import IncompatibleTargets
 
 try:
     from gnomic import Genotype
@@ -28,11 +34,34 @@ except Exception:
     _gnomic_available = False
 
 
+__all__ = ['ReactionModulationTarget', 'ReactionKnockoutTarget', 'ReactionCofactorSwapTarget', 'ReactionKnockinTarget',
+           'GeneModulationTarget', 'GeneKnockoutTarget', 'StrainDesign', 'StrainDesignMethod', 'StrainDesignMethodResult']
+
+
 class Target(object):
+    """
+    A Target is element of a COBRA model that will change to achieve a given phenotype.
+    They are identified by StrainDesignMethod.run when identifying which manipulations
+    are necessary to improve some fitness function.
+
+    Attributes
+    ----------
+    id: str
+        The identifier of the target. The id must be present in the COBRA model.
+
+    """
     def __init__(self, id):
         self.id = id
 
     def apply(self, model, time_machine=None):
+        """
+        Applies the modification on the target, depending on the target type.
+
+        See Also
+        --------
+        Subclass implementations
+
+        """
         raise NotImplementedError
 
     def __eq__(self, other):
@@ -41,7 +70,14 @@ class Target(object):
         else:
             return False
 
+    def __gt__(self, other):
+        return self.id > other.id
+
     def to_gnomic(self):
+        """
+        If gnomic is available, return a Gnomic representation of the Target.
+
+        """
         if _gnomic_available:
             return Accession(identifier=self.id)
         else:
@@ -50,6 +86,14 @@ class Target(object):
 
 
 class FluxModulationTarget(Target):
+    """
+    A Target that changes the flux constraints (knockouts, over-expression or down-regulation).
+
+    See Also
+    --------
+    ReactionModulationTarget, ReactionKnockoutTarget, GeneModulationTarget and GeneKnockoutTarget for implementation.
+
+    """
     __gnomic_feature_type__ = 'flux'
 
     def __init__(self, id, value, reference_value):
@@ -57,11 +101,11 @@ class FluxModulationTarget(Target):
         self._reference_value = reference_value
         self._value = value
 
-    def get_target(self, model):
+    def get_model_target(self, model):
         raise NotImplementedError
 
     def apply(self, model, time_machine=None):
-        target = self.get_target(model)
+        target = self.get_model_target(model)
 
         if self._value > 0:
             target.overexpress(self._value, reference_value=self._reference_value, time_machine=time_machine)
@@ -103,12 +147,10 @@ class FluxModulationTarget(Target):
             return Mutation(feature, under_expression)
 
 
-class SwapTarget(Target):
-    def __init__(self, id):
-        super(SwapTarget, self).__init__(id)
-
-
 class ReactionCofactorSwapTarget(Target):
+    """
+    Swap cofactors of a given reaction.
+    """
     def __init__(self, id, swap_pairs):
         super(ReactionCofactorSwapTarget, self).__init__(id)
         self.swap_pairs = swap_pairs
@@ -154,6 +196,21 @@ class ReactionKnockinTarget(KnockinTarget):
         feature = Feature(accession=accession, type='reaction')
         return Ins(feature)
 
+    def __gt__(self, other):
+        if self.id == other.id:
+            if isinstance(other, ReactionModulationTarget):
+                return False
+            else:
+                raise IncompatibleTargets(self, other)
+        else:
+            return self.id > other.id
+
+    def __eq__(self, other):
+        if isinstance(other, ReactionKnockinTarget):
+            return self.id == other.id
+        else:
+            return False
+
 
 class GeneModulationTarget(FluxModulationTarget):
     __gnomic_feature_type__ = "gene"
@@ -161,8 +218,25 @@ class GeneModulationTarget(FluxModulationTarget):
     def __init__(self, id, value, reference_value):
         super(GeneModulationTarget, self).__init__(id, value, reference_value)
 
-    def get_target(self, model):
+    def get_model_target(self, model):
         return model.genes.get_by_id(self.id)
+
+    def __gt__(self, other):
+        if self.id == other.id:
+            if isinstance(other, GeneKnockoutTarget):
+                return False
+            elif isinstance(other, GeneModulationTarget) and not isinstance(other, GeneKnockoutTarget):
+                return self.fold_change > other.fold_change
+            else:
+                raise IncompatibleTargets(self, other)
+        else:
+            return self.id > other.id
+
+    def __eq__(self, other):
+        if isinstance(other, GeneModulationTarget):
+            return self.id == other.id and self._value == other._value and self._reference_value == other._reference_value
+        else:
+            return False
 
 
 class GeneKnockoutTarget(GeneModulationTarget):
@@ -170,8 +244,27 @@ class GeneKnockoutTarget(GeneModulationTarget):
         super(GeneKnockoutTarget, self).__init__(id, 0, None)
 
     def apply(self, model, time_machine=None):
-        target = self.get_target(model)
+        target = self.get_model_target(model)
         target.knock_out(time_machine=time_machine)
+
+    def __gt__(self, other):
+        if self.id == other.id:
+            if isinstance(other, GeneModulationTarget) and not isinstance(other, GeneKnockoutTarget):
+                return self.fold_change > other.fold_change
+            elif isinstance(other, GeneKnockoutTarget):
+                return False
+            else:
+                raise IncompatibleTargets(self, other)
+        else:
+            return self.id > other.id
+
+    def __eq__(self, other):
+        if isinstance(other, GeneKnockoutTarget):
+            return self.id == other.id
+        elif isinstance(other, GeneModulationTarget):
+            return self.id == other.id and other._value == 0
+        else:
+            return False
 
 
 class ReactionModulationTarget(FluxModulationTarget):
@@ -180,8 +273,27 @@ class ReactionModulationTarget(FluxModulationTarget):
     def __init__(self, id, value, reference_value):
         super(ReactionModulationTarget, self).__init__(id, value, reference_value)
 
-    def get_target(self, model):
+    def get_model_target(self, model):
         return model.reactions.get_by_id(self.id)
+
+    def __gt__(self, other):
+        if self.id == other.id:
+            if isinstance(other, ReactionKnockinTarget):
+                return False
+            elif isinstance(other, ReactionCofactorSwapTarget):
+                return True
+            elif isinstance(other, ReactionModulationTarget) and not isinstance(other, ReactionKnockoutTarget):
+                return self.fold_change > other.fold_change
+            else:
+                raise IncompatibleTargets(self, other)
+        else:
+            return self.id > other.id
+
+    def __eq__(self, other):
+        if isinstance(other, ReactionModulationTarget):
+            return self.id == other.id and self._value == other._value and self._reference_value == other._reference_value
+        else:
+            return False
 
 
 class ReactionKnockoutTarget(ReactionModulationTarget):
@@ -189,8 +301,37 @@ class ReactionKnockoutTarget(ReactionModulationTarget):
         super(ReactionKnockoutTarget, self).__init__(id, 0, None)
 
     def apply(self, model, time_machine=None):
-        target = self.get_target(model)
+        target = self.get_model_target(model)
         target.knock_out(time_machine=time_machine)
+
+    def __gt__(self, other):
+        if self.id == other.id:
+            if isinstance(other, ReactionModulationTarget):
+                return True
+            elif isinstance(other, ReactionCofactorSwapTarget):
+                return True
+            else:
+                raise IncompatibleTargets(self, other)
+        else:
+            return self.id > other.id
+
+    def __eq__(self, other):
+        if isinstance(other, ReactionKnockoutTarget):
+            return self.id == other.id
+        elif isinstance(other, ReactionModulationTarget):
+            return self.id == other.id and other._value == 0
+        else:
+            return False
+
+
+class EnsembleTarget(Target):
+    def __init__(self, id, targets):
+        super(EnsembleTarget, self).__init__(id)
+        self.targets = list(sorted(set(targets)))
+
+    def apply(self, model, time_machine=None):
+        for target in self.targets:
+            target.apply(model, time_machine=time_machine)
 
 
 class StrainDesignMethod(object):
@@ -205,6 +346,10 @@ class StrainDesignMethod(object):
 
 
 class StrainDesign(object):
+    """
+    A StrainDesign is a collection of targets in a COBRA model. The targets, identified by a StrainDesignMethod,
+    map elements in the model that need to be modified to achieve the objective of the design method.
+    """
     def __init__(self, targets):
         self.targets = DictList(targets)
 
@@ -225,7 +370,7 @@ class StrainDesign(object):
             if len(self) != len(other):
                 return False
             else:
-                return all(self.targets[i] == other.targets[i] for i in range(self))
+                return all(self.targets[i] == other.targets[i] for i in range(self.__len__()))
         else:
             return False
 
@@ -234,10 +379,35 @@ class StrainDesign(object):
             target.apply(model, time_machine)
 
     def __add__(self, other):
-        return StrainDesign(self.targets + other.targets)
+        targets = {}
+        for target in self.targets:
+            if target.id not in targets:
+                targets[target.id] = []
+            targets[target.id].append(target)
+
+        for target in other.targets:
+            if target.id not in targets:
+                targets[target.id] = []
+            targets[target.id].append(target)
+
+        targets = [targets[0] if len(targets) == 1 else EnsembleTarget(targets) for targets in targets.values()]
+
+        return StrainDesign(targets)
 
     def __iadd__(self, other):
-        self.targets.extend(other.targets)
+        targets = {}
+        for target in self.targets:
+            if target.id not in targets:
+                targets[target.id] = []
+            targets[target.id].append(target)
+
+        for target in other.targets:
+            if target.id not in targets:
+                targets[target.id] = []
+            targets[target.id].append(target)
+
+        targets = [targets[0] if len(targets) == 1 else EnsembleTarget(targets) for targets in targets.values()]
+        self.targets = DictList(targets)
 
     def to_gnomic(self):
         return Genotype([target.to_gnomic() for target in self.targets])
