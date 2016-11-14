@@ -17,6 +17,13 @@ from __future__ import absolute_import, print_function
 import optlang.interface
 
 
+class IncompatibleTargets(Exception):
+    def __iadd__(self, target1, target2):
+        super(IncompatibleTargets).__init__("Incompatible targets %s and %s" % (target1, target2))
+        self.target1 = target1
+        self.target2 = target2
+
+
 class SolveError(Exception):
     def __init__(self, message):
         super(SolveError, self).__init__(message)
