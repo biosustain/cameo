@@ -84,6 +84,9 @@ class Target(object):
             raise SystemError("Gnomic is only compatible with python >= 3 (%i.%i)" %
                               (sys.version_info.major, sys.version_info.minor))
 
+    def __str__(self):
+        return self.id
+
 
 class FluxModulationTarget(Target):
     """
@@ -170,6 +173,9 @@ class ReactionCofactorSwapTarget(Target):
         new_feature = Feature(accession=new_accession, type='reaction')
         return Sub(original_feature, new_feature)
 
+    def __str__(self):
+        return self.id + "|" + self.swap_str
+
 
 class KnockinTarget(Target):
     def __init__(self, id, value):
@@ -211,6 +217,9 @@ class ReactionKnockinTarget(KnockinTarget):
         else:
             return False
 
+    def __str__(self):
+        return "::%s" % self.id
+
 
 class GeneModulationTarget(FluxModulationTarget):
     __gnomic_feature_type__ = "gene"
@@ -240,6 +249,9 @@ class GeneModulationTarget(FluxModulationTarget):
 
 
 class GeneKnockoutTarget(GeneModulationTarget):
+    """
+    Gene Knockout Target. Knockout a gene present in a COBRA model.
+    """
     def __init__(self, id):
         super(GeneKnockoutTarget, self).__init__(id, 0, None)
 
@@ -297,6 +309,9 @@ class ReactionModulationTarget(FluxModulationTarget):
 
 
 class ReactionKnockoutTarget(ReactionModulationTarget):
+    """
+    Reaction Knockout Target. Knockout a reaction present in a COBRA model.
+    """
     def __init__(self, id):
         super(ReactionKnockoutTarget, self).__init__(id, 0, None)
 
@@ -325,6 +340,15 @@ class ReactionKnockoutTarget(ReactionModulationTarget):
 
 
 class EnsembleTarget(Target):
+    """
+    A Target resulting of merging multiple Targets.
+    For example:
+        1. ReactionKnockinTarget
+        2. ReactionModulationTarget
+
+    The Targets are prioritized by what should happen first in order to don't break.
+
+    """
     def __init__(self, id, targets):
         super(EnsembleTarget, self).__init__(id)
         self.targets = list(sorted(set(targets)))
@@ -332,6 +356,9 @@ class EnsembleTarget(Target):
     def apply(self, model, time_machine=None):
         for target in self.targets:
             target.apply(model, time_machine=time_machine)
+
+    def __str__(self):
+        return "\n".join("%i - %s" % (i, str(target)) for i, target in enumerate(self.targets))
 
 
 class StrainDesignMethod(object):
