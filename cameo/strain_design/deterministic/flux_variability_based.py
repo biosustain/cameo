@@ -344,17 +344,18 @@ class DifferentialFVAResult(StrainDesignMethodResult):
         designs = []
 
         for _, solution in solutions.iteritems():
+            targets = []
             relevant_targets = solution[solution.normalized_gaps != 0]
             for rid, relevant_target in relevant_targets.iterrows():
                 if relevant_target.normalized_gaps > 0:
-                    designs.append(ReactionModulationTarget(rid,
+                    targets.append(ReactionModulationTarget(rid,
                                                             reference_fva['upper_bound'][rid],
                                                             relevant_target.lower_bound))
                 else:
-                    designs.append(ReactionModulationTarget(rid,
+                    targets.append(ReactionModulationTarget(rid,
                                                             reference_fva['lower_bound'][rid],
                                                             relevant_target.upper_bound))
-
+            designs.append(StrainDesign(targets))
         return designs
 
     def __getitem__(self, item):
