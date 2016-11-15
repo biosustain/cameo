@@ -19,6 +19,7 @@ Targets (and subclasses) are identified by strain design methods.
 import sys
 from functools import partial
 
+import six
 from cobra import DictList
 from pandas import DataFrame
 
@@ -351,6 +352,7 @@ class EnsembleTarget(Target):
     """
     def __init__(self, id, targets):
         super(EnsembleTarget, self).__init__(id)
+        assert all(t.id == id for t in targets)
         self.targets = list(sorted(set(targets)))
 
     def apply(self, model, time_machine=None):
@@ -417,7 +419,7 @@ class StrainDesign(object):
                 targets[target.id] = []
             targets[target.id].append(target)
 
-        targets = [targets[0] if len(targets) == 1 else EnsembleTarget(targets) for targets in targets.values()]
+        targets = [t[0] if len(t) == 1 else EnsembleTarget(id, t) for id, t in six.iteritems(targets)]
 
         return StrainDesign(targets)
 
