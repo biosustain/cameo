@@ -192,6 +192,7 @@ class ModelDB(object):
         else:
             super(ModelDB, self).__getattribute__(item)
 
+
 bigg = ModelDB(index_models_bigg, 'bigg_id', lambda q, idx: get_model_from_bigg(q))
 
 minho = ModelDB(index_models_minho, 'name', get_model_from_uminho)
@@ -201,6 +202,7 @@ def validated_minho_names():
     minho = index_models_minho()
     minho_validated = minho[minho.validated]
     return minho_validated
+
 
 minho.validated = ModelDB(validated_minho_names, 'name', get_model_from_uminho)
 
