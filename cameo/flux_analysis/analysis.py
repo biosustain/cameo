@@ -15,29 +15,27 @@
 
 from __future__ import absolute_import, print_function
 
-from cobra.core import Reaction, Metabolite
-
-import six
-from six.moves import zip
-from numpy import trapz
-
 import itertools
+import logging
 from collections import OrderedDict
 from functools import partial, reduce
+
 import numpy
 import pandas
+import six
+from cobra.core import Reaction, Metabolite
+from numpy import trapz
+from six.moves import zip
 
 import cameo
 from cameo import config
-from cameo.exceptions import Infeasible, Unbounded
-from cameo.util import TimeMachine, partition
-from cameo.parallel import SequentialView
 from cameo.core.result import Result
-from cameo.ui import notice
-from cameo.visualization.plotting import plotter
+from cameo.exceptions import Infeasible, Unbounded
 from cameo.flux_analysis.util import remove_infeasible_cycles
-
-import logging
+from cameo.parallel import SequentialView
+from cameo.ui import notice
+from cameo.util import TimeMachine, partition
+from cameo.visualization.plotting import plotter
 
 logger = logging.getLogger(__name__)
 
@@ -621,7 +619,7 @@ class PhenotypicPhasePlaneResult(Result):
         possible_estimates = {'flux': ('objective_upper_bound',
                                        'objective_lower_bound',
                                        'flux',
-                                       '[h^-1]'),
+                                       '[mmol gDW^-1 h^-1]'),
                               'mass_yield': ('mass_yield_upper_bound',
                                              'mass_yield_lower_bound',
                                              'mass yield, source={}'.format(self.source_reaction),
@@ -639,8 +637,8 @@ class PhenotypicPhasePlaneResult(Result):
         if len(self.variable_ids) == 1:
 
             variable = self.variable_ids[0]
-            x_axis_label = '{} [mmol gDW^-1 h^-1]'.format(self.nice_variable_ids[0])
-            y_axis_label = '{} {}'.format(self.nice_objective_id, unit)
+            y_axis_label = '{} [h^-1]'.format(self.nice_objective_id)
+            x_axis_label = '{} {}'.format(self.nice_variable_ids[0], unit)
 
             dataframe = pandas.DataFrame(columns=["ub", "lb", "value", "strain"])
             for _, row in self.iterrows():
@@ -655,9 +653,9 @@ class PhenotypicPhasePlaneResult(Result):
         elif len(self.variable_ids) == 2:
             var_1 = self.variable_ids[0]
             var_2 = self.variable_ids[1]
-            x_axis_label = '{} [mmol gDW^-1 h^-1]'.format(self.nice_variable_ids[0])
-            y_axis_label = '{} [mmol gDW^-1 h^-1]'.format(self.nice_variable_ids[1])
-            z_axis_label = '{} {}'.format(self.nice_objective_id, unit)
+            x_axis_label = '{} {}'.format(self.nice_variable_ids[0], unit)
+            y_axis_label = '{} {}'.format(self.nice_variable_ids[1], unit)
+            z_axis_label = '{} [h^-1]'.format(self.nice_objective_id)
 
             dataframe = pandas.DataFrame(columns=["ub", "lb", "value1", "value2", "strain"])
             for _, row in self.iterrows():
