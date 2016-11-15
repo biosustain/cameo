@@ -30,6 +30,7 @@ import cobra
 import optlang
 import six
 import sympy
+from cobra.manipulation import find_gene_knockout_reactions
 from pandas import DataFrame, pandas
 from sympy import Add
 from sympy import Mul
@@ -422,13 +423,13 @@ class SolverBasedModel(cobra.core.Model):
 
         Examples
         --------
-        model.add_ratio_constraint('r1', 'r2', 0.5)
-        print model.solver.constraints['ratio_constraint_r1_r2']
-        > ratio_constraint: ratio_constraint_r1_r2: 0 <= -0.5*r1 + 1.0*PGI <= 0
+        >>> model.add_ratio_constraint('r1', 'r2', 0.5)
+        >>> print(model.solver.constraints['ratio_constraint_r1_r2'])
+        ratio_constraint: ratio_constraint_r1_r2: 0 <= -0.5 * r1 + 1.0 * PGI <= 0
         """
-        if isinstance(reaction1, bytes):
+        if isinstance(reaction1, six.string_types):
             reaction1 = self.reactions.get_by_id(reaction1)
-        if isinstance(reaction2, bytes):
+        if isinstance(reaction2, six.string_types):
             reaction2 = self.reactions.get_by_id(reaction2)
         ratio_constraint = self.solver.interface.Constraint(
             reaction1.flux_expression - ratio * reaction2.flux_expression, lb=0, ub=0,
