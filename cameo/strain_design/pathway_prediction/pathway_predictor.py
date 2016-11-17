@@ -17,10 +17,10 @@ from __future__ import absolute_import, print_function
 import logging
 import re
 from functools import partial
+from math import ceil
 
 import six
 import sympy
-from math import ceil
 from sympy import Add, Mul, RealNumber
 
 from cameo import Model, Metabolite
@@ -28,9 +28,10 @@ from cameo import models, phenotypic_phase_plane
 from cameo.config import non_zero_flux_threshold
 from cameo.core.pathway import Pathway
 from cameo.core.result import Result, MetaInformation
+from cameo.core.strain_design import StrainDesignMethodResult, StrainDesign
+from cameo.core.target import ReactionKnockinTarget
 from cameo.data import metanetx
 from cameo.exceptions import SolveError
-from cameo.strain_design.core import StrainDesignMethodResult, StrainDesign, ReactionKnockinTarget
 from cameo.strain_design.pathway_prediction import util
 from cameo.util import TimeMachine
 from cameo.visualization.plotting import plotter

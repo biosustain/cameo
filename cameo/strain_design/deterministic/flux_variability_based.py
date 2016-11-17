@@ -51,8 +51,8 @@ from cameo.visualization.palette import mapper, Palette
 from cameo.flux_analysis.analysis import flux_variability_analysis, phenotypic_phase_plane
 from cameo.flux_analysis.simulation import pfba, fba
 
-from cameo.strain_design.core import StrainDesignMethod, StrainDesignMethodResult, StrainDesign, ReactionKnockoutTarget, \
-    ReactionModulationTarget
+from cameo.core.strain_design import StrainDesignMethod, StrainDesignMethodResult, StrainDesign
+from cameo.core.target import ReactionKnockoutTarget, ReactionModulationTarget
 
 with warnings.catch_warnings():
     warnings.simplefilter("ignore")

@@ -27,10 +27,11 @@ from sympy import Add
 from cameo import config
 from cameo import ui
 from cameo.core.solver_based_model_dual import convert_to_dual
+from cameo.core.strain_design import StrainDesignMethodResult, StrainDesignMethod, StrainDesign
+from cameo.core.target import ReactionKnockoutTarget
 from cameo.exceptions import SolveError
 from cameo.flux_analysis.analysis import phenotypic_phase_plane, flux_variability_analysis
 from cameo.flux_analysis.simulation import fba
-from cameo.strain_design.core import StrainDesignMethodResult, StrainDesignMethod, StrainDesign, ReactionKnockoutTarget
 from cameo.util import TimeMachine
 from cameo.visualization.plotting import plotter
 

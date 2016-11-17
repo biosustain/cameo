@@ -23,9 +23,9 @@ from IProgress.progressbar import ProgressBar
 from IProgress.widgets import Bar, Percentage
 from pandas import DataFrame
 
-from cameo.core.core import StrainDesignMethod, StrainDesignMethodResult, StrainDesign, ReactionKnockoutTarget, \
-    GeneKnockoutTarget, ReactionCofactorSwapTarget
 from cameo.core.solver_based_model import SolverBasedModel
+from cameo.core.strain_design import StrainDesignMethod, StrainDesignMethodResult, StrainDesign
+from cameo.core.target import ReactionKnockoutTarget, GeneKnockoutTarget, ReactionCofactorSwapTarget
 from cameo.exceptions import SolveError
 from cameo.flux_analysis.analysis import phenotypic_phase_plane
 from cameo.flux_analysis.simulation import fba
