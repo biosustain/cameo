@@ -748,6 +748,13 @@ class CofactorSwapOptimization(TargetOptimization):
 
         Find reactions that have one set of the cofactors targeted for swapping and are mass balanced and updates the
         `candidate_reactions` attribute
+
+        Arguments
+        ---------
+        model: SolverBasedModel
+            A model with reactions to search on.
+        swaps: tuple
+            Pair of cofactors to swap.
         """
 
         def swap_search(mets):
