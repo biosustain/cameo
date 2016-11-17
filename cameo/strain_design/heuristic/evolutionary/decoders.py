@@ -18,13 +18,17 @@ __all__ = ['ReactionSetDecoder', 'GeneSetDecoder']
 
 
 class SetDecoder(object):
+    """
+    Decoder for set representation. Decodes integer into string.
+    """
+
     def __init__(self, representation, model, *args, **kwargs):
         super(SetDecoder, self).__init__(*args, **kwargs)
         self.representation = representation
         self.model = model
 
     def __call__(self, individual, flat=False):
-        raise NotImplementedError
+        return [self.representation[index] for index in individual]
 
 
 class ReactionSetDecoder(SetDecoder):
