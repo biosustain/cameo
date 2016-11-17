@@ -316,10 +316,10 @@ class OptGeneResult(StrainDesignMethodResult):
         plotter.display(plot)
 
 
-class OptSwap(StrainDesignMethod):
+class HeuristicOptSwap(StrainDesignMethod):
     def __init__(self, model, evolutionary_algorithm=inspyred.ec.GA, plot=True, cofactor_id_swaps=NADH_NADPH,
                  exclude_non_gene_reactions=True, *args, **kwargs):
-        super(OptSwap, self).__init__(*args, **kwargs)
+        super(HeuristicOptSwap, self).__init__(*args, **kwargs)
         self._skip_reactions = []
         if exclude_non_gene_reactions:
             self._skip_reactions += [r for r in model.reactions if not r.genes]
@@ -366,7 +366,7 @@ class OptSwap(StrainDesignMethod):
 
         Returns
         -------
-        OptSwapResult
+        HeuristicOptSwapResult
         """
 
         target = self._model._reaction_for(target, time_machine=time_machine)
@@ -398,16 +398,16 @@ class OptSwap(StrainDesignMethod):
 
         kwargs.update(optimization_algorithm.simulation_kwargs)
 
-        return OptSwapResult(self._model, result, self._swap_pairs, objective_function,
-                             simulation_method, biomass, target, substrate, kwargs)
+        return HeuristicOptSwapResult(self._model, result, self._swap_pairs, objective_function,
+                                      simulation_method, biomass, target, substrate, kwargs)
 
 
-class OptSwapResult(StrainDesignMethodResult):
-    __method_name__ = "OptSwap"
+class HeuristicOptSwapResult(StrainDesignMethodResult):
+    __method_name__ = "HeuristicOptSwap"
 
     def __init__(self, model, swaps, swap_pairs, objective_function, simulation_method, biomass, target,
                  substrate, simulation_kwargs, *args, **kwargs):
-        super(OptSwapResult, self).__init__(self._generate_designs(swaps, swap_pairs), *args, **kwargs)
+        super(HeuristicOptSwapResult, self).__init__(self._generate_designs(swaps, swap_pairs), *args, **kwargs)
         assert isinstance(model, SolverBasedModel)
 
         self._model = model
