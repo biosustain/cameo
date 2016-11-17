@@ -44,7 +44,7 @@ def swap_cofactors(reaction, model, swap_pairs, inplace=True, time_machine=None)
     if inplace:
         if time_machine:
             time_machine(do=partial(_inplace, reaction, new_coefficients),
-                         undo=partial(_, reaction, revert_coefficients))
+                         undo=partial(_inplace, reaction, revert_coefficients))
         else:
             _inplace(reaction, new_coefficients)
 
