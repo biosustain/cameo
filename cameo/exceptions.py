@@ -18,7 +18,7 @@ import optlang.interface
 
 
 class IncompatibleTargets(Exception):
-    def __iadd__(self, target1, target2):
+    def __init__(self, target1, target2):
         super(IncompatibleTargets).__init__("Incompatible targets %s and %s" % (target1, target2))
         self.target1 = target1
         self.target2 = target2
