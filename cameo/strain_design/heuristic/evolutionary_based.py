@@ -23,12 +23,12 @@ from IProgress.progressbar import ProgressBar
 from IProgress.widgets import Bar, Percentage
 from pandas import DataFrame
 
+from cameo.core.core import StrainDesignMethod, StrainDesignMethodResult, StrainDesign, ReactionKnockoutTarget, \
+    GeneKnockoutTarget, ReactionCofactorSwapTarget
 from cameo.core.solver_based_model import SolverBasedModel
 from cameo.exceptions import SolveError
 from cameo.flux_analysis.analysis import phenotypic_phase_plane
 from cameo.flux_analysis.simulation import fba
-from cameo.strain_design.core import StrainDesignMethod, StrainDesignMethodResult, StrainDesign, ReactionKnockoutTarget, \
-    GeneKnockoutTarget, ReactionCofactorSwapTarget
 from cameo.strain_design.heuristic.evolutionary.archives import ProductionStrainArchive
 from cameo.strain_design.heuristic.evolutionary.objective_functions import biomass_product_coupled_min_yield, \
     biomass_product_coupled_yield
@@ -149,7 +149,6 @@ class OptGene(StrainDesignMethod):
         else:
             raise ValueError("Invalid manipulation type %s" % self.manipulation_type)
 
-        optimization_algorithm.objective_function = objective_function
         optimization_algorithm.simulation_kwargs = kwargs
         optimization_algorithm.simulation_method = simulation_method
         optimization_algorithm.archiver = ProductionStrainArchive()
