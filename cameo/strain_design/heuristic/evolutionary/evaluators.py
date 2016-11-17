@@ -19,6 +19,7 @@ from cameo.exceptions import SolveError
 from cameo.strain_design.heuristic.evolutionary.decoders import SetDecoder
 from cameo.strain_design.heuristic.evolutionary.objective_functions import ObjectiveFunction
 from cameo.strain_design.heuristic.evolutionary.processing import reactions2filter
+from cameo.strain_design.util import swap_cofactors
 from cameo.util import ProblemCache, memoize, TimeMachine
 
 logger = logging.getLogger(__name__)
@@ -165,7 +166,7 @@ class SwapEvaluator(TargetEvaluator):
         swap_reactions = self.decoder(individual)
         with TimeMachine() as tm:
             for reaction in swap_reactions:
-                reaction.swap_cofactors(self.swap_pair, time_machine=tm)
+                swap_cofactors(reaction, self.model, self.swap_pair, inplace=True, time_machine=tm)
             try:
                 solution = self.simulation_method(self.model,
                                                   cache=self.cache,
