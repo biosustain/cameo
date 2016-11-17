@@ -448,26 +448,6 @@ class Reaction(_cobrapy.core.Reaction):
         else:
             super(Reaction, self).knock_out()
 
-    def swap_cofactors(self, swap_pairs, time_machine=None):
-        if all(self.metabolites.get(met, False) for met in swap_pairs[0]):
-            new_coefficients = {met: -self.metabolites[met] for met in swap_pairs[0]}
-            new_coefficients.update({new_met: self.metabolites[met] for met, new_met in zip(*swap_pairs)})
-            revert_coefficients = {met: -coeff for met, coeff in six.iteritems(new_coefficients)}
-        elif all(self.metabolites.get(met, False) for met in swap_pairs[1]):
-            new_coefficients = {met: -self.metabolites[met] for met in swap_pairs[1]}
-            new_coefficients.update({new_met: self.metabolites[met] for new_met, met in zip(*swap_pairs)})
-            revert_coefficients = {met: -coeff for met, coeff in six.iteritems(new_coefficients)}
-        else:
-            raise ValueError("%s: Invalid swap pairs %s (%s)" % (self.id, str(swap_pairs), self.reaction))
-
-        def _(reaction, stoichiometry):
-            reaction.add_metabolites(stoichiometry, combine=True)
-
-        if time_machine:
-            time_machine(do=partial(_, self, new_coefficients), undo=partial(_, self, revert_coefficients))
-        else:
-            _(self, new_coefficients)
-
     def pop(self, metabolite_id):
         """Removes a given metabolite from the reaction stoichiometry, and returns the coefficient.
         """
