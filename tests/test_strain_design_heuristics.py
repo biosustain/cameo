@@ -18,13 +18,13 @@ import os
 import pickle
 import unittest
 from collections import namedtuple
+from math import sqrt
 
 import inspyred
 import numpy
 import six
 from inspyred.ec import Bounder
 from inspyred.ec.emo import Pareto
-from math import sqrt
 from ordered_set import OrderedSet
 from pandas.util.testing import assert_frame_equal
 from six.moves import range
@@ -502,9 +502,12 @@ class TestDecoders(unittest.TestCase):
     def setUp(self):
         self.model = TEST_MODEL
 
-    def test_abstract_decoder(self):
-        decoder = SetDecoder(None, self.model)
-        self.assertRaises(NotImplementedError, decoder, [])
+    def test_set_decoder(self):
+        representation = [1, 2, 'a', 'b', None, '0']
+        decoder = SetDecoder(representation, self.model)
+        self.assertEqual(decoder([]), [])
+        for i in range(len(representation)):
+            self.assertEqual(decoder([i]), [representation[i]])
 
     def test_reaction_set_decoder(self):
         decoder = ReactionSetDecoder([r.id for r in self.model.reactions], self.model)
