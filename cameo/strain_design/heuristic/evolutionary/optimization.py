@@ -15,11 +15,11 @@
 from __future__ import absolute_import, print_function
 
 import logging
+import time
 import types
 from functools import reduce
 
 import inspyred
-import time
 from pandas import DataFrame
 
 from cameo import config
@@ -253,7 +253,7 @@ class TargetOptimization(HeuristicOptimization):
     Abstract class for target optimization.
     """
 
-    def __init__(self, simulation_method=pfba, wt_reference=None, evaluator=None, *args, **kwargs):
+    def __init__(self, simulation_method=pfba, wt_reference=None, *args, **kwargs):
         """
         Class for generic optimization algorithms for knockout (or similar) strain design methods
 
@@ -272,7 +272,7 @@ class TargetOptimization(HeuristicOptimization):
         self._simulation_method = None
         self.simulation_method = simulation_method
         self.representation = None
-        self._evaluator = evaluator
+        self._evaluator = None
         self._target_type = None
         self._decoder = None
         self._metadata = {}
