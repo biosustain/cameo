@@ -572,7 +572,7 @@ class SolverBasedModel(cobra.core.Model):
         Returns
         -------
         list
-            List of essential reactions.
+            List of essential reactions
         """
         essential = []
         try:
