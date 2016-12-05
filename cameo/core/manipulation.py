@@ -150,7 +150,7 @@ def down_regulate_gene(gene, ref_value, value, time_machine=None):
         raise ValueError("'value' is higher than 'ref_value', this is down_regulation (%f < %f)" % (value, ref_value))
 
     raise NotImplementedError
-    
+
 
 def swap_cofactors(reaction, model, swap_pairs, inplace=True, time_machine=None):
     """
