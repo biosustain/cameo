@@ -14,7 +14,7 @@
 import sys
 from functools import partial
 
-from cameo.strain_design.util import swap_cofactors
+from cameo.core.manipulation import swap_cofactors, over_express, down_regulate
 
 try:
     from gnomic import Accession, Feature, Del, Mutation, Sub, Ins
@@ -94,8 +94,8 @@ class FluxModulationTarget(Target):
 
     def __init__(self, id, value, reference_value):
         super(FluxModulationTarget, self).__init__(id)
-        self._reference_value = reference_value
         self._value = value
+        self._reference_value = reference_value
 
     def get_model_target(self, model):
         raise NotImplementedError
@@ -103,11 +103,11 @@ class FluxModulationTarget(Target):
     def apply(self, model, time_machine=None):
         target = self.get_model_target(model)
 
-        if self._value > 0:
-            target.overexpress(self._value, reference_value=self._reference_value, time_machine=time_machine)
-        elif self._value < 0:
-            target.downregulate(self._value, reference_value=self._reference_value, time_machine=time_machine)
-        else:
+        if abs(self._value) > abs(self._reference_value):
+            over_express(target, self._reference_value, self._value, time_machine=time_machine)
+        elif abs(self._value) < abs(self._reference_value):
+            down_regulate(target, self._reference_value, self._value, time_machine=time_machine)
+        elif self._value == 0:
             target.knock_out(time_machine=time_machine)
 
     def __eq__(self, other):
@@ -118,7 +118,14 @@ class FluxModulationTarget(Target):
 
     @property
     def fold_change(self):
-        return (self._value - self._reference_value) / self._reference_value
+        """
+        (B - A)/A
+
+        Return
+        ------
+            float
+        """
+        return (self._reference_value - self._value) / self._reference_value
 
     def __str__(self):
         if self._value == 0:
