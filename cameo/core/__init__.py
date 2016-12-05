@@ -16,6 +16,8 @@
 """This package implements the basic data structures (models, reactions etc.) used in cameo.
 """
 
-from .solver_based_model import *
 from .gene import *
 from .metabolite import *
+from .reaction import *
+from .solver_based_model import *
+
