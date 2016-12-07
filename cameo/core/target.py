@@ -14,6 +14,8 @@
 import sys
 from functools import partial
 
+import numpy
+
 from cameo.core.manipulation import swap_cofactors, over_express, down_regulate
 
 try:
@@ -103,12 +105,12 @@ class FluxModulationTarget(Target):
     def apply(self, model, time_machine=None):
         target = self.get_model_target(model)
 
-        if abs(self._value) > abs(self._reference_value):
+        if self._value == 0:
+            target.knock_out(time_machine=time_machine)
+        elif abs(self._value) > abs(self._reference_value):
             over_express(target, self._reference_value, self._value, time_machine=time_machine)
         elif abs(self._value) < abs(self._reference_value):
             down_regulate(target, self._reference_value, self._value, time_machine=time_machine)
-        elif self._value == 0:
-            target.knock_out(time_machine=time_machine)
 
     def __eq__(self, other):
         if isinstance(other, FluxModulationTarget):
@@ -125,7 +127,10 @@ class FluxModulationTarget(Target):
         ------
             float
         """
-        return (self._reference_value - self._value) / self._reference_value
+        try:
+            return (self._reference_value - self._value) / self._reference_value
+        except ZeroDivisionError:
+            return numpy.inf
 
     def __str__(self):
         if self._value == 0:
@@ -140,11 +145,11 @@ class FluxModulationTarget(Target):
         feature = Feature(accession=accession, type=self.__gnomic_feature_type__)
         if self._value == 0:
             return Del(feature)
-        elif self._value > self._reference_value:
+        elif abs(self._value) > abs(self._reference_value):
             over_expression = Feature(accession=accession, type=self.__gnomic_feature_type__,
                                       variant="over-expression(%f)" % self.fold_change)
             return Mutation(feature, over_expression)
-        elif self._value < self._reference_value:
+        elif abs(self._value) < abs(self._reference_value):
             under_expression = Feature(accession=accession, type=self.__gnomic_feature_type__,
                                        variant="down-regulation(%f)" % self.fold_change)
             return Mutation(feature, under_expression)
