@@ -14,8 +14,11 @@
 import os
 import unittest
 
+import six
+
 from cameo import load_model, Reaction, Metabolite
 from cameo.core.target import *
+from cameo.core.target import Target, FluxModulationTarget
 from cameo.util import TimeMachine
 
 TESTDIR = os.path.dirname(__file__)
@@ -177,3 +180,83 @@ class TargetsTestCase(unittest.TestCase):
     @unittest.skip("Gene Downregulation not implemente yet")
     def test_gene_down_regulation_target(self):
         raise NotImplementedError
+
+    @unittest.skipIf(six.PY2, 'gnomic is not compatible with python 2')
+    def test_gnomic_integration(self):
+        from gnomic.models import Accession, Feature, Mutation, FeatureTree
+        abstract_target = Target("test")
+        abstract_target_gnomic = abstract_target.to_gnomic()
+        self.assertIsInstance(abstract_target_gnomic, Accession)
+        self.assertEqual(abstract_target_gnomic.identifier, abstract_target.id)
+
+        flux_modulation_target = FluxModulationTarget("test", 1, 0)
+        flux_modulation_target_gnomic = flux_modulation_target.to_gnomic()
+        self.assertIsInstance(flux_modulation_target_gnomic, Mutation)
+        self.assertIsInstance(flux_modulation_target_gnomic.old, FeatureTree)
+        self.assertIsInstance(flux_modulation_target_gnomic.old[0], Feature)
+        self.assertEqual(flux_modulation_target_gnomic.old[0].accession.identifier, flux_modulation_target.id)
+        self.assertEqual(flux_modulation_target_gnomic.old[0].variant, None)
+        self.assertEqual(flux_modulation_target_gnomic.old[0].type, 'flux')
+        self.assertIsInstance(flux_modulation_target_gnomic.new, FeatureTree)
+        self.assertIsInstance(flux_modulation_target_gnomic.new[0], Feature)
+        self.assertEqual(flux_modulation_target_gnomic.new[0].accession.identifier, flux_modulation_target.id)
+        self.assertEqual(flux_modulation_target_gnomic.new[0].type, 'flux')
+        self.assertEqual(flux_modulation_target_gnomic.new[0].variant, "over-expression(%f)" % flux_modulation_target.fold_change)
+
+        flux_modulation_target = FluxModulationTarget("test", 0.5, 1)
+        flux_modulation_target_gnomic = flux_modulation_target.to_gnomic()
+        self.assertIsInstance(flux_modulation_target_gnomic, Mutation)
+        self.assertIsInstance(flux_modulation_target_gnomic.old, FeatureTree)
+        self.assertIsInstance(flux_modulation_target_gnomic.old[0], Feature)
+        self.assertEqual(flux_modulation_target_gnomic.old[0].accession.identifier, flux_modulation_target.id)
+        self.assertEqual(flux_modulation_target_gnomic.old[0].variant, None)
+        self.assertEqual(flux_modulation_target_gnomic.old[0].type, 'flux')
+        self.assertIsInstance(flux_modulation_target_gnomic.new, FeatureTree)
+        self.assertIsInstance(flux_modulation_target_gnomic.new[0], Feature)
+        self.assertEqual(flux_modulation_target_gnomic.new[0].accession.identifier, flux_modulation_target.id)
+        self.assertEqual(flux_modulation_target_gnomic.new[0].type, 'flux')
+        self.assertEqual(flux_modulation_target_gnomic.new[0].variant, "down-regulation(%f)" % flux_modulation_target.fold_change)
+
+        flux_modulation_target = FluxModulationTarget("test", 0, 1)
+        flux_modulation_target_gnomic = flux_modulation_target.to_gnomic()
+        self.assertIsInstance(flux_modulation_target_gnomic, Mutation)
+        self.assertIsInstance(flux_modulation_target_gnomic.old, FeatureTree)
+        self.assertIsInstance(flux_modulation_target_gnomic.old[0], Feature)
+        self.assertEqual(flux_modulation_target_gnomic.old[0].accession.identifier, flux_modulation_target.id)
+        self.assertEqual(flux_modulation_target_gnomic.old[0].variant, None)
+        self.assertEqual(flux_modulation_target_gnomic.old[0].type, 'flux')
+        self.assertIs(flux_modulation_target_gnomic.new, None)
+
+        reaction = Reaction(id="atpzase", name="Cosmic ATP generator")
+        atp_z = Metabolite(id="atp_z", name="Cosmic ATP", compartment="c")
+
+        reaction.add_metabolites({self.model.metabolites.atp_c: 1, atp_z: -1})
+        knockin_target = ReactionKnockinTarget("atpzase", reaction)
+        knockin_target_gnomic = knockin_target.to_gnomic()
+        self.assertIsInstance(knockin_target_gnomic, Mutation)
+        self.assertIsInstance(knockin_target_gnomic.new, FeatureTree)
+        self.assertIsInstance(knockin_target_gnomic.new[0], Feature)
+        self.assertEqual(knockin_target_gnomic.new[0].accession.identifier, knockin_target.id)
+        self.assertEqual(knockin_target_gnomic.new[0].variant, None)
+        self.assertEqual(knockin_target_gnomic.new[0].type, 'reaction')
+        self.assertIs(knockin_target_gnomic.old, None)
+
+        cofactor_id_swaps = [("nad_c", "nadh_c"), ("nadp_c", "nadph_c")]
+
+        swap_pairs = ([self.model.metabolites.get_by_id(m) for m in cofactor_id_swaps[0]],
+                      [self.model.metabolites.get_by_id(m) for m in cofactor_id_swaps[1]])
+
+        swap_target = ReactionCofactorSwapTarget("GAPD", swap_pairs)
+        swap_target_gnomic = swap_target.to_gnomic()
+
+        self.assertIsInstance(swap_target_gnomic, Mutation)
+        self.assertIsInstance(swap_target_gnomic.old, FeatureTree)
+        self.assertIsInstance(swap_target_gnomic.old[0], Feature)
+        self.assertEqual(swap_target_gnomic.old[0].accession.identifier, swap_target.id)
+        self.assertEqual(swap_target_gnomic.old[0].variant, None)
+        self.assertEqual(swap_target_gnomic.old[0].type, 'reaction')
+        self.assertIsInstance(swap_target_gnomic.new, FeatureTree)
+        self.assertIsInstance(swap_target_gnomic.new[0], Feature)
+        self.assertEqual(swap_target_gnomic.new[0].accession.identifier, swap_target.id + swap_target.swap_str)
+        self.assertEqual(swap_target_gnomic.new[0].variant, None)
+        self.assertEqual(swap_target_gnomic.new[0].type, 'reaction')
