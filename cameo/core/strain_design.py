@@ -23,7 +23,7 @@ from cobra import DictList
 from pandas import DataFrame
 
 from cameo.core.result import Result
-from cameo.core.target import EnsembleTarget
+from cameo.core.target import EnsembleTarget, Target
 
 try:
     from gnomic import Genotype
@@ -66,12 +66,23 @@ class StrainDesign(object):
     def __len__(self):
         return len(self.targets)
 
+    def __contains__(self, item):
+        if isinstance(item, Target):
+            if item in self.targets:
+                return item == self.targets.get_by_id(item.id)
+            else:
+                return False
+        elif isinstance(item, six.string_types):
+            return item in self.targets
+        else:
+            return False
+
     def __eq__(self, other):
         if isinstance(other, StrainDesign):
             if len(self) != len(other):
                 return False
             else:
-                return all(self.targets[i] == other.targets[i] for i in range(self.__len__()))
+                return all(t in other for t in self.targets) and all(t in self for t in other.targets)
         else:
             return False
 
@@ -107,8 +118,9 @@ class StrainDesign(object):
                 targets[target.id] = []
             targets[target.id].append(target)
 
-        targets = [targets[0] if len(targets) == 1 else EnsembleTarget(targets) for targets in targets.values()]
+        targets = [t[0] if len(t) == 1 else EnsembleTarget(id, t) for id, t in six.iteritems(targets)]
         self.targets = DictList(targets)
+        return self
 
     def to_gnomic(self):
         if _gnomic_available_:
