@@ -181,6 +181,25 @@ class ReactionCofactorSwapTarget(Target):
     def __str__(self):
         return self.id + "|" + self.swap_str
 
+    def __gt__(self, other):
+        if self.id == other.id:
+            if isinstance(other, ReactionKnockoutTarget):
+                raise IncompatibleTargets(self, other)
+            if isinstance(other, ReactionModulationTarget):
+                return False
+            if isinstance(other, ReactionKnockinTarget):
+                return True
+            else:
+                raise IncompatibleTargets(self, other)
+        else:
+            return self.id > other.id
+
+    def __eq__(self, other):
+        if isinstance(other, ReactionCofactorSwapTarget):
+            return self.id == other.id and self.swap_pairs == other.swap_pairs
+        else:
+            return False
+
 
 class KnockinTarget(Target):
     def __init__(self, id, value):
@@ -209,7 +228,16 @@ class ReactionKnockinTarget(KnockinTarget):
 
     def __gt__(self, other):
         if self.id == other.id:
-            if isinstance(other, ReactionModulationTarget):
+            if isinstance(other, ReactionKnockoutTarget):
+                raise IncompatibleTargets(self, other)
+            elif isinstance(other, ReactionModulationTarget):
+                if other._value == 0:
+                    raise IncompatibleTargets(self, other)
+                else:
+                    return False
+            elif isinstance(other, ReactionKnockinTarget):
+                return False
+            elif isinstance(other, ReactionCofactorSwapTarget):
                 return False
             else:
                 raise IncompatibleTargets(self, other)
@@ -296,7 +324,10 @@ class ReactionModulationTarget(FluxModulationTarget):
     def __gt__(self, other):
         if self.id == other.id:
             if isinstance(other, ReactionKnockinTarget):
-                return False
+                if self._value == 0:
+                    raise IncompatibleTargets(self, other)
+                else:
+                    return True
             elif isinstance(other, ReactionCofactorSwapTarget):
                 return True
             elif isinstance(other, ReactionModulationTarget) and not isinstance(other, ReactionKnockoutTarget):
@@ -329,7 +360,7 @@ class ReactionKnockoutTarget(ReactionModulationTarget):
             if isinstance(other, ReactionModulationTarget):
                 return True
             elif isinstance(other, ReactionCofactorSwapTarget):
-                return True
+                raise IncompatibleTargets(self, other)
             else:
                 raise IncompatibleTargets(self, other)
         else:
@@ -357,7 +388,7 @@ class EnsembleTarget(Target):
     def __init__(self, id, targets):
         super(EnsembleTarget, self).__init__(id)
         assert all(t.id == id for t in targets)
-        self.targets = list(sorted(set(targets)))
+        self.targets = list(sorted(targets))
 
     def apply(self, model, time_machine=None):
         for target in self.targets:
@@ -365,3 +396,7 @@ class EnsembleTarget(Target):
 
     def __str__(self):
         return "\n".join("%i - %s" % (i, str(target)) for i, target in enumerate(self.targets))
+
+    # TODO implement gnomic compatibility
+    def to_gnomic(self):
+        raise NotImplementedError
