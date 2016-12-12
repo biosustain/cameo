@@ -358,7 +358,10 @@ class ReactionKnockoutTarget(ReactionModulationTarget):
     def __gt__(self, other):
         if self.id == other.id:
             if isinstance(other, ReactionModulationTarget):
-                return True
+                if other._value == 0:
+                    return True
+                else:
+                    raise IncompatibleTargets(self, other)
             elif isinstance(other, ReactionCofactorSwapTarget):
                 raise IncompatibleTargets(self, other)
             else:
