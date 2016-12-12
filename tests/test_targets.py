@@ -18,7 +18,8 @@ import six
 
 from cameo import load_model, Reaction, Metabolite
 from cameo.core.target import *
-from cameo.core.target import Target, FluxModulationTarget
+from cameo.core.target import Target, FluxModulationTarget, EnsembleTarget
+from cameo.exceptions import IncompatibleTargets
 from cameo.util import TimeMachine
 
 TESTDIR = os.path.dirname(__file__)
@@ -260,3 +261,51 @@ class TargetsTestCase(unittest.TestCase):
         self.assertEqual(swap_target_gnomic.new[0].accession.identifier, swap_target.id + swap_target.swap_str)
         self.assertEqual(swap_target_gnomic.new[0].variant, None)
         self.assertEqual(swap_target_gnomic.new[0].type, 'reaction')
+
+
+class EnsembleTargetsTestCase(unittest.TestCase):
+    def test_compatible_targets(self):
+        modulation_target = ReactionModulationTarget("a", 1, 0)
+        ki_target = ReactionKnockinTarget("a", None)
+
+        ensemble_1 = EnsembleTarget("a", [modulation_target, ki_target])
+        ensemble_2 = EnsembleTarget("a", [ki_target, modulation_target])
+
+        self.assertEqual(ensemble_1.targets, ensemble_2.targets)
+
+        modulation_target = ReactionModulationTarget("b", 1, 0)
+        swap_target = ReactionCofactorSwapTarget("b", [("nad_c", "nadh_c"), ("nadp_c", "nadph_c")])
+
+        ensemble_1 = EnsembleTarget("b", [modulation_target, swap_target])
+        ensemble_2 = EnsembleTarget("b", [swap_target, modulation_target])
+
+        self.assertEqual(ensemble_1.targets, ensemble_2.targets)
+
+        ki_target = ReactionKnockinTarget("c", None)
+        modulation_target = ReactionModulationTarget("c", 1, 0)
+        swap_target = ReactionCofactorSwapTarget("c", [("nad_c", "nadh_c"), ("nadp_c", "nadph_c")])
+
+        ensemble = EnsembleTarget("c", [modulation_target, swap_target, ki_target])
+        self.assertEqual(ensemble.targets[0], ki_target)
+        self.assertEqual(ensemble.targets[1], swap_target)
+        self.assertEqual(ensemble.targets[2], modulation_target)
+
+    def test_incompatible_targets(self):
+        ko_target = ReactionKnockoutTarget("a")
+        ki_target = ReactionKnockinTarget("a", None)
+
+        self.assertRaises(IncompatibleTargets, EnsembleTarget, "a", [ko_target, ki_target])
+        self.assertRaises(IncompatibleTargets, EnsembleTarget, "a", [ki_target, ko_target])
+
+        ko_target = ReactionKnockoutTarget("b")
+        swap_target = ReactionCofactorSwapTarget("b", [("nad_c", "nadh_c"), ("nadp_c", "nadph_c")])
+
+        self.assertRaises(IncompatibleTargets, EnsembleTarget, "b", [ko_target, swap_target])
+        self.assertRaises(IncompatibleTargets, EnsembleTarget, "b", [swap_target, ko_target])
+
+        modulation_target = ReactionModulationTarget("c", 0, 0)
+        ki_target = ReactionKnockinTarget("c", None)
+
+        self.assertRaises(IncompatibleTargets, EnsembleTarget, "c", [modulation_target, ki_target])
+        self.assertRaises(IncompatibleTargets, EnsembleTarget, "c", [ki_target, modulation_target])
+
