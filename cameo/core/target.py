@@ -16,7 +16,7 @@ from functools import partial
 
 import numpy
 
-from cameo.core.manipulation import swap_cofactors, over_express, down_regulate
+from cameo.core.manipulation import swap_cofactors, increase_flux, decrease_flux
 
 try:
     from gnomic import Accession, Feature, Del, Mutation, Sub, Ins
@@ -108,9 +108,9 @@ class FluxModulationTarget(Target):
         if self._value == 0:
             target.knock_out(time_machine=time_machine)
         elif abs(self._value) > abs(self._reference_value):
-            over_express(target, self._reference_value, self._value, time_machine=time_machine)
+            increase_flux(target, self._reference_value, self._value, time_machine=time_machine)
         elif abs(self._value) < abs(self._reference_value):
-            down_regulate(target, self._reference_value, self._value, time_machine=time_machine)
+            decrease_flux(target, self._reference_value, self._value, time_machine=time_machine)
 
     def __eq__(self, other):
         if isinstance(other, FluxModulationTarget):
