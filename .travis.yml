@@ -34,7 +34,11 @@ script: nosetests
 after_success:
 - codecov
 notifications:
-  slack: biosustain:UGm09rOjMCgXko3rS3wUivoX
+  slack:
+    rooms:
+      - biosustain:UGm09rOjMCgXko3rS3wUivoX
+    on_success: change
+    on_failure: change
 before_deploy:
   - pip install twine
   - python setup.py sdist bdist_wheel

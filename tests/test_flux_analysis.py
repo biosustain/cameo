@@ -25,6 +25,7 @@ import pandas
 from sympy import Add
 
 import cameo
+import re
 from cameo.config import solvers
 from cameo.flux_analysis import remove_infeasible_cycles
 from cameo.flux_analysis.analysis import flux_variability_analysis, phenotypic_phase_plane, find_blocked_reactions
@@ -35,21 +36,20 @@ from cameo.util import TimeMachine
 from cameo.flux_analysis import structural
 from optlang.exceptions import IndicatorConstraintsNotSupported
 
-TRAVIS = os.getenv('TRAVIS', False)
 
-
-def assert_data_frames_equal(obj, expected, delta=0.0001, sort_by=None):
+def assert_data_frames_equal(obj, expected, delta=0.001, sort_by=None, nan=0):
     df = obj.data_frame
-    common_names = set(df.columns.values).intersection(expected.columns.values)
+    expected_names = [name for name in expected.columns.values if not re.match(r'^Unnamed.*', name)]
+    df = df.fillna(value=0)
+    expected = expected.fillna(value=0)
     if sort_by:
         df = df.sort_values(sort_by).reset_index(drop=True)
         expected = expected.sort_values(sort_by).reset_index(drop=True)
-    for column in common_names:
+    for column in expected_names:
         for key in df.index:
             assert_almost_equal(df[column][key], expected[column][key], delta=delta)
 
-
-
+TRAVIS = os.getenv('TRAVIS', False)
 TESTDIR = os.path.dirname(__file__)
 REFERENCE_FVA_SOLUTION_ECOLI_CORE = pandas.read_csv(os.path.join(TESTDIR, 'data/REFERENCE_flux_ranges_EcoliCore.csv'),
                                                     index_col=0)
@@ -137,6 +137,12 @@ class Wrapper:
             assert_data_frames_equal(ppp, REFERENCE_PPP_o2_EcoliCore, sort_by=['EX_o2_LPAREN_e_RPAREN_'])
 
         def test_one_variable_sequential(self):
+            ppp = phenotypic_phase_plane(self.model, ['EX_o2_LPAREN_e_RPAREN_'], view=SequentialView())
+            assert_data_frames_equal(ppp, REFERENCE_PPP_o2_EcoliCore, sort_by=['EX_o2_LPAREN_e_RPAREN_'])
+            ppp = phenotypic_phase_plane(self.model, 'EX_o2_LPAREN_e_RPAREN_', view=SequentialView())
+            assert_data_frames_equal(ppp, REFERENCE_PPP_o2_EcoliCore, sort_by=['EX_o2_LPAREN_e_RPAREN_'])
+
+        def test_one_variable_sequential_yield(self):
             ppp = phenotypic_phase_plane(self.model, ['EX_o2_LPAREN_e_RPAREN_'], view=SequentialView())
             assert_data_frames_equal(ppp, REFERENCE_PPP_o2_EcoliCore, sort_by=['EX_o2_LPAREN_e_RPAREN_'])
             ppp = phenotypic_phase_plane(self.model, 'EX_o2_LPAREN_e_RPAREN_', view=SequentialView())

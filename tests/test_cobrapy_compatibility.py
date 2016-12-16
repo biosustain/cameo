@@ -12,23 +12,33 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import types
-
+# import types
+#
 from cobra.test import create_test_model
-from cobra.test.flux_analysis import TestCobraFluxAnalysis
-from cobra.test.unit_tests import CobraTestCase, TestReactions
-
-from cameo.core.solver_based_model import to_solver_based_model, SolverBasedModel
-
-
-def setUp(self):
-    # Make Model pickable and then load a solver based version of test_pickle
-    self.model = to_solver_based_model(create_test_model("textbook"))
-    self.model_class = SolverBasedModel
+from cameo.core.solver_based_model import to_solver_based_model
+import unittest
+import six
+from cobra.flux_analysis import *
 
 
-for cls in (CobraTestCase, TestReactions, TestCobraFluxAnalysis):
-    cls.setUp = types.MethodType(setUp, cls)
+class TestCobrapyCompatibility(unittest.TestCase):
+    def setUp(self):
+        # Make Model pickable and then load a solver based version of test_pickle
+        self.model = to_solver_based_model(create_test_model("textbook"))
 
-del TestReactions.testGPR
-del TestCobraFluxAnalysis.test_phenotype_phase_plane  # Avoid bug in cobra tests (AttributeError on self.skip() )
+    def test_cobra_phenotypic_phase_plane(self):
+        data = calculate_phenotype_phase_plane(self.model, "EX_glc__D_e", "EX_o2_e",
+                                               reaction1_npoints=20, reaction2_npoints=20)
+        self.assertEquals(data.growth_rates.shape, (20, 20))
+        self.assertTrue(abs(data.growth_rates.max()) - 1.20898 < 0.001)
+        self.assertTrue(abs(data.growth_rates[0, :].max()) < 0.0001)
+
+    def test_single_gene_deletion_fba(self):
+        growth_dict = {"b0008": 0.87, "b0114": 0.80, "b0116": 0.78,
+                       "b2276": 0.21, "b1779": 0.00}
+        rates, statuses = single_gene_deletion(self.model,
+                                               gene_list=growth_dict.keys(),
+                                               method="fba")
+        for gene, expected_value in six.iteritems(growth_dict):
+            self.assertTrue(statuses[gene] == 'optimal')
+            self.assertTrue(abs(rates[gene] - expected_value) < 0.01)

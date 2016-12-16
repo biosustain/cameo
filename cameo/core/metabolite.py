@@ -16,7 +16,6 @@ from functools import partial
 
 import cobra
 import six
-
 from cameo.util import inheritdocstring
 
 logger = logging.getLogger(__name__)
@@ -47,6 +46,17 @@ class Metabolite(cobra.core.Metabolite):
         model = self.model
         super(Metabolite, self).remove_from_model(method, **kwargs)
         model.solver.remove(model.solver.constraints[self.id])
+
+    @property
+    def n_carbon(self):
+        """number of carbon atoms
+
+        Returns
+        -------
+        int
+            number of carbons in this metabolite
+        """
+        return self.elements.get('C', 0)
 
     @property
     def constraint(self):

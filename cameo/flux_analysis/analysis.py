@@ -29,7 +29,7 @@ import pandas
 
 import cameo
 from cameo import config
-from cameo.exceptions import Infeasible, Unbounded, SolveError, UndefinedSolution
+from cameo.exceptions import Infeasible, Unbounded
 from cameo.util import TimeMachine, partition
 from cameo.parallel import SequentialView
 from cameo.core.result import Result
@@ -103,8 +103,12 @@ def flux_variability_analysis(model, reactions=None, fraction_of_optimum=0., rem
     return FluxVariabilityResult(solution)
 
 
-def phenotypic_phase_plane(model, variables=[], objective=None, points=20, view=None):
+def phenotypic_phase_plane(model, variables=[], objective=None, source=None, points=20, view=None):
     """Phenotypic phase plane analysis [1].
+
+    Implements a phenotypic phase plan analysis with interpretation same as
+    that presented in [1] but calculated by optimizing the model for all
+    steps of the indicated variables (instead of using shadow prices).
 
     Parameters
     ----------
@@ -114,6 +118,9 @@ def phenotypic_phase_plane(model, variables=[], objective=None, points=20, view=
     objective: str or reaction or optlang.Objective or Metabolite, optional
         An objective, a reaction's flux, or a metabolite's production to be minimized/maximized
         (defaults to the current model objective).
+    source: Reaction or reaction identifier
+        The reaction to use as the source when calculating mass and carbon yield. Set to the medium reaction with the
+        highest input carbon flux if left none.
     points: int or iterable
         Number of points to be interspersed between the variable bounds.
         A list of same same dimensions as `variables` can be used to specify
@@ -124,7 +131,8 @@ def phenotypic_phase_plane(model, variables=[], objective=None, points=20, view=
     Returns
     -------
     PhenotypicPhasePlaneResult
-        The phenotypic phase plane.
+        The phenotypic phase plane with flux, mol carbon input / mol carbon
+        output, gram input / gram output
 
     References
     ----------
@@ -135,6 +143,7 @@ def phenotypic_phase_plane(model, variables=[], objective=None, points=20, view=
         variables = [variables]
     elif isinstance(variables, cameo.core.reaction.Reaction):
         variables = [variables]
+    variable_ids = [var if isinstance(var, str) else var.id for var in variables]
 
     if view is None:
         view = config.default_view
@@ -152,46 +161,53 @@ def phenotypic_phase_plane(model, variables=[], objective=None, points=20, view=
 
             model.change_objective(objective, time_machine=tm)
 
+        if source:
+            source_reaction = model._reaction_for(source)
+        else:
+            source_reaction = _get_c_source_reaction(model)
+
         variable_reactions = model._ids_to_reactions(variables)
         variables_min_max = flux_variability_analysis(model, reactions=variable_reactions, view=SequentialView())
         grid = [numpy.linspace(lower_bound, upper_bound, points, endpoint=True) for
                 reaction_id, lower_bound, upper_bound in
-                variables_min_max.data_frame.loc[variables].itertuples()]
+                variables_min_max.data_frame.loc[variable_ids].itertuples()]
         grid_generator = itertools.product(*grid)
         chunks_of_points = partition(list(grid_generator), len(view))
-        evaluator = _PhenotypicPhasePlaneChunkEvaluator(model, variable_reactions)
+        evaluator = _PhenotypicPhasePlaneChunkEvaluator(model, variable_reactions, source_reaction)
         chunk_results = view.map(evaluator, chunks_of_points)
         envelope = reduce(list.__add__, chunk_results)
 
-    variable_reactions_ids = []
-    nice_variable_ids = []
-    for reaction in variable_reactions:
-        if hasattr(reaction, "nice_id"):
-            variable_reactions_ids.append(reaction.id)
-            nice_variable_ids.append(reaction.nice_id)
-        else:
-            variable_reactions_ids.append(reaction.id)
-            nice_variable_ids.append(reaction.id)
-
-    phase_plane = pandas.DataFrame(envelope, columns=(variable_reactions_ids +
-                                                      ['objective_lower_bound', 'objective_upper_bound']))
+    nice_variable_ids = [_nice_id(reaction) for reaction in variable_reactions]
+    variable_reactions_ids = [reaction.id for reaction in variable_reactions]
+    phase_plane = pandas.DataFrame(envelope,
+                                   columns=(variable_reactions_ids +
+                                            ['objective_lower_bound',
+                                             'objective_upper_bound',
+                                             'c_yield_lower_bound',
+                                             'c_yield_upper_bound',
+                                             'mass_yield_lower_bound',
+                                             'mass_yield_upper_bound']))
 
     if objective is None:
         objective = model.objective
+    nice_objective_id = _nice_id(objective)
 
-    if isinstance(objective, Reaction):
-        if hasattr(objective, 'nice_id'):
-            nice_objective_id = objective.nice_id
-            objective = objective.id
-        else:
-            objective = objective.id
-            nice_objective_id = objective
-    else:
-        objective = str(objective)
-        nice_objective_id = str(objective)
-
+    objective = objective.id if isinstance(objective, Reaction) else str(objective)
     return PhenotypicPhasePlaneResult(phase_plane, variable_reactions_ids, objective,
-                                      nice_variable_ids=nice_variable_ids, nice_objective_id=nice_objective_id)
+                                      nice_variable_ids=nice_variable_ids,
+                                      source_reaction=_nice_id(source_reaction),
+                                      nice_objective_id=nice_objective_id)
+
+
+def _nice_id(reaction):
+    if isinstance(reaction, Reaction):
+        if hasattr(reaction, 'nice_id'):
+            nice_id = reaction.nice_id
+        else:
+            nice_id = reaction
+    else:
+        nice_id = str(reaction)
+    return nice_id
 
 
 class _FvaFunctionObject(object):
@@ -252,6 +268,25 @@ def _flux_variability_analysis(model, reactions=None):
         logger.debug(list(zip(model.reactions, (lb_higher_ub.lower_bound - lb_higher_ub.upper_bound) < 1e-6)))
     df.lower_bound[lb_higher_ub.index] = df.upper_bound[lb_higher_ub.index]
     return df
+
+
+def _get_c_source_reaction(model):
+    """ carbon source reactions
+
+    Returns
+    -------
+    Reaction
+       The medium reaction with highest input carbon flux
+    """
+    medium_reactions = [model.reactions.get_by_id(reaction) for reaction in model.medium.reaction_id]
+    try:
+        model.solve()
+    except (Infeasible, AssertionError):
+        return None
+    source_reactions = [(reaction, reaction.flux * reaction.n_carbon) for reaction in medium_reactions if
+                        reaction.flux < 0]
+    sorted_sources = sorted(source_reactions, key=lambda reaction_tuple: reaction_tuple[1])
+    return sorted_sources[0][0]
 
 
 def _cycle_free_fva(model, reactions=None, sloppy=True, sloppy_bound=666):
@@ -364,32 +399,119 @@ def _cycle_free_fva(model, reactions=None, sloppy=True, sloppy_bound=666):
 
 
 class _PhenotypicPhasePlaneChunkEvaluator(object):
-    def __init__(self, model, variable_reactions):
+    def __init__(self, model, variable_reactions, source):
         self.model = model
+        self.source = source
         self.variable_reactions = variable_reactions
+        objective_reactions = [reaction for reaction in model.reactions
+                               if reaction.objective_coefficient != 0]
+        if len(objective_reactions) != 1:
+            raise Exception('multiple objectives not supported')
+        self.product_reaction = objective_reactions[0]
+
+    @classmethod
+    def carbon_flux(cls, reaction):
+        """ carbon flux for reactions
+
+        Parameters
+        ----------
+        reaction : Reaction
+            the reaction to carbon return flux for
+
+        Returns
+        -------
+        float
+            reaction flux multiplied by number of carbon in reactants"""
+        carbon = sum(metabolite.n_carbon for metabolite in reaction.reactants)
+        try:
+            return reaction.flux * carbon
+        except AssertionError:
+            # optimized flux can be out of bounds, in that case return as missing value
+            return numpy.nan
+
+    def carbon_yield(self):
+        """ mol product per mol carbon input
+
+        Returns
+        -------
+        float
+            the mol carbon atoms in the product (as defined by the model objective) divided by the mol carbon in the
+            input reactions (as defined by the model medium) or zero in case of division by zero arises"""
+        carbon_input_flux = self.carbon_flux(self.source)
+        carbon_output_flux = self.carbon_flux(self.product_reaction)
+        try:
+            return carbon_output_flux / (carbon_input_flux * -1)
+        except ZeroDivisionError:
+            return 0
+
+    def mass_yield(self):
+        """ gram product divided by gram of feeding source
+
+        only defined when we have only one product (as defined by the model
+        objective) and only one compound as carbon source (as defined by the
+        model medium).
+
+        Returns
+        -------
+        float
+            gram product per 1 g of feeding source or nan if more than one product or feeding source
+        """
+        too_long = (len(self.source.metabolites) > 1,
+                    len(self.product_reaction.metabolites) > 1)
+        if any(too_long):
+            return numpy.nan
+        try:
+            source_flux = self.source.flux
+            product_flux = self.product_reaction.flux
+        except AssertionError:
+            return numpy.nan
+        source_metabolite = list(self.source.metabolites)[0]
+        product_metabolite = list(self.product_reaction.metabolites)[0]
+        product_mass = product_metabolite.formula_weight
+        source_mass = source_metabolite.formula_weight
+        try:
+            mol_prod_mol_src = product_flux / (source_flux * -1)
+            return (mol_prod_mol_src * product_mass) / source_mass
+        except ZeroDivisionError:
+            return 0
 
     def __call__(self, points):
         return [self._production_envelope_inner(point) for point in points]
+
+    def _interval_estimates(self):
+        try:
+            flux = self.model.solve().f
+            carbon_yield = self.carbon_yield()
+            mass_yield = self.mass_yield()
+        except Infeasible:
+            flux = 0
+            carbon_yield = 0
+            mass_yield = 0
+        return flux, carbon_yield, mass_yield
 
     def _production_envelope_inner(self, point):
         with TimeMachine() as tm:
             for (reaction, coordinate) in zip(self.variable_reactions, point):
                 reaction.change_bounds(coordinate, coordinate, time_machine=tm)
             interval = []
+            interval_carbon_yield = []
+            interval_mass_yield = []
             tm(do=int, undo=partial(setattr, self.model.objective, 'direction', self.model.objective.direction))
+
             self.model.objective.direction = 'min'
-            try:
-                solution = self.model.solve().f
-            except (Infeasible, UndefinedSolution):  # Hack to handle GLPK bug
-                solution = 0
-            interval.append(solution)
+            flux, carbon_yield, mass_yield = self._interval_estimates()
+            interval.append(flux)
+            interval_carbon_yield.append(carbon_yield)
+            interval_mass_yield.append(mass_yield)
+
             self.model.objective.direction = 'max'
-            try:
-                solution = self.model.solve().f
-            except (Infeasible, UndefinedSolution):
-                solution = 0
-            interval.append(solution)
-        return point + tuple(interval)
+            flux, carbon_yield, mass_yield = self._interval_estimates()
+            interval.append(flux)
+            interval_carbon_yield.append(carbon_yield)
+            interval_mass_yield.append(mass_yield)
+
+        intervals = tuple(interval) + tuple(interval_carbon_yield) + tuple(interval_mass_yield)
+        return point + intervals
 
 
 def flux_balance_impact_degree(model, knockouts, view=config.default_view, method="fva"):
@@ -455,33 +577,75 @@ def _fbid_fva(model, knockouts, view):
 
 class PhenotypicPhasePlaneResult(Result):
     def __init__(self, phase_plane, variable_ids, objective,
-                 nice_variable_ids=None, nice_objective_id=None, *args, **kwargs):
+                 nice_variable_ids=None, nice_objective_id=None,
+                 source_reaction=None, *args, **kwargs):
         super(PhenotypicPhasePlaneResult, self).__init__(*args, **kwargs)
         self._phase_plane = phase_plane
         self.variable_ids = variable_ids
         self.nice_variable_ids = nice_variable_ids
         self.objective = objective
         self.nice_objective_id = nice_objective_id
+        self.source_reaction = source_reaction
 
     @property
     def data_frame(self):
         return pandas.DataFrame(self._phase_plane)
 
     def plot(self, grid=None, width=None, height=None, title=None, axis_font_size=None, palette=None,
-             points=None, points_colors=None, **kwargs):
+             points=None, points_colors=None, estimate='flux', **kwargs):
+        """plot phenotypic phase plane result
+
+        create a plot of a phenotypic phase plane analysis
+
+        Parameters
+        ----------
+        grid: plotting grid
+            the grid for plotting
+        width: int
+            the width of the plot
+        height: int
+            the height of the plot
+        title: string
+            the height of the plot
+        axis_font_size: int
+            the font sizes for the axis
+        palette: string
+            name of color palette to use, e.g. RdYlBlu
+        points: iterable of points
+            additional points to plot as x, y iterable
+        points_colors: iterable of strings
+            iterable with colors for the points
+        estimate: string
+            either flux, mass_yield (g output / g output) or c_yield (mol carbon output / mol carbon input)
+        """
+        possible_estimates = {'flux': ('objective_upper_bound',
+                                       'objective_lower_bound',
+                                       'flux',
+                                       '[h^-1]'),
+                              'mass_yield': ('mass_yield_upper_bound',
+                                             'mass_yield_lower_bound',
+                                             'mass yield, source={}'.format(self.source_reaction),
+                                             '[g(product) g(source)^-1 h^-1]'),
+                              'c_yield': ('c_yield_upper_bound',
+                                          'c_yield_lower_bound',
+                                          'carbon yield, source={}'.format(self.source_reaction),
+                                          '[mmol(C(product)) mmol(C(source))^-1 h^-1]')}
+        if estimate not in possible_estimates:
+            raise Exception('estimate must be one of %s' %
+                            ', '.join(possible_estimates.keys()))
+        upper, lower, description, unit = possible_estimates[estimate]
         if title is None:
-            title = "Phenotypic Phase Plane"
+            title = "Phenotypic Phase Plane ({})".format(description)
         if len(self.variable_ids) == 1:
 
             variable = self.variable_ids[0]
-            x_axis_label = self.nice_variable_ids[0]
-            y_axis_label = self.nice_objective_id
+            x_axis_label = '{} [mmol gDW^-1 h^-1]'.format(self.nice_variable_ids[0])
+            y_axis_label = '{} {}'.format(self.nice_objective_id, unit)
 
             dataframe = pandas.DataFrame(columns=["ub", "lb", "value", "strain"])
             for _, row in self.iterrows():
-                _df = pandas.DataFrame(
-                    [[row['objective_upper_bound'], row['objective_lower_bound'], row[variable], "WT"]],
-                    columns=dataframe.columns)
+                _df = pandas.DataFrame([[row[upper], row[lower], row[variable], "WT"]],
+                                       columns=dataframe.columns)
                 dataframe = dataframe.append(_df)
 
             plot = plotter.production_envelope(dataframe, grid=grid, width=width, height=height,
@@ -491,13 +655,13 @@ class PhenotypicPhasePlaneResult(Result):
         elif len(self.variable_ids) == 2:
             var_1 = self.variable_ids[0]
             var_2 = self.variable_ids[1]
-            x_axis_label = self.nice_variable_ids[0]
-            y_axis_label = self.nice_variable_ids[1]
-            z_axis_label = self.nice_objective_id
+            x_axis_label = '{} [mmol gDW^-1 h^-1]'.format(self.nice_variable_ids[0])
+            y_axis_label = '{} [mmol gDW^-1 h^-1]'.format(self.nice_variable_ids[1])
+            z_axis_label = '{} {}'.format(self.nice_objective_id, unit)
 
             dataframe = pandas.DataFrame(columns=["ub", "lb", "value1", "value2", "strain"])
             for _, row in self.iterrows():
-                _df = pandas.DataFrame([[row['objective_upper_bound'], row['objective_lower_bound'],
+                _df = pandas.DataFrame([[row[upper], row[lower],
                                          row[var_1], row[var_2], "WT"]],
                                        columns=dataframe.columns)
                 dataframe = dataframe.append(_df)
