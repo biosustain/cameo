@@ -20,36 +20,18 @@ from functools import partial
 
 import six
 
-from cameo.core import Reaction, Gene
+from cameo.core import Reaction
 
 
-def over_express(gene_or_reaction, ref_value, value, time_machine=None):
-    if isinstance(gene_or_reaction, Reaction):
-        over_express_reaction(gene_or_reaction, ref_value, value, time_machine=time_machine)
-    elif isinstance(gene_or_reaction, Gene):
-        over_express_gene(gene_or_reaction, ref_value, value, time_machine=time_machine)
-
-    else:
-        raise ValueError("'gene_or_reaction' is neither instance of Gene or Reaction")
-
-
-def down_regulate(gene_or_reaction, ref_value, value, time_machine=None):
-    if isinstance(gene_or_reaction, Reaction):
-        down_regulate_reaction(gene_or_reaction, ref_value, value, time_machine=time_machine)
-    elif isinstance(gene_or_reaction, Gene):
-        down_regulate_gene(gene_or_reaction, ref_value, value, time_machine=time_machine)
-
-    else:
-        raise ValueError("'gene_or_reaction' is neither instance of Gene or Reaction")
-
-
-def over_express_reaction(reaction, ref_value, value, time_machine=None):
+def increase_flux(reaction, ref_value, value, time_machine=None):
     """
     lb                           0                           ub
     |--------------------------- ' ---------------------------|
                 <- - -|----------'
                                  '----------|- - - ->
 
+    Parameters
+    ----------
     reaction: cameo.Reaction
         The reaction to over-express.
     ref_value: float
@@ -62,7 +44,7 @@ def over_express_reaction(reaction, ref_value, value, time_machine=None):
     """
 
     if abs(value) < abs(ref_value):
-        raise ValueError("'value' is lower than 'ref_value', this is down_regulation (%f < %f)" % (value, ref_value))
+        raise ValueError("'value' is lower than 'ref_value', this is increase_flux (%f < %f)" % (value, ref_value))
 
     if value > 0:
         reaction.change_bounds(lb=value, time_machine=time_machine)
@@ -72,13 +54,15 @@ def over_express_reaction(reaction, ref_value, value, time_machine=None):
         reaction.knock_out(time_machine=time_machine)
 
 
-def down_regulate_reaction(reaction, ref_value, value, time_machine=None):
+def decrease_flux(reaction, ref_value, value, time_machine=None):
     """
     lb                           0                           ub
     |--------------------------- ' ---------------------------|
                  |- - >----------'
                                  '----------<- - - -|
 
+    Parameters
+    ----------
     reaction: cameo.Reaction
         The reaction to down_regulate.
     ref_value: float
@@ -90,7 +74,7 @@ def down_regulate_reaction(reaction, ref_value, value, time_machine=None):
 
     """
     if abs(value) > abs(ref_value):
-        raise ValueError("'value' is higher than 'ref_value', this is down_regulation (%f < %f)" % (value, ref_value))
+        raise ValueError("'value' is higher than 'ref_value', this is decrease_flux (%f < %f)" % (value, ref_value))
 
     if value > 0:
         reaction.change_bounds(ub=value, time_machine=time_machine)
@@ -100,63 +84,13 @@ def down_regulate_reaction(reaction, ref_value, value, time_machine=None):
         reaction.knock_out(time_machine=time_machine)
 
 
-def over_express_gene(gene, ref_value, value, time_machine=None):
-    """
-    0                       expression
-    |---------------------------|
-    |---------|- - ->
-
-    gene: cameo.Gene
-        The gene to over-express.
-    ref_value: float
-        The expression value to come from.
-    value: float
-        The expression value to achieve.
-    time_machine: TimeMachine
-        The action stack manager.
-
-    """
-
-    if value < 0:
-        raise ValueError("'value' expression value is always positive")
-
-    if value < ref_value:
-        raise ValueError("'value' is lower than 'ref_value', this is down_regulation (%f < %f)" % (value, ref_value))
-
-    raise NotImplementedError
-
-
-def down_regulate_gene(gene, ref_value, value, time_machine=None):
-    """
-    0                       expression
-    |---------------------------|
-    |---------<- - -|
-
-    gene: cameo.Gene
-        The reaction to down_regulate.
-    ref_value: float
-        The flux value to come from.
-    value: float
-        The flux value to achieve.
-    time_machine: TimeMachine
-        The action stack manager.
-
-    """
-
-    if value < 0:
-        raise ValueError("'value' expression value is always positive")
-
-    if value > ref_value:
-        raise ValueError("'value' is higher than 'ref_value', this is down_regulation (%f < %f)" % (value, ref_value))
-
-    raise NotImplementedError
-
-
 def swap_cofactors(reaction, model, swap_pairs, inplace=True, time_machine=None):
     """
     Swaps the cofactors of a reaction. For speed, it can be done inplace which just changes the coefficients.
     If not done inplace, it will create a new Reaction, add it to the model, and knockout the original reaction.
 
+    Parameters
+    ----------
     reaction: cameo.Reaction
         The reaction to swap.
     model: cameo.SolverBasedModel
