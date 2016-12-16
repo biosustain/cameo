@@ -16,8 +16,9 @@
 from __future__ import absolute_import, print_function
 
 import getpass
-import time
 from datetime import datetime
+
+import time
 
 from cameo import system_info
 
@@ -63,3 +64,9 @@ class Result(object):
 
     def plot(self, grid=None, width=None, height=None, title=None, *args, **kwargs):
         raise NotImplementedError
+
+    def __getstate__(self):
+        return {'meta_information': self._meta_information}
+
+    def __setstate__(self, state):
+        self._meta_information = state['meta_information']

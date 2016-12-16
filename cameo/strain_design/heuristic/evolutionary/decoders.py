@@ -14,36 +14,38 @@
 
 from __future__ import absolute_import
 
-__all__ = ['ReactionKnockoutDecoder', 'GeneKnockoutDecoder']
-
-from cobra.manipulation.delete import find_gene_knockout_reactions
+__all__ = ['ReactionSetDecoder', 'GeneSetDecoder']
 
 
-class KnockoutDecoder(object):
+class SetDecoder(object):
+    """
+    Decoder for set representation. Decodes integer into string.
+    """
+
     def __init__(self, representation, model, *args, **kwargs):
-        super(KnockoutDecoder, self).__init__(*args, **kwargs)
+        super(SetDecoder, self).__init__(*args, **kwargs)
         self.representation = representation
         self.model = model
 
     def __call__(self, individual, flat=False):
-        raise NotImplementedError
+        return [self.representation[index] for index in individual]
 
 
-class ReactionKnockoutDecoder(KnockoutDecoder):
+class ReactionSetDecoder(SetDecoder):
     """
-    Decoder for set representation. Converts an integer set into reactions available for knockout
+    Decoder for set representation. Converts an integer set into reactions.
 
     Parameters
     ----------
 
     representation : list
-        reactions to knockout
+        Reactions.
     model : SolverBasedModel
 
     """
 
     def __init__(self, representation, model, *args, **kwargs):
-        super(ReactionKnockoutDecoder, self).__init__(representation, model, *args, **kwargs)
+        super(ReactionSetDecoder, self).__init__(representation, model, *args, **kwargs)
 
     def __call__(self, individual, flat=False):
         """
@@ -53,33 +55,33 @@ class ReactionKnockoutDecoder(KnockoutDecoder):
         individual: list
             a list of integers
         flat: bool
-            if True, returns strings. Otherwise returns Reaction
+            if True, returns strings. Otherwise returns Reaction.
 
         Returns
         -------
         list
-            [knockouts, decoded representation]
+            Decoded representation
 
         """
         reactions = [self.model.reactions.get_by_id(self.representation[index]) for index in individual]
         if flat:
-            return [tuple(r.id for r in reactions), tuple(r.id for r in reactions)]
-        return [tuple(reactions), tuple(reactions)]
+            return tuple(r.id for r in reactions)
+        return tuple(reactions)
 
 
-class GeneKnockoutDecoder(KnockoutDecoder):
+class GeneSetDecoder(SetDecoder):
     """
-    Decoder for set representation. Converts an integer set into genes available for knockout
+    Decoder for set representation. Converts an integer set into genes.
     Parameters
     ----------
 
     representation : list
-        genes to knockout
+        Genes to knockout.
     model : SolverBasedModel
     """
 
     def __init__(self, representation, model, *args, **kwargs):
-        super(GeneKnockoutDecoder, self).__init__(representation, model, *args, **kwargs)
+        super(GeneSetDecoder, self).__init__(representation, model, *args, **kwargs)
 
     def __call__(self, individual, flat=False):
         """
@@ -94,12 +96,11 @@ class GeneKnockoutDecoder(KnockoutDecoder):
         Returns
         -------
         list
-            [knockouts, decoded representation]
+            Decoded representation.
 
         """
         genes = [self.model.genes.get_by_id(self.representation[index]) for index in individual]
-        reactions = find_gene_knockout_reactions(self.model, genes)
 
         if flat:
-            return [tuple(r.id for r in reactions), tuple(g.id for g in genes)]
-        return [tuple(reactions), tuple(genes)]
+            return tuple(g.id for g in genes)
+        return tuple(genes)

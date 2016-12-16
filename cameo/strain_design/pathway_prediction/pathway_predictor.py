@@ -13,31 +13,28 @@
 # limitations under the License.
 
 from __future__ import absolute_import, print_function
-from math import ceil
-from cameo.visualization.plotting import plotter
-
-import six
-
-import re
-from functools import partial
-
-from cameo.core.result import Result
-from cameo.core.pathway import Pathway
-from cameo import models, phenotypic_phase_plane
-from cameo.exceptions import SolveError
-from cameo import Model, Metabolite
-from cameo.data import metanetx
-from cameo.util import TimeMachine
-from cameo.config import non_zero_flux_threshold
-
-from cameo.strain_design.strain_design import StrainDesignResult, StrainDesign
-from cameo.strain_design.pathway_prediction import util
-
-import sympy
-
-from sympy import Add, Mul, RealNumber
 
 import logging
+import re
+from functools import partial
+from math import ceil
+
+import six
+import sympy
+from sympy import Add, Mul, RealNumber
+
+from cameo import Model, Metabolite
+from cameo import models, phenotypic_phase_plane
+from cameo.config import non_zero_flux_threshold
+from cameo.core.pathway import Pathway
+from cameo.core.result import Result, MetaInformation
+from cameo.core.strain_design import StrainDesignMethodResult, StrainDesign
+from cameo.core.target import ReactionKnockinTarget
+from cameo.data import metanetx
+from cameo.exceptions import SolveError
+from cameo.strain_design.pathway_prediction import util
+from cameo.util import TimeMachine
+from cameo.visualization.plotting import plotter
 
 __all__ = ['PathwayPredictor']
 
@@ -49,9 +46,9 @@ logger = logging.getLogger(__name__)
 
 class PathwayResult(Pathway, Result, StrainDesign):
     def __init__(self, reactions, exchanges, adapters, product, *args, **kwargs):
-        Result.__init__(self, *args, **kwargs)
-        Pathway.__init__(self, reactions, *args, **kwargs)
-        StrainDesign.__init__(self, knock_ins=[r.id for r in reactions], manipulation_type="reactions")
+        self._meta_information = MetaInformation()
+        self.reactions = reactions
+        self.targets = [ReactionKnockinTarget(reaction.id, reaction) for reaction in reactions]
         self.exchanges = exchanges
         self.adapters = adapters
         self.product = product
@@ -101,13 +98,15 @@ class PathwayResult(Pathway, Result, StrainDesign):
                 pass
 
 
-class PathwayPredictions(StrainDesignResult):
+class PathwayPredictions(StrainDesignMethodResult):
     __method_name__ = "PathwayPredictor"
 
     def __init__(self, pathways, *args, **kwargs):
-        super(PathwayPredictions, self).__init__(*args, **kwargs)
-        # TODO: sort the pathways to make them easier to read
-        self.pathways = pathways
+        super(PathwayPredictions, self).__init__(pathways, *args, **kwargs)
+
+    @property
+    def pathways(self):
+        return self._designs
 
     def plug_model(self, model, index, tm=None):
         self.pathways[index].plug_model(model, tm)
@@ -136,13 +135,6 @@ class PathwayPredictions(StrainDesignResult):
             for i, pathway in enumerate(self.pathways):
                 ppp = pathway.production_envelope(model, objective=objective)
                 ppp.plot(grid=grid, width=450, title="Pathway %i" % (i + 1))
-
-    def __iter__(self):
-        for p in self.pathways:
-            yield p
-
-    def __len__(self):
-        return len(self.pathways)
 
 
 class PathwayPredictor(object):

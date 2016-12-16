@@ -13,12 +13,14 @@
 # limitations under the License.
 from functools import partial
 
+from cobra.manipulation.delete import find_gene_knockout_reactions
+
 from cameo import flux_variability_analysis
 from cameo.util import TimeMachine
 
 
-def process_knockout_solution(model, solution, simulation_method, simulation_kwargs,
-                              biomass, target, substrate, objective_functions):
+def process_reaction_knockout_solution(model, solution, simulation_method, simulation_kwargs,
+                                       biomass, target, substrate, objective_functions):
     """
 
     Arguments
@@ -40,31 +42,131 @@ def process_knockout_solution(model, solution, simulation_method, simulation_kwa
         The main carbon source uptake rate
     objective_functions: list
         A list of cameo.strain_design.heuristic.evolutionary.objective_functions.ObjectiveFunction
-    cache: ProblemCache
-        A problem cache for performance improvment
 
     Returns
     -------
 
     list
-        A list with: reactions, knockouts, size, fva_min, fva_max, target flux, biomass flux, yield, fitness,
+        A list with: reactions, size, fva_min, fva_max, target flux, biomass flux, yield, fitness,
         [fitness, [fitness]]
     """
 
     with TimeMachine() as tm:
-        for ko in solution[0]:
-            model.reactions.get_by_id(ko).knock_out(tm)
+        reactions = [model.reactions.get_by_id(rid) for rid in solution]
+        for reaction in reactions:
+            reaction.knock_out(tm)
 
-        reactions = reactions2filter(objective_functions)
-        flux_dist = simulation_method(model, reactions=reactions, objective=biomass, **simulation_kwargs)
+        flux_dist = simulation_method(model, reactions=reactions2filter(objective_functions),
+                                      objective=biomass, **simulation_kwargs)
         tm(do=partial(setattr, model, "objective", biomass),
            undo=partial(setattr, model, "objective", model.objective))
 
         fva = flux_variability_analysis(model, fraction_of_optimum=0.99, reactions=[target])
         target_yield = flux_dist[target] / abs(flux_dist[substrate])
-        return [solution[0], solution[1], len(solution[1]), fva.lower_bound(target),
+        return [solution, len(solution), fva.lower_bound(target),
                 fva.upper_bound(target), flux_dist[target], flux_dist[biomass],
-                target_yield] + [of(model, flux_dist, solution) for of in objective_functions]
+                target_yield] + [of(model, flux_dist, reactions) for of in objective_functions]
+
+
+def process_gene_knockout_solution(model, solution, simulation_method, simulation_kwargs,
+                                   biomass, target, substrate, objective_functions):
+    """
+
+    Arguments
+    ---------
+
+    model: SolverBasedModel
+        A constraint-based model
+    solution: tuple
+        The genes
+    simulation_method: function
+        See see cameo.flux_analysis.simulation
+    simulation_kwargs: dict
+        Keyword arguments to run the simulation method
+    biomass: Reaction
+        Cellular biomass reaction
+    target: Reaction
+        The strain design target
+    substrate: Reaction
+        The main carbon source uptake rate
+    objective_functions: list
+        A list of cameo.strain_design.heuristic.evolutionary.objective_functions.ObjectiveFunction
+
+    Returns
+    -------
+
+    list
+        A list with: reactions, genes, size, fva_min, fva_max, target flux, biomass flux, yield, fitness,
+        [fitness, [fitness]]
+    """
+
+    with TimeMachine() as tm:
+        genes = [model.genes.get_by_id(gid) for gid in solution]
+        reactions = find_gene_knockout_reactions(model, solution)
+        for reaction in reactions:
+            reaction.knock_out(tm)
+
+        reaction_ids = [r.id for r in reactions]
+        flux_dist = simulation_method(model, reactions=reactions2filter(objective_functions),
+                                      objective=biomass, **simulation_kwargs)
+        tm(do=partial(setattr, model, "objective", biomass),
+           undo=partial(setattr, model, "objective", model.objective))
+
+        fva = flux_variability_analysis(model, fraction_of_optimum=0.99, reactions=[target])
+        target_yield = flux_dist[target] / abs(flux_dist[substrate])
+        return [reaction_ids, solution, fva.lower_bound(target), fva.upper_bound(target), flux_dist[target],
+                flux_dist[biomass], target_yield] + [of(model, flux_dist, genes) for of in objective_functions]
+
+
+def process_reaction_swap_solution(model, solution, simulation_method, simulation_kwargs, biomass,
+                                   target, substrate, objective_functions, swap_pairs):
+    """
+
+    Arguments
+    ---------
+
+    model: SolverBasedModel
+        A constraint-based model
+    solution: tuple - (reactions, knockouts)
+        The output of a decoder
+    simulation_method: function
+        See see cameo.flux_analysis.simulation
+    simulation_kwargs: dict
+        Keyword arguments to run the simulation method
+    biomass: Reaction
+        Cellular biomass reaction
+    target: Reaction
+        The strain design target
+    substrate: Reaction
+        The main carbon source uptake rate
+    objective_functions: list
+        A list of cameo.strain_design.heuristic.evolutionary.objective_functions.ObjectiveFunction
+    swap_pairs:
+        The metabolites to swap
+
+    Returns
+    -------
+
+    list
+        A list with: reactions, size, fva_min, fva_max, target flux, biomass flux, yield, fitness,
+        [fitness, [fitness]]
+    """
+
+    with TimeMachine() as tm:
+        reactions = [model.reactions.get_by_id(rid) for rid in solution]
+        for reaction in reactions:
+            reaction.swap_cofactors(tm, swap_pairs)
+
+        flux_dist = simulation_method(model, reactions=reactions2filter(objective_functions),
+                                      objective=biomass, **simulation_kwargs)
+        tm(do=partial(setattr, model, "objective", biomass),
+           undo=partial(setattr, model, "objective", model.objective))
+
+        fva = flux_variability_analysis(model, fraction_of_optimum=0.99, reactions=[target])
+        target_yield = flux_dist[target] / abs(flux_dist[substrate])
+        return [solution, fva.lower_bound(target),
+                fva.upper_bound(target), flux_dist[target], flux_dist[biomass],
+                target_yield] + [of(model, flux_dist, reactions) for of in objective_functions]
 
 
 def reactions2filter(objective_function):

@@ -26,12 +26,12 @@ from sympy import Add
 
 from cameo import config
 from cameo import ui
-from cameo.core.reaction import Reaction
 from cameo.core.solver_based_model_dual import convert_to_dual
+from cameo.core.strain_design import StrainDesignMethodResult, StrainDesignMethod, StrainDesign
+from cameo.core.target import ReactionKnockoutTarget
 from cameo.exceptions import SolveError
 from cameo.flux_analysis.analysis import phenotypic_phase_plane, flux_variability_analysis
 from cameo.flux_analysis.simulation import fba
-from cameo.strain_design.strain_design import StrainDesignMethod, StrainDesign, StrainDesignResult
 from cameo.util import TimeMachine
 from cameo.visualization.plotting import plotter
 
@@ -263,13 +263,13 @@ class RobustKnock(StrainDesignMethod):
     pass
 
 
-class OptKnockResult(StrainDesignResult):
+class OptKnockResult(StrainDesignMethodResult):
     __method_name__ = "OptKnock"
 
-    def __init__(self, model, designs, fluxes, production_fluxes, biomass_fluxes, target, biomass, *args, **kwargs):
-        super(OptKnockResult, self).__init__(*args, **kwargs)
+    def __init__(self, model, knockouts, fluxes, production_fluxes, biomass_fluxes, target, biomass, *args, **kwargs):
+        super(OptKnockResult, self).__init__(self._generate_designs(knockouts), *args, **kwargs)
         self._model = model
-        self._designs = designs
+        self._knockouts = knockouts
         self._fluxes = fluxes
         self._production_fluxes = production_fluxes
         self._biomass_fluxes = biomass_fluxes
@@ -277,13 +277,21 @@ class OptKnockResult(StrainDesignResult):
         self._biomass = biomass
         self._processed_knockouts = None
 
+    @staticmethod
+    def _generate_designs(knockouts):
+        designs = []
+        for knockout_design in knockouts:
+            designs.append(StrainDesign([ReactionKnockoutTarget(ko for ko in knockout_design)]))
+
+        return designs
+
     def _process_knockouts(self):
-        progress = ProgressBar(maxval=len(self._designs), widgets=["Processing solutions: ", Bar(), Percentage()])
+        progress = ProgressBar(maxval=len(self._knockouts), widgets=["Processing solutions: ", Bar(), Percentage()])
 
         self._processed_knockouts = DataFrame(columns=["reactions", "size", self._target,
                                                        "biomass", "fva_min", "fva_max"])
 
-        for i, knockouts in progress(enumerate(self._designs)):
+        for i, knockouts in progress(enumerate(self._knockouts)):
             try:
                 with TimeMachine() as tm:
                     [self._model.reactions.get_by_id(ko).knock_out(time_machine=tm) for ko in knockouts]
@@ -295,7 +303,7 @@ class OptKnockResult(StrainDesignResult):
 
     @property
     def knockouts(self):
-        return self._designs
+        return self._knockouts
 
     @property
     def fluxes(self):
@@ -361,10 +369,3 @@ class OptKnockResult(StrainDesignResult):
         </ul>
         %s""" % (self._target, self.data_frame._repr_html_())
         return html_string
-
-    def __len__(self):
-        return len(self.knockouts)
-
-    def __iter__(self):
-        for knockouts in self.knockouts:
-            yield StrainDesign(knockouts=knockouts)
