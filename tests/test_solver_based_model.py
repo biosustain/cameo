@@ -1005,6 +1005,22 @@ class WrappedAbstractTestSolverBasedModel:
             self.assertAlmostEqual(solution.f, 0.870407873712)
             self.assertAlmostEqual(2 * solution.x_dict['PGI'], solution.x_dict['G6PDH2r'])
 
+            cp = self.model.copy()
+            ratio_constr = cp.add_ratio_constraint('PGI', 'G6PDH2r', 0.5)
+            self.assertEqual(ratio_constr.name, 'ratio_constraint_PGI_G6PDH2r')
+            solution = cp.solve()
+            self.assertAlmostEqual(solution.f, 0.870407873712)
+            self.assertAlmostEqual(2 * solution.x_dict['PGI'], solution.x_dict['G6PDH2r'])
+
+            cp = self.model.copy()
+            ratio_constr = cp.add_ratio_constraint([cp.reactions.PGI, cp.reactions.ACALD],
+                                                   [cp.reactions.G6PDH2r, cp.reactions.ACONTa], 0.5)
+            self.assertEqual(ratio_constr.name, 'ratio_constraint_PGI+ACALD_G6PDH2r+ACONTa')
+            solution = cp.solve()
+            self.assertAlmostEqual(solution.f, 0.8729595694565973)
+            self.assertAlmostEqual(2 * solution.x_dict['PGI'] + solution.x_dict['ACALD'],
+                                   solution.x_dict['G6PDH2r'] + solution.x_dict['ACONTa'])
+
         def test_fix_objective_as_constraint(self):
             # with TimeMachine
             with TimeMachine() as tm:
