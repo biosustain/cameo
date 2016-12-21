@@ -167,7 +167,7 @@ class HeuristicOptimization(object):
         if not isinstance(objective_function, ObjectiveFunction):
             raise TypeError("objective function is not instance of ObjectiveFunction")
         elif self._heuristic_method.__module__ == inspyred.ec.ec.__name__ and isinstance(objective_function,
-                                                                                       MultiObjectiveFunction):
+                                                                                         MultiObjectiveFunction):
             raise TypeError("single objective heuristic do not support multiple objective functions")
         else:
             self._objective_function = objective_function
