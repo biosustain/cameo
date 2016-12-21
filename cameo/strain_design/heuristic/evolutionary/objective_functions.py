@@ -15,7 +15,9 @@
 
 from __future__ import absolute_import, print_function
 
+import numpy as np
 from cobra import Reaction
+from inspyred.ec.emo import Pareto
 
 from cameo import config, flux_variability_analysis
 from cameo.util import TimeMachine
@@ -57,6 +59,52 @@ class ObjectiveFunction(object):
     def name(self):
         return self.__class__.__name__
 
+    def worst_fitness(self, maximize=True):
+        """
+
+        Parameters
+        ----------
+        maximize: bool
+            The sense of the optimization problem.
+
+        Returns
+        -------
+        float
+            The worst fitness value that a given objective can have based on the sense of the optimization.
+        """
+        raise NotImplementedError
+
+    def __len__(self):
+        return 1
+
+
+class MultiObjectiveFunction(ObjectiveFunction):
+    def __init__(self, objectives, *args, **kwargs):
+        super(MultiObjectiveFunction, self).__init__(*args, **kwargs)
+        failed = []
+        for i, objective in enumerate(objectives):
+            if not isinstance(objective, ObjectiveFunction):
+                failed.append(i)
+
+        if len(failed) > 0:
+            raise ValueError("Objectives %s are not instance of ObjectiveFunction" %
+                             ", ".join(str(objectives[i]) for i in failed))
+
+        self.objectives = objectives
+
+    def __call__(self, model, solution, targets):
+        return Pareto(values=[o(model, solution, targets) for o in self.objectives])
+
+    def worst_fitness(self, maximize=True):
+        return Pareto(values=[o.worst_fitness(maximize) for o in self.objectives], maximize=maximize)
+
+    @property
+    def reactions(self):
+        return set(sum([o.reactions for o in self.objectives], []))
+
+    def __len__(self):
+        return len(self.objectives)
+
 
 class YieldFunction(ObjectiveFunction):
     def __init__(self, product, substrate, *args, **kwargs):
@@ -75,6 +123,12 @@ class YieldFunction(ObjectiveFunction):
 
     def __call__(self, model, solution, targets):
         raise NotImplementedError
+
+    def worst_fitness(self, maximize=True):
+        if maximize:
+            return 0
+        else:
+            return -np.inf
 
 
 class biomass_product_coupled_yield(YieldFunction):
@@ -263,3 +317,9 @@ class number_of_knockouts(ObjectiveFunction):
             return "max knockouts"
         else:
             return "min knockouts"
+
+    def worst_fitness(self, maximize=True):
+        if maximize:
+            return 0
+        else:
+            return np.inf

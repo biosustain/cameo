@@ -49,7 +49,7 @@ from cameo.strain_design.heuristic.evolutionary.metrics import manhattan_distanc
 from cameo.strain_design.heuristic.evolutionary.multiprocess.migrators import MultiprocessingMigrator
 
 from cameo.strain_design.heuristic.evolutionary.objective_functions import biomass_product_coupled_yield, \
-    product_yield, number_of_knockouts, biomass_product_coupled_min_yield
+    product_yield, number_of_knockouts, biomass_product_coupled_min_yield, MultiObjectiveFunction
 from cameo.strain_design.heuristic.evolutionary.optimization import HeuristicOptimization, \
     ReactionKnockoutOptimization, set_distance_function, TargetOptimizationResult, EvaluatorWrapper, \
     CofactorSwapOptimization
@@ -391,13 +391,11 @@ class TestKnockoutEvaluator(unittest.TestCase):
         evaluator = KnockoutEvaluator(TEST_MODEL, decoder, objective1, fba, {})
         self.assertEquals(evaluator.decoder, decoder)
         self.assertEquals(evaluator.objective_function, objective1)
-        self.assertFalse(evaluator.is_mo)
         self.assertTrue(hasattr(evaluator, "__call__"))
 
         objective2 = product_yield("EX_ac_LPAREN_e_RPAREN_", "EX_glc_LPAREN_e_RPAREN_")
-        evaluator = KnockoutEvaluator(TEST_MODEL, decoder, [objective1, objective2], fba, {})
-        self.assertEquals(evaluator.objective_function, [objective1, objective2])
-        self.assertTrue(evaluator.is_mo)
+        evaluator = KnockoutEvaluator(TEST_MODEL, decoder, MultiObjectiveFunction([objective1, objective2]), fba, {})
+        self.assertEquals(evaluator.objective_function.objectives, [objective1, objective2])
 
     def test_invalid_initializers(self):
         objective1 = biomass_product_coupled_yield(
@@ -409,7 +407,7 @@ class TestKnockoutEvaluator(unittest.TestCase):
         self.assertRaises(ValueError, KnockoutEvaluator, TEST_MODEL, decoder, None, fba, {})
         self.assertRaises(ValueError, KnockoutEvaluator, TEST_MODEL, decoder, [], fba, {})
         self.assertRaises(ValueError, KnockoutEvaluator, TEST_MODEL, decoder, [2, 3], fba, {})
-        self.assertRaises(ValueError, KnockoutEvaluator, TEST_MODEL, decoder, [objective1, 2], fba, {})
+        self.assertRaises(ValueError, KnockoutEvaluator, TEST_MODEL, decoder, [objective1], fba, {})
         self.assertRaises(ValueError, KnockoutEvaluator, TEST_MODEL, None, [], fba, {})
         self.assertRaises(ValueError, KnockoutEvaluator, TEST_MODEL, True, [], fba, {})
 
@@ -435,15 +433,15 @@ class TestKnockoutEvaluator(unittest.TestCase):
             "EX_ac_LPAREN_e_RPAREN_",
             "EX_glc_LPAREN_e_RPAREN_")
         objective2 = product_yield("EX_ac_LPAREN_e_RPAREN_", "EX_glc_LPAREN_e_RPAREN_")
-
-        evaluator = KnockoutEvaluator(TEST_MODEL, decoder, [objective1, objective2], fba, {})
+        objective = MultiObjectiveFunction([objective1, objective2])
+        evaluator = KnockoutEvaluator(TEST_MODEL, decoder, objective, fba, {})
         fitness = evaluator([[0, 1, 2, 3, 4]])[0]
 
         self.assertIsInstance(fitness, Pareto)
         self.assertAlmostEqual(fitness[0], 0.41, delta=0.02)
         self.assertAlmostEqual(fitness[1], 1.57, delta=0.035)
 
-    def test_evaluate_infeasibile_solution(self):
+    def test_evaluate_infeasible_solution(self):
         representation = ["ENO", "ATPS4r", "PYK", "GLUDy", "PPS", "CO2t", "PDH",
                           "FUM", "FBA", "G6PDH2r", "FRD7", "PGL", "PPC"]
 
@@ -636,10 +634,10 @@ class TestHeuristicOptimization(unittest.TestCase):
     def setUp(self):
         self.model = TEST_MODEL
         self.single_objective_function = product_yield('product', 'substrate')
-        self.multiobjective_function = [
+        self.multiobjective_function = MultiObjectiveFunction([
             product_yield('product', 'substrate'),
             number_of_knockouts()
-        ]
+        ])
 
     def test_default_initializer(self):
         heuristic_optimization = HeuristicOptimization(
@@ -702,14 +700,10 @@ class TestHeuristicOptimization(unittest.TestCase):
 
         single_objective_heuristic.objective_function = nok
         self.assertEqual(nok, single_objective_heuristic.objective_function)
-        self.assertFalse(single_objective_heuristic.is_mo())
         self.assertRaises(TypeError,
                           single_objective_heuristic.objective_function,
                           self.multiobjective_function)
 
-        single_objective_heuristic.objective_function = [nok]
-        self.assertEqual(nok, single_objective_heuristic.objective_function)
-        self.assertFalse(single_objective_heuristic.is_mo())
         self.assertRaises(TypeError, single_objective_heuristic.objective_function, self.multiobjective_function)
 
         multiobjective_heuristic = HeuristicOptimization(
@@ -720,8 +714,7 @@ class TestHeuristicOptimization(unittest.TestCase):
 
         multiobjective_heuristic.objective_function = nok
         self.assertEqual(len(multiobjective_heuristic.objective_function), 1)
-        self.assertEqual(multiobjective_heuristic.objective_function[0], nok)
-        self.assertTrue(multiobjective_heuristic.is_mo())
+        self.assertEqual(multiobjective_heuristic.objective_function, nok)
 
     def test_change_heuristic_method(self):
         single_objective_heuristic = HeuristicOptimization(
@@ -730,7 +723,6 @@ class TestHeuristicOptimization(unittest.TestCase):
         )
 
         single_objective_heuristic.heuristic_method = inspyred.ec.emo.NSGA2
-        self.assertTrue(single_objective_heuristic.is_mo())
         self.assertEqual(len(single_objective_heuristic.objective_function), 1)
 
         multiobjective_heuristic = HeuristicOptimization(
@@ -742,7 +734,6 @@ class TestHeuristicOptimization(unittest.TestCase):
         self.assertRaises(TypeError, multiobjective_heuristic.heuristic_method, inspyred.ec.GA)
         multiobjective_heuristic.objective_function = self.single_objective_function
         multiobjective_heuristic.heuristic_method = inspyred.ec.GA
-        self.assertFalse(multiobjective_heuristic.is_mo())
 
     def test_set_distance_function(self):
         s1 = {1, 2, 3}
@@ -874,7 +865,7 @@ class TestReactionKnockoutOptimization(unittest.TestCase):
             "EX_glc_LPAREN_e_RPAREN_")
 
         objective2 = number_of_knockouts()
-        objective = [objective1, objective2]
+        objective = MultiObjectiveFunction([objective1, objective2])
 
         rko = ReactionKnockoutOptimization(model=self.model,
                                            simulation_method=fba,
