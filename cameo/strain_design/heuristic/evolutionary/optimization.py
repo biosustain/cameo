@@ -15,11 +15,11 @@
 from __future__ import absolute_import, print_function
 
 import logging
-import time
 import types
 from functools import reduce
 
 import inspyred
+import time
 from pandas import DataFrame
 
 from cameo import config
@@ -325,7 +325,7 @@ class TargetOptimization(HeuristicOptimization):
 
         if in_ipnb() and self.plot:
             if config.use_bokeh:
-                if self.is_mo():
+                if len(self.objective_function) > 1:
                     self.observers.append(plotters.IPythonBokehParetoPlotter(self.objective_function))
                 else:
                     self.observers.append(plotters.IPythonBokehFitnessPlotter())

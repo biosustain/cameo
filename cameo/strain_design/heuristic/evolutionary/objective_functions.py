@@ -92,6 +92,9 @@ class MultiObjectiveFunction(ObjectiveFunction):
 
         self.objectives = objectives
 
+    def __getitem__(self, item):
+        return self.objectives[item]
+
     def __call__(self, model, solution, targets):
         return Pareto(values=[o(model, solution, targets) for o in self.objectives])
 
