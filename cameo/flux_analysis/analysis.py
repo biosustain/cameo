@@ -638,7 +638,7 @@ class PhenotypicPhasePlaneResult(Result):
 
             variable = self.variable_ids[0]
             y_axis_label = self._axis_label(self.objective, self.nice_objective_id, unit)
-            x_axis_label = self._axis_label(variable, self.nice_variable_ids[0], unit)
+            x_axis_label = self._axis_label(variable, self.nice_variable_ids[0], '[mmol gDW^-1 h^-1]')
 
             dataframe = pandas.DataFrame(columns=["ub", "lb", "value", "strain"])
             for _, row in self.iterrows():
@@ -653,8 +653,8 @@ class PhenotypicPhasePlaneResult(Result):
         elif len(self.variable_ids) == 2:
             var_1 = self.variable_ids[0]
             var_2 = self.variable_ids[1]
-            x_axis_label = self._axis_label(var_1, self.nice_variable_ids[0], unit)
-            y_axis_label = self._axis_label(var_2, self.nice_variable_ids[1], unit)
+            x_axis_label = self._axis_label(var_1, self.nice_variable_ids[0], '[mmol gDW^-1 h^-1]')
+            y_axis_label = self._axis_label(var_2, self.nice_variable_ids[1], '[mmol gDW^-1 h^-1]')
             z_axis_label = self._axis_label(self.objective, self.nice_objective_id, unit)
 
             dataframe = pandas.DataFrame(columns=["ub", "lb", "value1", "value2", "strain"])
