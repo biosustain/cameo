@@ -54,7 +54,7 @@ def process_reaction_knockout_solution(model, solution, simulation_method, simul
         for reaction in reactions:
             reaction.knock_out(tm)
 
-        flux_dist = simulation_method(model, reactions=reactions2filter(objective_functions),
+        flux_dist = simulation_method(model, reactions=reactions2filter(objective_function),
                                       objective=biomass, **simulation_kwargs)
         tm(do=partial(setattr, model, "objective", biomass),
            undo=partial(setattr, model, "objective", model.objective))
@@ -104,7 +104,7 @@ def process_gene_knockout_solution(model, solution, simulation_method, simulatio
             reaction.knock_out(tm)
 
         reaction_ids = [r.id for r in reactions]
-        flux_dist = simulation_method(model, reactions=reactions2filter(objective_functions),
+        flux_dist = simulation_method(model, reactions=reactions2filter(objective_function),
                                       objective=biomass, **simulation_kwargs)
         tm(do=partial(setattr, model, "objective", biomass),
            undo=partial(setattr, model, "objective", model.objective))
@@ -154,7 +154,7 @@ def process_reaction_swap_solution(model, solution, simulation_method, simulatio
         for reaction in reactions:
             reaction.swap_cofactors(tm, swap_pairs)
 
-        flux_dist = simulation_method(model, reactions=reactions2filter(objective_functions),
+        flux_dist = simulation_method(model, reactions=reactions2filter(objective_function),
                                       objective=biomass, **simulation_kwargs)
         tm(do=partial(setattr, model, "objective", biomass),
            undo=partial(setattr, model, "objective", model.objective))
