@@ -20,7 +20,7 @@ from cameo.util import TimeMachine
 
 
 def process_reaction_knockout_solution(model, solution, simulation_method, simulation_kwargs,
-                                       biomass, target, substrate, objective_functions):
+                                       biomass, target, substrate, objective_function):
     """
 
     Arguments
@@ -40,15 +40,13 @@ def process_reaction_knockout_solution(model, solution, simulation_method, simul
         The strain design target
     substrate: Reaction
         The main carbon source uptake rate
-    objective_functions: list
-        A list of cameo.strain_design.heuristic.evolutionary.objective_functions.ObjectiveFunction
-
+    objective_function: cameo.strain_design.heuristic.evolutionary.objective_functions.ObjectiveFunction
+        The objective function used for evaluation.
     Returns
     -------
 
     list
-        A list with: reactions, size, fva_min, fva_max, target flux, biomass flux, yield, fitness,
-        [fitness, [fitness]]
+        A list with: reactions, size, fva_min, fva_max, target flux, biomass flux, yield, fitness
     """
 
     with TimeMachine() as tm:
@@ -65,11 +63,11 @@ def process_reaction_knockout_solution(model, solution, simulation_method, simul
         target_yield = flux_dist[target] / abs(flux_dist[substrate])
         return [solution, len(solution), fva.lower_bound(target),
                 fva.upper_bound(target), flux_dist[target], flux_dist[biomass],
-                target_yield] + [of(model, flux_dist, reactions) for of in objective_functions]
+                target_yield, objective_function(model, flux_dist, reactions)]
 
 
 def process_gene_knockout_solution(model, solution, simulation_method, simulation_kwargs,
-                                   biomass, target, substrate, objective_functions):
+                                   biomass, target, substrate, objective_function):
     """
 
     Arguments
@@ -89,15 +87,14 @@ def process_gene_knockout_solution(model, solution, simulation_method, simulatio
         The strain design target
     substrate: Reaction
         The main carbon source uptake rate
-    objective_functions: list
-        A list of cameo.strain_design.heuristic.evolutionary.objective_functions.ObjectiveFunction
+    objective_function: cameo.strain_design.heuristic.evolutionary.objective_functions.ObjectiveFunction
+        The objective function used for evaluation.
 
     Returns
     -------
 
     list
-        A list with: reactions, genes, size, fva_min, fva_max, target flux, biomass flux, yield, fitness,
-        [fitness, [fitness]]
+        A list with: reactions, genes, size, fva_min, fva_max, target flux, biomass flux, yield, fitness
     """
 
     with TimeMachine() as tm:
@@ -115,7 +112,7 @@ def process_gene_knockout_solution(model, solution, simulation_method, simulatio
         fva = flux_variability_analysis(model, fraction_of_optimum=0.99, reactions=[target])
         target_yield = flux_dist[target] / abs(flux_dist[substrate])
         return [reaction_ids, solution, fva.lower_bound(target), fva.upper_bound(target), flux_dist[target],
-                flux_dist[biomass], target_yield] + [of(model, flux_dist, genes) for of in objective_functions]
+                flux_dist[biomass], target_yield, objective_function(model, flux_dist, genes)]
 
 
 def process_reaction_swap_solution(model, solution, simulation_method, simulation_kwargs, biomass,
