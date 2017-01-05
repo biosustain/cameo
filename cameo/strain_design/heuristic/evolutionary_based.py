@@ -466,7 +466,7 @@ class HeuristicOptSwapResult(StrainDesignMethodResult):
                 try:
                     processed_solutions.loc[i] = process_reaction_swap_solution(
                         self._model, solution[0], self._simulation_method, self._simulation_kwargs, self._biomass,
-                        self._target, self._substrate, [self._objective_function], self._swap_pairs)
+                        self._target, self._substrate, self._objective_function, self._swap_pairs)
                 except SolveError as e:
                     logger.error(e)
                     processed_solutions.loc[i] = [numpy.nan for _ in processed_solutions.columns]

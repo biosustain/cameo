@@ -116,7 +116,7 @@ def process_gene_knockout_solution(model, solution, simulation_method, simulatio
 
 
 def process_reaction_swap_solution(model, solution, simulation_method, simulation_kwargs, biomass,
-                                   target, substrate, objective_functions, swap_pairs):
+                                   target, substrate, objective_function, swap_pairs):
     """
 
     Arguments
@@ -136,8 +136,8 @@ def process_reaction_swap_solution(model, solution, simulation_method, simulatio
         The strain design target
     substrate: Reaction
         The main carbon source uptake rate
-    objective_functions: list
-        A list of cameo.strain_design.heuristic.evolutionary.objective_functions.ObjectiveFunction
+    objective_function: cameo.strain_design.heuristic.evolutionary.objective_functions.ObjectiveFunction
+        The objective function used for evaluation.
     swap_pairs:
         The metabolites to swap
 
@@ -163,7 +163,7 @@ def process_reaction_swap_solution(model, solution, simulation_method, simulatio
         target_yield = flux_dist[target] / abs(flux_dist[substrate])
         return [solution, fva.lower_bound(target),
                 fva.upper_bound(target), flux_dist[target], flux_dist[biomass],
-                target_yield] + [of(model, flux_dist, reactions) for of in objective_functions]
+                target_yield, objective_function(model, flux_dist, reactions)]
 
 
 def reactions2filter(objective_function):
