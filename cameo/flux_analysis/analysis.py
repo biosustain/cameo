@@ -15,11 +15,11 @@
 
 from __future__ import absolute_import, print_function
 
-import itertools
 import logging
 from collections import OrderedDict
 from functools import partial, reduce
 
+import itertools
 import numpy
 import pandas
 import six
@@ -622,12 +622,12 @@ class PhenotypicPhasePlaneResult(Result):
                                        '[mmol gDW^-1 h^-1]'),
                               'mass_yield': ('mass_yield_upper_bound',
                                              'mass_yield_lower_bound',
-                                             'mass yield, source={}'.format(self.source_reaction),
-                                             '[g(product) g(source)^-1 h^-1]'),
+                                             'mass yield, src={}'.format(self.source_reaction),
+                                             '[g/g(src) h^-1]'),
                               'c_yield': ('c_yield_upper_bound',
                                           'c_yield_lower_bound',
-                                          'carbon yield, source={}'.format(self.source_reaction),
-                                          '[mmol(C(product)) mmol(C(source))^-1 h^-1]')}
+                                          'carbon yield, src={}'.format(self.source_reaction),
+                                          '[mmol(C)/mmol(C(src)) h^-1]')}
         if estimate not in possible_estimates:
             raise Exception('estimate must be one of %s' %
                             ', '.join(possible_estimates.keys()))
@@ -637,8 +637,8 @@ class PhenotypicPhasePlaneResult(Result):
         if len(self.variable_ids) == 1:
 
             variable = self.variable_ids[0]
-            y_axis_label = '{} [h^-1]'.format(self.nice_objective_id)
-            x_axis_label = '{} {}'.format(self.nice_variable_ids[0], unit)
+            y_axis_label = self._axis_label(self.objective, self.nice_objective_id, unit)
+            x_axis_label = self._axis_label(variable, self.nice_variable_ids[0], unit)
 
             dataframe = pandas.DataFrame(columns=["ub", "lb", "value", "strain"])
             for _, row in self.iterrows():
@@ -653,9 +653,9 @@ class PhenotypicPhasePlaneResult(Result):
         elif len(self.variable_ids) == 2:
             var_1 = self.variable_ids[0]
             var_2 = self.variable_ids[1]
-            x_axis_label = '{} {}'.format(self.nice_variable_ids[0], unit)
-            y_axis_label = '{} {}'.format(self.nice_variable_ids[1], unit)
-            z_axis_label = '{} [h^-1]'.format(self.nice_objective_id)
+            x_axis_label = self._axis_label(var_1, self.nice_variable_ids[0], unit)
+            y_axis_label = self._axis_label(var_2, self.nice_variable_ids[1], unit)
+            z_axis_label = self._axis_label(self.objective, self.nice_objective_id, unit)
 
             dataframe = pandas.DataFrame(columns=["ub", "lb", "value1", "value2", "strain"])
             for _, row in self.iterrows():
@@ -675,6 +675,13 @@ class PhenotypicPhasePlaneResult(Result):
 
         if grid is None:
             plotter.display(plot)
+
+    @staticmethod
+    def _axis_label(variable_id, nice_variable_id, unit):
+        if "BIOMASS" in variable_id:
+            return '{} [h^-1]'.format(nice_variable_id)
+        else:
+            return '{} {}'.format(nice_variable_id, unit)
 
     def __getitem__(self, item):
         return self._phase_plane[item]
