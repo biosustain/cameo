@@ -325,7 +325,7 @@ class TargetOptimization(HeuristicOptimization):
 
         if in_ipnb() and self.plot:
             if config.use_bokeh:
-                if self.is_mo():
+                if len(self.objective_function) > 1:
                     self.observers.append(plotters.IPythonBokehParetoPlotter(self.objective_function))
                 else:
                     self.observers.append(plotters.IPythonBokehFitnessPlotter())
