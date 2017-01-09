@@ -15,11 +15,12 @@
 
 from __future__ import absolute_import, print_function
 
+import itertools
 import logging
+import re
 from collections import OrderedDict
 from functools import partial, reduce
 
-import itertools
 import numpy
 import pandas
 import six
@@ -41,6 +42,8 @@ logger = logging.getLogger(__name__)
 
 __all__ = ['find_blocked_reactions', 'flux_variability_analysis', 'phenotypic_phase_plane',
            'flux_balance_impact_degree']
+
+_BIOMASS_RE_ = re.compile("biomass", re.IGNORECASE)
 
 
 def find_blocked_reactions(model):
@@ -678,7 +681,7 @@ class PhenotypicPhasePlaneResult(Result):
 
     @staticmethod
     def _axis_label(variable_id, nice_variable_id, unit):
-        if "BIOMASS" in variable_id:
+        if re.search(_BIOMASS_RE_, variable_id):
             return '{} [h^-1]'.format(nice_variable_id)
         else:
             return '{} {}'.format(nice_variable_id, unit)
