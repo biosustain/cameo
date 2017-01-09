@@ -15,11 +15,11 @@
 from __future__ import absolute_import, print_function
 
 import logging
-import time
 import types
 from functools import reduce
 
 import inspyred
+import time
 from pandas import DataFrame
 
 from cameo import config
@@ -34,6 +34,7 @@ from cameo.strain_design.heuristic.evolutionary import observers
 from cameo.strain_design.heuristic.evolutionary import plotters
 from cameo.strain_design.heuristic.evolutionary import stats
 from cameo.strain_design.heuristic.evolutionary import variators
+from cameo.strain_design.heuristic.evolutionary.objective_functions import MultiObjectiveFunction, ObjectiveFunction
 from cameo.util import RandomGenerator as Random
 from cameo.util import in_ipnb
 from cameo.util import partition
@@ -163,13 +164,11 @@ class HeuristicOptimization(object):
 
     @objective_function.setter
     def objective_function(self, objective_function):
-        if self._heuristic_method.__module__ == inspyred.ec.ec.__name__ and isinstance(objective_function, list):
-            if len(objective_function) == 1:
-                self._objective_function = objective_function[0]
-            else:
-                raise TypeError("single objective heuristic do not support multiple objective functions")
-        elif self._heuristic_method.__module__ == inspyred.ec.emo.__name__ and not isinstance(objective_function, list):
-            self._objective_function = [objective_function]
+        if not isinstance(objective_function, ObjectiveFunction):
+            raise TypeError("objective function is not instance of ObjectiveFunction")
+        elif self._heuristic_method.__module__ == inspyred.ec.ec.__name__ and isinstance(objective_function,
+                                                                                         MultiObjectiveFunction):
+            raise TypeError("single objective heuristic do not support multiple objective functions")
         else:
             self._objective_function = objective_function
 
@@ -185,13 +184,9 @@ class HeuristicOptimization(object):
 
     @heuristic_method.setter
     def heuristic_method(self, heuristic_method):
-        if heuristic_method.__module__ == inspyred.ec.emo.__name__ and not self.is_mo():
-            self._objective_function = [self.objective_function]
-        elif heuristic_method.__module__ == inspyred.ec.ec.__name__ and self.is_mo():
-            if len(self.objective_function) == 1:
-                self._objective_function = self.objective_function[0]
-            else:
-                raise TypeError("single objective heuristics do not support multiple objective functions")
+        if heuristic_method.__module__ == inspyred.ec.ec.__name__ and isinstance(self.objective_function,
+                                                                                 MultiObjectiveFunction):
+            raise TypeError("single objective heuristics do not support multiple objective functions")
         self._heuristic_method = heuristic_method(self.random)
 
     def run(self, evaluator=None, generator=None, view=config.default_view, maximize=True, **kwargs):
@@ -214,9 +209,6 @@ class HeuristicOptimization(object):
         print(time.strftime("Finished after %H:%M:%S", time.gmtime(runtime)))
 
         return res
-
-    def is_mo(self):
-        return isinstance(self.objective_function, list)
 
 
 class EvaluatorWrapper(object):
@@ -333,7 +325,7 @@ class TargetOptimization(HeuristicOptimization):
 
         if in_ipnb() and self.plot:
             if config.use_bokeh:
-                if self.is_mo():
+                if len(self.objective_function) > 1:
                     self.observers.append(plotters.IPythonBokehParetoPlotter(self.objective_function))
                 else:
                     self.observers.append(plotters.IPythonBokehFitnessPlotter())
