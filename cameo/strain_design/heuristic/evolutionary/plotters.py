@@ -12,10 +12,11 @@
 
 from __future__ import absolute_import, print_function
 
-import scipy
 import numpy as np
+import scipy
 
 from cameo import config
+from cameo.strain_design.heuristic.evolutionary.objective_functions import MultiObjectiveFunction
 
 if config.use_bokeh:
     from bokeh.plotting import show, figure
@@ -77,18 +78,19 @@ class IPythonBokehFitnessPlotter(object):
 class IPythonBokehParetoPlotter(object):
     __name__ = "IPython Bokeh Pareto Plotter"
 
-    def __init__(self, ofs=None, x=0, y=1):
+    def __init__(self, objective_function=None, x=0, y=1):
+        assert isinstance(objective_function, MultiObjectiveFunction)
         self.x = x
         self.y = y
-        self.ofs = ofs
+        self.objective_function = objective_function
         self.fitness = []
         self.uuid = None
         self.plotted = False
 
     def _set_plot(self):
         self.plot = figure(title="Multi-objective Fitness Plot", tools='', plot_height=400, plot_width=650)
-        self.plot.xaxis.axis_label = self.ofs[self.x].name
-        self.plot.yaxis.axis_label = self.ofs[self.y].name
+        self.plot.xaxis.axis_label = self.objective_function[self.x].name
+        self.plot.yaxis.axis_label = self.objective_function[self.y].name
         self.ds = ColumnDataSource(data=dict(x=[], y=[]))
         self.plot.circle('x', 'y', source=self.ds)
 
