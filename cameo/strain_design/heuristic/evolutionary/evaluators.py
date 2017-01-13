@@ -17,7 +17,6 @@ from cameo.core.manipulation import swap_cofactors
 from cameo.exceptions import SolveError
 from cameo.strain_design.heuristic.evolutionary.decoders import SetDecoder
 from cameo.strain_design.heuristic.evolutionary.objective_functions import ObjectiveFunction
-from cameo.strain_design.heuristic.evolutionary.processing import reactions2filter
 from cameo.util import ProblemCache, memoize, TimeMachine
 
 logger = logging.getLogger(__name__)
@@ -117,7 +116,7 @@ class KnockoutEvaluator(TargetEvaluator):
                                                   cache=self.cache,
                                                   volatile=False,
                                                   raw=True,
-                                                  reactions=reactions2filter(self.objective_function),
+                                                  reactions=self.objective_function.reactions,
                                                   **self.simulation_kwargs)
                 fitness = self.objective_function(self.model, solution, targets)
             except SolveError as e:
@@ -144,7 +143,7 @@ class SwapEvaluator(TargetEvaluator):
                                                   cache=self.cache,
                                                   volatile=False,
                                                   raw=True,
-                                                  reactions=reactions2filter(self.objective_function),
+                                                  reactions=self.objective_function.reactions,
                                                   **self.simulation_kwargs)
                 fitness = self.objective_function(self.model, solution, swap_reactions)
             except SolveError as e:
