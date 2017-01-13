@@ -15,12 +15,9 @@
 from __future__ import absolute_import
 
 import math
-import six
-
 import plotly.graph_objs as go
+import six
 from plotly import tools
-
-from numpy import concatenate
 
 from cameo.util import zip_repeat, in_ipnb, inheritdocstring, partition
 from cameo.visualization.plotting.abstract import AbstractPlotter
@@ -170,12 +167,11 @@ class PlotlyPlotter(AbstractPlotter):
         return plot
 
     def _make_production_envelope_3d(self, dataframe, variable, color=None):
-        lb_data = dataframe.pivot('value1', 'value2', 'lb')
         ub_data = dataframe.pivot('value1', 'value2', 'ub')
 
-        surface = go.Surface(x=lb_data.index.tolist(),
-                             y=lb_data.columns.tolist() + ub_data.columns.tolist(),
-                             z=concatenate([ub_data.as_matrix(), lb_data.as_matrix()]),
+        surface = go.Surface(x=ub_data.index.tolist(),
+                             y=ub_data.columns.tolist(),
+                             z=ub_data.as_matrix(),
                              name=variable,
                              hoverinfo='none',
                              surfacecolor=color)

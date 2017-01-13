@@ -15,11 +15,11 @@
 from __future__ import absolute_import, print_function
 
 import logging
+import time
 import types
 from functools import reduce
 
 import inspyred
-import time
 from pandas import DataFrame
 
 from cameo import config
@@ -372,7 +372,8 @@ class TargetOptimization(HeuristicOptimization):
                                             target_type=self._target_type,
                                             decoder=self._decoder,
                                             seed=kwargs['seed'],
-                                            metadata=self.metadata)
+                                            metadata=self.metadata,
+                                            view=view)
 
 
 class KnockoutOptimization(TargetOptimization):
@@ -386,22 +387,20 @@ class KnockoutOptimization(TargetOptimization):
 
 
 class TargetOptimizationResult(Result):
-    def __init__(self, model=None, heuristic_method=None, simulation_method=None,
-                 simulation_kwargs=None, solutions=None, objective_function=None,
-                 target_type=None, decoder=None, seed=None, metadata=None, *args, **kwargs):
+    def __init__(self, model=None, heuristic_method=None, simulation_method=None, simulation_kwargs=None,
+                 solutions=None, objective_function=None, target_type=None, decoder=None,
+                 seed=None, metadata=None, view=None, *args, **kwargs):
         super(TargetOptimizationResult, self).__init__(*args, **kwargs)
         self.seed = seed
         self.model = model
         self.heuristic_method = heuristic_method
         self.simulation_method = simulation_method
         self.simulation_kwargs = simulation_kwargs or {}
-        if isinstance(objective_function, list):
-            self.objective_functions = objective_function
-        else:
-            self.objective_functions = [objective_function]
+        self.objective_functions = objective_function
         self.target_type = target_type
         self._decoder = decoder
         self._metadata = metadata
+        self._view = view
         self._solutions = self._decode_solutions(solutions)
 
     def __len__(self):
@@ -410,6 +409,7 @@ class TargetOptimizationResult(Result):
     def __getstate__(self):
         state = super(TargetOptimizationResult, self).__getstate__()
         state.update({'model': self.model,
+                      'view': self._view,
                       'decoder': self._decoder,
                       'simulation_method': self.simulation_method,
                       'simulation_kwargs': self.simulation_kwargs,
@@ -435,6 +435,7 @@ class TargetOptimizationResult(Result):
         self.simulation_method = state['simulation_method']
         self.simulation_kwargs = state['simulation_kwargs']
         self.seed = state['seed']
+        self.view = state['view']
         random = state['heuristic_method._random']
         self.heuristic_method = state['heuristic_method.__class__'](random)
         self.heuristic_method.maximize = state['heuristic_method.maximize']
@@ -447,9 +448,9 @@ class TargetOptimizationResult(Result):
         self.target_type = state['target_type']
         self._solutions = state['solutions']
         self._metadata = state['metadata']
+        self._decoder = state['decoder']
 
     def _repr_html_(self):
-
         template = """
         <h4>Result:</h4>
         <ul>
@@ -509,9 +510,9 @@ class TargetOptimizationResult(Result):
     def _decode_solutions(self, solutions):
         decoded_solutions = DataFrame(columns=["targets", "fitness"])
         for index, solution in enumerate(solutions):
-            knockouts = self._decoder(solution.candidate, flat=True)
-            if len(knockouts) > 0:
-                decoded_solutions.loc[index] = [knockouts, solution.fitness]
+            targets = self._decoder(solution.candidate, flat=True)
+            if len(targets) > 0:
+                decoded_solutions.loc[index] = [targets, solution.fitness]
 
         return decoded_solutions
 

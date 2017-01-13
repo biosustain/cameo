@@ -34,6 +34,7 @@ class IPythonBokehFitnessPlotter(object):
         self.fitness = []
         self.uuid = None
         self.plotted = False
+        self.handle = None
 
     def _set_plot(self):
         self.plot = figure(title="Fitness plot", tools='', plot_height=400, plot_width=650)
@@ -41,7 +42,7 @@ class IPythonBokehFitnessPlotter(object):
         self.plot.yaxis.axis_label = "Fitness"
         self.ds = ColumnDataSource(data=dict(x=[], y=[]))
         self.plot.circle('x', 'y', source=self.ds)
-        show(self.plot)
+        self.handle = show(self.plot, notebook_handle=True)
         self.plotted = True
 
     def __call__(self, population, num_generations, num_evaluations, args):
@@ -62,13 +63,14 @@ class IPythonBokehFitnessPlotter(object):
     def _update(self):
         self.ds.data['x'] = self.iterations[-self.window_size:]
         self.ds.data['y'] = self.fitness[-self.window_size:]
-        push_notebook()
+        push_notebook(handle=self.handle)
 
     def reset(self):
         self.iteration = 0
         self.iterations = []
         self.fitness = []
         self.plotted = False
+        self.handle = None
 
     def end(self):
         if self.plotted:
@@ -86,6 +88,7 @@ class IPythonBokehParetoPlotter(object):
         self.fitness = []
         self.uuid = None
         self.plotted = False
+        self.handle = None
 
     def _set_plot(self):
         self.plot = figure(title="Multi-objective Fitness Plot", tools='', plot_height=400, plot_width=650)
@@ -94,7 +97,7 @@ class IPythonBokehParetoPlotter(object):
         self.ds = ColumnDataSource(data=dict(x=[], y=[]))
         self.plot.circle('x', 'y', source=self.ds)
 
-        show(self.plot)
+        self.handle = show(self.plot, notebook_handle=True)
         self.plotted = True
 
     def __call__(self, population, num_generations, num_evaluations, args):
@@ -108,11 +111,12 @@ class IPythonBokehParetoPlotter(object):
     def _update(self):
         self.ds.data['x'] = [e[self.x] for e in self.fitness]
         self.ds.data['y'] = [e[self.y] for e in self.fitness]
-        push_notebook()
+        push_notebook(handle=self.handle)
 
     def reset(self):
         self.fitness = []
         self.plotted = False
+        self.handle = None
 
     def end(self):
         if self.plotted:
