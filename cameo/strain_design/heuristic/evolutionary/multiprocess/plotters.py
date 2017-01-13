@@ -77,7 +77,7 @@ class IPythonNotebookBokehMultiprocessPlotObserver(AbstractParallelObserver):
         self.ds.data['fill_color'] = self.data_frame['color']
         self.ds.data['line_color'] = self.data_frame['color']
         self.ds._dirty = True
-        push_notebook(self.handle)
+        push_notebook(handle=self.handle)
 
     def stop(self):
         self.data_frame = DataFrame(columns=['iteration', 'island', 'color', 'fitness'])
