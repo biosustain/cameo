@@ -164,4 +164,3 @@ def process_reaction_swap_solution(model, solution, simulation_method, simulatio
         return [solution, fva.lower_bound(target),
                 fva.upper_bound(target), flux_dist[target], flux_dist[biomass],
                 target_yield, objective_function(model, flux_dist, reactions)]
-
