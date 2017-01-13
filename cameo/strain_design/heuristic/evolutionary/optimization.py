@@ -15,11 +15,11 @@
 from __future__ import absolute_import, print_function
 
 import logging
+import time
 import types
 from functools import reduce
 
 import inspyred
-import time
 from pandas import DataFrame
 
 from cameo import config
@@ -371,7 +371,6 @@ class TargetOptimization(HeuristicOptimization):
                                             objective_function=self.objective_function,
                                             target_type=self._target_type,
                                             decoder=self._decoder,
-                                            evaluator=self._evaluator,
                                             seed=kwargs['seed'],
                                             metadata=self.metadata,
                                             view=view)
@@ -387,39 +386,9 @@ class KnockoutOptimization(TargetOptimization):
                                                    *args, **kwargs)
 
 
-class SolutionSimplification(object):
-    """
-    Solution Simplification Method
-    """
-    def __init__(self, evaluator):
-        if not isinstance(evaluator, evaluators.Evaluator):
-            raise ValueError("Evaluator must be instance of "
-                             "'cameo.strain_design.heuristic.evolutionary.evaluators.Evaluator'")
-        self._evaluator = evaluator
-
-    def __call__(self, solution):
-        new_solution = list(solution)
-        tested_elements = []
-        fitness = self._evaluator([solution])[0]
-        while len(new_solution) > 0 and len(tested_elements) < len(solution):
-            test_element = new_solution.pop(0)
-            tested_elements.append(test_element)
-            new_fitness = self._evaluator([new_solution])[0]
-            if new_fitness < fitness:
-                new_solution.append(test_element)
-
-        return new_solution
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self._evaluator.reset()
-
-
 class TargetOptimizationResult(Result):
     def __init__(self, model=None, heuristic_method=None, simulation_method=None, simulation_kwargs=None,
-                 solutions=None, objective_function=None, target_type=None, decoder=None, evaluator=None,
+                 solutions=None, objective_function=None, target_type=None, decoder=None,
                  seed=None, metadata=None, view=None, *args, **kwargs):
         super(TargetOptimizationResult, self).__init__(*args, **kwargs)
         self.seed = seed
@@ -430,7 +399,6 @@ class TargetOptimizationResult(Result):
         self.objective_functions = objective_function
         self.target_type = target_type
         self._decoder = decoder
-        self._evaluator = evaluator
         self._metadata = metadata
         self._view = view
         self._solutions = self._decode_solutions(solutions)
@@ -443,7 +411,6 @@ class TargetOptimizationResult(Result):
         state.update({'model': self.model,
                       'view': self._view,
                       'decoder': self._decoder,
-                      'evaluator': self._evaluator,
                       'simulation_method': self.simulation_method,
                       'simulation_kwargs': self.simulation_kwargs,
                       'heuristic_method.__class__': self.heuristic_method.__class__,
@@ -482,10 +449,8 @@ class TargetOptimizationResult(Result):
         self._solutions = state['solutions']
         self._metadata = state['metadata']
         self._decoder = state['decoder']
-        self._evaluator = state['evaluator']
 
     def _repr_html_(self):
-
         template = """
         <h4>Result:</h4>
         <ul>
@@ -550,19 +515,6 @@ class TargetOptimizationResult(Result):
                 decoded_solutions.loc[index] = [targets, solution.fitness]
 
         return decoded_solutions
-
-    def _simplify_solutions(self, solutions):
-        simplification = SolutionSimplification(self._evaluator)
-        chunks = (chunk for chunk in partition(solutions, len(self._view)))
-        try:
-            chunked_results = self._view.map(simplification, chunks)
-        except KeyboardInterrupt as e:
-            self.view.shutdown()
-            raise e
-
-        solutions = reduce(list.__add__, chunked_results)
-
-        return solutions
 
 
 class ReactionKnockoutOptimization(KnockoutOptimization):

@@ -18,13 +18,13 @@ import os
 import pickle
 import unittest
 from collections import namedtuple
+from math import sqrt
 
 import inspyred
 import numpy
 import six
 from inspyred.ec import Bounder
 from inspyred.ec.emo import Pareto
-from math import sqrt
 from ordered_set import OrderedSet
 from pandas.util.testing import assert_frame_equal
 from six.moves import range
@@ -52,7 +52,7 @@ from cameo.strain_design.heuristic.evolutionary.objective_functions import bioma
     product_yield, number_of_knockouts, biomass_product_coupled_min_yield, MultiObjectiveFunction
 from cameo.strain_design.heuristic.evolutionary.optimization import HeuristicOptimization, \
     ReactionKnockoutOptimization, set_distance_function, TargetOptimizationResult, EvaluatorWrapper, \
-    CofactorSwapOptimization, SolutionSimplification
+    CofactorSwapOptimization
 
 from cameo.strain_design.heuristic.evolutionary.evaluators import KnockoutEvaluator
 
@@ -991,26 +991,3 @@ class GenomesTestCase(unittest.TestCase):
 
         del genome["A"]
         self.assertRaises(KeyError, genome.__getitem__, "A")
-
-
-class SimplificationTestCase(unittest.TestCase):
-    model = None
-
-    @classmethod
-    def setUpClass(cls):
-        cls.model = load_model(os.path.join(CURRENT_PATH, "data", "iAF1260.xml"))
-
-    def simplify_knockout_solutions_for_succ(self):
-        representation = ["FUM", "SFGTHi", "DHACOAH", "ASPTRS"]
-        solution = [0, 1, 2, 3]
-
-        bpcy = biomass_product_coupled_min_yield("Ec_biomass_iAF1260_core_59p81M",
-                                                 "EX_succ_lp_e_rp_",
-                                                 "EX_glc_lp_e_rp_")
-
-        decoder = ReactionSetDecoder(representation, self.model)
-        evaluator = KnockoutEvaluator(self.model, decoder, bpcy, fba, {})
-        simplification = SolutionSimplification(evaluator)
-
-        new_solution = simplification(solution)
-        self.assertEqual([0], new_solution)
