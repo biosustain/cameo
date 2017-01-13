@@ -108,6 +108,13 @@ class MultiObjectiveFunction(ObjectiveFunction):
     def __len__(self):
         return len(self.objectives)
 
+    @property
+    def name(self):
+        return "MO: " + "|".join([of.name for of in self.objectives])
+
+    def _repr_latex_(self):
+        return "\\begin{gather}\n" + "\\\\".join(o._repr_latex_() for o in self.objectives) + "\n\\end{gather}\n"
+
 
 class YieldFunction(ObjectiveFunction):
     def __init__(self, product, substrate, *args, **kwargs):
