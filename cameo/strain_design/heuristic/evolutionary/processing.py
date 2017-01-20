@@ -111,8 +111,9 @@ def process_gene_knockout_solution(model, solution, simulation_method, simulatio
 
         fva = flux_variability_analysis(model, fraction_of_optimum=0.99, reactions=[target])
         target_yield = flux_dist[target] / abs(flux_dist[substrate])
-        return [reaction_ids, solution, fva.lower_bound(target), fva.upper_bound(target), flux_dist[target],
-                flux_dist[biomass], target_yield, objective_function(model, flux_dist, genes)]
+
+        return [tuple(reaction_ids), solution, len(solution), fva.lower_bound(target), fva.upper_bound(target),
+                flux_dist[target], flux_dist[biomass], target_yield, objective_function(model, flux_dist, genes)]
 
 
 def process_reaction_swap_solution(model, solution, simulation_method, simulation_kwargs, biomass,
