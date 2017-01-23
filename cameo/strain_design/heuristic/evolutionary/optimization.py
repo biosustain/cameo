@@ -15,11 +15,11 @@
 from __future__ import absolute_import, print_function
 
 import logging
+import time
 import types
 from functools import reduce
 
 import inspyred
-import time
 from pandas import DataFrame
 
 from cameo import config
@@ -451,7 +451,7 @@ class TargetOptimizationResult(Result):
         self.heuristic_method.archive = state['heuristic_method.archive']
         self.heuristic_method._kwargs = state['heuristic_method._kwargs']
         self.heuristic_method._kwargs['_ec'] = self.heuristic_method
-        self.objective_functions = state['objective_functions']
+        self.objective_functions = state['objective_function']
         self.target_type = state['target_type']
         self._solutions = state['solutions']
         self._metadata = state['metadata']
