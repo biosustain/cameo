@@ -26,11 +26,9 @@ import six
 from inspyred.ec import Bounder
 from inspyred.ec.emo import Pareto
 from ordered_set import OrderedSet
-from pandas.util.testing import assert_frame_equal
 from six.moves import range
 
 from cameo import load_model, fba, config
-from cameo.config import solvers
 from cameo.parallel import SequentialView
 try:
     from cameo.parallel import RedisQueue
@@ -58,7 +56,7 @@ from cameo.strain_design.heuristic.evolutionary.evaluators import KnockoutEvalua
 
 from cameo.strain_design.heuristic.evolutionary.variators import _do_set_n_point_crossover, set_n_point_crossover, \
     set_mutation, set_indel, multiple_chromosome_set_mutation, multiple_chromosome_set_indel
-from cameo.util import RandomGenerator as Random
+from cameo.util import RandomGenerator as Random, TimeMachine
 
 TRAVIS = os.getenv('TRAVIS', False)
 
@@ -342,13 +340,13 @@ class TestObjectiveFunctions(unittest.TestCase):
         solution.set_primal(product, 16.000731)
         solution.set_primal(substrate, -10)
 
-        of = biomass_product_coupled_min_yield(
-            biomass,
-            product,
-            substrate)
+        of = biomass_product_coupled_min_yield(biomass, product, substrate)
         self.assertEqual(of.name, "bpcy = (%s * min(%s)) / %s" % (biomass, product, substrate))
         reactions = [TEST_MODEL.reactions.get_by_id(r) for r in ['ATPS4r', 'CO2t', 'GLUDy', 'PPS', 'PYK']]
-        fitness = of(TEST_MODEL, solution, reactions)
+        with TimeMachine() as tm:
+            for r in reactions:
+                r.knock_out(tm)
+            fitness = of(TEST_MODEL, solution, reactions)
         self.assertAlmostEqual(0.414851, fitness, places=5)
 
     def test_yield(self):
