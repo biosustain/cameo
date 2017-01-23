@@ -54,7 +54,7 @@ def process_reaction_knockout_solution(model, solution, simulation_method, simul
         for reaction in reactions:
             reaction.knock_out(tm)
 
-        flux_dist = simulation_method(model, reactions=reactions2filter(objective_function),
+        flux_dist = simulation_method(model, reactions=objective_function.reactions,
                                       objective=biomass, **simulation_kwargs)
         tm(do=partial(setattr, model, "objective", biomass),
            undo=partial(setattr, model, "objective", model.objective))
@@ -104,7 +104,7 @@ def process_gene_knockout_solution(model, solution, simulation_method, simulatio
             reaction.knock_out(tm)
 
         reaction_ids = [r.id for r in reactions]
-        flux_dist = simulation_method(model, reactions=reactions2filter(objective_function),
+        flux_dist = simulation_method(model, reactions=objective_function.reactions,
                                       objective=biomass, **simulation_kwargs)
         tm(do=partial(setattr, model, "objective", biomass),
            undo=partial(setattr, model, "objective", model.objective))
@@ -155,7 +155,7 @@ def process_reaction_swap_solution(model, solution, simulation_method, simulatio
         for reaction in reactions:
             reaction.swap_cofactors(tm, swap_pairs)
 
-        flux_dist = simulation_method(model, reactions=reactions2filter(objective_function),
+        flux_dist = simulation_method(model, reactions=objective_function.reactions,
                                       objective=biomass, **simulation_kwargs)
         tm(do=partial(setattr, model, "objective", biomass),
            undo=partial(setattr, model, "objective", model.objective))
@@ -165,16 +165,3 @@ def process_reaction_swap_solution(model, solution, simulation_method, simulatio
         return [solution, fva.lower_bound(target),
                 fva.upper_bound(target), flux_dist[target], flux_dist[biomass],
                 target_yield, objective_function(model, flux_dist, reactions)]
-
-
-def reactions2filter(objective_function):
-    """
-    Retrieve from the solvers memory only the reactions required by the objective functions. This is faster than
-    reading all reactions from the solver output.
-    """
-    if isinstance(objective_function, list):
-        reactions = []
-        [reactions.extend(of.reactions) for of in objective_function]
-    else:
-        reactions = objective_function.reactions
-    return set(reactions)
