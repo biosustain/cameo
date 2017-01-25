@@ -15,17 +15,17 @@
 from __future__ import absolute_import, print_function
 
 import logging
+import time
 import types
 from functools import reduce
 
 import inspyred
-import time
 from pandas import DataFrame
 
 from cameo import config
 from cameo.core.result import Result
 from cameo.core.solver_based_model import SolverBasedModel
-from cameo.flux_analysis.simulation import pfba, lmoma, moma, room
+from cameo.flux_analysis.simulation import pfba, lmoma, moma, room, logger as simulation_logger
 from cameo.strain_design.heuristic.evolutionary import archives
 from cameo.strain_design.heuristic.evolutionary import decoders
 from cameo.strain_design.heuristic.evolutionary import evaluators
@@ -355,6 +355,9 @@ class TargetOptimization(HeuristicOptimization):
 
         self.heuristic_method.observer = self.observers
 
+        log_level = simulation_logger.level
+        simulation_logger.setLevel(logging.CRITICAL)
+
         with EvaluatorWrapper(view, self._evaluator) as evaluator:
             super(TargetOptimization, self).run(distance_function=set_distance_function,
                                                 representation=self.representation,
@@ -362,6 +365,7 @@ class TargetOptimization(HeuristicOptimization):
                                                 generator=generators.set_generator,
                                                 max_size=max_size,
                                                 **kwargs)
+            simulation_logger.setLevel(log_level)
 
             return TargetOptimizationResult(model=self.model,
                                             heuristic_method=self.heuristic_method,
@@ -428,6 +432,8 @@ class TargetOptimizationResult(Result):
                       'solutions': self._solutions,
                       'seed': self.seed,
                       'metadata': self._metadata})
+        del state['heuristic_method._kwargs']['_ec']
+        return state
 
     def __setstate__(self, state):
         super(TargetOptimizationResult, self).__setstate__(state)
@@ -444,7 +450,8 @@ class TargetOptimizationResult(Result):
         self.heuristic_method.archiver = state['heuristic_method.archiver']
         self.heuristic_method.archive = state['heuristic_method.archive']
         self.heuristic_method._kwargs = state['heuristic_method._kwargs']
-        self.objective_function = state['objective_function']
+        self.heuristic_method._kwargs['_ec'] = self.heuristic_method
+        self.objective_functions = state['objective_function']
         self.target_type = state['target_type']
         self._solutions = state['solutions']
         self._metadata = state['metadata']

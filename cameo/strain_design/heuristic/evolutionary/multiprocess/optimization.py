@@ -61,7 +61,7 @@ class MultiprocessRunner(object):
     def __call__(self, clients):
         island = self.island_class(**self.init_kwargs)
         island.migrator = self.migrator
-        island.observer = clients
+        island.observers = clients
         return island.run(**self.run_kwargs)
 
 
