@@ -202,7 +202,7 @@ class TargetsTestCase(unittest.TestCase):
         self.assertIsInstance(flux_modulation_target_gnomic.new[0], Feature)
         self.assertEqual(flux_modulation_target_gnomic.new[0].accession.identifier, flux_modulation_target.id)
         self.assertEqual(flux_modulation_target_gnomic.new[0].type, 'flux')
-        self.assertEqual(flux_modulation_target_gnomic.new[0].variant, "over-expression(%f)" % flux_modulation_target.fold_change)
+        self.assertEqual(flux_modulation_target_gnomic.new[0].variant, "over-expression(%.3f)" % flux_modulation_target.fold_change)
 
         flux_modulation_target = FluxModulationTarget("test", 0.5, 1)
         flux_modulation_target_gnomic = flux_modulation_target.to_gnomic()
@@ -216,7 +216,7 @@ class TargetsTestCase(unittest.TestCase):
         self.assertIsInstance(flux_modulation_target_gnomic.new[0], Feature)
         self.assertEqual(flux_modulation_target_gnomic.new[0].accession.identifier, flux_modulation_target.id)
         self.assertEqual(flux_modulation_target_gnomic.new[0].type, 'flux')
-        self.assertEqual(flux_modulation_target_gnomic.new[0].variant, "down-regulation(%f)" % flux_modulation_target.fold_change)
+        self.assertEqual(flux_modulation_target_gnomic.new[0].variant, "down-regulation(%.3f)" % flux_modulation_target.fold_change)
 
         flux_modulation_target = FluxModulationTarget("test", 0, 1)
         flux_modulation_target_gnomic = flux_modulation_target.to_gnomic()
