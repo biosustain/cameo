@@ -20,7 +20,6 @@ from cobra import Reaction
 from inspyred.ec.emo import Pareto
 
 from cameo import config, flux_variability_analysis
-from cameo.util import TimeMachine
 
 __all__ = ['biomass_product_coupled_yield', 'product_yield', 'number_of_knockouts']
 
@@ -224,12 +223,8 @@ class biomass_product_coupled_min_yield(YieldFunction):
     def __call__(self, model, solution, targets):
         try:
             biomass_flux = round(solution.fluxes[self.biomass], config.ndecimals)
-            with TimeMachine() as tm:
-                for target in targets:
-                    target.knock_out(tm)
-
-                fva_res = flux_variability_analysis(model, reactions=[self.product], fraction_of_optimum=1)
-                min_product_flux = fva_res["lower_bound"][self.product]
+            fva_res = flux_variability_analysis(model, reactions=[self.product], fraction_of_optimum=1)
+            min_product_flux = fva_res["lower_bound"][self.product]
 
             substrate_flux = round(abs(solution.fluxes[self.substrate]), config.ndecimals)
             return round((biomass_flux * min_product_flux) / substrate_flux, config.ndecimals)
