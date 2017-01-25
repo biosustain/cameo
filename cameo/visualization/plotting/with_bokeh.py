@@ -14,7 +14,7 @@
 from __future__ import absolute_import
 
 import six
-from bokeh.charts import Line
+from bokeh.charts import Line, Bar
 from bokeh.models import GridPlot, FactorRange
 from bokeh.plotting import figure, show
 
@@ -134,6 +134,26 @@ class BokehPlotter(AbstractPlotter):
             return grid
 
         return line
+
+    def frequency(self, dataframe, width=None, height=None, palette=None, title="Frequency plot",
+                  x_axis_label=None, y_axis_label="Frequency", grid=None):
+        palette = self.get_option('palette') if palette is None else palette
+        width = self.get_option('width') if width is None else width
+
+        if not height:
+            width, height = self.golden_ratio(width, height)
+
+        palette = self._palette(palette, len(dataframe.index))
+
+        bar = Bar(dataframe, color=palette, values='frequency', ylabel=y_axis_label, xlabel=x_axis_label,
+                  title=title, width=width, height=height)
+
+        if grid is not None:
+            grid.append(bar)
+            return grid
+
+        return bar
+
 
     @property
     def _display(self):
