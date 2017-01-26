@@ -24,6 +24,7 @@ from pandas import DataFrame
 
 from cameo.core.result import Result
 from cameo.core.target import EnsembleTarget, Target
+from cameo.visualization.plotting import plotter
 
 try:
     from gnomic import Genotype
@@ -122,6 +123,9 @@ class StrainDesign(object):
         self.targets = DictList(targets)
         return self
 
+    def _repr_html_(self):
+        return " ".join(t._repr_html_() for t in self.targets)
+
     def to_gnomic(self):
         if _gnomic_available_:
             return Genotype([target.to_gnomic() for target in self.targets])
@@ -174,6 +178,20 @@ class StrainDesignMethodResult(Result):
 
     def _repr_html_(self):
         return self.data_frame._repr_html_()
+
+    def plot(self, grid=None, width=None, height=None, title=None, *args, **kwargs):
+        if title is None:
+            title = "Target frequency plot for %s result" % self.__method_name__
+
+        counts = DataFrame(columns=['count'])
+        for design in self._designs:
+            for target in design:
+                    if target.id not in counts.index:
+                        counts.loc[target.id, 'count'] = 0
+                    counts.loc[target.id, 'count'] += 1
+            counts['frequency'] = counts['count'].apply(lambda c: c / len(self._designs))
+
+        plotter.frequency(counts, title=title, width=width, height=height, **kwargs)
 
 
 class StrainDesignMethodEnsemble(StrainDesignMethodResult):

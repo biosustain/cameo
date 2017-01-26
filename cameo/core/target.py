@@ -140,6 +140,14 @@ class FluxModulationTarget(Target):
         elif self._value < self._reference_value:
             return ui.downreg(self.fold_change) + self.id
 
+    def _repr_html_(self):
+        if self._value == 0:
+            return "&Delta;%s" % self.id
+        elif self._value > self._reference_value:
+            return "&uarr;(%.3f)%s" % (self.fold_change, self.id)
+        elif self._value < self._reference_value:
+            return "&darr;(%.3f)%s" % (self.fold_change, self.id)
+
     def to_gnomic(self):
         accession = Target.to_gnomic(self)
         feature = Feature(accession=accession, type=self.__gnomic_feature_type__)
@@ -147,11 +155,11 @@ class FluxModulationTarget(Target):
             return Del(feature)
         elif abs(self._value) > abs(self._reference_value):
             over_expression = Feature(accession=accession, type=self.__gnomic_feature_type__,
-                                      variant="over-expression(%f)" % self.fold_change)
+                                      variant="over-expression(%.3f)" % self.fold_change)
             return Mutation(feature, over_expression)
         elif abs(self._value) < abs(self._reference_value):
             under_expression = Feature(accession=accession, type=self.__gnomic_feature_type__,
-                                       variant="down-regulation(%f)" % self.fold_change)
+                                       variant="down-regulation(%.3f)" % self.fold_change)
             return Mutation(feature, under_expression)
 
 
@@ -199,6 +207,9 @@ class ReactionCofactorSwapTarget(Target):
             return self.id == other.id and self.swap_pairs == other.swap_pairs
         else:
             return False
+
+    def _repr_html_(self):
+        return str(self).replace("<->", "&rlarr;")
 
 
 class KnockinTarget(Target):
@@ -252,6 +263,9 @@ class ReactionKnockinTarget(KnockinTarget):
 
     def __str__(self):
         return "::%s" % self.id
+
+    def _repr_html_(self):
+        return "::%s"
 
 
 class GeneModulationTarget(FluxModulationTarget):
@@ -403,3 +417,6 @@ class EnsembleTarget(Target):
     # TODO implement gnomic compatibility
     def to_gnomic(self):
         raise NotImplementedError
+
+    def _repr_html_(self):
+        return "|" + ";".join(target._repr_html_() for target in self.targets) + '|'
