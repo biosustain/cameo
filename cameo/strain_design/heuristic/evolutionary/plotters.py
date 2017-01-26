@@ -12,10 +12,11 @@
 
 from __future__ import absolute_import, print_function
 
-import scipy
 import numpy as np
+import scipy
 
 from cameo import config
+from cameo.strain_design.heuristic.evolutionary.objective_functions import MultiObjectiveFunction
 
 if config.use_bokeh:
     from bokeh.plotting import show, figure
@@ -33,6 +34,7 @@ class IPythonBokehFitnessPlotter(object):
         self.fitness = []
         self.uuid = None
         self.plotted = False
+        self.handle = None
 
     def _set_plot(self):
         self.plot = figure(title="Fitness plot", tools='', plot_height=400, plot_width=650)
@@ -40,7 +42,7 @@ class IPythonBokehFitnessPlotter(object):
         self.plot.yaxis.axis_label = "Fitness"
         self.ds = ColumnDataSource(data=dict(x=[], y=[]))
         self.plot.circle('x', 'y', source=self.ds)
-        show(self.plot)
+        self.handle = show(self.plot, notebook_handle=True)
         self.plotted = True
 
     def __call__(self, population, num_generations, num_evaluations, args):
@@ -61,13 +63,14 @@ class IPythonBokehFitnessPlotter(object):
     def _update(self):
         self.ds.data['x'] = self.iterations[-self.window_size:]
         self.ds.data['y'] = self.fitness[-self.window_size:]
-        push_notebook()
+        push_notebook(handle=self.handle)
 
     def reset(self):
         self.iteration = 0
         self.iterations = []
         self.fitness = []
         self.plotted = False
+        self.handle = None
 
     def end(self):
         if self.plotted:
@@ -77,22 +80,24 @@ class IPythonBokehFitnessPlotter(object):
 class IPythonBokehParetoPlotter(object):
     __name__ = "IPython Bokeh Pareto Plotter"
 
-    def __init__(self, ofs=None, x=0, y=1):
+    def __init__(self, objective_function=None, x=0, y=1):
+        assert isinstance(objective_function, MultiObjectiveFunction)
         self.x = x
         self.y = y
-        self.ofs = ofs
+        self.objective_function = objective_function
         self.fitness = []
         self.uuid = None
         self.plotted = False
+        self.handle = None
 
     def _set_plot(self):
         self.plot = figure(title="Multi-objective Fitness Plot", tools='', plot_height=400, plot_width=650)
-        self.plot.xaxis.axis_label = self.ofs[self.x].name
-        self.plot.yaxis.axis_label = self.ofs[self.y].name
+        self.plot.xaxis.axis_label = self.objective_function[self.x].name
+        self.plot.yaxis.axis_label = self.objective_function[self.y].name
         self.ds = ColumnDataSource(data=dict(x=[], y=[]))
         self.plot.circle('x', 'y', source=self.ds)
 
-        show(self.plot)
+        self.handle = show(self.plot, notebook_handle=True)
         self.plotted = True
 
     def __call__(self, population, num_generations, num_evaluations, args):
@@ -106,11 +111,12 @@ class IPythonBokehParetoPlotter(object):
     def _update(self):
         self.ds.data['x'] = [e[self.x] for e in self.fitness]
         self.ds.data['y'] = [e[self.y] for e in self.fitness]
-        push_notebook()
+        push_notebook(handle=self.handle)
 
     def reset(self):
         self.fitness = []
         self.plotted = False
+        self.handle = None
 
     def end(self):
         if self.plotted:

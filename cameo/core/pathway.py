@@ -15,9 +15,11 @@
 """This module implements a pathway data structure that can be added to a model for example."""
 
 from functools import partial, reduce
-from cobra.core import Metabolite
-from pandas import DataFrame
+
 import six
+from pandas import DataFrame
+
+from cameo.core.metabolite import Metabolite
 from cameo.core.reaction import Reaction
 
 

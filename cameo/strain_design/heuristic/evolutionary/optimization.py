@@ -15,17 +15,17 @@
 from __future__ import absolute_import, print_function
 
 import logging
+import time
 import types
 from functools import reduce
 
 import inspyred
-import time
 from pandas import DataFrame
 
 from cameo import config
 from cameo.core.result import Result
 from cameo.core.solver_based_model import SolverBasedModel
-from cameo.flux_analysis.simulation import pfba, lmoma, moma, room
+from cameo.flux_analysis.simulation import pfba, lmoma, moma, room, logger as simulation_logger
 from cameo.strain_design.heuristic.evolutionary import archives
 from cameo.strain_design.heuristic.evolutionary import decoders
 from cameo.strain_design.heuristic.evolutionary import evaluators
@@ -325,7 +325,7 @@ class TargetOptimization(HeuristicOptimization):
 
         if in_ipnb() and self.plot:
             if config.use_bokeh:
-                if self.is_mo():
+                if len(self.objective_function) > 1:
                     self.observers.append(plotters.IPythonBokehParetoPlotter(self.objective_function))
                 else:
                     self.observers.append(plotters.IPythonBokehFitnessPlotter())
@@ -355,6 +355,9 @@ class TargetOptimization(HeuristicOptimization):
 
         self.heuristic_method.observer = self.observers
 
+        log_level = simulation_logger.level
+        simulation_logger.setLevel(logging.CRITICAL)
+
         with EvaluatorWrapper(view, self._evaluator) as evaluator:
             super(TargetOptimization, self).run(distance_function=set_distance_function,
                                                 representation=self.representation,
@@ -362,6 +365,7 @@ class TargetOptimization(HeuristicOptimization):
                                                 generator=generators.set_generator,
                                                 max_size=max_size,
                                                 **kwargs)
+            simulation_logger.setLevel(log_level)
 
             return TargetOptimizationResult(model=self.model,
                                             heuristic_method=self.heuristic_method,
@@ -427,7 +431,7 @@ class TargetOptimizationResult(Result):
         self.heuristic_method = heuristic_method
         self.simulation_method = simulation_method
         self.simulation_kwargs = simulation_kwargs or {}
-        self.objective_functions = objective_function
+        self.objective_function = objective_function
         self.target_type = target_type
         self._decoder = decoder
         self._evaluator = evaluator
@@ -456,11 +460,13 @@ class TargetOptimizationResult(Result):
                       'heuristic_method._random': self.heuristic_method._random,
                       'heuristic_method.generator': self.heuristic_method.generator,
                       'heuristic_method._kwargs': self.heuristic_method._kwargs,
-                      'objective_functions': self.objective_functions,
+                      'objective_function': self.objective_function,
                       'target_type': self.target_type,
                       'solutions': self._solutions,
                       'seed': self.seed,
                       'metadata': self._metadata})
+        del state['heuristic_method._kwargs']['_ec']
+        return state
 
     def __setstate__(self, state):
         super(TargetOptimizationResult, self).__setstate__(state)
@@ -477,7 +483,8 @@ class TargetOptimizationResult(Result):
         self.heuristic_method.archiver = state['heuristic_method.archiver']
         self.heuristic_method.archive = state['heuristic_method.archive']
         self.heuristic_method._kwargs = state['heuristic_method._kwargs']
-        self.objective_functions = state['objective_functions']
+        self.heuristic_method._kwargs['_ec'] = self.heuristic_method
+        self.objective_functions = state['objective_function']
         self.target_type = state['target_type']
         self._solutions = state['solutions']
         self._metadata = state['metadata']
@@ -485,7 +492,6 @@ class TargetOptimizationResult(Result):
         self._evaluator = state['evaluator']
 
     def _repr_html_(self):
-
         template = """
         <h4>Result:</h4>
         <ul>
@@ -499,7 +505,7 @@ class TargetOptimizationResult(Result):
 
         model_id = self.model.id
         heuristic = self.heuristic_method.__class__.__name__
-        of_string = "<br/>".join([o._repr_latex_() for o in self.objective_functions])
+        of_string = self.objective_function._repr_latex_()
         simulation = self.simulation_method.__name__
         solutions = self.data_frame._repr_html_()
 
