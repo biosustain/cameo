@@ -311,7 +311,10 @@ class number_of_knockouts(ObjectiveFunction):
         if self.sense == 'max':
             return len(targets)
         else:
-            return round(1.0 / len(targets), config.ndecimals)
+            try:
+                return round(1.0 / len(targets), config.ndecimals)
+            except ZeroDivisionError:
+                return np.inf
 
     def _repr_latex_(self):
         return "$$ %s\\:\\#knockouts $$" % self.sense
