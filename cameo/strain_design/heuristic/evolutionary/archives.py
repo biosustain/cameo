@@ -14,7 +14,6 @@
 from __future__ import absolute_import, print_function
 
 import time
-
 from bisect import insort
 
 from inspyred.ec import Individual as OriginalIndividual
@@ -147,7 +146,7 @@ class Individual(OriginalIndividual):
         return "%s - %s sense: %s" % (list(self.candidate), self.fitness, sense)
 
     def __repr__(self):
-        return "SolutionTuple #%s: %s" % (id(self), self.__str__())
+        return "Individual #%s: %s" % (id(self), self.__str__())
 
     def issubset(self, other):
         return self.candidate.issubset(other.candidate)
