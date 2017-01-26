@@ -16,12 +16,12 @@ from __future__ import absolute_import, print_function
 
 from collections import OrderedDict
 
-from inspyred.ec.generators import diversify
-from cameo.strain_design.heuristic.evolutionary.genomes import MultipleChromosomeGenome
 from six.moves import range
 from six.moves import zip
 
-__all__ = ['set_generator', 'unique_set_generator']
+from cameo.strain_design.heuristic.evolutionary.genomes import MultipleChromosomeGenome
+
+__all__ = ['set_generator']
 
 
 def set_generator(random, args):
@@ -50,45 +50,7 @@ def set_generator(random, args):
     indices = list(range(len(representation)))
     max_size = args.get('max_size', 9)
     variable_size = args.get('variable_size', True)
-    if variable_size:
-        size = random.randint(1, max_size)
-    else:
-        size = max_size
-    candidate = random.sample(indices, size)
-    return sorted(candidate)
-
-
-@diversify
-def unique_set_generator(random, args):
-    """
-    Generates a list containing non-repeated elements of a discrete or
-    continuous representation. When this generator is used, the population
-    will contain unique individuals.
-
-    See Also
-    --------
-    inspyred.ec.generators.diversify
-
-    Parameters
-    ----------
-    random : Random
-    args : dict
-        representation: set containing the possible values
-        max_candidate_size: int, default: 9
-        variable_candidate_size: bool, default: True
-
-    Returns
-    -------
-    list
-        A list containing a sample of the elements. If variable_candidate_size is
-        True the list size is up to max_candidate_size, otherwise the candidate
-        size equals candidate_size
-    """
-    representation = args.get('representation')
-    indices = list(range(len(representation)))
-    max_size = args.get('max_size', 9)
-    variable_size = args.get('variable_size', True)
-    if variable_size:
+    if variable_size and max_size > 1:
         size = random.randint(1, max_size)
     else:
         size = max_size
@@ -121,7 +83,7 @@ def multiple_chromosome_set_generator(random, args):
             'max_size': args.get("%s_max_size" % key),
             'variable_size': args.get('variable_size')
         }
-        candidate[key] = unique_set_generator(random, key_args)
+        candidate[key] = set_generator(random, key_args)
 
     return candidate
 
