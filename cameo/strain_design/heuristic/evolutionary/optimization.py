@@ -20,6 +20,7 @@ import types
 from functools import reduce
 
 import inspyred
+from inspyred.ec.generators import diversify as diversify_function
 from pandas import DataFrame
 
 from cameo import config
@@ -339,16 +340,17 @@ class TargetOptimization(HeuristicOptimization):
         if self.progress:
             self.observers.append(observers.ProgressObserver())
 
-    def run(self, view=config.default_view, max_size=10, variable_size=True, **kwargs):
+    def run(self, view=config.default_view, max_size=10, variable_size=True, diversify=False, **kwargs):
         """
         Parameters
         ----------
         max_size: int
             Maximum size of a solution, e.g., the maximum number of reactions or genes to knock-out or swap
         variable_size: boolean
-            If true, the solution size can change meaning that the combination of knockouts can have different sizes up to
-            max_size. Otherwise it only produces knockout solutions with a fixed number of knockouts.
-
+            If true, the solution size can change meaning that the combination of knockouts can have different sizes up
+            to max_size. Otherwise it only produces knockout solutions with a fixed number of knockouts.
+        diversify: bool
+            It true, the generator will not be allowed to generate repeated candidates in the initial population.
         """
 
         if kwargs.get('seed', None) is None:
@@ -359,11 +361,18 @@ class TargetOptimization(HeuristicOptimization):
         log_level = simulation_logger.level
         simulation_logger.setLevel(logging.CRITICAL)
 
+        if diversify:
+            generator = diversify_function(generators.set_generator)
+        else:
+            generator = generators.set_generator
+
+
+
         with EvaluatorWrapper(view, self._evaluator) as evaluator:
             super(TargetOptimization, self).run(distance_function=set_distance_function,
                                                 representation=self.representation,
                                                 evaluator=evaluator,
-                                                generator=generators.set_generator,
+                                                generator=generator,
                                                 max_size=max_size,
                                                 **kwargs)
             simulation_logger.setLevel(log_level)
