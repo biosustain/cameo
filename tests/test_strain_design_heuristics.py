@@ -18,17 +18,18 @@ import os
 import pickle
 import unittest
 from collections import namedtuple
+from math import sqrt
 
 import inspyred
 import numpy
 import six
 from inspyred.ec import Bounder
 from inspyred.ec.emo import Pareto
-from math import sqrt
 from ordered_set import OrderedSet
 from six.moves import range
 
 from cameo import load_model, fba, config
+from cameo.core.manipulation import swap_cofactors
 from cameo.parallel import SequentialView
 try:
     from cameo.parallel import RedisQueue
@@ -474,24 +475,36 @@ class TestWrappedEvaluator(unittest.TestCase):
 
 
 class TestSwapEvaluator(unittest.TestCase):
+    def setUp(self):
+        self.model = TEST_MODEL.copy()
+
     def test_swap_reaction_identification(self):
         expected_reactions = ['ACALD', 'AKGDH', 'ALCD2x', 'G6PDH2r', 'GAPD', 'GLUDy', 'GLUSy', 'GND', 'ICDHyr',
                               'LDH_D', 'MDH', 'ME1', 'ME2', 'NADH16', 'PDH']
 
-        py = product_yield(TEST_MODEL.reactions.EX_etoh_LPAREN_e_RPAREN_, TEST_MODEL.reactions.EX_glc_LPAREN_e_RPAREN_)
-        optimization = CofactorSwapOptimization(model=TEST_MODEL, objective_function=py)
+        py = product_yield(self.model.reactions.EX_etoh_LPAREN_e_RPAREN_, TEST_MODEL.reactions.EX_glc_LPAREN_e_RPAREN_)
+        optimization = CofactorSwapOptimization(model=self.model, objective_function=py)
 
         self.assertEquals(expected_reactions, optimization.representation)
         self.assertNotIn('PGI', optimization.representation)
 
     def test_evaluate_swap(self):
-        TEST_MODEL.objective = TEST_MODEL.reactions.EX_etoh_LPAREN_e_RPAREN_
-        py = product_yield(TEST_MODEL.reactions.EX_etoh_LPAREN_e_RPAREN_, TEST_MODEL.reactions.EX_glc_LPAREN_e_RPAREN_)
-        reactions = ['ACALD', 'ALCD2x', 'G6PDH2r', 'GAPD']
-        optimization = CofactorSwapOptimization(model=TEST_MODEL, objective_function=py, candidate_reactions=reactions)
-        optimization_result = optimization.run(max_evaluations=16, max_size=2)
-        fitness = optimization_result.data_frame.iloc[0].fitness
-        self.assertAlmostEqual(fitness, 0.66667, places=3)
+        self.model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = 0.5
+        py = product_yield(self.model.reactions.EX_etoh_LPAREN_e_RPAREN_, self.model.reactions.EX_glc_LPAREN_e_RPAREN_)
+        cofactors = [(self.model.metabolites.nad_c, self.model.metabolites.nadh_c),
+                     (self.model.metabolites.nadp_c, self.model.metabolites.nadph_c)]
+        self.model.objective = self.model.reactions.EX_etoh_LPAREN_e_RPAREN_
+
+        swap_cofactors(self.model.reactions.ALCD2x, self.model, cofactors, inplace=True)
+        wt = self.model.solve()
+
+        reactions = ['ACALD', 'AKGDH', 'G6PDH2r', 'GAPD', 'GLUDy', 'GLUSy', 'GND', 'ICDHyr',
+                     'LDH_D', 'MDH', 'ME1', 'ME2', 'NADH16', 'PDH']
+        optimization = CofactorSwapOptimization(model=self.model, objective_function=py, candidate_reactions=reactions)
+        optimization_result = optimization.run(max_evaluations=1000, max_size=2, pop_size=91)
+        fitness = optimization_result.data_frame.fitness.max()
+        print(fitness)
+        self.assertAlmostEqual(fitness, 0.322085, places=3)
 
 
 class TestDecoders(unittest.TestCase):
@@ -785,9 +798,11 @@ class TestOptimizationResult(unittest.TestCase):
         self.representation = [r.id for r in self.model.reactions]
         random = Random(SEED)
         args = {"representation": self.representation}
+
         self.solutions = BestSolutionArchive()
         for _ in range(10000):
             self.solutions.add(set_generator(random, args), random.random(), None, True, 100)
+
         self.decoder = ReactionSetDecoder(self.representation, self.model)
 
     def test_reaction_result(self):
@@ -800,7 +815,8 @@ class TestOptimizationResult(unittest.TestCase):
             objective_function=None,
             target_type="reaction",
             decoder=self.decoder,
-            seed=SEED)
+            seed=SEED,
+            simplify=False)
 
         self.assertEqual(result.target_type, "reaction")
 
