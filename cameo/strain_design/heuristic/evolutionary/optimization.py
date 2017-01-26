@@ -34,6 +34,7 @@ from cameo.strain_design.heuristic.evolutionary import observers
 from cameo.strain_design.heuristic.evolutionary import plotters
 from cameo.strain_design.heuristic.evolutionary import stats
 from cameo.strain_design.heuristic.evolutionary import variators
+from cameo.strain_design.heuristic.evolutionary.archives import Individual
 from cameo.strain_design.heuristic.evolutionary.objective_functions import MultiObjectiveFunction, ObjectiveFunction
 from cameo.util import RandomGenerator as Random
 from cameo.util import in_ipnb
@@ -401,18 +402,19 @@ class SolutionSimplification(object):
                              "'cameo.strain_design.heuristic.evolutionary.evaluators.Evaluator'")
         self._evaluator = evaluator
 
-    def __call__(self, solution):
-        new_solution = list(solution)
-        tested_elements = []
-        fitness = self._evaluator([solution])[0]
-        while len(new_solution) > 0 and len(tested_elements) < len(solution):
-            test_element = new_solution.pop(0)
-            tested_elements.append(test_element)
-            new_fitness = self._evaluator([new_solution])[0]
-            if new_fitness < fitness:
-                new_solution.append(test_element)
+    def __call__(self, population):
+        return [self.simplify(individual) for individual in population]
 
-        return new_solution
+    def simplify(self, individual):
+        new_individual = Individual(individual.candidate, individual.fitness, individual.maximize, birthdate=individual.birthdate)
+
+        for target in individual.candidate:
+            new_individual.candidate.remove(target)
+            new_fitness = self._evaluator.evaluate_individual(tuple(new_individual))
+            if new_fitness < individual.fitness:
+                new_individual.candidate.add(target)
+
+        return new_individual
 
     def __enter__(self):
         return self
@@ -424,7 +426,7 @@ class SolutionSimplification(object):
 class TargetOptimizationResult(Result):
     def __init__(self, model=None, heuristic_method=None, simulation_method=None, simulation_kwargs=None,
                  solutions=None, objective_function=None, target_type=None, decoder=None, evaluator=None,
-                 seed=None, metadata=None, view=None, *args, **kwargs):
+                 seed=None, metadata=None, view=None, simplify=True, *args, **kwargs):
         super(TargetOptimizationResult, self).__init__(*args, **kwargs)
         self.seed = seed
         self.model = model
@@ -437,6 +439,9 @@ class TargetOptimizationResult(Result):
         self._evaluator = evaluator
         self._metadata = metadata
         self._view = view
+        if simplify:
+            solutions = self._simplify_solutions(solutions)
+
         self._solutions = self._decode_solutions(solutions)
 
     def __len__(self):
@@ -537,8 +542,6 @@ class TargetOptimizationResult(Result):
         if in_ipnb():
             if config.use_bokeh:
                 stats_data = stats.BokehStatsData(self)
-            elif config.use_matplotlib:
-                pass
         else:
             stats_data = stats.CLIStatsData(self)
 
@@ -554,6 +557,9 @@ class TargetOptimizationResult(Result):
             targets = self._decoder(solution.candidate, flat=True)
             if len(targets) > 0:
                 decoded_solutions.loc[index] = [targets, solution.fitness]
+
+        decoded_solutions.drop_duplicates(inplace=True)
+        decoded_solutions.reset_index(inplace=True)
 
         return decoded_solutions
 

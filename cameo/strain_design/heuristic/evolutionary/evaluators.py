@@ -31,6 +31,12 @@ class Evaluator(object):
     def __call__(self, population):
         raise NotImplementedError
 
+    def evaluate_individual(self, individual):
+        raise NotImplementedError
+
+    def reset(self):
+        raise NotImplementedError
+
 
 class TargetEvaluator(Evaluator):
     """
@@ -76,13 +82,10 @@ class TargetEvaluator(Evaluator):
         self.cache = ProblemCache(model)
 
     def __call__(self, population):
-        return [self._evaluate_individual(tuple(i)) for i in population]
+        return [self.evaluate_individual(tuple(i)) for i in population]
 
     def reset(self):
         self.cache.reset()
-
-    def _evaluate_individual(self, individual):
-        raise NotImplementedError
 
 
 class KnockoutEvaluator(TargetEvaluator):
@@ -91,7 +94,7 @@ class KnockoutEvaluator(TargetEvaluator):
     """
 
     @memoize
-    def _evaluate_individual(self, individual):
+    def evaluate_individual(self, individual):
         """
         Evaluates a single individual.
 
@@ -133,7 +136,7 @@ class SwapEvaluator(TargetEvaluator):
         self.swap_pair = swap_pair
 
     @memoize
-    def _evaluate_individual(self, individual):
+    def evaluate_individual(self, individual):
         swap_reactions = self.decoder(individual)
         with TimeMachine() as tm:
             for reaction in swap_reactions:
