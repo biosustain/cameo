@@ -84,6 +84,36 @@ def decrease_flux(reaction, ref_value, value, time_machine=None):
         reaction.knock_out(time_machine=time_machine)
 
 
+def reverse_flux(reaction, ref_value, value, time_machine=None):
+    """
+    lb                           0                           ub
+    |--------------------------- ' ---------------------------|
+                      <----------'
+                                 '---------->
+
+    Parameters
+    ----------
+    reaction: cameo.Reaction
+        The reaction to down_regulate.
+    ref_value: float
+        The flux value to come from.
+    value: float
+        The flux value to achieve.
+    time_machine: TimeMachine
+        The action stack manager.
+
+    """
+    if (value >= 0) == (ref_value >= 0):
+        raise ValueError("'value' and 'ref_value' cannot have the same sign (%.5f, %.5f)" % (value, ref_value))
+
+    if value > 0:
+        reaction.change_bounds(ub=value, time_machine=time_machine)
+    elif value < 0:
+        reaction.change_bounds(lb=value, time_machine=time_machine)
+    else:
+        reaction.knock_out(time_machine=time_machine)
+
+
 def swap_cofactors(reaction, model, swap_pairs, inplace=True, time_machine=None):
     """
     Swaps the cofactors of a reaction. For speed, it can be done inplace which just changes the coefficients.
