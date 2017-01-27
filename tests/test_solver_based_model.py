@@ -1047,6 +1047,19 @@ class WrappedAbstractTestSolverBasedModel:
             self.assertRaises(KeyError, self.model._reaction_for, "blablabla")
             self.assertRaises(KeyError, self.model._reaction_for, "accoa_lp_c_lp_", add=False)
 
+        def test_stoichiometric_matrix(self):
+            S = self.model.S
+            self.assertEqual(len(self.model.reactions), S.shape[0])
+            self.assertEqual(len(self.model.metabolites), S.shape[1])
+
+            for i, reaction in enumerate(self.model.reactions):
+                for j, metabolite in enumerate(self.model.metabolites):
+                    if metabolite in reaction.metabolites:
+                        coefficient = reaction.metabolites[metabolite]
+                    else:
+                        coefficient = 0
+                    self.assertEqual(S[i, j], coefficient)
+
 
 class TestSolverBasedModelGLPK(WrappedAbstractTestSolverBasedModel.AbstractTestSolverBasedModel):
     def setUp(self):
