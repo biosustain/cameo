@@ -27,10 +27,10 @@ from copy import copy, deepcopy
 from functools import partial
 
 import cobra
+import numpy as np
 import optlang
 import six
 import sympy
-from cobra.manipulation import find_gene_knockout_reactions
 from pandas import DataFrame, pandas
 from sympy import Add
 from sympy import Mul
@@ -633,6 +633,19 @@ class SolverBasedModel(cobra.core.Model):
             raise e
 
         return essential
+
+    @property
+    def S(self):
+        metabolite_index = {metabolite.id: index for index, metabolite in enumerate(self.metabolites)}
+        stoichiometric_matrix = np.zeros((len(self.reactions), len(self.metabolites)))
+
+        for i, reaction in enumerate(self.reactions):
+            for metabolite, coefficient in six.iteritems(reaction.metabolites):
+                j = metabolite_index[metabolite.id]
+                stoichiometric_matrix[i][j] = coefficient
+
+        return stoichiometric_matrix
+
 
     @property
     def medium(self):
