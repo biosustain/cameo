@@ -642,7 +642,7 @@ class SolverBasedModel(cobra.core.Model):
         for i, reaction in enumerate(self.reactions):
             for metabolite, coefficient in six.iteritems(reaction.metabolites):
                 j = metabolite_index[metabolite.id]
-                stoichiometric_matrix[i][j] = coefficient
+                stoichiometric_matrix[i, j] = coefficient
 
         return stoichiometric_matrix
 
