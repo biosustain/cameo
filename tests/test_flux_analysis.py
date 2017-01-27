@@ -18,23 +18,25 @@ from __future__ import absolute_import
 
 import copy
 import os
+import re
 import unittest
-from nose.tools import assert_almost_equal
 
+import numpy as np
 import pandas
+from nose.tools import assert_almost_equal
+from optlang.exceptions import IndicatorConstraintsNotSupported
 from sympy import Add
 
 import cameo
-import re
 from cameo.config import solvers
 from cameo.flux_analysis import remove_infeasible_cycles
+from cameo.flux_analysis import structural
 from cameo.flux_analysis.analysis import flux_variability_analysis, phenotypic_phase_plane, find_blocked_reactions
 from cameo.flux_analysis.simulation import fba, pfba, lmoma, room, moma
+from cameo.flux_analysis.structural import nullspace
 from cameo.io import load_model
 from cameo.parallel import SequentialView, MultiprocessingView
 from cameo.util import TimeMachine
-from cameo.flux_analysis import structural
-from optlang.exceptions import IndicatorConstraintsNotSupported
 
 
 def assert_data_frames_equal(obj, expected, delta=0.001, sort_by=None, nan=0):
@@ -454,6 +456,25 @@ class TestRemoveCyclesCPLEX(Wrapper.AbstractTestRemoveCycles):
     def setUp(self):
         self.model = CORE_MODEL.copy()
         self.model.solver = "cplex"
+
+
+class NullSpaceTestCase(unittest.TestCase):
+
+    def setUp(self):
+        self.model = CORE_MODEL.copy()
+
+    # toy from https://en.wikipedia.org/wiki/Kernel_(linear_algebra)#Illustration
+    def test_wikipedia_toy(self):
+        A = np.array([[2, 3, 5], [-4, 2, 3]])
+        NS = nullspace(A)
+        self.assertAlmostEqual(np.dot(NS.T, A[0])[0], 0, places=10)
+        self.assertAlmostEqual(np.dot(NS.T, A[1])[0], 0, places=10)
+
+    def test_with_core_model(self):
+        S = self.model.S
+        NS = nullspace(S)
+        for i in range(len(self.model.reactions)):
+            self.assertAlmostEqual(np.dot(NS.T, S[i])[0], 0, places=10)
 
 
 if __name__ == '__main__':
