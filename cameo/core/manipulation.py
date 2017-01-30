@@ -86,15 +86,17 @@ def decrease_flux(reaction, ref_value, value, time_machine=None):
 
 def reverse_flux(reaction, ref_value, value, time_machine=None):
     """
+
+    Forces a reaction to have a minimum flux level in the opposite direction of a reference state.
+
     lb                           0                           ub
     |--------------------------- ' ---------------------------|
-                      <----------'
-                                 '---------->
+                      <----------'- - - - - - - ->
 
     Parameters
     ----------
     reaction: cameo.Reaction
-        The reaction to down_regulate.
+        The reaction that will be inverted.
     ref_value: float
         The flux value to come from.
     value: float
