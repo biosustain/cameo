@@ -16,7 +16,7 @@ from functools import partial
 
 import numpy
 
-from cameo.core.manipulation import swap_cofactors, increase_flux, decrease_flux
+from cameo.core.manipulation import swap_cofactors, increase_flux, decrease_flux, reverse_flux
 
 try:
     from gnomic import Accession, Feature, Del, Mutation, Sub, Ins
@@ -128,7 +128,7 @@ class FluxModulationTarget(Target):
             float
         """
         try:
-            return (self._reference_value - self._value) / self._reference_value
+            return (self._reference_value - self._value) / self._value
         except ZeroDivisionError:
             return numpy.inf
 
@@ -187,7 +187,7 @@ class ReactionCofactorSwapTarget(Target):
         return Sub(original_feature, new_feature)
 
     def __str__(self):
-        return self.id + "|" + self.swap_str
+        return "<ReactionCofactorSwap %s swap=%s>" % (self.id, self.swap_str)
 
     def __gt__(self, other):
         if self.id == other.id:
@@ -262,7 +262,7 @@ class ReactionKnockinTarget(KnockinTarget):
             return False
 
     def __str__(self):
-        return "::%s" % self.id
+        return "<ReactionKnockin %s>" % self.id
 
     def _repr_html_(self):
         return "::%s"
@@ -324,6 +324,9 @@ class GeneKnockoutTarget(GeneModulationTarget):
             return self.id == other.id and other._value == 0
         else:
             return False
+
+    def __str__(self):
+        return "<GeneKnockout %s>" % self.id
 
 
 class ReactionModulationTarget(FluxModulationTarget):
@@ -391,6 +394,44 @@ class ReactionKnockoutTarget(ReactionModulationTarget):
         else:
             return False
 
+    def __str__(self):
+        return "<ReactionKnockout %s>" % self.id
+
+
+class ReactionInversionTarget(ReactionModulationTarget):
+
+    def __str__(self):
+        return "<ReactionInversion %s (%.5f -> %.5f)>" % (self.id, self._reference_value, self._value)
+
+    def _repr_html_(self):
+        return "inv-%s" % self.id
+
+    def __gt__(self, other):
+        if self.id == other.id:
+            if isinstance(other, ReactionModulationTarget):
+                if other._value == self._value:
+                    return True
+                else:
+                    raise IncompatibleTargets(self, other)
+            elif isinstance(other, ReactionKnockoutTarget):
+                raise IncompatibleTargets(self, other)
+            elif isinstance(other, ReactionKnockinTarget):
+                return True
+            else:
+                raise IncompatibleTargets(self, other)
+        else:
+            return self.id > other.id
+
+    def __eq__(self, other):
+        if isinstance(other, ReactionInversionTarget):
+            return self.id == other.id and other._value == self._value
+        else:
+            return False
+
+    def apply(self, model, time_machine=None):
+        reaction = self.get_model_target(model)
+        reverse_flux(reaction, self._reference_value, self._value, time_machine=time_machine)
+
 
 class EnsembleTarget(Target):
     """
@@ -412,7 +453,11 @@ class EnsembleTarget(Target):
             target.apply(model, time_machine=time_machine)
 
     def __str__(self):
-        return "\n".join("%i - %s" % (i, str(target)) for i, target in enumerate(self.targets))
+        head = "<EsembleTarget %s" % self.id
+        body = "\n\t".join("%i - %s" % (i, str(target)) for i, target in enumerate(self.targets))
+        end = ">"
+
+        return head + "\n" + body + "\n" + end
 
     # TODO implement gnomic compatibility
     def to_gnomic(self):

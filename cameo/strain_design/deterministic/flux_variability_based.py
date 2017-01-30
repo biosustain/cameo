@@ -52,7 +52,7 @@ from cameo.flux_analysis.analysis import flux_variability_analysis, phenotypic_p
 from cameo.flux_analysis.simulation import pfba, fba
 
 from cameo.core.strain_design import StrainDesignMethod, StrainDesignMethodResult, StrainDesign
-from cameo.core.target import ReactionKnockoutTarget, ReactionModulationTarget
+from cameo.core.target import ReactionKnockoutTarget, ReactionModulationTarget, ReactionInversionTarget
 
 with warnings.catch_warnings():
     warnings.simplefilter("ignore")
@@ -335,7 +335,7 @@ class DifferentialFVA(StrainDesignMethod):
 class DifferentialFVAResult(StrainDesignMethodResult):
     def __init__(self, solutions, phase_plane, reference_fva, *args, **kwargs):
         self.phase_plane = phase_plane
-        super(DifferentialFVAResult, self).__init__(self._generate_designs(solutions, reference_fva))
+        super(DifferentialFVAResult, self).__init__(self._generate_designs(solutions, reference_fva), *args, **kwargs)
         self.reference_fva = reference_fva
         self.solutions = solutions
 
@@ -346,15 +346,25 @@ class DifferentialFVAResult(StrainDesignMethodResult):
         for _, solution in solutions.iteritems():
             targets = []
             relevant_targets = solution[solution.normalized_gaps != 0]
-            for rid, relevant_target in relevant_targets.iterrows():
-                if relevant_target.normalized_gaps > 0:
-                    targets.append(ReactionModulationTarget(rid,
-                                                            reference_fva['upper_bound'][rid],
-                                                            relevant_target.lower_bound))
+            for rid, relevant_row in relevant_targets.iterrows():
+                if relevant_row.flux_reversal:
+                    if abs(reference_fva['upper_bound'][rid]) > abs(relevant_row.upper_bound):
+                        targets.append(ReactionInversionTarget(rid,
+                                                               reference_fva['lower_bound'][rid],
+                                                               relevant_row.upper_bound))
+                    else:
+                        targets.append(ReactionInversionTarget(rid,
+                                                               reference_fva['upper_bound'][rid],
+                                                               relevant_row.lower_bound))
                 else:
-                    targets.append(ReactionModulationTarget(rid,
-                                                            reference_fva['lower_bound'][rid],
-                                                            relevant_target.upper_bound))
+                    if relevant_row.normalized_gaps > 0:
+                        targets.append(ReactionModulationTarget(rid,
+                                                                reference_fva['lower_bound'][rid],
+                                                                relevant_row.upper_bound))
+                    else:
+                        targets.append(ReactionModulationTarget(rid,
+                                                                reference_fva['upper_bound'][rid],
+                                                                relevant_row.lower_bound))
             designs.append(StrainDesign(targets))
         return designs
 
