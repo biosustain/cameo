@@ -30,7 +30,6 @@ import cobra
 import optlang
 import six
 import sympy
-from cobra.manipulation import find_gene_knockout_reactions
 from pandas import DataFrame, pandas
 from sympy import Add
 from sympy import Mul
@@ -781,8 +780,10 @@ class SolverBasedModel(cobra.core.Model):
 
     @staticmethod
     def _load_medium_from_dataframe(model, medium):
-        for i in six.moves.range(len(medium) - 1):
-            rid = medium['reaction_id'][i]
-            if model.reactions.has_id(rid):
-                model.reactions.get_by_id(rid).lower_bound = medium['lower_bound'][i]
-                model.reactions.get_by_id(rid).upper_bound = medium['upper_bound'][i]
+        for ex_reaction in model.exchanges:
+            if ex_reaction.id in medium.reaction_id.values:
+                medium_row = medium[medium.reaction_id == ex_reaction.id]
+                ex_reaction.lower_bound = medium_row.lower_bound.values[0]
+                ex_reaction.upper_bound = medium_row.upper_bound.values[0]
+            else:
+                ex_reaction.lower_bound = 0
