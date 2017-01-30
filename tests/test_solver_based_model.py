@@ -1050,7 +1050,7 @@ class WrappedAbstractTestSolverBasedModel:
         def test_set_medium(self):
             medium = self.model.medium
 
-            for reaction in self.model.exchages:
+            for reaction in self.model.exchanges:
                 if reaction.lower_bound == 0:
                     self.assertNotIn(reaction.id, medium.reaction_id.values)
                 if reaction.lower_bound < 0:
