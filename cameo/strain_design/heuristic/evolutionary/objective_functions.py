@@ -120,13 +120,7 @@ class YieldFunction(ObjectiveFunction):
     def __init__(self, product, substrates, carbon_yield=False, *args, **kwargs):
         super(YieldFunction, self).__init__(*args, **kwargs)
         self.carbon_yield = carbon_yield
-        self.n_c_substrates = {}
-        self.n_c_product = None
         if isinstance(product, Reaction):
-            if product.is_exchange:
-                self.n_c_product = product.reactants[0].elements.get('C', 1)
-            elif carbon_yield:
-                raise ValueError("can only calculate carbon yields from exchange reactions")
             product = product.id
 
         if not isinstance(product, six.string_types):
@@ -136,14 +130,13 @@ class YieldFunction(ObjectiveFunction):
 
         if not isinstance(substrates, list):
             substrates = [substrates]
+        elif len(substrates) == 0:
+            raise ValueError("`substrates` must be a string or a Reaction or a list of those")
 
         for i, substrate in enumerate(substrates):
             if isinstance(substrate, Reaction):
-                if substrate.is_exchange:
-                    self.n_c_substrates[substrate.id] = substrate.reactants[0].elements.get('C', 1)
-                elif carbon_yield:
-                    raise ValueError("can only calculate carbon yields from exchange reactions")
                 substrates[i] = substrate.id
+
         if not all(isinstance(substrate, six.string_types) for substrate in substrates):
             raise ValueError("`substrates` must be a string or a Reaction or a list of those")
 
@@ -195,9 +188,19 @@ class biomass_product_coupled_yield(YieldFunction):
     def __call__(self, model, solution, targets):
         biomass_flux = round(solution.fluxes[self.biomass], config.ndecimals)
         if self.carbon_yield:
-            product_flux = round(solution.fluxes[self.product], config.ndecimals) * self.n_c_product
-            substrate_flux = round(sum(abs(solution.fluxes[s]) * self.n_c_substrates.get(s, 1), config.ndecimals)
-                                   for s in self.substrates)
+            product = model.reaction.get_by_id(self.product)
+            if product.is_exchange:
+                product_flux = round(solution.fluxes[self.product], config.ndecimals) * product.n_carbon
+            else:
+                product_flux = round(solution.fluxes[self.product], config.ndecimals) * product.n_carbon / 2
+            substrate_flux = 0
+            for substrate_id in self.substrates:
+                substrate = model.reactions.get_by_id(substrate_id)
+                if substrate.is_exchange:
+                    substrate_flux += abs(solution.fluxes[substrate_id]) * substrate.n_carbon
+                else:
+                    substrate_flux += abs(solution.fluxes[substrate_id]) * substrate.n_carbon / 2
+            substrate_flux = round(substrate_flux, config.ndecimals)
 
         else:
             product_flux = round(solution.fluxes[self.product], config.ndecimals)
@@ -210,11 +213,10 @@ class biomass_product_coupled_yield(YieldFunction):
 
     def _repr_latex_(self):
         if self.carbon_yield:
-            substrates = " + ".join("%s * %i" % (s, self.n_c_substrates[s]) for s in self.substrates)
-            return "$$bpcy = \\frac{(%s * %s * %i)}{%s}$$" % (self.biomass.replace("_", "\\_"),
-                                                              self.product.replace("_", "\\_"),
-                                                              self.n_c_product,
-                                                              substrates)
+            substrates = " + ".join("C(%s)" % s for s in self.substrates)
+            return "$$bpcy = \\frac{(%s * C(%s))}{%s}$$" % (self.biomass.replace("_", "\\_"),
+                                                            self.product.replace("_", "\\_"),
+                                                            substrates)
 
         else:
             return "$$bpcy = \\frac{(%s * %s)}{%s}$$" % (self.biomass.replace("_", "\\_"),
@@ -259,9 +261,19 @@ class biomass_product_coupled_min_yield(biomass_product_coupled_yield):
         fva_res = flux_variability_analysis(model, reactions=[self.product], fraction_of_optimum=1)
         min_product_flux = round(fva_res["lower_bound"][self.product], config.ndecimals)
         if self.carbon_yield:
-            product_flux = min_product_flux * self.n_c_product
-            substrate_flux = sum(round(abs(solution.fluxes[s]), config.ndecimals) * self.n_c_substrates.get(s, 1)
-                                 for s in self.substrates)
+            product = model.reactions.get_by_id(self.product)
+            if product.is_exchange:
+                product_flux = min_product_flux * product.n_carbon
+            else:
+                product_flux = min_product_flux * product.n_carbon / 2
+            substrate_flux = 0
+            for substrate_id in self.substrates:
+                substrate = model.reactions.get_by_id(substrate_id)
+                if substrate.is_exchange:
+                    substrate_flux += abs(solution.fluxes[substrate_id]) * substrate.n_carbon
+                else:
+                    substrate_flux += abs(solution.fluxes[substrate_id]) * substrate.n_carbon / 2
+            substrate_flux = round(substrate_flux, config.ndecimals)
         else:
             product_flux = min_product_flux
             substrate_flux = sum(round(abs(solution.fluxes[s]), config.ndecimals) for s in self.substrates)
@@ -273,11 +285,10 @@ class biomass_product_coupled_min_yield(biomass_product_coupled_yield):
 
     def _repr_latex_(self):
         if self.carbon_yield:
-            substrates = " + ".join("%s * %i" % (s, self.n_c_substrates[s]) for s in self.substrates)
-            return "$$bpcy = \\frac{(%s * min(%s) * %i)}{%s}$$" % (self.biomass.replace("_", "\\_"),
-                                                                   self.product.replace("_", "\\_"),
-                                                                   self.n_c_product,
-                                                                   substrates)
+            substrates = " + ".join("C(%s)" % s for s in self.substrates)
+            return "$$bpcy = \\frac{(%s * Cmin(%s))}{%s}$$" % (self.biomass.replace("_", "\\_"),
+                                                               self.product.replace("_", "\\_"),
+                                                               substrates)
         else:
             return "$$bpcy = \\frac{(%s * min(%s))}{%s}$$" % (self.biomass.replace("_", "\\_"),
                                                               self.product.replace("_", "\\_"),
@@ -317,9 +328,19 @@ class product_yield(YieldFunction):
 
     def __call__(self, model, solution, targets):
         if self.carbon_yield:
-            product_flux = round(solution.fluxes[self.product], config.ndecimals) * self.n_c_product
-            substrate_flux = sum(round(abs(solution.fluxes[s]), config.ndecimals) * self.n_c_substrates.get(s, 1)
-                                 for s in self.substrates)
+            product = model.reactions.get_by_id(self.product)
+            if product.is_exchange:
+                product_flux = round(solution.fluxes[self.product], config.ndecimals) * product.n_carbon
+            else:
+                product_flux = round(solution.fluxes[self.product], config.ndecimals) * product.n_carbon / 2
+            substrate_flux = 0
+            for substrate_id in self.substrates:
+                substrate = model.reactions.get_by_id(substrate_id)
+                if substrate.is_exchange:
+                    substrate_flux += abs(solution.fluxes[substrate_id]) * substrate.n_carbon
+                else:
+                    substrate_flux += abs(solution.fluxes[substrate_id]) * substrate.n_carbon / 2
+            substrate_flux = round(substrate_flux, config.ndecimals)
         else:
             product_flux = round(solution.fluxes[self.product], config.ndecimals)
             substrate_flux = sum(round(abs(solution.fluxes[s]), config.ndecimals) for s in self.substrates)

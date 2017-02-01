@@ -326,6 +326,15 @@ class TestObjectiveFunctions(unittest.TestCase):
         of = YieldFunction(TEST_MODEL.reactions.EX_ac_LPAREN_e_RPAREN_, TEST_MODEL.reactions.EX_glc_LPAREN_e_RPAREN_)
         self._assert_is_pickable(of)
 
+        self.assertRaises(ValueError, YieldFunction, {}, TEST_MODEL.reactions.EX_glc_LPAREN_e_RPAREN_)
+        self.assertRaises(ValueError, YieldFunction, None, TEST_MODEL.reactions.EX_glc_LPAREN_e_RPAREN_)
+        self.assertRaises(ValueError, YieldFunction, [], TEST_MODEL.reactions.EX_glc_LPAREN_e_RPAREN_)
+        self.assertRaises(ValueError, YieldFunction, 1, TEST_MODEL.reactions.EX_glc_LPAREN_e_RPAREN_)
+        self.assertRaises(ValueError, YieldFunction, TEST_MODEL.reactions.EX_ac_LPAREN_e_RPAREN_, [])
+        self.assertRaises(ValueError, YieldFunction, TEST_MODEL.reactions.EX_ac_LPAREN_e_RPAREN_, 1)
+        self.assertRaises(ValueError, YieldFunction, TEST_MODEL.reactions.EX_ac_LPAREN_e_RPAREN_, {})
+        self.assertRaises(ValueError, YieldFunction, TEST_MODEL.reactions.EX_ac_LPAREN_e_RPAREN_, [])
+
     def test_biomass_product_coupled_yield(self):
         solution = self._MockupSolution()
         solution.set_primal('biomass', 0.6)
@@ -377,7 +386,7 @@ class TestObjectiveFunctions(unittest.TestCase):
         solution.set_primal('product', 2)
         solution.set_primal('substrate', -10)
 
-        of = product_yield("product", "substrate")
+        of = product_yield("product", "substrate", carbon_yield=False)
         self.assertEqual(of.name, "yield = (product / substrate)")
         self._assert_is_pickable(of)
         fitness = of(None, solution, None)
@@ -390,7 +399,7 @@ class TestObjectiveFunctions(unittest.TestCase):
         solution.set_primal('substrate', -5)
         solution.set_primal('substrate2', -5)
 
-        of2 = product_yield('product', ['substrate', 'substrate2'])
+        of2 = product_yield('product', ['substrate', 'substrate2'], carbon_yield=False)
         self.assertEqual(of2.name, "yield = (product / (substrate + substrate2))")
         self._assert_is_pickable(of2)
         fitness = of2(None, solution, None)
@@ -462,7 +471,7 @@ class TestKnockoutEvaluator(unittest.TestCase):
             "Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2",
             "EX_ac_LPAREN_e_RPAREN_",
             "EX_glc_LPAREN_e_RPAREN_")
-        objective2 = product_yield("EX_ac_LPAREN_e_RPAREN_", "EX_glc_LPAREN_e_RPAREN_")
+        objective2 = product_yield("EX_ac_LPAREN_e_RPAREN_", "EX_glc_LPAREN_e_RPAREN_", carbon_yield=False)
         objective = MultiObjectiveFunction([objective1, objective2])
         evaluator = KnockoutEvaluator(TEST_MODEL, decoder, objective, fba, {})
         fitness = evaluator([[0, 1, 2, 3, 4]])[0]
@@ -518,7 +527,8 @@ class TestSwapEvaluator(unittest.TestCase):
 
     def test_evaluate_swap(self):
         TEST_MODEL.objective = TEST_MODEL.reactions.EX_etoh_LPAREN_e_RPAREN_
-        py = product_yield(TEST_MODEL.reactions.EX_etoh_LPAREN_e_RPAREN_, TEST_MODEL.reactions.EX_glc_LPAREN_e_RPAREN_)
+        py = product_yield(TEST_MODEL.reactions.EX_etoh_LPAREN_e_RPAREN_, TEST_MODEL.reactions.EX_glc_LPAREN_e_RPAREN_,
+                           carbon_yield=True)
         reactions = ['ACALD', 'ALCD2x', 'G6PDH2r', 'GAPD']
         optimization = CofactorSwapOptimization(model=TEST_MODEL, objective_function=py, candidate_reactions=reactions)
         optimization_result = optimization.run(max_evaluations=16, max_size=2)
