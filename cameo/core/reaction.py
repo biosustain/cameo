@@ -379,6 +379,10 @@ class Reaction(_cobrapy.core.Reaction):
         else:
             return None
 
+    @property
+    def is_exchange(self):
+        return len(self.reactants) == 0 or len(self.products) == 0
+
     def add_metabolites(self, metabolites, combine=True, **kwargs):
         if combine:
             old_coefficients = self.metabolites
