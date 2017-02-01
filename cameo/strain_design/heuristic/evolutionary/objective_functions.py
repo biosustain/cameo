@@ -16,10 +16,11 @@
 from __future__ import absolute_import, print_function
 
 import numpy as np
-from cobra import Reaction
+import six
 from inspyred.ec.emo import Pareto
 
 from cameo import config, flux_variability_analysis
+from cameo.core.reaction import Reaction
 
 __all__ = ['biomass_product_coupled_yield', 'product_yield', 'number_of_knockouts']
 
@@ -116,14 +117,21 @@ class MultiObjectiveFunction(ObjectiveFunction):
 
 
 class YieldFunction(ObjectiveFunction):
-    def __init__(self, product, substrates, *args, **kwargs):
+    def __init__(self, product, substrates, carbon_yield=False, *args, **kwargs):
         super(YieldFunction, self).__init__(*args, **kwargs)
-
+        self.carbon_yield = carbon_yield
         self.n_c_substrates = {}
-        self.n_c_product = 1
+        self.n_c_product = None
         if isinstance(product, Reaction):
-            self.n_c_product = product.reactants[0].elements.get('C', 1)
+            if product.is_exchange:
+                self.n_c_product = product.reactants[0].elements.get('C', 1)
+            elif carbon_yield:
+                raise ValueError("can only calculate carbon yields from exchange reactions")
             product = product.id
+
+        if not isinstance(product, six.string_types):
+            raise ValueError("`product` must be a string or a Reaction")
+
         self.product = product
 
         if not isinstance(substrates, list):
@@ -131,8 +139,13 @@ class YieldFunction(ObjectiveFunction):
 
         for i, substrate in enumerate(substrates):
             if isinstance(substrate, Reaction):
-                self.n_c_substrates[substrate.id] = substrate.reactants[0].elements.get('C', 1)
+                if substrate.is_exchange:
+                    self.n_c_substrates[substrate.id] = substrate.reactants[0].elements.get('C', 1)
+                elif carbon_yield:
+                    raise ValueError("can only calculate carbon yields from exchange reactions")
                 substrates[i] = substrate.id
+        if not all(isinstance(substrate, six.string_types) for substrate in substrates):
+            raise ValueError("`substrates` must be a string or a Reaction or a list of those")
 
         self.substrates = substrates
         self.__name__ = self.__class__.__name__
@@ -173,32 +186,40 @@ class biomass_product_coupled_yield(YieldFunction):
     """
 
     def __init__(self, biomass, product, substrate, carbon_yield=False, *args, **kwargs):
-        super(biomass_product_coupled_yield, self).__init__(product, substrate, *args, **kwargs)
+        super(biomass_product_coupled_yield, self).__init__(product, substrate,
+                                                            carbon_yield=carbon_yield, *args, **kwargs)
         if isinstance(biomass, Reaction):
             biomass = biomass.id
         self.biomass = biomass
-        self.carbon_yield = carbon_yield
 
     def __call__(self, model, solution, targets):
         biomass_flux = round(solution.fluxes[self.biomass], config.ndecimals)
         if self.carbon_yield:
             product_flux = round(solution.fluxes[self.product], config.ndecimals) * self.n_c_product
-            substrate_flux = sum(round(abs(solution.fluxes[s]), config.ndecimals) * self.n_c_substrates.get(s, 1)
-                                 for s in self.substrates)
+            substrate_flux = round(sum(abs(solution.fluxes[s]) * self.n_c_substrates.get(s, 1), config.ndecimals)
+                                   for s in self.substrates)
 
         else:
             product_flux = round(solution.fluxes[self.product], config.ndecimals)
-            substrate_flux = sum(round(abs(solution.fluxes[s]), config.ndecimals) for s in self.substrates)
+            substrate_flux = round(sum(abs(solution.fluxes[s]) for s in self.substrates), config.ndecimals)
         try:
-            return round((biomass_flux * product_flux) / substrate_flux, config.ndecimals)
+            return (biomass_flux * product_flux) / substrate_flux
 
         except ZeroDivisionError:
             return 0.0
 
     def _repr_latex_(self):
-        return "$$bpcy = \\frac{(%s * %s)}{%s}$$" % (self.biomass.replace("_", "\\_"),
-                                                     self.product.replace("_", "\\_"),
-                                                     " + ".join(s.replace("_", "\\_") for s in self.substrates))
+        if self.carbon_yield:
+            substrates = " + ".join("%s * %i" % (s, self.n_c_substrates[s]) for s in self.substrates)
+            return "$$bpcy = \\frac{(%s * %s * %i)}{%s}$$" % (self.biomass.replace("_", "\\_"),
+                                                              self.product.replace("_", "\\_"),
+                                                              self.n_c_product,
+                                                              substrates)
+
+        else:
+            return "$$bpcy = \\frac{(%s * %s)}{%s}$$" % (self.biomass.replace("_", "\\_"),
+                                                         self.product.replace("_", "\\_"),
+                                                         " + ".join(s.replace("_", "\\_") for s in self.substrates))
 
     @property
     def name(self):
@@ -246,14 +267,21 @@ class biomass_product_coupled_min_yield(biomass_product_coupled_yield):
             substrate_flux = sum(round(abs(solution.fluxes[s]), config.ndecimals) for s in self.substrates)
 
         try:
-            return round((biomass_flux * product_flux) / substrate_flux, config.ndecimals)
+            return (biomass_flux * product_flux) / substrate_flux
         except ZeroDivisionError:
             return 0.0
 
     def _repr_latex_(self):
-        return "$$bpcy = \\frac{(%s * min(%s))}{%s}$$" % (self.biomass.replace("_", "\\_"),
-                                                          self.product.replace("_", "\\_"),
-                                                          " + ".join(s.replace("_", "\\_") for s in self.substrates))
+        if self.carbon_yield:
+            substrates = " + ".join("%s * %i" % (s, self.n_c_substrates[s]) for s in self.substrates)
+            return "$$bpcy = \\frac{(%s * min(%s) * %i)}{%s}$$" % (self.biomass.replace("_", "\\_"),
+                                                                   self.product.replace("_", "\\_"),
+                                                                   self.n_c_product,
+                                                                   substrates)
+        else:
+            return "$$bpcy = \\frac{(%s * min(%s))}{%s}$$" % (self.biomass.replace("_", "\\_"),
+                                                              self.product.replace("_", "\\_"),
+                                                              " + ".join(s.replace("_", "\\_") for s in self.substrates))
 
     @property
     def name(self):
