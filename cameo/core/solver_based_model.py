@@ -785,7 +785,7 @@ class SolverBasedModel(cobra.core.Model):
             reader = csv.reader(csv_file, delimiter=delimiter)
 
             for row in reader:
-                self.reaction.get_by_id(row[0])
+                self.reactions.get_by_id(row[0])
                 medium[row[0]] = row[1]
 
         self._load_medium_from_dict(medium)
