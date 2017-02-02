@@ -122,20 +122,27 @@ class YieldFunction(ObjectiveFunction):
         self.carbon_yield = carbon_yield
         if isinstance(product, Reaction):
             product = product.id
-
-        if not isinstance(product, six.string_types):
+        elif not isinstance(product, six.string_types):
             raise ValueError("`product` must be a string or a Reaction")
 
         self.product = product
 
-        if not isinstance(substrates, list):
+        if isinstance(substrates, (six.string_types, Reaction)):
             substrates = [substrates]
-        elif len(substrates) == 0:
-            raise ValueError("`substrates` must be a string or a Reaction or a list of those")
+
+        try:
+            iter(substrates)
+        except TypeError:
+            raise ValueError("`substrates` must be a string or a reaction or a iterable of those")
+
+        if len(substrates) == 0:
+            raise ValueError("`substrates` must be a string or a Reaction or a iterable of those")
 
         for i, substrate in enumerate(substrates):
             if isinstance(substrate, Reaction):
                 substrates[i] = substrate.id
+            elif not isinstance(substrate, six.string_types):
+                raise ValueError("`substrates` must be a string or a Reaction or a iterable of those")
 
         if not all(isinstance(substrate, six.string_types) for substrate in substrates):
             raise ValueError("`substrates` must be a string or a Reaction or a list of those")
