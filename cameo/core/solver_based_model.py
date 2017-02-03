@@ -239,7 +239,7 @@ class SolverBasedModel(cobra.core.Model):
 
         Reactions that either don't have products or substrates.
         """
-        return [reaction for reaction in self.reactions if len(reaction.reactants) == 0 or len(reaction.products) == 0]
+        return [reaction for reaction in self.reactions if reaction.is_exchange]
 
     def add_metabolites(self, metabolite_list):
         super(SolverBasedModel, self).add_metabolites(metabolite_list)
