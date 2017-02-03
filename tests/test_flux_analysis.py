@@ -473,8 +473,7 @@ class NullSpaceTestCase(unittest.TestCase):
     def test_with_core_model(self):
         S = self.model.S
         NS = nullspace(S)
-        for i in range(len(self.model.reactions)):
-            self.assertAlmostEqual(np.dot(NS.T, S[i])[0], 0, places=10)
+        self.assertAlmostEqual(np.abs(S.dot(NS)).max(), 0, places=10)
 
 
 if __name__ == '__main__':

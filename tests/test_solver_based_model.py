@@ -1049,8 +1049,8 @@ class WrappedAbstractTestSolverBasedModel:
 
         def test_stoichiometric_matrix(self):
             S = self.model.S
-            self.assertEqual(len(self.model.reactions), S.shape[0])
-            self.assertEqual(len(self.model.metabolites), S.shape[1])
+            self.assertEqual(len(self.model.reactions), S.shape[1])
+            self.assertEqual(len(self.model.metabolites), S.shape[0])
 
             for i, reaction in enumerate(self.model.reactions):
                 for j, metabolite in enumerate(self.model.metabolites):
@@ -1058,7 +1058,7 @@ class WrappedAbstractTestSolverBasedModel:
                         coefficient = reaction.metabolites[metabolite]
                     else:
                         coefficient = 0
-                    self.assertEqual(S[i, j], coefficient)
+                    self.assertEqual(S[j, i], coefficient)
 
 
 class TestSolverBasedModelGLPK(WrappedAbstractTestSolverBasedModel.AbstractTestSolverBasedModel):
