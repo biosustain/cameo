@@ -230,7 +230,7 @@ class ReactionKnockinTarget(KnockinTarget):
             model.add_reaction(self._value)
         else:
             time_machine(do=partial(model.add_reaction, self._value),
-                         undo=partial(model.remove_reactions, self._value, delete=False, remove_orphans=True))
+                         undo=partial(model.remove_reactions, [self._value], delete=False, remove_orphans=True))
 
     def to_gnomic(self):
         accession = Target.to_gnomic(self)
