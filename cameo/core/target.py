@@ -265,7 +265,7 @@ class ReactionKnockinTarget(KnockinTarget):
         return "<ReactionKnockin %s>" % self.id
 
     def _repr_html_(self):
-        return "::%s"
+        return "::%s" % self.id
 
 
 class GeneModulationTarget(FluxModulationTarget):
