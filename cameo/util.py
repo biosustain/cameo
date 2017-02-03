@@ -518,3 +518,38 @@ def zip_repeat(long_iter, short_iter):
     """
     for i, j in zip(long_iter, itertools.cycle(short_iter)):
         yield i, j
+
+
+def pick_one(iterable):
+    """
+    Helper function that returns an element of an iterable (it the iterable is ordered this will be the first
+    element).
+    """
+    it = iter(iterable)
+    return next(it)
+
+
+def reduce_reaction_set(reaction_set, groups):
+    """
+    Reduces a set of reactions according to a number of groups of reactions.
+    The reduction will be performed so that the resulting set will contain no more than 1 reaction from each group.
+    Reactions that are not in any of the groups will remain in the set.
+
+    Parameters
+    ----------
+    reaction_set: Set
+    groups: Iterable of sets
+
+    Returns
+    -------
+    Set
+    """
+    reaction_set = set(reaction_set)  # Make a shallow copy
+    result = []
+    for group in groups:
+        intersection = group & reaction_set
+        if intersection:  # If any elements of group are in reaction_set, add one of these to result
+            result.append(pick_one(intersection))
+            reaction_set = reaction_set - intersection
+    result = set(result) | reaction_set  # Add the remaining reactions to result
+    return result
