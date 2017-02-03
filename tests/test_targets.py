@@ -18,7 +18,7 @@ import six
 
 from cameo import load_model, Reaction, Metabolite
 from cameo.core.target import *
-from cameo.core.target import Target, FluxModulationTarget, EnsembleTarget
+from cameo.core.target import Target, FluxModulationTarget, EnsembleTarget, ReactionInversionTarget
 from cameo.exceptions import IncompatibleTargets
 from cameo.util import TimeMachine
 
@@ -48,7 +48,7 @@ class TargetsTestCase(unittest.TestCase):
         value = 3.4
 
         # (B - A) / A
-        fold_change = 0.300411
+        fold_change = 0.429411
 
         down_reg_target = ReactionModulationTarget(reaction_id, value, ref_val)
         self.assertAlmostEqual(down_reg_target.fold_change, fold_change, places=5)
@@ -65,7 +65,7 @@ class TargetsTestCase(unittest.TestCase):
         ref_val = -2.28150
         value = -1.5
 
-        fold_change = 0.342537
+        fold_change = 0.52099999
 
         down_reg_target = ReactionModulationTarget(reaction_id, value, ref_val)
         self.assertAlmostEqual(down_reg_target.fold_change, fold_change, places=5)
@@ -124,6 +124,15 @@ class TargetsTestCase(unittest.TestCase):
         self.assertNotIn(self.model.metabolites.nad_c, self.model.reactions.GND.metabolites)
         self.assertNotIn(self.model.metabolites.nadh_c, self.model.reactions.GND.metabolites)
 
+    def test_reaction_inversion_target(self):
+        inversion_target = ReactionInversionTarget("GND", value=-10, reference_value=10)
+        self.assertLess(inversion_target.fold_change, 0)
+        lower_bound = self.model.reactions.GND.lower_bound
+        with TimeMachine() as tm:
+            inversion_target.apply(self.model, time_machine=tm)
+            self.assertEqual(self.model.reactions.GND.lower_bound, -10)
+        self.assertEqual(self.model.reactions.GND.lower_bound, lower_bound)
+
     def test_invalid_reaction_knockout_target(self):
         knockout_target = ReactionKnockoutTarget("ACALDXYZ")
 
@@ -174,11 +183,11 @@ class TargetsTestCase(unittest.TestCase):
         self.assertEqual(self.model.reactions.PGI.lower_bound, -1000)
         self.assertEqual(self.model.reactions.PGI.upper_bound, 1000)
 
-    @unittest.skip("Gene Overexpression not implemente yet")
+    @unittest.skip("Gene Overexpression not implemented yet")
     def test_gene_over_express_target(self):
         raise NotImplementedError
 
-    @unittest.skip("Gene Downregulation not implemente yet")
+    @unittest.skip("Gene Downregulation not implemented yet")
     def test_gene_down_regulation_target(self):
         raise NotImplementedError
 
@@ -202,7 +211,7 @@ class TargetsTestCase(unittest.TestCase):
         self.assertIsInstance(flux_modulation_target_gnomic.new[0], Feature)
         self.assertEqual(flux_modulation_target_gnomic.new[0].accession.identifier, flux_modulation_target.id)
         self.assertEqual(flux_modulation_target_gnomic.new[0].type, 'flux')
-        self.assertEqual(flux_modulation_target_gnomic.new[0].variant, "over-expression(%f)" % flux_modulation_target.fold_change)
+        self.assertEqual(flux_modulation_target_gnomic.new[0].variant, "over-expression(%.3f)" % flux_modulation_target.fold_change)
 
         flux_modulation_target = FluxModulationTarget("test", 0.5, 1)
         flux_modulation_target_gnomic = flux_modulation_target.to_gnomic()
@@ -216,7 +225,7 @@ class TargetsTestCase(unittest.TestCase):
         self.assertIsInstance(flux_modulation_target_gnomic.new[0], Feature)
         self.assertEqual(flux_modulation_target_gnomic.new[0].accession.identifier, flux_modulation_target.id)
         self.assertEqual(flux_modulation_target_gnomic.new[0].type, 'flux')
-        self.assertEqual(flux_modulation_target_gnomic.new[0].variant, "down-regulation(%f)" % flux_modulation_target.fold_change)
+        self.assertEqual(flux_modulation_target_gnomic.new[0].variant, "down-regulation(%.3f)" % flux_modulation_target.fold_change)
 
         flux_modulation_target = FluxModulationTarget("test", 0, 1)
         flux_modulation_target_gnomic = flux_modulation_target.to_gnomic()

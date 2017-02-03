@@ -15,6 +15,7 @@
 from __future__ import absolute_import
 
 import math
+
 import plotly.graph_objs as go
 import six
 from plotly import tools
@@ -309,6 +310,34 @@ class PlotlyPlotter(AbstractPlotter):
             return grid
         else:
             plot = go.Figure(data=traces, layout=layout)
+        return plot
+
+    def frequency(self, dataframe, width=None, height=None, palette=None, title="Frequency plot",
+                  x_axis_label=None, y_axis_label="Frequency", grid=None):
+
+        palette = self.get_option('palette') if palette is None else palette
+        width = self.get_option('width') if width is None else width
+
+        width, height = self.golden_ratio(width, height)
+
+        bar = go.Bar(x=dataframe.index.tolist(),
+                     y=dataframe['frequency'].tolist(),
+                     marker=dict(self._palette(palette, len(dataframe.index))))
+
+        layout = go.Layout(
+            title=title,
+            xaxis=dict(title=x_axis_label),
+            yaxis=dict(title=y_axis_label),
+            width=width,
+            height=height,
+        )
+
+        if grid is not None:
+            plot = self.Figure(data=[bar], layout=layout)
+            grid.append(plot)
+            return grid
+        else:
+            plot = go.Figure(data=[bar], layout=layout)
         return plot
 
     @property
