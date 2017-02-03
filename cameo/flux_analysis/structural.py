@@ -31,6 +31,8 @@ from cameo.core import SolverBasedModel
 from cameo.exceptions import SolveError, Infeasible
 from cameo.util import TimeMachine
 
+from scipy.cluster.hierarchy import linkage
+
 
 __all__ = ['find_dead_end_reactions', 'find_coupled_reactions', 'ShortestElementaryFluxModes']
 
@@ -79,6 +81,51 @@ def nullspace(matrix, atol=1e-13, rtol=0):
     nnz = (s >= tol).sum()
     ns = vh[nnz:].conj().T
     return ns
+
+
+def find_blocked_reactions_nullspace(model, ns=None, tol=1e-10):
+    """Identify reactions that can't carry flux based on the nullspace of the stoichiometric matrix.
+    A blocked reaction will correspond to an all-zero row in N(S)."""
+    if ns is None:
+        ns = nullspace(model.S)
+    mask = (np.abs(ns) <= tol).all(1)
+    blocked = [reac for reac, b in zip(model.reactions, mask) if b is True]
+    return blocked
+
+
+def find_coupled_reactions_nullspace(model, ns=None, tol=1e-10):
+    """
+    Find groups of reactions whose fluxes are forced to be multiples of each other.
+    """
+    if ns is None:
+        ns = nullspace(model.S)
+    blocked = set(find_blocked_reactions_nullspace(model, ns, tol))
+    blocked_mask = np.array([True if r in blocked else False for r in model.reactions])
+    non_blocked_ns = ns[~blocked_mask]
+    non_blocked_reactions = np.array(list(model.reactions))[~blocked_mask]
+
+    # Calculate correlation coefficients (perfect correlation means that one is a scalar multiple of the other)
+    corr_mat = np.corrcoef(non_blocked_ns)
+    dist_mat = 1 - np.abs(corr_mat)
+
+    # Perform a linkage clustering
+    link = linkage(dist_mat, method="complete")
+
+    # Filter the linkage results (only distance = 0)
+    good_link = [a for a in link if a[2] < tol]
+
+    # Aggregate groups
+    group_dict = {i: {i} for i in range(len(non_blocked_reactions))}
+    for i, n in enumerate(range(len(non_blocked_reactions), len(non_blocked_reactions) + len(good_link))):
+        a = good_link[i]
+        group_dict[n] = group_dict[a[0]] | group_dict[a[1]]
+        del group_dict[a[0]]
+        del group_dict[a[1]]
+
+    groups = [list(non_blocked_reactions[np.array(list(v))]) for v in group_dict.values()]
+    groups = [a for a in groups if len(a) > 1]
+
+    return groups
 
 
 def find_dead_end_reactions(model):
