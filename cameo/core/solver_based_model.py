@@ -30,7 +30,6 @@ import cobra
 import optlang
 import six
 import sympy
-from cobra.manipulation import find_gene_knockout_reactions
 from pandas import DataFrame, pandas
 from sympy import Add
 from sympy import Mul
@@ -657,16 +656,27 @@ class SolverBasedModel(cobra.core.Model):
                          index=None, columns=['reaction_id', 'reaction_name', 'lower_bound', 'upper_bound'])
 
     # TODO: describe the formats in doc
-    def load_medium(self, medium, copy=False):
+    def load_medium(self, medium, copy=False, delimiter="\t"):
         """
         Loads a medium into the model. If copy is true it will return
         a copy of the model. Otherwise it applies the medium to itself.
         Supported formats
         TODO
 
-        :param medium: can be a file, a pandas DataFrame or dictionary.
-        :param copy: boolean, optional
-        :return:
+        Parameters
+        ----------
+        medium: str, pandas.DataFrame, dict.
+
+        copy: boolean, optional
+            If True copies the model, otherwise the changes will happen inplace.
+        delimiter: str
+            Only if loading the medium from a file.
+
+        Returns
+        -------
+        SolverBasedModel
+            If copy=True, returns a copy of the model.
+
         """
 
         if copy:
@@ -674,11 +684,11 @@ class SolverBasedModel(cobra.core.Model):
         else:
             model = self
         if isinstance(medium, dict):
-            model._load_medium_from_dict(model, medium)
+            model._load_medium_from_dict(medium)
         elif isinstance(medium, pandas.DataFrame):
-            model._load_medium_from_dataframe(model, medium)
+            model._load_medium_from_dataframe(medium)
         elif isinstance(medium, six.string_types):
-            model._load_medium_from_file(model, medium)
+            model._load_medium_from_file(medium, delimiter=delimiter)
         else:
             raise AssertionError("input type (%s) is not valid" % type(medium))
 
@@ -763,26 +773,28 @@ class SolverBasedModel(cobra.core.Model):
 
         return value
 
-    @staticmethod
-    def _load_medium_from_dict(model, medium):
-        for rid, values in six.iteritems(medium):
-            if model.reactions.has_id(rid):
-                model.reactions.get_by_id(rid).lower_bound = values[0]
-                model.reactions.get_by_id(rid).upper_bound = values[1]
+    def _load_medium_from_dict(self, medium):
+        assert isinstance(medium, dict)
+        for ex_reaction in self.exchanges:
+            ex_reaction.lower_bound = medium.get(ex_reaction.id, 0)
 
-    @staticmethod
-    def _load_medium_from_file(model, file_path, delimiter="\t"):
+    def _load_medium_from_file(self, file_path, delimiter="\t"):
+        medium = {}
+
         with open(file_path, "rb") as csv_file:
             reader = csv.reader(csv_file, delimiter=delimiter)
-            for row in reader:
-                if model.reactions.has_id(row[0]):
-                    model.reactions.get_by_id(row[0]).lower_bound = float(row[1])
-                    model.reactions.get_by_id(row[0]).upper_bound = float(row[2])
 
-    @staticmethod
-    def _load_medium_from_dataframe(model, medium):
-        for i in six.moves.range(len(medium) - 1):
-            rid = medium['reaction_id'][i]
-            if model.reactions.has_id(rid):
-                model.reactions.get_by_id(rid).lower_bound = medium['lower_bound'][i]
-                model.reactions.get_by_id(rid).upper_bound = medium['upper_bound'][i]
+            for row in reader:
+                self.reactions.get_by_id(row[0])
+                medium[row[0]] = row[1]
+
+        self._load_medium_from_dict(medium)
+
+    def _load_medium_from_dataframe(self, medium):
+        assert isinstance(medium, DataFrame)
+        for ex_reaction in self.exchanges:
+            if ex_reaction.id in medium.reaction_id.values:
+                medium_row = medium[medium.reaction_id == ex_reaction.id]
+                ex_reaction.lower_bound = medium_row.lower_bound.values[0]
+            else:
+                ex_reaction.lower_bound = 0
