@@ -128,24 +128,26 @@ class FluxModulationTarget(Target):
             float
         """
         try:
-            return (self._reference_value - self._value) / self._value
+            ref = abs(self._reference_value)
+            val = abs(self._value)
+            return (val/ref) - ref
         except ZeroDivisionError:
             return numpy.inf
 
     def __str__(self):
         if self._value == 0:
             return ui.delta() + self.id
-        elif self._value > self._reference_value:
+        elif self.fold_change > 0:
             return ui.upreg(self.fold_change) + self.id
-        elif self._value < self._reference_value:
+        elif self.fold_change < 0:
             return ui.downreg(self.fold_change) + self.id
 
     def _repr_html_(self):
         if self._value == 0:
             return "&Delta;%s" % self.id
-        elif self._value > self._reference_value:
+        elif self.fold_change > 0:
             return "&uarr;(%.3f)%s" % (self.fold_change, self.id)
-        elif self._value < self._reference_value:
+        elif self.fold_change < 0:
             return "&darr;(%.3f)%s" % (self.fold_change, self.id)
 
     def to_gnomic(self):
@@ -153,11 +155,11 @@ class FluxModulationTarget(Target):
         feature = Feature(accession=accession, type=self.__gnomic_feature_type__)
         if self._value == 0:
             return Del(feature)
-        elif abs(self._value) > abs(self._reference_value):
+        elif self.fold_change > 0:
             over_expression = Feature(accession=accession, type=self.__gnomic_feature_type__,
                                       variant="over-expression(%.3f)" % self.fold_change)
             return Mutation(feature, over_expression)
-        elif abs(self._value) < abs(self._reference_value):
+        elif self.fold_change < 0:
             under_expression = Feature(accession=accession, type=self.__gnomic_feature_type__,
                                        variant="down-regulation(%.3f)" % self.fold_change)
             return Mutation(feature, under_expression)
@@ -404,7 +406,7 @@ class ReactionInversionTarget(ReactionModulationTarget):
         return "<ReactionInversion %s (%.5f -> %.5f)>" % (self.id, self._reference_value, self._value)
 
     def _repr_html_(self):
-        return "inv-%s" % self.id
+        return "&#8645;-%s" % self.id
 
     def __gt__(self, other):
         if self.id == other.id:
