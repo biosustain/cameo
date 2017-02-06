@@ -122,7 +122,7 @@ def find_coupled_reactions_nullspace(model, ns=None, tol=1e-10):
         del group_dict[a[0]]
         del group_dict[a[1]]
 
-    groups = [list(non_blocked_reactions[np.array(list(v))]) for v in group_dict.values()]
+    groups = [set(non_blocked_reactions[np.array(list(v))]) for v in group_dict.values()]
     groups = [a for a in groups if len(a) > 1]
 
     return groups
