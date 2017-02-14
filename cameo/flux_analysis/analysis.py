@@ -29,7 +29,7 @@ from numpy import trapz
 from six.moves import zip
 
 import cameo
-from cameo import config
+from cameo import config, util
 from cameo.core.result import Result
 from cameo.exceptions import Infeasible, Unbounded
 from cameo.flux_analysis.util import remove_infeasible_cycles
@@ -99,6 +99,10 @@ def flux_variability_analysis(model, reactions=None, fraction_of_optimum=0., rem
             func_obj = _FvaFunctionObject(model, _flux_variability_analysis)
         chunky_results = view.map(func_obj, reaction_chunks)
         solution = pandas.concat(chunky_results)
+
+        solution['lower_bound'] = util.float_floor(solution.lower_bound, config.ndecimals)
+        solution['upper_bound'] = util.float_ceil(solution.upper_bound, config.ndecimals)
+
     return FluxVariabilityResult(solution)
 
 
