@@ -15,6 +15,7 @@
 from __future__ import absolute_import, print_function
 
 import colorsys
+import inspect
 import itertools
 import logging
 import platform
@@ -22,11 +23,11 @@ import re
 from collections import OrderedDict
 from datetime import datetime
 from functools import partial
-import inspect
 from itertools import islice
 from time import time
 from uuid import uuid1
 
+import numpy
 import numpy as np
 import pandas
 import pip
@@ -36,6 +37,8 @@ from numpy.random import RandomState
 from six.moves import range
 
 logger = logging.getLogger(__name__)
+
+_BIOMASS_RE_ = re.compile("biomass", re.IGNORECASE)
 
 
 class frozendict(dict):
@@ -62,6 +65,48 @@ class frozendict(dict):
 
     def update(self, E=None, **F):
         raise AttributeError("'frozendict' object has no attribute 'update")
+
+
+def float_ceil(val, decimals=0):
+    """
+    Like ceil but the number of decimals can be set.
+
+    Equivalent of $$round(val + 1e^{-decimals}/2, decimals)$$
+
+    val: float, numpy.array
+        The initial value.
+    decimals: int
+        The number of decimal places.
+
+    Returns
+    -------
+    float, numpy.array
+
+    """
+    aux = 1 / numpy.power(10, decimals) / 2
+
+    return numpy.round(val + aux, decimals)
+
+
+def float_floor(val, decimals=0):
+    """
+    Like floor but the number of decimals can be set.
+
+    Equivalent of $$round(val - 1e^{-decimals}/2, decimals)$$
+
+    val: float, numpy.array
+        The initial value.
+    decimals: int
+        The number of decimal places.
+
+    Returns
+    -------
+    float, numpy.array
+
+    """
+    aux = 1 / numpy.power(10, decimals) / 2
+
+    return numpy.round(val - aux, decimals)
 
 
 class ProblemCache(object):
