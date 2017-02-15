@@ -142,7 +142,7 @@ class FluxModulationTarget(Target):
         try:
             ref = abs(self._reference_value)
             val = abs(self._value)
-            return (val - ref)/ref
+            return (val - ref) / ref
         except ZeroDivisionError:
             return numpy.inf
 

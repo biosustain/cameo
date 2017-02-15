@@ -448,8 +448,8 @@ class DifferentialFVAResult(StrainDesignMethodResult):
         for _, solution in solutions.iteritems():
             targets = []
             relevant_targets = solution[numpy.abs(solution.normalized_gaps) > non_zero_flux_threshold]
-            relevant_targets = relevant_targets[relevant_targets.excluded == False]
-            relevant_targets = relevant_targets[relevant_targets.free_flux == False]
+            relevant_targets = relevant_targets[relevant_targets.excluded.eq(False)]
+            relevant_targets = relevant_targets[relevant_targets.free_flux.eq(False)]
             for rid, relevant_row in relevant_targets.iterrows():
                 if relevant_row.KO:
                     targets.append(ReactionKnockoutTarget(rid))
