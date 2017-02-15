@@ -310,6 +310,8 @@ class DifferentialFVA(StrainDesignMethod):
             if self.normalize_ranges_by is not None:
                 normalized_intervals = sol[['lower_bound', 'upper_bound']].values / sol.lower_bound[
                     self.normalize_ranges_by]
+                normalized_intervals[:, 0] = float_floor(normalized_intervals[:, 0], ndecimals)
+                normalized_intervals[:, 1] = float_ceil(normalized_intervals[:, 1], ndecimals)
                 normalized_gaps = [self._interval_gap(interval1, interval2) for interval1, interval2 in
                                    my_zip(reference_intervals, normalized_intervals)]
                 sol['normalized_gaps'] = normalized_gaps
@@ -360,8 +362,87 @@ class DifferentialFVAResult(StrainDesignMethodResult):
         self.reference_fluxes = reference_fluxes
         self.solutions = solutions
 
-    @staticmethod
-    def _generate_designs(solutions, reference_fva, reference_fluxes):
+    @classmethod
+    def _closest_bound(cls, ref_interval, row_interval):
+        """
+        Finds the closest bound (upper or lower).
+        It returns the name of the bound and the sign.
+
+        Parameters
+        ----------
+        ref_interval: tuple, list
+            The reference interval.
+        row_interval: tuple, list
+            The row interval
+
+        Returns
+        -------
+        string, bool
+
+        """
+
+        distances = [ref_interval[0] - row_interval[1], ref_interval[1] - row_interval[0]]
+        # if the dist(ref_lb, ref_ub) > dist(ref_ub, row_lb)
+        if distances[0] > distances[1]:
+            # if ref_lb > 0
+            if row_interval[0] > 0:
+                return 'lower_bound', True
+            else:
+                return 'upper_bound', False
+        # if the dist(ref_lb, ref_ub) < dist(ref_ub, row_lb)
+        else:
+            # if ref_lb > 0
+            if row_interval[0] > 0:
+                return 'upper_bound', True
+            else:
+                return 'lower_bound', False
+
+    @classmethod
+    def _generate_designs(cls, solutions, reference_fva, reference_fluxes):
+        """
+        Generates strain designs for Differential FVA.
+
+        The conversion method has three scenarios:
+        #### 1. Knockout
+
+            Creates a ReactionKnockoutTarget.
+
+        #### 2. Flux reversal
+
+            If the new flux is negative then it should be at least the upper bound of the interval.
+            Otherwise it should be at least the lower bound of the interval.
+
+        #### 3. The flux increases or decreases
+
+            This table illustrates the possible combinations.
+                * Gap is the sign of the normalized gap between the intervals.
+                * Ref is the sign of the closest bound.
+                * Bound is the value to use
+
+            +-------------------+
+            | Gap | Ref | Bound |
+            +-----+-----+-------+
+            |  -  |  -  |   LB  |
+            |  -  |  +  |   UB  |
+            |  +  |  -  |   UB  |
+            |  +  |  +  |   LB  |
+            +-----+-----+-------+
+
+
+        Parameters
+        ----------
+        solutions: pandas.Panel
+            The DifferentialFVA panel with all the solutions. Each DataFrame is a design.
+        reference_fva: pandas.DataFrame
+            The FVA limits for the reference strain.
+        reference_fluxes:
+            The optimal flux distribution for the reference strain.
+
+        Returns
+        -------
+        list
+            A list of cameo.core.strain_design.StrainDesign for each DataFrame in solutions.
+        """
         designs = []
 
         for _, solution in solutions.iteritems():
@@ -373,23 +454,28 @@ class DifferentialFVAResult(StrainDesignMethodResult):
                 if relevant_row.KO:
                     targets.append(ReactionKnockoutTarget(rid))
                 elif relevant_row.flux_reversal:
-                    if abs(reference_fva['upper_bound'][rid]) > abs(relevant_row.upper_bound):
-                        targets.append(ReactionInversionTarget(rid,
-                                                               value=relevant_row.lower_bound,
-                                                               reference_value=reference_fluxes[rid]))
-                    else:
+                    if reference_fva['upper_bound'][rid] > 0:
                         targets.append(ReactionInversionTarget(rid,
                                                                value=relevant_row.upper_bound,
                                                                reference_value=reference_fluxes[rid]))
-                else:
-                    if relevant_row.normalized_gaps > 0:
-                        targets.append(ReactionModulationTarget(rid,
-                                                                value=relevant_row.lower_bound,
-                                                                reference_value=reference_fluxes[rid]))
                     else:
-                        targets.append(ReactionModulationTarget(rid,
-                                                                value=relevant_row.upper_bound,
-                                                                reference_value=reference_fluxes[rid]))
+                        targets.append(ReactionInversionTarget(rid,
+                                                               value=relevant_row.lower_bound,
+                                                               reference_value=reference_fluxes[rid]))
+                else:
+                    gap_sign = relevant_row.normalized_gaps > 0
+
+                    ref_interval = reference_fva[['lower_bound', 'upper_bound']].loc[rid].values
+                    row_interval = (relevant_row.lower_bound, relevant_row.upper_bound)
+
+                    ref_sign, closest_bound = cls._closest_bound(ref_interval, row_interval)
+
+                    bound = 'lower_bound' if gap_sign ^ ref_sign else 'upper_bound'
+
+                    targets.append(ReactionModulationTarget(rid,
+                                                            value=relevant_row[bound],
+                                                            reference_value=reference_fva[closest_bound][rid]))
+
             designs.append(StrainDesign(targets))
         return designs
 
@@ -450,7 +536,10 @@ class DifferentialFVAResult(StrainDesignMethodResult):
         def _data_frame(solution):
             notice("%s: %f" % self.solutions.axes[0][solution - 1][0])
             notice("%s: %f" % self.solutions.axes[0][solution - 1][1])
-            display(self.solutions.iloc[solution - 1])
+            df = self.solutions.iloc[solution - 1]
+            df = df[abs(df.normalized_gaps) >= non_zero_flux_threshold]
+            df = df.sort_values('normalized_gaps')
+            display(df)
 
         interact(_data_frame, solution=[1, len(self.solutions)])
         return ""
