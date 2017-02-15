@@ -18,6 +18,7 @@ import colorsys
 import inspect
 import itertools
 import logging
+import math
 import platform
 import re
 from collections import OrderedDict
@@ -83,7 +84,7 @@ def float_ceil(val, decimals=0):
     float, numpy.array
 
     """
-    aux = 1 / numpy.power(10, decimals) / 2
+    aux = 1 / math.pow(10, decimals) / 2
 
     return numpy.round(val + aux, decimals)
 
@@ -104,7 +105,7 @@ def float_floor(val, decimals=0):
     float, numpy.array
 
     """
-    aux = 1 / numpy.power(10, decimals) / 2
+    aux = 1 / math.pow(10, decimals) / 2
 
     return numpy.round(val - aux, decimals)
 
