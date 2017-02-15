@@ -468,7 +468,7 @@ class DifferentialFVAResult(StrainDesignMethodResult):
                     ref_interval = reference_fva[['lower_bound', 'upper_bound']].loc[rid].values
                     row_interval = (relevant_row.lower_bound, relevant_row.upper_bound)
 
-                    ref_sign, closest_bound = cls._closest_bound(ref_interval, row_interval)
+                    closest_bound, ref_sign = cls._closest_bound(ref_interval, row_interval)
 
                     bound = 'lower_bound' if gap_sign ^ ref_sign else 'upper_bound'
 
