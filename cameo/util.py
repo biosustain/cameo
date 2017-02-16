@@ -84,7 +84,7 @@ def float_ceil(val, decimals=0):
     float, numpy.array
 
     """
-    aux = 1 / math.pow(10, decimals) / 2
+    aux = math.pow(10, -decimals) / 2
 
     return numpy.round(val + aux, decimals)
 
@@ -105,7 +105,7 @@ def float_floor(val, decimals=0):
     float, numpy.array
 
     """
-    aux = 1 / math.pow(10, decimals) / 2
+    aux = math.pow(10, -decimals) / 2
 
     return numpy.round(val - aux, decimals)
 
