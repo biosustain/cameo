@@ -365,7 +365,7 @@ class DifferentialFVAResult(StrainDesignMethodResult):
     @classmethod
     def _closest_bound(cls, ref_interval, row_interval):
         """
-        Finds the closest bound (upper or lower).
+        Finds the closest bound (upper or lower) of the reference to the interval.
         It returns the name of the bound and the sign.
 
         Parameters
@@ -416,7 +416,7 @@ class DifferentialFVAResult(StrainDesignMethodResult):
 
             This table illustrates the possible combinations.
                 * Gap is the sign of the normalized gap between the intervals.
-                * Ref is the sign of the closest bound.
+                * Ref is the sign of the closest bound (see _closest_bound).
                 * Bound is the value to use
 
             +-------------------+
@@ -712,10 +712,11 @@ class _DifferentialFvaEvaluator(object):
         for variable in self.variables:
             reaction = self.model.reactions.get_by_id(variable)
             bound = point[variable]
-            reaction.lower_bound, reaction.upper_bound = bound, bound
+            reaction.lower_bound, reaction.upper_bound = float_floor(bound, ndecimals), float_ceil(bound, ndecimals)
         target_reaction = self.model.reactions.get_by_id(self.objective)
         target_bound = point[self.objective]
-        target_reaction.lower_bound, target_reaction.upper_bound = target_bound, target_bound
+        target_reaction.lower_bound = float_floor(target_bound, ndecimals)
+        target_reaction.upper_bound = float_ceil(target_bound, ndecimals)
 
 
 class FSEOF(StrainDesignMethod):

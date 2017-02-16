@@ -495,7 +495,9 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
     def _production_envelope_inner(self, point):
         with TimeMachine() as tm:
             for (reaction, coordinate) in zip(self.variable_reactions, point):
-                reaction.change_bounds(coordinate, coordinate, time_machine=tm)
+                reaction.change_bounds(util.float_floor(coordinate, config.ndecimals),
+                                       util.float_ceil(coordinate, config.ndecimals),
+                                       time_machine=tm)
             interval = []
             interval_carbon_yield = []
             interval_mass_yield = []
