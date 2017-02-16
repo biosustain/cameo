@@ -706,17 +706,19 @@ class _DifferentialFvaEvaluator(object):
         fva_result = flux_variability_analysis(self.model, reactions=self.included_reactions,
                                                remove_cycles=False, view=SequentialView()).data_frame
 
+        fva_result['lower_bound'] = float_floor(fva_result.lower_bound, config.ndecimals)
+        fva_result['upper_bound'] = float_ceil(fva_result.upper_bound, config.ndecimals)
+
         return point[1], fva_result
 
     def _set_bounds(self, point):
         for variable in self.variables:
             reaction = self.model.reactions.get_by_id(variable)
             bound = point[variable]
-            reaction.lower_bound, reaction.upper_bound = float_floor(bound, ndecimals), float_ceil(bound, ndecimals)
+            reaction.upper_bound = reaction.lower_bound = bound
         target_reaction = self.model.reactions.get_by_id(self.objective)
         target_bound = point[self.objective]
-        target_reaction.lower_bound = float_floor(target_bound, ndecimals)
-        target_reaction.upper_bound = float_ceil(target_bound, ndecimals)
+        target_reaction.upper_bound = target_reaction.lower_bound = target_bound
 
 
 class FSEOF(StrainDesignMethod):
