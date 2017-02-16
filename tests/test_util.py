@@ -300,6 +300,15 @@ class TestUtils(unittest.TestCase):
         new_value = float_ceil(val)
         self.assertEqual(new_value, 2)
 
+        val = 0.00000
+        for i in range(1, 10):
+            new_value = float_floor(val, i)
+            self.assertEqual(new_value, 0)
+            new_value = float_ceil(val, i)
+            self.assertEqual(new_value, 0)
+
+
+
 
 class FrozendictTestCase(unittest.TestCase):
     def setUp(self):
