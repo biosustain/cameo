@@ -226,7 +226,7 @@ def _flux_variability_analysis(model, reactions=None):
     [lb_flag, ub_flag] = [False, False]
     for reaction in reactions:
         fva_sol[reaction.id] = dict()
-        model.objective = reaction
+        model.solver.objective.set_linear_coefficients({reaction.forward_variable: 1., reaction.reverse_variable: -1.})
         model.objective.direction = 'min'
         try:
             solution = model.solve()
@@ -235,7 +235,10 @@ def _flux_variability_analysis(model, reactions=None):
             fva_sol[reaction.id]['lower_bound'] = -numpy.inf
         except Infeasible:
             lb_flag = True
+        model.solver.objective.set_linear_coefficients({reaction.forward_variable: 0., reaction.reverse_variable: 0.})
 
+    for reaction in reactions:
+        model.solver.objective.set_linear_coefficients({reaction.forward_variable: 1., reaction.reverse_variable: -1.})
         model.objective.direction = 'max'
         try:
             solution = model.solve()
@@ -255,6 +258,7 @@ def _flux_variability_analysis(model, reactions=None):
         elif lb_flag is False and ub_flag is True:
             fva_sol[reaction.id]['upper_bound'] = fva_sol[reaction.id]['lower_bound']
             ub_flag = False
+        model.solver.objective.set_linear_coefficients({reaction.forward_variable: 0., reaction.reverse_variable: 0.})
 
     df = pandas.DataFrame.from_dict(fva_sol, orient='index')
     lb_higher_ub = df[df.lower_bound > df.upper_bound]
