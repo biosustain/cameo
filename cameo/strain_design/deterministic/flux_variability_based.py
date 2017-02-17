@@ -293,6 +293,9 @@ class DifferentialFVA(StrainDesignMethod):
                                                                    view=view, remove_cycles=False,
                                                                    fraction_of_optimum=0.75).data_frame
 
+            self.reference_flux_ranges['lower_bound'] = float_floor(self.reference_flux_ranges.lower_bound, ndecimals)
+            self.reference_flux_ranges['upper_bound'] = float_ceil(self.reference_flux_ranges.upper_bound, ndecimals)
+
             self._init_search_grid(surface_only=surface_only, improvements_only=improvements_only)
 
             progress = ProgressBar(len(self.grid))
@@ -308,10 +311,11 @@ class DifferentialFVA(StrainDesignMethod):
                     my_zip(reference_intervals, intervals)]
             sol['gaps'] = gaps
             if self.normalize_ranges_by is not None:
-                normalized_intervals = sol[['lower_bound', 'upper_bound']].values / sol.lower_bound[
-                    self.normalize_ranges_by]
+                normalized_intervals = sol[['lower_bound', 'upper_bound']].values / \
+                                       sol.lower_bound[self.normalize_ranges_by]
                 normalized_intervals[:, 0] = float_floor(normalized_intervals[:, 0], ndecimals)
                 normalized_intervals[:, 1] = float_ceil(normalized_intervals[:, 1], ndecimals)
+
                 normalized_gaps = [self._interval_gap(interval1, interval2) for interval1, interval2 in
                                    my_zip(reference_intervals, normalized_intervals)]
                 sol['normalized_gaps'] = normalized_gaps
