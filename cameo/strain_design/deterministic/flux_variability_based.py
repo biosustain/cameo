@@ -311,8 +311,9 @@ class DifferentialFVA(StrainDesignMethod):
                     my_zip(reference_intervals, intervals)]
             sol['gaps'] = gaps
             if self.normalize_ranges_by is not None:
-                normalized_intervals = sol[['lower_bound', 'upper_bound']].values / \
-                                       sol.lower_bound[self.normalize_ranges_by]
+                normalizer = sol.lower_bound[self.normalize_ranges_by]
+                normalized_intervals = sol[['lower_bound', 'upper_bound']].values / normalizer
+
                 normalized_intervals[:, 0] = float_floor(normalized_intervals[:, 0], ndecimals)
                 normalized_intervals[:, 1] = float_ceil(normalized_intervals[:, 1], ndecimals)
 
