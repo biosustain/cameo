@@ -293,9 +293,6 @@ class DifferentialFVA(StrainDesignMethod):
                                                                    view=view, remove_cycles=False,
                                                                    fraction_of_optimum=0.75).data_frame
 
-            self.reference_flux_ranges['lower_bound'] = float_floor(self.reference_flux_ranges.lower_bound, ndecimals)
-            self.reference_flux_ranges['upper_bound'] = float_ceil(self.reference_flux_ranges.upper_bound, ndecimals)
-
             self._init_search_grid(surface_only=surface_only, improvements_only=improvements_only)
 
             progress = ProgressBar(len(self.grid))
@@ -314,17 +311,14 @@ class DifferentialFVA(StrainDesignMethod):
                 normalizer = sol.lower_bound[self.normalize_ranges_by]
                 normalized_intervals = sol[['lower_bound', 'upper_bound']].values / normalizer
 
-                normalized_intervals[:, 0] = float_floor(normalized_intervals[:, 0], ndecimals)
-                normalized_intervals[:, 1] = float_ceil(normalized_intervals[:, 1], ndecimals)
-
                 normalized_gaps = [self._interval_gap(interval1, interval2) for interval1, interval2 in
                                    my_zip(reference_intervals, normalized_intervals)]
                 sol['normalized_gaps'] = normalized_gaps
             else:
                 sol['normalized_gaps'] = gaps
 
-        ref_upper_bound = self.reference_flux_ranges.upper_bound
-        ref_lower_bound = self.reference_flux_ranges.lower_bound
+        ref_upper_bound = self.reference_flux_ranges.upper_bound.apply(lambda v: 0 if abs(v) < non_zero_flux_threshold else v)
+        ref_lower_bound = self.reference_flux_ranges.lower_bound.apply(lambda v: 0 if abs(v) < non_zero_flux_threshold else v)
 
         for df in six.itervalues(solutions):
             df['KO'] = False
@@ -475,10 +469,13 @@ class DifferentialFVAResult(StrainDesignMethodResult):
 
                     closest_bound, ref_sign = cls._closest_bound(ref_interval, row_interval)
 
-                    bound = 'lower_bound' if gap_sign ^ ref_sign else 'upper_bound'
+                    if gap_sign ^ ref_sign:
+                        value = float_floor(relevant_row.lower_bound)
+                    else:
+                        value = float_ceil(relevant_row.upper_bound)
 
                     targets.append(ReactionModulationTarget(rid,
-                                                            value=relevant_row[bound],
+                                                            value=value,
                                                             reference_value=reference_fva[closest_bound][rid]))
 
             designs.append(StrainDesign(targets))
@@ -711,8 +708,8 @@ class _DifferentialFvaEvaluator(object):
         fva_result = flux_variability_analysis(self.model, reactions=self.included_reactions,
                                                remove_cycles=False, view=SequentialView()).data_frame
 
-        fva_result['lower_bound'] = float_floor(fva_result.lower_bound, config.ndecimals)
-        fva_result['upper_bound'] = float_ceil(fva_result.upper_bound, config.ndecimals)
+        fva_result['lower_bound'] = fva_result.lower_bound.apply(lambda v: 0 if abs(v) < non_zero_flux_threshold else v)
+        fva_result['upper_bound'] = fva_result.upper_bound.apply(lambda v: 0 if abs(v) < non_zero_flux_threshold else v)
 
         return point[1], fva_result
 
