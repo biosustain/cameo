@@ -31,8 +31,8 @@ from cameo.core.strain_design import StrainDesignMethodResult, StrainDesignMetho
 from cameo.core.target import ReactionKnockoutTarget
 from cameo.exceptions import SolveError
 from cameo.flux_analysis.analysis import phenotypic_phase_plane, flux_variability_analysis
-from cameo.flux_analysis.structural import find_coupled_reactions_nullspace
 from cameo.flux_analysis.simulation import fba
+from cameo.flux_analysis.structural import find_coupled_reactions_nullspace
 from cameo.util import TimeMachine, reduce_reaction_set
 from cameo.visualization.plotting import plotter
 
@@ -127,7 +127,6 @@ class OptKnock(StrainDesignMethod):
         reduced_reactions = reduce_reaction_set(reactions, reaction_groups)
         print(len(reduced_reactions))
         return reduced_reactions
-
 
     def _build_problem(self, essential_reactions, reduce_to_nullspace):
         logger.debug("Starting to formulate OptKnock problem")
