@@ -592,10 +592,8 @@ class ReactionKnockoutOptimization(KnockoutOptimization):
             ns = nullspace(self.model.S)
             dead_ends = find_blocked_reactions_nullspace(self.model, ns=ns)
             exchanges = self.model.exchanges
-            reactions = [r for r in self.model.reactions
-                         if r not in exchanges
-                         and r not in dead_ends
-                         and r.id not in self.essential_reactions]
+            reactions = [r for r in self.model.reactions if r not in exchanges and r not in dead_ends and
+                         r.id not in self.essential_reactions]
 
             groups = find_coupled_reactions_nullspace(self.model, ns=ns)
             groups = [group for group in groups if any(r.id in reactions for r in group)]
