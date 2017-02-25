@@ -48,7 +48,7 @@ class TargetsTestCase(unittest.TestCase):
         value = 3.4
 
         # (B - A) / A
-        fold_change = 0.429411
+        fold_change = -0.30041
 
         down_reg_target = ReactionModulationTarget(reaction_id, value, ref_val)
         self.assertAlmostEqual(down_reg_target.fold_change, fold_change, places=5)
@@ -65,7 +65,7 @@ class TargetsTestCase(unittest.TestCase):
         ref_val = -2.28150
         value = -1.5
 
-        fold_change = 0.52099999
+        fold_change = -0.342537
 
         down_reg_target = ReactionModulationTarget(reaction_id, value, ref_val)
         self.assertAlmostEqual(down_reg_target.fold_change, fold_change, places=5)
@@ -126,7 +126,7 @@ class TargetsTestCase(unittest.TestCase):
 
     def test_reaction_inversion_target(self):
         inversion_target = ReactionInversionTarget("GND", value=-10, reference_value=10)
-        self.assertLess(inversion_target.fold_change, 0)
+        self.assertEqual(inversion_target.fold_change, 0)
         lower_bound = self.model.reactions.GND.lower_bound
         with TimeMachine() as tm:
             inversion_target.apply(self.model, time_machine=tm)

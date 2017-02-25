@@ -35,15 +35,13 @@ from cameo.exceptions import Infeasible, Unbounded
 from cameo.flux_analysis.util import remove_infeasible_cycles
 from cameo.parallel import SequentialView
 from cameo.ui import notice
-from cameo.util import TimeMachine, partition
+from cameo.util import TimeMachine, partition, _BIOMASS_RE_
 from cameo.visualization.plotting import plotter
 
 logger = logging.getLogger(__name__)
 
 __all__ = ['find_blocked_reactions', 'flux_variability_analysis', 'phenotypic_phase_plane',
            'flux_balance_impact_degree']
-
-_BIOMASS_RE_ = re.compile("biomass", re.IGNORECASE)
 
 
 def find_blocked_reactions(model):
@@ -101,6 +99,7 @@ def flux_variability_analysis(model, reactions=None, fraction_of_optimum=0., rem
             func_obj = _FvaFunctionObject(model, _flux_variability_analysis)
         chunky_results = view.map(func_obj, reaction_chunks)
         solution = pandas.concat(chunky_results)
+
     return FluxVariabilityResult(solution)
 
 

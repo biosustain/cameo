@@ -23,10 +23,9 @@ from cobra import Metabolite
 from six.moves import range
 
 from cameo.io import load_model
-from cameo.flux_analysis.simulation import lmoma
 from cameo.network_analysis.util import distance_based_on_molecular_formula
-from cameo.util import TimeMachine, generate_colors, Singleton, partition, RandomGenerator, frozendict, ProblemCache
-
+from cameo.util import TimeMachine, generate_colors, Singleton, partition, RandomGenerator, frozendict, ProblemCache, \
+    float_floor, float_ceil
 
 TESTDIR = os.path.dirname(__file__)
 TESTMODEL = load_model(os.path.join(TESTDIR, 'data/EcoliCore.xml'), sanitize=False)
@@ -279,6 +278,36 @@ class TestUtils(unittest.TestCase):
 
         self.assertEqual(distance_based_on_molecular_formula(met1, met3, normalize=False), 21)
         self.assertEqual(distance_based_on_molecular_formula(met1, met3, normalize=True), 21. / 27)
+
+    def test_float_conversions(self):
+        val = 1.3456
+
+        new_value = float_floor(val, 2)
+        self.assertEqual(new_value, 1.34)
+
+        new_value = float_ceil(val, 2)
+        self.assertEqual(new_value, 1.35)
+
+        new_value = float_floor(val, 1)
+        self.assertEqual(new_value, 1.3)
+
+        new_value = float_ceil(val, 1)
+        self.assertEqual(new_value, 1.4)
+
+        new_value = float_floor(val)
+        self.assertEqual(new_value, 1)
+
+        new_value = float_ceil(val)
+        self.assertEqual(new_value, 2)
+
+        val = 0.00000
+        for i in range(1, 10):
+            new_value = float_floor(val, i)
+            self.assertEqual(new_value, 0)
+            new_value = float_ceil(val, i)
+            self.assertEqual(new_value, 0)
+
+
 
 
 class FrozendictTestCase(unittest.TestCase):
