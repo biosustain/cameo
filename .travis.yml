@@ -28,10 +28,9 @@ install:
   --no-index
 - pip install flake8
 - pip install .[swiglpk,test,parallel]
-# before_script:
-# - flake8 .
-script:
-  - flake8 .
+ before_script:
+ - flake8 .
+script: nosetests
 after_success:
 - codecov
 notifications:
@@ -54,7 +53,8 @@ deploy:
     file: dist/cameo*.whl
     skip_cleanup: true
     on:
-      branch: master
+      # branch: master
+      all_branches: true
       tags: true
       repo: biosustain/cameo
   - provider: pypi
@@ -68,4 +68,3 @@ deploy:
       tags: true
       repo: biosustain/cameo
     docs_dir: docs/_build/html
-    server: https://testpypi.python.org/pypi/
