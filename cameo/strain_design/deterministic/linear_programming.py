@@ -64,7 +64,7 @@ class OptKnock(StrainDesignMethod):
         this argument should be used. (Default: None)
     exclude_non_gene_reactions : If True (default), reactions that are not associated with genes will not be
         knocked out. This results in more practically relevant solutions as well as shorter running times.
-    reduce_to_nullspace: Boolean (default True)
+    use_nullspace_simplification: Boolean (default True)
         Use a basis for the nullspace to find groups of reactions whose fluxes are multiples of each other. From
         each of these groups only 1 reaction will be included as a possible knockout
 
@@ -80,7 +80,7 @@ class OptKnock(StrainDesignMethod):
     """
 
     def __init__(self, model, exclude_reactions=None, remove_blocked=True, fraction_of_optimum=0.1,
-                 exclude_non_gene_reactions=True, reduce_to_nullspace=True, *args, **kwargs):
+                 exclude_non_gene_reactions=True, use_nullspace_simplification=True, *args, **kwargs):
         super(OptKnock, self).__init__(*args, **kwargs)
         self._model = model.copy()
         self._original_model = model
@@ -109,7 +109,7 @@ class OptKnock(StrainDesignMethod):
         if exclude_non_gene_reactions:
             exclude_reactions += [r for r in self._model.reactions if not r.genes]
 
-        self._build_problem(exclude_reactions, reduce_to_nullspace)
+        self._build_problem(exclude_reactions, use_nullspace_simplification)
 
     def _remove_blocked_reactions(self):
         print(len(self._model.reactions))
@@ -128,7 +128,7 @@ class OptKnock(StrainDesignMethod):
         print(len(reduced_reactions))
         return reduced_reactions
 
-    def _build_problem(self, essential_reactions, reduce_to_nullspace):
+    def _build_problem(self, essential_reactions, use_nullspace_simplification):
         logger.debug("Starting to formulate OptKnock problem")
 
         self.essential_reactions = self._model.essential_reactions() + self._model.exchanges
@@ -136,7 +136,7 @@ class OptKnock(StrainDesignMethod):
             self.essential_reactions += [self._model._reaction_for(r) for r in essential_reactions]
 
         reactions = set(self._model.reactions) - set(self.essential_reactions)
-        if reduce_to_nullspace:
+        if use_nullspace_simplification:
             reactions = self._reduce_to_nullspace(reactions)
 
         self._make_dual()

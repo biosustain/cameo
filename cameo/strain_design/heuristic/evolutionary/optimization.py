@@ -552,6 +552,9 @@ class ReactionKnockoutOptimization(KnockoutOptimization):
     essential_reactions: list
         A list of reactions that cannot be knocked out. If None, then all essential reactions will be removed from
         the valid reactions set.
+    use_nullspace_simplification: Boolean (default True)
+        Use a basis for the nullspace to find groups of reactions whose fluxes are multiples of each other and dead
+        end reactions. From each of these groups only 1 reaction will be included as a possible knockout.
 
     Methods
     -------
@@ -576,7 +579,7 @@ class ReactionKnockoutOptimization(KnockoutOptimization):
     >>> knockout_optimization.run(max_evaluations=50000)
     """
 
-    def __init__(self, reactions=None, essential_reactions=None, ns_simplification=True, *args, **kwargs):
+    def __init__(self, reactions=None, essential_reactions=None, use_nullspace_simplification=True, *args, **kwargs):
         super(ReactionKnockoutOptimization, self).__init__(*args, **kwargs)
         if reactions is None:
             self.reactions = set([r.id for r in self.model.reactions])
@@ -588,7 +591,7 @@ class ReactionKnockoutOptimization(KnockoutOptimization):
         else:
             self.essential_reactions = set([r.id for r in self.model.essential_reactions()] + essential_reactions)
 
-        if ns_simplification:
+        if use_nullspace_simplification:
             ns = nullspace(self.model.S)
             dead_ends = find_blocked_reactions_nullspace(self.model, ns=ns)
             exchanges = self.model.exchanges
@@ -640,6 +643,8 @@ class GeneKnockoutOptimization(KnockoutOptimization):
     essential_genes: list
         A list of genes that cannot be knocked out. If None, then all essential genes will be removed from the valid
         genes set.
+    use_nullspace_simplification: Boolean (default True)
+        Use a basis for the nullspace dead end reactions. Gene present only in dead end reactions will be ignored.
 
     Methods
     -------
@@ -664,7 +669,7 @@ class GeneKnockoutOptimization(KnockoutOptimization):
 
     """
 
-    def __init__(self, genes=None, essential_genes=None, ns_simplification=True, *args, **kwargs):
+    def __init__(self, genes=None, essential_genes=None, use_nullspace_simplification=True, *args, **kwargs):
         super(GeneKnockoutOptimization, self).__init__(*args, **kwargs)
         if genes is None:
             self.genes = set([g.id for g in self.model.genes])
@@ -677,7 +682,7 @@ class GeneKnockoutOptimization(KnockoutOptimization):
             self.essential_genes = set([g.id for g in self.model.essential_genes()] + essential_genes)
 
         # TODO: use genes from groups
-        if ns_simplification:
+        if use_nullspace_simplification:
             ns = nullspace(self.model.S)
             dead_end_reactions = find_blocked_reactions_nullspace(self.model, ns=ns)
             dead_end_genes = [g for g in self.model.genes if all(r in dead_end_reactions for r in g.reaction)]
