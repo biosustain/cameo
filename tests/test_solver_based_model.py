@@ -1047,6 +1047,20 @@ class WrappedAbstractTestSolverBasedModel:
             self.assertRaises(KeyError, self.model._reaction_for, "blablabla")
             self.assertRaises(KeyError, self.model._reaction_for, "accoa_lp_c_lp_", add=False)
 
+        def test_set_medium(self):
+            medium = self.model.medium
+
+            for reaction in self.model.exchanges:
+                if reaction.lower_bound == 0:
+                    self.assertNotIn(reaction.id, medium.reaction_id.values)
+                if reaction.lower_bound < 0:
+                    self.assertIn(reaction.id, medium.reaction_id.values)
+
+            self.model.load_medium(medium)
+
+            for rid in self.model.medium.reaction_id:
+                self.assertEqual(len(medium[medium.reaction_id == rid]), 1)
+
 
 class TestSolverBasedModelGLPK(WrappedAbstractTestSolverBasedModel.AbstractTestSolverBasedModel):
     def setUp(self):

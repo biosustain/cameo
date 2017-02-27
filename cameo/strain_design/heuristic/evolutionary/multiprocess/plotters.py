@@ -37,6 +37,7 @@ class IPythonNotebookBokehMultiprocessPlotObserver(AbstractParallelObserver):
         self.color_map = color_map
         self.data_frame = DataFrame(columns=['iteration', 'island', 'color', 'fitness'])
         self.plotted = False
+        self.handle = None
 
     def _create_client(self, i):
         self.clients[i] = IPythonNotebookBokehMultiprocessPlotObserverClient(queue=self.queue, index=i)
@@ -52,7 +53,7 @@ class IPythonNotebookBokehMultiprocessPlotObserver(AbstractParallelObserver):
         self.ds = ColumnDataSource(data=dict(x=[], y=[], island=[]))
         self.plot.circle('x', 'y', source=self.ds)
 
-        show(self.plot)
+        self.handle = show(self.plot, notebook_handle=True)
         self.plotted = True
 
     def _process_message(self, message):
@@ -76,7 +77,7 @@ class IPythonNotebookBokehMultiprocessPlotObserver(AbstractParallelObserver):
         self.ds.data['fill_color'] = self.data_frame['color']
         self.ds.data['line_color'] = self.data_frame['color']
         self.ds._dirty = True
-        push_notebook()
+        push_notebook(handle=self.handle)
 
     def stop(self):
         self.data_frame = DataFrame(columns=['iteration', 'island', 'color', 'fitness'])

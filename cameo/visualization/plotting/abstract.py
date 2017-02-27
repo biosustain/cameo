@@ -13,8 +13,9 @@
 # limitations under the License.
 from __future__ import absolute_import
 
-import six
 import collections
+
+import six
 
 from cameo.visualization.palette import mapper, Palette
 
@@ -212,6 +213,49 @@ class AbstractPlotter(object):
             2         0      11     0
             3         -10    0      1
             4         0      1      -10
+
+        Arguments
+        ---------
+        dataframe: pandas.DataFrame
+            The data to plot.
+        grid: AbstractGrid
+            An instance of AbstractGrid compatible with the plotter implementation. see AbstractPlotter.grid
+        width: int
+            Plot width
+        height: int
+            Plot height
+        title:
+            Plot title
+        palette: list
+            see color brewer
+        x_axis_label: str
+            X-axis label
+        y_axis_label: str
+            Y-axis label
+
+        Returns
+        -------
+        a displayable object.
+            If a grid is given, returns the grid with the plot in it's specific position.
+
+        See Also
+        --------
+        AbstractPlotter.display
+        """
+
+        raise NotImplementedError
+
+    def frequency(self, dataframe, width=None, height=None, palette=None, title="Frequency plot",
+                  x_axis_label=None, y_axis_label="Frequency", grid=None):
+        """
+        Plots lines for series of data.
+
+        The DataFrame format is:
+            index     count     frequency
+            A         10        0.333
+            B         20        0.645
+            C         1         0.032
+            D         0         0.0
 
         Arguments
         ---------

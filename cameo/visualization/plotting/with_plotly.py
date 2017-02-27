@@ -15,12 +15,10 @@
 from __future__ import absolute_import
 
 import math
-import six
 
 import plotly.graph_objs as go
+import six
 from plotly import tools
-
-from numpy import concatenate
 
 from cameo.util import zip_repeat, in_ipnb, inheritdocstring, partition
 from cameo.visualization.plotting.abstract import AbstractPlotter
@@ -170,12 +168,11 @@ class PlotlyPlotter(AbstractPlotter):
         return plot
 
     def _make_production_envelope_3d(self, dataframe, variable, color=None):
-        lb_data = dataframe.pivot('value1', 'value2', 'lb')
         ub_data = dataframe.pivot('value1', 'value2', 'ub')
 
-        surface = go.Surface(x=lb_data.index.tolist(),
-                             y=lb_data.columns.tolist() + ub_data.columns.tolist(),
-                             z=concatenate([ub_data.as_matrix(), lb_data.as_matrix()]),
+        surface = go.Surface(x=ub_data.index.tolist(),
+                             y=ub_data.columns.tolist(),
+                             z=ub_data.as_matrix(),
                              name=variable,
                              hoverinfo='none',
                              surfacecolor=color)
@@ -313,6 +310,34 @@ class PlotlyPlotter(AbstractPlotter):
             return grid
         else:
             plot = go.Figure(data=traces, layout=layout)
+        return plot
+
+    def frequency(self, dataframe, width=None, height=None, palette=None, title="Frequency plot",
+                  x_axis_label=None, y_axis_label="Frequency", grid=None):
+
+        palette = self.get_option('palette') if palette is None else palette
+        width = self.get_option('width') if width is None else width
+
+        width, height = self.golden_ratio(width, height)
+
+        bar = go.Bar(x=dataframe.index.tolist(),
+                     y=dataframe['frequency'].tolist(),
+                     marker=dict(self._palette(palette, len(dataframe.index))))
+
+        layout = go.Layout(
+            title=title,
+            xaxis=dict(title=x_axis_label),
+            yaxis=dict(title=y_axis_label),
+            width=width,
+            height=height,
+        )
+
+        if grid is not None:
+            plot = self.Figure(data=[bar], layout=layout)
+            grid.append(plot)
+            return grid
+        else:
+            plot = go.Figure(data=[bar], layout=layout)
         return plot
 
     @property

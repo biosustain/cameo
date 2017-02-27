@@ -13,13 +13,10 @@
 # limitations under the License.
 import logging
 
-import inspyred
-
 from cameo.core.manipulation import swap_cofactors
 from cameo.exceptions import SolveError
 from cameo.strain_design.heuristic.evolutionary.decoders import SetDecoder
 from cameo.strain_design.heuristic.evolutionary.objective_functions import ObjectiveFunction
-from cameo.strain_design.heuristic.evolutionary.processing import reactions2filter
 from cameo.util import ProblemCache, memoize, TimeMachine
 
 logger = logging.getLogger(__name__)
@@ -70,17 +67,7 @@ class TargetEvaluator(Evaluator):
             raise ValueError("Invalid decoder %s" % decoder)
         self.decoder = decoder
 
-        if isinstance(objective_function, list):
-            if not len(objective_function) > 0:
-                raise ValueError("list of objectives cannot be empty")
-            invalid = []
-            for index, of in enumerate(objective_function):
-                if not isinstance(of, ObjectiveFunction):
-                    invalid.append((index, of))
-            if len(invalid) > 0:
-                raise ValueError("objectives %s must be instance of ObjectiveFunction (%s)"
-                                 % (",".join(str(i[0]) for i in invalid), [i[1] for i in invalid]))
-        elif not isinstance(objective_function, ObjectiveFunction):
+        if not isinstance(objective_function, ObjectiveFunction):
             raise ValueError("'objective_function' must be instance of ObjectiveFunction (%s)" % objective_function)
 
         self.objective_function = objective_function
@@ -94,20 +81,8 @@ class TargetEvaluator(Evaluator):
     def reset(self):
         self.cache.reset()
 
-    @property
-    def is_mo(self):
-        return isinstance(self.objective_function, list)
-
     def _evaluate_individual(self, individual):
         raise NotImplementedError
-
-    def _calculate_fitness(self, solution, targets):
-        if self.is_mo:
-            logger.debug("evaluate multiobjective solution")
-            return inspyred.ec.emo.Pareto(values=[of(self.model, solution, targets) for of in self.objective_function])
-        else:
-            logger.debug("evaluate single objective solution")
-            return self.objective_function(self.model, solution, targets)
 
 
 class KnockoutEvaluator(TargetEvaluator):
@@ -141,16 +116,12 @@ class KnockoutEvaluator(TargetEvaluator):
                                                   cache=self.cache,
                                                   volatile=False,
                                                   raw=True,
-                                                  reactions=reactions2filter(self.objective_function),
+                                                  reactions=self.objective_function.reactions,
                                                   **self.simulation_kwargs)
-                fitness = self._calculate_fitness(solution, targets)
+                fitness = self.objective_function(self.model, solution, targets)
             except SolveError as e:
                 logger.debug(e)
-                if self.is_mo:
-                    fitness = inspyred.ec.emo.Pareto(values=[0 for _ in self.objective_function])
-                else:
-                    fitness = 0.
-
+                fitness = self.objective_function.worst_fitness()
             return fitness
 
 
@@ -172,15 +143,12 @@ class SwapEvaluator(TargetEvaluator):
                                                   cache=self.cache,
                                                   volatile=False,
                                                   raw=True,
-                                                  reactions=reactions2filter(self.objective_function),
+                                                  reactions=self.objective_function.reactions,
                                                   **self.simulation_kwargs)
-                fitness = self._calculate_fitness(solution, swap_reactions)
+                fitness = self.objective_function(self.model, solution, swap_reactions)
             except SolveError as e:
                 logger.debug(e)
-                if self.is_mo:
-                    fitness = inspyred.ec.emo.Pareto(values=[0 for _ in self.objective_function])
-                else:
-                    fitness = 0.
+                fitness = self.objective_function.worst_fitness()
 
             return fitness
 

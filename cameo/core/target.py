@@ -16,7 +16,7 @@ from functools import partial
 
 import numpy
 
-from cameo.core.manipulation import swap_cofactors, increase_flux, decrease_flux
+from cameo.core.manipulation import swap_cofactors, increase_flux, decrease_flux, reverse_flux
 
 try:
     from gnomic import Accession, Feature, Del, Mutation, Sub, Ins
@@ -103,13 +103,25 @@ class FluxModulationTarget(Target):
         raise NotImplementedError
 
     def apply(self, model, time_machine=None):
+        """
+        Applies a change to the flux. If the fold change is higher than 0 it increases the flux.
+        If the target flux is zero it applies a knockout. If the fold change is lower than 0, then it
+        decreases the flux.
+
+        Parameters
+        ----------
+        model: cameo.core.solver_based_model.SolverBasedModel
+            A model.
+        time_machine: cameo.util.TimeMachine
+            A TimeMachine for action stack.
+        """
         target = self.get_model_target(model)
 
         if self._value == 0:
             target.knock_out(time_machine=time_machine)
-        elif abs(self._value) > abs(self._reference_value):
+        elif self.fold_change > 0:
             increase_flux(target, self._reference_value, self._value, time_machine=time_machine)
-        elif abs(self._value) < abs(self._reference_value):
+        elif self.fold_change < 0:
             decrease_flux(target, self._reference_value, self._value, time_machine=time_machine)
 
     def __eq__(self, other):
@@ -128,30 +140,44 @@ class FluxModulationTarget(Target):
             float
         """
         try:
-            return (self._reference_value - self._value) / self._reference_value
+            ref = abs(self._reference_value)
+            val = abs(self._value)
+            return (val - ref) / ref
         except ZeroDivisionError:
             return numpy.inf
 
     def __str__(self):
         if self._value == 0:
             return ui.delta() + self.id
-        elif self._value > self._reference_value:
+        elif self.fold_change > 0:
             return ui.upreg(self.fold_change) + self.id
-        elif self._value < self._reference_value:
+        elif self.fold_change < 0:
             return ui.downreg(self.fold_change) + self.id
+        else:
+            raise RuntimeError("fold_change shouldn't be 0")
+
+    def _repr_html_(self):
+        if self._value == 0:
+            return "&Delta;%s" % self.id
+        elif self.fold_change > 0:
+            return "&uarr;(%.3f)%s" % (self.fold_change, self.id)
+        elif self.fold_change < 0:
+            return "&darr;(%.3f)%s" % (self.fold_change, self.id)
+        else:
+            raise RuntimeError("fold_change shouldn't be 0")
 
     def to_gnomic(self):
         accession = Target.to_gnomic(self)
         feature = Feature(accession=accession, type=self.__gnomic_feature_type__)
         if self._value == 0:
             return Del(feature)
-        elif abs(self._value) > abs(self._reference_value):
+        elif self.fold_change > 0:
             over_expression = Feature(accession=accession, type=self.__gnomic_feature_type__,
-                                      variant="over-expression(%f)" % self.fold_change)
+                                      variant="over-expression(%.3f)" % self.fold_change)
             return Mutation(feature, over_expression)
-        elif abs(self._value) < abs(self._reference_value):
+        elif self.fold_change < 0:
             under_expression = Feature(accession=accession, type=self.__gnomic_feature_type__,
-                                       variant="down-regulation(%f)" % self.fold_change)
+                                       variant="down-regulation(%.3f)" % self.fold_change)
             return Mutation(feature, under_expression)
 
 
@@ -179,7 +205,7 @@ class ReactionCofactorSwapTarget(Target):
         return Sub(original_feature, new_feature)
 
     def __str__(self):
-        return self.id + "|" + self.swap_str
+        return "<ReactionCofactorSwap %s swap=%s>" % (self.id, self.swap_str)
 
     def __gt__(self, other):
         if self.id == other.id:
@@ -200,6 +226,9 @@ class ReactionCofactorSwapTarget(Target):
         else:
             return False
 
+    def _repr_html_(self):
+        return self.id + "|" + self.swap_str.replace("&rlarr;")
+
 
 class KnockinTarget(Target):
     def __init__(self, id, value):
@@ -215,11 +244,13 @@ class ReactionKnockinTarget(KnockinTarget):
         super(ReactionKnockinTarget, self).__init__(id, value)
 
     def apply(self, model, time_machine=None):
+        # TODO: this is an hack. The objective_coefficient becomes 1 w/o explicitly being changed.
+        self._value.objective_coefficient = 0
         if time_machine is None:
             model.add_reaction(self._value)
         else:
             time_machine(do=partial(model.add_reaction, self._value),
-                         undo=partial(model.remove_reactions, self._value, delete=False, remove_orphans=True))
+                         undo=partial(model.remove_reactions, [self._value], delete=False, remove_orphans=True))
 
     def to_gnomic(self):
         accession = Target.to_gnomic(self)
@@ -251,6 +282,9 @@ class ReactionKnockinTarget(KnockinTarget):
             return False
 
     def __str__(self):
+        return "<ReactionKnockin %s>" % self.id
+
+    def _repr_html_(self):
         return "::%s" % self.id
 
 
@@ -310,6 +344,9 @@ class GeneKnockoutTarget(GeneModulationTarget):
             return self.id == other.id and other._value == 0
         else:
             return False
+
+    def __str__(self):
+        return "<GeneKnockout %s>" % self.id
 
 
 class ReactionModulationTarget(FluxModulationTarget):
@@ -377,6 +414,44 @@ class ReactionKnockoutTarget(ReactionModulationTarget):
         else:
             return False
 
+    def __str__(self):
+        return "<ReactionKnockout %s>" % self.id
+
+
+class ReactionInversionTarget(ReactionModulationTarget):
+
+    def __str__(self):
+        return "<ReactionInversion %s (%.5f -> %.5f)>" % (self.id, self._reference_value, self._value)
+
+    def _repr_html_(self):
+        return "&#8645;-%s" % self.id
+
+    def __gt__(self, other):
+        if self.id == other.id:
+            if isinstance(other, ReactionModulationTarget):
+                if other._value == self._value:
+                    return True
+                else:
+                    raise IncompatibleTargets(self, other)
+            elif isinstance(other, ReactionKnockoutTarget):
+                raise IncompatibleTargets(self, other)
+            elif isinstance(other, ReactionKnockinTarget):
+                return True
+            else:
+                raise IncompatibleTargets(self, other)
+        else:
+            return self.id > other.id
+
+    def __eq__(self, other):
+        if isinstance(other, ReactionInversionTarget):
+            return self.id == other.id and other._value == self._value
+        else:
+            return False
+
+    def apply(self, model, time_machine=None):
+        reaction = self.get_model_target(model)
+        reverse_flux(reaction, self._reference_value, self._value, time_machine=time_machine)
+
 
 class EnsembleTarget(Target):
     """
@@ -398,8 +473,15 @@ class EnsembleTarget(Target):
             target.apply(model, time_machine=time_machine)
 
     def __str__(self):
-        return "\n".join("%i - %s" % (i, str(target)) for i, target in enumerate(self.targets))
+        head = "<EnsembleTarget %s" % self.id
+        body = "\n\t".join("%i - %s" % (i, str(target)) for i, target in enumerate(self.targets))
+        end = ">"
+
+        return head + "\n" + body + "\n" + end
 
     # TODO implement gnomic compatibility
     def to_gnomic(self):
         raise NotImplementedError
+
+    def _repr_html_(self):
+        return "|" + ";".join(target._repr_html_() for target in self.targets) + '|'

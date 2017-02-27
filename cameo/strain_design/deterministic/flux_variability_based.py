@@ -25,7 +25,6 @@ from uuid import uuid4
 import numpy
 import six
 
-
 try:
     from IPython.core.display import display, HTML, Javascript
 except ImportError:
@@ -38,8 +37,8 @@ from cameo.visualization.plotting import plotter
 from cameo import config
 
 from cameo.ui import notice
-from cameo.util import TimeMachine, in_ipnb
-from cameo.config import non_zero_flux_threshold
+from cameo.util import TimeMachine, in_ipnb, _BIOMASS_RE_, float_floor, float_ceil
+from cameo.config import non_zero_flux_threshold, ndecimals
 from cameo.parallel import SequentialView
 
 from cameo.core.reaction import Reaction
@@ -52,7 +51,7 @@ from cameo.flux_analysis.analysis import flux_variability_analysis, phenotypic_p
 from cameo.flux_analysis.simulation import pfba, fba
 
 from cameo.core.strain_design import StrainDesignMethod, StrainDesignMethodResult, StrainDesign
-from cameo.core.target import ReactionKnockoutTarget, ReactionModulationTarget
+from cameo.core.target import ReactionKnockoutTarget, ReactionModulationTarget, ReactionInversionTarget
 
 with warnings.catch_warnings():
     warnings.simplefilter("ignore")
@@ -165,7 +164,8 @@ class DifferentialFVA(StrainDesignMethod):
             obj_var_ids = [re.sub('_reverse.*', '', id) for id in obj_var_ids]
             if len(set(obj_var_ids)) != 1:
                 raise ValueError(
-                    "The current objective in design_space_model is not a single reaction objective. DifferentialFVA does not support composite objectives.")
+                    "The current objective in design_space_model is not a single reaction objective. "
+                    "DifferentialFVA does not support composite objectives.")
             else:
                 self.variables = [self.design_space_model.reactions.get_by_id(obj_var_ids[0]).id]
         else:
@@ -184,11 +184,17 @@ class DifferentialFVA(StrainDesignMethod):
                 self.exclude.append(elem)
         self.exclude += [reaction.id for reaction in self.design_space_model.exchanges]
         self.exclude += [reaction.id for reaction in self.reference_model.exchanges]
-        self.exclude = set(self.exclude).difference(set([self.objective] + self.variables))
+
+        self.exclude += [reaction.id for reaction in self.design_space_model.reactions
+                         if _BIOMASS_RE_.match(reaction.id)]
+
+        self.exclude = set(self.exclude)
 
         self.points = points
         self.envelope = None
         self.grid = None
+        self.reference_flux_ranges = None
+        self.reference_flux_dist = None
 
         if isinstance(normalize_ranges_by, Reaction):
             self.normalize_ranges_by = normalize_ranges_by.id
@@ -214,7 +220,9 @@ class DifferentialFVA(StrainDesignMethod):
         """Initialize the grid of points to be scanned within the production envelope."""
         self.envelope = phenotypic_phase_plane(
             self.design_space_model, self.variables, objective=self.objective, points=self.points)
-        intervals = self.envelope[['objective_lower_bound', 'objective_upper_bound']]
+        intervals = self.envelope[['objective_lower_bound', 'objective_upper_bound']].copy()
+        intervals['objective_lower_bound'] = float_floor(intervals.objective_lower_bound, ndecimals)
+        intervals['objective_upper_bound'] = float_ceil(intervals.objective_upper_bound, ndecimals)
         max_distance = 0.
         max_interval = None
         for i, (lb, ub) in intervals.iterrows():
@@ -277,10 +285,14 @@ class DifferentialFVA(StrainDesignMethod):
                 view = view
 
             included_reactions = [reaction.id for reaction in self.reference_model.reactions if
-                                  reaction.id not in self.exclude]
-            # FIXME: reference flux ranges should be for a fraction (say 0.75) of the original objective
+                                  reaction.id not in self.exclude] + self.variables + [self.objective]
+
+            self.reference_flux_dist = pfba(self.reference_model)
+
             self.reference_flux_ranges = flux_variability_analysis(self.reference_model, reactions=included_reactions,
-                                                                   view=view, remove_cycles=False).data_frame
+                                                                   view=view, remove_cycles=False,
+                                                                   fraction_of_optimum=0.75).data_frame
+
             self._init_search_grid(surface_only=surface_only, improvements_only=improvements_only)
 
             progress = ProgressBar(len(self.grid))
@@ -288,7 +300,7 @@ class DifferentialFVA(StrainDesignMethod):
                                                  included_reactions)
             results = list(progress(view.imap(func_obj, self.grid.iterrows())))
 
-        solutions = dict((tuple(point.iteritems()), fva_result.data_frame) for (point, fva_result) in results)
+        solutions = dict((tuple(point.iteritems()), fva_result) for (point, fva_result) in results)
         reference_intervals = self.reference_flux_ranges[['lower_bound', 'upper_bound']].values
         for sol in six.itervalues(solutions):
             intervals = sol[['lower_bound', 'upper_bound']].values
@@ -296,65 +308,176 @@ class DifferentialFVA(StrainDesignMethod):
                     my_zip(reference_intervals, intervals)]
             sol['gaps'] = gaps
             if self.normalize_ranges_by is not None:
-                normalized_intervals = sol[['lower_bound', 'upper_bound']].values / sol.lower_bound[
-                    self.normalize_ranges_by]
+                normalizer = sol.lower_bound[self.normalize_ranges_by]
+                normalized_intervals = sol[['lower_bound', 'upper_bound']].values / normalizer
+
                 normalized_gaps = [self._interval_gap(interval1, interval2) for interval1, interval2 in
                                    my_zip(reference_intervals, normalized_intervals)]
                 sol['normalized_gaps'] = normalized_gaps
             else:
                 sol['normalized_gaps'] = gaps
 
-        chopped_ref_lower_bounds = self.reference_flux_ranges.lower_bound.apply(lambda x: 0 if abs(x) < non_zero_flux_threshold else x)
-        chopped_ref_upper_bounds = self.reference_flux_ranges.upper_bound.apply(lambda x: 0 if abs(x) < non_zero_flux_threshold else x)
+        ref_upper_bound = self.reference_flux_ranges.upper_bound.apply(lambda v: 0 if abs(v) < non_zero_flux_threshold else v)
+        ref_lower_bound = self.reference_flux_ranges.lower_bound.apply(lambda v: 0 if abs(v) < non_zero_flux_threshold else v)
+
         for df in six.itervalues(solutions):
-            df_chopped = df.applymap(lambda x: 0 if abs(x) < non_zero_flux_threshold else x)
-            ko_selection = df[(df_chopped.lower_bound == 0) &
-                              (df_chopped.upper_bound == 0) &
-                              (chopped_ref_lower_bounds != 0) &
-                              chopped_ref_upper_bounds != 0]
             df['KO'] = False
-            df.loc[ko_selection.index, 'KO'] = True
-
-        for df in six.itervalues(solutions):
-            df_chopped = df.applymap(lambda x: 0 if abs(x) < non_zero_flux_threshold else x)
-            flux_reversal_selection = df[((chopped_ref_upper_bounds < 0) & (df_chopped.lower_bound > 0) |
-                                          ((chopped_ref_lower_bounds > 0) & (df_chopped.upper_bound < 0)))]
             df['flux_reversal'] = False
-            df.loc[flux_reversal_selection.index, 'flux_reversal'] = True
-
-        for df in six.itervalues(solutions):
-            df_chopped = df.applymap(lambda x: 0 if abs(x) < non_zero_flux_threshold else x)
-            suddenly_essential_selection = df[((df_chopped.lower_bound <= 0) & (df_chopped.lower_bound > 0)) | (
-                (chopped_ref_upper_bounds >= 0) & (df_chopped.upper_bound <= 0))]
             df['suddenly_essential'] = False
-            df.loc[suddenly_essential_selection.index, 'suddenly_essential'] = True
+            df['free_flux'] = False
 
-        return DifferentialFVAResult(pandas.Panel(solutions), self.envelope, self.reference_flux_ranges)
+            ko_selection = df[(df.lower_bound == 0) & (df.upper_bound == 0) &
+                              (ref_upper_bound != 0) & (ref_lower_bound != 0)]
+
+            flux_reversal_selection = df[((ref_upper_bound < 0) & (df.lower_bound > 0) |
+                                          ((ref_lower_bound > 0) & (df.upper_bound < 0)))]
+
+            suddenly_essential_selection = df[((df.lower_bound <= 0) & (df.lower_bound > 0)) |
+                                              ((ref_lower_bound >= 0) & (df.upper_bound <= 0))]
+
+            is_reversible = [self.design_space_model.reactions.get_by_id(i).reversibility for i in df.index]
+            not_reversible = [not v for v in is_reversible]
+            free_flux_selection = df[((df.lower_bound == -1000) & (df.upper_bound == 1000) & is_reversible) |
+                                     ((df.lower_bound == 0) & (df.upper_bound == 1000) & not_reversible) |
+                                     ((df.lower_bound == -1000) & (df.upper_bound == 0) & not_reversible)]
+
+            df.loc[suddenly_essential_selection.index, 'suddenly_essential'] = True
+            df.loc[ko_selection.index, 'KO'] = True
+            df.loc[flux_reversal_selection.index, 'flux_reversal'] = True
+            df.loc[free_flux_selection.index, 'free_flux'] = True
+
+            df['excluded'] = [index in self.exclude for index in df.index]
+
+        return DifferentialFVAResult(pandas.Panel(solutions), self.envelope,
+                                     self.reference_flux_ranges, self.reference_flux_dist)
 
 
 class DifferentialFVAResult(StrainDesignMethodResult):
-    def __init__(self, solutions, phase_plane, reference_fva, *args, **kwargs):
+    def __init__(self, solutions, phase_plane, reference_fva, reference_fluxes, *args, **kwargs):
         self.phase_plane = phase_plane
-        super(DifferentialFVAResult, self).__init__(self._generate_designs(solutions, reference_fva))
+        super(DifferentialFVAResult, self).__init__(self._generate_designs(solutions, reference_fva, reference_fluxes),
+                                                    *args, **kwargs)
         self.reference_fva = reference_fva
+        self.reference_fluxes = reference_fluxes
         self.solutions = solutions
 
-    @staticmethod
-    def _generate_designs(solutions, reference_fva):
+    @classmethod
+    def _closest_bound(cls, ref_interval, row_interval):
+        """
+        Finds the closest bound (upper or lower) of the reference to the interval.
+        It returns the name of the bound and the sign.
+
+        Parameters
+        ----------
+        ref_interval: tuple, list
+            The reference interval.
+        row_interval: tuple, list
+            The row interval
+
+        Returns
+        -------
+        string, bool
+
+        """
+
+        distances = [ref_interval[0] - row_interval[1], ref_interval[1] - row_interval[0]]
+        # if the dist(ref_lb, ref_ub) > dist(ref_ub, row_lb)
+        if distances[0] > distances[1]:
+            # if ref_lb > 0
+            if row_interval[0] > 0:
+                return 'lower_bound', True
+            else:
+                return 'upper_bound', False
+        # if the dist(ref_lb, ref_ub) < dist(ref_ub, row_lb)
+        else:
+            # if ref_lb > 0
+            if row_interval[0] > 0:
+                return 'upper_bound', True
+            else:
+                return 'lower_bound', False
+
+    @classmethod
+    def _generate_designs(cls, solutions, reference_fva, reference_fluxes):
+        """
+        Generates strain designs for Differential FVA.
+
+        The conversion method has three scenarios:
+        #### 1. Knockout
+
+            Creates a ReactionKnockoutTarget.
+
+        #### 2. Flux reversal
+
+            If the new flux is negative then it should be at least the upper bound of the interval.
+            Otherwise it should be at least the lower bound of the interval.
+
+        #### 3. The flux increases or decreases
+
+            This table illustrates the possible combinations.
+                * Gap is the sign of the normalized gap between the intervals.
+                * Ref is the sign of the closest bound (see _closest_bound).
+                * Bound is the value to use
+
+            +-------------------+
+            | Gap | Ref | Bound |
+            +-----+-----+-------+
+            |  -  |  -  |   LB  |
+            |  -  |  +  |   UB  |
+            |  +  |  -  |   UB  |
+            |  +  |  +  |   LB  |
+            +-----+-----+-------+
+
+
+        Parameters
+        ----------
+        solutions: pandas.Panel
+            The DifferentialFVA panel with all the solutions. Each DataFrame is a design.
+        reference_fva: pandas.DataFrame
+            The FVA limits for the reference strain.
+        reference_fluxes:
+            The optimal flux distribution for the reference strain.
+
+        Returns
+        -------
+        list
+            A list of cameo.core.strain_design.StrainDesign for each DataFrame in solutions.
+        """
         designs = []
 
         for _, solution in solutions.iteritems():
             targets = []
-            relevant_targets = solution[solution.normalized_gaps != 0]
-            for rid, relevant_target in relevant_targets.iterrows():
-                if relevant_target.normalized_gaps > 0:
-                    targets.append(ReactionModulationTarget(rid,
-                                                            reference_fva['upper_bound'][rid],
-                                                            relevant_target.lower_bound))
+            relevant_targets = solution[numpy.abs(solution.normalized_gaps) > non_zero_flux_threshold]
+            relevant_targets = relevant_targets[relevant_targets.excluded.eq(False)]
+            relevant_targets = relevant_targets[relevant_targets.free_flux.eq(False)]
+            for rid, relevant_row in relevant_targets.iterrows():
+                if relevant_row.KO:
+                    targets.append(ReactionKnockoutTarget(rid))
+                elif relevant_row.flux_reversal:
+                    if reference_fva['upper_bound'][rid] > 0:
+                        targets.append(ReactionInversionTarget(rid,
+                                                               value=relevant_row.upper_bound,
+                                                               reference_value=reference_fluxes[rid]))
+                    else:
+                        targets.append(ReactionInversionTarget(rid,
+                                                               value=relevant_row.lower_bound,
+                                                               reference_value=reference_fluxes[rid]))
                 else:
+                    gap_sign = relevant_row.normalized_gaps > 0
+
+                    ref_interval = reference_fva[['lower_bound', 'upper_bound']].loc[rid].values
+                    row_interval = (relevant_row.lower_bound, relevant_row.upper_bound)
+
+                    closest_bound, ref_sign = cls._closest_bound(ref_interval, row_interval)
+
+                    if gap_sign ^ ref_sign:
+                        value = float_floor(relevant_row.lower_bound)
+                    else:
+                        value = float_ceil(relevant_row.upper_bound)
+
                     targets.append(ReactionModulationTarget(rid,
-                                                            reference_fva['lower_bound'][rid],
-                                                            relevant_target.upper_bound))
+                                                            value=value,
+                                                            reference_value=reference_fva[closest_bound][rid]))
+
             designs.append(StrainDesign(targets))
         return designs
 
@@ -415,7 +538,10 @@ class DifferentialFVAResult(StrainDesignMethodResult):
         def _data_frame(solution):
             notice("%s: %f" % self.solutions.axes[0][solution - 1][0])
             notice("%s: %f" % self.solutions.axes[0][solution - 1][1])
-            display(self.solutions.iloc[solution - 1])
+            df = self.solutions.iloc[solution - 1]
+            df = df[abs(df.normalized_gaps) >= non_zero_flux_threshold]
+            df = df.sort_values('normalized_gaps')
+            display(df)
 
         interact(_data_frame, solution=[1, len(self.solutions)])
         return ""
@@ -579,17 +705,22 @@ class _DifferentialFvaEvaluator(object):
 
     def __call__(self, point):
         self._set_bounds(point[1])
-        return (point[1], flux_variability_analysis(self.model, reactions=self.included_reactions, remove_cycles=False,
-                                                    view=SequentialView()))
+        fva_result = flux_variability_analysis(self.model, reactions=self.included_reactions,
+                                               remove_cycles=False, view=SequentialView()).data_frame
+
+        fva_result['lower_bound'] = fva_result.lower_bound.apply(lambda v: 0 if abs(v) < non_zero_flux_threshold else v)
+        fva_result['upper_bound'] = fva_result.upper_bound.apply(lambda v: 0 if abs(v) < non_zero_flux_threshold else v)
+
+        return point[1], fva_result
 
     def _set_bounds(self, point):
         for variable in self.variables:
             reaction = self.model.reactions.get_by_id(variable)
             bound = point[variable]
-            reaction.lower_bound, reaction.upper_bound = bound, bound
+            reaction.upper_bound = reaction.lower_bound = bound
         target_reaction = self.model.reactions.get_by_id(self.objective)
         target_bound = point[self.objective]
-        target_reaction.lower_bound, target_reaction.upper_bound = target_bound, target_bound
+        target_reaction.upper_bound = target_reaction.lower_bound = target_bound
 
 
 class FSEOF(StrainDesignMethod):
@@ -759,7 +890,8 @@ class FSEOFResult(StrainDesignMethodResult):
     def __init__(self, reactions, target, model, primary_objective, enforced_levels, reaction_results,
                  run_args, reference, *args, **kwargs):
 
-        super(FSEOFResult, self).__init__(self._generate_designs(reference, enforced_levels, reaction_results), *args, **kwargs)
+        super(FSEOFResult, self).__init__(self._generate_designs(reference, enforced_levels, reaction_results), *args,
+                                          **kwargs)
         self._reactions = reactions
         self._target = target
         self._model = model
