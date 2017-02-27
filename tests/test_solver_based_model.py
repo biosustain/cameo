@@ -1060,6 +1060,20 @@ class WrappedAbstractTestSolverBasedModel:
                         coefficient = 0
                     self.assertEqual(S[j, i], coefficient)
 
+        def test_set_medium(self):
+            medium = self.model.medium
+
+            for reaction in self.model.exchanges:
+                if reaction.lower_bound == 0:
+                    self.assertNotIn(reaction.id, medium.reaction_id.values)
+                if reaction.lower_bound < 0:
+                    self.assertIn(reaction.id, medium.reaction_id.values)
+
+            self.model.load_medium(medium)
+
+            for rid in self.model.medium.reaction_id:
+                self.assertEqual(len(medium[medium.reaction_id == rid]), 1)
+
 
 class TestSolverBasedModelGLPK(WrappedAbstractTestSolverBasedModel.AbstractTestSolverBasedModel):
     def setUp(self):

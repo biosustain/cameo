@@ -77,14 +77,17 @@ class Wrapper:
     class AbstractTestFluxVariabilityAnalysis(unittest.TestCase):
 
         def test_flux_variability_parallel(self):
+            original_objective = self.model.objective
             mp_view = MultiprocessingView(2)
             fva_solution = flux_variability_analysis(self.model, fraction_of_optimum=0.999999419892,
                                                      remove_cycles=False, view=mp_view)
             mp_view.shutdown()
             assert_data_frames_equal(fva_solution, REFERENCE_FVA_SOLUTION_ECOLI_CORE)
+            self.assertEqual(original_objective, self.model.objective)
 
         @unittest.skipIf(TRAVIS, 'Skip multiprocessing in Travis')
         def test_flux_variability_parallel_remove_cycles(self):
+            original_objective = self.model.objective
             fva_solution = flux_variability_analysis(self.model, fraction_of_optimum=0.999999419892,
                                                      remove_cycles=True, view=MultiprocessingView())
             self.assertGreater(REFERENCE_FVA_SOLUTION_ECOLI_CORE['upper_bound']['FRD7'], 666.)
@@ -96,8 +99,10 @@ class Wrapper:
                 if REFERENCE_FVA_SOLUTION_ECOLI_CORE['upper_bound'][key] < 666:
                     self.assertAlmostEqual(fva_solution['upper_bound'][key],
                                            REFERENCE_FVA_SOLUTION_ECOLI_CORE['upper_bound'][key], delta=0.0001)
+            self.assertEqual(original_objective, self.model.objective)
 
         def test_flux_variability_sequential(self):
+            original_objective = self.model.objective
             fva_solution = flux_variability_analysis(self.model, fraction_of_optimum=0.999999419892,
                                                      remove_cycles=False, view=SequentialView())
             assert_data_frames_equal(fva_solution, REFERENCE_FVA_SOLUTION_ECOLI_CORE)
@@ -107,8 +112,10 @@ class Wrapper:
                 self.assertAlmostEqual(fva_solution['upper_bound'][key],
                                        REFERENCE_FVA_SOLUTION_ECOLI_CORE['upper_bound'][key], delta=0.00001)
             assert_data_frames_equal(fva_solution, REFERENCE_FVA_SOLUTION_ECOLI_CORE)
+            self.assertEqual(original_objective, self.model.objective)
 
         def test_flux_variability_sequential_remove_cycles(self):
+            original_objective = self.model.objective
             fva_solution = flux_variability_analysis(self.model, fraction_of_optimum=0.999999419892, remove_cycles=True,
                                                      view=SequentialView())
             self.assertGreater(REFERENCE_FVA_SOLUTION_ECOLI_CORE['upper_bound']['FRD7'], 666.)
@@ -129,6 +136,7 @@ class Wrapper:
             self.assertEqual(fva_solution.data_frame.loc["PGI", "upper_bound"], 1000)
             fva_solution = flux_variability_analysis(self.model, remove_cycles=True, reactions=["PGI"])
             self.assertTrue(fva_solution.data_frame.loc["PGI", "upper_bound"] < 666)
+            self.assertEqual(original_objective, self.model.objective)
 
     class AbstractTestPhenotypicPhasePlane(unittest.TestCase):
         @unittest.skipIf(TRAVIS, 'Running in Travis')

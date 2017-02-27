@@ -47,7 +47,7 @@ from cameo.strain_design.heuristic.evolutionary.metrics import manhattan_distanc
 from cameo.strain_design.heuristic.evolutionary.multiprocess.migrators import MultiprocessingMigrator
 
 from cameo.strain_design.heuristic.evolutionary.objective_functions import biomass_product_coupled_yield, \
-    product_yield, number_of_knockouts, biomass_product_coupled_min_yield, MultiObjectiveFunction
+    product_yield, number_of_knockouts, biomass_product_coupled_min_yield, MultiObjectiveFunction, YieldFunction
 from cameo.strain_design.heuristic.evolutionary.optimization import HeuristicOptimization, \
     ReactionKnockoutOptimization, set_distance_function, TargetOptimizationResult, EvaluatorWrapper, \
     CofactorSwapOptimization
@@ -300,7 +300,8 @@ class TestBestSolutionArchive(unittest.TestCase):
 
 
 class TestObjectiveFunctions(unittest.TestCase):
-    class _MockupSolution():
+
+    class _MockupSolution(object):
         def __init__(self):
             self._primal = {}
 
@@ -314,6 +315,26 @@ class TestObjectiveFunctions(unittest.TestCase):
         def fluxes(self):
             return self._primal
 
+    def _assert_is_pickable(self, of):
+        self.assertIsInstance(pickle.dumps(of), bytes)
+
+    def test_base_yield_function(self):
+        solution = self._MockupSolution()
+        solution.set_primal('EX_ac_LPAREN_e_RPAREN_', 2)
+        solution.set_primal('EX_glc_LPAREN_e_RPAREN_', -10)
+
+        of = YieldFunction(TEST_MODEL.reactions.EX_ac_LPAREN_e_RPAREN_, TEST_MODEL.reactions.EX_glc_LPAREN_e_RPAREN_)
+        self._assert_is_pickable(of)
+
+        self.assertRaises(ValueError, YieldFunction, {}, TEST_MODEL.reactions.EX_glc_LPAREN_e_RPAREN_)
+        self.assertRaises(ValueError, YieldFunction, None, TEST_MODEL.reactions.EX_glc_LPAREN_e_RPAREN_)
+        self.assertRaises(ValueError, YieldFunction, [], TEST_MODEL.reactions.EX_glc_LPAREN_e_RPAREN_)
+        self.assertRaises(ValueError, YieldFunction, 1, TEST_MODEL.reactions.EX_glc_LPAREN_e_RPAREN_)
+        self.assertRaises(ValueError, YieldFunction, TEST_MODEL.reactions.EX_ac_LPAREN_e_RPAREN_, [])
+        self.assertRaises(ValueError, YieldFunction, TEST_MODEL.reactions.EX_ac_LPAREN_e_RPAREN_, 1)
+        self.assertRaises(ValueError, YieldFunction, TEST_MODEL.reactions.EX_ac_LPAREN_e_RPAREN_, {})
+        self.assertRaises(ValueError, YieldFunction, TEST_MODEL.reactions.EX_ac_LPAREN_e_RPAREN_, [])
+
     def test_biomass_product_coupled_yield(self):
         solution = self._MockupSolution()
         solution.set_primal('biomass', 0.6)
@@ -322,7 +343,7 @@ class TestObjectiveFunctions(unittest.TestCase):
 
         of = biomass_product_coupled_yield("biomass", "product", "substrate")
         self.assertEqual(of.name, "bpcy = (biomass * product) / substrate")
-
+        self._assert_is_pickable(of)
         fitness = of(None, solution, None)
         self.assertAlmostEqual((0.6 * 2) / 10, fitness)
 
@@ -330,6 +351,15 @@ class TestObjectiveFunctions(unittest.TestCase):
 
         fitness = of(None, solution, None)
         self.assertEquals(0, fitness)
+
+        solution.set_primal('substrate2', -5)
+        solution.set_primal('substrate', -5)
+
+        of2 = biomass_product_coupled_yield("biomass", "product", ["substrate", "substrate2"])
+        self.assertEqual(of2.name, "bpcy = (biomass * product) / (substrate + substrate2)")
+        self._assert_is_pickable(of2)
+        fitness = of2(None, solution, None)
+        self.assertAlmostEqual((0.6 * 2) / 10, fitness)
 
     def test_biomass_product_coupled_min_yield(self):
         biomass = "Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2"
@@ -341,6 +371,7 @@ class TestObjectiveFunctions(unittest.TestCase):
         solution.set_primal(substrate, -10)
 
         of = biomass_product_coupled_min_yield(biomass, product, substrate)
+        self._assert_is_pickable(of)
         self.assertEqual(of.name, "bpcy = (%s * min(%s)) / %s" % (biomass, product, substrate))
         reactions = [TEST_MODEL.reactions.get_by_id(r) for r in ['ATPS4r', 'CO2t', 'GLUDy', 'PPS', 'PYK']]
         with TimeMachine() as tm:
@@ -349,20 +380,30 @@ class TestObjectiveFunctions(unittest.TestCase):
             fitness = of(TEST_MODEL, solution, reactions)
         self.assertAlmostEqual(0.414851, fitness, places=5)
 
-    def test_yield(self):
+    def test_product_yield(self):
         solution = self._MockupSolution()
         solution.set_primal('biomass', 0.6)
         solution.set_primal('product', 2)
         solution.set_primal('substrate', -10)
 
-        of = product_yield("product", "substrate")
+        of = product_yield("product", "substrate", carbon_yield=False)
         self.assertEqual(of.name, "yield = (product / substrate)")
+        self._assert_is_pickable(of)
         fitness = of(None, solution, None)
         self.assertAlmostEqual(2.0 / 10.0, fitness)
 
         solution.set_primal('substrate', 0)
         fitness = of(None, solution, None)
         self.assertEquals(0, fitness)
+
+        solution.set_primal('substrate', -5)
+        solution.set_primal('substrate2', -5)
+
+        of2 = product_yield('product', ['substrate', 'substrate2'], carbon_yield=False)
+        self.assertEqual(of2.name, "yield = (product / (substrate + substrate2))")
+        self._assert_is_pickable(of2)
+        fitness = of2(None, solution, None)
+        self.assertAlmostEqual(2.0 / 10.0, fitness)
 
     def test_number_of_knockouts(self):
         of_max = number_of_knockouts(sense='max')
@@ -430,7 +471,7 @@ class TestKnockoutEvaluator(unittest.TestCase):
             "Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2",
             "EX_ac_LPAREN_e_RPAREN_",
             "EX_glc_LPAREN_e_RPAREN_")
-        objective2 = product_yield("EX_ac_LPAREN_e_RPAREN_", "EX_glc_LPAREN_e_RPAREN_")
+        objective2 = product_yield("EX_ac_LPAREN_e_RPAREN_", "EX_glc_LPAREN_e_RPAREN_", carbon_yield=False)
         objective = MultiObjectiveFunction([objective1, objective2])
         evaluator = KnockoutEvaluator(TEST_MODEL, decoder, objective, fba, {})
         fitness = evaluator([[0, 1, 2, 3, 4]])[0]
@@ -486,7 +527,8 @@ class TestSwapEvaluator(unittest.TestCase):
 
     def test_evaluate_swap(self):
         TEST_MODEL.objective = TEST_MODEL.reactions.EX_etoh_LPAREN_e_RPAREN_
-        py = product_yield(TEST_MODEL.reactions.EX_etoh_LPAREN_e_RPAREN_, TEST_MODEL.reactions.EX_glc_LPAREN_e_RPAREN_)
+        py = product_yield(TEST_MODEL.reactions.EX_etoh_LPAREN_e_RPAREN_, TEST_MODEL.reactions.EX_glc_LPAREN_e_RPAREN_,
+                           carbon_yield=True)
         reactions = ['ACALD', 'ALCD2x', 'G6PDH2r', 'GAPD']
         optimization = CofactorSwapOptimization(model=TEST_MODEL, objective_function=py, candidate_reactions=reactions)
         optimization_result = optimization.run(max_evaluations=16, max_size=2)
