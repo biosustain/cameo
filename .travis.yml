@@ -2,7 +2,7 @@ language: python
 sudo: false
 python:
 - '2.7'
-# - '3.4'
+- '3.4'
 cache:
 - pip: true
 services:
@@ -65,7 +65,7 @@ deploy:
     on:
       # branch: master
       all_branches: true
-      # tags: true
+      tags: true
       repo: biosustain/cameo
     docs_dir: docs/_build/html
     server: https://testpypi.python.org/pypi/
