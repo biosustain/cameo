@@ -105,3 +105,7 @@ from cameo.core.metabolite import Metabolite
 
 from .flux_analysis.analysis import flux_variability_analysis, phenotypic_phase_plane
 from .flux_analysis.simulation import fba, pfba
+
+from ._version import get_versions
+__version__ = get_versions()['version']
+del get_versions
