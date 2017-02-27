@@ -603,8 +603,9 @@ class ReactionKnockoutOptimization(KnockoutOptimization):
             reduced_set = reduce_reaction_set(reactions, groups)
             to_keep = [r.id for r in reduced_set]
         else:
-            to_keep = set([r.id for r in self.model.reactions])
-            to_keep.difference_update([r.id for r in self.model.exchanges])
+            to_keep = set(r.id for r in self.model.reactions)
+            to_keep.difference_update(r.id for r in self.model.exchanges)
+            to_keep.difference_update(self.essential_reactions)
 
         self.representation = list(to_keep)
         self._target_type = REACTION_KNOCKOUT_TYPE
