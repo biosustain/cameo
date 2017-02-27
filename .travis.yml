@@ -28,7 +28,7 @@ install:
   --no-index
 - pip install flake8
 - pip install .[swiglpk,test,parallel]
- before_script:
+before_script:
  - flake8 .
 script: nosetests
 after_success:
