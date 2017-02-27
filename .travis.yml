@@ -2,7 +2,7 @@ language: python
 sudo: false
 python:
 - '2.7'
-- '3.4'
+# - '3.4'
 cache:
 - pip: true
 services:
@@ -28,9 +28,10 @@ install:
   --no-index
 - pip install flake8
 - pip install .[swiglpk,test,parallel]
-before_script:
-- flake8 .
-script: nosetests
+# before_script:
+# - flake8 .
+script:
+  - flake8 .
 after_success:
 - codecov
 notifications:
@@ -46,23 +47,25 @@ env:
   global:
     secure: QgrOXEgpcH6xgToVfWIX6j6CPvycKMPtNnoYAxPrZjkMzd2aCHHeokv0FZkCn3uePO0I8W8TkKBxilGZbWYoseDq+Snds18sBTG9u2NHvYHnDQb4Oki7+NoxhlnGIOj/8ADONOpc0n7PyFDPK8zmKVZvv9p78OHZO5CmV/ktOeg=
 deploy:
-  - provider: releases
-    api_key:
-      secure: VsKdkwYvp7lf65S/pzLWbrk8PaRAzBVClB57s4jYepx+BbJdPJi5Zwz4zmu0Ifa1K7K2Jh0rITV9GZAyC+0Eq2ffXtZsBOsC5+2yKaWV5WiU7kNdUVhD9EFkUaNknT8+B2/sjPsl+GP8DTzCqstgdGo5EAAnvpV53qIAwwF9n0U=
-    file_glob: true
-    file: dist/cameo*.whl
-    skip_cleanup: true
-    on:
-      branch: master
-      tags: true
-      repo: biosustain/cameo
+  # - provider: releases
+  #   api_key:
+  #     secure: VsKdkwYvp7lf65S/pzLWbrk8PaRAzBVClB57s4jYepx+BbJdPJi5Zwz4zmu0Ifa1K7K2Jh0rITV9GZAyC+0Eq2ffXtZsBOsC5+2yKaWV5WiU7kNdUVhD9EFkUaNknT8+B2/sjPsl+GP8DTzCqstgdGo5EAAnvpV53qIAwwF9n0U=
+  #   file_glob: true
+  #   file: dist/cameo*.whl
+  #   skip_cleanup: true
+  #   on:
+  #     branch: master
+  #     tags: true
+  #     repo: biosustain/cameo
   - provider: pypi
     user: Nikolaus.Sonnenschein
     password:
       secure: nxjszXtUzQfnLlfg0cmFjd9gRekXDog6dkkN1rMc7CIWH2gZ1gAX4sNETVChnuSmu9egzhuIkviHstRrdyGoEZ7ZkHlTXmpVAs9AY96eMSejnwHHODhYno0jB7DjGcfejodLF+lo6lWz7S7mXXwML6YLM3xxG+AOjLHlHbPTaKc=
     distributions: sdist bdist_wheel
     on:
-      branch: master
-      tags: true
+      # branch: master
+      all_branches: true
+      # tags: true
       repo: biosustain/cameo
     docs_dir: docs/_build/html
+    server: https://testpypi.python.org/pypi/
