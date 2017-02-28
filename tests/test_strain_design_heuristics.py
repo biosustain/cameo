@@ -877,7 +877,7 @@ class TestReactionKnockoutOptimization(unittest.TestCase):
 
     # @unittest.skipIf(os.getenv('TRAVIS', False) or 'cplex' not in solvers, 'Missing cplex (or Travis)')
     def test_run_single_objective(self):
-        result_file = os.path.join(CURRENT_PATH, "data", "reaction_knockout_single_objective.pkl")
+        _, result_file = mkstemp('.pkl')
         objective = biomass_product_coupled_yield(
             "Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2",
             "EX_ac_LPAREN_e_RPAREN_",
