@@ -187,7 +187,7 @@ class WrappedAbstractTestReaction:
                 -32)
 
             pgi_reaction.add_metabolites({test_met: 0}, combine=False)
-            self.assertRaises(KeyError, pgi_reaction.metabolites.get, test_met)
+            self.assertRaises(KeyError, pgi_reaction.metabolites.__getitem__, test_met)
             self.assertEqual(
                 model.solver.constraints[test_met.id].expression.as_coefficients_dict()[pgi_reaction.forward_variable],
                 0)
