@@ -66,7 +66,7 @@ class BaseController(CementBaseController):
                 formats = ["%i - %s (.%s)\n" % (i + 1, OUTPUT_FORMATS_EXPLANATION[ext], ext)
                            for i, ext in enumerate(VALID_OUTPUT_FORMATS)]
 
-                choice = input("Choose your output format:\n" + formats + "Enter [1]:")
+                choice = input("Choose your output format:\n" + "".join(formats) + "Enter [1]:")
                 if choice == "":
                     choice = "1"
                 try:
