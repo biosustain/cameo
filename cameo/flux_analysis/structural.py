@@ -25,14 +25,13 @@ import six
 import sympy
 from cobra import Metabolite
 from numpy.linalg import svd
+from scipy.cluster.hierarchy import linkage
 from six.moves import zip
 
 from cameo import Reaction
 from cameo.core import SolverBasedModel
 from cameo.exceptions import SolveError, Infeasible
 from cameo.util import TimeMachine
-
-from scipy.cluster.hierarchy import linkage
 
 
 __all__ = ['find_dead_end_reactions', 'find_coupled_reactions', 'ShortestElementaryFluxModes']
@@ -90,7 +89,7 @@ def find_blocked_reactions_nullspace(model, ns=None, tol=1e-10):
     if ns is None:
         ns = nullspace(model.S)
     mask = (np.abs(ns) <= tol).all(1)
-    blocked = [reac for reac, b in zip(model.reactions, mask) if b is True]
+    blocked = frozenset(reac for reac, b in zip(model.reactions, mask) if b is True)
     return blocked
 
 
@@ -122,7 +121,7 @@ def find_coupled_reactions_nullspace(model, ns=None, tol=1e-10):
         del group_dict[a[0]]
         del group_dict[a[1]]
 
-    groups = [set(non_blocked_reactions[list(v)]) for v in group_dict.values() if len(v) > 1]
+    groups = [frozenset(non_blocked_reactions[list(v)]) for v in group_dict.values() if len(v) > 1]
 
     return groups
 
@@ -134,7 +133,7 @@ def find_dead_end_reactions(model):
     stoichiometries = {}
     for reaction in model.reactions:
         for met, coef in reaction.metabolites.items():
-            stoichiometries.setdefault(met.id, {})[reaction.id] = coef
+            stoichiometries.setdefault(met.id, {})[reaction] = coef
 
     blocked_reactions = set()
     while True:
@@ -147,12 +146,12 @@ def find_dead_end_reactions(model):
 
         # Remove blocked reactions from stoichiometries
         stoichiometries = {
-            met_id: {reac_id: coef for reac_id, coef in stoichiometry.items() if reac_id not in new_blocked}
+            met_id: {reac: coef for reac, coef in stoichiometry.items() if reac not in new_blocked}
             for met_id, stoichiometry in stoichiometries.items()
         }
         blocked_reactions.update(new_blocked)
 
-    return blocked_reactions
+    return frozenset(blocked_reactions)
 
 
 def find_coupled_reactions(model, return_dead_ends=False):
@@ -160,10 +159,10 @@ def find_coupled_reactions(model, return_dead_ends=False):
     blocked = find_dead_end_reactions(model)
     stoichiometries = {}
     for reaction in model.reactions:
-        if reaction.id in blocked:
+        if reaction in blocked:
             continue
         for met, coef in reaction.metabolites.items():
-            stoichiometries.setdefault(met.id, {})[reaction.id] = coef
+            stoichiometries.setdefault(met.id, {})[reaction] = coef
 
     # Find reaction pairs that are constrained to carry equal flux
     couples = []
