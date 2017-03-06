@@ -71,6 +71,7 @@ setup(
     install_requires=requirements,
     extras_require=extra_requirements,
     include_package_data=True,
+    scripts=['bin/cameo'],
     author='Nikolaus Sonnenschein, Joao Cardoso, Emre Özdemir, Kristian Jensen',
     author_email='niko.sonnenschein@gmail.com',
     description='cameo - computer aided metabolic engineering & optimziation',
