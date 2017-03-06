@@ -122,10 +122,8 @@ class OptKnock(StrainDesignMethod):
         print(len(self._model.reactions))
 
     def _reduce_to_nullspace(self, reactions):
-        print(len(reactions))
         reaction_groups = find_coupled_reactions_nullspace(self._model)
         reduced_reactions = reduce_reaction_set(reactions, reaction_groups)
-        print(len(reduced_reactions))
         return reduced_reactions
 
     def _build_problem(self, essential_reactions, use_nullspace_simplification):

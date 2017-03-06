@@ -593,8 +593,8 @@ class ReactionKnockoutOptimization(KnockoutOptimization):
 
         if use_nullspace_simplification:
             ns = nullspace(self.model.S)
-            dead_ends = find_blocked_reactions_nullspace(self.model, ns=ns)
-            exchanges = self.model.exchanges
+            dead_ends = set(find_blocked_reactions_nullspace(self.model, ns=ns))
+            exchanges = set(self.model.exchanges)
             reactions = [r for r in self.model.reactions if r not in exchanges and r not in dead_ends and
                          r.id not in self.essential_reactions]
 
@@ -606,8 +606,9 @@ class ReactionKnockoutOptimization(KnockoutOptimization):
             to_keep = set(r.id for r in self.model.reactions)
             to_keep.difference_update(r.id for r in self.model.exchanges)
             to_keep.difference_update(self.essential_reactions)
+            to_keep = list(to_keep)
 
-        self.representation = list(to_keep)
+        self.representation = to_keep
         self._target_type = REACTION_KNOCKOUT_TYPE
         self._decoder = decoders.ReactionSetDecoder(self.representation, self.model)
         self._evaluator = evaluators.KnockoutEvaluator(model=self.model,

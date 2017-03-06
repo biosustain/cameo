@@ -25,6 +25,7 @@ import six
 import sympy
 from cobra import Metabolite
 from numpy.linalg import svd
+from six.moves import zip
 
 from cameo import Reaction
 from cameo.core import SolverBasedModel
@@ -99,9 +100,8 @@ def find_coupled_reactions_nullspace(model, ns=None, tol=1e-10):
     """
     if ns is None:
         ns = nullspace(model.S)
-    blocked = set(find_blocked_reactions_nullspace(model, ns, tol))
-    blocked_mask = np.array([True if r in blocked else False for r in model.reactions])
-    non_blocked_ns = ns[~blocked_mask]
+    mask = (np.abs(ns) <= tol).all(1)  # Mask for blocked reactions
+    non_blocked_ns = ns[~mask]
     non_blocked_reactions = np.array(list(model.reactions))[~blocked_mask]
 
     # Calculate correlation coefficients (perfect correlation means that one is a scalar multiple of the other)
@@ -122,8 +122,7 @@ def find_coupled_reactions_nullspace(model, ns=None, tol=1e-10):
         del group_dict[a[0]]
         del group_dict[a[1]]
 
-    groups = [set(non_blocked_reactions[np.array(list(v))]) for v in group_dict.values()]
-    groups = [a for a in groups if len(a) > 1]
+    groups = [set(non_blocked_reactions[list(v)]) for v in group_dict.values() if len(v) > 1]
 
     return groups
 
