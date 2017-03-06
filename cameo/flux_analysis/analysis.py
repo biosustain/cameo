@@ -229,12 +229,13 @@ def _flux_variability_analysis(model, reactions=None):
     lb_flags = dict()
     with TimeMachine() as tm:
         model.change_objective(S.Zero, time_machine=tm)
+
+        model.objective.direction = 'min'
         for reaction in reactions:
             lb_flags[reaction.id] = False
             fva_sol[reaction.id] = dict()
             model.solver.objective.set_linear_coefficients({reaction.forward_variable: 1.,
                                                             reaction.reverse_variable: -1.})
-            model.objective.direction = 'min'
             try:
                 solution = model.solve()
                 fva_sol[reaction.id]['lower_bound'] = solution.f
@@ -247,11 +248,12 @@ def _flux_variability_analysis(model, reactions=None):
 
             assert model.objective.expression == 0, model.objective.expression
 
+        model.objective.direction = 'max'
         for reaction in reactions:
             ub_flag = False
             model.solver.objective.set_linear_coefficients({reaction.forward_variable: 1.,
                                                             reaction.reverse_variable: -1.})
-            model.objective.direction = 'max'
+
             try:
                 solution = model.solve()
                 fva_sol[reaction.id]['upper_bound'] = solution.f
