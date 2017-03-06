@@ -156,6 +156,8 @@ class PathwayPredictions(StrainDesignMethodResult):
         return self._designs
 
     def plug_model(self, model, index, tm=None):
+        warnings.warn("The 'plug_model' method as been deprecated. You can use result[i].apply instead",
+                      DeprecationWarning)
         self.pathways[index].plug_model(model, tm)
 
     def __getitem__(self, item):
