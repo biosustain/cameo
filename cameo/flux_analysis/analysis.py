@@ -27,6 +27,7 @@ import six
 from cobra.core import Reaction, Metabolite
 from numpy import trapz
 from six.moves import zip
+from sympy import S
 
 import cameo
 from cameo import config
@@ -37,7 +38,6 @@ from cameo.parallel import SequentialView
 from cameo.ui import notice
 from cameo.util import TimeMachine, partition, _BIOMASS_RE_
 from cameo.visualization.plotting import plotter
-from sympy import S
 
 logger = logging.getLogger(__name__)
 
@@ -62,9 +62,9 @@ def find_blocked_reactions(model):
         for exchange in model.exchanges:
             exchange.change_bounds(-9999, 9999, tm)
         fva_solution = flux_variability_analysis(model)
-    return [reaction for reaction in model.reactions
-            if round(fva_solution.data_frame.loc[reaction.id, "lower_bound"], config.ndecimals) == 0 and
-            round(fva_solution.data_frame.loc[reaction.id, "upper_bound"], config.ndecimals) == 0]
+    return frozenset(reaction for reaction in model.reactions
+                     if round(fva_solution.lower_bound(reaction.id), config.ndecimals) == 0 and
+                     round(fva_solution.upper_bound(reaction.id), config.ndecimals) == 0)
 
 
 def flux_variability_analysis(model, reactions=None, fraction_of_optimum=0., remove_cycles=False, view=None):
