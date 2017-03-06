@@ -17,6 +17,7 @@
 from __future__ import absolute_import, print_function
 
 from itertools import chain
+
 from setuptools import setup, find_packages
 
 import versioneer
@@ -48,7 +49,8 @@ extra_requirements = {
     'jupyter': ['jupyter>=1.0.0', 'ipywidgets>=4.1.1'],
     'test': ['nose>=1.3.7', 'rednose>=0.4.3', 'coverage>=4.0.3'],
     'parallel': ['redis>=2.10.5', 'ipyparallel>=5.0.1'],
-    'sbml': ['python-libsbml>=5.13.0', 'lxml>=3.6.0']
+    'sbml': ['python-libsbml>=5.13.0', 'lxml>=3.6.0'],
+    'cli': ['cement>=2.10.2', 'xlwt>=1.2.0']
 }
 extra_requirements['all'] = list(set(chain(*extra_requirements.values())))
 
