@@ -102,7 +102,7 @@ def find_coupled_reactions_nullspace(model, ns=None, tol=1e-10):
         ns = nullspace(model.S)
     mask = (np.abs(ns) <= tol).all(1)  # Mask for blocked reactions
     non_blocked_ns = ns[~mask]
-    non_blocked_reactions = np.array(list(model.reactions))[~blocked_mask]
+    non_blocked_reactions = np.array(list(model.reactions))[~mask]
 
     # Calculate correlation coefficients (perfect correlation means that one is a scalar multiple of the other)
     corr_mat = np.corrcoef(non_blocked_ns)
