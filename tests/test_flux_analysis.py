@@ -340,6 +340,7 @@ class Wrapper:
 
     class AbstractTestStructural(unittest.TestCase):
         def test_find_blocked_reactions(self):
+            self.assertIn("PGK", self.model.reactions)
             self.model.reactions.PGK.knock_out()  # there are no blocked reactions in EcoliCore
             blocked_reactions = structural.find_blocked_reactions_nullspace(self.model)
             self.assertEqual(len(blocked_reactions), 0)

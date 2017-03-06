@@ -105,15 +105,20 @@ class WrappedAbstractTestReaction:
                 self.assertEqual(cloned_reaction.gene_reaction_rule, reaction.gene_reaction_rule)
                 self.assertSetEqual(set([gene.id for gene in cloned_reaction.genes]),
                                     set([gene.id for gene in reaction.genes]))
-                self.assertTrue(all(isinstance(gene, cameo.core.Gene) for gene in list(reaction.genes)))
-                self.assertSetEqual(set([metabolite.id for metabolite in cloned_reaction.metabolites]),
-                                    set([metabolite.id for metabolite in reaction.metabolites]))
+                self.assertTrue(all(isinstance(gene, cameo.core.Gene) for gene in list(cloned_reaction.genes)))
+                self.assertSetEqual({metabolite.id for metabolite in cloned_reaction.metabolites},
+                                    {metabolite.id for metabolite in reaction.metabolites})
                 self.assertTrue(
-                    all(isinstance(metabolite, cameo.core.Metabolite) for metabolite in reaction.metabolites))
-                self.assertSetEqual(set([metabolite.id for metabolite in cloned_reaction.products]),
-                                    set([metabolite.id for metabolite in reaction.products]))
-                self.assertSetEqual(set([metabolite.id for metabolite in cloned_reaction.reactants]),
-                                    set([metabolite.id for metabolite in reaction.reactants]))
+                    all(isinstance(metabolite, cameo.core.Metabolite) for metabolite in cloned_reaction.metabolites))
+                self.assertSetEqual({metabolite.id for metabolite in cloned_reaction.products},
+                                    {metabolite.id for metabolite in reaction.products})
+                self.assertSetEqual({metabolite.id for metabolite in cloned_reaction.reactants},
+                                    {metabolite.id for metabolite in reaction.reactants})
+
+                self.assertEqual(reaction.id, cloned_reaction.id)
+                self.assertEqual(reaction.name, cloned_reaction.name)
+                self.assertEqual(reaction.upper_bound, cloned_reaction.upper_bound)
+                self.assertEqual(reaction.lower_bound, cloned_reaction.lower_bound)
 
         def test_gene_reaction_rule_setter(self):
             m = self.model.copy()
@@ -182,8 +187,7 @@ class WrappedAbstractTestReaction:
                 -32)
 
             pgi_reaction.add_metabolites({test_met: 0}, combine=False)
-            with self.assertRaises(KeyError):
-                pgi_reaction.metabolites[test_met]
+            self.assertRaises(KeyError, pgi_reaction.metabolites.get, test_met)
             self.assertEqual(
                 model.solver.constraints[test_met.id].expression.as_coefficients_dict()[pgi_reaction.forward_variable],
                 0)
@@ -464,10 +468,10 @@ class WrappedAbstractTestReaction:
             self.assertEqual(r.forward_variable, None)
             self.assertEqual(r.reverse_variable, None)
 
-        def test_clone_cobrapy_reaction(self):
-            from cobra.core import Reaction as CobrapyReaction
-            reaction = CobrapyReaction('blug')
-            self.assertEqual(Reaction.clone(reaction).id, 'blug')
+        # def test_clone_cobrapy_reaction(self):
+        #     from cobra.core import Reaction as CobrapyReaction
+        #     reaction = CobrapyReaction('blug')
+        #     self.assertEqual(Reaction.clone(reaction).id, 'blug')
 
         def test_weird_left_to_right_reaction_issue(self):
 
@@ -770,6 +774,28 @@ class WrappedAbstractTestSolverBasedModel:
             self.assertEqual(coefficients_dict[biomass_r.reverse_variable], -1.)
             self.assertEqual(coefficients_dict[self.model.reactions.r2.forward_variable], 3.)
             self.assertEqual(coefficients_dict[self.model.reactions.r2.reverse_variable], -3.)
+
+        def test_remove_reactions(self):
+            model = self.model.copy()
+            model.remove_reactions([model.reactions.PGI, model.reactions.PGK], delete=False)
+            self.assertNotIn("PGI", model.reactions)
+            self.assertNotIn("PGK", model.reactions)
+            self.assertIn("PGI", self.model.reactions)
+            self.assertIn("PGK", self.model.reactions)
+
+        def test_remove_and_add_reactions(self):
+            model = self.model.copy()
+            pgi, pgk = model.reactions.PGI, model.reactions.PGK
+            model.remove_reactions([pgi, pgk], delete=False)
+            self.assertNotIn("PGI", model.reactions)
+            self.assertNotIn("PGK", model.reactions)
+            self.assertIn("PGI", self.model.reactions)
+            self.assertIn("PGK", self.model.reactions)
+            model.add_reactions([pgi, pgk])
+            self.assertIn("PGI", self.model.reactions)
+            self.assertIn("PGK", self.model.reactions)
+            self.assertIn("PGI", model.reactions)
+            self.assertIn("PGK", model.reactions)
 
         def test_add_cobra_reaction(self):
             r = cobra.Reaction(id="c1")
