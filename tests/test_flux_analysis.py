@@ -397,8 +397,10 @@ class Wrapper:
                     with TimeMachine() as tm:
                         tm(do=partial(self.model.remove_reactions, [representative], delete=False),
                            undo=partial(self.model.add_reactions, [representative]))
+                        self.assertNotIn(representative, self.model.reactions)
                         blocked_reactions = find_blocked_reactions(self.model)
                         self.assertTrue(all(r in blocked_reactions for r in group if r != representative))
+                    self.assertIn(representative, self.model.reactions)
 
             coupled_reactions = structural.find_coupled_reactions(self.model)
             for group in coupled_reactions:
@@ -408,7 +410,9 @@ class Wrapper:
                         tm(do=partial(self.model.remove_reactions, [representative], delete=False),
                            undo=partial(self.model.add_reactions, [representative]))
                         blocked_reactions = find_blocked_reactions(self.model)
+                        self.assertNotIn(representative, self.model.reactions)
                         self.assertTrue(all(r in blocked_reactions for r in group if r != representative))
+                    self.assertIn(representative, self.model.reactions)
 
 
 class TestFindBlockedReactionsGLPK(Wrapper.AbstractTestFindBlockedReactions):
