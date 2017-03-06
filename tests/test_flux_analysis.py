@@ -20,6 +20,7 @@ import copy
 import os
 import re
 import unittest
+from functools import partial
 
 import numpy as np
 import pandas
@@ -36,7 +37,7 @@ from cameo.flux_analysis.simulation import fba, pfba, lmoma, room, moma
 from cameo.flux_analysis.structural import nullspace
 from cameo.io import load_model
 from cameo.parallel import SequentialView, MultiprocessingView
-from cameo.util import TimeMachine
+from cameo.util import TimeMachine, pick_one
 
 
 def assert_data_frames_equal(obj, expected, delta=0.001, sort_by=None, nan=0):
@@ -72,7 +73,7 @@ class Wrapper:
         def test_find_blocked_reactions(self):
             self.model.reactions.PGK.knock_out()  # there are no blocked reactions in EcoliCore
             blocked_reactions = find_blocked_reactions(self.model)
-            self.assertEqual(blocked_reactions, [self.model.reactions.GAPD, self.model.reactions.PGK])
+            self.assertEqual(blocked_reactions, {self.model.reactions.GAPD, self.model.reactions.PGK})
 
     class AbstractTestFluxVariabilityAnalysis(unittest.TestCase):
 
@@ -324,7 +325,6 @@ class Wrapper:
             self.assertNotEqual(expected, result_changed.fluxes)
 
     class AbstractTestRemoveCycles(unittest.TestCase):
-
         def test_remove_cyles(self):
             with TimeMachine() as tm:
                 self.model.fix_objective_as_constraint(time_machine=tm)
@@ -339,6 +339,11 @@ class Wrapper:
             self.assertAlmostEqual(pandas.Series(clean_fluxes).abs().sum(), 518.42208550050827, delta=1e-6)
 
     class AbstractTestStructural(unittest.TestCase):
+        def test_find_blocked_reactions(self):
+            self.model.reactions.PGK.knock_out()  # there are no blocked reactions in EcoliCore
+            blocked_reactions = structural.find_blocked_reactions_nullspace(self.model)
+            self.assertEqual(len(blocked_reactions), 0)
+
         def test_find_dead_end_reactions(self):
             self.assertEqual(len(structural.find_dead_end_reactions(self.model)), 0)
             met1 = cameo.Metabolite("fake_metabolite_1")
@@ -346,14 +351,14 @@ class Wrapper:
             reac = cameo.Reaction("fake_reac")
             reac.add_metabolites({met1: -1, met2: 1})
             self.model.add_reaction(reac)
-            self.assertEqual(structural.find_dead_end_reactions(self.model), {reac.id})
+            self.assertEqual(structural.find_dead_end_reactions(self.model), {reac})
 
         def test_find_coupled_reactions(self):
             couples = structural.find_coupled_reactions(self.model)
             fluxes = self.model.solve().fluxes
             for coupled_set in couples:
                 coupled_set = list(coupled_set)
-                self.assertAlmostEqual(fluxes[coupled_set[0]], fluxes[coupled_set[1]])
+                self.assertAlmostEqual(fluxes[coupled_set[0].id], fluxes[coupled_set[1].id])
 
             couples, blocked = structural.find_coupled_reactions(self.model, return_dead_ends=True)
             self.assertEqual(blocked, structural.find_dead_end_reactions(self.model))
@@ -366,6 +371,44 @@ class Wrapper:
                     break
                 ems.append(em)
             self.assertEqual(list(map(len, ems)), sorted(map(len, ems)))
+
+        def test_dead_end_metabolites_are_in_dead_end_reactions(self):
+            dead_end_reactions = structural.find_dead_end_reactions(self.model)
+            dead_end_metabolites = {m for m in self.model.metabolites if len(m.reactions) == 1}
+            for dead_end_metabolite in dead_end_metabolites:
+                self.assertTrue(any(dead_end_metabolite in r.metabolites for r in dead_end_reactions))
+
+        def test_coupled_reactions(self):
+            # If a reaction is essential, all coupled reactions are essential
+            essential_reactions = self.model.essential_reactions()
+            coupled_reactions = structural.find_coupled_reactions_nullspace(self.model)
+            for essential_reaction in essential_reactions:
+                for group in coupled_reactions:
+                    self.assertIsInstance(group, frozenset)
+                    if essential_reaction in group:
+                        self.assertTrue(all(group_reaction in essential_reactions for group_reaction in group))
+
+        def test_reactions_in_group_become_blocked_if_one_is_removed(self):
+            essential_reactions = self.model.essential_reactions()
+            coupled_reactions = structural.find_coupled_reactions_nullspace(self.model)
+            for group in coupled_reactions:
+                representative = pick_one(group)
+                if representative not in essential_reactions:
+                    with TimeMachine() as tm:
+                        tm(do=partial(self.model.remove_reactions, [representative], delete=False),
+                           undo=partial(self.model.add_reactions, [representative]))
+                        blocked_reactions = find_blocked_reactions(self.model)
+                        self.assertTrue(all(r in blocked_reactions for r in group if r != representative))
+
+            coupled_reactions = structural.find_coupled_reactions(self.model)
+            for group in coupled_reactions:
+                representative = pick_one(group)
+                if representative not in essential_reactions:
+                    with TimeMachine() as tm:
+                        tm(do=partial(self.model.remove_reactions, [representative], delete=False),
+                           undo=partial(self.model.add_reactions, [representative]))
+                        blocked_reactions = find_blocked_reactions(self.model)
+                        self.assertTrue(all(r in blocked_reactions for r in group if r != representative))
 
 
 class TestFindBlockedReactionsGLPK(Wrapper.AbstractTestFindBlockedReactions):
