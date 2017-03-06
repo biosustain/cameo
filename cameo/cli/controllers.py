@@ -114,7 +114,7 @@ class BaseController(CementBaseController):
     def search(self):
         if self.app.pargs.product is None:
             print("Argument --product must be provided")
-        exit(1)
+            exit(1)
 
         result = products.search(self.app.pargs.product)
         if len(result) > 0:
