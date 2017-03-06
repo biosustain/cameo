@@ -73,8 +73,11 @@ class Products(object):
             raise Exception("No compound matches found for query %s" % query)
 
     def _search_by_name_fuzzy(self, name):
-        matches = difflib.get_close_matches(name, self.data_frame.name.dropna(), n=5, cutoff=.8)
-        ranks = dict([(match, i) for i, match in enumerate(matches)])
+        original_possibilities = self.data_frame.name.dropna()
+        possibilities_mapping = {original_name.lower(): original_name for original_name in original_possibilities}
+        matches = difflib.get_close_matches(name.lower(), list(possibilities_mapping.keys()), n=5, cutoff=.8)
+        matches = [possibilities_mapping[match] for match in matches]
+        ranks = {match: i for i, match in enumerate(matches)}
         selection = DataFrame(self.data_frame[self.data_frame.name.isin(matches)])
         selection['search_rank'] = selection.name.map(ranks)
         return selection.sort_values('search_rank')
