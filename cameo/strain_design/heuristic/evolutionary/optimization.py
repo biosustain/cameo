@@ -679,7 +679,7 @@ class GeneKnockoutOptimization(KnockoutOptimization):
             self.genes = genes
         logger.debug("Computing essential genes...")
         if essential_genes is None:
-            self.essential_genes = set([g.id for g in self.model.essential_genes()])
+            self.essential_genes = {g.id for g in self.model.essential_genes()}
         else:
             self.essential_genes = set([g.id for g in self.model.essential_genes()] + essential_genes)
 
@@ -687,7 +687,7 @@ class GeneKnockoutOptimization(KnockoutOptimization):
         if use_nullspace_simplification:
             ns = nullspace(self.model.S)
             dead_end_reactions = find_blocked_reactions_nullspace(self.model, ns=ns)
-            dead_end_genes = [g for g in self.model.genes if all(r in dead_end_reactions for r in g.reaction)]
+            dead_end_genes = {g for g in self.model.genes if all(r in dead_end_reactions for r in g.reaction)}
             genes = [g for g in self.model.genes if g not in self.essential_genes and g.id not in dead_end_genes]
             self.representation = [g.id for g in genes]
 
