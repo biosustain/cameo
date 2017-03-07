@@ -26,7 +26,8 @@ from cameo import config
 from cameo.core.result import Result
 from cameo.core.solver_based_model import SolverBasedModel
 from cameo.flux_analysis.simulation import pfba, lmoma, moma, room, logger as simulation_logger
-from cameo.flux_analysis.structural import find_blocked_reactions_nullspace, find_coupled_reactions_nullspace, nullspace
+from cameo.flux_analysis.structural import find_blocked_reactions_nullspace, find_coupled_reactions_nullspace, nullspace, \
+    create_stoichiometric_array
 from cameo.strain_design.heuristic.evolutionary import archives
 from cameo.strain_design.heuristic.evolutionary import decoders
 from cameo.strain_design.heuristic.evolutionary import evaluators
@@ -592,7 +593,7 @@ class ReactionKnockoutOptimization(KnockoutOptimization):
             self.essential_reactions = set([r.id for r in self.model.essential_reactions()] + essential_reactions)
 
         if use_nullspace_simplification:
-            ns = nullspace(self.model.S)
+            ns = nullspace(create_stoichiometric_array(model))
             dead_ends = set(find_blocked_reactions_nullspace(self.model, ns=ns))
             exchanges = set(self.model.exchanges)
             reactions = [r for r in self.model.reactions if r not in exchanges and r not in dead_ends and
@@ -685,7 +686,7 @@ class GeneKnockoutOptimization(KnockoutOptimization):
 
         # TODO: use genes from groups
         if use_nullspace_simplification:
-            ns = nullspace(self.model.S)
+            ns = nullspace(create_stoichiometric_array(self.model))
             dead_end_reactions = find_blocked_reactions_nullspace(self.model, ns=ns)
             dead_end_genes = {g for g in self.model.genes if all(r in dead_end_reactions for r in g.reaction)}
             genes = [g for g in self.model.genes if g not in self.essential_genes and g.id not in dead_end_genes]

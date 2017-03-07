@@ -35,6 +35,7 @@ from cameo.core.gene import Gene
 from cameo.core.metabolite import Metabolite
 from cameo.core.solver_based_model import Reaction
 from cameo.exceptions import UndefinedSolution
+from cameo.flux_analysis.structural import create_stoichiometric_array
 from cameo.util import TimeMachine
 
 TRAVIS = os.getenv('TRAVIS', False)
@@ -1075,9 +1076,9 @@ class WrappedAbstractTestSolverBasedModel:
             self.assertRaises(KeyError, self.model._reaction_for, "accoa_lp_c_lp_", add=False)
 
         def test_stoichiometric_matrix(self):
-            S = self.model.S
-            self.assertEqual(len(self.model.reactions), S.shape[1])
-            self.assertEqual(len(self.model.metabolites), S.shape[0])
+            stoichiometric_matrix = create_stoichiometric_array(self.model)
+            self.assertEqual(len(self.model.reactions), stoichiometric_matrix.shape[1])
+            self.assertEqual(len(self.model.metabolites), stoichiometric_matrix.shape[0])
 
             for i, reaction in enumerate(self.model.reactions):
                 for j, metabolite in enumerate(self.model.metabolites):
@@ -1085,7 +1086,7 @@ class WrappedAbstractTestSolverBasedModel:
                         coefficient = reaction.metabolites[metabolite]
                     else:
                         coefficient = 0
-                    self.assertEqual(S[j, i], coefficient)
+                    self.assertEqual(stoichiometric_matrix[j, i], coefficient)
 
         def test_set_medium(self):
             medium = self.model.medium

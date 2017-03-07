@@ -18,14 +18,17 @@ from __future__ import print_function
 
 import logging
 from copy import copy
+from itertools import product
 
 import numpy as np
 import optlang
+import pandas
 import six
 import sympy
 from cobra import Metabolite
 from numpy.linalg import svd
 from scipy.cluster.hierarchy import linkage
+from scipy.sparse import dok_matrix, lil_matrix
 from six.moves import zip
 
 from cameo import Reaction
@@ -39,6 +42,60 @@ __all__ = ['find_dead_end_reactions', 'find_coupled_reactions', 'ShortestElement
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
+
+
+def create_stoichiometric_array(model, array_type='dense', dtype=None):
+    """Return a stoichiometric array representation of the given model.
+    The the columns represent the reactions and rows represent
+    metabolites. S[i,j] therefore contains the quantity of metabolite `i`
+    produced (negative for consumed) by reaction `j`.
+    Parameters
+    ----------
+    model : cobra.Model
+        The cobra model to construct the matrix for.
+    array_type : string
+        The type of array to construct. if 'dense', return a standard
+        numpy.array, 'dok', or 'lil' will construct a sparse array using
+        scipy of the corresponding type and 'data_frame' will give a
+        pandas `DataFrame` with metabolite and reaction identifiers as indices.
+    dtype : data-type
+        The desired data-type for the array. If not given, defaults to float.
+    Returns
+    -------
+    matrix of class `dtype`
+        The stoichiometric matrix for the given model.
+    """
+
+    if dtype is None:
+        dtype = np.float64
+
+    def data_frame(_, dtype):
+        metabolite_ids = [met.id for met in model.metabolites]
+        reaction_ids = [rxn.id for rxn in model.reactions]
+        index = pandas.MultiIndex.from_tuples(
+            list(product(metabolite_ids, reaction_ids)))
+        return pandas.DataFrame(data=0, index=index, columns=['stoichiometry'], dtype=dtype)
+
+    array_constructor = {
+        'dense': np.zeros, 'dok': dok_matrix, 'lil': lil_matrix,
+        'data_frame': data_frame
+    }
+
+    n_metabolites = len(model.metabolites)
+    n_reactions = len(model.reactions)
+    array = array_constructor[array_type]((n_metabolites, n_reactions), dtype=dtype)
+
+    m_ind = model.metabolites.index
+    r_ind = model.reactions.index
+
+    for reaction in model.reactions:
+        for metabolite, stoich in six.iteritems(reaction.metabolites):
+            if array_type == 'data_frame':
+                array.set_value((metabolite.id, reaction.id), 'stoichiometry', stoich)
+            else:
+                array[m_ind(metabolite), r_ind(reaction)] = stoich
+
+    return array
 
 
 # Taken from http://wiki.scipy.org/Cookbook/RankNullspace
@@ -87,7 +144,7 @@ def find_blocked_reactions_nullspace(model, ns=None, tol=1e-10):
     """Identify reactions that can't carry flux based on the nullspace of the stoichiometric matrix.
     A blocked reaction will correspond to an all-zero row in N(S)."""
     if ns is None:
-        ns = nullspace(model.S)
+        ns = nullspace(create_stoichiometric_array(model))
     mask = (np.abs(ns) <= tol).all(1)
     blocked = frozenset(reac for reac, b in zip(model.reactions, mask) if b is True)
     return blocked
@@ -98,7 +155,7 @@ def find_coupled_reactions_nullspace(model, ns=None, tol=1e-10):
     Find groups of reactions whose fluxes are forced to be multiples of each other.
     """
     if ns is None:
-        ns = nullspace(model.S)
+        ns = nullspace(create_stoichiometric_array(model))
     mask = (np.abs(ns) <= tol).all(1)  # Mask for blocked reactions
     non_blocked_ns = ns[~mask]
     non_blocked_reactions = np.array(list(model.reactions))[~mask]
