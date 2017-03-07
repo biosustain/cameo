@@ -70,14 +70,22 @@ class PathwayResult(Pathway, Result, StrainDesign):
         -------
         cameo.core.reaction.Reaction
         """
-        stoichiometry = {m: coeff for m, coeff in six.iteritems(reaction.metabolites)}
+        stoichiometry = {}
 
-        for adapter in self.adapters:
-            if adapter.products[0] in stoichiometry:
-                coefficient = stoichiometry.pop(adapter.products[0])
-                stoichiometry[adapter.reactants[0]] = coefficient
+        for metabolite, coefficient in six.iteritems(reaction.metabolites):
+            found = False
+            for adapter in self.adapters:
+                if metabolite == adapter.products[0]:
+                    metabolite = Metabolite.clone(adapter.reactants[0])
+                    found = False
+                    break
+            if not found:
+                metabolite = Metabolite.clone(metabolite)
 
-        reaction = Reaction(id=reaction.id, name=reaction.name,
+            stoichiometry[metabolite] = coefficient
+
+        reaction = Reaction(id=reaction.id,
+                            name=reaction.name,
                             lower_bound=reaction.lower_bound,
                             upper_bound=reaction.upper_bound)
         reaction.add_metabolites(stoichiometry)
