@@ -26,6 +26,8 @@ from cameo import config
 from cameo.core.result import Result
 from cameo.core.solver_based_model import SolverBasedModel
 from cameo.flux_analysis.simulation import pfba, lmoma, moma, room, logger as simulation_logger
+from cameo.flux_analysis.structural import find_blocked_reactions_nullspace, find_coupled_reactions_nullspace, nullspace, \
+    create_stoichiometric_array
 from cameo.strain_design.heuristic.evolutionary import archives
 from cameo.strain_design.heuristic.evolutionary import decoders
 from cameo.strain_design.heuristic.evolutionary import evaluators
@@ -35,7 +37,7 @@ from cameo.strain_design.heuristic.evolutionary import plotters
 from cameo.strain_design.heuristic.evolutionary import stats
 from cameo.strain_design.heuristic.evolutionary import variators
 from cameo.strain_design.heuristic.evolutionary.objective_functions import MultiObjectiveFunction, ObjectiveFunction
-from cameo.util import RandomGenerator as Random
+from cameo.util import RandomGenerator as Random, reduce_reaction_set
 from cameo.util import in_ipnb
 from cameo.util import partition
 
@@ -551,6 +553,9 @@ class ReactionKnockoutOptimization(KnockoutOptimization):
     essential_reactions: list
         A list of reactions that cannot be knocked out. If None, then all essential reactions will be removed from
         the valid reactions set.
+    use_nullspace_simplification: Boolean (default True)
+        Use a basis for the nullspace to find groups of reactions whose fluxes are multiples of each other and dead
+        end reactions. From each of these groups only 1 reaction will be included as a possible knockout.
 
     Methods
     -------
@@ -573,11 +578,9 @@ class ReactionKnockoutOptimization(KnockoutOptimization):
     >>> knockout_optimization = ReactionKnockoutOptimization(model=model, objective_function=bpcy,
     >>>                                                      essential_reactions=["ATPM"])
     >>> knockout_optimization.run(max_evaluations=50000)
-
-
     """
 
-    def __init__(self, reactions=None, essential_reactions=None, *args, **kwargs):
+    def __init__(self, reactions=None, essential_reactions=None, use_nullspace_simplification=True, *args, **kwargs):
         super(ReactionKnockoutOptimization, self).__init__(*args, **kwargs)
         if reactions is None:
             self.reactions = set([r.id for r in self.model.reactions])
@@ -585,12 +588,28 @@ class ReactionKnockoutOptimization(KnockoutOptimization):
             self.reactions = reactions
         logger.debug("Computing essential reactions...")
         if essential_reactions is None:
-            self.essential_reactions = set([r.id for r in self.model.essential_reactions()])
+            self.essential_reactions = set(r.id for r in self.model.essential_reactions())
         else:
             self.essential_reactions = set([r.id for r in self.model.essential_reactions()] + essential_reactions)
 
-        exchange_reactions = set([r.id for r in self.model.exchanges])
-        self.representation = list(self.reactions.difference(self.essential_reactions).difference(exchange_reactions))
+        if use_nullspace_simplification:
+            ns = nullspace(create_stoichiometric_array(self.model))
+            dead_ends = set(find_blocked_reactions_nullspace(self.model, ns=ns))
+            exchanges = set(self.model.exchanges)
+            reactions = [r for r in self.model.reactions if r not in exchanges and r not in dead_ends and
+                         r.id not in self.essential_reactions]
+
+            groups = find_coupled_reactions_nullspace(self.model, ns=ns)
+            groups = [group for group in groups if any(r.id in reactions for r in group)]
+            reduced_set = reduce_reaction_set(reactions, groups)
+            to_keep = [r.id for r in reduced_set]
+        else:
+            to_keep = set(r.id for r in self.model.reactions)
+            to_keep.difference_update(r.id for r in self.model.exchanges)
+            to_keep.difference_update(self.essential_reactions)
+            to_keep = list(to_keep)
+
+        self.representation = to_keep
         self._target_type = REACTION_KNOCKOUT_TYPE
         self._decoder = decoders.ReactionSetDecoder(self.representation, self.model)
         self._evaluator = evaluators.KnockoutEvaluator(model=self.model,
@@ -627,6 +646,8 @@ class GeneKnockoutOptimization(KnockoutOptimization):
     essential_genes: list
         A list of genes that cannot be knocked out. If None, then all essential genes will be removed from the valid
         genes set.
+    use_nullspace_simplification: Boolean (default True)
+        Use a basis for the nullspace dead end reactions. Gene present only in dead end reactions will be ignored.
 
     Methods
     -------
@@ -651,7 +672,7 @@ class GeneKnockoutOptimization(KnockoutOptimization):
 
     """
 
-    def __init__(self, genes=None, essential_genes=None, *args, **kwargs):
+    def __init__(self, genes=None, essential_genes=None, use_nullspace_simplification=True, *args, **kwargs):
         super(GeneKnockoutOptimization, self).__init__(*args, **kwargs)
         if genes is None:
             self.genes = set([g.id for g in self.model.genes])
@@ -659,11 +680,21 @@ class GeneKnockoutOptimization(KnockoutOptimization):
             self.genes = genes
         logger.debug("Computing essential genes...")
         if essential_genes is None:
-            self.essential_genes = set([g.id for g in self.model.essential_genes()])
+            self.essential_genes = {g.id for g in self.model.essential_genes()}
         else:
             self.essential_genes = set([g.id for g in self.model.essential_genes()] + essential_genes)
 
-        self.representation = list(self.genes.difference(self.essential_genes))
+        # TODO: use genes from groups
+        if use_nullspace_simplification:
+            ns = nullspace(create_stoichiometric_array(self.model))
+            dead_end_reactions = find_blocked_reactions_nullspace(self.model, ns=ns)
+            dead_end_genes = {g for g in self.model.genes if all(r in dead_end_reactions for r in g.reaction)}
+            genes = [g for g in self.model.genes if g not in self.essential_genes and g.id not in dead_end_genes]
+            self.representation = [g.id for g in genes]
+
+        else:
+            self.representation = list(self.genes.difference(self.essential_genes))
+
         self._target_type = GENE_KNOCKOUT_TYPE
         self._decoder = decoders.GeneSetDecoder(self.representation, self.model)
         self._evaluator = evaluators.KnockoutEvaluator(model=self.model,

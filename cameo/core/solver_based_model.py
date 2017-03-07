@@ -27,6 +27,7 @@ from copy import copy, deepcopy
 from functools import partial
 
 import cobra
+import numpy as np
 import optlang
 import six
 import sympy
@@ -632,6 +633,19 @@ class SolverBasedModel(cobra.core.Model):
             raise e
 
         return essential
+
+    @property
+    def S(self):
+        metabolite_index = {metabolite.id: index for index, metabolite in enumerate(self.metabolites)}
+        stoichiometric_matrix = np.zeros((len(self.metabolites), len(self.reactions)))
+
+        for i, reaction in enumerate(self.reactions):
+            for metabolite, coefficient in six.iteritems(reaction.metabolites):
+                j = metabolite_index[metabolite.id]
+                stoichiometric_matrix[j, i] = coefficient
+
+        return stoichiometric_matrix
+
 
     @property
     def medium(self):

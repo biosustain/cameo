@@ -86,7 +86,7 @@ class OptGene(StrainDesignMethod):
 
     def run(self, target=None, biomass=None, substrate=None, max_knockouts=5, variable_size=True,
             simulation_method=fba, growth_coupled=False, max_evaluations=20000, population_size=200,
-            time_machine=None, max_results=50, seed=None, **kwargs):
+            time_machine=None, max_results=50, use_nullspace_simplification=True, seed=None, **kwargs):
         """
         Parameters
         ----------
@@ -116,6 +116,9 @@ class OptGene(StrainDesignMethod):
             Arguments for the simulation method.
         seed: int
             A seed for random.
+        use_nullspace_simplification: Boolean (default True)
+            Use a basis for the nullspace to find groups of reactions whose fluxes are multiples of each other and dead
+            end reactions. From each of these groups only 1 reaction will be included as a possible knockout.
 
 
         Returns
@@ -138,14 +141,16 @@ class OptGene(StrainDesignMethod):
                 heuristic_method=self._algorithm,
                 essential_genes=self._essential_genes,
                 plot=self.plot,
-                objective_function=objective_function)
+                objective_function=objective_function,
+                use_nullspace_simplification=use_nullspace_simplification)
         elif self.manipulation_type is "reactions":
             optimization_algorithm = ReactionKnockoutOptimization(
                 model=self._model,
                 heuristic_method=self._algorithm,
                 essential_reactions=self._essential_reactions,
                 plot=self.plot,
-                objective_function=objective_function)
+                objective_function=objective_function,
+                use_nullspace_simplification=use_nullspace_simplification)
         else:
             raise ValueError("Invalid manipulation type %s" % self.manipulation_type)
 
