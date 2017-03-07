@@ -27,6 +27,7 @@ import six
 from cobra.core import Reaction, Metabolite
 from numpy import trapz
 from six.moves import zip
+from sympy import S
 
 import cameo
 from cameo import config
@@ -37,7 +38,6 @@ from cameo.parallel import SequentialView
 from cameo.ui import notice
 from cameo.util import TimeMachine, partition, _BIOMASS_RE_
 from cameo.visualization.plotting import plotter
-from sympy import S
 
 logger = logging.getLogger(__name__)
 
@@ -226,25 +226,34 @@ def _flux_variability_analysis(model, reactions=None):
     else:
         reactions = model._ids_to_reactions(reactions)
     fva_sol = OrderedDict()
-    [lb_flag, ub_flag] = [False, False]
+    lb_flags = dict()
     with TimeMachine() as tm:
         model.change_objective(S.Zero, time_machine=tm)
+
+        model.objective.direction = 'min'
         for reaction in reactions:
+            lb_flags[reaction.id] = False
             fva_sol[reaction.id] = dict()
-            model.solver.objective.set_linear_coefficients({reaction.forward_variable: 1., reaction.reverse_variable: -1.})
-            model.objective.direction = 'min'
+            model.solver.objective.set_linear_coefficients({reaction.forward_variable: 1.,
+                                                            reaction.reverse_variable: -1.})
             try:
                 solution = model.solve()
                 fva_sol[reaction.id]['lower_bound'] = solution.f
             except Unbounded:
                 fva_sol[reaction.id]['lower_bound'] = -numpy.inf
             except Infeasible:
-                lb_flag = True
-            model.solver.objective.set_linear_coefficients({reaction.forward_variable: 0., reaction.reverse_variable: 0.})
+                lb_flags[reaction.id] = True
+            model.solver.objective.set_linear_coefficients({reaction.forward_variable: 0.,
+                                                            reaction.reverse_variable: 0.})
 
+            assert model.objective.expression == 0, model.objective.expression
+
+        model.objective.direction = 'max'
         for reaction in reactions:
-            model.solver.objective.set_linear_coefficients({reaction.forward_variable: 1., reaction.reverse_variable: -1.})
-            model.objective.direction = 'max'
+            ub_flag = False
+            model.solver.objective.set_linear_coefficients({reaction.forward_variable: 1.,
+                                                            reaction.reverse_variable: -1.})
+
             try:
                 solution = model.solve()
                 fva_sol[reaction.id]['upper_bound'] = solution.f
@@ -253,17 +262,23 @@ def _flux_variability_analysis(model, reactions=None):
             except Infeasible:
                 ub_flag = True
 
-            if lb_flag is True and ub_flag is True:
+            if lb_flags[reaction.id] is True and ub_flag is True:
                 fva_sol[reaction.id]['lower_bound'] = 0
                 fva_sol[reaction.id]['upper_bound'] = 0
-                [lb_flag, ub_flag] = [False, False]
-            elif lb_flag is True and ub_flag is False:
+                [lb_flags[reaction.id], ub_flag] = [False, False]
+            elif lb_flags[reaction.id] is True and ub_flag is False:
                 fva_sol[reaction.id]['lower_bound'] = fva_sol[reaction.id]['upper_bound']
-                lb_flag = False
-            elif lb_flag is False and ub_flag is True:
+                lb_flags[reaction.id] = False
+            elif lb_flags[reaction.id] is False and ub_flag is True:
                 fva_sol[reaction.id]['upper_bound'] = fva_sol[reaction.id]['lower_bound']
                 ub_flag = False
-            model.solver.objective.set_linear_coefficients({reaction.forward_variable: 0., reaction.reverse_variable: 0.})
+
+            model.solver.objective.set_linear_coefficients({reaction.forward_variable: 0.,
+                                                            reaction.reverse_variable: 0.})
+
+            assert model.objective.expression == 0, model.objective.expression
+
+            assert lb_flags[reaction.id] is False and ub_flag is False, "Something is wrong with FVA (%s)" % reaction.id
 
     df = pandas.DataFrame.from_dict(fva_sol, orient='index')
     lb_higher_ub = df[df.lower_bound > df.upper_bound]
