@@ -1,8 +1,20 @@
 language: python
 sudo: false
-python:
-- '2.7'
-- '3.4'
+
+matrix:
+  fast_finish: true
+  python:
+    - '2.7'
+    - '3.5'
+    - '3.6'
+
+branches:
+ only:
+ - master
+ - devel
+ - devel-nonfree
+ - /^[0-9]+\.[0-9]+\.[0-9]+[.0-9ab]*$/
+
 cache:
 - pip: true
 services:
