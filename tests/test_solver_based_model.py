@@ -72,12 +72,12 @@ class AbstractTestLazySolution(WrappedCommonGround.CommonGround):
         self.assertRaises(UndefinedSolution, getattr, solution, 'f')
 
     def test_solution_contains_only_reaction_specific_values(self):
-        reaction_IDs = set([reaction.id for reaction in self.model.reactions])
-        self.assertEqual(set(self.solution.x_dict.keys()).difference(reaction_IDs), set())
-        self.assertEqual(set(self.solution.y_dict.keys()).difference(reaction_IDs), set())
-        self.assertEqual(set(self.solution.reduced_costs.keys()).difference(reaction_IDs), set())
-        metabolite_IDs = set([metabolite.id for metabolite in self.model.metabolites])
-        self.assertEqual(set(self.solution.shadow_prices.keys()).difference(metabolite_IDs), set())
+        reaction_ids = set([reaction.id for reaction in self.model.reactions])
+        self.assertEqual(set(self.solution.x_dict.keys()).difference(reaction_ids), set())
+        self.assertEqual(set(self.solution.y_dict.keys()).difference(reaction_ids), set())
+        self.assertEqual(set(self.solution.reduced_costs.keys()).difference(reaction_ids), set())
+        metabolite_ids = set([metabolite.id for metabolite in self.model.metabolites])
+        self.assertEqual(set(self.solution.shadow_prices.keys()).difference(metabolite_ids), set())
 
 
 class TestLazySolutionGLPK(AbstractTestLazySolution):
@@ -543,6 +543,7 @@ class WrappedAbstractTestReaction:
             self.assertEqual(self.model.reactions.PFK.forward_variable.ub, 1000.0)
             self.assertEqual(self.model.reactions.PFK.reverse_variable.lb, 0)
             self.assertEqual(self.model.reactions.PFK.reverse_variable.ub, 1000)
+            self.assertTrue(self.model.reactions.PFK.reversibility)
 
         def test_twist_irrev_right_to_left_reaction_to_left_to_right(self):
             self.assertFalse(self.model.reactions.PFK.reversibility)
