@@ -30,6 +30,7 @@ from ordered_set import OrderedSet
 from six.moves import range
 
 from cameo import load_model, fba, config
+from cameo.core.manipulation import swap_cofactors
 from cameo.parallel import SequentialView
 try:
     from cameo.parallel import RedisQueue
@@ -39,7 +40,7 @@ except ImportError:
 from cameo.strain_design.heuristic.evolutionary.archives import Individual, BestSolutionArchive
 from cameo.strain_design.heuristic.evolutionary.decoders import ReactionSetDecoder, SetDecoder, \
     GeneSetDecoder
-from cameo.strain_design.heuristic.evolutionary.generators import set_generator, unique_set_generator, \
+from cameo.strain_design.heuristic.evolutionary.generators import set_generator, \
     multiple_chromosome_set_generator, linear_set_generator
 from cameo.strain_design.heuristic.evolutionary.genomes import MultipleChromosomeGenome
 from cameo.strain_design.heuristic.evolutionary.metrics import euclidean_distance
@@ -51,7 +52,7 @@ from cameo.strain_design.heuristic.evolutionary.objective_functions import bioma
     product_yield, number_of_knockouts, biomass_product_coupled_min_yield, MultiObjectiveFunction, YieldFunction
 from cameo.strain_design.heuristic.evolutionary.optimization import HeuristicOptimization, \
     ReactionKnockoutOptimization, set_distance_function, TargetOptimizationResult, EvaluatorWrapper, \
-    CofactorSwapOptimization
+    CofactorSwapOptimization, SolutionSimplification, NADH_NADPH
 
 from cameo.strain_design.heuristic.evolutionary.evaluators import KnockoutEvaluator
 
@@ -69,9 +70,11 @@ else:
 SEED = 1234
 
 CURRENT_PATH = os.path.dirname(__file__)
-MODEL_PATH = os.path.join(CURRENT_PATH, "data/EcoliCore.xml")
+CORE_MODEL_PATH = os.path.join(CURRENT_PATH, "data/EcoliCore.xml")
+IAF1260_MODEL_PATH = os.path.join(CURRENT_PATH, "data/iAF1260.xml")
 
-TEST_MODEL = load_model(MODEL_PATH, sanitize=False)
+TEST_MODEL = load_model(CORE_MODEL_PATH, sanitize=False)
+IAF1260_MODEL = load_model(IAF1260_MODEL_PATH, sanitize=False)
 
 SOLUTIONS = [
     [[1, 2, 3], 0.1],
@@ -85,6 +88,16 @@ SOLUTIONS = [
     [[44, 12, 42, 51], 0.0],
     [[52, 22, 4, 11], 0.0]
 ]
+
+
+class TestWithModel:
+    class TestWithEColiCore(unittest.TestCase):
+        def setUp(self):
+            self.model = load_model(CORE_MODEL_PATH, sanitize=False)
+
+    class TestWithiAF1260Model(unittest.TestCase):
+        def setUp(self):
+            self.model = load_model(IAF1260_MODEL_PATH, sanitize=False)
 
 
 class TestMetrics(unittest.TestCase):
@@ -300,9 +313,8 @@ class TestBestSolutionArchive(unittest.TestCase):
             self.assertTrue(sol in archive)
 
 
-class TestObjectiveFunctions(unittest.TestCase):
-
-    class _MockupSolution(object):
+class TestObjectiveFunctions(TestWithModel.TestWithEColiCore):
+    class _MockupSolution():
         def __init__(self):
             self._primal = {}
 
@@ -374,11 +386,11 @@ class TestObjectiveFunctions(unittest.TestCase):
         of = biomass_product_coupled_min_yield(biomass, product, substrate)
         self._assert_is_pickable(of)
         self.assertEqual(of.name, "bpcy = (%s * min(%s)) / %s" % (biomass, product, substrate))
-        reactions = [TEST_MODEL.reactions.get_by_id(r) for r in ['ATPS4r', 'CO2t', 'GLUDy', 'PPS', 'PYK']]
+        reactions = [self.model.reactions.get_by_id(r) for r in ['ATPS4r', 'CO2t', 'GLUDy', 'PPS', 'PYK']]
         with TimeMachine() as tm:
             for r in reactions:
                 r.knock_out(tm)
-            fitness = of(TEST_MODEL, solution, reactions)
+            fitness = of(self.model, solution, reactions)
         self.assertAlmostEqual(0.414851, fitness, places=5)
 
     def test_product_yield(self):
@@ -421,20 +433,20 @@ class TestObjectiveFunctions(unittest.TestCase):
         self.assertGreater(f1, f2)
 
 
-class TestKnockoutEvaluator(unittest.TestCase):
+class TestKnockoutEvaluator(TestWithModel.TestWithEColiCore):
     def test_initializer(self):
         objective1 = biomass_product_coupled_yield(
             "Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2",
             "EX_ac_LPAREN_e_RPAREN_",
             "EX_glc_LPAREN_e_RPAREN_")
-        decoder = ReactionSetDecoder(["PGI", "PDH", "FUM", "FBA", "G6PDH2r", "FRD7", "PGL", "PPC"], TEST_MODEL)
-        evaluator = KnockoutEvaluator(TEST_MODEL, decoder, objective1, fba, {})
+        decoder = ReactionSetDecoder(["PGI", "PDH", "FUM", "FBA", "G6PDH2r", "FRD7", "PGL", "PPC"], self.model)
+        evaluator = KnockoutEvaluator(self.model, decoder, objective1, fba, {})
         self.assertEquals(evaluator.decoder, decoder)
         self.assertEquals(evaluator.objective_function, objective1)
         self.assertTrue(hasattr(evaluator, "__call__"))
 
         objective2 = product_yield("EX_ac_LPAREN_e_RPAREN_", "EX_glc_LPAREN_e_RPAREN_")
-        evaluator = KnockoutEvaluator(TEST_MODEL, decoder, MultiObjectiveFunction([objective1, objective2]), fba, {})
+        evaluator = KnockoutEvaluator(self.model, decoder, MultiObjectiveFunction([objective1, objective2]), fba, {})
         self.assertEquals(evaluator.objective_function.objectives, [objective1, objective2])
 
     def test_invalid_initializers(self):
@@ -442,24 +454,24 @@ class TestKnockoutEvaluator(unittest.TestCase):
             "Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2",
             "EX_ac_LPAREN_e_RPAREN_",
             "EX_glc_LPAREN_e_RPAREN_")
-        decoder = ReactionSetDecoder(["PGI", "PDH", "FUM", "FBA", "G6PDH2r", "FRD7", "PGL", "PPC"], TEST_MODEL)
-        self.assertRaises(ValueError, KnockoutEvaluator, TEST_MODEL, decoder, 1, fba, {})
-        self.assertRaises(ValueError, KnockoutEvaluator, TEST_MODEL, decoder, None, fba, {})
-        self.assertRaises(ValueError, KnockoutEvaluator, TEST_MODEL, decoder, [], fba, {})
-        self.assertRaises(ValueError, KnockoutEvaluator, TEST_MODEL, decoder, [2, 3], fba, {})
-        self.assertRaises(ValueError, KnockoutEvaluator, TEST_MODEL, decoder, [objective1], fba, {})
-        self.assertRaises(ValueError, KnockoutEvaluator, TEST_MODEL, None, [], fba, {})
-        self.assertRaises(ValueError, KnockoutEvaluator, TEST_MODEL, True, [], fba, {})
+        decoder = ReactionSetDecoder(["PGI", "PDH", "FUM", "FBA", "G6PDH2r", "FRD7", "PGL", "PPC"], self.model)
+        self.assertRaises(ValueError, KnockoutEvaluator, self.model, decoder, 1, fba, {})
+        self.assertRaises(ValueError, KnockoutEvaluator, self.model, decoder, None, fba, {})
+        self.assertRaises(ValueError, KnockoutEvaluator, self.model, decoder, [], fba, {})
+        self.assertRaises(ValueError, KnockoutEvaluator, self.model, decoder, [2, 3], fba, {})
+        self.assertRaises(ValueError, KnockoutEvaluator, self.model, decoder, [objective1], fba, {})
+        self.assertRaises(ValueError, KnockoutEvaluator, self.model, None, [], fba, {})
+        self.assertRaises(ValueError, KnockoutEvaluator, self.model, True, [], fba, {})
 
     def test_evaluate_single_objective(self):
         representation = ["ATPS4r", "PYK", "GLUDy", "PPS", "CO2t", "PDH",
                           "FUM", "FBA", "G6PDH2r", "FRD7", "PGL", "PPC"]
-        decoder = ReactionSetDecoder(representation, TEST_MODEL)
+        decoder = ReactionSetDecoder(representation, self.model)
         objective1 = biomass_product_coupled_yield(
             "Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2",
             "EX_ac_LPAREN_e_RPAREN_",
             "EX_glc_LPAREN_e_RPAREN_")
-        evaluator = KnockoutEvaluator(TEST_MODEL, decoder, objective1, fba, {})
+        evaluator = KnockoutEvaluator(self.model, decoder, objective1, fba, {})
         fitness = evaluator([[0, 1, 2, 3, 4]])[0]
 
         self.assertAlmostEqual(fitness, 0.41, delta=0.02)
@@ -467,14 +479,14 @@ class TestKnockoutEvaluator(unittest.TestCase):
     def test_evaluate_multiobjective(self):
         representation = ["ATPS4r", "PYK", "GLUDy", "PPS", "CO2t", "PDH",
                           "FUM", "FBA", "G6PDH2r", "FRD7", "PGL", "PPC"]
-        decoder = ReactionSetDecoder(representation, TEST_MODEL)
+        decoder = ReactionSetDecoder(representation, self.model)
         objective1 = biomass_product_coupled_yield(
             "Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2",
             "EX_ac_LPAREN_e_RPAREN_",
             "EX_glc_LPAREN_e_RPAREN_")
         objective2 = product_yield("EX_ac_LPAREN_e_RPAREN_", "EX_glc_LPAREN_e_RPAREN_", carbon_yield=False)
         objective = MultiObjectiveFunction([objective1, objective2])
-        evaluator = KnockoutEvaluator(TEST_MODEL, decoder, objective, fba, {})
+        evaluator = KnockoutEvaluator(self.model, decoder, objective, fba, {})
         fitness = evaluator([[0, 1, 2, 3, 4]])[0]
 
         self.assertIsInstance(fitness, Pareto)
@@ -485,12 +497,12 @@ class TestKnockoutEvaluator(unittest.TestCase):
         representation = ["ENO", "ATPS4r", "PYK", "GLUDy", "PPS", "CO2t", "PDH",
                           "FUM", "FBA", "G6PDH2r", "FRD7", "PGL", "PPC"]
 
-        decoder = ReactionSetDecoder(representation, TEST_MODEL)
+        decoder = ReactionSetDecoder(representation, self.model)
         objective1 = biomass_product_coupled_yield(
             "Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2",
             "EX_ac_LPAREN_e_RPAREN_",
             "EX_glc_LPAREN_e_RPAREN_")
-        evaluator = KnockoutEvaluator(TEST_MODEL, decoder, objective1, fba, {})
+        evaluator = KnockoutEvaluator(self.model, decoder, objective1, fba, {})
         fitness = evaluator([[0]])[0]
         self.assertEquals(fitness, 0)
 
@@ -515,32 +527,39 @@ class TestWrappedEvaluator(unittest.TestCase):
         self.assertRaises(ValueError, EvaluatorWrapper, 123, lambda x: 1)
 
 
-class TestSwapEvaluator(unittest.TestCase):
+class TestSwapOptimization(TestWithModel.TestWithEColiCore):
+
     def test_swap_reaction_identification(self):
         expected_reactions = ['ACALD', 'AKGDH', 'ALCD2x', 'G6PDH2r', 'GAPD', 'GLUDy', 'GLUSy', 'GND', 'ICDHyr',
                               'LDH_D', 'MDH', 'ME1', 'ME2', 'NADH16', 'PDH']
 
-        py = product_yield(TEST_MODEL.reactions.EX_etoh_LPAREN_e_RPAREN_, TEST_MODEL.reactions.EX_glc_LPAREN_e_RPAREN_)
-        optimization = CofactorSwapOptimization(model=TEST_MODEL, objective_function=py)
+        swap_pairs = ([self.model.metabolites.get_by_id(m) for m in NADH_NADPH[0]],
+                      [self.model.metabolites.get_by_id(m) for m in NADH_NADPH[1]])
 
-        self.assertEquals(expected_reactions, optimization.representation)
-        self.assertNotIn('PGI', optimization.representation)
+        representation = CofactorSwapOptimization.find_swappable_reactions(self.model, swap_pairs)
+
+        self.assertEquals(expected_reactions, representation)
+        self.assertNotIn('PGI', representation)
 
     def test_evaluate_swap(self):
-        TEST_MODEL.objective = TEST_MODEL.reactions.EX_etoh_LPAREN_e_RPAREN_
-        py = product_yield(TEST_MODEL.reactions.EX_etoh_LPAREN_e_RPAREN_, TEST_MODEL.reactions.EX_glc_LPAREN_e_RPAREN_,
-                           carbon_yield=True)
-        reactions = ['ACALD', 'ALCD2x', 'G6PDH2r', 'GAPD']
-        optimization = CofactorSwapOptimization(model=TEST_MODEL, objective_function=py, candidate_reactions=reactions)
-        optimization_result = optimization.run(max_evaluations=16, max_size=2)
-        fitness = optimization_result.data_frame.iloc[0].fitness
-        self.assertAlmostEqual(fitness, 0.66667, places=3)
+        self.model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = 0.5
+        py = product_yield(self.model.reactions.EX_etoh_LPAREN_e_RPAREN_, self.model.reactions.EX_glc_LPAREN_e_RPAREN_)
+        cofactors = ((self.model.metabolites.nad_c, self.model.metabolites.nadh_c),
+                     (self.model.metabolites.nadp_c, self.model.metabolites.nadph_c))
+        self.model.objective = self.model.reactions.EX_etoh_LPAREN_e_RPAREN_
+
+        swap_cofactors(self.model.reactions.ALCD2x, self.model, cofactors, inplace=True)
+
+        reactions = ['GAPD', 'AKGDH', 'PDH', 'GLUDy', 'MDH']
+        optimization = CofactorSwapOptimization(model=self.model, objective_function=py, candidate_reactions=reactions)
+        optimization_result = optimization.run(max_evaluations=10000, max_size=1, pop_size=100, variable_size=False,
+                                               mutation_rate=0.5, seed=1485441961)
+        fitness = optimization_result.data_frame.fitness.max()
+        print(fitness)
+        self.assertAlmostEqual(fitness, 0.322085, places=3)
 
 
-class TestDecoders(unittest.TestCase):
-    def setUp(self):
-        self.model = TEST_MODEL
-
+class TestDecoders(TestWithModel.TestWithEColiCore):
     def test_set_decoder(self):
         representation = [1, 2, 'a', 'b', None, '0']
         decoder = SetDecoder(representation, self.model)
@@ -561,11 +580,11 @@ class TestDecoders(unittest.TestCase):
             self.assertEqual(self.model.genes[i], genes[i-1])
 
 
-class TestGenerators(unittest.TestCase):
+class TestGenerators(TestWithModel.TestWithEColiCore):
     mockup_evolutionary_algorithm = namedtuple("EA", ["bounder"])
 
     def setUp(self):
-        self.model = TEST_MODEL
+        super(TestGenerators, self).setUp()
         self.args = {}
         self.args.setdefault('representation', [r.id for r in self.model.reactions])
         self.random = Random()
@@ -610,9 +629,10 @@ class TestGenerators(unittest.TestCase):
         for _ in range(1000):
             candidate = set_generator(self.random, self.args)
             self.assertEqual(len(candidate), 10)
-            candidate = unique_set_generator(self.random, self.args)
-            self.assertEqual(len(candidate), 10)
             candidates.append(candidate)
+
+        # with open(candidates_file, 'wb') as out_file:
+        #     pickle.dump(candidates, out_file, protocol=2)
 
         with open(candidates_file, 'rb') as in_file:
             if six.PY3:
@@ -625,8 +645,6 @@ class TestGenerators(unittest.TestCase):
         self.args['max_size'] = 20
         for _ in range(1000):
             candidate = set_generator(self.random, self.args)
-            self.assertEqual(len(candidate), 20)
-            candidate = unique_set_generator(self.random, self.args)
             self.assertEqual(len(candidate), 20)
 
     def test_variable_size_set_generator(self):
@@ -638,9 +656,10 @@ class TestGenerators(unittest.TestCase):
         for _ in range(1000):
             candidate = set_generator(self.random, self.args)
             self.assertLessEqual(len(candidate), 10)
-            candidate = unique_set_generator(self.random, self.args)
-            self.assertLessEqual(len(candidate), 10)
             candidates.append(candidate)
+
+        # with open(candidates_file, 'wb') as out_file:
+        #     pickle.dump(candidates, out_file, protocol=2)
 
         with open(candidates_file, 'rb') as in_file:
             if six.PY3:
@@ -653,8 +672,6 @@ class TestGenerators(unittest.TestCase):
         self.args['max_size'] = 20
         for _ in range(1000):
             candidate = set_generator(self.random, self.args)
-            self.assertLessEqual(len(candidate), 20)
-            candidate = unique_set_generator(self.random, self.args)
             self.assertLessEqual(len(candidate), 20)
 
     def test_fixed_size_linear_set_generator(self):
@@ -671,9 +688,9 @@ class TestGenerators(unittest.TestCase):
             self.assertLessEqual(len(candidate), 10)
 
 
-class TestHeuristicOptimization(unittest.TestCase):
+class TestHeuristicOptimization(TestWithModel.TestWithEColiCore):
     def setUp(self):
-        self.model = TEST_MODEL
+        super(TestHeuristicOptimization, self).setUp()
         self.single_objective_function = product_yield('product', 'substrate')
         self.multiobjective_function = MultiObjectiveFunction([
             product_yield('product', 'substrate'),
@@ -793,7 +810,6 @@ class TestMigrators(unittest.TestCase):
         self.population = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
         self.random = Random(SEED)
 
-    # unittest.skipIf(os.getenv('WERCKER', False), 'Currently not working on wercker as redis is not running on localhost')
     @unittest.skipIf(RedisQueue is None, 'redis not available')
     def test_migrator_constructor(self):
         migrator = MultiprocessingMigrator(max_migrants=1, host=REDIS_HOST)
@@ -808,7 +824,6 @@ class TestMigrators(unittest.TestCase):
         self.assertIsInstance(migrator.migrants, RedisQueue)
         self.assertEqual(migrator.max_migrants, 3)
 
-    # unittest.skipIf(os.getenv('WERCKER', False), 'Currently not working on wercker as redis is not running on localhost')
     @unittest.skipIf(RedisQueue is None, 'redis not available')
     def test_migrate_individuals_without_evaluation(self):
         migrator = MultiprocessingMigrator(max_migrants=1, host=REDIS_HOST)
@@ -822,15 +837,17 @@ class TestMigrators(unittest.TestCase):
         self.assertEqual(len(migrator.migrants), 1)
 
 
-class TestOptimizationResult(unittest.TestCase):
+class TestOptimizationResult(TestWithModel.TestWithEColiCore):
     def setUp(self):
-        self.model = TEST_MODEL
+        super(TestOptimizationResult, self).setUp()
         self.representation = [r.id for r in self.model.reactions]
         random = Random(SEED)
         args = {"representation": self.representation}
+
         self.solutions = BestSolutionArchive()
         for _ in range(10000):
             self.solutions.add(set_generator(random, args), random.random(), None, True, 100)
+
         self.decoder = ReactionSetDecoder(self.representation, self.model)
 
     def test_reaction_result(self):
@@ -843,7 +860,8 @@ class TestOptimizationResult(unittest.TestCase):
             objective_function=None,
             target_type="reaction",
             decoder=self.decoder,
-            seed=SEED)
+            seed=SEED,
+            simplify=False)
 
         self.assertEqual(result.target_type, "reaction")
 
@@ -857,9 +875,9 @@ class TestOptimizationResult(unittest.TestCase):
             self.assertEqual(self.solutions.archive.count(individual), 1, msg="%s is unique in archive" % individual)
 
 
-class TestReactionKnockoutOptimization(unittest.TestCase):
+class TestReactionKnockoutOptimization(TestWithModel.TestWithEColiCore):
     def setUp(self):
-        self.model = TEST_MODEL
+        super(TestReactionKnockoutOptimization, self).setUp()
         self.essential_reactions = set([r.id for r in self.model.essential_reactions()])
 
     def test_initializer(self):
@@ -1082,3 +1100,21 @@ class GenomesTestCase(unittest.TestCase):
 
         del genome["A"]
         self.assertRaises(KeyError, genome.__getitem__, "A")
+
+
+class SimplificationTestCase(TestWithModel.TestWithiAF1260Model):
+
+    def simplify_knockout_solutions_for_succ(self):
+        representation = ["FUM", "SFGTHi", "DHACOAH", "ASPTRS"]
+        solution = [0, 1, 2, 3]
+
+        bpcy = biomass_product_coupled_min_yield("Ec_biomass_iAF1260_core_59p81M",
+                                                 "EX_succ_lp_e_rp_",
+                                                 "EX_glc_lp_e_rp_")
+
+        decoder = ReactionSetDecoder(representation, self.model)
+        evaluator = KnockoutEvaluator(self.model, decoder, bpcy, fba, {})
+        simplification = SolutionSimplification(evaluator)
+
+        new_solution = simplification(solution)
+        self.assertEqual([0], new_solution)
