@@ -20,6 +20,8 @@ import types
 from functools import reduce
 
 import inspyred
+import numpy
+from inspyred.ec.generators import diversify as diversify_function
 from pandas import DataFrame
 
 from cameo import config
@@ -36,6 +38,7 @@ from cameo.strain_design.heuristic.evolutionary import observers
 from cameo.strain_design.heuristic.evolutionary import plotters
 from cameo.strain_design.heuristic.evolutionary import stats
 from cameo.strain_design.heuristic.evolutionary import variators
+from cameo.strain_design.heuristic.evolutionary.archives import Individual
 from cameo.strain_design.heuristic.evolutionary.objective_functions import MultiObjectiveFunction, ObjectiveFunction
 from cameo.util import RandomGenerator as Random, reduce_reaction_set
 from cameo.util import in_ipnb
@@ -192,6 +195,9 @@ class HeuristicOptimization(object):
         self._heuristic_method = heuristic_method(self.random)
 
     def run(self, evaluator=None, generator=None, view=config.default_view, maximize=True, **kwargs):
+        if isinstance(self.heuristic_method.archiver, archives.BestSolutionArchive):
+            self.heuristic_method.archiver.reset()
+
         if kwargs.get('seed', None) is None:
             kwargs['seed'] = int(time.time())
 
@@ -340,16 +346,17 @@ class TargetOptimization(HeuristicOptimization):
         if self.progress:
             self.observers.append(observers.ProgressObserver())
 
-    def run(self, view=config.default_view, max_size=10, variable_size=True, **kwargs):
+    def run(self, view=config.default_view, max_size=10, variable_size=True, diversify=False, **kwargs):
         """
         Parameters
         ----------
         max_size: int
             Maximum size of a solution, e.g., the maximum number of reactions or genes to knock-out or swap
         variable_size: boolean
-            If true, the solution size can change meaning that the combination of knockouts can have different sizes up to
-            max_size. Otherwise it only produces knockout solutions with a fixed number of knockouts.
-
+            If true, the solution size can change meaning that the combination of knockouts can have different sizes up
+            to max_size. Otherwise it only produces knockout solutions with a fixed number of knockouts.
+        diversify: bool
+            It true, the generator will not be allowed to generate repeated candidates in the initial population.
         """
 
         if kwargs.get('seed', None) is None:
@@ -360,11 +367,16 @@ class TargetOptimization(HeuristicOptimization):
         log_level = simulation_logger.level
         simulation_logger.setLevel(logging.CRITICAL)
 
+        if diversify:
+            generator = diversify_function(generators.set_generator)
+        else:
+            generator = generators.set_generator
+
         with EvaluatorWrapper(view, self._evaluator) as evaluator:
             super(TargetOptimization, self).run(distance_function=set_distance_function,
                                                 representation=self.representation,
                                                 evaluator=evaluator,
-                                                generator=generators.set_generator,
+                                                generator=generator,
                                                 max_size=max_size,
                                                 **kwargs)
             simulation_logger.setLevel(log_level)
@@ -377,6 +389,7 @@ class TargetOptimization(HeuristicOptimization):
                                             objective_function=self.objective_function,
                                             target_type=self._target_type,
                                             decoder=self._decoder,
+                                            evaluator=self._evaluator,
                                             seed=kwargs['seed'],
                                             metadata=self.metadata,
                                             view=view)
@@ -392,10 +405,45 @@ class KnockoutOptimization(TargetOptimization):
                                                    *args, **kwargs)
 
 
+class SolutionSimplification(object):
+    """
+    Solution Simplification Method
+    """
+    def __init__(self, evaluator):
+        if not isinstance(evaluator, evaluators.Evaluator):
+            raise ValueError("Evaluator must be instance of "
+                             "'cameo.strain_design.heuristic.evolutionary.evaluators.Evaluator'")
+        self._evaluator = evaluator
+
+    def __call__(self, population):
+        return [self.simplify(individual) for individual in population]
+
+    def simplify(self, individual):
+        new_individual = Individual(individual.candidate, individual.fitness, individual.maximize, birthdate=individual.birthdate)
+
+        for target in individual.candidate:
+            new_individual.candidate.remove(target)
+            new_fitness = self._evaluator.evaluate_individual(tuple(new_individual))
+            if isinstance(new_fitness, inspyred.ec.emo.Pareto):
+                if new_fitness < individual.fitness:
+                    new_individual.candidate.add(target)
+            else:
+                if new_fitness < individual.fitness or numpy.isnan(new_fitness):
+                    new_individual.candidate.add(target)
+
+        return new_individual
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self._evaluator.reset()
+
+
 class TargetOptimizationResult(Result):
     def __init__(self, model=None, heuristic_method=None, simulation_method=None, simulation_kwargs=None,
-                 solutions=None, objective_function=None, target_type=None, decoder=None,
-                 seed=None, metadata=None, view=None, *args, **kwargs):
+                 solutions=None, objective_function=None, target_type=None, decoder=None, evaluator=None,
+                 seed=None, metadata=None, view=None, simplify=True, *args, **kwargs):
         super(TargetOptimizationResult, self).__init__(*args, **kwargs)
         self.seed = seed
         self.model = model
@@ -405,8 +453,12 @@ class TargetOptimizationResult(Result):
         self.objective_function = objective_function
         self.target_type = target_type
         self._decoder = decoder
+        self._evaluator = evaluator
         self._metadata = metadata
         self._view = view
+        if simplify:
+            solutions = self._simplify_solutions(solutions)
+
         self._solutions = self._decode_solutions(solutions)
 
     def __len__(self):
@@ -417,6 +469,7 @@ class TargetOptimizationResult(Result):
         state.update({'model': self.model,
                       'view': self._view,
                       'decoder': self._decoder,
+                      'evaluator': self._evaluator,
                       'simulation_method': self.simulation_method,
                       'simulation_kwargs': self.simulation_kwargs,
                       'heuristic_method.__class__': self.heuristic_method.__class__,
@@ -458,6 +511,7 @@ class TargetOptimizationResult(Result):
         self._solutions = state['solutions']
         self._metadata = state['metadata']
         self._decoder = state['decoder']
+        self._evaluator = state['evaluator']
 
     def _repr_html_(self):
         template = """
@@ -505,8 +559,6 @@ class TargetOptimizationResult(Result):
         if in_ipnb():
             if config.use_bokeh:
                 stats_data = stats.BokehStatsData(self)
-            elif config.use_matplotlib:
-                pass
         else:
             stats_data = stats.CLIStatsData(self)
 
@@ -523,7 +575,23 @@ class TargetOptimizationResult(Result):
             if len(targets) > 0:
                 decoded_solutions.loc[index] = [targets, solution.fitness]
 
+        decoded_solutions.drop_duplicates(inplace=True)
+        decoded_solutions.reset_index(inplace=True)
+
         return decoded_solutions
+
+    def _simplify_solutions(self, solutions):
+        simplification = SolutionSimplification(self._evaluator)
+        chunks = (chunk for chunk in partition(solutions, len(self._view)))
+        try:
+            chunked_results = self._view.map(simplification, chunks)
+        except KeyboardInterrupt as e:
+            self.view.shutdown()
+            raise e
+
+        solutions = reduce(list.__add__, chunked_results)
+
+        return solutions
 
 
 class ReactionKnockoutOptimization(KnockoutOptimization):

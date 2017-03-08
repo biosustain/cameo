@@ -14,7 +14,6 @@
 from __future__ import absolute_import, print_function
 
 import time
-
 from bisect import insort
 
 from inspyred.ec import Individual as OriginalIndividual
@@ -40,7 +39,6 @@ class BestSolutionArchive(object):
     def add(self, candidate, fitness, birthdate, maximize, max_archive_size):
         if self.worst_fitness is None:
             self.worst_fitness = fitness
-
         if (maximize and fitness >= self.worst_fitness) or (not maximize and fitness <= self.worst_fitness):
 
             candidate = Individual(candidate, fitness, maximize, birthdate)
@@ -52,7 +50,6 @@ class BestSolutionArchive(object):
                     add = False
                 elif candidate.improves(c) and candidate.fitness == c.fitness:
                     self.archive.remove(c)
-
             if add:
                 insort(self.archive, candidate)
 
@@ -73,6 +70,10 @@ class BestSolutionArchive(object):
 
     def __len__(self):
         return self.length()
+
+    def reset(self):
+        self.worst_fitness = None
+        self.archive = []
 
 
 class ProductionStrainArchive(BestSolutionArchive):
@@ -147,7 +148,7 @@ class Individual(OriginalIndividual):
         return "%s - %s sense: %s" % (list(self.candidate), self.fitness, sense)
 
     def __repr__(self):
-        return "SolutionTuple #%s: %s" % (id(self), self.__str__())
+        return "Individual #%s: %s" % (id(self), self.__str__())
 
     def issubset(self, other):
         return self.candidate.issubset(other.candidate)
