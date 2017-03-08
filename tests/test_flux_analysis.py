@@ -371,6 +371,7 @@ class Wrapper:
             couples, blocked = structural.find_coupled_reactions(self.ecoli_core, return_dead_ends=True)
             self.assertEqual(blocked, structural.find_dead_end_reactions(self.ecoli_core))
 
+        @unittest.skipIf(TRAVIS, 'the shortest elementary flux modes need an update')
         def test_shortest_elementary_flux_modes(self):
             sefm = structural.ShortestElementaryFluxModes(self.ecoli_core)
             ems = []
