@@ -1,8 +1,22 @@
 language: python
 sudo: false
+
 python:
-- '2.7'
-- '3.4'
+  - '2.7'
+  - '3.4'
+  - '3.5'
+  - '3.6'
+
+matrix:
+  fast_finish: true
+
+branches:
+ only:
+ - master
+ - devel
+ - devel-nonfree
+ - /^[0-9]+\.[0-9]+\.[0-9]+[.0-9ab]*$/
+
 cache:
 - pip: true
 services:
@@ -23,13 +37,10 @@ before_install:
 - 'echo "this is a build for: $TRAVIS_BRANCH"'
 - 'if [[ "$TRAVIS_BRANCH" != "devel" ]]; then bash ./.travis/install_cplex.sh; fi'
 install:
-- if [[ $TRAVIS_PYTHON_VERSION == "3.4" ]]; then pip install pyzmq pandas; fi
-- pip install numpy scipy pyzmq pandas -f http://nikosonnensche.in/wheels/index.html --trusted-host nikosonnensche.in
-  --no-index
-- pip install flake8
+- pip install flake8 numpy scipy pyzmq pandas
 - pip install .[swiglpk,test,parallel,cli]
 before_script:
-- flake8 .
+- if [[ $TRAVIS_PYTHON_VERSION == "3.6" ]]; then flake8 .; fi
 script: nosetests
 after_success:
 - codecov
