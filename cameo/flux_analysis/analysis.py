@@ -35,15 +35,14 @@ from cameo.exceptions import Infeasible, Unbounded
 from cameo.flux_analysis.util import remove_infeasible_cycles
 from cameo.parallel import SequentialView
 from cameo.ui import notice
-from cameo.util import TimeMachine, partition
+from cameo.util import TimeMachine, partition, _BIOMASS_RE_
 from cameo.visualization.plotting import plotter
+from sympy import S
 
 logger = logging.getLogger(__name__)
 
 __all__ = ['find_blocked_reactions', 'flux_variability_analysis', 'phenotypic_phase_plane',
            'flux_balance_impact_degree']
-
-_BIOMASS_RE_ = re.compile("biomass", re.IGNORECASE)
 
 
 def find_blocked_reactions(model):
@@ -101,6 +100,7 @@ def flux_variability_analysis(model, reactions=None, fraction_of_optimum=0., rem
             func_obj = _FvaFunctionObject(model, _flux_variability_analysis)
         chunky_results = view.map(func_obj, reaction_chunks)
         solution = pandas.concat(chunky_results)
+
     return FluxVariabilityResult(solution)
 
 
@@ -227,37 +227,43 @@ def _flux_variability_analysis(model, reactions=None):
         reactions = model._ids_to_reactions(reactions)
     fva_sol = OrderedDict()
     [lb_flag, ub_flag] = [False, False]
-    for reaction in reactions:
-        fva_sol[reaction.id] = dict()
-        model.objective = reaction
-        model.objective.direction = 'min'
-        try:
-            solution = model.solve()
-            fva_sol[reaction.id]['lower_bound'] = solution.f
-        except Unbounded:
-            fva_sol[reaction.id]['lower_bound'] = -numpy.inf
-        except Infeasible:
-            lb_flag = True
+    with TimeMachine() as tm:
+        model.change_objective(S.Zero, time_machine=tm)
+        for reaction in reactions:
+            fva_sol[reaction.id] = dict()
+            model.solver.objective.set_linear_coefficients({reaction.forward_variable: 1., reaction.reverse_variable: -1.})
+            model.objective.direction = 'min'
+            try:
+                solution = model.solve()
+                fva_sol[reaction.id]['lower_bound'] = solution.f
+            except Unbounded:
+                fva_sol[reaction.id]['lower_bound'] = -numpy.inf
+            except Infeasible:
+                lb_flag = True
+            model.solver.objective.set_linear_coefficients({reaction.forward_variable: 0., reaction.reverse_variable: 0.})
 
-        model.objective.direction = 'max'
-        try:
-            solution = model.solve()
-            fva_sol[reaction.id]['upper_bound'] = solution.f
-        except Unbounded:
-            fva_sol[reaction.id]['upper_bound'] = numpy.inf
-        except Infeasible:
-            ub_flag = True
+        for reaction in reactions:
+            model.solver.objective.set_linear_coefficients({reaction.forward_variable: 1., reaction.reverse_variable: -1.})
+            model.objective.direction = 'max'
+            try:
+                solution = model.solve()
+                fva_sol[reaction.id]['upper_bound'] = solution.f
+            except Unbounded:
+                fva_sol[reaction.id]['upper_bound'] = numpy.inf
+            except Infeasible:
+                ub_flag = True
 
-        if lb_flag is True and ub_flag is True:
-            fva_sol[reaction.id]['lower_bound'] = 0
-            fva_sol[reaction.id]['upper_bound'] = 0
-            [lb_flag, ub_flag] = [False, False]
-        elif lb_flag is True and ub_flag is False:
-            fva_sol[reaction.id]['lower_bound'] = fva_sol[reaction.id]['upper_bound']
-            lb_flag = False
-        elif lb_flag is False and ub_flag is True:
-            fva_sol[reaction.id]['upper_bound'] = fva_sol[reaction.id]['lower_bound']
-            ub_flag = False
+            if lb_flag is True and ub_flag is True:
+                fva_sol[reaction.id]['lower_bound'] = 0
+                fva_sol[reaction.id]['upper_bound'] = 0
+                [lb_flag, ub_flag] = [False, False]
+            elif lb_flag is True and ub_flag is False:
+                fva_sol[reaction.id]['lower_bound'] = fva_sol[reaction.id]['upper_bound']
+                lb_flag = False
+            elif lb_flag is False and ub_flag is True:
+                fva_sol[reaction.id]['upper_bound'] = fva_sol[reaction.id]['lower_bound']
+                ub_flag = False
+            model.solver.objective.set_linear_coefficients({reaction.forward_variable: 0., reaction.reverse_variable: 0.})
 
     df = pandas.DataFrame.from_dict(fva_sol, orient='index')
     lb_higher_ub = df[df.lower_bound > df.upper_bound]

@@ -18,13 +18,12 @@ import os
 import unittest
 
 import pandas
-import six
 from pandas import DataFrame
 from pandas.util.testing import assert_frame_equal
 
 import cameo
-from cameo.config import solvers
 from cameo import load_model
+from cameo.config import solvers
 from cameo.strain_design.deterministic.flux_variability_based import FSEOF, FSEOFResult, DifferentialFVA
 from cameo.strain_design.deterministic.linear_programming import OptKnock
 
@@ -112,7 +111,7 @@ class TestOptKnock(unittest.TestCase):
             self.model.reactions.get_by_id(knockout).knock_out()
         fva = cameo.flux_variability_analysis(self.model, fraction_of_optimum=1, remove_cycles=False,
                                               reactions=["EX_ac_lp_e_rp_"])
-        self.assertAlmostEqual(fva["upper_bound"][0], production)
+        self.assertAlmostEqual(fva["upper_bound"][0], production, delta=1e-6)
 
     def test_invalid_input(self):
         self.assertRaises(KeyError, self.optknock.run, target="EX_ac_lp_e_rp_")
