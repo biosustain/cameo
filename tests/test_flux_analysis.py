@@ -371,7 +371,7 @@ class Wrapper:
             couples, blocked = structural.find_coupled_reactions(self.ecoli_core, return_dead_ends=True)
             self.assertEqual(blocked, structural.find_dead_end_reactions(self.ecoli_core))
 
-        @unittest.skipIf(TRAVIS, 'the shortest elementary flux modes need an update')
+        @unittest.skip("needs refactor")
         def test_shortest_elementary_flux_modes(self):
             sefm = structural.ShortestElementaryFluxModes(self.ecoli_core)
             ems = []
@@ -404,11 +404,16 @@ class Wrapper:
                 representative = pick_one(group)
                 if representative not in essential_reactions:
                     with TimeMachine() as tm:
+                        self.assertEqual(self.ecoli_core, representative.model)
                         tm(do=partial(self.ecoli_core.remove_reactions, [representative], delete=False),
                            undo=partial(self.ecoli_core.add_reactions, [representative]))
                         # FIXME: Hack because of optlang queue issues with GLPK
                         self.ecoli_core.solver.update()
                         self.assertNotIn(representative, self.ecoli_core.reactions)
+                        self.assertNotIn(representative.forward_variable, self.ecoli_core.solver.variables)
+                        self.assertNotIn(representative.reverse_variable, self.ecoli_core.solver.variables)
+                        self.assertNotIn(representative, self.ecoli_core.reactions)
+                        self.assertEqual(representative.model, None)
                         blocked_reactions = find_blocked_reactions(self.ecoli_core)
                         self.assertTrue(all(r in blocked_reactions for r in group if r != representative))
                     self.assertIn(representative, self.ecoli_core.reactions)
@@ -418,8 +423,16 @@ class Wrapper:
                 representative = pick_one(group)
                 if representative not in essential_reactions:
                     with TimeMachine() as tm:
+                        self.assertEqual(self.ecoli_core, representative.model)
                         tm(do=partial(self.ecoli_core.remove_reactions, [representative], delete=False),
                            undo=partial(self.ecoli_core.add_reactions, [representative]))
+                        # FIXME: Hack because of optlang queue issues with GLPK
+                        self.ecoli_core.solver.update()
+                        self.assertNotIn(representative, self.ecoli_core.reactions)
+                        self.assertNotIn(representative.forward_variable, self.ecoli_core.solver.variables)
+                        self.assertNotIn(representative.reverse_variable, self.ecoli_core.solver.variables)
+                        self.assertNotIn(representative, self.ecoli_core.reactions)
+                        self.assertEqual(representative.model, None)
                         blocked_reactions = find_blocked_reactions(self.ecoli_core)
                         self.assertNotIn(representative, self.ecoli_core.reactions)
                         self.assertTrue(all(r in blocked_reactions for r in group if r != representative))
