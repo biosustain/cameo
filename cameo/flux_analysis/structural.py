@@ -16,23 +16,171 @@
 
 from __future__ import print_function
 
-from copy import copy
-
-import sympy
-from cameo.core import SolverBasedModel
-from cameo import Reaction
-from cobra import Metabolite
-import optlang
-import six
 import logging
+from copy import copy
+from itertools import product
+
+import numpy as np
+import optlang
+import pandas
+import six
+import sympy
+from cobra import Metabolite
+from numpy.linalg import svd
+from scipy.cluster.hierarchy import linkage
+from scipy.sparse import dok_matrix, lil_matrix
+from six.moves import zip
+
+from cameo import Reaction
+from cameo.core import SolverBasedModel
+from cameo.exceptions import SolveError, Infeasible
+from cameo.util import TimeMachine
+
+
+__all__ = ['find_dead_end_reactions', 'find_coupled_reactions', 'ShortestElementaryFluxModes']
+
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-from cameo.exceptions import SolveError, Infeasible
-from cameo.util import TimeMachine
 
-__all__ = ['find_dead_end_reactions', 'find_coupled_reactions', 'ShortestElementaryFluxModes']
+def create_stoichiometric_array(model, array_type='dense', dtype=None):
+    """Return a stoichiometric array representation of the given model.
+    The the columns represent the reactions and rows represent
+    metabolites. S[i,j] therefore contains the quantity of metabolite `i`
+    produced (negative for consumed) by reaction `j`.
+    Parameters
+    ----------
+    model : cobra.Model
+        The cobra model to construct the matrix for.
+    array_type : string
+        The type of array to construct. if 'dense', return a standard
+        numpy.array, 'dok', or 'lil' will construct a sparse array using
+        scipy of the corresponding type and 'data_frame' will give a
+        pandas `DataFrame` with metabolite and reaction identifiers as indices.
+    dtype : data-type
+        The desired data-type for the array. If not given, defaults to float.
+    Returns
+    -------
+    matrix of class `dtype`
+        The stoichiometric matrix for the given model.
+    """
+
+    if dtype is None:
+        dtype = np.float64
+
+    def data_frame(_, dtype):
+        metabolite_ids = [met.id for met in model.metabolites]
+        reaction_ids = [rxn.id for rxn in model.reactions]
+        index = pandas.MultiIndex.from_tuples(
+            list(product(metabolite_ids, reaction_ids)))
+        return pandas.DataFrame(data=0, index=index, columns=['stoichiometry'], dtype=dtype)
+
+    array_constructor = {
+        'dense': np.zeros, 'dok': dok_matrix, 'lil': lil_matrix,
+        'data_frame': data_frame
+    }
+
+    n_metabolites = len(model.metabolites)
+    n_reactions = len(model.reactions)
+    array = array_constructor[array_type]((n_metabolites, n_reactions), dtype=dtype)
+
+    m_ind = model.metabolites.index
+    r_ind = model.reactions.index
+
+    for reaction in model.reactions:
+        for metabolite, stoich in six.iteritems(reaction.metabolites):
+            if array_type == 'data_frame':
+                array.set_value((metabolite.id, reaction.id), 'stoichiometry', stoich)
+            else:
+                array[m_ind(metabolite), r_ind(reaction)] = stoich
+
+    return array
+
+
+# Taken from http://wiki.scipy.org/Cookbook/RankNullspace
+def nullspace(matrix, atol=1e-13, rtol=0):
+    """Compute an approximate basis for the nullspace of A.
+
+    The algorithm used by this function is based on the singular value
+    decomposition of `A`.
+
+    Parameters
+    ----------
+    matrix : ndarray
+        A should be at most 2-D.  A 1-D array with length k will be treated
+        as a 2-D with shape (1, k)
+    atol : float
+        The absolute tolerance for a zero singular value.  Singular values
+        smaller than `atol` are considered to be zero.
+    rtol : float
+        The relative tolerance.  Singular values less than rtol*smax are
+        considered to be zero, where smax is the largest singular value.
+
+    If both `atol` and `rtol` are positive, the combined tolerance is the
+    maximum of the two; that is::
+        tol = max(atol, rtol * smax)
+    Singular values smaller than `tol` are considered to be zero.
+
+    Return value
+    ------------
+    ns : ndarray
+        If `A` is an array with shape (m, k), then `ns` will be an array
+        with shape (k, n), where n is the estimated dimension of the
+        nullspace of `A`.  The columns of `ns` are a basis for the
+        nullspace; each element in numpy.dot(A, ns) will be approximately
+        zero.
+    """
+
+    matrix = np.atleast_2d(matrix)
+    u, s, vh = svd(matrix)
+    tol = max(atol, rtol * s[0])
+    nnz = (s >= tol).sum()
+    ns = vh[nnz:].conj().T
+    return ns
+
+
+def find_blocked_reactions_nullspace(model, ns=None, tol=1e-10):
+    """Identify reactions that can't carry flux based on the nullspace of the stoichiometric matrix.
+    A blocked reaction will correspond to an all-zero row in N(S)."""
+    if ns is None:
+        ns = nullspace(create_stoichiometric_array(model))
+    mask = (np.abs(ns) <= tol).all(1)
+    blocked = frozenset(reac for reac, b in zip(model.reactions, mask) if b is True)
+    return blocked
+
+
+def find_coupled_reactions_nullspace(model, ns=None, tol=1e-10):
+    """
+    Find groups of reactions whose fluxes are forced to be multiples of each other.
+    """
+    if ns is None:
+        ns = nullspace(create_stoichiometric_array(model))
+    mask = (np.abs(ns) <= tol).all(1)  # Mask for blocked reactions
+    non_blocked_ns = ns[~mask]
+    non_blocked_reactions = np.array(list(model.reactions))[~mask]
+
+    # Calculate correlation coefficients (perfect correlation means that one is a scalar multiple of the other)
+    corr_mat = np.corrcoef(non_blocked_ns)
+    dist_mat = 1 - np.abs(corr_mat)
+
+    # Perform a linkage clustering
+    link = linkage(dist_mat, method="complete")
+
+    # Filter the linkage results (only distance = 0)
+    good_link = [a for a in link if a[2] < tol]
+
+    # Aggregate groups
+    group_dict = {i: {i} for i in range(len(non_blocked_reactions))}
+    for i, n in enumerate(range(len(non_blocked_reactions), len(non_blocked_reactions) + len(good_link))):
+        a = good_link[i]
+        group_dict[n] = group_dict[a[0]] | group_dict[a[1]]
+        del group_dict[a[0]]
+        del group_dict[a[1]]
+
+    groups = [frozenset(non_blocked_reactions[list(v)]) for v in group_dict.values() if len(v) > 1]
+
+    return groups
 
 
 def find_dead_end_reactions(model):
@@ -42,7 +190,7 @@ def find_dead_end_reactions(model):
     stoichiometries = {}
     for reaction in model.reactions:
         for met, coef in reaction.metabolites.items():
-            stoichiometries.setdefault(met.id, {})[reaction.id] = coef
+            stoichiometries.setdefault(met.id, {})[reaction] = coef
 
     blocked_reactions = set()
     while True:
@@ -55,12 +203,12 @@ def find_dead_end_reactions(model):
 
         # Remove blocked reactions from stoichiometries
         stoichiometries = {
-            met_id: {reac_id: coef for reac_id, coef in stoichiometry.items() if reac_id not in new_blocked}
+            met_id: {reac: coef for reac, coef in stoichiometry.items() if reac not in new_blocked}
             for met_id, stoichiometry in stoichiometries.items()
         }
         blocked_reactions.update(new_blocked)
 
-    return blocked_reactions
+    return frozenset(blocked_reactions)
 
 
 def find_coupled_reactions(model, return_dead_ends=False):
@@ -68,10 +216,10 @@ def find_coupled_reactions(model, return_dead_ends=False):
     blocked = find_dead_end_reactions(model)
     stoichiometries = {}
     for reaction in model.reactions:
-        if reaction.id in blocked:
+        if reaction in blocked:
             continue
         for met, coef in reaction.metabolites.items():
-            stoichiometries.setdefault(met.id, {})[reaction.id] = coef
+            stoichiometries.setdefault(met.id, {})[reaction] = coef
 
     # Find reaction pairs that are constrained to carry equal flux
     couples = []

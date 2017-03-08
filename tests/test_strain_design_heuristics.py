@@ -19,6 +19,7 @@ import pickle
 import unittest
 from collections import namedtuple
 from math import sqrt
+from tempfile import mkstemp
 
 import inspyred
 import numpy
@@ -894,7 +895,8 @@ class TestReactionKnockoutOptimization(TestWithModel.TestWithEColiCore):
 
     # @unittest.skipIf(os.getenv('TRAVIS', False) or 'cplex' not in solvers, 'Missing cplex (or Travis)')
     def test_run_single_objective(self):
-        result_file = os.path.join(CURRENT_PATH, "data", "reaction_knockout_single_objective.pkl")
+        # TODO: make optlang deterministic so this results can be permanently stored.
+        _, result_file = mkstemp('.pkl')
         objective = biomass_product_coupled_yield(
             "Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2",
             "EX_ac_LPAREN_e_RPAREN_",
@@ -919,7 +921,8 @@ class TestReactionKnockoutOptimization(TestWithModel.TestWithEColiCore):
 
     # @unittest.skipIf(os.getenv('TRAVIS', False) or 'cplex' not in solvers, 'Missing cplex (or Travis)')
     def test_run_multiobjective(self):
-        result_file = os.path.join(CURRENT_PATH, "data", "reaction_knockout_multi_objective.pkl")
+        # TODO: make optlang deterministic so this results can be permanently stored.
+        _, result_file = mkstemp('.pkl')
         objective1 = biomass_product_coupled_yield(
             "Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2",
             "EX_ac_LPAREN_e_RPAREN_",

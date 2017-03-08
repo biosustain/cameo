@@ -17,19 +17,21 @@ Sacharomyces cerevisiae)."""
 
 from __future__ import absolute_import, print_function
 
-__all__ = ['hosts']
-
 import os
 from functools import partial
 
+import six
 from lazy_object_proxy import Proxy
 
 import cameo
-from cameo import util
 from cameo import load_model
-import six
+from cameo import util
 
-MODEL_DIRECTORY = os.path.join(os.path.join(cameo.__path__[0]), 'models/sbml')
+
+__all__ = ['hosts']
+
+
+MODEL_DIRECTORY = os.path.join(os.path.join(cameo.__path__[0]), 'models/json')
 
 
 class Host(object):
@@ -37,7 +39,7 @@ class Host(object):
         self.name = name
         self.models = util.IntelliContainer()
         for id, biomass, carbon_source in zip(models, biomass, carbon_sources):
-            model = Proxy(partial(load_model, os.path.join(MODEL_DIRECTORY, id + '.xml')))
+            model = Proxy(partial(load_model, os.path.join(MODEL_DIRECTORY, id + '.json')))
             setattr(model, "biomass", biomass)
             setattr(model, "carbon_source", carbon_source)
             self.models[id] = model
@@ -47,13 +49,16 @@ class Host(object):
 
 
 class Hosts(object):
-    def __init__(self, host_spec):
+    def __init__(self, host_spec, aliases=None):
         self._host_spec = host_spec
         self._hosts = list()
         for host_id, information in six.iteritems(self._host_spec):
             host = Host(**information)
             self._hosts.append(host)
             setattr(self, host_id, host)
+        if aliases and isinstance(aliases, list):
+            for pair in aliases:
+                setattr(self, pair[1], getattr(self, pair[0]))
 
     def __iter__(self):
         return iter(self._hosts)
@@ -67,17 +72,17 @@ HOST_SPECS = {
     'ecoli': {
         'name': 'Escherichia coli',
         'models': ('iJO1366',),
-        'biomass': ('Ec_biomass_iJO1366_WT_53p95M',),
-        'carbon_sources': ('EX_glc_lp_e_rp_',)
+        'biomass': ('BIOMASS_Ec_iJO1366_core_53p95M',),
+        'carbon_sources': ('EX_glc__D_e',)
     },
     # 'iND750',
     'scerevisiae': {
         'name': 'Saccharomyces cerevisiae',
         'models': ('iMM904',),
-        'biomass': ('biomass_SC5_notrace',),
-        'carbon_sources': ('EX_glc_lp_e_rp_',)
+        'biomass': ('BIOMASS_SC5_notrace',),
+        'carbon_sources': ('EX_glc__D_e',)
 
     }
 }
 
-hosts = Hosts(HOST_SPECS)
+hosts = Hosts(HOST_SPECS, aliases=[('scerevisiae', 'yeast')])
