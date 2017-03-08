@@ -443,12 +443,16 @@ class Reaction(_cobrapy.core.Reaction):
         None
         """
 
-        def _(reaction, lb, ub):
+        def _revert(reaction, lb, ub):
+            """
+            Set reaction bounds.
+            """
             reaction.upper_bound = ub
             reaction.lower_bound = lb
 
         if time_machine is not None:
-            time_machine(do=super(Reaction, self).knock_out, undo=partial(_, self, self.lower_bound, self.upper_bound))
+            time_machine(do=super(Reaction, self).knock_out,
+                         undo=partial(_revert, self, self.lower_bound, self.upper_bound))
         else:
             super(Reaction, self).knock_out()
 
