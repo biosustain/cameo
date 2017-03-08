@@ -628,6 +628,10 @@ class TestGenerators(TestWithModel.TestWithEColiCore):
         for _ in range(1000):
             candidate = set_generator(self.random, self.args)
             self.assertEqual(len(candidate), 10)
+            candidates.append(candidate)
+
+        # with open(candidates_file, 'wb') as out_file:
+        #     pickle.dump(candidates, out_file, protocol=2)
 
         with open(candidates_file, 'rb') as in_file:
             if six.PY3:
@@ -652,6 +656,9 @@ class TestGenerators(TestWithModel.TestWithEColiCore):
             candidate = set_generator(self.random, self.args)
             self.assertLessEqual(len(candidate), 10)
             candidates.append(candidate)
+
+        # with open(candidates_file, 'wb') as out_file:
+        #     pickle.dump(candidates, out_file, protocol=2)
 
         with open(candidates_file, 'rb') as in_file:
             if six.PY3:
