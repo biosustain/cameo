@@ -16,19 +16,22 @@ from __future__ import absolute_import, print_function
 
 import logging
 import re
+import warnings
 from functools import partial
 from math import ceil
 
 import six
-import sympy
+from cobra import DictList
 from sympy import Add, Mul, RealNumber
 
 from cameo import Model, Metabolite
+from cameo import fba
 from cameo import models, phenotypic_phase_plane
 from cameo.config import non_zero_flux_threshold
 from cameo.core.pathway import Pathway
+from cameo.core.reaction import Reaction
 from cameo.core.result import Result, MetaInformation
-from cameo.core.strain_design import StrainDesignMethodResult, StrainDesign
+from cameo.core.strain_design import StrainDesignMethodResult, StrainDesign, StrainDesignMethod
 from cameo.core.target import ReactionKnockinTarget
 from cameo.data import metanetx
 from cameo.exceptions import SolveError
@@ -38,20 +41,72 @@ from cameo.visualization.plotting import plotter
 
 __all__ = ['PathwayPredictor']
 
-NegativeOne = sympy.singleton.S.NegativeOne
-
 
 logger = logging.getLogger(__name__)
+
+
+add = Add._from_args
+mul = Mul._from_args
 
 
 class PathwayResult(Pathway, Result, StrainDesign):
     def __init__(self, reactions, exchanges, adapters, product, *args, **kwargs):
         self._meta_information = MetaInformation()
         self.reactions = reactions
-        self.targets = [ReactionKnockinTarget(reaction.id, reaction) for reaction in reactions]
         self.exchanges = exchanges
         self.adapters = adapters
         self.product = product
+        self.targets = self._build_targets()
+
+    def _replace_adapted_metabolites(self, reaction):
+        """
+        Replace adapted metabolites by model metabolites
+
+        Parameters
+        ----------
+        reaction: cameo.core.reaction.Reaction
+
+        Returns
+        -------
+        cameo.core.reaction.Reaction
+        """
+        stoichiometry = {}
+
+        for metabolite, coefficient in six.iteritems(reaction.metabolites):
+            found = False
+            for adapter in self.adapters:
+                if metabolite == adapter.products[0]:
+                    metabolite = Metabolite.clone(adapter.reactants[0])
+                    found = False
+                    break
+            if not found:
+                metabolite = Metabolite.clone(metabolite)
+
+            stoichiometry[metabolite] = coefficient
+
+        reaction = Reaction(id=reaction.id,
+                            name=reaction.name,
+                            lower_bound=reaction.lower_bound,
+                            upper_bound=reaction.upper_bound)
+        reaction.add_metabolites(stoichiometry)
+
+        return reaction
+
+    def _build_targets(self):
+        targets = DictList()
+        for reaction in self.reactions:
+            reaction = self._replace_adapted_metabolites(reaction)
+            targets.append(ReactionKnockinTarget(reaction.id, reaction))
+
+        for reaction in self.exchanges:
+            reaction = self._replace_adapted_metabolites(reaction)
+            targets.append(ReactionKnockinTarget(reaction.id, reaction))
+
+        product = self._replace_adapted_metabolites(self.product)
+        product.lower_bound = 0
+        targets.append(ReactionKnockinTarget(product.id, product))
+
+        return targets
 
     def plot(self, **kwargs):
         pass
@@ -62,10 +117,11 @@ class PathwayResult(Pathway, Result, StrainDesign):
 
     def production_envelope(self, model, objective=None):
         with TimeMachine() as tm:
-            self.plug_model(model, tm)
-            return phenotypic_phase_plane(model, variables=[objective], objective=self.product)
+            self.apply(model, tm)
+            return phenotypic_phase_plane(model, variables=[objective], objective=self.product.id)
 
     def plug_model(self, model, tm=None, adapters=True, exchanges=True):
+        warnings.warn("The 'plug_model' method as been deprecated. Use apply instead.", DeprecationWarning)
         if tm is not None:
             tm(do=partial(model.add_reactions, self.reactions),
                undo=partial(model.remove_reactions, self.reactions, delete=False, remove_orphans=True))
@@ -75,10 +131,9 @@ class PathwayResult(Pathway, Result, StrainDesign):
             if exchanges:
                 tm(do=partial(model.add_reactions, self.exchanges),
                    undo=partial(model.remove_reactions, self.exchanges, delete=False, remove_orphans=True))
-            tm(do=partial(setattr, self.product, "lower_bound", 0),
-               undo=partial(setattr, self.product, "lower_bound", self.product.lower_bound))
+            self.product.change_bounds(lb=0, time_machine=tm)
             try:
-                tm(do=partial(model.add_reaction, self.product),
+                tm(do=partial(model.add_reactions, [self.product]),
                    undo=partial(model.remove_reactions, [self.product], delete=False, remove_orphans=True))
             except Exception:
                 logger.warning("Exchange %s already in model" % self.product.id)
@@ -109,6 +164,8 @@ class PathwayPredictions(StrainDesignMethodResult):
         return self._designs
 
     def plug_model(self, model, index, tm=None):
+        warnings.warn("The 'plug_model' method as been deprecated. You can use result[i].apply instead",
+                      DeprecationWarning)
         self.pathways[index].plug_model(model, tm)
 
     def __getitem__(self, item):
@@ -137,7 +194,7 @@ class PathwayPredictions(StrainDesignMethodResult):
                 ppp.plot(grid=grid, width=450, title="Pathway %i" % (i + 1))
 
 
-class PathwayPredictor(object):
+class PathwayPredictor(StrainDesignMethod):
     """Pathway predictions from a universal set of reaction.
 
     Parameters
@@ -182,13 +239,6 @@ class PathwayPredictor(object):
 
         if mapping is None:
             self.mapping = metanetx.all2mnx
-            for metabolite in self.original_model.metabolites:
-                try:
-                    self.universal_model.metabolites.get_by_id(metabolite.id)
-                except KeyError:
-                    pass
-                else:
-                    self.mapping[metabolite.id] = metabolite.id
 
         self.model = model.copy()
 
@@ -206,7 +256,8 @@ class PathwayPredictor(object):
         self.model.add_reactions(self.adpater_reactions)
         self._add_switches(self.new_reactions)
 
-    def run(self, product=None, max_predictions=float("inf"), min_production=.1, timeout=None, callback=None, silent=False):
+    def run(self, product=None, max_predictions=float("inf"), min_production=.1,
+            timeout=None, callback=None, silent=False, allow_native_exchanges=False):
         """Run pathway prediction for a desired product.
 
         Parameters
@@ -219,6 +270,12 @@ class PathwayPredictor(object):
             The minimum acceptable production flux to product.
         timeout : int
             The time limit [seconds] per attempted prediction.
+        callback : function
+            A function that takes a successfully predicted pathway.
+        silent : bool
+            If True will print the pathways and max flux values.
+        allow_native_exchanges: bool
+            If True, exchange reactions for native metabolites will be allowed.
 
         Returns
         -------
@@ -234,13 +291,14 @@ class PathwayPredictor(object):
                undo=partial(setattr, self.model.solver.configuration, 'timeout',
                             self.model.solver.configuration.timeout))
             try:
-                demand_reaction = self.model.reactions.get_by_id('DM_' + product.id)
+                product_reaction = self.model.reactions.get_by_id('DM_' + product.id)
             except KeyError:
-                demand_reaction = self.model.add_demand(product)
-                tm(do=str, undo=partial(self.model.remove_reactions, [demand_reaction], delete=False))
-            tm(do=partial(setattr, demand_reaction, 'lower_bound', min_production),
-               undo=partial(setattr, demand_reaction, 'lower_bound', demand_reaction.lower_bound))
-            counter = 1
+                product_reaction = self.model.add_exchange(product, time_machine=tm)
+
+            product_reaction.change_bounds(lb=min_production, time_machine=tm)
+
+            iteration, counter = 1, 1
+
             while counter <= max_predictions:
                 logger.debug('Predicting pathway No. %d' % counter)
                 try:
@@ -256,11 +314,11 @@ class PathwayPredictor(object):
                     if y_var.primal == 1.0:
                         vars_to_cut.append(y_var)
                 logger.info(vars_to_cut)
+
                 if len(vars_to_cut) == 0:
                     # no pathway found:
-                    logger.info(
-                        "It seems %s is a native product in model %s. Let's see if we can find better heterologous pathways." % (
-                            product, self.model))
+                    logger.info("It seems %s is a native product in model %s. "
+                                "Let's see if we can find better heterologous pathways." % (product, self.model))
                     # knockout adapter with native product
                     for adapter in self.adpater_reactions:
                         if product in adapter.metabolites:
@@ -269,36 +327,51 @@ class PathwayPredictor(object):
                     continue
 
                 pathway = [self.model.reactions.get_by_id(y_var.name[2:]) for y_var in vars_to_cut]
+
+                pathway_metabolites = set([m for pathway_reaction in pathway for m in pathway_reaction.metabolites])
                 logger.info('Pathway predicted: %s' % '\t'.join(
                     [r.build_reaction_string(use_metabolite_names=True) for r in pathway]))
+
                 # Figure out adapter reactions to include
-                adapters = [adapter for adapter in self.adpater_reactions
-                            if abs(adapter.flux) > non_zero_flux_threshold]
+                adapters = [adapter for adapter in self.adpater_reactions if adapter.products[0] in pathway_metabolites]
 
                 # Figure out exchange reactions to include
                 exchanges = [exchange for exchange in self._exchanges
-                             if abs(exchange.flux) > non_zero_flux_threshold]
+                             if abs(exchange.flux) > non_zero_flux_threshold and exchange.id != product_reaction.id]
 
-                pathway = PathwayResult(pathway, exchanges, adapters, demand_reaction)
+                if allow_native_exchanges:
+                    exchanges = [exchange for exchange in exchanges
+                                 if list(exchange.metabolites)[0] in pathway_metabolites]
+
+                pathway = PathwayResult(pathway, exchanges, adapters, product_reaction)
                 if not silent:
-                    util.display_pathway(pathway, counter)
+                    util.display_pathway(pathway, iteration)
 
-                pathways.append(pathway)
-                if callback is not None:
-                    callback(pathway)
                 integer_cut = self.model.solver.interface.Constraint(Add(*vars_to_cut),
-                                                                     name="integer_cut_" + str(counter),
+                                                                     name="integer_cut_" + str(iteration),
                                                                      ub=len(vars_to_cut) - 1)
                 logger.debug('Adding integer cut.')
-                tm(do=partial(self.model.solver._add_constraint, integer_cut),
-                   undo=partial(self.model.solver._remove_constraint, integer_cut))
-                counter += 1
-            # self.model.solver.configuration.verbosity = 0
-            return PathwayPredictions(pathways)
+                tm(do=partial(self.model.solver.add, integer_cut), undo=partial(self.model.solver.remove, integer_cut))
+                iteration += 1
 
-    def _predict_heterolgous_pathways_for_native_compound(self, product):
-        # Determined reactions that produce product natively and knock them out
-        pass
+                # Test pathway in the original model
+                with TimeMachine() as another_tm:
+                    pathway.apply(self.original_model, another_tm)
+                    try:
+                        solution = fba(self.original_model, objective=pathway.product.id)
+                        if solution[pathway.product.id] > non_zero_flux_threshold:
+                            pathways.append(pathway)
+                            if not silent:
+                                print("Max flux: %.5f" % solution[pathway.product.id])
+                            if callback is not None:
+                                callback(pathway)
+                            counter += 1
+                    except SolveError:
+                        if not silent:
+                            print("Pathways is not feasible")
+                        continue
+
+            return PathwayPredictions(pathways)
 
     def _add_switches(self, reactions):
         logger.info("Adding switches.")
@@ -319,19 +392,19 @@ class PathwayPredictor(object):
             #                                                    name='switch_lb_' + reaction.id, ub=0)
             # switch_ub = self.model.solver.interface.Constraint(y * reaction.upper_bound - reaction.flux_expression,
             #                                                    name='switch_ub_' + reaction.id, lb=0)
-            forward_var_term = Mul._from_args((RealNumber(-1), reaction.forward_variable))
-            reverse_var_term = Mul._from_args((RealNumber(-1), reaction.reverse_variable))
-            switch_lb_y_term = Mul._from_args((RealNumber(reaction.lower_bound), y))
-            switch_ub_y_term = Mul._from_args((RealNumber(reaction.upper_bound), y))
-            switch_lb = self.model.solver.interface.Constraint(
-                Add._from_args((switch_lb_y_term, forward_var_term, reverse_var_term)), name='switch_lb_' + reaction.id,
-                ub=0, sloppy=True)
-            switch_ub = self.model.solver.interface.Constraint(
-                Add._from_args((switch_ub_y_term, forward_var_term, reverse_var_term)), name='switch_ub_' + reaction.id,
-                lb=0, sloppy=True)
+            forward_term = mul((RealNumber(-1), reaction.forward_variable))
+            reverse_term = mul((RealNumber(-1), reaction.reverse_variable))
+            switch_lb_term = mul((RealNumber(reaction.lower_bound), y))
+            switch_ub_term = mul((RealNumber(reaction.upper_bound), y))
+            switch_lb = self.model.solver.interface.Constraint(add((switch_lb_term, forward_term, reverse_term)),
+                                                               name='switch_lb_' + reaction.id, ub=0, sloppy=True)
+            switch_ub = self.model.solver.interface.Constraint(add((switch_ub_term, forward_term, reverse_term)),
+                                                               name='switch_ub_' + reaction.id, lb=0, sloppy=True)
             switches.extend([switch_lb, switch_ub])
+
         self.model.solver.add(y_vars)
         self.model.solver.add(switches, sloppy=True)
+
         logger.info("Setting minimization of switch variables as objective.")
         self.model.objective = self.model.solver.interface.Objective(Add(*y_vars), direction='min')
         self._y_vars_ids = [var.name for var in y_vars]
@@ -369,8 +442,8 @@ class PathwayPredictor(object):
                 if metabolite.name == product:
                     return metabolite
             raise ValueError(
-                "Specified product '{product}' could not be found. Try searching pathway_predictor_obj.universal_model.metabolites".format(
-                    product=product))
+                "Specified product '{product}' could not be found. "
+                "Try searching pathway_predictor_obj.universal_model.metabolites".format(product=product))
         elif isinstance(product, Metabolite):
             try:
                 return self.model.metabolites.get_by_id(product.id)
