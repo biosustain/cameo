@@ -38,7 +38,7 @@ before_install:
 - 'if [[ "$TRAVIS_BRANCH" != "devel" ]]; then bash ./.travis/install_cplex.sh; fi'
 install:
 - pip install flake8 numpy scipy pyzmq pandas
-- pip install .[swiglpk,test,parallel]
+- pip install .[swiglpk,test,parallel,cli]
 before_script:
 - if [[ $TRAVIS_PYTHON_VERSION == "3.6" ]]; then flake8 .; fi
 script: nosetests
