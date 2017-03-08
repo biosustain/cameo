@@ -20,6 +20,7 @@ import types
 from functools import reduce
 
 import inspyred
+import numpy
 from inspyred.ec.generators import diversify as diversify_function
 from pandas import DataFrame
 
@@ -192,6 +193,9 @@ class HeuristicOptimization(object):
         self._heuristic_method = heuristic_method(self.random)
 
     def run(self, evaluator=None, generator=None, view=config.default_view, maximize=True, **kwargs):
+        if isinstance(self.heuristic_method.archiver, archives.BestSolutionArchive):
+            self.heuristic_method.archiver.reset()
+
         if kwargs.get('seed', None) is None:
             kwargs['seed'] = int(time.time())
 
@@ -366,8 +370,6 @@ class TargetOptimization(HeuristicOptimization):
         else:
             generator = generators.set_generator
 
-
-
         with EvaluatorWrapper(view, self._evaluator) as evaluator:
             super(TargetOptimization, self).run(distance_function=set_distance_function,
                                                 representation=self.representation,
@@ -420,8 +422,12 @@ class SolutionSimplification(object):
         for target in individual.candidate:
             new_individual.candidate.remove(target)
             new_fitness = self._evaluator.evaluate_individual(tuple(new_individual))
-            if new_fitness < individual.fitness:
-                new_individual.candidate.add(target)
+            if isinstance(new_fitness, inspyred.ec.emo.Pareto):
+                if new_fitness < individual.fitness:
+                    new_individual.candidate.add(target)
+            else:
+                if new_fitness < individual.fitness or numpy.isnan(new_fitness):
+                    new_individual.candidate.add(target)
 
         return new_individual
 

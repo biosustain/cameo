@@ -92,11 +92,11 @@ SOLUTIONS = [
 class TestWithModel:
     class TestWithEColiCore(unittest.TestCase):
         def setUp(self):
-            self.model = TEST_MODEL.copy()
+            self.model = load_model(CORE_MODEL_PATH, sanitize=False)
 
     class TestWithiAF1260Model(unittest.TestCase):
         def setUp(self):
-            self.model = IAF1260_MODEL.copy()
+            self.model = load_model(IAF1260_MODEL_PATH, sanitize=False)
 
 
 class TestMetrics(unittest.TestCase):
@@ -514,7 +514,6 @@ class TestSwapOptimization(TestWithModel.TestWithEColiCore):
         optimization_result = optimization.run(max_evaluations=10000, max_size=1, pop_size=100, variable_size=False,
                                                mutation_rate=0.5, seed=1485441961)
         fitness = optimization_result.data_frame.fitness.max()
-        print(optimization.representation)
         print(fitness)
         self.assertAlmostEqual(fitness, 0.322085, places=3)
 
