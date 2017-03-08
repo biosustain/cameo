@@ -75,6 +75,7 @@ class BestSolutionArchive(object):
         self.worst_fitness = None
         self.archive = []
 
+
 class ProductionStrainArchive(BestSolutionArchive):
     def __call__(self, random, population, archive, args):
         self.archive = archive
