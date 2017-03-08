@@ -1,12 +1,13 @@
 language: python
 sudo: false
 
+-python:
+  - '2.7'
+  - '3.5'
+  - '3.6'
+
 matrix:
   fast_finish: true
-  python:
-    - '2.7'
-    - '3.5'
-    - '3.6'
 
 branches:
  only:
