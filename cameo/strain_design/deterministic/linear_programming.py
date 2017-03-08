@@ -32,7 +32,8 @@ from cameo.core.target import ReactionKnockoutTarget
 from cameo.exceptions import SolveError
 from cameo.flux_analysis.analysis import phenotypic_phase_plane, flux_variability_analysis
 from cameo.flux_analysis.simulation import fba
-from cameo.util import TimeMachine
+from cameo.flux_analysis.structural import find_coupled_reactions_nullspace
+from cameo.util import TimeMachine, reduce_reaction_set
 from cameo.visualization.plotting import plotter
 
 logger = logging.getLogger(__name__)
@@ -63,6 +64,9 @@ class OptKnock(StrainDesignMethod):
         this argument should be used. (Default: None)
     exclude_non_gene_reactions : If True (default), reactions that are not associated with genes will not be
         knocked out. This results in more practically relevant solutions as well as shorter running times.
+    use_nullspace_simplification: Boolean (default True)
+        Use a basis for the nullspace to find groups of reactions whose fluxes are multiples of each other. From
+        each of these groups only 1 reaction will be included as a possible knockout
 
     Examples
     --------
@@ -76,7 +80,7 @@ class OptKnock(StrainDesignMethod):
     """
 
     def __init__(self, model, exclude_reactions=None, remove_blocked=True, fraction_of_optimum=0.1,
-                 exclude_non_gene_reactions=True, *args, **kwargs):
+                 exclude_non_gene_reactions=True, use_nullspace_simplification=True, *args, **kwargs):
         super(OptKnock, self).__init__(*args, **kwargs)
         self._model = model.copy()
         self._original_model = model
@@ -105,22 +109,33 @@ class OptKnock(StrainDesignMethod):
         if exclude_non_gene_reactions:
             exclude_reactions += [r for r in self._model.reactions if not r.genes]
 
-        self._build_problem(exclude_reactions)
+        self._build_problem(exclude_reactions, use_nullspace_simplification)
 
     def _remove_blocked_reactions(self):
+        print(len(self._model.reactions))
         fva_res = flux_variability_analysis(self._model, fraction_of_optimum=0)
         blocked = [
             self._model.reactions.get_by_id(reaction) for reaction, row in fva_res.data_frame.iterrows()
             if (round(row["lower_bound"], config.ndecimals) ==
                 round(row["upper_bound"], config.ndecimals) == 0)]
         self._model.remove_reactions(blocked)
+        print(len(self._model.reactions))
 
-    def _build_problem(self, essential_reactions):
+    def _reduce_to_nullspace(self, reactions):
+        reaction_groups = find_coupled_reactions_nullspace(self._model)
+        reduced_reactions = reduce_reaction_set(reactions, reaction_groups)
+        return reduced_reactions
+
+    def _build_problem(self, essential_reactions, use_nullspace_simplification):
         logger.debug("Starting to formulate OptKnock problem")
 
         self.essential_reactions = self._model.essential_reactions() + self._model.exchanges
         if essential_reactions:
             self.essential_reactions += [self._model._reaction_for(r) for r in essential_reactions]
+
+        reactions = set(self._model.reactions) - set(self.essential_reactions)
+        if use_nullspace_simplification:
+            reactions = self._reduce_to_nullspace(reactions)
 
         self._make_dual()
 
@@ -129,7 +144,7 @@ class OptKnock(StrainDesignMethod):
 
         y_vars = {}
         constrained_dual_vars = set()
-        for reaction in self._model.reactions:
+        for reaction in reactions:
             if reaction not in self.essential_reactions and reaction.lower_bound <= 0 <= reaction.upper_bound:
                 y_var, constrained_vars = self._add_knockout_constraints(reaction)
                 y_vars[y_var] = reaction

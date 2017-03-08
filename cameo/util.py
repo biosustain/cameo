@@ -29,7 +29,6 @@ from time import time
 from uuid import uuid1
 
 import numpy
-import numpy as np
 import pandas
 import pip
 import six
@@ -507,48 +506,6 @@ def generate_colors(n):
     return color_map
 
 
-# Taken from http://wiki.scipy.org/Cookbook/RankNullspace
-def nullspace(A, atol=1e-13, rtol=0):
-    """Compute an approximate basis for the nullspace of A.
-
-    The algorithm used by this function is based on the singular value
-    decomposition of `A`.
-
-    Parameters
-    ----------
-    A : ndarray
-        A should be at most 2-D.  A 1-D array with length k will be treated
-        as a 2-D with shape (1, k)
-    atol : float
-        The absolute tolerance for a zero singular value.  Singular values
-        smaller than `atol` are considered to be zero.
-    rtol : float
-        The relative tolerance.  Singular values less than rtol*smax are
-        considered to be zero, where smax is the largest singular value.
-
-    If both `atol` and `rtol` are positive, the combined tolerance is the
-    maximum of the two; that is::
-        tol = max(atol, rtol * smax)
-    Singular values smaller than `tol` are considered to be zero.
-
-    Return value
-    ------------
-    ns : ndarray
-        If `A` is an array with shape (m, k), then `ns` will be an array
-        with shape (k, n), where n is the estimated dimension of the
-        nullspace of `A`.  The columns of `ns` are a basis for the
-        nullspace; each element in numpy.dot(A, ns) will be approximately
-        zero.
-    """
-
-    A = np.atleast_2d(A)
-    u, s, vh = svd(A)
-    tol = max(atol, rtol * s[0])
-    nnz = (s >= tol).sum()
-    ns = vh[nnz:].conj().T
-    return ns
-
-
 def memoize(function, memo={}):
     def wrapper(*args):
         if args in memo:
@@ -608,3 +565,38 @@ def zip_repeat(long_iter, short_iter):
     """
     for i, j in zip(long_iter, itertools.cycle(short_iter)):
         yield i, j
+
+
+def pick_one(iterable):
+    """
+    Helper function that returns an element of an iterable (it the iterable is ordered this will be the first
+    element).
+    """
+    it = iter(iterable)
+    return next(it)
+
+
+def reduce_reaction_set(reaction_set, groups):
+    """
+    Reduces a set of reactions according to a number of groups of reactions.
+    The reduction will be performed so that the resulting set will contain no more than 1 reaction from each group.
+    Reactions that are not in any of the groups will remain in the set.
+
+    Parameters
+    ----------
+    reaction_set: Set
+    groups: Iterable of sets
+
+    Returns
+    -------
+    Set
+    """
+    reaction_set = set(reaction_set)  # Make a shallow copy
+    result = []
+    for group in groups:
+        intersection = group & reaction_set
+        if intersection:  # If any elements of group are in reaction_set, add one of these to result
+            result.append(pick_one(intersection))
+            reaction_set = reaction_set - intersection
+    result = set(result) | reaction_set  # Add the remaining reactions to result
+    return result
