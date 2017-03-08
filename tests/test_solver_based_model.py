@@ -35,6 +35,7 @@ from cameo.core.gene import Gene
 from cameo.core.metabolite import Metabolite
 from cameo.core.solver_based_model import Reaction
 from cameo.exceptions import UndefinedSolution
+from cameo.flux_analysis.structural import create_stoichiometric_array
 from cameo.util import TimeMachine
 
 TRAVIS = os.getenv('TRAVIS', False)
@@ -72,12 +73,12 @@ class AbstractTestLazySolution(WrappedCommonGround.CommonGround):
         self.assertRaises(UndefinedSolution, getattr, solution, 'f')
 
     def test_solution_contains_only_reaction_specific_values(self):
-        reaction_IDs = set([reaction.id for reaction in self.model.reactions])
-        self.assertEqual(set(self.solution.x_dict.keys()).difference(reaction_IDs), set())
-        self.assertEqual(set(self.solution.y_dict.keys()).difference(reaction_IDs), set())
-        self.assertEqual(set(self.solution.reduced_costs.keys()).difference(reaction_IDs), set())
-        metabolite_IDs = set([metabolite.id for metabolite in self.model.metabolites])
-        self.assertEqual(set(self.solution.shadow_prices.keys()).difference(metabolite_IDs), set())
+        reaction_ids = set([reaction.id for reaction in self.model.reactions])
+        self.assertEqual(set(self.solution.x_dict.keys()).difference(reaction_ids), set())
+        self.assertEqual(set(self.solution.y_dict.keys()).difference(reaction_ids), set())
+        self.assertEqual(set(self.solution.reduced_costs.keys()).difference(reaction_ids), set())
+        metabolite_ids = set([metabolite.id for metabolite in self.model.metabolites])
+        self.assertEqual(set(self.solution.shadow_prices.keys()).difference(metabolite_ids), set())
 
 
 class TestLazySolutionGLPK(AbstractTestLazySolution):
@@ -105,15 +106,20 @@ class WrappedAbstractTestReaction:
                 self.assertEqual(cloned_reaction.gene_reaction_rule, reaction.gene_reaction_rule)
                 self.assertSetEqual(set([gene.id for gene in cloned_reaction.genes]),
                                     set([gene.id for gene in reaction.genes]))
-                self.assertTrue(all(isinstance(gene, cameo.core.Gene) for gene in list(reaction.genes)))
-                self.assertSetEqual(set([metabolite.id for metabolite in cloned_reaction.metabolites]),
-                                    set([metabolite.id for metabolite in reaction.metabolites]))
+                self.assertTrue(all(isinstance(gene, cameo.core.Gene) for gene in list(cloned_reaction.genes)))
+                self.assertSetEqual({metabolite.id for metabolite in cloned_reaction.metabolites},
+                                    {metabolite.id for metabolite in reaction.metabolites})
                 self.assertTrue(
-                    all(isinstance(metabolite, cameo.core.Metabolite) for metabolite in reaction.metabolites))
-                self.assertSetEqual(set([metabolite.id for metabolite in cloned_reaction.products]),
-                                    set([metabolite.id for metabolite in reaction.products]))
-                self.assertSetEqual(set([metabolite.id for metabolite in cloned_reaction.reactants]),
-                                    set([metabolite.id for metabolite in reaction.reactants]))
+                    all(isinstance(metabolite, cameo.core.Metabolite) for metabolite in cloned_reaction.metabolites))
+                self.assertSetEqual({metabolite.id for metabolite in cloned_reaction.products},
+                                    {metabolite.id for metabolite in reaction.products})
+                self.assertSetEqual({metabolite.id for metabolite in cloned_reaction.reactants},
+                                    {metabolite.id for metabolite in reaction.reactants})
+
+                self.assertEqual(reaction.id, cloned_reaction.id)
+                self.assertEqual(reaction.name, cloned_reaction.name)
+                self.assertEqual(reaction.upper_bound, cloned_reaction.upper_bound)
+                self.assertEqual(reaction.lower_bound, cloned_reaction.lower_bound)
 
         def test_gene_reaction_rule_setter(self):
             m = self.model.copy()
@@ -182,8 +188,7 @@ class WrappedAbstractTestReaction:
                 -32)
 
             pgi_reaction.add_metabolites({test_met: 0}, combine=False)
-            with self.assertRaises(KeyError):
-                pgi_reaction.metabolites[test_met]
+            self.assertRaises(KeyError, pgi_reaction.metabolites.__getitem__, test_met)
             self.assertEqual(
                 model.solver.constraints[test_met.id].expression.as_coefficients_dict()[pgi_reaction.forward_variable],
                 0)
@@ -464,10 +469,10 @@ class WrappedAbstractTestReaction:
             self.assertEqual(r.forward_variable, None)
             self.assertEqual(r.reverse_variable, None)
 
-        def test_clone_cobrapy_reaction(self):
-            from cobra.core import Reaction as CobrapyReaction
-            reaction = CobrapyReaction('blug')
-            self.assertEqual(Reaction.clone(reaction).id, 'blug')
+        # def test_clone_cobrapy_reaction(self):
+        #     from cobra.core import Reaction as CobrapyReaction
+        #     reaction = CobrapyReaction('blug')
+        #     self.assertEqual(Reaction.clone(reaction).id, 'blug')
 
         def test_weird_left_to_right_reaction_issue(self):
 
@@ -539,6 +544,7 @@ class WrappedAbstractTestReaction:
             self.assertEqual(self.model.reactions.PFK.forward_variable.ub, 1000.0)
             self.assertEqual(self.model.reactions.PFK.reverse_variable.lb, 0)
             self.assertEqual(self.model.reactions.PFK.reverse_variable.ub, 1000)
+            self.assertTrue(self.model.reactions.PFK.reversibility)
 
         def test_twist_irrev_right_to_left_reaction_to_left_to_right(self):
             self.assertFalse(self.model.reactions.PFK.reversibility)
@@ -770,6 +776,28 @@ class WrappedAbstractTestSolverBasedModel:
             self.assertEqual(coefficients_dict[biomass_r.reverse_variable], -1.)
             self.assertEqual(coefficients_dict[self.model.reactions.r2.forward_variable], 3.)
             self.assertEqual(coefficients_dict[self.model.reactions.r2.reverse_variable], -3.)
+
+        def test_remove_reactions(self):
+            model = self.model.copy()
+            model.remove_reactions([model.reactions.PGI, model.reactions.PGK], delete=False)
+            self.assertNotIn("PGI", model.reactions)
+            self.assertNotIn("PGK", model.reactions)
+            self.assertIn("PGI", self.model.reactions)
+            self.assertIn("PGK", self.model.reactions)
+
+        def test_remove_and_add_reactions(self):
+            model = self.model.copy()
+            pgi, pgk = model.reactions.PGI, model.reactions.PGK
+            model.remove_reactions([pgi, pgk], delete=False)
+            self.assertNotIn("PGI", model.reactions)
+            self.assertNotIn("PGK", model.reactions)
+            self.assertIn("PGI", self.model.reactions)
+            self.assertIn("PGK", self.model.reactions)
+            model.add_reactions([pgi, pgk])
+            self.assertIn("PGI", self.model.reactions)
+            self.assertIn("PGK", self.model.reactions)
+            self.assertIn("PGI", model.reactions)
+            self.assertIn("PGK", model.reactions)
 
         def test_add_cobra_reaction(self):
             r = cobra.Reaction(id="c1")
@@ -1046,6 +1074,19 @@ class WrappedAbstractTestSolverBasedModel:
             self.assertRaises(KeyError, self.model._reaction_for, None)
             self.assertRaises(KeyError, self.model._reaction_for, "blablabla")
             self.assertRaises(KeyError, self.model._reaction_for, "accoa_lp_c_lp_", add=False)
+
+        def test_stoichiometric_matrix(self):
+            stoichiometric_matrix = create_stoichiometric_array(self.model)
+            self.assertEqual(len(self.model.reactions), stoichiometric_matrix.shape[1])
+            self.assertEqual(len(self.model.metabolites), stoichiometric_matrix.shape[0])
+
+            for i, reaction in enumerate(self.model.reactions):
+                for j, metabolite in enumerate(self.model.metabolites):
+                    if metabolite in reaction.metabolites:
+                        coefficient = reaction.metabolites[metabolite]
+                    else:
+                        coefficient = 0
+                    self.assertEqual(stoichiometric_matrix[j, i], coefficient)
 
         def test_set_medium(self):
             medium = self.model.medium
