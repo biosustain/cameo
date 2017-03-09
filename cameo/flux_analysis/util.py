@@ -13,8 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__all__ = ['remove_infeasible_cycles']
-
 from functools import partial
 
 from cameo.exceptions import SolveError
@@ -22,8 +20,11 @@ from cameo.util import TimeMachine
 
 import sympy
 from sympy import Add, Mul
+from cameo.flux_analysis.simulation import add_pfba
 
 import logging
+
+__all__ = ['remove_infeasible_cycles', 'fix_pfba_as_constraint']
 
 FloatOne = sympy.Float(1)
 logger = logging.getLogger(__name__)
@@ -95,5 +96,38 @@ def remove_infeasible_cycles(model, fluxes, fix=()):
             logger.warning("Couldn't remove cycles from reference flux distribution.")
             raise e
         result = solution.x_dict
+        return result
 
-    return result
+
+def fix_pfba_as_constraint(model, multiplier=1, fraction_of_optimum=1, time_machine=None):
+    """Fix the pFBA optimum as a constraint
+
+    Useful when setting other objectives, like the maximum flux through given reaction may be more realistic if all
+    other fluxes are not allowed to reach their full upper bounds, but collectively constrained to max sum.
+
+    Parameters
+    ----------
+    model : cameo.core.SolverBasedModel
+        The model to add the pfba constraint to
+    multiplier : float
+        The multiplier of the minimal sum of all reaction fluxes to use as the constraint.
+    fraction_of_optimum : float
+        The fraction of the objective value's optimum to use as constraint when getting the pFBA objective's minimum
+    time_machine : TimeMachine, optional
+        A TimeMachine instance can be provided, making it easy to undo this modification.
+    """
+
+    fix_constraint_name = '_fixed_pfba_constraint'
+    if fix_constraint_name in model.solver.constraints:
+        model.solver.remove(fix_constraint_name)
+    with TimeMachine() as tm:
+        add_pfba(model, time_machine=tm, fraction_of_optimum=fraction_of_optimum)
+        pfba_objective_value = model.optimize().objective_value * multiplier
+        constraint = model.solver.interface.Constraint(model.objective.expression,
+                                                       name=fix_constraint_name,
+                                                       ub=pfba_objective_value)
+    if time_machine is None:
+        model.solver._add_constraint(constraint, sloppy=True)
+    else:
+        time_machine(do=partial(model.solver._add_constraint, constraint, sloppy=True),
+                     undo=partial(model.solver.remove, constraint))
