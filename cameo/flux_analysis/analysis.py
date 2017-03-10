@@ -78,9 +78,12 @@ def flux_variability_analysis(model, reactions=None, fraction_of_optimum=0., pfb
         The list of reaction whose lower and upper bounds should be determined.
         If `None`, all reactions in `model` will be assessed.
     fraction_of_optimum : float
-        Fix the objective of the model to a fraction of it's max (or min).
+        Fix the objective of the model to a fraction of it's max. Expected to be within [0;1]. Lower values increase
+        variability.
     pfba_factor : float
-        If not None, fix the total sum of reaction fluxes to its minimum times a factor (e.g. 1).
+        If not None, fix the total sum of reaction fluxes to its minimum times a factor. Expected to be within [
+        1;inf]. Higher factors increase flux variability to a certain point since the bound for the objective is
+        still fixed.
     remove_cycles : bool
         If true, apply the CycleFreeFlux algorithm to remove loops from each simulated flux distribution.
     view: cameo.parallel.SequentialView or cameo.parallel.MultiprocessingView or ipython.cluster.DirectView
