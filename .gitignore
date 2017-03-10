@@ -50,3 +50,4 @@ docs/_build
 
 .vagrant
 *~
+/.DS_Store
