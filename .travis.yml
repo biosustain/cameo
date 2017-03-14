@@ -35,7 +35,7 @@ before_install:
 - pip install pip --upgrade
 - pip install codecov
 - 'echo "this is a build for: $TRAVIS_BRANCH"'
-- 'if [[ "$TRAVIS_BRANCH" != "devel" ]]; then bash ./.travis/install_cplex.sh; fi'
+- 'if [[ "$TRAVIS_BRANCH" != "devel" && ($TRAVIS_PYTHON_VERSION == "3.4" || $TRAVIS_PYTHON_VERSION == "2.7") ]]; then bash ./.travis/install_cplex.sh; fi'
 install:
 - pip install flake8 numpy scipy pyzmq pandas
 - pip install .[swiglpk,test,parallel,cli]
