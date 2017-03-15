@@ -402,6 +402,7 @@ class GeneKnockoutTarget(GeneModulationTarget):
     def __hash__(self):
         return hash(str(self))
 
+
 class ReactionModulationTarget(FluxModulationTarget):
     __gnomic_feature_type__ = "reaction"
 
@@ -521,6 +522,7 @@ class ReactionInversionTarget(ReactionModulationTarget):
 
     def __hash__(self):
         return hash(str(self))
+
 
 class EnsembleTarget(Target):
     """
