@@ -20,8 +20,27 @@ import nose
 from nose.plugins.skip import SkipTest
 from nose.tools import assert_equal, assert_raises_regexp, assert_true
 
-from cameo import api
+from cameo import api, load_model
+from cameo import models, config
+from cameo.api.hosts import Host
 from cameo.api.products import Compound
+
+MODELS = os.path.dirname(models.__file__)
+
+UNIVERSALMODEL = load_model(os.path.join(MODELS, 'json/iJO1366.json'))
+UNIVERSALMODEL.remove_reactions(UNIVERSALMODEL.exchanges)
+
+
+def test_api():
+    mock_host = Host('core',
+                     models=['e_coli_core'],
+                     biomass=['BIOMASS_Ecoli_core_w_GAM'],
+                     carbon_sources=['EX_glc__D_e'])
+
+    api.design.debug = True
+    pathways = api.design.predict_pathways(product=UNIVERSALMODEL.metabolites.ser__L_c, hosts=[mock_host],
+                                           database=UNIVERSALMODEL, aerobic=True)
+    optimization_reports = api.design.optimize_strains(pathways, config.default_view, aerobic=True)
 
 
 def test_compound_repr():
