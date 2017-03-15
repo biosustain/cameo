@@ -98,12 +98,12 @@ class StrainDesign(object):
         targets = {}
         for target in self.targets:
             if target.id not in targets:
-                targets[target.id] = []
+                targets[target.id] = set()
             targets[target.id].add(target)
 
         for target in other.targets:
             if target.id not in targets:
-                targets[target.id] = []
+                targets[target.id] = set()
             targets[target.id].add(target)
 
         targets = [next(iter(t)) if len(t) == 1 else EnsembleTarget(id, t) for id, t in six.iteritems(targets)]
