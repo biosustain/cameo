@@ -85,6 +85,9 @@ class Target(object):
     def __str__(self):
         return self.id
 
+    def __hash__(self):
+        return hash(str(self))
+
 
 class FluxModulationTarget(Target):
     """
@@ -169,6 +172,9 @@ class FluxModulationTarget(Target):
         else:
             raise RuntimeError("fold_change shouldn't be 0")
 
+    def __hash__(self):
+        return hash(str(self))
+
     def _repr_html_(self):
         if self._value == 0:
             return "&Delta;%s" % self.id
@@ -247,6 +253,9 @@ class ReactionCofactorSwapTarget(Target):
     def _repr_html_(self):
         return self.id + "|" + self.swap_str.replace("<->", "&rlarr;")
 
+    def __hash__(self):
+        return hash(str(self))
+
 
 class KnockinTarget(Target):
     def __init__(self, id, value):
@@ -261,6 +270,9 @@ class KnockinTarget(Target):
 
     def __str__(self):
         return "::%s" % self.id
+
+    def __hash__(self):
+        return hash(str(self))
 
 
 class ReactionKnockinTarget(KnockinTarget):
@@ -313,6 +325,9 @@ class ReactionKnockinTarget(KnockinTarget):
     def __repr__(self):
         return "<ReactionKnockin %s>" % self.id
 
+    def __hash__(self):
+        return hash(str(self))
+
     def _repr_html_(self):
         return "::%s" % self.id
 
@@ -344,6 +359,9 @@ class GeneModulationTarget(FluxModulationTarget):
             return self.id == other.id and self._value == other._value and self._reference_value == other._reference_value
         else:
             return False
+
+    def __hash__(self):
+        return hash(str(self))
 
 
 class GeneKnockoutTarget(GeneModulationTarget):
@@ -381,6 +399,8 @@ class GeneKnockoutTarget(GeneModulationTarget):
     def __repr__(self):
         return "<GeneKnockout %s>" % self.id
 
+    def __hash__(self):
+        return hash(str(self))
 
 class ReactionModulationTarget(FluxModulationTarget):
     __gnomic_feature_type__ = "reaction"
@@ -414,6 +434,9 @@ class ReactionModulationTarget(FluxModulationTarget):
             return self.id == other.id and self._value == other._value and self._reference_value == other._reference_value
         else:
             return False
+
+    def __hash__(self):
+        return hash(str(self))
 
 
 class ReactionKnockoutTarget(ReactionModulationTarget):
@@ -454,6 +477,9 @@ class ReactionKnockoutTarget(ReactionModulationTarget):
     def __repr__(self):
         return "<ReactionKnockout %s>" % self.id
 
+    def __hash__(self):
+        return hash(str(self))
+
 
 class ReactionInversionTarget(ReactionModulationTarget):
 
@@ -492,6 +518,9 @@ class ReactionInversionTarget(ReactionModulationTarget):
         reaction = self.get_model_target(model)
         reverse_flux(reaction, self._reference_value, self._value, time_machine=time_machine)
 
+
+    def __hash__(self):
+        return hash(str(self))
 
 class EnsembleTarget(Target):
     """
@@ -541,3 +570,9 @@ class EnsembleTarget(Target):
                 return all(target == other.targets[i] for i, target in enumerate(self.targets))
 
         return False
+
+    def __str__(self):
+        return "%s[%s]" % (self.id, ", ".join(str(t) for t in self.targets))
+
+    def __hash__(self):
+        return hash(str(self))
