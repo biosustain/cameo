@@ -33,7 +33,7 @@ import cameo
 from cameo import config
 from cameo.core.result import Result
 from cameo.exceptions import Infeasible, Unbounded
-from cameo.flux_analysis.util import remove_infeasible_cycles
+from cameo.flux_analysis.util import remove_infeasible_cycles, fix_pfba_as_constraint
 from cameo.parallel import SequentialView
 from cameo.ui import notice
 from cameo.util import TimeMachine, partition, _BIOMASS_RE_
@@ -67,16 +67,26 @@ def find_blocked_reactions(model):
                      round(fva_solution.upper_bound(reaction.id), config.ndecimals) == 0)
 
 
-def flux_variability_analysis(model, reactions=None, fraction_of_optimum=0., remove_cycles=False, view=None):
+def flux_variability_analysis(model, reactions=None, fraction_of_optimum=0., pfba_factor=None,
+                              remove_cycles=False, view=None):
     """Flux variability analysis.
 
     Parameters
     ----------
-    model: SolverBasedModel
+    model : cameo.core.SolverBasedModel
     reactions: None or iterable
         The list of reaction whose lower and upper bounds should be determined.
         If `None`, all reactions in `model` will be assessed.
-    view: SequentialView or MultiprocessingView or ipython.cluster.DirectView
+    fraction_of_optimum : float
+        Fix the objective of the model to a fraction of it's max. Expected to be within [0;1]. Lower values increase
+        variability.
+    pfba_factor : float
+        If not None, fix the total sum of reaction fluxes to its minimum times a factor. Expected to be within [
+        1;inf]. Higher factors increase flux variability to a certain point since the bound for the objective is
+        still fixed.
+    remove_cycles : bool
+        If true, apply the CycleFreeFlux algorithm to remove loops from each simulated flux distribution.
+    view: cameo.parallel.SequentialView or cameo.parallel.MultiprocessingView or ipython.cluster.DirectView
         A parallelization view.
 
     Returns
@@ -92,6 +102,9 @@ def flux_variability_analysis(model, reactions=None, fraction_of_optimum=0., rem
     with TimeMachine() as tm:
         if fraction_of_optimum > 0.:
             model.fix_objective_as_constraint(fraction=fraction_of_optimum, time_machine=tm)
+        if pfba_factor is not None:
+            # don't add the objective-constraint again so fraction_of_optimum=0
+            fix_pfba_as_constraint(model, multiplier=pfba_factor, time_machine=tm, fraction_of_optimum=0)
         tm(do=int, undo=partial(setattr, model, "objective", model.objective))
         reaction_chunks = (chunk for chunk in partition(reactions, len(view)))
         if remove_cycles:
@@ -140,6 +153,7 @@ def phenotypic_phase_plane(model, variables=[], objective=None, source=None, poi
     [1] Edwards, J. S., Ramakrishna, R. and Palsson, B. O. (2002). Characterizing the metabolic phenotype: a phenotype
         phase plane analysis. Biotechnology and Bioengineering, 77(1), 27–36. doi:10.1002/bit.10047
     """
+
     if isinstance(variables, str):
         variables = [variables]
     elif isinstance(variables, cameo.core.reaction.Reaction):

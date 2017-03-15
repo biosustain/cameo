@@ -4,7 +4,7 @@ blessings>=1.5.1
 pandas>=0.15.2
 ordered-set==1.2
 inspyred>=1.0
-cobra>=0.4.0b6
+cobra==0.5.11
 optlang>=0.3.0
 escher>=1.0.0
 numexpr>=2.4

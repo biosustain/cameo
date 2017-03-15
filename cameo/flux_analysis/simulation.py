@@ -34,6 +34,7 @@ import cameo
 import logging
 
 from functools import partial
+from itertools import chain
 
 import sympy
 from sympy import Add
@@ -48,7 +49,6 @@ from cameo.core.result import Result
 from cameo.visualization.palette import mapper, Palette
 
 __all__ = ['fba', 'pfba', 'moma', 'lmoma', 'room']
-
 
 logger = logging.getLogger(__name__)
 
@@ -86,14 +86,55 @@ def fba(model, objective=None, reactions=None, *args, **kwargs):
         return result
 
 
+def add_pfba(model, objective=None, fraction_of_optimum=1.0, time_machine=None):
+    """Add pFBA objective
+
+    Add objective to minimize the summed flux of all reactions to the
+    current objective.
+
+    Parameters
+    ----------
+    model : cameo.core.SolverBasedModel
+        The model to add the objective to
+    objective :
+        An objective to set in combination with the pFBA objective.
+    fraction_of_optimum : float
+        Fraction of optimum which must be maintained. The original objective
+        reaction is constrained to be greater than maximal_value *
+        fraction_of_optimum.
+    time_machine : cameo.util.TimeMachine
+        A time machine to undo the added pFBA objective
+    """
+    if objective is not None:
+        model.objective = objective
+    if model.solver.objective.name == '_pfba_objective':
+        raise ValueError('model already has pfba objective')
+    if fraction_of_optimum > 0:
+        model.fix_objective_as_constraint(fraction=fraction_of_optimum, time_machine=time_machine)
+    reaction_variables = ((rxn.forward_variable, rxn.reverse_variable)
+                          for rxn in model.reactions)
+    variables = chain(*reaction_variables)
+    pfba_objective = model.solver.interface.Objective(add(
+        [mul((sympy.singleton.S.One, variable))
+         for variable in variables]), direction='min', sloppy=True,
+        name="_pfba_objective")
+    model.change_objective(pfba_objective, time_machine=time_machine)
+
+
 def pfba(model, objective=None, reactions=None, fraction_of_optimum=1, *args, **kwargs):
     """Parsimonious Enzyme Usage Flux Balance Analysis [1].
 
     Parameters
     ----------
-    model: SolverBasedModel
+    model : cameo.core.SolverBasedModel
+        The model to perform pFBA with
     objective: str or reaction or optlang.Objective
         An objective to be minimized/maximized for
+    reactions : list
+        list of reactions to get results for. Getting fluxes from solution can be time consuming so if not all are
+        needed it may be faster to request specific reactions.
+    fraction_of_optimum : float
+        Fix the value of the current objective to a fraction of is maximum.
 
     Returns
     -------
@@ -108,16 +149,7 @@ def pfba(model, objective=None, reactions=None, fraction_of_optimum=1, *args, **
 
     """
     with TimeMachine() as tm:
-        original_objective = model.objective
-        if objective is not None:
-            tm(do=partial(setattr, model, 'objective', objective),
-               undo=partial(setattr, model, 'objective', original_objective))
-        model.fix_objective_as_constraint(time_machine=tm, fraction=fraction_of_optimum)
-        pfba_obj = model.solver.interface.Objective(add(
-            [mul((sympy.singleton.S.One, variable)) for variable in list(model.solver.variables.values())]),
-            direction='min', sloppy=True)
-        tm(do=partial(setattr, model, 'objective', pfba_obj),
-           undo=partial(setattr, model, 'objective', original_objective))
+        add_pfba(model, objective=objective, fraction_of_optimum=fraction_of_optimum, time_machine=tm)
         try:
             solution = model.solve()
             if reactions is not None:
@@ -127,7 +159,7 @@ def pfba(model, objective=None, reactions=None, fraction_of_optimum=1, *args, **
         except SolveError as e:
             logger.error("pfba could not determine an optimal solution for objective %s" % model.objective)
             raise e
-    return result
+        return result
 
 
 def moma(model, reference=None, cache=None, reactions=None, *args, **kwargs):
@@ -411,6 +443,7 @@ class FluxDistributionResult(Result):
 
 
     """
+
     @classmethod
     def from_solution(cls, solution, *args, **kwargs):
         return cls(solution.fluxes, solution.f, *args, **kwargs)
@@ -509,7 +542,7 @@ class FluxDistributionResult(Result):
             else:
                 map_json = None
 
-            active_fluxes = {rid: flux for rid, flux in six.iteritems(self.fluxes) if abs(flux) > 10**-ndecimals}
+            active_fluxes = {rid: flux for rid, flux in six.iteritems(self.fluxes) if abs(flux) > 10 ** -ndecimals}
 
             values = [abs(v) for v in active_fluxes.values()]
             values += [-v for v in values]
@@ -525,7 +558,7 @@ class FluxDistributionResult(Result):
                               dict(type='max', color=scale[4][1], size=24)]
 
             active_fluxes = {rid: round(flux, ndecimals) for rid, flux in six.iteritems(self.fluxes)
-                             if abs(flux) > 10**-ndecimals}
+                             if abs(flux) > 10 ** -ndecimals}
 
             active_fluxes['min'] = min(values)
             active_fluxes['max'] = max(values)

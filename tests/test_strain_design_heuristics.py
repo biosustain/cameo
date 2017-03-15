@@ -52,7 +52,7 @@ from cameo.strain_design.heuristic.evolutionary.objective_functions import bioma
     product_yield, number_of_knockouts, biomass_product_coupled_min_yield, MultiObjectiveFunction, YieldFunction
 from cameo.strain_design.heuristic.evolutionary.optimization import HeuristicOptimization, \
     ReactionKnockoutOptimization, set_distance_function, TargetOptimizationResult, EvaluatorWrapper, \
-    CofactorSwapOptimization, SolutionSimplification, NADH_NADPH
+    CofactorSwapOptimization, SolutionSimplification, NADH_NADPH, GeneKnockoutOptimization
 
 from cameo.strain_design.heuristic.evolutionary.evaluators import KnockoutEvaluator
 
@@ -932,6 +932,83 @@ class TestReactionKnockoutOptimization(TestWithModel.TestWithEColiCore):
         objective = MultiObjectiveFunction([objective1, objective2])
 
         rko = ReactionKnockoutOptimization(model=self.model,
+                                           simulation_method=fba,
+                                           objective_function=objective,
+                                           heuristic_method=inspyred.ec.emo.NSGA2)
+
+        results = rko.run(max_evaluations=3000, pop_size=10, view=SequentialView(), seed=SEED)
+
+        with open(result_file, 'wb') as in_file:
+            pickle.dump(results, in_file)
+
+        with open(result_file, 'rb') as in_file:
+            if six.PY3:
+                expected_results = pickle.load(in_file, encoding="latin1")
+            else:
+                expected_results = pickle.load(in_file)
+
+        self.assertEqual(results.seed, expected_results.seed)
+
+        # assert_frame_equal(results.data_frame, expected_results.data_frame)
+
+
+class TestGeneKnockoutOptimization(TestWithModel.TestWithEColiCore):
+    def setUp(self):
+        super(TestGeneKnockoutOptimization, self).setUp()
+        self.essential_genes = set([r.id for r in self.model.essential_genes()])
+
+    def test_initializer(self):
+        objective = biomass_product_coupled_yield(
+            "Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2",
+            "EX_ac_LPAREN_e_RPAREN_",
+            "EX_glc_LPAREN_e_RPAREN_")
+        rko = GeneKnockoutOptimization(model=self.model,
+                                       simulation_method=fba,
+                                       objective_function=objective)
+
+        self.assertTrue(sorted(self.essential_genes) == sorted(rko.essential_genes))
+        self.assertEqual(rko._target_type, "gene")
+        self.assertTrue(isinstance(rko._decoder, GeneSetDecoder))
+
+    # @unittest.skipIf(os.getenv('TRAVIS', False) or 'cplex' not in solvers, 'Missing cplex (or Travis)')
+    def test_run_single_objective(self):
+        # TODO: make optlang deterministic so this results can be permanently stored.
+        _, result_file = mkstemp('.pkl')
+        objective = biomass_product_coupled_yield(
+            "Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2",
+            "EX_ac_LPAREN_e_RPAREN_",
+            "EX_glc_LPAREN_e_RPAREN_")
+
+        rko = GeneKnockoutOptimization(model=self.model,
+                                           simulation_method=fba,
+                                           objective_function=objective)
+
+        results = rko.run(max_evaluations=3000, pop_size=10, view=SequentialView(), seed=SEED)
+
+        with open(result_file, 'wb') as in_file:
+            pickle.dump(results, in_file)
+
+        with open(result_file, 'rb') as in_file:
+            if six.PY3:
+                expected_results = pickle.load(in_file, encoding="latin1")
+            else:
+                expected_results = pickle.load(in_file)
+
+        self.assertEqual(results.seed, expected_results.seed)
+
+    # @unittest.skipIf(os.getenv('TRAVIS', False) or 'cplex' not in solvers, 'Missing cplex (or Travis)')
+    def test_run_multiobjective(self):
+        # TODO: make optlang deterministic so this results can be permanently stored.
+        _, result_file = mkstemp('.pkl')
+        objective1 = biomass_product_coupled_yield(
+            "Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2",
+            "EX_ac_LPAREN_e_RPAREN_",
+            "EX_glc_LPAREN_e_RPAREN_")
+
+        objective2 = number_of_knockouts()
+        objective = MultiObjectiveFunction([objective1, objective2])
+
+        rko = GeneKnockoutOptimization(model=self.model,
                                            simulation_method=fba,
                                            objective_function=objective,
                                            heuristic_method=inspyred.ec.emo.NSGA2)
