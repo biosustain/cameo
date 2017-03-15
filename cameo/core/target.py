@@ -85,6 +85,9 @@ class Target(object):
     def __str__(self):
         return self.id
 
+    def __hash__(self):
+        return hash(str(self))
+
 
 class FluxModulationTarget(Target):
     """
