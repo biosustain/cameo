@@ -98,7 +98,7 @@ def delta():
     if util.in_ipnb():
         return "&Delta;"
     else:
-        return str(b'\xce\x94')
+        return b'\xce\x94'.decode('utf-8')
 
 
 def knockin():
@@ -112,11 +112,11 @@ def upreg(coeff):
     if util.in_ipnb():
         return "&uarr;%.3f" % coeff
     else:
-        return str(b'\xe2\x86\x91') + "%.3f" % coeff
+        return b'\xe2\x86\x91'.decode('utf-8') + "%.3f" % coeff
 
 
 def downreg(coeff):
     if util.in_ipnb():
         return "&darr;%.3f" % coeff
     else:
-        return str(b'\xe2\x86\x93') + "%.3f" % coeff
+        return b'\xe2\x86\x93'.decode('utf-8') + "%.3f" % coeff
