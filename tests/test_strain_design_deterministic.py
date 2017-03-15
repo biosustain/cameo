@@ -22,10 +22,13 @@ from pandas import DataFrame
 from pandas.util.testing import assert_frame_equal
 
 import cameo
+from cameo import fba
 from cameo import load_model
 from cameo.config import solvers
+from cameo.exceptions import Infeasible
 from cameo.strain_design.deterministic.flux_variability_based import FSEOF, FSEOFResult, DifferentialFVA
 from cameo.strain_design.deterministic.linear_programming import OptKnock
+from cameo.util import TimeMachine
 
 TRAVIS = os.getenv('TRAVIS', False)
 TESTDIR = os.path.dirname(__file__)
@@ -72,6 +75,20 @@ class TestDifferentialFVA(unittest.TestCase):
         ref_df = pandas.read_csv(os.path.join(TESTDIR, 'data/REFERENCE_DiffFVA1.csv'), index_col=0).astype(
             "O").sort_index(axis=1)
         pandas.util.testing.assert_frame_equal(result.data_frame.iloc[0].sort_index(axis=1), ref_df)
+
+    def test_apply_designs(self):
+        result = DifferentialFVA(self.model, self.model.reactions.EX_succ_lp_e_rp_, points=5).run()
+        works = []
+        for strain_design in result:
+            with TimeMachine() as tm:
+                strain_design.apply(self.model, tm)
+                try:
+                    solution = fba(self.model, objective="Biomass_Ecoli_core_N_lp_w_fsh_GAM_rp__Nmet2")
+                    works.append(solution["EX_succ_lp_e_rp_"] > 1e-6 and solution.objective_value > 1e-6)
+                except Infeasible:
+                    works.append(False)
+
+        self.assertTrue(any(works))
 
     def test_with_reference_model(self):
         reference_model = self.model.copy()
