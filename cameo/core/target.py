@@ -231,6 +231,8 @@ class ReactionCofactorSwapTarget(Target):
                 return False
             if isinstance(other, ReactionKnockinTarget):
                 return True
+            elif isinstance(other, EnsembleTarget):
+                return not other > self
             else:
                 raise IncompatibleTargets(self, other)
         else:
@@ -292,6 +294,8 @@ class ReactionKnockinTarget(KnockinTarget):
                 return False
             elif isinstance(other, ReactionCofactorSwapTarget):
                 return False
+            elif isinstance(other, EnsembleTarget):
+                return not other > self
             else:
                 raise IncompatibleTargets(self, other)
         else:
@@ -328,6 +332,8 @@ class GeneModulationTarget(FluxModulationTarget):
                 return False
             elif isinstance(other, GeneModulationTarget) and not isinstance(other, GeneKnockoutTarget):
                 return self.fold_change > other.fold_change
+            elif isinstance(other, EnsembleTarget):
+                return not other > self
             else:
                 raise IncompatibleTargets(self, other)
         else:
@@ -357,6 +363,8 @@ class GeneKnockoutTarget(GeneModulationTarget):
                 return self.fold_change > other.fold_change
             elif isinstance(other, GeneKnockoutTarget):
                 return False
+            elif isinstance(other, EnsembleTarget):
+                return not other > self
             else:
                 raise IncompatibleTargets(self, other)
         else:
@@ -394,6 +402,8 @@ class ReactionModulationTarget(FluxModulationTarget):
                 return True
             elif isinstance(other, ReactionModulationTarget) and not isinstance(other, ReactionKnockoutTarget):
                 return self.fold_change > other.fold_change
+            elif isinstance(other, EnsembleTarget):
+                return not other > self
             else:
                 raise IncompatibleTargets(self, other)
         else:
@@ -426,6 +436,8 @@ class ReactionKnockoutTarget(ReactionModulationTarget):
                     raise IncompatibleTargets(self, other)
             elif isinstance(other, ReactionCofactorSwapTarget):
                 raise IncompatibleTargets(self, other)
+            elif isinstance(other, EnsembleTarget):
+                return not other > self
             else:
                 raise IncompatibleTargets(self, other)
         else:
@@ -513,3 +525,19 @@ class EnsembleTarget(Target):
 
     def _repr_html_(self):
         return "|" + ";".join(target._repr_html_() for target in self.targets) + '|'
+
+    def __gt__(self, other):
+        if isinstance(other, EnsembleTarget):
+            return self.id > other.id
+
+        else:
+            is_greater = False
+            for t in self.targets:
+                is_greater = is_greater or t >= other
+
+    def __eq__(self, other):
+        if isinstance(other, EnsembleTarget):
+            if len(self.targets) == len(other.targets):
+                return all(target == other.targets[i] for i, target in enumerate(self.targets))
+
+        return False
