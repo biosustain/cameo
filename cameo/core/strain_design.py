@@ -106,7 +106,7 @@ class StrainDesign(object):
                 targets[target.id] = []
             targets[target.id].add(target)
 
-        targets = [next(iter(tar)) if len(t) == 1 else EnsembleTarget(id, t) for id, t in six.iteritems(targets)]
+        targets = [next(iter(t)) if len(t) == 1 else EnsembleTarget(id, t) for id, t in six.iteritems(targets)]
 
         return StrainDesign(targets)
 
@@ -125,7 +125,7 @@ class StrainDesign(object):
                 targets[target.id] = set()
             targets[target.id].add(target)
 
-        targets = [next(iter(tar)) if len(tar) == 1 else EnsembleTarget(id, tar) for id, tar in six.iteritems(targets)]
+        targets = [next(iter(t)) if len(t) == 1 else EnsembleTarget(id, tar) for id, t in six.iteritems(targets)]
 
         self.targets = DictList(targets)
 
