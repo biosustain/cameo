@@ -20,7 +20,11 @@ from __future__ import absolute_import, print_function
 import re
 
 import numpy as np
-from six.moves import reduce
+from IProgress import ProgressBar, ETA, Bar
+
+from cameo.core import SolverBasedModel
+from cameo.core.strain_design import StrainDesign
+from cameo.strain_design.pathway_prediction.pathway_predictor import PathwayResult
 
 try:
     from IPython.core.display import display
@@ -36,8 +40,7 @@ from pandas import DataFrame
 
 from cameo import Metabolite, Model, fba
 from cameo import config, util
-from cameo.core.result import Result
-from cameo.api.hosts import hosts, Host
+from cameo.api.hosts import hosts as HOSTS, Host
 from cameo.api.products import products
 from cameo.exceptions import SolveError
 from cameo.strain_design import OptGene, DifferentialFVA
@@ -45,6 +48,8 @@ from cameo.ui import notice, searching, stop_loader
 from cameo.strain_design import pathway_prediction
 from cameo.util import TimeMachine
 from cameo.models import universal
+from cameo.strain_design.heuristic.evolutionary.objective_functions import biomass_product_coupled_min_yield
+from cameo.strain_design.heuristic.evolutionary.objective_functions import product_yield
 
 from cameo.visualization import visualization
 
@@ -59,45 +64,61 @@ logger = logging.getLogger(__name__)
 
 
 class _OptimizationRunner(object):
+    def __init__(self, debug=False):
+        self.debug = debug
+
     def __call__(self, strategy):
         raise NotImplementedError
 
 
 class _OptGeneRunner(_OptimizationRunner):
     def __call__(self, strategy):
-        (model, pathway) = (strategy[1], strategy[2])
+        max_evaluations = 20000
+
+        if self.debug:
+            max_evaluations = 1000
+
+        (model, pathway, aerobic) = (strategy[1], strategy[2], strategy[3])
+        assert isinstance(model, SolverBasedModel)
+        assert isinstance(pathway, PathwayResult)
+        assert isinstance(aerobic, bool)
+
         with TimeMachine() as tm:
-            pathway.plug_model(model, tm)
+            if not aerobic and 'EX_o2_e' in model.reactions:
+                model.reactions.EX_o2_e.change_bounds(lb=0, time_machine=tm)
+            pathway.apply(model, tm)
+            model.objective = model.biomass
             opt_gene = OptGene(model=model, plot=False)
             designs = opt_gene.run(target=pathway.product.id, biomass=model.biomass, substrate=model.carbon_source,
-                                   max_evaluations=10000)
+                                   max_evaluations=max_evaluations, max_knockouts=15)
 
-            return designs, pathway
+            return designs
 
 
 class _DifferentialFVARunner(_OptimizationRunner):
     def __call__(self, strategy):
-        (model, pathway) = (strategy[1], strategy[2])
+        points = 20
+        if self.debug:
+            points = 5
+
+        (model, pathway, aerobic) = (strategy[1], strategy[2], strategy[3])
+        assert isinstance(model, SolverBasedModel)
+        assert isinstance(pathway, PathwayResult)
+        assert isinstance(aerobic, bool)
+
         with TimeMachine() as tm:
-            pathway.plug_model(model, tm)
-            opt_gene = DifferentialFVA(design_space_model=model, objective=pathway.product.id)
-            designs = opt_gene.run()
+            if not aerobic and 'EX_o2_e' in model.reactions:
+                model.reactions.EX_o2_e.change_bounds(lb=0, time_machine=tm)
 
-            return designs, pathway
+            pathway.apply(model, tm)
+            model.objective = model.biomass
+            diff_fva = DifferentialFVA(design_space_model=model,
+                                       objective=pathway.product.id,
+                                       variables=[model.biomass],
+                                       points=points)
+            designs = diff_fva.run(improvements_only=True, surface_only=True)
 
-
-class DesignerResult(Result):
-    def __init__(self, designs, *args, **kwargs):
-        super(DesignerResult, self).__init__(*args, **kwargs)
-        self.designs = designs
-
-    def _repr_latex_(self):
-        pass
-
-
-class StrainDesings(Result):
-    def __init__(self, organism, designs, *args, **kwargs):
-        super(StrainDesings, self).__init__(*args, **kwargs)
+            return designs
 
 
 class Designer(object):
@@ -109,11 +130,11 @@ class Designer(object):
     designs = design(product='L-glutamate')
     """
 
-    def __init__(self):
+    def __init__(self, debug=False):
         """"""
-        pass
+        self.debug = debug
 
-    def __call__(self, product='L-glutamate', hosts=hosts, database=None, view=config.default_view):
+    def __call__(self, product='L-glutamate', hosts=HOSTS, database=None, aerobic=True, view=config.default_view):
         """The works.
 
         The following workflow will be followed to determine suitable
@@ -132,6 +153,8 @@ class Designer(object):
             The desired product.
         hosts : list or Model or Host
             A list of hosts (e.g. cameo.api.hosts), models, mixture thereof, or a single model or host.
+        aerobic: bool
+            If false, sets `model.reaction.EX_o2_e.lower_bound = 0`
 
         Returns
         -------
@@ -145,48 +168,133 @@ class Designer(object):
             product = self.__translate_product_to_universal_reactions_model_metabolite(product, database)
         except KeyError:
             raise KeyError("Product %s is not in the %s database" % (product, database.id))
-        pathways = self.predict_pathways(product, hosts=hosts, database=database)
-        print("Optimizing %i pathways" % sum(len(p) for p in pathways.values()))
-        optimization_reports = self.optimize_strains(pathways, view)
+        pathways = self.predict_pathways(product, hosts=hosts, database=database, aerobic=aerobic)
+        optimization_reports = self.optimize_strains(pathways, view, aerobic=aerobic)
         return optimization_reports
 
-    def optimize_strains(self, pathways, view):
+    def optimize_strains(self, pathways, view, aerobic=True):
         """
-        Optimize targets for the identified pathways. The optimization will only run if the patwhay can be optimized.
+        Optimize targets for the identified pathways. The optimization will only run if the pathway can be optimized.
 
         Arguments
         ---------
         pathways: list
-            A list of dictionaries to optimize.
+            A list of dictionaries to optimize ([Host, Model] -> PredictedPathways).
         view: object
             A view for multi, single os distributed processing.
+        aerobic: bool
+            If True, it will set `model.reactions.EX_o2_e.lower_bound` to 0.
+
+        Returns
+        -------
+        pandas.DataFrame
+            A data frame with strain designs processed and ranked.
 
         """
-        opt_gene_runner = _OptGeneRunner()
-        differential_fva_runner = _DifferentialFVARunner()
-        designs = [(host, model, pathway) for (host, model) in pathways for pathway in pathways[host, model]
-                   if pathway.needs_optimization(model, objective=model.biomass)]
+        opt_gene_runner = _OptGeneRunner(self.debug)
+        differential_fva_runner = _DifferentialFVARunner(self.debug)
+        strategies = [(host, model, pathway, aerobic) for (host, model) in pathways for pathway in pathways[host, model]
+                      if pathway.needs_optimization(model, objective=model.biomass)]
 
-        final_designs = []
+        print("Optimizing %i pathways" % len(strategies))
 
-        results = view.map(opt_gene_runner, designs)
-        final_designs += self.process_strain_design_results(results)
-        results = view.map(differential_fva_runner, designs)
-        final_designs += self.process_strain_design_results(results)
+        results = DataFrame(columns=["host", "model", "manipulations", "heterologous_pathway",
+                                     "fitness", "yield", "product", "biomass", "method"])
 
-        return reduce(lambda x, y: x + y, final_designs)
+        mapped_designs1 = view.map(opt_gene_runner, strategies)
+        mapped_designs2 = view.map(differential_fva_runner, strategies)
+        progress = ProgressBar(maxval=len(mapped_designs1) + len(mapped_designs2),
+                               widgets=["Processing solutions: ", Bar(), ETA()])
+        progress.start()
+        results = self.build_results_data(mapped_designs1, strategies, results, progress)
+        results = self.build_results_data(mapped_designs2, strategies, results, progress, offset=len(mapped_designs1))
+        progress.finish()
+
+        return results
+
+    def build_results_data(self, strategy_designs, strategies, results, progress, offset=0):
+        """
+        Process the designs and add them to the `results` DataFrame.
+
+        Parameters
+        ----------
+        strategy_designs: list
+            A list of list[StrainDesign]. Each list corresponds to a strategy.
+        strategies: list
+            List of [(Host, SolverBasedModel, PathwayResult, Boolean)]. Note: variables: host, model, pathway, anaerobic
+        results: pandas.DataFrame
+            An existing DataFrame to be extended.
+        progress: IProgress.ProgressBar
+            A progress bar handler.
+        offset: int
+            An offset tracker for the progress bar.
+
+        Returns
+        -------
+        pandas.DataFrame
+            A data frame with the processed designs appended
+
+        """
+        for i, strain_designs in enumerate(strategy_designs):
+            strategy = strategies[i]
+            _results = DataFrame(columns=results.columns, index=[j for j in range(len(strain_designs))])
+            manipulations, fitness, yields, target_flux, biomass = self.process_strain_designs(strain_designs, *strategy[1:])
+            for j, strain_design in enumerate(manipulations):
+                _results.loc[j, 'manipulations'] = strain_design
+                _results.loc[j, 'heterologous_pathway'] = strategy[2]
+            _results['host'] = strategy[0].name
+            _results['model'] = strategy[1].id
+            _results['fitness'] = fitness
+            _results['yield'] = yields
+            _results['biomass'] = biomass
+            _results['product'] = target_flux
+            _results['method'] = "DifferentialFVA+PathwayFinder"
+
+            results.append(_results, ignore_index=True)
+            progress.update(i + offset)
+        return results
+
+    def process_strain_designs(self, strain_designs, model, pathway, aerobic):
+        assert isinstance(pathway, StrainDesign)
+        assert isinstance(pathway, PathwayResult)
+        final_strain_designs = []
+        fitness = []
+        yields = []
+        biomass = []
+        target_flux = []
+        pyield = product_yield(pathway.product, model.carbon_source)
+        bpcy = biomass_product_coupled_min_yield(model.biomass, pathway.product, model.carbon_source)
+        for strain_design in strain_designs:
+            assert isinstance(strain_design, StrainDesign)
+            _fitness, _yield, _target_flux, _biomass = self.evaluate_design(model, strain_design,
+                                                                            pathway, aerobic, bpcy, pyield)
+            fitness.append(_fitness)
+            yields.append(_yield)
+            final_strain_designs.append(strain_design)
+            biomass.append(_biomass)
+            target_flux.append(_target_flux)
+
+        return final_strain_designs, fitness, yields, target_flux, biomass
 
     @staticmethod
-    def process_strain_design_results(results):
-        designs = []
-        for res in results:
-            (design_result, pathway) = (res[0], res[1])
-            for strain_design in design_result:
-                strain_design += pathway
-            designs.append(design_result)
-        return designs
+    def evaluate_design(model, strain_design, pathway, aerobic, bpcy, pyield):
+        with TimeMachine() as tm:
+            if not aerobic and 'EX_o2_e' in model.reactions:
+                model.reactions.EX_o2_e.change_bounds(lb=0, time_machine=tm)
+            pathway.apply(model, time_machine=tm)
+            strain_design.apply(model, time_machine=tm)
+            try:
+                solution = fba(model, objective=model.biomass)
+                _bpcy = bpcy(model, solution, strain_design.targets)
+                _pyield = pyield(model, solution, strain_design.targets)
+                target_flux = solution.fluxes[pyield.product]
+                biomass = solution.fluxes[bpcy.biomass]
+            except SolveError:
+                print("invalid design %s" % repr(strain_design))
+                _bpcy, _pyield, target_flux, biomass = np.nan, np.nan, np.nan, np.nan
+            return _bpcy, _pyield, target_flux, biomass
 
-    def predict_pathways(self, product, hosts=None, database=None):  # TODO: make this work with a single host or model
+    def predict_pathways(self, product, hosts=None, database=None, aerobic=True):
         """Predict production routes for a desired product and host spectrum.
         Parameters
         ----------
@@ -194,12 +302,19 @@ class Designer(object):
             The desired product.
         hosts : list or Model or Host
             A list of hosts (e.g. cameo.api.hosts), models, mixture thereof, or a single model or host.
+        database: SolverBasedModel
+            A model to use as database. See also: cameo.models.universal
+        aerobic: bool
+            If True, it will set `model.reactions.EX_o2_e.lower_bound` to 0.
 
         Returns
         -------
         dict
-            ...
+            ([Host, Model] -> PredictedPathways)
         """
+        max_predictions = 8
+        timeout = 3 * 60
+
         pathways = dict()
         product = self.__translate_product_to_universal_reactions_model_metabolite(product, database)
         for host in hosts:
@@ -207,19 +322,29 @@ class Designer(object):
             if isinstance(host, Model):
                 host = Host(name='UNKNOWN_HOST', models=[host])
             for model in list(host.models):
-                identifier = searching()
-                logging.debug('Processing model {} for host {}'.format(model.id, host.name))
-                notice('Predicting pathways for product %s in %s (using model %s).'
-                       % (product.name, host, model.id))
-                logging.debug('Predicting pathways for model {}'.format(model.id))
-                pathway_predictor = pathway_prediction.PathwayPredictor(model,
-                                                                        universal_model=database,
-                                                                        compartment_regexp=re.compile(".*_c$"))
-                # TODO adjust these numbers to something reasonable
-                predicted_pathways = pathway_predictor.run(product, max_predictions=4, timeout=3 * 60, silent=True)
-                stop_loader(identifier)
-                pathways[(host, model)] = predicted_pathways
-                self.__display_pathways_information(predicted_pathways, host, model)
+                with TimeMachine() as tm:
+                    if not aerobic and "EX_o2_e" in model.reactions:
+                        model.reactions.EX_o2_e.change_bounds(lb=0, time_machin=tm)
+                    identifier = searching()
+                    logging.debug('Processing model {} for host {}'.format(model.id, host.name))
+                    notice('Predicting pathways for product %s in %s (using model %s).'
+                           % (product.name, host, model.id))
+                    logging.debug('Predicting pathways for model {}'.format(model.id))
+                    pathway_predictor = pathway_prediction.PathwayPredictor(model,
+                                                                            universal_model=database,
+                                                                            compartment_regexp=re.compile(".*_c$"))
+
+                    if self.debug:
+                        max_predictions = 2
+                        timeout = 60
+
+                    predicted_pathways = pathway_predictor.run(product,
+                                                               max_predictions=max_predictions,
+                                                               timeout=timeout,
+                                                               silent=True)
+                    stop_loader(identifier)
+                    pathways[(host, model)] = predicted_pathways
+                    self.__display_pathways_information(predicted_pathways, host, model)
         return pathways
 
     def __translate_product_to_universal_reactions_model_metabolite(self, product, database):
@@ -307,10 +432,8 @@ class Designer(object):
     @staticmethod
     def __display_pathways_information(predicted_pathways, host, original_model):
         if util.in_ipnb():
-            predicted_pathways.plot_production_envelopes(original_model,
-                                                         title="Production envelopes for %s (%s)" % (
-                                                             host.name, original_model.id),
-                                                         objective=original_model.biomass)
+            title = "Production envelopes for %s (%s)" % (host.name, original_model.id)
+            predicted_pathways.plot_production_envelopes(original_model, title=title, objective=original_model.biomass)
 
     @staticmethod
     def calculate_yield(model, source, product):
