@@ -79,6 +79,9 @@ class Target(object):
             raise SystemError("Gnomic is only compatible with python >= 3 (%i.%i)" %
                               (sys.version_info.major, sys.version_info.minor))
 
+    def __repr__(self):
+        return "<Target %s>" % self.id
+
     def __str__(self):
         return self.id
 
@@ -156,6 +159,16 @@ class FluxModulationTarget(Target):
         else:
             raise RuntimeError("fold_change shouldn't be 0")
 
+    def __repr__(self):
+        if self._value == 0:
+            return "<FluxModulationTarget KO-%s>" % self.id
+        elif self.fold_change > 0:
+            return "<FluxModulationTarget UP(%.3f)-%s>" % (self.fold_change, self.id)
+        elif self.fold_change < 0:
+            return "<FluxModulationTarget DOWN(%.3f)-%s>" % (self.fold_change, self.id)
+        else:
+            raise RuntimeError("fold_change shouldn't be 0")
+
     def _repr_html_(self):
         if self._value == 0:
             return "&Delta;%s" % self.id
@@ -204,8 +217,11 @@ class ReactionCofactorSwapTarget(Target):
         new_feature = Feature(accession=new_accession, type='reaction')
         return Sub(original_feature, new_feature)
 
-    def __str__(self):
+    def __repr__(self):
         return "<ReactionCofactorSwap %s swap=%s>" % (self.id, self.swap_str)
+
+    def __str__(self):
+        return "%s[%s]" % (self.id, self.swap_str)
 
     def __gt__(self, other):
         if self.id == other.id:
@@ -227,7 +243,7 @@ class ReactionCofactorSwapTarget(Target):
             return False
 
     def _repr_html_(self):
-        return self.id + "|" + self.swap_str.replace("&rlarr;")
+        return self.id + "|" + self.swap_str.replace("<->", "&rlarr;")
 
 
 class KnockinTarget(Target):
@@ -237,6 +253,12 @@ class KnockinTarget(Target):
 
     def to_gnomic(self):
         raise NotImplementedError
+
+    def __repr__(self):
+        return "<KnockinTarget %s>" % self.id
+
+    def __str__(self):
+        return "::%s" % self.id
 
 
 class ReactionKnockinTarget(KnockinTarget):
@@ -282,6 +304,9 @@ class ReactionKnockinTarget(KnockinTarget):
             return False
 
     def __str__(self):
+        return "::%s" % self.id
+
+    def __repr__(self):
         return "<ReactionKnockin %s>" % self.id
 
     def _repr_html_(self):
@@ -345,7 +370,7 @@ class GeneKnockoutTarget(GeneModulationTarget):
         else:
             return False
 
-    def __str__(self):
+    def __repr__(self):
         return "<GeneKnockout %s>" % self.id
 
 
@@ -414,13 +439,16 @@ class ReactionKnockoutTarget(ReactionModulationTarget):
         else:
             return False
 
-    def __str__(self):
+    def __repr__(self):
         return "<ReactionKnockout %s>" % self.id
 
 
 class ReactionInversionTarget(ReactionModulationTarget):
 
     def __str__(self):
+        return "INV(%.3f -> %.3f)-%s" % (self._reference_value, self._value, self.id)
+
+    def __repr__(self):
         return "<ReactionInversion %s (%.5f -> %.5f)>" % (self.id, self._reference_value, self._value)
 
     def _repr_html_(self):
@@ -472,12 +500,12 @@ class EnsembleTarget(Target):
         for target in self.targets:
             target.apply(model, time_machine=time_machine)
 
-    def __str__(self):
+    def __repr__(self):
         head = "<EnsembleTarget %s" % self.id
-        body = "\n\t".join("%i - %s" % (i, str(target)) for i, target in enumerate(self.targets))
+        body = ", ".join("%i - %s" % (i, str(target)) for i, target in enumerate(self.targets))
         end = ">"
 
-        return head + "\n" + body + "\n" + end
+        return head + "|" + body + "|" + end
 
     # TODO implement gnomic compatibility
     def to_gnomic(self):
