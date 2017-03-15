@@ -279,8 +279,8 @@ class PathwayPredictor(StrainDesignMethod):
 
         Returns
         -------
-        list
-            A list of pathways (list of reactions)
+        PathwayPredictions
+            The predicted pathways.
         """
 
         product = self._find_product(product)
