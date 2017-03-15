@@ -30,10 +30,10 @@ from sympy import Add
 
 import cameo
 from cameo.config import solvers
-from cameo.flux_analysis import remove_infeasible_cycles
+from cameo.flux_analysis import remove_infeasible_cycles, fix_pfba_as_constraint
 from cameo.flux_analysis import structural
 from cameo.flux_analysis.analysis import flux_variability_analysis, phenotypic_phase_plane, find_blocked_reactions
-from cameo.flux_analysis.simulation import fba, pfba, lmoma, room, moma
+from cameo.flux_analysis.simulation import fba, pfba, lmoma, room, moma, add_pfba
 from cameo.flux_analysis.structural import nullspace
 from cameo.io import load_model
 from cameo.parallel import SequentialView, MultiprocessingView
@@ -94,9 +94,24 @@ class Wrapper:
             mp_view = MultiprocessingView(2)
             fva_solution = flux_variability_analysis(self.ecoli_core, fraction_of_optimum=0.999999419892,
                                                      remove_cycles=False, view=mp_view)
+            pfba_fva = flux_variability_analysis(self.ecoli_core, fraction_of_optimum=1, pfba_factor=1,
+                                                 view=mp_view).data_frame
             mp_view.shutdown()
             assert_data_frames_equal(fva_solution, REFERENCE_FVA_SOLUTION_ECOLI_CORE)
             self.assertEqual(original_objective, self.ecoli_core.objective)
+            self.assertAlmostEqual(sum(abs(pfba_fva.lower_bound)), 518.422, delta=0.001)
+            self.assertAlmostEqual(sum(abs(pfba_fva.upper_bound)), 518.422, delta=0.001)
+
+        def test_add_remove_pfb(self):
+            with TimeMachine() as tm:
+                add_pfba(self.ecoli_core, time_machine=tm)
+                self.assertEquals('_pfba_objective', self.ecoli_core.objective.name)
+            self.assertNotEqual('_pfba_objective', self.ecoli_core.solver.constraints)
+            with TimeMachine() as tm:
+                fix_pfba_as_constraint(self.ecoli_core, time_machine=tm)
+                self.assertTrue('_fixed_pfba_constraint' in self.ecoli_core.solver.constraints)
+            self.assertTrue('_fixed_pfba_constraint' not in self.ecoli_core.solver.constraints)
+
 
         @unittest.skipIf(TRAVIS, 'Skip multiprocessing in Travis')
         def test_flux_variability_parallel_remove_cycles(self):
@@ -118,14 +133,11 @@ class Wrapper:
             original_objective = self.ecoli_core.objective
             fva_solution = flux_variability_analysis(self.ecoli_core, fraction_of_optimum=0.999999419892,
                                                      remove_cycles=False, view=SequentialView())
-            assert_data_frames_equal(fva_solution, REFERENCE_FVA_SOLUTION_ECOLI_CORE)
-            for key in fva_solution.data_frame.index:
-                self.assertAlmostEqual(fva_solution['lower_bound'][key],
-                                       REFERENCE_FVA_SOLUTION_ECOLI_CORE['lower_bound'][key], delta=0.00001)
-                self.assertAlmostEqual(fva_solution['upper_bound'][key],
-                                       REFERENCE_FVA_SOLUTION_ECOLI_CORE['upper_bound'][key], delta=0.00001)
+            pfba_fva = flux_variability_analysis(self.ecoli_core, fraction_of_optimum=1, pfba_factor=1).data_frame
             assert_data_frames_equal(fva_solution, REFERENCE_FVA_SOLUTION_ECOLI_CORE)
             self.assertEqual(original_objective, self.ecoli_core.objective)
+            self.assertAlmostEqual(sum(abs(pfba_fva.lower_bound)), 518.422, delta=0.001)
+            self.assertAlmostEqual(sum(abs(pfba_fva.upper_bound)), 518.422, delta=0.001)
 
         def test_flux_variability_sequential_remove_cycles(self):
             original_objective = self.ecoli_core.objective

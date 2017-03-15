@@ -756,7 +756,7 @@ class GeneKnockoutOptimization(KnockoutOptimization):
         if use_nullspace_simplification:
             ns = nullspace(create_stoichiometric_array(self.model))
             dead_end_reactions = find_blocked_reactions_nullspace(self.model, ns=ns)
-            dead_end_genes = {g for g in self.model.genes if all(r in dead_end_reactions for r in g.reaction)}
+            dead_end_genes = {g for g in self.model.genes if all(r in dead_end_reactions for r in g.reactions)}
             genes = [g for g in self.model.genes if g not in self.essential_genes and g.id not in dead_end_genes]
             self.representation = [g.id for g in genes]
 
