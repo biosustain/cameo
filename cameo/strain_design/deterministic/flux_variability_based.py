@@ -287,7 +287,7 @@ class DifferentialFVA(StrainDesignMethod):
             included_reactions = [reaction.id for reaction in self.reference_model.reactions if
                                   reaction.id not in self.exclude] + self.variables + [self.objective]
 
-            self.reference_flux_dist = pfba(self.reference_model)
+            self.reference_flux_dist = pfba(self.reference_model, fraction_of_optimum=0.99)
 
             self.reference_flux_ranges = flux_variability_analysis(self.reference_model, reactions=included_reactions,
                                                                    view=view, remove_cycles=False,
@@ -455,11 +455,11 @@ class DifferentialFVAResult(StrainDesignMethodResult):
                 elif relevant_row.flux_reversal:
                     if reference_fva['upper_bound'][rid] > 0:
                         targets.append(ReactionInversionTarget(rid,
-                                                               value=relevant_row.upper_bound,
+                                                               value=float_ceil(relevant_row.upper_bound, ndecimals),
                                                                reference_value=reference_fluxes[rid]))
                     else:
                         targets.append(ReactionInversionTarget(rid,
-                                                               value=relevant_row.lower_bound,
+                                                               value=float_floor(relevant_row.lower_bound, ndecimals),
                                                                reference_value=reference_fluxes[rid]))
                 else:
                     gap_sign = relevant_row.normalized_gaps > 0
@@ -470,9 +470,9 @@ class DifferentialFVAResult(StrainDesignMethodResult):
                     closest_bound, ref_sign = cls._closest_bound(ref_interval, row_interval)
 
                     if gap_sign ^ ref_sign:
-                        value = float_floor(relevant_row.lower_bound)
+                        value = float_ceil(relevant_row.upper_bound, ndecimals)
                     else:
-                        value = float_ceil(relevant_row.upper_bound)
+                        value = float_floor(relevant_row.lower_bound, ndecimals)
 
                     targets.append(ReactionModulationTarget(rid,
                                                             value=value,

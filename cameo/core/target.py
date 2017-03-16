@@ -79,8 +79,14 @@ class Target(object):
             raise SystemError("Gnomic is only compatible with python >= 3 (%i.%i)" %
                               (sys.version_info.major, sys.version_info.minor))
 
+    def __repr__(self):
+        return "<Target %s>" % self.id
+
     def __str__(self):
         return self.id
+
+    def __hash__(self):
+        return hash(str(self))
 
 
 class FluxModulationTarget(Target):
@@ -156,6 +162,19 @@ class FluxModulationTarget(Target):
         else:
             raise RuntimeError("fold_change shouldn't be 0")
 
+    def __repr__(self):
+        if self._value == 0:
+            return "<FluxModulationTarget KO-%s>" % self.id
+        elif self.fold_change > 0:
+            return "<FluxModulationTarget UP(%.3f)-%s>" % (self.fold_change, self.id)
+        elif self.fold_change < 0:
+            return "<FluxModulationTarget DOWN(%.3f)-%s>" % (self.fold_change, self.id)
+        else:
+            raise RuntimeError("fold_change shouldn't be 0")
+
+    def __hash__(self):
+        return hash(str(self))
+
     def _repr_html_(self):
         if self._value == 0:
             return "&Delta;%s" % self.id
@@ -204,8 +223,11 @@ class ReactionCofactorSwapTarget(Target):
         new_feature = Feature(accession=new_accession, type='reaction')
         return Sub(original_feature, new_feature)
 
-    def __str__(self):
+    def __repr__(self):
         return "<ReactionCofactorSwap %s swap=%s>" % (self.id, self.swap_str)
+
+    def __str__(self):
+        return "%s[%s]" % (self.id, self.swap_str)
 
     def __gt__(self, other):
         if self.id == other.id:
@@ -215,6 +237,8 @@ class ReactionCofactorSwapTarget(Target):
                 return False
             if isinstance(other, ReactionKnockinTarget):
                 return True
+            elif isinstance(other, EnsembleTarget):
+                return not other > self
             else:
                 raise IncompatibleTargets(self, other)
         else:
@@ -227,7 +251,10 @@ class ReactionCofactorSwapTarget(Target):
             return False
 
     def _repr_html_(self):
-        return self.id + "|" + self.swap_str.replace("&rlarr;")
+        return self.id + "|" + self.swap_str.replace("<->", "&rlarr;")
+
+    def __hash__(self):
+        return hash(str(self))
 
 
 class KnockinTarget(Target):
@@ -237,6 +264,15 @@ class KnockinTarget(Target):
 
     def to_gnomic(self):
         raise NotImplementedError
+
+    def __repr__(self):
+        return "<KnockinTarget %s>" % self.id
+
+    def __str__(self):
+        return "::%s" % self.id
+
+    def __hash__(self):
+        return hash(str(self))
 
 
 class ReactionKnockinTarget(KnockinTarget):
@@ -270,6 +306,8 @@ class ReactionKnockinTarget(KnockinTarget):
                 return False
             elif isinstance(other, ReactionCofactorSwapTarget):
                 return False
+            elif isinstance(other, EnsembleTarget):
+                return not other > self
             else:
                 raise IncompatibleTargets(self, other)
         else:
@@ -282,7 +320,13 @@ class ReactionKnockinTarget(KnockinTarget):
             return False
 
     def __str__(self):
+        return "::%s" % self.id
+
+    def __repr__(self):
         return "<ReactionKnockin %s>" % self.id
+
+    def __hash__(self):
+        return hash(str(self))
 
     def _repr_html_(self):
         return "::%s" % self.id
@@ -303,6 +347,8 @@ class GeneModulationTarget(FluxModulationTarget):
                 return False
             elif isinstance(other, GeneModulationTarget) and not isinstance(other, GeneKnockoutTarget):
                 return self.fold_change > other.fold_change
+            elif isinstance(other, EnsembleTarget):
+                return not other > self
             else:
                 raise IncompatibleTargets(self, other)
         else:
@@ -313,6 +359,9 @@ class GeneModulationTarget(FluxModulationTarget):
             return self.id == other.id and self._value == other._value and self._reference_value == other._reference_value
         else:
             return False
+
+    def __hash__(self):
+        return hash(str(self))
 
 
 class GeneKnockoutTarget(GeneModulationTarget):
@@ -332,6 +381,8 @@ class GeneKnockoutTarget(GeneModulationTarget):
                 return self.fold_change > other.fold_change
             elif isinstance(other, GeneKnockoutTarget):
                 return False
+            elif isinstance(other, EnsembleTarget):
+                return not other > self
             else:
                 raise IncompatibleTargets(self, other)
         else:
@@ -345,8 +396,11 @@ class GeneKnockoutTarget(GeneModulationTarget):
         else:
             return False
 
-    def __str__(self):
+    def __repr__(self):
         return "<GeneKnockout %s>" % self.id
+
+    def __hash__(self):
+        return hash(str(self))
 
 
 class ReactionModulationTarget(FluxModulationTarget):
@@ -369,6 +423,8 @@ class ReactionModulationTarget(FluxModulationTarget):
                 return True
             elif isinstance(other, ReactionModulationTarget) and not isinstance(other, ReactionKnockoutTarget):
                 return self.fold_change > other.fold_change
+            elif isinstance(other, EnsembleTarget):
+                return not other > self
             else:
                 raise IncompatibleTargets(self, other)
         else:
@@ -379,6 +435,9 @@ class ReactionModulationTarget(FluxModulationTarget):
             return self.id == other.id and self._value == other._value and self._reference_value == other._reference_value
         else:
             return False
+
+    def __hash__(self):
+        return hash(str(self))
 
 
 class ReactionKnockoutTarget(ReactionModulationTarget):
@@ -401,6 +460,8 @@ class ReactionKnockoutTarget(ReactionModulationTarget):
                     raise IncompatibleTargets(self, other)
             elif isinstance(other, ReactionCofactorSwapTarget):
                 raise IncompatibleTargets(self, other)
+            elif isinstance(other, EnsembleTarget):
+                return not other > self
             else:
                 raise IncompatibleTargets(self, other)
         else:
@@ -414,13 +475,19 @@ class ReactionKnockoutTarget(ReactionModulationTarget):
         else:
             return False
 
-    def __str__(self):
+    def __repr__(self):
         return "<ReactionKnockout %s>" % self.id
+
+    def __hash__(self):
+        return hash(str(self))
 
 
 class ReactionInversionTarget(ReactionModulationTarget):
 
     def __str__(self):
+        return "INV(%.3f -> %.3f)-%s" % (self._reference_value, self._value, self.id)
+
+    def __repr__(self):
         return "<ReactionInversion %s (%.5f -> %.5f)>" % (self.id, self._reference_value, self._value)
 
     def _repr_html_(self):
@@ -453,6 +520,10 @@ class ReactionInversionTarget(ReactionModulationTarget):
         reverse_flux(reaction, self._reference_value, self._value, time_machine=time_machine)
 
 
+    def __hash__(self):
+        return hash(str(self))
+
+
 class EnsembleTarget(Target):
     """
     A Target resulting of merging multiple Targets.
@@ -472,12 +543,12 @@ class EnsembleTarget(Target):
         for target in self.targets:
             target.apply(model, time_machine=time_machine)
 
-    def __str__(self):
+    def __repr__(self):
         head = "<EnsembleTarget %s" % self.id
-        body = "\n\t".join("%i - %s" % (i, str(target)) for i, target in enumerate(self.targets))
+        body = ", ".join("%i - %s" % (i, str(target)) for i, target in enumerate(self.targets))
         end = ">"
 
-        return head + "\n" + body + "\n" + end
+        return head + "|" + body + "|" + end
 
     # TODO implement gnomic compatibility
     def to_gnomic(self):
@@ -485,3 +556,25 @@ class EnsembleTarget(Target):
 
     def _repr_html_(self):
         return "|" + ";".join(target._repr_html_() for target in self.targets) + '|'
+
+    def __gt__(self, other):
+        if isinstance(other, EnsembleTarget):
+            return self.id > other.id
+
+        else:
+            is_greater = False
+            for t in self.targets:
+                is_greater = is_greater or t >= other
+
+    def __eq__(self, other):
+        if isinstance(other, EnsembleTarget):
+            if len(self.targets) == len(other.targets):
+                return all(target == other.targets[i] for i, target in enumerate(self.targets))
+
+        return False
+
+    def __str__(self):
+        return "%s[%s]" % (self.id, ", ".join(str(t) for t in self.targets))
+
+    def __hash__(self):
+        return hash(str(self))
