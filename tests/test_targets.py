@@ -32,6 +32,15 @@ class TargetsTestCase(unittest.TestCase):
     def setUpClass(cls):
         cls.model = load_model(os.path.join(TESTDIR, 'data', 'EcoliCore.xml'))
 
+    def test_hashable(self):
+        knockout_target1 = ReactionKnockoutTarget("ACALD")
+        knockout_target2 = ReactionKnockoutTarget("ACALD")
+
+        self.assertEqual(knockout_target1, knockout_target2)
+        self.assertEqual(hash(knockout_target1), hash(knockout_target2))
+
+        self.assertEqual(len(set([knockout_target1, knockout_target2])), 1)
+
     def test_reaction_knockout_target(self):
         knockout_target = ReactionKnockoutTarget("ACALD")
         with TimeMachine() as tm:
