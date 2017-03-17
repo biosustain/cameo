@@ -191,7 +191,6 @@ class FluxModulationTarget(Target):
         else:
             raise RuntimeError("fold_change shouldn't be 0")
 
-
     def to_gnomic(self):
         accession = Target.to_gnomic(self)
         feature = Feature(accession=accession, type=self.__gnomic_feature_type__)
