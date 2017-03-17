@@ -156,7 +156,7 @@ class FluxModulationTarget(Target):
 
     def __str__(self):
         if self._value == 0:
-            s =  ui.delta() + self.id
+            s = ui.delta() + self.id
         elif self.fold_change > 0:
             s = ui.upreg(self.fold_change) + self.id
         elif self.fold_change < 0:
