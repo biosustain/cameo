@@ -43,7 +43,8 @@ class BaseController(CementBaseController):
             (['-m', '--multiprocess'], dict(help='Run multiprocess mode', action='store_true')),
             (['-c', '--cores'], dict(help="Number of cores (if multiprocess)")),
             (['-o', '--output'], dict(help="Output file")),
-            (['-of', '--output-format'], dict(help="Output file format (default xlsx)\nOptions:%s" % VALID_OUTPUT_FORMATS)),
+            (['-of', '--output-format'], dict(help="Output file format (default xlsx)\nOptions:%s" %
+                                                   VALID_OUTPUT_FORMATS)),
             (['-y', '--yes-all'], dict(help="Auto select suggested options", action="store_true")),
             (['-t', '--test'], dict(help="Test mode", action="store_true"))]
 

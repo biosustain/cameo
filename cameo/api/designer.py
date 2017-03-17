@@ -242,7 +242,8 @@ class Designer(object):
         for i, strain_designs in enumerate(strategy_designs):
             strategy = strategies[i]
             _results = DataFrame(columns=results.columns, index=[j for j in range(len(strain_designs))])
-            manipulations, fitness, yields, target_flux, biomass = self.process_strain_designs(strain_designs, *strategy[1:])
+            manipulations, fitness, yields, target_flux, biomass = self.process_strain_designs(strain_designs,
+                                                                                               *strategy[1:])
             for j, strain_design in enumerate(manipulations):
                 _results.loc[j, 'manipulations'] = strain_design
                 _results.loc[j, 'heterologous_pathway'] = strategy[2]
