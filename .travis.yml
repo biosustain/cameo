@@ -1,5 +1,6 @@
 language: python
-sudo: false
+sudo: required
+dist: trusty
 
 python:
   - '2.7'
@@ -37,11 +38,11 @@ before_install:
 - 'echo "this is a build for: $TRAVIS_BRANCH"'
 - 'if [[ "$TRAVIS_BRANCH" != "devel" ]]; then bash ./.travis/install_cplex.sh; fi'
 install:
-- pip install flake8 numpy scipy pyzmq pandas
+- pip install flake8 numpy scipy pyzmq pandas pytest pytest-cov
 - pip install .[swiglpk,test,parallel,cli]
 before_script:
 - if [[ $TRAVIS_PYTHON_VERSION == "3.6" ]]; then flake8 .; fi
-script: nosetests
+script: pytest -v -rsx --cov --cov-report=xml
 after_success:
 - codecov
 notifications:

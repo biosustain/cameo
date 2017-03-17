@@ -64,7 +64,8 @@ class Reaction(_cobrapy.core.Reaction):
                 setattr(new_reaction, attribute, value)
             except AttributeError:
                 logger.info(
-                    "Can't set attribute %s for reaction %s (while cloning it to a cameo style reaction). Skipping it ..." % (
+                    "Can't set attribute %s for reaction %s (while cloning it to a "
+                    "cameo style reaction). Skipping it ..." % (
                         attribute, reaction))
         if not isinstance(reaction.model, cameo.core.solver_based_model.SolverBasedModel):
             new_reaction._model = None
@@ -333,7 +334,8 @@ class Reaction(_cobrapy.core.Reaction):
 
     @property
     def objective_coefficient(self):
-        if self.model is not None and isinstance(self.model, cameo.core.SolverBasedModel) and self.model.objective is not None:
+        if self.model is not None and isinstance(self.model,
+                                                 cameo.core.SolverBasedModel) and self.model.objective is not None:
             coefficients_dict = self.model.objective.expression.as_coefficients_dict()
             forw_coef = coefficients_dict.get(self.forward_variable, 0)
             rev_coef = coefficients_dict.get(self.reverse_variable, 0)

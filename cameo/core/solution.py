@@ -162,9 +162,11 @@ class Solution(SolutionBase):
         self._reduced_values = model.solver.reduced_costs
 
         for reaction in model.reactions:
-            self.fluxes[reaction.id] = self._primal_values[reaction._get_forward_id()] - self._primal_values[reaction._get_reverse_id()]
+            self.fluxes[reaction.id] = self._primal_values[reaction._get_forward_id()] - self._primal_values[
+                reaction._get_reverse_id()]
 
-            self.reduced_costs[reaction.id] = self._reduced_values[reaction._get_forward_id()] - self._reduced_values[reaction._get_reverse_id()]
+            self.reduced_costs[reaction.id] = self._reduced_values[reaction._get_forward_id()] - self._reduced_values[
+                reaction._get_reverse_id()]
 
         self.status = model.solver.status
         self._reaction_ids = [r.id for r in self.model.reactions]
@@ -228,7 +230,8 @@ class LazySolution(SolutionBase):
                     "%Y-%m-%d %H:%M:%S:%f")
 
             raise UndefinedSolution(
-                'The solution (captured around %s) has become invalid as the model has been re-optimized recently (%s).' % (
+                'The solution (captured around %s) has become invalid as the model has been '
+                're-optimized recently (%s).' % (
                     timestamp_formatter(self._time_stamp),
                     timestamp_formatter(self.model._timestamp_last_optimization))
             )
@@ -268,7 +271,8 @@ class LazySolution(SolutionBase):
 
         reduced_costs = OrderedDict()
         for reaction in self.model.reactions:
-            reduced_costs[reaction.id] = reduced_values[reaction._get_forward_id()] - reduced_values[reaction._get_reverse_id()]
+            reduced_costs[reaction.id] = reduced_values[reaction._get_forward_id()] - reduced_values[
+                reaction._get_reverse_id()]
         return reduced_costs
 
     @property
