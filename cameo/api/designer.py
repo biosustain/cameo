@@ -79,6 +79,7 @@ class _OptGeneRunner(_OptimizationRunner):
             max_evaluations = 1000
 
         (model, pathway, aerobic) = (strategy[1], strategy[2], strategy[3])
+        model = model.copy()
         assert isinstance(model, SolverBasedModel)
         assert isinstance(pathway, PathwayResult)
         assert isinstance(aerobic, bool)
@@ -97,11 +98,14 @@ class _OptGeneRunner(_OptimizationRunner):
 
 class _DifferentialFVARunner(_OptimizationRunner):
     def __call__(self, strategy):
-        points = 20
+        points = 50
+        surface_only = False
         if self.debug:
             points = 5
+            surface_only = True
 
         (model, pathway, aerobic) = (strategy[1], strategy[2], strategy[3])
+        model = model.copy()
         assert isinstance(model, SolverBasedModel)
         assert isinstance(pathway, PathwayResult)
         assert isinstance(aerobic, bool)
@@ -116,7 +120,7 @@ class _DifferentialFVARunner(_OptimizationRunner):
                                        objective=pathway.product.id,
                                        variables=[model.biomass],
                                        points=points)
-            designs = diff_fva.run(improvements_only=True, surface_only=True)
+            designs = diff_fva.run(improvements_only=True, surface_only=surface_only)
 
             return designs
 
@@ -250,11 +254,12 @@ class Designer(object):
             _results['product'] = target_flux
             _results['method'] = "DifferentialFVA+PathwayFinder"
 
-            results.append(_results, ignore_index=True)
+            results = results.append(_results, ignore_index=True)
             progress.update(i + offset)
         return results
 
     def process_strain_designs(self, strain_designs, model, pathway, aerobic):
+        model = model.copy()
         assert isinstance(pathway, StrainDesign)
         assert isinstance(pathway, PathwayResult)
         final_strain_designs = []
@@ -290,7 +295,6 @@ class Designer(object):
                 target_flux = solution.fluxes[pyield.product]
                 biomass = solution.fluxes[bpcy.biomass]
             except SolveError:
-                print("invalid design %s" % repr(strain_design))
                 _bpcy, _pyield, target_flux, biomass = np.nan, np.nan, np.nan, np.nan
             return _bpcy, _pyield, target_flux, biomass
 
