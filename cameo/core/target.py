@@ -15,6 +15,7 @@ import sys
 from functools import partial
 
 import numpy
+import six
 
 from cameo.core.manipulation import swap_cofactors, increase_flux, decrease_flux, reverse_flux
 
@@ -155,13 +156,17 @@ class FluxModulationTarget(Target):
 
     def __str__(self):
         if self._value == 0:
-            return ui.delta() + self.id
+            s =  ui.delta() + self.id
         elif self.fold_change > 0:
-            return ui.upreg(self.fold_change) + self.id
+            s = ui.upreg(self.fold_change) + self.id
         elif self.fold_change < 0:
-            return ui.downreg(self.fold_change) + self.id
+            s = ui.downreg(self.fold_change) + self.id
         else:
-            raise RuntimeError("fold_change shouldn't be 0")
+            s = RuntimeError("fold_change shouldn't be 0")
+        if six.PY2:
+            return s.encode('utf-8')
+
+        return s
 
     def __repr__(self):
         if self._value == 0:
@@ -185,6 +190,7 @@ class FluxModulationTarget(Target):
             return "&darr;(%.3f)%s" % (self.fold_change, self.id)
         else:
             raise RuntimeError("fold_change shouldn't be 0")
+
 
     def to_gnomic(self):
         accession = Target.to_gnomic(self)
@@ -523,7 +529,6 @@ class ReactionInversionTarget(ReactionModulationTarget):
     def apply(self, model, time_machine=None):
         reaction = self.get_model_target(model)
         reverse_flux(reaction, self._reference_value, self._value, time_machine=time_machine)
-
 
     def __hash__(self):
         return hash(str(self))
