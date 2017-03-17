@@ -20,13 +20,13 @@ from cameo.core.manipulation import swap_cofactors, increase_flux, decrease_flux
 
 try:
     from gnomic import Accession, Feature, Del, Mutation, Sub, Ins
+
     _gnomic_available_ = True
 except (ImportError, SyntaxError):  # SyntaxError from py2 incompatible syntax
     _gnomic_available_ = False
 
 from cameo import ui
 from cameo.exceptions import IncompatibleTargets
-
 
 __all__ = ["GeneModulationTarget", "GeneKnockoutTarget", "ReactionCofactorSwapTarget", "ReactionKnockinTarget",
            "ReactionKnockoutTarget", "ReactionModulationTarget"]
@@ -45,6 +45,7 @@ class Target(object):
         The identifier of the target. The id must be present in the COBRA model.
 
     """
+
     def __init__(self, id):
         self.id = id
 
@@ -204,6 +205,7 @@ class ReactionCofactorSwapTarget(Target):
     """
     Swap cofactors of a given reaction.
     """
+
     def __init__(self, id, swap_pairs):
         super(ReactionCofactorSwapTarget, self).__init__(id)
         self.swap_pairs = swap_pairs
@@ -356,7 +358,8 @@ class GeneModulationTarget(FluxModulationTarget):
 
     def __eq__(self, other):
         if isinstance(other, GeneModulationTarget):
-            return self.id == other.id and self._value == other._value and self._reference_value == other._reference_value
+            return (self.id == other.id and self._value == other._value and
+                    self._reference_value == other._reference_value)
         else:
             return False
 
@@ -368,6 +371,7 @@ class GeneKnockoutTarget(GeneModulationTarget):
     """
     Gene Knockout Target. Knockout a gene present in a COBRA model.
     """
+
     def __init__(self, id):
         super(GeneKnockoutTarget, self).__init__(id, 0, None)
 
@@ -432,7 +436,8 @@ class ReactionModulationTarget(FluxModulationTarget):
 
     def __eq__(self, other):
         if isinstance(other, ReactionModulationTarget):
-            return self.id == other.id and self._value == other._value and self._reference_value == other._reference_value
+            return (self.id == other.id and self._value == other._value and
+                    self._reference_value == other._reference_value)
         else:
             return False
 
@@ -444,6 +449,7 @@ class ReactionKnockoutTarget(ReactionModulationTarget):
     """
     Reaction Knockout Target. Knockout a reaction present in a COBRA model.
     """
+
     def __init__(self, id):
         super(ReactionKnockoutTarget, self).__init__(id, 0, None)
 
@@ -483,7 +489,6 @@ class ReactionKnockoutTarget(ReactionModulationTarget):
 
 
 class ReactionInversionTarget(ReactionModulationTarget):
-
     def __str__(self):
         return "INV(%.3f -> %.3f)-%s" % (self._reference_value, self._value, self.id)
 
@@ -534,6 +539,7 @@ class EnsembleTarget(Target):
     The Targets are prioritized by what should happen first in order to don't break.
 
     """
+
     def __init__(self, id, targets):
         super(EnsembleTarget, self).__init__(id)
         assert all(t.id == id for t in targets)

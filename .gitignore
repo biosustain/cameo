@@ -51,3 +51,5 @@ docs/_build
 .vagrant
 *~
 /.DS_Store
+.cache
+/coverage.xml

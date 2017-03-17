@@ -86,8 +86,10 @@ def construct_universal_model(list_of_db_prefixes):
                     logger.debug('Cannot parse formula %s. Skipping formula' % chem_prop.loc[met.id].formula)
                     continue
                 # if met.formula.weight is None:
-                #     logger.debug('Cannot calculate weight for formula %s. Skipping reaction %s' % (met.formula, row.Equation))
-                #     # print('Cannot calculate weight for formula %s. Skipping reaction %s' % (met.formula, row.Equation))
+                #     logger.debug('Cannot calculate weight for formula %s.
+                #  Skipping reaction %s' % (met.formula, row.Equation))
+                #     # print('Cannot calculate weight for formula %s.
+                # Skipping reaction %s' % (met.formula, row.Equation))
                 #     continue
                 try:
                     met.charge = int(chem_prop.loc[met.id].charge)
