@@ -106,203 +106,204 @@ class Reaction(_cobrapy.core.Reaction):
         name : str, optional
             The name of the reaction.
         """
-        super(Reaction, self).__init__(id=id, name=name, subsystem=subsystem)
-        self._lower_bound = lower_bound
-        self._upper_bound = upper_bound
-        self._model = None
-        self._reverse_variable = None
-        self._forward_variable = None
+        super(Reaction, self).__init__(id=id, name=name, subsystem=subsystem,
+                                       lower_bound=lower_bound, upper_bound=upper_bound)
+        # self._lower_bound = lower_bound
+        # self._upper_bound = upper_bound
+        # self._model = None
+        # self._reverse_variable = None
+        # self._forward_variable = None
 
     def __str__(self):
         return ''.join((self.id, ": ", self.build_reaction_string()))
 
-    @_cobrapy.core.Reaction.gene_reaction_rule.setter
-    def gene_reaction_rule(self, rule):
-        _cobrapy.core.Reaction.gene_reaction_rule.fset(self, rule)
-        self._clone_genes(self.model)
+    # @_cobrapy.core.Reaction.gene_reaction_rule.setter
+    # def gene_reaction_rule(self, rule):
+    #     _cobrapy.core.Reaction.gene_reaction_rule.fset(self, rule)
+    #     self._clone_genes(self.model)
 
-    @property
-    def reversibility(self):
-        return self._lower_bound < 0 < self._upper_bound
+    # @property
+    # def reversibility(self):
+    #     return self._lower_bound < 0 < self._upper_bound
 
-    @property
-    def flux_expression(self):
-        """An optlang variable representing the forward flux (if associated with model), otherwise None.
-        Representing the net flux if model.reversible_encoding == 'unsplit'"""
-        model = self.model
-        if model is not None:
-            return 1. * self.forward_variable - 1. * self.reverse_variable
-        else:
-            return None
+    # @property
+    # def flux_expression(self):
+    #     """An optlang variable representing the forward flux (if associated with model), otherwise None.
+    #     Representing the net flux if model.reversible_encoding == 'unsplit'"""
+    #     model = self.model
+    #     if model is not None:
+    #         return 1. * self.forward_variable - 1. * self.reverse_variable
+    #     else:
+    #         return None
+    #
+    # @property
+    # def forward_variable(self):
+    #     """An optlang variable representing the forward flux (if associated with model), otherwise None."""
+    #     model = self.model
+    #     if model is not None:
+    #         if self._forward_variable is None:
+    #             self._forward_variable = model.solver.variables[self.id]
+    #         assert self._forward_variable.problem is self.model.solver
+    #
+    #         return self._forward_variable
+    #     else:
+    #         return None
+    #
+    # @property
+    # def reverse_variable(self):
+    #     """An optlang variable representing the reverse flux (if associated with model), otherwise None."""
+    #     model = self.model
+    #     if model is not None:
+    #         if self._reverse_variable is None:
+    #             self._reverse_variable = model.solver.variables[self.reverse_id]
+    #         assert self._reverse_variable.problem is self.model.solver
+    #         return self._reverse_variable
+    #     else:
+    #         return None
 
-    @property
-    def forward_variable(self):
-        """An optlang variable representing the forward flux (if associated with model), otherwise None."""
-        model = self.model
-        if model is not None:
-            if self._forward_variable is None:
-                self._forward_variable = model.solver.variables[self.id]
-            assert self._forward_variable.problem is self.model.solver
+    # def __copy__(self):
+    #     cop = copy(super(Reaction, self))
+    #     cop._reset_var_cache()
+    #     return cop
+    #
+    # def __deepcopy__(self, memo):
+    #     cop = deepcopy(super(Reaction, self), memo)
+    #     cop._reset_var_cache()
+    #     return cop
 
-            return self._forward_variable
-        else:
-            return None
+    # @property
+    # def lower_bound(self):
+    #     return self._lower_bound
 
-    @property
-    def reverse_variable(self):
-        """An optlang variable representing the reverse flux (if associated with model), otherwise None."""
-        model = self.model
-        if model is not None:
-            if self._reverse_variable is None:
-                self._reverse_variable = model.solver.variables[self.reverse_id]
-            assert self._reverse_variable.problem is self.model.solver
-            return self._reverse_variable
-        else:
-            return None
+    # @property
+    # def functional(self):
+    #     """ reaction is functional
+    #
+    #     Returns
+    #     -------
+    #     bool
+    #         True if the gene-protein-reaction (GPR) rule is fulfilled for this reaction, or if reaction is not
+    #         associated to a model, otherwise False.
+    #     """
+    #     if self._model:
+    #         tree, _ = parse_gpr(self.gene_reaction_rule)
+    #         return eval_gpr(tree, {gene.id for gene in self.genes if not gene.functional})
+    #     return True
 
-    def __copy__(self):
-        cop = copy(super(Reaction, self))
-        cop._reset_var_cache()
-        return cop
-
-    def __deepcopy__(self, memo):
-        cop = deepcopy(super(Reaction, self), memo)
-        cop._reset_var_cache()
-        return cop
-
-    @property
-    def lower_bound(self):
-        return self._lower_bound
-
-    @property
-    def functional(self):
-        """ reaction is functional
-
-        Returns
-        -------
-        bool
-            True if the gene-protein-reaction (GPR) rule is fulfilled for this reaction, or if reaction is not
-            associated to a model, otherwise False.
-        """
-        if self._model:
-            tree, _ = parse_gpr(self.gene_reaction_rule)
-            return eval_gpr(tree, {gene.id for gene in self.genes if not gene.functional})
-        return True
-
-    @lower_bound.setter
-    def lower_bound(self, value):
-        model = self.model
-
-        if model is not None:
-
-            forward_variable, reverse_variable = self.forward_variable, self.reverse_variable
-            if self._lower_bound < 0 < self._upper_bound:  # reversible
-                if value < 0:
-                    reverse_variable.ub = -1 * value
-                elif value >= 0:
-                    reverse_variable.ub = 0
-                    try:
-                        forward_variable.lb = value
-                    except ValueError:
-                        forward_variable.ub = value
-                        self._upper_bound = value
-                        forward_variable.lb = value
-            elif self._lower_bound == 0 and self._upper_bound == 0:  # knockout
-                if value < 0:
-                    reverse_variable.ub = -1 * value
-                elif value >= 0:
-                    forward_variable.ub = value
-                    self._upper_bound = value
-                    forward_variable.lb = value
-            elif self._lower_bound >= 0:  # forward irreversible
-                if value < 0:
-                    reverse_variable.ub = -1 * value
-                    forward_variable.lb = 0
-                else:
-                    try:
-                        forward_variable.lb = value
-                    except ValueError:
-                        forward_variable.ub = value
-                        self._upper_bound = value
-                        forward_variable.lb = value
-
-            elif self._upper_bound <= 0:  # reverse irreversible
-                if value > 0:
-                    reverse_variable.lb = 0
-                    reverse_variable.ub = 0
-                    forward_variable.ub = value
-                    self._upper_bound = value
-                    forward_variable.lb = value
-                else:
-                    try:
-                        reverse_variable.ub = -1 * value
-                    except ValueError:
-                        reverse_variable.lb = -1 * value
-                        self._upper_bound = value
-                        reverse_variable.ub = -1 * value
-            else:
-                raise ValueError('lower_bound issue')
-
-        self._lower_bound = value
-
-    @property
-    def upper_bound(self):
-        return self._upper_bound
-
-    @upper_bound.setter
-    def upper_bound(self, value):
-        model = self.model
-        if model is not None:
-
-            forward_variable, reverse_variable = self.forward_variable, self.reverse_variable
-            if self._lower_bound < 0 < self._upper_bound:  # reversible
-                if value > 0:
-                    forward_variable.ub = value
-                elif value <= 0:
-                    forward_variable.ub = 0
-                    try:
-                        reverse_variable.lb = -1 * value
-                    except ValueError:
-                        reverse_variable.ub = -1 * value
-                        self._lower_bound = value
-                        reverse_variable.lb = -1 * value
-            elif self._lower_bound == 0 and self._upper_bound == 0:  # knockout
-                if value > 0:
-                    forward_variable.ub = value
-                elif value <= 0:
-                    reverse_variable.ub = -1 * value
-                    self._lower_bound = value
-                    reverse_variable.lb = -1 * value
-            elif self._lower_bound >= 0:  # forward irreversible
-                if value > 0:
-                    try:
-                        forward_variable.ub = value
-                    except ValueError:
-                        forward_variable.lb = value
-                        self._lower_bound = value
-                        forward_variable.ub = value
-                else:
-                    forward_variable.lb = 0
-                    forward_variable.ub = 0
-                    reverse_variable.ub = -1 * value
-                    self._lower_bound = value
-                    reverse_variable.lb = -1 * value
-
-            elif self._upper_bound <= 0:  # reverse irreversible
-                if value < 0:
-                    try:
-                        reverse_variable.lb = -1 * value
-                    except ValueError:
-                        reverse_variable.ub = -1 * value
-                        self._lower_bound = value
-                        reverse_variable.lb = -1 * value
-                else:
-                    forward_variable.ub = value
-                    reverse_variable.lb = 0
-            else:
-                raise ValueError('upper_bound issue')
-
-        self._upper_bound = value
+    # @lower_bound.setter
+    # def lower_bound(self, value):
+    #     model = self.model
+    #
+    #     if model is not None:
+    #
+    #         forward_variable, reverse_variable = self.forward_variable, self.reverse_variable
+    #         if self._lower_bound < 0 < self._upper_bound:  # reversible
+    #             if value < 0:
+    #                 reverse_variable.ub = -1 * value
+    #             elif value >= 0:
+    #                 reverse_variable.ub = 0
+    #                 try:
+    #                     forward_variable.lb = value
+    #                 except ValueError:
+    #                     forward_variable.ub = value
+    #                     self._upper_bound = value
+    #                     forward_variable.lb = value
+    #         elif self._lower_bound == 0 and self._upper_bound == 0:  # knockout
+    #             if value < 0:
+    #                 reverse_variable.ub = -1 * value
+    #             elif value >= 0:
+    #                 forward_variable.ub = value
+    #                 self._upper_bound = value
+    #                 forward_variable.lb = value
+    #         elif self._lower_bound >= 0:  # forward irreversible
+    #             if value < 0:
+    #                 reverse_variable.ub = -1 * value
+    #                 forward_variable.lb = 0
+    #             else:
+    #                 try:
+    #                     forward_variable.lb = value
+    #                 except ValueError:
+    #                     forward_variable.ub = value
+    #                     self._upper_bound = value
+    #                     forward_variable.lb = value
+    #
+    #         elif self._upper_bound <= 0:  # reverse irreversible
+    #             if value > 0:
+    #                 reverse_variable.lb = 0
+    #                 reverse_variable.ub = 0
+    #                 forward_variable.ub = value
+    #                 self._upper_bound = value
+    #                 forward_variable.lb = value
+    #             else:
+    #                 try:
+    #                     reverse_variable.ub = -1 * value
+    #                 except ValueError:
+    #                     reverse_variable.lb = -1 * value
+    #                     self._upper_bound = value
+    #                     reverse_variable.ub = -1 * value
+    #         else:
+    #             raise ValueError('lower_bound issue')
+    #
+    #     self._lower_bound = value
+    #
+    # @property
+    # def upper_bound(self):
+    #     return self._upper_bound
+    #
+    # @upper_bound.setter
+    # def upper_bound(self, value):
+    #     model = self.model
+    #     if model is not None:
+    #
+    #         forward_variable, reverse_variable = self.forward_variable, self.reverse_variable
+    #         if self._lower_bound < 0 < self._upper_bound:  # reversible
+    #             if value > 0:
+    #                 forward_variable.ub = value
+    #             elif value <= 0:
+    #                 forward_variable.ub = 0
+    #                 try:
+    #                     reverse_variable.lb = -1 * value
+    #                 except ValueError:
+    #                     reverse_variable.ub = -1 * value
+    #                     self._lower_bound = value
+    #                     reverse_variable.lb = -1 * value
+    #         elif self._lower_bound == 0 and self._upper_bound == 0:  # knockout
+    #             if value > 0:
+    #                 forward_variable.ub = value
+    #             elif value <= 0:
+    #                 reverse_variable.ub = -1 * value
+    #                 self._lower_bound = value
+    #                 reverse_variable.lb = -1 * value
+    #         elif self._lower_bound >= 0:  # forward irreversible
+    #             if value > 0:
+    #                 try:
+    #                     forward_variable.ub = value
+    #                 except ValueError:
+    #                     forward_variable.lb = value
+    #                     self._lower_bound = value
+    #                     forward_variable.ub = value
+    #             else:
+    #                 forward_variable.lb = 0
+    #                 forward_variable.ub = 0
+    #                 reverse_variable.ub = -1 * value
+    #                 self._lower_bound = value
+    #                 reverse_variable.lb = -1 * value
+    #
+    #         elif self._upper_bound <= 0:  # reverse irreversible
+    #             if value < 0:
+    #                 try:
+    #                     reverse_variable.lb = -1 * value
+    #                 except ValueError:
+    #                     reverse_variable.ub = -1 * value
+    #                     self._lower_bound = value
+    #                     reverse_variable.lb = -1 * value
+    #             else:
+    #                 forward_variable.ub = value
+    #                 reverse_variable.lb = 0
+    #         else:
+    #             raise ValueError('upper_bound issue')
+    #
+    #     self._upper_bound = value
 
     @property
     def model(self):
