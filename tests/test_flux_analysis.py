@@ -25,6 +25,7 @@ import numpy as np
 import pandas
 import pytest
 from sympy import Add
+from cobra.util import create_stoichiometric_matrix
 
 import cameo
 from cameo.flux_analysis import remove_infeasible_cycles, structural
@@ -201,9 +202,9 @@ class TestSimulationMethods:
     def test_pfba(self, core_model):
         original_objective = core_model.objective
         fba_solution = fba(core_model)
-        fba_flux_sum = sum((abs(val) for val in list(fba_solution.fluxes.values())))
+        fba_flux_sum = sum((abs(val) for val in list(fba_solution.fluxes.values)))
         pfba_solution = pfba(core_model)
-        pfba_flux_sum = sum((abs(val) for val in list(pfba_solution.fluxes.values())))
+        pfba_flux_sum = sum((abs(val) for val in list(pfba_solution.fluxes.values)))
         # looks like GLPK finds a parsimonious solution without the flux minimization objective
         assert (pfba_flux_sum - fba_flux_sum) < 1e-6, \
             "FBA sum is suppose to be lower than PFBA (was %f)" % (pfba_flux_sum - fba_flux_sum)
@@ -218,9 +219,9 @@ class TestSimulationMethods:
     def test_pfba_ijo1366(self, ijo1366):
         original_objective = ijo1366.objective
         fba_solution = fba(ijo1366)
-        fba_flux_sum = sum((abs(val) for val in fba_solution.fluxes.values()))
+        fba_flux_sum = sum((abs(val) for val in fba_solution.fluxes.values))
         pfba_solution = pfba(ijo1366)
-        pfba_flux_sum = sum((abs(val) for val in pfba_solution.fluxes.values()))
+        pfba_flux_sum = sum((abs(val) for val in pfba_solution.fluxes.values))
         assert (pfba_flux_sum - fba_flux_sum) < 1e-6, \
             "FBA sum is suppose to be lower than PFBA (was %f)" % (pfba_flux_sum - fba_flux_sum)
         assert ijo1366.objective is original_objective
@@ -327,8 +328,7 @@ class TestSimulationMethods:
         with TimeMachine() as tm:
             toy_model.reactions.v6.knock_out(tm)
             result_changed = moma(toy_model, reference=reference_changed)
-
-        assert expected != result_changed.fluxes
+        assert np.all([expected != result_changed.fluxes])
 
 
 class TestRemoveCycles:
@@ -338,7 +338,7 @@ class TestRemoveCycles:
             original_objective = copy.copy(core_model.objective)
             core_model.objective = core_model.solver.interface.Objective(
                 Add(*core_model.solver.variables.values()), name='Max all fluxes')
-            solution = core_model.solve()
+            solution = core_model.optimize()
             assert abs(solution.data_frame.fluxes.abs().sum() - 2508.293334) < 1e-6
             fluxes = solution.fluxes
             core_model.objective = original_objective
@@ -364,7 +364,7 @@ class TestStructural:
 
     def test_find_coupled_reactions(self, core_model):
         couples = structural.find_coupled_reactions(core_model)
-        fluxes = core_model.solve().fluxes
+        fluxes = core_model.optimize().fluxes
         for coupled_set in couples:
             coupled_set = list(coupled_set)
             assert round(abs(fluxes[coupled_set[0].id] - fluxes[coupled_set[1].id]), 7) == 0
