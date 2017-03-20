@@ -14,42 +14,47 @@
 
 from __future__ import absolute_import, print_function
 
-import os
-import unittest
 from functools import partial
 from itertools import chain
 
+import pytest
 from cobra import Metabolite
+
+from cameo.network_analysis.util import distance_based_on_molecular_formula
+from cameo.util import (ProblemCache, RandomGenerator, Singleton, TimeMachine,
+                        float_ceil, float_floor, frozendict, generate_colors,
+                        partition)
 from six.moves import range
 
-from cameo.io import load_model
-from cameo.network_analysis.util import distance_based_on_molecular_formula
-from cameo.util import TimeMachine, generate_colors, Singleton, partition, RandomGenerator, frozendict, ProblemCache, \
-    float_floor, float_ceil
-
-TESTDIR = os.path.dirname(__file__)
-TESTMODEL = load_model(os.path.join(TESTDIR, 'data/EcoliCore.xml'), sanitize=False)
+SEED = 1234
 
 
-class TimeMachineTestCase(unittest.TestCase):
-    def setUp(self):
-        self.tm = TimeMachine()
+@pytest.fixture(scope="function")
+def problem_cache_trial(core_model):
+    reference = core_model.solve().fluxes
+    n_constraints = len(core_model.solver.constraints)
+    n_variables = len(core_model.solver.variables)
+    return core_model, reference, n_constraints, n_variables
 
+
+class TestTimeMachine:
     def test_one_change_list(self):
+        tm = TimeMachine()
         l = [1, 2, 3, 4]
-        self.tm(do=partial(l.append, 5), undo=l.pop)
-        self.assertEqual(l, [1, 2, 3, 4, 5])
-        self.tm.reset()
-        self.assertEqual(l, [1, 2, 3, 4])
+        tm(do=partial(l.append, 5), undo=l.pop)
+        assert l == [1, 2, 3, 4, 5]
+        tm.reset()
+        assert l == [1, 2, 3, 4]
 
     def test_str_handles_different_types_of_stored_operations(self):
+        tm = TimeMachine()
+
         def normal_function():
             pass
 
         partial_function = partial(str, 1)
-        self.tm(do=normal_function, undo=partial_function)
-        self.assertEqual(self.tm.__str__().split('\n')[2:-1],
-                         ["undo: " + str(str) + " (1,) {}", 'redo: normal_function'])
+        tm(do=normal_function, undo=partial_function)
+        assert tm.__str__().split('\n')[2:-1] == ["undo: " + str(str) + " (1,) {}", 'redo: normal_function']
 
     def test_with_statement(self):
         l = [1, 2, 3, 4]
@@ -57,7 +62,7 @@ class TimeMachineTestCase(unittest.TestCase):
             tm(do=partial(l.append, 33), undo=partial(l.pop))
             tm(do=partial(l.append, 66), undo=partial(l.pop))
             tm(do=partial(l.append, 99), undo=partial(l.pop))
-        self.assertEqual(l, [1, 2, 3, 4])
+        assert l == [1, 2, 3, 4]
 
 
 def some_method_that_adds_stuff(model, cache):
@@ -78,174 +83,180 @@ def some_method_that_adds_stuff(model, cache):
         constraint.ub = ub
 
     for i in range(10):
-        cache.add_variable("var_%i" % (i+1), create_variable, update_variable, 10, 15)
+        cache.add_variable("var_%i" % (i + 1), create_variable, update_variable, 10, 15)
 
     for i in range(9):
-        v1 = cache.variables["var_%i" % (i+1)]
-        v2 = cache.variables["var_%i" % (i+2)]
-        cache.add_constraint("c_%i" % (i+1), create_constraint, update_constraint, [v1, v2], -20, 100)
+        v1 = cache.variables["var_%i" % (i + 1)]
+        v2 = cache.variables["var_%i" % (i + 2)]
+        cache.add_constraint("c_%i" % (i + 1), create_constraint, update_constraint, [v1, v2], -20, 100)
 
 
-class TestProblemCache(unittest.TestCase):
-    def setUp(self):
-        self.reference = TESTMODEL.solve().fluxes
-        self.n_constraints = len(TESTMODEL.solver.constraints)
-        self.n_variables = len(TESTMODEL.solver.variables)
+class TestProblemCache:
+    def test_add_variable(self, core_model):
+        cache = ProblemCache(core_model)
 
-    def test_add_variable(self):
-        cache = ProblemCache(TESTMODEL)
-        add_var = lambda model, var_id: model.solver.interface.Variable(var_id, ub=0)
-        update_var = lambda model, var: setattr(var, "ub", 1000)
+        def add_var(model, var_id):
+            return model.solver.interface.Variable(var_id, ub=0)
+
+        def update_var(model, var):
+            return setattr(var, "ub", 1000)
         for i in range(10):
             cache.add_variable("%i" % i, add_var, update_var)
 
         for i in range(10):
-            self.assertIn(cache.variables["%i" % i], TESTMODEL.solver.variables)
-            self.assertEqual(cache.variables["%i" % i].ub, 0)
-            self.assertEqual(TESTMODEL.solver.variables["%i" % i].ub, 0)
+            assert cache.variables["%i" % i] in core_model.solver.variables
+            assert cache.variables["%i" % i].ub == 0
+            assert core_model.solver.variables["%i" % i].ub == 0
 
         for i in range(10):
             cache.add_variable("%i" % i, add_var, update_var)
-            self.assertEqual(cache.variables["%i" % i].ub, 1000)
-            self.assertEqual(TESTMODEL.solver.variables["%i" % i].ub, 1000)
+            assert cache.variables["%i" % i].ub == 1000
+            assert core_model.solver.variables["%i" % i].ub == 1000
 
         cache.reset()
 
         for i in range(10):
-            self.assertRaises(KeyError, TESTMODEL.solver.variables.__getitem__, "%i" % i)
+            with pytest.raises(KeyError):
+                core_model.solver.variables.__getitem__("%i" % i)
 
-    def test_add_constraint(self):
-        cache = ProblemCache(TESTMODEL)
+    def test_add_constraint(self, core_model):
+        cache = ProblemCache(core_model)
 
-        add_var = lambda model, var_id: model.solver.interface.Variable(var_id, ub=0)
-        add_constraint = lambda m, const_id, var: m.solver.interface.Constraint(var, lb=-10, ub=10, name=const_id)
-        update_constraint = lambda model, const, var: setattr(const, "ub", 1000)
+        def add_var(model, var_id):
+            return model.solver.interface.Variable(var_id, ub=0)
+
+        def add_constraint(m, const_id, var):
+            return m.solver.interface.Constraint(var, lb=-10, ub=10, name=const_id)
+
+        def update_constraint(model, const, var):
+            return setattr(const, "ub", 1000)
 
         for i in range(10):
             cache.add_variable("%i" % i, add_var, None)
             cache.add_constraint("c%i" % i, add_constraint, update_constraint, cache.variables["%i" % i])
 
         for i in range(10):
-            self.assertIn(cache.constraints["c%i" % i], TESTMODEL.solver.constraints)
-            self.assertEqual(cache.constraints["c%i" % i].ub, 10)
-            self.assertEqual(cache.constraints["c%i" % i].lb, -10)
-            self.assertEqual(TESTMODEL.solver.constraints["c%i" % i].ub, 10)
-            self.assertEqual(TESTMODEL.solver.constraints["c%i" % i].lb, -10)
+            assert cache.constraints["c%i" % i] in core_model.solver.constraints
+            assert cache.constraints["c%i" % i].ub == 10
+            assert cache.constraints["c%i" % i].lb == -10
+            assert core_model.solver.constraints["c%i" % i].ub == 10
+            assert core_model.solver.constraints["c%i" % i].lb == -10
 
         for i in range(10):
             cache.add_constraint("c%i" % i, add_constraint, update_constraint, cache.variables["%i" % i])
-            self.assertEqual(TESTMODEL.solver.constraints["c%i" % i].ub, 1000)
+            assert core_model.solver.constraints["c%i" % i].ub == 1000
 
         cache.reset()
 
         for i in range(10):
-            self.assertRaises(KeyError, TESTMODEL.solver.variables.__getitem__, "%i" % i)
-            self.assertRaises(KeyError, TESTMODEL.solver.constraints.__getitem__, "c%i" % i)
+            with pytest.raises(KeyError):
+                core_model.solver.variables.__getitem__("%i" % i)
+            with pytest.raises(KeyError):
+                core_model.solver.constraints.__getitem__("c%i" % i)
 
-    def test_cache_problem(self):
+    def test_cache_problem(self, problem_cache_trial):
+        core_model, reference, n_constraints, n_variables = problem_cache_trial
         # After the number of variables and constraints remains the same if nothing happens
-        self.assertEqual(self.n_constraints, len(TESTMODEL.solver.constraints))
-        self.assertEqual(self.n_variables, len(TESTMODEL.solver.variables))
+        assert n_constraints == len(core_model.solver.constraints)
+        assert n_variables == len(core_model.solver.variables)
 
-        cache = ProblemCache(TESTMODEL)
-        some_method_that_adds_stuff(TESTMODEL, cache)
+        cache = ProblemCache(core_model)
+        some_method_that_adds_stuff(core_model, cache)
         # After running some_method_that_adds_stuff with cache, problem has 10 more variables
-        self.assertEqual(self.n_variables+10, len(TESTMODEL.solver.variables))
+        assert n_variables + 10 == len(core_model.solver.variables)
         # And has 9 more more constraints
-        self.assertEqual(self.n_constraints+9, len(TESTMODEL.solver.constraints))
+        assert n_constraints + 9 == len(core_model.solver.constraints)
 
         cache.reset()
         # After reset cache, the problem should return to its original size
-        self.assertEqual(self.n_constraints, len(TESTMODEL.solver.constraints))
-        self.assertEqual(self.n_variables, len(TESTMODEL.solver.variables))
+        assert n_constraints == len(core_model.solver.constraints)
+        assert n_variables == len(core_model.solver.variables)
 
-    def test_with(self):
-        with ProblemCache(TESTMODEL) as cache:
-            some_method_that_adds_stuff(TESTMODEL, cache)
+    def test_with(self, problem_cache_trial):
+        core_model, reference, n_constraints, n_variables = problem_cache_trial
+        with ProblemCache(core_model) as cache:
+            some_method_that_adds_stuff(core_model, cache)
             # After running some_method_that_adds_stuff with cache, problem has 10 more variables
-            self.assertEqual(self.n_variables+10, len(TESTMODEL.solver.variables))
+            assert n_variables + 10 == len(core_model.solver.variables)
             # And has 9 more more constraints
-            self.assertEqual(self.n_constraints+9, len(TESTMODEL.solver.constraints))
+            assert n_constraints + 9 == len(core_model.solver.constraints)
 
             # If the method runs again, it does not add repeated variables
-            some_method_that_adds_stuff(TESTMODEL, cache)
+            some_method_that_adds_stuff(core_model, cache)
             # After running some_method_that_adds_stuff with cache, problem has 10 more variables
-            self.assertEqual(self.n_variables+10, len(TESTMODEL.solver.variables))
+            assert n_variables + 10 == len(core_model.solver.variables)
             # And has 9 more more constraints
-            self.assertEqual(self.n_constraints+9, len(TESTMODEL.solver.constraints))
+            assert n_constraints + 9 == len(core_model.solver.constraints)
 
         # After reset cache, the problem should return to its original size
-        self.assertEqual(self.n_constraints, len(TESTMODEL.solver.constraints))
-        self.assertEqual(self.n_variables, len(TESTMODEL.solver.variables))
+        assert n_constraints == len(core_model.solver.constraints)
+        assert n_variables == len(core_model.solver.variables)
 
 
-class TestRandomGenerator(unittest.TestCase):
-    def setUp(self):
-        self.seed = 1234
-
+class TestRandomGenerator:
     def test_random(self):
         random = RandomGenerator()
         for _ in range(1000):
-            self.assertGreaterEqual(random.random(), 0)
-            self.assertLessEqual(random.random(), 1)
+            assert random.random() >= 0
+            assert random.random() <= 1
 
     def test_randint(self):
         random = RandomGenerator()
         lower = 0
         upper = 10
         for _ in range(10000):
-            self.assertGreaterEqual(random.randint(lower, upper), lower)
-            self.assertLessEqual(random.randint(lower, upper), upper)
+            assert random.randint(lower, upper) >= lower
+            assert random.randint(lower, upper) <= upper
 
         lower = -10
         upper = 100
         for _ in range(10000):
-            self.assertGreaterEqual(random.randint(lower, upper), lower)
-            self.assertLessEqual(random.randint(lower, upper), upper)
+            assert random.randint(lower, upper) >= lower
+            assert random.randint(lower, upper) <= upper
 
         lower = 5
         upper = 21
         for _ in range(10000):
-            self.assertGreaterEqual(random.randint(lower, upper), lower)
-            self.assertLessEqual(random.randint(lower, upper), upper)
+            assert random.randint(lower, upper) >= lower
+            assert random.randint(lower, upper) <= upper
 
         lower = -5
         upper = 5
         for _ in range(10000):
-            self.assertGreaterEqual(random.randint(lower, upper), lower)
-            self.assertLessEqual(random.randint(lower, upper), upper)
+            assert random.randint(lower, upper) >= lower
+            assert random.randint(lower, upper) <= upper
 
     def test_seeded_methods(self):
         random = RandomGenerator()
 
-        random.seed(self.seed)
+        random.seed(SEED)
         value = random.random()
-        random.seed(self.seed)
-        self.assertEqual(value, random.random())
+        random.seed(SEED)
+        assert value == random.random()
 
-        random.seed(self.seed)
+        random.seed(SEED)
         value = random.randint(1, 10)
-        random.seed(self.seed)
-        self.assertEqual(value, random.randint(1, 10))
+        random.seed(SEED)
+        assert value == random.randint(1, 10)
 
-        random.seed(self.seed)
+        random.seed(SEED)
         population = [1, 2, 3, 4, 5]
         value = random.sample(population, 2)
-        random.seed(self.seed)
-        self.assertEqual(value, random.sample(population, 2))
+        random.seed(SEED)
+        assert value == random.sample(population, 2)
 
-        random.seed(self.seed)
+        random.seed(SEED)
         value = random.uniform()
-        random.seed(self.seed)
-        self.assertEqual(value, random.uniform())
+        random.seed(SEED)
+        assert value == random.uniform()
 
 
-class TestUtils(unittest.TestCase):
+class TestUtils:
     def test_color_generation(self):
         for i in range(1, 100):
             color_map = generate_colors(i)
-            self.assertEqual(len(color_map), i)
-            self.assertEqual(len(color_map), len(set(color_map.values())))
+            assert len(color_map) == i
+            assert len(color_map) == len(set(color_map.values()))
 
     def test_partition(self):
         chunks = 3
@@ -256,83 +267,73 @@ class TestUtils(unittest.TestCase):
         ]
         for fixture in iterables:
             test_output = partition(fixture, chunks)
-            self.assertEqual(len(fixture), sum(map(len, test_output)))
-            self.assertEqual(len(test_output), chunks)
-            self.assertEqual(list(fixture), list(chain(*test_output)))
+            assert len(fixture) == sum(map(len, test_output))
+            assert len(test_output) == chunks
+            assert list(fixture) == list(chain(*test_output))
             for out_chunk in test_output:
-                self.assertTrue(set(out_chunk).issubset(set(fixture)))
+                assert set(out_chunk).issubset(set(fixture))
 
         bad_input = 5
-        self.assertRaises(TypeError, partition, bad_input, chunks)
+        with pytest.raises(TypeError):
+            partition(bad_input, chunks)
 
     def test_distance_based_on_molecular_formula(self):  # from network_analysis.util
         met1 = Metabolite("H2O", formula="H2O")
         met2 = Metabolite("H2O2", formula="H2O2")
         met3 = Metabolite("C6H12O6", formula="C6H12O6")
 
-        self.assertEqual(distance_based_on_molecular_formula(met1, met2, normalize=False), 1)
-        self.assertEqual(distance_based_on_molecular_formula(met1, met2, normalize=True), 1. / 7)
+        assert distance_based_on_molecular_formula(met1, met2, normalize=False) == 1
+        assert distance_based_on_molecular_formula(met1, met2, normalize=True) == 1. / 7
 
-        self.assertEqual(distance_based_on_molecular_formula(met2, met3, normalize=False), 20)
-        self.assertEqual(distance_based_on_molecular_formula(met2, met3, normalize=True), 20. / 28)
+        assert distance_based_on_molecular_formula(met2, met3, normalize=False) == 20
+        assert distance_based_on_molecular_formula(met2, met3, normalize=True) == 20. / 28
 
-        self.assertEqual(distance_based_on_molecular_formula(met1, met3, normalize=False), 21)
-        self.assertEqual(distance_based_on_molecular_formula(met1, met3, normalize=True), 21. / 27)
+        assert distance_based_on_molecular_formula(met1, met3, normalize=False) == 21
+        assert distance_based_on_molecular_formula(met1, met3, normalize=True) == 21. / 27
 
     def test_float_conversions(self):
         val = 1.3456
-
         new_value = float_floor(val, 2)
-        self.assertEqual(new_value, 1.34)
-
+        assert new_value == 1.34
         new_value = float_ceil(val, 2)
-        self.assertEqual(new_value, 1.35)
-
+        assert new_value == 1.35
         new_value = float_floor(val, 1)
-        self.assertEqual(new_value, 1.3)
-
+        assert new_value == 1.3
         new_value = float_ceil(val, 1)
-        self.assertEqual(new_value, 1.4)
-
+        assert new_value == 1.4
         new_value = float_floor(val)
-        self.assertEqual(new_value, 1)
-
+        assert new_value == 1
         new_value = float_ceil(val)
-        self.assertEqual(new_value, 2)
-
+        assert new_value == 2
         val = 0.00000
         for i in range(1, 10):
             new_value = float_floor(val, i)
-            self.assertEqual(new_value, 0)
+            assert new_value == 0
             new_value = float_ceil(val, i)
-            self.assertEqual(new_value, 0)
+            assert new_value == 0
 
 
-
-
-class FrozendictTestCase(unittest.TestCase):
-    def setUp(self):
-        self.frozen_dict = frozendict({"A": 1, "B": 2, "C": 3, "D": 4, "E": [2, 3, 4, 5]})
-
+class TestFrozendict:
     def test_frozen_attributes(self):
-        self.assertRaises(AttributeError, self.frozen_dict.popitem)
-        self.assertRaises(AttributeError, self.frozen_dict.pop, "A")
-        self.assertRaises(AttributeError, self.frozen_dict.__setitem__, "C", 1)
-        self.assertRaises(AttributeError, self.frozen_dict.setdefault, "K")
-        self.assertRaises(AttributeError, self.frozen_dict.__delitem__, "A")
-        self.assertRaises(AttributeError, self.frozen_dict.update)
+        frozen_dict = frozendict({"A": 1, "B": 2, "C": 3, "D": 4, "E": [2, 3, 4, 5]})
+        with pytest.raises(AttributeError):
+            frozen_dict.popitem()
+        with pytest.raises(AttributeError):
+            frozen_dict.pop("A")
+        with pytest.raises(AttributeError):
+            frozen_dict.__setitem__("C", 1)
+        with pytest.raises(AttributeError):
+            frozen_dict.setdefault("K")
+        with pytest.raises(AttributeError):
+            frozen_dict.__delitem__("A")
+        with pytest.raises(AttributeError):
+            frozen_dict.update()
 
-        self.assertTrue(hasattr(self.frozen_dict, "__hash__"))
+        assert hasattr(frozen_dict, "__hash__")
 
 
-class TestSingleton(unittest.TestCase):
+class TestSingleton:
     def test_singleton(self):
         s1 = Singleton()
         s2 = Singleton()
-        self.assertIs(s1, s2)
-
-
-if __name__ == "__main__":
-    import nose
-
-    nose.runmodule()
+        assert s1 is s2

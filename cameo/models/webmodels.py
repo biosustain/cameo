@@ -102,7 +102,8 @@ def index_models_minho(host="http://darwin.di.uminho.pt/models"):
         raise Exception("Could not index available models. %s returned status code %d" % (host, response.status_code))
 
 
-def get_model_from_uminho(query, index, host="http://darwin.di.uminho.pt/models", solver_interface=optlang, sanitize=True):
+def get_model_from_uminho(query, index, host="http://darwin.di.uminho.pt/models", solver_interface=optlang,
+                          sanitize=True):
     model_index = index[index["name"] == query]['id'].values[0]
     sbml_file = get_sbml_file(model_index, host)
     sbml_file.close()

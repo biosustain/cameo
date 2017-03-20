@@ -25,7 +25,6 @@ __all__ = ['Metabolite']
 
 @six.add_metaclass(inheritdocstring)
 class Metabolite(cobra.core.Metabolite):
-
     # TODO: figure out how to handle the _reaction attribute
     @classmethod
     def clone(cls, metabolite, model=None):
@@ -35,7 +34,8 @@ class Metabolite(cobra.core.Metabolite):
                 setattr(new_metabolite, attribute, value)
             except AttributeError:
                 logger.info(
-                    "Can't set attribute %s for metabolite %s (while cloning it to a cameo style metabolite). Skipping it ..." %
+                    "Can't set attribute %s for metabolite %s (while cloning it to a "
+                    "cameo style metabolite). Skipping it ..." %
                     (attribute, metabolite)
                 )
         if model is not None:

@@ -32,7 +32,6 @@ import numpy
 import pandas
 import pip
 import six
-from numpy.linalg import svd
 from numpy.random import RandomState
 from six.moves import range
 
@@ -381,7 +380,8 @@ class TimeMachine(object):
         info += datetime.fromtimestamp(entry['unix_epoch']).strftime('%Y-%m-%d %H:%M:%S') + '\n'
         undo_entry = entry['undo']
         try:
-            elements = undo_entry.func, undo_entry.args, undo_entry.keywords or {}  # partial  (if .keywords is None print {} instead)
+            # partial  (if .keywords is None print {} instead)
+            elements = undo_entry.func, undo_entry.args, undo_entry.keywords or {}
             info += 'undo: ' + ' '.join([str(elem) for elem in elements]) + '\n'
         except AttributeError:  # normal python function
             info += 'undo: ' + undo_entry.__name__ + '\n'
@@ -600,3 +600,20 @@ def reduce_reaction_set(reaction_set, groups):
             reaction_set = reaction_set - intersection
     result = set(result) | reaction_set  # Add the remaining reactions to result
     return result
+
+
+def current_solver_name(model):
+    """Give a string representation for an optlang interface.
+
+    Parameters
+    ----------
+    model : cameo.core.SolverBasedModel
+        A model
+
+    Returns
+    -------
+    string
+       The name of the interface as a string
+    """
+    interface = model.solver.interface.__name__
+    return re.sub(r"optlang.|.interface", "", interface)

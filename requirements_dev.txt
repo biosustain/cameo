@@ -1,6 +1,5 @@
-nose
+pytest
 lxml
-rednose
 swiglpk
 python-libsbml
 bokeh
