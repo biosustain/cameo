@@ -31,7 +31,7 @@ SEED = 1234
 
 @pytest.fixture(scope="function")
 def problem_cache_trial(core_model):
-    reference = core_model.solve().fluxes
+    reference = core_model.optimize().fluxes
     n_constraints = len(core_model.solver.constraints)
     n_variables = len(core_model.solver.variables)
     return core_model, reference, n_constraints, n_variables

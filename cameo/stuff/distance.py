@@ -136,7 +136,7 @@ class ManhattanDistance(Distance):
 
     def minimize(self, *args, **kwargs):
         self.model.objective.direction = 'min'
-        solution = self.model.solve()
+        solution = self.model.optimize()
         result = FluxDistributionResult(solution)
         return result
 
@@ -192,6 +192,6 @@ class RegulatoryOnOffDistance(Distance):
 
     def minimize(self, *args, **kwargs):
         self.model.objective.direction = 'min'
-        solution = self.model.solve()
+        solution = self.model.optimize()
         result = FluxDistributionResult(solution)
         return result

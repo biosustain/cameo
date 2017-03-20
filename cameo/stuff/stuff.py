@@ -25,7 +25,7 @@ from cameo.util import TimeMachine
 def gene_knockout_growth(gene_id, model, threshold=10 ** -6, simulation_method=fba,
                          normalize=True, biomass=None, biomass_flux=None, *args, **kwargs):
     if biomass_flux is None:
-        s = model.solve()
+        s = model.optimize()
         biomass_flux = s.f
     if 'reference' not in kwargs:
         kwargs['reference'] = s.x_dict
@@ -65,7 +65,7 @@ def reaction_component_production(model, reaction):
         tm(do=partial(model.add_reactions, [test]), undo=partial(model.remove_reactions, [test]))
         tm(do=partial(setattr, model, 'objective', test.id), undo=partial(setattr, model, 'objective', model.objective))
         try:
-            print(metabolite.id, "= ", model.solve().f)
+            print(metabolite.id, "= ", model.optimize().f)
         except SolveError:
             print(metabolite, " cannot be produced (reactions: %s)" % metabolite.reactions)
         finally:
