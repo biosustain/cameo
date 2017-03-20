@@ -30,6 +30,7 @@ class TestWebModels:
         with pytest.raises(requests.ConnectionError):
             get_sbml_file(1, host="http://blabla")
 
+    @pytest.mark.skipif(True, reason='too slow for testing')
     def test_index(self):
         try:
             index = index_models_minho()
@@ -40,6 +41,7 @@ class TestWebModels:
             assert list(index.columns) == ["id", "name", "doi", "author", "year", "formats", "organism", "taxonomy",
                                            "validated"]
 
+    @pytest.mark.skipif(True, reason='too slow for testing')
     def test_get_sbml(self):
         try:
             tmp = get_sbml_file(1)
