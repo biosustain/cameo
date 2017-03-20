@@ -632,18 +632,18 @@ class SolverBasedModel(cobra.core.Model):
 
         return essential
 
-    @property
-    def S(self):
-        metabolite_index = {metabolite.id: index for index, metabolite in enumerate(self.metabolites)}
-        stoichiometric_matrix = np.zeros((len(self.metabolites), len(self.reactions)))
-
-        for i, reaction in enumerate(self.reactions):
-            for metabolite, coefficient in six.iteritems(reaction.metabolites):
-                j = metabolite_index[metabolite.id]
-                stoichiometric_matrix[j, i] = coefficient
-
-        return stoichiometric_matrix
-
+    # @property
+    # def S(self):
+    #     metabolite_index = {metabolite.id: index for index, metabolite in enumerate(self.metabolites)}
+    #     stoichiometric_matrix = np.zeros((len(self.metabolites), len(self.reactions)))
+    #
+    #     for i, reaction in enumerate(self.reactions):
+    #         for metabolite, coefficient in six.iteritems(reaction.metabolites):
+    #             j = metabolite_index[metabolite.id]
+    #             stoichiometric_matrix[j, i] = coefficient
+    #
+    #     return stoichiometric_matrix
+    #
 
     @property
     def medium(self):
