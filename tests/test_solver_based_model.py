@@ -55,7 +55,7 @@ ESSENTIAL_REACTIONS = ['GLNS', 'Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN_
 def solved_model(request, data_directory):
     core_model = load_model(os.path.join(data_directory, 'EcoliCore.xml'), sanitize=False)
     core_model.solver = request.param
-    solution = core_model.solve()
+    solution = core_model.optimize()
     return solution, core_model
 
 
@@ -72,22 +72,22 @@ def tiny_toy_model(request):
     return tiny
 
 
-class TestLazySolution:
-    def test_self_invalidation(self, solved_model):
-        solution, model = solved_model
-        assert abs(solution.f - 0.873921506968431) < 0.000001
-        model.optimize()
-        with pytest.raises(UndefinedSolution):
-            getattr(solution, 'f')
-
-    def test_solution_contains_only_reaction_specific_values(self, solved_model):
-        solution, model = solved_model
-        reaction_ids = set([reaction.id for reaction in model.reactions])
-        assert set(solution.fluxes.keys()).difference(reaction_ids) == set()
-        assert set(solution.reduced_costs.keys()).difference(reaction_ids) == set()
-        assert set(solution.reduced_costs.keys()).difference(reaction_ids) == set()
-        metabolite_ids = set([metabolite.id for metabolite in model.metabolites])
-        assert set(solution.shadow_prices.keys()).difference(metabolite_ids) == set()
+# class TestLazySolution:
+#     def test_self_invalidation(self, solved_model):
+#         solution, model = solved_model
+#         assert abs(solution.f - 0.873921506968431) < 0.000001
+#         model.optimize()
+#         with pytest.raises(UndefinedSolution):
+#             getattr(solution, 'f')
+#
+#     def test_solution_contains_only_reaction_specific_values(self, solved_model):
+#         solution, model = solved_model
+#         reaction_ids = set([reaction.id for reaction in model.reactions])
+#         assert set(solution.fluxes.keys()).difference(reaction_ids) == set()
+#         assert set(solution.reduced_costs.keys()).difference(reaction_ids) == set()
+#         assert set(solution.reduced_costs.keys()).difference(reaction_ids) == set()
+#         metabolite_ids = set([metabolite.id for metabolite in model.metabolites])
+#         assert set(solution.shadow_prices.keys()).difference(metabolite_ids) == set()
 
 
 class TestReaction:
@@ -110,26 +110,27 @@ class TestReaction:
             assert reaction.upper_bound == cloned_reaction.upper_bound
             assert reaction.lower_bound == cloned_reaction.lower_bound
 
-    def test_gene_reaction_rule_setter(self, core_model):
-        rxn = Reaction('rxn')
-        rxn.add_metabolites({Metabolite('A'): -1, Metabolite('B'): 1})
-        rxn.gene_reaction_rule = 'A2B1 or A2B2 and A2B3'
-        assert hasattr(list(rxn.genes)[0], 'knock_out')
-        core_model.add_reaction(rxn)
-        with cameo.util.TimeMachine() as tm:
-            core_model.genes.A2B1.knock_out(time_machine=tm)
-            assert not core_model.genes.A2B1.functional
-            core_model.genes.A2B3.knock_out(time_machine=tm)
-            assert not rxn.functional
-        assert core_model.genes.A2B3.functional
-        assert rxn.functional
-        core_model.genes.A2B1.knock_out()
-        assert not core_model.genes.A2B1.functional
-        assert core_model.reactions.rxn.functional
-        core_model.genes.A2B3.knock_out()
-        assert not core_model.reactions.rxn.functional
-        non_functional = [gene.id for gene in core_model.non_functional_genes]
-        assert all(gene in non_functional for gene in ['A2B3', 'A2B1'])
+    # test moved to cobra
+    # def test_gene_reaction_rule_setter(self, core_model):
+    #     rxn = Reaction('rxn')
+    #     rxn.add_metabolites({Metabolite('A'): -1, Metabolite('B'): 1})
+    #     rxn.gene_reaction_rule = 'A2B1 or A2B2 and A2B3'
+    #     assert hasattr(list(rxn.genes)[0], 'knock_out')
+    #     core_model.add_reaction(rxn)
+    #     with cameo.util.TimeMachine() as tm:
+    #         core_model.genes.A2B1.knock_out(time_machine=tm)
+    #         assert not core_model.genes.A2B1.functional
+    #         core_model.genes.A2B3.knock_out(time_machine=tm)
+    #         assert not rxn.functional
+    #     assert core_model.genes.A2B3.functional
+    #     assert rxn.functional
+    #     core_model.genes.A2B1.knock_out()
+    #     assert not core_model.genes.A2B1.functional
+    #     assert core_model.reactions.rxn.functional
+    #     core_model.genes.A2B3.knock_out()
+    #     assert not core_model.reactions.rxn.functional
+    #     non_functional = [gene.id for gene in core_model.non_functional_genes]
+    #     assert all(gene in non_functional for gene in ['A2B3', 'A2B1'])
 
     def test_gene_reaction_rule_setter_reaction_already_added_to_model(self, core_model):
         rxn = Reaction('rxn')
@@ -825,22 +826,22 @@ class TestSolverBasedModel:
     # def test_solver_change(self, core_model):
     #     solver_id = id(core_model.solver)
     #     problem_id = id(core_model.solver.problem)
-    #     solution = core_model.solve().x_dict
+    #     solution = core_model.optimize().x_dict
     #     core_model.solver = 'glpk'
     #     assert id(core_model.solver) != solver_id
     #     assert id(core_model.solver.problem) != problem_id
-    #     new_solution = core_model.solve()
+    #     new_solution = core_model.optimize()
     #     for key in list(solution.keys()):
     #         assert round(abs(new_solution.x_dict[key] - solution[key]), 7) == 0
     #
     # def test_solver_change_with_optlang_interface(self, core_model):
     #     solver_id = id(core_model.solver)
     #     problem_id = id(core_model.solver.problem)
-    #     solution = core_model.solve().x_dict
+    #     solution = core_model.optimize().x_dict
     #     core_model.solver = optlang.glpk_interface
     #     assert id(core_model.solver) != solver_id
     #     assert id(core_model.solver.problem) != problem_id
-    #     new_solution = core_model.solve()
+    #     new_solution = core_model.optimize()
     #     for key in list(solution.keys()):
     #         assert round(abs(new_solution.x_dict[key] - solution[key]), 7) == 0
 
@@ -920,21 +921,21 @@ class TestSolverBasedModel:
         cp = model.copy()
         ratio_constr = cp.add_ratio_constraint(cp.reactions.PGI, cp.reactions.G6PDH2r, 0.5)
         assert ratio_constr.name == 'ratio_constraint_PGI_G6PDH2r'
-        solution = cp.solve()
+        solution = cp.optimize()
         assert round(abs(solution.f - 0.870407873712), 7) == 0
         assert round(abs(2 * solution.x_dict['PGI'] - solution.x_dict['G6PDH2r']), 7) == 0
         cp = model.copy()
 
         ratio_constr = cp.add_ratio_constraint(cp.reactions.PGI, cp.reactions.G6PDH2r, 0.5)
         assert ratio_constr.name == 'ratio_constraint_PGI_G6PDH2r'
-        solution = cp.solve()
+        solution = cp.optimize()
         assert round(abs(solution.f - 0.870407873712), 7) == 0
         assert round(abs(2 * solution.x_dict['PGI'] - solution.x_dict['G6PDH2r']), 7) == 0
 
         cp = model.copy()
         ratio_constr = cp.add_ratio_constraint('PGI', 'G6PDH2r', 0.5)
         assert ratio_constr.name == 'ratio_constraint_PGI_G6PDH2r'
-        solution = cp.solve()
+        solution = cp.optimize()
         assert abs(solution.f - 0.870407) < 1e-6
         assert abs(2 * solution.x_dict['PGI'] - solution.x_dict['G6PDH2r']) < 1e-6
 
@@ -942,7 +943,7 @@ class TestSolverBasedModel:
         ratio_constr = cp.add_ratio_constraint([cp.reactions.PGI, cp.reactions.ACALD],
                                                [cp.reactions.G6PDH2r, cp.reactions.ACONTa], 0.5)
         assert ratio_constr.name == 'ratio_constraint_PGI+ACALD_G6PDH2r+ACONTa'
-        solution = cp.solve()
+        solution = cp.optimize()
         assert abs(solution.f - 0.872959) < 1e-6
         assert abs((solution.x_dict['PGI'] + solution.x_dict['ACALD']) -
                    0.5 * (solution.x_dict['G6PDH2r'] + solution.x_dict['ACONTa'])) < 1e-5

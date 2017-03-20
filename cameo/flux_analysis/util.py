@@ -91,7 +91,7 @@ def remove_infeasible_cycles(model, fluxes, fix=()):
                undo=partial(setattr, reaction_to_fix, 'upper_bound', reaction_to_fix.upper_bound))
 
         try:
-            solution = model.solve()
+            solution = model.optimize()
         except SolveError as e:
             logger.warning("Couldn't remove cycles from reference flux distribution.")
             raise e

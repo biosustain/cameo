@@ -314,7 +314,7 @@ class PathwayPredictor(StrainDesignMethod):
             while counter <= max_predictions:
                 logger.debug('Predicting pathway No. %d' % counter)
                 try:
-                    self.model.solve()
+                    self.model.optimize()
                 except SolveError as e:
                     logger.error('No pathway could be predicted. Terminating pathway predictions.')
                     logger.error(e)
