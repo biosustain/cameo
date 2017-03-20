@@ -40,6 +40,8 @@ import sympy
 from sympy import Add
 from sympy import Mul
 from sympy.parsing.sympy_parser import parse_expr
+from cobra.core import get_solution
+from cobra.exceptions import OptimizationError
 
 from optlang.interface import OptimizationExpression
 from cameo.config import ndecimals
@@ -78,7 +80,10 @@ def fba(model, objective=None, reactions=None, *args, **kwargs):
         if objective is not None:
             tm(do=partial(setattr, model, 'objective', objective),
                undo=partial(setattr, model, 'objective', model.objective))
-        solution = model.solve()
+        model.solver.optimize()
+        if model.solver.status != 'optimal':
+            raise SolveError('optimization failed')
+        solution = get_solution(model)
         if reactions is not None:
             result = FluxDistributionResult({r: solution.get_primal_by_id(r) for r in reactions}, solution.f)
         else:
@@ -151,7 +156,7 @@ def pfba(model, objective=None, reactions=None, fraction_of_optimum=1, *args, **
     with TimeMachine() as tm:
         add_pfba(model, objective=objective, fraction_of_optimum=fraction_of_optimum, time_machine=tm)
         try:
-            solution = model.solve()
+            solution = model.optimize()
             if reactions is not None:
                 result = FluxDistributionResult({r: solution.get_primal_by_id(r) for r in reactions}, solution.f)
             else:
@@ -226,7 +231,7 @@ def moma(model, reference=None, cache=None, reactions=None, *args, **kwargs):
 
         cache.add_objective(create_objective, None, cache.variables.values())
 
-        solution = model.solve()
+        solution = model.optimize()
         if reactions is not None:
             result = FluxDistributionResult({r: solution.get_primal_by_id(r) for r in reactions}, solution.f)
         else:
@@ -323,7 +328,7 @@ def lmoma(model, reference=None, cache=None, reactions=None, *args, **kwargs):
 
         try:
 
-            solution = model.solve()
+            solution = model.optimize()
             if reactions is not None:
                 result = FluxDistributionResult({r: solution.get_primal_by_id(r) for r in reactions}, solution.f)
             else:
@@ -418,7 +423,7 @@ def room(model, reference=None, cache=None, delta=0.03, epsilon=0.001, reactions
         model.objective = model.solver.interface.Objective(add([mul([One, var]) for var in cache.variables.values()]),
                                                            direction='min')
         try:
-            solution = model.solve()
+            solution = model.optimize()
             if reactions is not None:
                 result = FluxDistributionResult({r: solution.get_primal_by_id(r) for r in reactions}, solution.f)
             else:

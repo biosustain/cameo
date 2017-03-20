@@ -24,10 +24,11 @@ from functools import partial, reduce
 import numpy
 import pandas
 import six
-from cobra.core import Reaction, Metabolite
+from cobra.core import Reaction, Metabolite, get_solution
 from numpy import trapz
 from six.moves import zip
 from sympy import S
+from optlang.interface import UNBOUNDED
 
 import cameo
 from cameo import config
@@ -250,12 +251,12 @@ def _flux_variability_analysis(model, reactions=None):
             fva_sol[reaction.id] = dict()
             model.solver.objective.set_linear_coefficients({reaction.forward_variable: 1.,
                                                             reaction.reverse_variable: -1.})
-            try:
-                solution = model.solve()
-                fva_sol[reaction.id]['lower_bound'] = solution.f
-            except Unbounded:
+            model.solver.optimize()
+            if model.solver.status == 'optimal':
+                fva_sol[reaction.id]['lower_bound'] = model.objective.value
+            elif model.solver.status == UNBOUNDED:
                 fva_sol[reaction.id]['lower_bound'] = -numpy.inf
-            except Infeasible:
+            else:
                 lb_flags[reaction.id] = True
             model.solver.objective.set_linear_coefficients({reaction.forward_variable: 0.,
                                                             reaction.reverse_variable: 0.})
@@ -268,12 +269,12 @@ def _flux_variability_analysis(model, reactions=None):
             model.solver.objective.set_linear_coefficients({reaction.forward_variable: 1.,
                                                             reaction.reverse_variable: -1.})
 
-            try:
-                solution = model.solve()
-                fva_sol[reaction.id]['upper_bound'] = solution.f
-            except Unbounded:
+            model.solver.optimize()
+            if model.solver.status == 'optimal':
+                fva_sol[reaction.id]['upper_bound'] = model.objective.value
+            elif model.solver.status == UNBOUNDED:
                 fva_sol[reaction.id]['upper_bound'] = numpy.inf
-            except Infeasible:
+            else:
                 ub_flag = True
 
             if lb_flags[reaction.id] is True and ub_flag is True:
@@ -316,7 +317,7 @@ def _get_c_source_reaction(model):
     """
     medium_reactions = [model.reactions.get_by_id(reaction) for reaction in model.medium.reaction_id]
     try:
-        model.solve()
+        model.optimize()
     except (Infeasible, AssertionError):
         return None
     source_reactions = [(reaction, reaction.flux * reaction.n_carbon) for reaction in medium_reactions if
@@ -348,19 +349,19 @@ def _cycle_free_fva(model, reactions=None, sloppy=True, sloppy_bound=666):
         fva_sol[reaction.id] = dict()
         model.objective = reaction
         model.objective.direction = 'min'
-        try:
-            solution = model.solve()
-        except Unbounded:
+        model.solver.optimize()
+        if model.solver.status == UNBOUNDED:
             fva_sol[reaction.id]['lower_bound'] = -numpy.inf
             continue
-        except Infeasible:
+        elif model.solver.status != 'optimal':
             fva_sol[reaction.id]['lower_bound'] = 0
             continue
-        bound = solution.f
+        bound = model.objective.value
         if sloppy and abs(bound) < sloppy_bound:
             fva_sol[reaction.id]['lower_bound'] = bound
         else:
             logger.debug('Determine if {} with bound {} is a cycle'.format(reaction.id, bound))
+            solution = get_solution(model)
             v0_fluxes = solution.x_dict
             v1_cycle_free_fluxes = remove_infeasible_cycles(model, v0_fluxes)
             if abs(v1_cycle_free_fluxes[reaction.id] - bound) < 10 ** -6:
@@ -376,31 +377,30 @@ def _cycle_free_fva(model, reactions=None, sloppy=True, sloppy_bound=666):
                             knockout_reaction = model.reactions.get_by_id(key)
                             knockout_reaction.knock_out(time_machine=tm)
                     model.objective.direction = 'min'
-                    try:
-                        solution = model.solve()
-                    except Unbounded:
+                    model.solver.optimize()
+                    if model.solver.status == 'optimal':
+                        fva_sol[reaction.id]['lower_bound'] = model.objective.value
+                    elif model.solver.status == UNBOUNDED:
                         fva_sol[reaction.id]['lower_bound'] = -numpy.inf
-                    except Infeasible:
-                        fva_sol[reaction.id]['lower_bound'] = 0
                     else:
-                        fva_sol[reaction.id]['lower_bound'] = solution.f
+                        fva_sol[reaction.id]['lower_bound'] = 0
 
     for reaction in reactions:
         model.objective = reaction
         model.objective.direction = 'max'
-        try:
-            solution = model.solve()
-        except Unbounded:
+        model.solver.optimize()
+        if model.solver.status == UNBOUNDED:
             fva_sol[reaction.id]['upper_bound'] = numpy.inf
             continue
-        except Infeasible:
+        elif model.solver.status != 'optimal':
             fva_sol[reaction.id]['upper_bound'] = 0
             continue
-        bound = solution.f
+        bound = model.objective.value
         if sloppy and abs(bound) < sloppy_bound:
             fva_sol[reaction.id]['upper_bound'] = bound
         else:
             logger.debug('Determine if {} with bound {} is a cycle'.format(reaction.id, bound))
+            solution = get_solution(model)
             v0_fluxes = solution.x_dict
             v1_cycle_free_fluxes = remove_infeasible_cycles(model, v0_fluxes)
             if abs(v1_cycle_free_fluxes[reaction.id] - bound) < 1e-6:
@@ -416,14 +416,13 @@ def _cycle_free_fva(model, reactions=None, sloppy=True, sloppy_bound=666):
                             knockout_reaction = model.reactions.get_by_id(key)
                             knockout_reaction.knock_out(time_machine=tm)
                     model.objective.direction = 'max'
-                    try:
-                        solution = model.solve()
-                    except Unbounded:
-                        fva_sol[reaction.id]['upper_bound'] = numpy.inf
-                    except Infeasible:
-                        fva_sol[reaction.id]['upper_bound'] = 0
+                    model.solver.optimize()
+                    if model.solver.status == 'optimal':
+                        fva_sol[reaction.id]['upper_bound'] = model.objective.value
+                    elif model.solver.status == UNBOUNDED:
+                         fva_sol[reaction.id]['upper_bound'] = numpy.inf
                     else:
-                        fva_sol[reaction.id]['upper_bound'] = solution.f
+                        fva_sol[reaction.id]['upper_bound'] = 0
 
     df = pandas.DataFrame.from_dict(fva_sol, orient='index')
     lb_higher_ub = df[df.lower_bound > df.upper_bound]
@@ -516,10 +515,10 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
 
     def _interval_estimates(self):
         try:
-            flux = self.model.solve().f
+            flux = self.model.optimize().f
             carbon_yield = self.carbon_yield()
             mass_yield = self.mass_yield()
-        except Infeasible:
+        except (AssertionError, Infeasible):
             flux = 0
             carbon_yield = 0
             mass_yield = 0

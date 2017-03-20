@@ -120,7 +120,7 @@ class DifferentialFVA(StrainDesignMethod):
     >>> from cameo.strain_design.deterministic import DifferentialFVA
     >>> model = models.bigg.e_coli_core
     >>> reference_model = model.copy()
-    >>> reference_model.reactions.Biomass_Ecoli_core_w_GAM.lower_bound = reference_model.solve().objective_value
+    >>> reference_model.reactions.Biomass_Ecoli_core_w_GAM.lower_bound = reference_model.optimize().objective_value
     >>> diffFVA = DifferentialFVA(design_space_model=model,
                           reference_model=reference_model,
                           objective=model.reactions.EX_succ_e,

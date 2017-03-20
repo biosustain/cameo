@@ -29,8 +29,8 @@ from cameo import load_model
 # load a model from SBML format (can be found under cameo/tests/data)
 model = load_model('EcoliCore.xml')
 
-# solve the model and print the objective value
-solution = model.solve()
+# optimize the model and print the objective value
+solution = model.optimize()
 print 'Objective value:', solution.f
 
 # Determine a set of gene deletions that will optimize the production
