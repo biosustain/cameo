@@ -492,9 +492,9 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
         float
             gram product per 1 g of feeding source or nan if more than one product or feeding source
         """
-        too_long = (len(self.source.metabolites) > 1,
-                    len(self.product_reaction.metabolites) > 1)
-        if any(too_long):
+        not_unique = (len(self.source.metabolites) != 1,
+                      len(self.product_reaction.metabolites) != 1)
+        if any(not_unique):
             return numpy.nan
         try:
             source_flux = self.source.flux
