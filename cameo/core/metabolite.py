@@ -120,25 +120,25 @@ class Metabolite(cobra.core.Metabolite):
         else:
             self._relax_mass_balance_constrain(time_machine)
 
-    @property
-    def id(self):
-        return getattr(self, "_id", None)  # Returns None if _id is not set
-
-    @id.setter
-    def id(self, value):
-        if value == self.id:
-            pass
-        elif not isinstance(value, six.string_types):
-            raise TypeError("ID must be a string")
-        elif getattr(self, "_model", None) is not None:  # (= if hasattr(self, "_model") and self._model is not None)
-            if value in self.model.metabolites:
-                raise ValueError("The model already contains a metabolite with the id:", value)
-            self.model.solver.constraints[self.id].name = value
-
-            self._id = value
-            self.model.metabolites._generate_index()
-        else:
-            self._id = value
+    # @property
+    # def id(self):
+    #     return getattr(self, "_id", None)  # Returns None if _id is not set
+    #
+    # @id.setter
+    # def id(self, value):
+    #     if value == self.id:
+    #         pass
+    #     elif not isinstance(value, six.string_types):
+    #         raise TypeError("ID must be a string")
+    #     elif getattr(self, "_model", None) is not None:  # (= if hasattr(self, "_model") and self._model is not None)
+    #         if value in self.model.metabolites:
+    #             raise ValueError("The model already contains a metabolite with the id:", value)
+    #         self.model.solver.constraints[self.id].name = value
+    #
+    #         self._id = value
+    #         self.model.metabolites._generate_index()
+    #     else:
+    #         self._id = value
 
     def _repr_html_(self):
         return """
