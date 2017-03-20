@@ -349,7 +349,7 @@ class ShortestElementaryFluxModes(six.Iterator):
     def __generate_elementary_modes(self):
         while True:
             try:
-                self.model.solve()
+                self.model.optimize()
             except SolveError:
                 raise StopIteration
             elementary_flux_mode = list()
@@ -463,12 +463,11 @@ class MinimalCutSetsEnumerator(ShortestElementaryFluxModes):  # pragma: no cover
             with TimeMachine() as tm:
                 for reac_id in mcs:
                     self._primal_model.reactions.get_by_id(reac_id).knock_out(tm)
-                try:
-                    self._primal_model.solve()
-                except Infeasible:
-                    return None
-                else:
+                self._primal_model.solver.optimize()
+                if self._primal_model.solver.status == 'optimal':
                     return mcs
+                else:
+                    return None
         else:
             return mcs
 
@@ -629,9 +628,8 @@ class MinimalCutSetsEnumerator(ShortestElementaryFluxModes):  # pragma: no cover
                 # of knockouts can be feasible either.
                 with TimeMachine() as tm:
                     reaction.knock_out(tm)
-                    try:
-                        self._primal_model.solve()
-                    except Infeasible:
+                    self._primal_model.solver.optimize()
+                    if self._primal_model.solver.status != 'optimal':
                         illegal_knockouts.append(reaction.id)
             self._illegal_knockouts = illegal_knockouts
             return cloned_constraints

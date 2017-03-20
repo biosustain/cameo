@@ -21,8 +21,6 @@ from __future__ import absolute_import, print_function
 
 import csv
 import logging
-import time
-import types
 from copy import copy, deepcopy
 from functools import partial
 
@@ -35,15 +33,15 @@ from pandas import DataFrame, pandas
 from sympy import Add
 from sympy import Mul
 from sympy.core.singleton import S
+from cobra.core import get_solution
 
 from cameo import config
-from cameo import exceptions
 from cameo.core.gene import Gene
 from cameo.core.metabolite import Metabolite
 from cameo.exceptions import SolveError, Infeasible
-from cameo.util import TimeMachine, inheritdocstring, AutoVivification
+from cameo.util import TimeMachine, inheritdocstring
 from .reaction import Reaction
-from .solution import LazySolution, Solution
+from .solution import LazySolution
 
 __all__ = ['to_solver_based_model', 'SolverBasedModel']
 
@@ -389,7 +387,11 @@ class SolverBasedModel(cobra.core.Model):
         fix_objective_name = 'Fixed_objective_{}'.format(self.objective.name)
         if fix_objective_name in self.solver.constraints:
             self.solver.remove(fix_objective_name)
-        objective_value = self.solve().objective_value * fraction
+        self.solver.optimize()
+        if self.solver.status == 'optimal':
+            objective_value = self.objective.value * fraction
+        else:
+            raise Infeasible('failed to fix objective')
         constraint = self.solver.interface.Constraint(self.objective.expression,
                                                       name=fix_objective_name)
         if self.objective.direction == 'max':
@@ -464,42 +466,42 @@ class SolverBasedModel(cobra.core.Model):
         self.solver.add(ratio_constraint, sloppy=True)
         return ratio_constraint
 
-    def optimize(self, objective_sense=None, solution_type=Solution, **kwargs):
-        """OptlangBasedModel implementation of optimize.
-
-        Exists only for compatibility reasons. Uses model.solve() instead.
-        """
-        self._timestamp_last_optimization = time.time()
-        if objective_sense is not None:
-            original_direction = self.objective.direction
-            self.objective.direction = {'minimize': 'min', 'maximize': 'max'}[objective_sense]
-            self.solver.optimize()
-            self.objective.direction = original_direction
-        else:
-            self.solver.optimize()
-        solution = solution_type(self)
-        self.solution = solution
-        return solution
-
-    def solve(self, solution_type=LazySolution, *args, **kwargs):
-        """Optimize model.
-
-        Parameters
-        ----------
-        solution_type : Solution or LazySolution, optional
-            The type of solution that should be returned (defaults to LazySolution).
-
-        Returns
-        -------
-        Solution or LazySolution
-        """
-        solution = self.optimize(solution_type=solution_type, *args, **kwargs)
-        if solution.status is not 'optimal':
-            raise exceptions._OPTLANG_TO_EXCEPTIONS_DICT.get(solution.status, SolveError)(
-                'Solving model %s did not return an optimal solution. The returned solution status is "%s"' % (
-                    self, solution.status))
-        else:
-            return solution
+    # def optimize(self, objective_sense=None, solution_type=Solution, **kwargs):
+    #     """OptlangBasedModel implementation of optimize.
+    #
+    #     Exists only for compatibility reasons. Uses model.optimize() instead.
+    #     """
+    #     self._timestamp_last_optimization = time.time()
+    #     if objective_sense is not None:
+    #         original_direction = self.objective.direction
+    #         self.objective.direction = {'minimize': 'min', 'maximize': 'max'}[objective_sense]
+    #         self.solver.optimize()
+    #         self.objective.direction = original_direction
+    #     else:
+    #         self.solver.optimize()
+    #     solution = solution_type(self)
+    #     self.solution = solution
+    #     return solution
+    #
+    # def solve(self, solution_type=LazySolution, *args, **kwargs):
+    #     """Optimize model.
+    #
+    #     Parameters
+    #     ----------
+    #     solution_type : Solution or LazySolution, optional
+    #         The type of solution that should be returned (defaults to LazySolution).
+    #
+    #     Returns
+    #     -------
+    #     Solution or LazySolution
+    #     """
+    #     solution = self.optimize(solution_type=solution_type, *args, **kwargs)
+    #     if solution.status is not 'optimal':
+    #         raise exceptions._OPTLANG_TO_EXCEPTIONS_DICT.get(solution.status, SolveError)(
+    #             'Solving model %s did not return an optimal solution. The returned solution status is "%s"' % (
+    #                 self, solution.status))
+    #     else:
+    #         return solution
 
     def __dir__(self):
         # Hide 'optimize' from user.
@@ -543,8 +545,10 @@ class SolverBasedModel(cobra.core.Model):
 
         # Essential metabolites are only in reactions that carry flux.
         metabolites = set()
-        solution = self.solve()
-
+        self.solver.optimize()
+        if self.solver.status != 'optimal':
+            raise SolveError('optimization failed')
+        solution = get_solution(self)
         for reaction_id, flux in six.iteritems(solution.fluxes):
             if abs(flux) > 0:
                 reaction = self.reactions.get_by_id(reaction_id)
@@ -553,13 +557,9 @@ class SolverBasedModel(cobra.core.Model):
         for metabolite in metabolites:
             with TimeMachine() as tm:
                 metabolite.knock_out(time_machine=tm, force_steady_state=force_steady_state)
-                try:
-                    solution = self.solve()
-                    if solution.f < threshold:
-                        essential_metabolites.append(metabolite)
-                except Infeasible:
+                self.solver.optimize()
+                if self.solver.status != 'optimal' or self.objective.value < threshold:
                     essential_metabolites.append(metabolite)
-
         return essential_metabolites
 
     def essential_reactions(self, threshold=1e-6):
@@ -577,20 +577,18 @@ class SolverBasedModel(cobra.core.Model):
         """
         essential = []
         try:
-            solution = self.solve()
-
+            self.solver.optimize()
+            if self.solver.status != 'optimal':
+                raise SolveError('optimization failed')
+            solution = get_solution(self)
             for reaction_id, flux in six.iteritems(solution.fluxes):
                 if abs(flux) > 0:
                     reaction = self.reactions.get_by_id(reaction_id)
                     with TimeMachine() as tm:
                         reaction.knock_out(time_machine=tm)
-                        try:
-                            sol = self.solve()
-                        except Infeasible:
+                        self.solver.optimize()
+                        if self.solver.status != 'optimal' or self.objective.value < threshold:
                             essential.append(reaction)
-                        else:
-                            if sol.f < threshold:
-                                essential.append(reaction)
 
         except SolveError as e:
             logger.error('Cannot determine essential reactions for un-optimal model.')
@@ -613,7 +611,10 @@ class SolverBasedModel(cobra.core.Model):
         """
         essential = []
         try:
-            solution = self.solve()
+            self.solver.optimize()
+            if self.solver.status != 'optimal':
+                raise SolveError('optimization failed')
+            solution = get_solution(self)
             genes_to_check = set()
             for reaction_id, flux in six.iteritems(solution.fluxes):
                 if abs(flux) > 0:
@@ -621,13 +622,9 @@ class SolverBasedModel(cobra.core.Model):
             for gene in genes_to_check:
                 with TimeMachine() as tm:
                     gene.knock_out(time_machine=tm)
-                    try:
-                        sol = self.solve()
-                    except Infeasible:
+                    self.solver.optimize()
+                    if self.solver.status != 'optimal' or self.objective.value < threshold:
                         essential.append(gene)
-                    else:
-                        if sol.f < threshold:
-                            essential.append(gene)
 
         except SolveError as e:
             logger.error('Cannot determine essential genes for un-optimal model.')
