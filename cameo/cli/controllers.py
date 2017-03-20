@@ -43,9 +43,10 @@ class BaseController(CementBaseController):
             (['-m', '--multiprocess'], dict(help='Run multiprocess mode', action='store_true')),
             (['-c', '--cores'], dict(help="Number of cores (if multiprocess)")),
             (['-o', '--output'], dict(help="Output file")),
-            (['-of', '--output-format'],
-             dict(help="Output file format (default xlsx)\nOptions:%s" % VALID_OUTPUT_FORMATS)),
-            (['-y', '--yes-all'], dict(help="Auto select suggested options", action="store_true"))]
+            (['-of', '--output-format'], dict(help="Output file format (default xlsx)\nOptions:%s" %
+                                                   VALID_OUTPUT_FORMATS)),
+            (['-y', '--yes-all'], dict(help="Auto select suggested options", action="store_true")),
+            (['-t', '--test'], dict(help="Test mode", action="store_true"))]
 
     @expose(hide=True)
     def default(self):
@@ -106,8 +107,13 @@ class BaseController(CementBaseController):
         else:
             view = SequentialView()
 
+        design.debug = self.app.pargs.test
+
         results = design(product=product, hosts=_hosts,
                          view=view, aerobic=not self.app.pargs.anaerobic)
+
+        results['heterologous_pathway'] = results.heterologous_pathway.apply(str)
+        results['manipulations'] = results.manipulations.apply(str)
 
         OUTPUT_WRITER[output_format](results, output)
 
