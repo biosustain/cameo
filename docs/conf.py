@@ -27,7 +27,8 @@ import alabaster
 #
 #     # MOCK_MODULES = ['numpy', 'numpy.random', 'numpy.linalg', 'matplotlib', 'pandas', 'scipy', 'scipy.sparse',
 #     #                 'scipy.io', 'scipy.stats', 'scipy.version', 'bokeh', 'bokeh.plotting', 'swiglpk',
-#     #                 'glpk', 'gurobipy', 'gurobipy.GRB', 'cplex', 'mlabwrap', 'pp', 'libsbml', 'METANETX', '_METANETX',
+#     #                 'glpk', 'gurobipy', 'gurobipy.GRB', 'cplex', 'mlabwrap', 'pp', 'libsbml', 'METANETX',
+# '_METANETX',
 #     #                 'IPython.core.display', 'IPython.core', 'IPython']
 #     MOCK_MODULES = ['matplotlib', 'pandas', 'scipy', 'scipy.sparse',
 #                     'scipy.io', 'scipy.stats', 'scipy.version', 'bokeh', 'bokeh.plotting', 'swiglpk',

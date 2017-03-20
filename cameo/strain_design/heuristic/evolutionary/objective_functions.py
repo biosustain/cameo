@@ -299,7 +299,8 @@ class biomass_product_coupled_min_yield(biomass_product_coupled_yield):
         else:
             return "$$bpcy = \\frac{(%s * min(%s))}{%s}$$" % (self.biomass.replace("_", "\\_"),
                                                               self.product.replace("_", "\\_"),
-                                                              " + ".join(s.replace("_", "\\_") for s in self.substrates))
+                                                              " + ".join(
+                                                                  s.replace("_", "\\_") for s in self.substrates))
 
     @property
     def name(self):

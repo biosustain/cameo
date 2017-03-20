@@ -56,10 +56,10 @@ class StrainDesign(object):
         self.targets = DictList(targets)
 
     def __str__(self):
-        return "".join(str(t) for t in self.targets)
+        return ", ".join(str(t) for t in self.targets)
 
     def __repr__(self):
-        return str(self)
+        return "<StrainDesign [" + ";".join(repr(t) for t in self.targets) + "]>"
 
     def __iter__(self):
         return iter(self.targets)
@@ -92,35 +92,43 @@ class StrainDesign(object):
             target.apply(model, time_machine)
 
     def __add__(self, other):
+        if not isinstance(other, StrainDesign):
+            raise AssertionError("Only instances of StrainDesign can be added together")
+
         targets = {}
         for target in self.targets:
             if target.id not in targets:
-                targets[target.id] = []
-            targets[target.id].append(target)
+                targets[target.id] = set()
+            targets[target.id].add(target)
 
         for target in other.targets:
             if target.id not in targets:
-                targets[target.id] = []
-            targets[target.id].append(target)
+                targets[target.id] = set()
+            targets[target.id].add(target)
 
-        targets = [t[0] if len(t) == 1 else EnsembleTarget(id, t) for id, t in six.iteritems(targets)]
+        targets = [next(iter(t)) if len(t) == 1 else EnsembleTarget(id, t) for id, t in six.iteritems(targets)]
 
         return StrainDesign(targets)
 
     def __iadd__(self, other):
+        if not isinstance(other, StrainDesign):
+            raise AssertionError("Only instances of StrainDesign can be added together")
+
         targets = {}
         for target in self.targets:
             if target.id not in targets:
-                targets[target.id] = []
-            targets[target.id].append(target)
+                targets[target.id] = set()
+            targets[target.id].add(target)
 
         for target in other.targets:
             if target.id not in targets:
-                targets[target.id] = []
-            targets[target.id].append(target)
+                targets[target.id] = set()
+            targets[target.id].add(target)
 
-        targets = [t[0] if len(t) == 1 else EnsembleTarget(id, t) for id, t in six.iteritems(targets)]
+        targets = [next(iter(t)) if len(t) == 1 else EnsembleTarget(id, t) for id, t in six.iteritems(targets)]
+
         self.targets = DictList(targets)
+
         return self
 
     def _repr_html_(self):
