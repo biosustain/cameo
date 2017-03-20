@@ -454,6 +454,6 @@ class TestNullSpace:
         assert round(abs(np.dot(ns.T, a[1])[0] - 0), 10) == 0
 
     def test_with_core_model(self, core_model):
-        s = core_model.S
+        s = create_stoichiometric_matrix(core_model)
         ns = nullspace(s)
         assert round(abs(np.abs(s.dot(ns)).max() - 0), 10) == 0
