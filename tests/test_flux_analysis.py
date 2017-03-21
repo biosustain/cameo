@@ -25,7 +25,8 @@ import numpy as np
 import pandas
 import pytest
 from sympy import Add
-from cobra.util import create_stoichiometric_matrix
+from cobra.util import create_stoichiometric_matrix, fix_objective_as_constraint
+from cobra.flux_analysis.parsimonious import add_pfba
 
 import cameo
 from cameo.flux_analysis import remove_infeasible_cycles, structural
@@ -33,7 +34,7 @@ from cameo.flux_analysis.analysis import (find_blocked_reactions,
                                           flux_variability_analysis,
                                           phenotypic_phase_plane,
                                           fix_pfba_as_constraint)
-from cameo.flux_analysis.simulation import fba, lmoma, moma, pfba, room, add_pfba
+from cameo.flux_analysis.simulation import fba, lmoma, moma, pfba, room
 from cameo.flux_analysis.structural import nullspace
 from cameo.parallel import MultiprocessingView, SequentialView
 from cameo.util import TimeMachine, current_solver_name, pick_one
@@ -81,13 +82,13 @@ class TestFluxVariabilityAnalysis:
         assert sum(abs(pfba_fva.lower_bound)) - 518.422 < .001
         assert sum(abs(pfba_fva.upper_bound)) - 518.422 < .001
 
-    def test_add_remove_pfb(self, core_model):
-        with TimeMachine() as tm:
-            add_pfba(core_model, time_machine=tm)
+    def test_add_remove_pfba(self, core_model):
+        with core_model:
+            add_pfba(core_model)
             assert '_pfba_objective' == core_model.objective.name
         assert '_pfba_objective' != core_model.solver.constraints
-        with TimeMachine() as tm:
-            fix_pfba_as_constraint(core_model, time_machine=tm)
+        with core_model:
+            fix_pfba_as_constraint(core_model)
             assert '_fixed_pfba_constraint' in core_model.solver.constraints
         assert '_fixed_pfba_constraint' not in core_model.solver.constraints
 
@@ -190,14 +191,14 @@ class TestSimulationMethods:
         original_objective = core_model.objective
         assert abs(solution.objective_value - 0.873921) < 0.000001
         assert len(solution.fluxes) == len(core_model.reactions)
-        assert core_model.objective is original_objective
+        assert core_model.objective.expression == original_objective.expression
 
     def test_fba_with_reaction_filter(self, core_model):
         original_objective = core_model.objective
         solution = fba(core_model, reactions=['EX_o2_LPAREN_e_RPAREN_', 'EX_glc_LPAREN_e_RPAREN_'])
         assert abs(solution.objective_value - 0.873921) < 0.000001
         assert len(solution.fluxes) == 2
-        assert core_model.objective is original_objective
+        assert core_model.objective.expression == original_objective.expression
 
     def test_pfba(self, core_model):
         original_objective = core_model.objective
@@ -208,13 +209,13 @@ class TestSimulationMethods:
         # looks like GLPK finds a parsimonious solution without the flux minimization objective
         assert (pfba_flux_sum - fba_flux_sum) < 1e-6, \
             "FBA sum is suppose to be lower than PFBA (was %f)" % (pfba_flux_sum - fba_flux_sum)
-        assert core_model.objective is original_objective
+        assert core_model.objective.expression == original_objective.expression
 
     def test_pfba_with_reaction_filter(self, core_model):
         original_objective = core_model.objective
         pfba_solution = pfba(core_model, reactions=['EX_o2_LPAREN_e_RPAREN_', 'EX_glc_LPAREN_e_RPAREN_'])
         assert len(pfba_solution.fluxes) == 2
-        assert core_model.objective is original_objective
+        assert core_model.objective.expression == original_objective.expression
 
     def test_pfba_ijo1366(self, ijo1366):
         original_objective = ijo1366.objective
@@ -224,7 +225,7 @@ class TestSimulationMethods:
         pfba_flux_sum = sum((abs(val) for val in pfba_solution.fluxes.values))
         assert (pfba_flux_sum - fba_flux_sum) < 1e-6, \
             "FBA sum is suppose to be lower than PFBA (was %f)" % (pfba_flux_sum - fba_flux_sum)
-        assert ijo1366.objective is original_objective
+        assert ijo1366.objective.expression == original_objective.expression
 
     def test_lmoma(self, core_model):
         original_objective = core_model.objective
@@ -232,7 +233,7 @@ class TestSimulationMethods:
         solution = lmoma(core_model, reference=pfba_solution)
         distance = sum((abs(solution[v] - pfba_solution[v]) for v in pfba_solution.keys()))
         assert abs(0 - distance) < 1e-6, "lmoma distance without knockouts must be 0 (was %f)" % distance
-        assert core_model.objective is original_objective
+        assert core_model.objective.expression == original_objective.expression
 
     def test_lmoma_change_ref(self, core_model):
         original_objective = core_model.objective
@@ -241,7 +242,7 @@ class TestSimulationMethods:
         solution = lmoma(core_model, reference=fluxes)
         distance = sum((abs(solution[v] - pfba_solution[v]) for v in pfba_solution.keys()))
         assert abs(0 - distance) > 1e-6, "lmoma distance without knockouts must be 0 (was %f)" % distance
-        assert core_model.objective is original_objective
+        assert core_model.objective.expression == original_objective.expression
 
     def test_lmoma_with_reaction_filter(self, core_model):
         original_objective = core_model.objective
@@ -249,7 +250,7 @@ class TestSimulationMethods:
         solution = lmoma(core_model, reference=pfba_solution,
                          reactions=['EX_o2_LPAREN_e_RPAREN_', 'EX_glc_LPAREN_e_RPAREN_'])
         assert len(solution.fluxes) == 2
-        assert core_model.objective is original_objective
+        assert core_model.objective.expression == original_objective.expression
 
     def test_moma(self, core_model):
         if current_solver_name(core_model) == 'glpk':
@@ -259,7 +260,7 @@ class TestSimulationMethods:
         solution = moma(core_model, reference=pfba_solution)
         distance = sum((abs(solution[v] - pfba_solution[v]) for v in pfba_solution.keys()))
         assert abs(0 - distance) < 1e-6, "moma distance without knockouts must be 0 (was %f)" % distance
-        assert core_model.objective is original_objective
+        assert core_model.objective.expression == original_objective.expression
 
     def test_room(self, core_model):
         original_objective = core_model.objective
@@ -267,7 +268,7 @@ class TestSimulationMethods:
         solution = room(core_model, reference=pfba_solution)
         assert abs(0 - solution.objective_value) < 1e-6, \
             "room objective without knockouts must be 0 (was %f)" % solution.objective_value
-        assert core_model.objective is original_objective
+        assert core_model.objective.expression == original_objective.expression
 
     def test_room_with_reaction_filter(self, core_model):
         original_objective = core_model.objective
@@ -275,7 +276,7 @@ class TestSimulationMethods:
         solution = room(core_model, reference=pfba_solution,
                         reactions=['EX_o2_LPAREN_e_RPAREN_', 'EX_glc_LPAREN_e_RPAREN_'])
         assert len(solution.fluxes) == 2
-        assert core_model.objective is original_objective
+        assert core_model.objective.expression == original_objective.expression
 
     def test_room_shlomi_2005(self, toy_model):
         original_objective = toy_model.objective
@@ -288,7 +289,7 @@ class TestSimulationMethods:
 
         for k in reference.keys():
             assert abs(expected[k] - result.fluxes[k]) < 0.1, "%s: %f | %f"
-        assert toy_model.objective is original_objective
+        assert toy_model.objective.expression == original_objective.expression
 
     def test_moma_shlomi_2005(self, toy_model):
         if current_solver_name(toy_model) == 'glpk':
@@ -333,8 +334,8 @@ class TestSimulationMethods:
 
 class TestRemoveCycles:
     def test_remove_cycles(self, core_model):
-        with TimeMachine() as tm:
-            core_model.fix_objective_as_constraint(time_machine=tm)
+        with core_model:
+            fix_objective_as_constraint(core_model)
             original_objective = copy.copy(core_model.objective)
             core_model.objective = core_model.solver.interface.Objective(
                 Add(*core_model.solver.variables.values()), name='Max all fluxes')

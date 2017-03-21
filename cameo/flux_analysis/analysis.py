@@ -25,6 +25,7 @@ import numpy
 import pandas
 import six
 from cobra.core import Reaction, Metabolite, get_solution
+from cobra.util import fix_objective_as_constraint
 from numpy import trapz
 from six.moves import zip
 from sympy import S
@@ -100,13 +101,12 @@ def flux_variability_analysis(model, reactions=None, fraction_of_optimum=0., pfb
         view = config.default_view
     if reactions is None:
         reactions = model.reactions
-    with TimeMachine() as tm:
+    with model:
         if fraction_of_optimum > 0.:
-            model.fix_objective_as_constraint(fraction=fraction_of_optimum, time_machine=tm)
+            fix_objective_as_constraint(model, fraction=fraction_of_optimum)
         if pfba_factor is not None:
             # don't add the objective-constraint again so fraction_of_optimum=0
-            fix_pfba_as_constraint(model, multiplier=pfba_factor, time_machine=tm, fraction_of_optimum=0)
-        tm(do=int, undo=partial(setattr, model, "objective", model.objective))
+            fix_pfba_as_constraint(model, multiplier=pfba_factor, fraction_of_optimum=0)
         reaction_chunks = (chunk for chunk in partition(reactions, len(view)))
         if remove_cycles:
             func_obj = _FvaFunctionObject(model, _cycle_free_fva)

@@ -13,6 +13,8 @@
 # limitations under the License.
 import logging
 
+from cobra.exceptions import OptimizationError
+
 from cameo.core.manipulation import swap_cofactors
 from cameo.exceptions import SolveError
 from cameo.strain_design.heuristic.evolutionary.decoders import SetDecoder
@@ -122,7 +124,7 @@ class KnockoutEvaluator(TargetEvaluator):
                                                   reactions=self.objective_function.reactions,
                                                   **self.simulation_kwargs)
                 fitness = self.objective_function(self.model, solution, targets)
-            except SolveError as e:
+            except (SolveError, OptimizationError) as e:
                 logger.debug(e)
                 fitness = self.objective_function.worst_fitness()
             return fitness

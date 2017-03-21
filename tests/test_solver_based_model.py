@@ -27,6 +27,8 @@ import pandas
 import pytest
 import six
 
+from cobra.util import fix_objective_as_constraint
+
 import cameo
 from cameo import Model, load_model
 from cameo.config import solvers
@@ -950,13 +952,13 @@ class TestSolverBasedModel:
 
     def test_fix_objective_as_constraint(self, core_model):
         # with TimeMachine
-        with TimeMachine() as tm:
-            core_model.fix_objective_as_constraint(time_machine=tm)
+        with core_model:
+            fix_objective_as_constraint(core_model)
             constraint_name = core_model.solver.constraints[-1]
             assert core_model.solver.constraints[-1].expression - core_model.objective.expression == 0
         assert constraint_name not in core_model.solver.constraints
         # without TimeMachine
-        core_model.fix_objective_as_constraint()
+        fix_objective_as_constraint(core_model)
         constraint_name = core_model.solver.constraints[-1]
         assert core_model.solver.constraints[-1].expression - core_model.objective.expression == 0
         assert constraint_name in core_model.solver.constraints

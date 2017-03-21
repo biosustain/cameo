@@ -24,6 +24,8 @@ from IProgress.widgets import Bar, Percentage
 from pandas import DataFrame
 from sympy import Add
 
+from cobra.util import fix_objective_as_constraint
+
 from cameo import config
 from cameo import ui
 from cameo.core.solver_based_model_dual import convert_to_dual
@@ -101,7 +103,7 @@ class OptKnock(StrainDesignMethod):
                           self._model.solver.interface.__name__.split(".")[-1])
 
         if fraction_of_optimum is not None:
-            self._model.fix_objective_as_constraint(fraction=fraction_of_optimum)
+            fix_objective_as_constraint(self._model, fraction=fraction_of_optimum)
         if remove_blocked:
             self._remove_blocked_reactions()
         if not exclude_reactions:
