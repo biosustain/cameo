@@ -49,7 +49,7 @@ class TestFSEOF:
         fseof = FSEOF(model)
         fseof_result = fseof.run(target="EX_succ_lp_e_rp_")
         assert isinstance(fseof_result, FSEOFResult)
-        assert objective is model.objective
+        assert objective.expression == model.objective.expression
 
     def test_fseof_result(self, model):
         fseof = FSEOF(model)
