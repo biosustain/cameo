@@ -21,11 +21,9 @@ from __future__ import absolute_import, print_function
 
 import csv
 import logging
-from copy import copy, deepcopy
 from functools import partial
 
 import cobra
-import numpy as np
 import optlang
 import six
 import sympy
@@ -38,7 +36,7 @@ from cobra.core import get_solution
 from cameo import config
 from cameo.core.gene import Gene
 from cameo.core.metabolite import Metabolite
-from cameo.exceptions import SolveError, Infeasible
+from cameo.exceptions import SolveError
 from cameo.util import TimeMachine, inheritdocstring
 from .reaction import Reaction
 from .solution import LazySolution
@@ -122,32 +120,32 @@ class SolverBasedModel(cobra.core.Model):
         self._timestamp_last_optimization = None
         self.solution = LazySolution(self)
 
-    @property
-    def non_functional_genes(self):
-        """All non-functional genes in this model
-        Returns
-        -------
-        frozenset
-            set with the genes that are marked as non-functional
-        """
-        return frozenset(gene for gene in self.genes if not gene.functional)
-
-    def __copy__(self):
-        return self.__deepcopy__()
-
-    def __deepcopy__(self):
-        return self.copy()
-
-    def copy(self):
-        """Needed for compatibility with cobrapy."""
-        model_copy = super(SolverBasedModel, self).copy()
-        for reac in model_copy.reactions:
-            reac._reset_var_cache()
-        try:
-            model_copy._solver = deepcopy(self.solver)
-        except Exception:  # pragma: no cover # Cplex has an issue with deep copies
-            model_copy._solver = copy(self.solver)  # pragma: no cover
-        return model_copy
+    # @property
+    # def non_functional_genes(self):
+    #     """All non-functional genes in this model
+    #     Returns
+    #     -------
+    #     frozenset
+    #         set with the genes that are marked as non-functional
+    #     """
+    #     return frozenset(gene for gene in self.genes if not gene.functional)
+    #
+    # def __copy__(self):
+    #     return self.__deepcopy__()
+    #
+    # def __deepcopy__(self):
+    #     return self.copy()
+    #
+    # def copy(self):
+    #     """Needed for compatibility with cobrapy."""
+    #     model_copy = super(SolverBasedModel, self).copy()
+    #     for reac in model_copy.reactions:
+    #         reac._reset_var_cache()
+    #     try:
+    #         model_copy._solver = deepcopy(self.solver)
+    #     except Exception:  # pragma: no cover # Cplex has an issue with deep copies
+    #         model_copy._solver = copy(self.solver)  # pragma: no cover
+    #     return model_copy
 
     def _repr_html_(self):  # pragma: no cover
         template = """<table>
