@@ -34,13 +34,13 @@ import cameo
 import logging
 
 from functools import partial
-from itertools import chain
 
 import sympy
 from sympy import Add
 from sympy import Mul
 from sympy.parsing.sympy_parser import parse_expr
 from cobra.core import get_solution
+from cobra.flux_analysis.parsimonious import add_pfba
 from cobra.exceptions import OptimizationError
 
 from optlang.interface import OptimizationExpression
@@ -91,41 +91,6 @@ def fba(model, objective=None, reactions=None, *args, **kwargs):
         return result
 
 
-def add_pfba(model, objective=None, fraction_of_optimum=1.0, time_machine=None):
-    """Add pFBA objective
-
-    Add objective to minimize the summed flux of all reactions to the
-    current objective.
-
-    Parameters
-    ----------
-    model : cameo.core.SolverBasedModel
-        The model to add the objective to
-    objective :
-        An objective to set in combination with the pFBA objective.
-    fraction_of_optimum : float
-        Fraction of optimum which must be maintained. The original objective
-        reaction is constrained to be greater than maximal_value *
-        fraction_of_optimum.
-    time_machine : cameo.util.TimeMachine
-        A time machine to undo the added pFBA objective
-    """
-    if objective is not None:
-        model.change_objective(objective, time_machine=time_machine)
-    if model.solver.objective.name == '_pfba_objective':
-        raise ValueError('model already has pfba objective')
-    if fraction_of_optimum > 0:
-        model.fix_objective_as_constraint(fraction=fraction_of_optimum, time_machine=time_machine)
-    reaction_variables = ((rxn.forward_variable, rxn.reverse_variable)
-                          for rxn in model.reactions)
-    variables = chain(*reaction_variables)
-    pfba_objective = model.solver.interface.Objective(add(
-        [mul((sympy.singleton.S.One, variable))
-         for variable in variables]), direction='min', sloppy=True,
-        name="_pfba_objective")
-    model.change_objective(pfba_objective, time_machine=time_machine)
-
-
 def pfba(model, objective=None, reactions=None, fraction_of_optimum=1, *args, **kwargs):
     """Parsimonious Enzyme Usage Flux Balance Analysis [1].
 
@@ -153,15 +118,16 @@ def pfba(model, objective=None, reactions=None, fraction_of_optimum=1, *args, **
      genome-scale models. Molecular Systems Biology, 6, 390. doi:10.1038/msb.2010.47
 
     """
-    with TimeMachine() as tm:
-        add_pfba(model, objective=objective, fraction_of_optimum=fraction_of_optimum, time_machine=tm)
+    with model:
+        add_pfba(model, objective=objective, fraction_of_optimum=fraction_of_optimum)
         try:
-            solution = model.optimize()
+            model.solver.optimize()
+            solution = get_solution(model)
             if reactions is not None:
                 result = FluxDistributionResult({r: solution.get_primal_by_id(r) for r in reactions}, solution.f)
             else:
                 result = FluxDistributionResult.from_solution(solution)
-        except SolveError as e:
+        except (SolveError, OptimizationError) as e:
             logger.error("pfba could not determine an optimal solution for objective %s" % model.objective)
             raise e
         return result

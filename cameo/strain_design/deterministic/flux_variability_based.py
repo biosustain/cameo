@@ -34,8 +34,10 @@ except ImportError:
 
 from IProgress import ProgressBar
 from pandas import DataFrame, pandas
-from cameo.visualization.plotting import plotter
 
+from cobra.util import fix_objective_as_constraint
+
+from cameo.visualization.plotting import plotter
 from cameo import config
 
 from cameo.ui import notice
@@ -141,8 +143,7 @@ class DifferentialFVA(StrainDesignMethod):
         self.design_space_nullspace = nullspace(create_stoichiometric_array(self.design_space_model))
         if reference_model is None:
             self.reference_model = self.design_space_model.copy()
-            self.reference_model.fix_objective_as_constraint()
-            self.reference_nullspace = self.design_space_nullspace
+            fix_objective_as_constraint(self.reference_model)
         else:
             self.reference_model = reference_model
             self.reference_nullspace = nullspace(create_stoichiometric_array(self.reference_model))
