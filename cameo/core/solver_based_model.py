@@ -372,37 +372,37 @@ class SolverBasedModel(cobra.core.Model):
             self.add_reactions([reaction])
         return reaction
 
-    def fix_objective_as_constraint(self, time_machine=None, fraction=1):
-        """Fix current objective as an additional constraint (e.g., ..math`c^T v >= max c^T v`).
-
-        Parameters
-        ----------
-        time_machine : TimeMachine, optional
-            A TimeMachine instance can be provided, making it easy to undo this modification.
-
-        Returns
-        -------
-        None
-        """
-        fix_objective_name = 'Fixed_objective_{}'.format(self.objective.name)
-        if fix_objective_name in self.solver.constraints:
-            self.solver.remove(fix_objective_name)
-        self.solver.optimize()
-        if self.solver.status == 'optimal':
-            objective_value = self.objective.value * fraction
-        else:
-            raise Infeasible('failed to fix objective')
-        constraint = self.solver.interface.Constraint(self.objective.expression,
-                                                      name=fix_objective_name)
-        if self.objective.direction == 'max':
-            constraint.lb = objective_value
-        else:
-            constraint.ub = objective_value
-        if time_machine is None:
-            self.solver._add_constraint(constraint, sloppy=True)
-        else:
-            time_machine(do=partial(self.solver._add_constraint, constraint, sloppy=True),
-                         undo=partial(self.solver.remove, constraint))
+    # def fix_objective_as_constraint(self, time_machine=None, fraction=1):
+    #     """Fix current objective as an additional constraint (e.g., ..math`c^T v >= max c^T v`).
+    #
+    #     Parameters
+    #     ----------
+    #     time_machine : TimeMachine, optional
+    #         A TimeMachine instance can be provided, making it easy to undo this modification.
+    #
+    #     Returns
+    #     -------
+    #     None
+    #     """
+    #     fix_objective_name = 'Fixed_objective_{}'.format(self.objective.name)
+    #     if fix_objective_name in self.solver.constraints:
+    #         self.solver.remove(fix_objective_name)
+    #     self.solver.optimize()
+    #     if self.solver.status == 'optimal':
+    #         objective_value = self.objective.value * fraction
+    #     else:
+    #         raise Infeasible('failed to fix objective')
+    #     constraint = self.solver.interface.Constraint(self.objective.expression,
+    #                                                   name=fix_objective_name)
+    #     if self.objective.direction == 'max':
+    #         constraint.lb = objective_value
+    #     else:
+    #         constraint.ub = objective_value
+    #     if time_machine is None:
+    #         self.solver._add_constraint(constraint, sloppy=True)
+    #     else:
+    #         time_machine(do=partial(self.solver._add_constraint, constraint, sloppy=True),
+    #                      undo=partial(self.solver.remove, constraint))
 
     def add_ratio_constraint(self, expr1, expr2, ratio, prefix='ratio_constraint_'):
         """Adds a ratio constraint (expr1/expr2 = ratio) to the model.
