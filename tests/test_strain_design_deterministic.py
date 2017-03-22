@@ -118,7 +118,7 @@ class TestOptKnock:
 
     def test_invalid_input(self, cplex_optknock):
         _, optknock = cplex_optknock
-        with pytest.raises(KeyError):
+        with pytest.raises(ValueError):
             optknock.run(target="EX_ac_lp_e_rp_")
-        with pytest.raises(KeyError):
+        with pytest.raises(ValueError):
             optknock.run(biomass="Biomass_Ecoli_core_N_lp_w_fsh_GAM_rp__Nmet2")

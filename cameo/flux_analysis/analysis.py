@@ -34,11 +34,12 @@ from optlang.interface import UNBOUNDED
 import cameo
 from cameo import config
 from cameo.core.result import Result
-from cameo.exceptions import Infeasible, Unbounded
+from cameo.exceptions import Infeasible
 from cameo.flux_analysis.util import remove_infeasible_cycles, fix_pfba_as_constraint
 from cameo.parallel import SequentialView
 from cameo.ui import notice
 from cameo.util import TimeMachine, partition, _BIOMASS_RE_
+from cameo.core.utils import get_reaction_for, add_exchange
 from cameo.visualization.plotting import plotter
 
 logger = logging.getLogger(__name__)
@@ -163,13 +164,13 @@ def phenotypic_phase_plane(model, variables=[], objective=None, source=None, poi
 
     if view is None:
         view = config.default_view
-    with TimeMachine() as tm:
+    with TimeMachine() as tm, model:
         if objective is not None:
             if isinstance(objective, Metabolite):
                 try:
                     objective = model.reactions.get_by_id("DM_%s" % objective.id)
                 except KeyError:
-                    objective = model.add_exchange(objective, time_machine=tm)
+                    objective = add_exchange(model, objective)
             # try:
             #     objective = model.reaction_for(objective, time_machine=tm)
             # except KeyError:
@@ -178,7 +179,7 @@ def phenotypic_phase_plane(model, variables=[], objective=None, source=None, poi
             model.change_objective(objective, time_machine=tm)
 
         if source:
-            source_reaction = model._reaction_for(source)
+            source_reaction = get_reaction_for(model, source)
         else:
             source_reaction = _get_c_source_reaction(model)
 

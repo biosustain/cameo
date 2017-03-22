@@ -38,6 +38,7 @@ from cameo.strain_design.heuristic.evolutionary.processing import process_reacti
     process_gene_knockout_solution, process_reaction_swap_solution
 from cameo.util import TimeMachine
 from cameo.visualization.plotting import plotter
+from cameo.core.utils import get_reaction_for
 
 __all__ = ["OptGene"]
 
@@ -86,7 +87,7 @@ class OptGene(StrainDesignMethod):
 
     def run(self, target=None, biomass=None, substrate=None, max_knockouts=5, variable_size=True,
             simulation_method=fba, growth_coupled=False, max_evaluations=20000, population_size=200,
-            time_machine=None, max_results=50, use_nullspace_simplification=True, seed=None, **kwargs):
+            max_results=50, use_nullspace_simplification=True, seed=None, **kwargs):
         """
         Parameters
         ----------
@@ -108,8 +109,6 @@ class OptGene(StrainDesignMethod):
             Number of evaluations before stop
         population_size : int
             Number of individuals in each generation
-        time_machine : TimeMachine
-            See TimeMachine
         max_results : int
             Max number of different designs to return if found.
         kwargs : dict
@@ -126,9 +125,9 @@ class OptGene(StrainDesignMethod):
         OptGeneResult
         """
 
-        target = self._model._reaction_for(target, time_machine=time_machine)
-        biomass = self._model._reaction_for(biomass, time_machine=time_machine)
-        substrate = self._model._reaction_for(substrate, time_machine=time_machine)
+        target = get_reaction_for(self._model, target)
+        biomass = get_reaction_for(self._model, biomass)
+        substrate = get_reaction_for(self._model, substrate)
 
         if growth_coupled:
             objective_function = biomass_product_coupled_min_yield(biomass, target, substrate)
@@ -374,9 +373,9 @@ class HeuristicOptSwap(StrainDesignMethod):
         HeuristicOptSwapResult
         """
 
-        target = self._model._reaction_for(target, time_machine=time_machine)
-        biomass = self._model._reaction_for(biomass, time_machine=time_machine)
-        substrate = self._model._reaction_for(substrate, time_machine=time_machine)
+        target = get_reaction_for(self._model, target)
+        biomass = get_reaction_for(self._model, biomass)
+        substrate = get_reaction_for(self._model, substrate)
 
         if growth_coupled:
             objective_function = biomass_product_coupled_min_yield(biomass, target, substrate)

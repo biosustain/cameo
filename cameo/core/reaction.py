@@ -15,14 +15,11 @@
 
 from __future__ import absolute_import, print_function
 
-import hashlib
 import logging
-from copy import copy, deepcopy
 from functools import partial
 
 import cobra as _cobrapy
 import six
-from cobra.manipulation.delete import parse_gpr, eval_gpr
 
 import cameo
 from cameo import flux_analysis
