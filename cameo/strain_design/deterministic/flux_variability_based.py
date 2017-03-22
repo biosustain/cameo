@@ -45,6 +45,7 @@ from cameo.parallel import SequentialView
 
 from cameo.core.reaction import Reaction
 from cameo.core.metabolite import Metabolite
+from cameo.core.utils import get_reaction_for
 
 from cameo.visualization.escher_ext import NotebookBuilder
 from cameo.visualization.palette import mapper, Palette
@@ -795,7 +796,7 @@ class FSEOF(StrainDesignMethod):
 
         """
         model = self.model
-        target = model._reaction_for(target)
+        target = get_reaction_for(model, target)
 
         simulation_kwargs = simulation_kwargs if simulation_kwargs is not None else {}
         simulation_kwargs['objective'] = self.primary_objective
