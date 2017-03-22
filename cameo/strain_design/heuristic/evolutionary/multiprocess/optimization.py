@@ -23,6 +23,7 @@ from cameo import config
 from cameo import parallel
 from cameo import util
 from cameo.flux_analysis.simulation import pfba
+from cameo.flux_analysis.analysis import find_essential_genes, find_essential_reactions
 from cameo.strain_design.heuristic.evolutionary import ReactionKnockoutOptimization, GeneKnockoutOptimization
 from cameo.strain_design.heuristic.evolutionary.multiprocess.migrators import MultiprocessingMigrator
 from cameo.strain_design.heuristic.evolutionary.multiprocess.observers import \
@@ -213,7 +214,7 @@ class MultiprocessReactionKnockoutOptimization(MultiprocessKnockoutOptimization)
             self.reactions = reactions
 
         if essential_reactions is None:
-            self.essential_reactions = set([r.id for r in self.model.essential_reactions()])
+            self.essential_reactions = set([r.id for r in find_essential_reactions(self.model)])
         else:
             self.essential_reactions = essential_reactions
 
@@ -256,7 +257,7 @@ class MultiprocessGeneKnockoutOptimization(MultiprocessKnockoutOptimization):
             self.genes = genes
 
         if essential_genes is None:
-            self.essential_genes = set([g.id for g in self.model.essential_genes()])
+            self.essential_genes = set([g.id for g in find_essential_genes(self.model)])
         else:
             self.essential_genes = essential_genes
 
