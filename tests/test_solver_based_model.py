@@ -38,6 +38,7 @@ from cameo.core.solver_based_model import Reaction
 from cameo.core.utils import get_reaction_for, add_exchange
 from cameo.exceptions import UndefinedSolution
 from cameo.flux_analysis.structural import create_stoichiometric_array
+from cameo.flux_analysis.analysis import find_essential_genes, find_essential_metabolites, find_essential_reactions
 from cameo.util import TimeMachine
 
 TRAVIS = bool(os.getenv('TRAVIS', False))
@@ -876,32 +877,32 @@ class TestSolverBasedModel:
         assert not any(abs_diff > 1e-6)
 
     def test_essential_genes(self, core_model):
-        observed_essential_genes = [g.id for g in core_model.essential_genes()]
+        observed_essential_genes = [g.id for g in find_essential_genes(core_model)]
         assert sorted(observed_essential_genes) == sorted(ESSENTIAL_GENES)
         with pytest.raises(cameo.exceptions.SolveError):
             core_model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = 999999.
-            core_model.essential_genes()
+            find_essential_genes(core_model)
 
     def test_essential_reactions(self, core_model):
-        observed_essential_reactions = [r.id for r in core_model.essential_reactions()]
+        observed_essential_reactions = [r.id for r in find_essential_reactions(core_model)]
         assert sorted(observed_essential_reactions) == sorted(ESSENTIAL_REACTIONS)
         with pytest.raises(cameo.exceptions.SolveError):
             core_model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = 999999.
-            core_model.essential_reactions()
+            find_essential_reactions(core_model)
 
     def test_essential_metabolites(self, core_model):
-        essential_metabolites_unbalanced = [m.id for m in core_model.essential_metabolites(force_steady_state=False)]
-        essential_metabolites_balanced = [m.id for m in core_model.essential_metabolites(force_steady_state=True)]
+        essential_metabolites_unbalanced = [m.id for m in find_essential_metabolites(core_model, force_steady_state=False)]
+        essential_metabolites_balanced = [m.id for m in find_essential_metabolites(core_model, force_steady_state=True)]
         assert sorted(essential_metabolites_unbalanced) == sorted(ESSENTIAL_METABOLITES)
         assert sorted(essential_metabolites_balanced) == sorted(ESSENTIAL_METABOLITES)
 
         with pytest.raises(cameo.exceptions.SolveError):
             core_model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = 999999.
-            core_model.essential_metabolites(force_steady_state=False)
+            find_essential_metabolites(core_model, force_steady_state=False)
 
         with pytest.raises(cameo.exceptions.SolveError):
             core_model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = 999999.
-            core_model.essential_metabolites(force_steady_state=True)
+            find_essential_metabolites(core_model, force_steady_state=True)
 
     def test_effective_bounds(self, core_model):
         core_model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = 0.873921

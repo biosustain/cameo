@@ -29,13 +29,11 @@ import six
 from pandas import DataFrame, pandas
 from sympy import Add
 from sympy import Mul
-from cobra.core import get_solution
 
 from cameo import config
 from cameo.core.gene import Gene
 from cameo.core.metabolite import Metabolite
-from cameo.exceptions import SolveError
-from cameo.util import TimeMachine, inheritdocstring
+from cameo.util import inheritdocstring
 from .reaction import Reaction
 from .solution import LazySolution
 
@@ -507,128 +505,128 @@ class SolverBasedModel(cobra.core.Model):
         fields.remove('optimize')
         return fields
 
-    def essential_metabolites(self, threshold=1e-6, force_steady_state=False):
-        """Return a list of essential metabolites.
+    # def essential_metabolites(self, threshold=1e-6, force_steady_state=False):
+    #     """Return a list of essential metabolites.
+    #
+    #     This can be done in 2 ways:
+    #
+    #     1. Implementation follows the description in [1]:
+    #         "All fluxes around the metabolite M should be restricted to only produce the metabolite,
+    #          for which balancing constraint of mass conservation is relaxed to allow nonzero values
+    #          of the incoming fluxes whereas all outgoing fluxes are limited to zero."
+    #
+    #     2. Force Steady State approach:
+    #         All reactions consuming the metabolite are restricted to only produce the metabolite. A demand
+    #         reaction is added to sink the metabolite produced to keep the problem feasible under
+    #         the S.v = 0 constraint.
+    #
+    #     Briefly, for each metabolite, all reactions that consume that metabolite are blocked and if that makes the
+    #     model either infeasible or results in near-zero flux in the model objective, then the metabolite is
+    #     considered essential.
+    #
+    #     Parameters
+    #     ----------
+    #     threshold : float (default 1e-6)
+    #         Minimal objective flux to be considered viable.
+    #     force_steady_state: bool
+    #         If True, uses approach 2.
+    #
+    #     References
+    #     ----------
+    #     .. [1] Kim, P.-J., Lee, D.-Y., Kim, T. Y., Lee, K. H., Jeong, H., Lee, S. Y., & Park, S. (2007).
+    #      Metabolite essentiality elucidates robustness of Escherichia coli metabolism. PNAS, 104(34), 13638–13642
+    #     """
+    #
+    #     essential_metabolites = []
+    #
+    #     # Essential metabolites are only in reactions that carry flux.
+    #     metabolites = set()
+    #     self.solver.optimize()
+    #     if self.solver.status != 'optimal':
+    #         raise SolveError('optimization failed')
+    #     solution = get_solution(self)
+    #     for reaction_id, flux in six.iteritems(solution.fluxes):
+    #         if abs(flux) > 0:
+    #             reaction = self.reactions.get_by_id(reaction_id)
+    #             metabolites.update(reaction.metabolites.keys())
+    #
+    #     for metabolite in metabolites:
+    #         with TimeMachine() as tm:
+    #             metabolite.knock_out(time_machine=tm, force_steady_state=force_steady_state)
+    #             self.solver.optimize()
+    #             if self.solver.status != 'optimal' or self.objective.value < threshold:
+    #                 essential_metabolites.append(metabolite)
+    #     return essential_metabolites
 
-        This can be done in 2 ways:
+    # def essential_reactions(self, threshold=1e-6):
+    #     """Return a list of essential reactions.
+    #
+    #     Parameters
+    #     ----------
+    #     threshold : float (default 1e-6)
+    #         Minimal objective flux to be considered viable.
+    #
+    #     Returns
+    #     -------
+    #     list
+    #         List of essential reactions
+    #     """
+    #     essential = []
+    #     try:
+    #         self.solver.optimize()
+    #         if self.solver.status != 'optimal':
+    #             raise SolveError('optimization failed')
+    #         solution = get_solution(self)
+    #         for reaction_id, flux in six.iteritems(solution.fluxes):
+    #             if abs(flux) > 0:
+    #                 reaction = self.reactions.get_by_id(reaction_id)
+    #                 with TimeMachine() as tm:
+    #                     reaction.knock_out(time_machine=tm)
+    #                     self.solver.optimize()
+    #                     if self.solver.status != 'optimal' or self.objective.value < threshold:
+    #                         essential.append(reaction)
+    #
+    #     except SolveError as e:
+    #         logger.error('Cannot determine essential reactions for un-optimal model.')
+    #         raise e
+    #
+    #     return essential
 
-        1. Implementation follows the description in [1]:
-            "All fluxes around the metabolite M should be restricted to only produce the metabolite,
-             for which balancing constraint of mass conservation is relaxed to allow nonzero values
-             of the incoming fluxes whereas all outgoing fluxes are limited to zero."
-
-        2. Force Steady State approach:
-            All reactions consuming the metabolite are restricted to only produce the metabolite. A demand
-            reaction is added to sink the metabolite produced to keep the problem feasible under
-            the S.v = 0 constraint.
-
-        Briefly, for each metabolite, all reactions that consume that metabolite are blocked and if that makes the
-        model either infeasible or results in near-zero flux in the model objective, then the metabolite is
-        considered essential.
-
-        Parameters
-        ----------
-        threshold : float (default 1e-6)
-            Minimal objective flux to be considered viable.
-        force_steady_state: bool
-            If True, uses approach 2.
-
-        References
-        ----------
-        .. [1] Kim, P.-J., Lee, D.-Y., Kim, T. Y., Lee, K. H., Jeong, H., Lee, S. Y., & Park, S. (2007).
-         Metabolite essentiality elucidates robustness of Escherichia coli metabolism. PNAS, 104(34), 13638–13642
-        """
-
-        essential_metabolites = []
-
-        # Essential metabolites are only in reactions that carry flux.
-        metabolites = set()
-        self.solver.optimize()
-        if self.solver.status != 'optimal':
-            raise SolveError('optimization failed')
-        solution = get_solution(self)
-        for reaction_id, flux in six.iteritems(solution.fluxes):
-            if abs(flux) > 0:
-                reaction = self.reactions.get_by_id(reaction_id)
-                metabolites.update(reaction.metabolites.keys())
-
-        for metabolite in metabolites:
-            with TimeMachine() as tm:
-                metabolite.knock_out(time_machine=tm, force_steady_state=force_steady_state)
-                self.solver.optimize()
-                if self.solver.status != 'optimal' or self.objective.value < threshold:
-                    essential_metabolites.append(metabolite)
-        return essential_metabolites
-
-    def essential_reactions(self, threshold=1e-6):
-        """Return a list of essential reactions.
-
-        Parameters
-        ----------
-        threshold : float (default 1e-6)
-            Minimal objective flux to be considered viable.
-
-        Returns
-        -------
-        list
-            List of essential reactions
-        """
-        essential = []
-        try:
-            self.solver.optimize()
-            if self.solver.status != 'optimal':
-                raise SolveError('optimization failed')
-            solution = get_solution(self)
-            for reaction_id, flux in six.iteritems(solution.fluxes):
-                if abs(flux) > 0:
-                    reaction = self.reactions.get_by_id(reaction_id)
-                    with TimeMachine() as tm:
-                        reaction.knock_out(time_machine=tm)
-                        self.solver.optimize()
-                        if self.solver.status != 'optimal' or self.objective.value < threshold:
-                            essential.append(reaction)
-
-        except SolveError as e:
-            logger.error('Cannot determine essential reactions for un-optimal model.')
-            raise e
-
-        return essential
-
-    def essential_genes(self, threshold=1e-6):
-        """Return a list of essential genes.
-
-        Parameters
-        ----------
-        threshold : float (default 1e-6)
-            Minimal objective flux to be considered viable.
-
-        Returns
-        -------
-        list
-            List of essential genes
-        """
-        essential = []
-        try:
-            self.solver.optimize()
-            if self.solver.status != 'optimal':
-                raise SolveError('optimization failed')
-            solution = get_solution(self)
-            genes_to_check = set()
-            for reaction_id, flux in six.iteritems(solution.fluxes):
-                if abs(flux) > 0:
-                    genes_to_check.update(self.reactions.get_by_id(reaction_id).genes)
-            for gene in genes_to_check:
-                with TimeMachine() as tm:
-                    gene.knock_out(time_machine=tm)
-                    self.solver.optimize()
-                    if self.solver.status != 'optimal' or self.objective.value < threshold:
-                        essential.append(gene)
-
-        except SolveError as e:
-            logger.error('Cannot determine essential genes for un-optimal model.')
-            raise e
-
-        return essential
+    # def essential_genes(self, threshold=1e-6):
+    #     """Return a list of essential genes.
+    #
+    #     Parameters
+    #     ----------
+    #     threshold : float (default 1e-6)
+    #         Minimal objective flux to be considered viable.
+    #
+    #     Returns
+    #     -------
+    #     list
+    #         List of essential genes
+    #     """
+    #     essential = []
+    #     try:
+    #         self.solver.optimize()
+    #         if self.solver.status != 'optimal':
+    #             raise SolveError('optimization failed')
+    #         solution = get_solution(self)
+    #         genes_to_check = set()
+    #         for reaction_id, flux in six.iteritems(solution.fluxes):
+    #             if abs(flux) > 0:
+    #                 genes_to_check.update(self.reactions.get_by_id(reaction_id).genes)
+    #         for gene in genes_to_check:
+    #             with TimeMachine() as tm:
+    #                 gene.knock_out(time_machine=tm)
+    #                 self.solver.optimize()
+    #                 if self.solver.status != 'optimal' or self.objective.value < threshold:
+    #                     essential.append(gene)
+    #
+    #     except SolveError as e:
+    #         logger.error('Cannot determine essential genes for un-optimal model.')
+    #         raise e
+    #
+    #     return essential
 
     # @property
     # def S(self):

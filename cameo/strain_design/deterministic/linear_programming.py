@@ -33,7 +33,7 @@ from cameo.core.strain_design import StrainDesignMethodResult, StrainDesignMetho
 from cameo.core.target import ReactionKnockoutTarget
 from cameo.core.utils import get_reaction_for
 from cameo.exceptions import SolveError
-from cameo.flux_analysis.analysis import phenotypic_phase_plane, flux_variability_analysis
+from cameo.flux_analysis.analysis import phenotypic_phase_plane, flux_variability_analysis, find_essential_reactions
 from cameo.flux_analysis.simulation import fba
 from cameo.flux_analysis.structural import find_coupled_reactions_nullspace
 from cameo.util import TimeMachine, reduce_reaction_set
@@ -132,7 +132,7 @@ class OptKnock(StrainDesignMethod):
     def _build_problem(self, essential_reactions, use_nullspace_simplification):
         logger.debug("Starting to formulate OptKnock problem")
 
-        self.essential_reactions = self._model.essential_reactions() + self._model.exchanges
+        self.essential_reactions = find_essential_reactions(self._model) + self._model.exchanges
         if essential_reactions:
             self.essential_reactions += [get_reaction_for(self._model, r) for r in essential_reactions]
 
