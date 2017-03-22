@@ -35,6 +35,7 @@ from cameo.config import solvers
 from cameo.core.gene import Gene
 from cameo.core.metabolite import Metabolite
 from cameo.core.solver_based_model import Reaction
+from cameo.core.utils import get_reaction_for, add_exchange
 from cameo.exceptions import UndefinedSolution
 from cameo.flux_analysis.structural import create_stoichiometric_array
 from cameo.util import TimeMachine
@@ -758,7 +759,7 @@ class TestSolverBasedModel:
     def test_add_exchange(self, core_model):
         for demand, prefix in {True: 'DemandReaction_', False: 'SupplyReaction_'}.items():
             for metabolite in core_model.metabolites:
-                demand_reaction = core_model.add_exchange(metabolite, demand=demand, prefix=prefix)
+                demand_reaction = add_exchange(core_model, metabolite, demand=demand, prefix=prefix)
                 assert core_model.reactions.get_by_id(demand_reaction.id) == demand_reaction
                 assert demand_reaction.reactants == [metabolite]
                 assert core_model.solver.constraints[metabolite.id].expression.has(
@@ -766,9 +767,9 @@ class TestSolverBasedModel:
 
     def test_add_exchange_time_machine(self, core_model):
         for demand, prefix in {True: 'DemandReaction_', False: 'SupplyReaction_'}.items():
-            with TimeMachine() as tm:
+            with core_model:
                 for metabolite in core_model.metabolites:
-                    demand_reaction = core_model.add_exchange(metabolite, demand=demand, prefix=prefix, time_machine=tm)
+                    demand_reaction = add_exchange(core_model, metabolite, demand=demand, prefix=prefix)
                     assert core_model.reactions.get_by_id(demand_reaction.id) == demand_reaction
                     assert demand_reaction.reactants == [metabolite]
                     assert -core_model.solver.constraints[metabolite.id].expression.has(
@@ -779,9 +780,9 @@ class TestSolverBasedModel:
 
     def test_add_existing_exchange(self, core_model):
         for metabolite in core_model.metabolites:
-            core_model.add_exchange(metabolite, prefix="test")
+            add_exchange(core_model, metabolite, prefix="test")
             with pytest.raises(ValueError):
-                core_model.add_exchange(metabolite, prefix="test")
+                add_exchange(core_model, metabolite, prefix="test")
 
     def test_objective(self, core_model):
         obj = core_model.objective
@@ -821,7 +822,7 @@ class TestSolverBasedModel:
 
     def test_invalid_objective_raises(self, core_model):
         with pytest.raises(ValueError):
-            setattr(core_model, 'objective', 'This is not a valid objective!')
+            core_model.objective = 'This is not a valid objective!'
         with pytest.raises(TypeError):
             setattr(core_model, 'objective', 3.)
     #
@@ -912,7 +913,7 @@ class TestSolverBasedModel:
 
     def test_add_exchange_for_non_existing_metabolite(self, core_model):
         metabolite = Metabolite(id="a_metabolite")
-        core_model.add_exchange(metabolite)
+        add_exchange(core_model, metabolite)
         assert core_model.solver.constraints[metabolite.id].expression.has(
             core_model.solver.variables["DM_" + metabolite.id])
 
@@ -963,21 +964,21 @@ class TestSolverBasedModel:
         assert core_model.solver.constraints[-1].expression - core_model.objective.expression == 0
         assert constraint_name in core_model.solver.constraints
 
-    def test_reactions_for(self, core_model):
-        with TimeMachine() as tm:
+    def test_get_reaction_for(self, core_model):
+        with core_model:
             for r in core_model.reactions:
-                assert isinstance(core_model._reaction_for(r.id, time_machine=tm), Reaction)
-                assert isinstance(core_model._reaction_for(r, time_machine=tm), Reaction)
+                assert isinstance(get_reaction_for(core_model, r.id), Reaction)
+                assert isinstance(get_reaction_for(core_model, r), Reaction)
             for m in core_model.metabolites:
-                assert isinstance(core_model._reaction_for(m.id, time_machine=tm), Reaction)
-                assert isinstance(core_model._reaction_for(m, time_machine=tm), Reaction)
+                assert isinstance(get_reaction_for(core_model, m.id), Reaction)
+                assert isinstance(get_reaction_for(core_model, m), Reaction)
 
+        with pytest.raises(TypeError):
+            get_reaction_for(core_model, None)
         with pytest.raises(KeyError):
-            core_model._reaction_for(None)
+            get_reaction_for(core_model, "blablabla")
         with pytest.raises(KeyError):
-            core_model._reaction_for("blablabla")
-        with pytest.raises(KeyError):
-            core_model._reaction_for("accoa_lp_c_lp_", add=False)
+            get_reaction_for(core_model, "accoa_lp_c_lp_", add=False)
 
     def test_stoichiometric_matrix(self, core_model):
         stoichiometric_matrix = create_stoichiometric_array(core_model)
