@@ -29,9 +29,10 @@ from cameo import config
 from cameo.core.result import Result
 from cameo.core.solver_based_model import SolverBasedModel
 from cameo.flux_analysis.simulation import pfba, lmoma, moma, room, logger as simulation_logger
-from cameo.flux_analysis.structural import find_blocked_reactions_nullspace, find_coupled_reactions_nullspace, \
-    nullspace, \
-    create_stoichiometric_array
+from cameo.flux_analysis.structural import (find_blocked_reactions_nullspace, find_coupled_reactions_nullspace,
+                                            nullspace,
+                                            create_stoichiometric_array)
+from cameo.flux_analysis.analysis import find_essential_genes, find_essential_reactions
 from cameo.strain_design.heuristic.evolutionary import archives
 from cameo.strain_design.heuristic.evolutionary import decoders
 from cameo.strain_design.heuristic.evolutionary import evaluators
@@ -670,9 +671,9 @@ class ReactionKnockoutOptimization(KnockoutOptimization):
             self.reactions = reactions
         logger.debug("Computing essential reactions...")
         if essential_reactions is None:
-            self.essential_reactions = set(r.id for r in self.model.essential_reactions())
+            self.essential_reactions = set(r.id for r in find_essential_reactions(self.model))
         else:
-            self.essential_reactions = set([r.id for r in self.model.essential_reactions()] + essential_reactions)
+            self.essential_reactions = set([r.id for r in find_essential_reactions(self.model)] + essential_reactions)
 
         if use_nullspace_simplification:
             ns = nullspace(create_stoichiometric_array(self.model))
@@ -763,9 +764,9 @@ class GeneKnockoutOptimization(KnockoutOptimization):
         else:
             self.genes = genes
         if essential_genes is None:
-            self.essential_genes = {g.id for g in self.model.essential_genes()}
+            self.essential_genes = {g.id for g in find_essential_genes(self.model)}
         else:
-            self.essential_genes = set([g.id for g in self.model.essential_genes()] + essential_genes)
+            self.essential_genes = set([g.id for g in find_essential_genes(self.model)] + essential_genes)
 
         # TODO: use genes from groups
         if use_nullspace_simplification:

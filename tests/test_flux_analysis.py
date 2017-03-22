@@ -36,6 +36,7 @@ from cameo.flux_analysis.analysis import (find_blocked_reactions,
                                           fix_pfba_as_constraint)
 from cameo.flux_analysis.simulation import fba, lmoma, moma, pfba, room
 from cameo.flux_analysis.structural import nullspace
+from cameo.flux_analysis.analysis import find_essential_reactions
 from cameo.parallel import MultiprocessingView, SequentialView
 from cameo.util import TimeMachine, current_solver_name, pick_one
 
@@ -393,7 +394,7 @@ class TestStructural:
 
     def test_coupled_reactions(self, core_model):
         # If a reaction is essential, all coupled reactions are essential
-        essential_reactions = core_model.essential_reactions()
+        essential_reactions = find_essential_reactions(core_model)
         coupled_reactions = structural.find_coupled_reactions_nullspace(core_model)
         for essential_reaction in essential_reactions:
             for group in coupled_reactions:
@@ -404,7 +405,7 @@ class TestStructural:
     # # FIXME: this test has everything to run, but sometimes removing the reactions doesn't seem to work.
     # @pytest.mark.skipif(TRAVIS, reason="Inconsistent behaviour (bug)")
     def test_reactions_in_group_become_blocked_if_one_is_removed(self, core_model):
-        essential_reactions = core_model.essential_reactions()
+        essential_reactions = find_essential_reactions(core_model)
         coupled_reactions = structural.find_coupled_reactions_nullspace(core_model)
         for group in coupled_reactions:
             representative = pick_one(group)
