@@ -31,6 +31,7 @@ from cameo import ui
 from cameo.core.solver_based_model_dual import convert_to_dual
 from cameo.core.strain_design import StrainDesignMethodResult, StrainDesignMethod, StrainDesign
 from cameo.core.target import ReactionKnockoutTarget
+from cameo.core.utils import get_reaction_for
 from cameo.exceptions import SolveError
 from cameo.flux_analysis.analysis import phenotypic_phase_plane, flux_variability_analysis
 from cameo.flux_analysis.simulation import fba
@@ -134,7 +135,7 @@ class OptKnock(StrainDesignMethod):
 
         self.essential_reactions = self._model.essential_reactions() + self._model.exchanges
         if essential_reactions:
-            self.essential_reactions += [self._model._reaction_for(r) for r in essential_reactions]
+            self.essential_reactions += [get_reaction_for(self._model, r) for r in essential_reactions]
 
         reactions = set(self._model.reactions) - set(self.essential_reactions)
         if use_nullspace_simplification:
@@ -232,9 +233,11 @@ class OptKnock(StrainDesignMethod):
         -------
         OptKnockResult
         """
-
-        target = self._model._reaction_for(target, add=False)
-        biomass = self._model._reaction_for(biomass, add=False)
+        # TODO: why not required arguments?
+        if biomass is None or target is None:
+            raise ValueError('missing biomass and/or target reaction')
+        target = get_reaction_for(self._model, target, add=False)
+        biomass = get_reaction_for(self._model, biomass, add=False)
 
         knockout_list = []
         fluxes_list = []
