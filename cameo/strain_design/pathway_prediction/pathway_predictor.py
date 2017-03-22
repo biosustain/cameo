@@ -34,6 +34,7 @@ from cameo.core.reaction import Reaction
 from cameo.core.result import Result, MetaInformation
 from cameo.core.strain_design import StrainDesignMethodResult, StrainDesign, StrainDesignMethod
 from cameo.core.target import ReactionKnockinTarget
+from cameo.core.utils import add_exchange
 from cameo.data import metanetx
 from cameo.exceptions import SolveError
 from cameo.strain_design.pathway_prediction import util
@@ -300,14 +301,14 @@ class PathwayPredictor(StrainDesignMethod):
         product = self._find_product(product)
 
         pathways = list()
-        with TimeMachine() as tm:
+        with TimeMachine() as tm, self.model:
             tm(do=partial(setattr, self.model.solver.configuration, 'timeout', timeout),
                undo=partial(setattr, self.model.solver.configuration, 'timeout',
                             self.model.solver.configuration.timeout))
             try:
                 product_reaction = self.model.reactions.get_by_id('DM_' + product.id)
             except KeyError:
-                product_reaction = self.model.add_exchange(product, time_machine=tm)
+                product_reaction = add_exchange(self.model, product)
 
             product_reaction.change_bounds(lb=min_production, time_machine=tm)
             counter = 1

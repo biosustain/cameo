@@ -326,49 +326,51 @@ class SolverBasedModel(cobra.core.Model):
     #     warn('"add_demand" function is replaced with "add_exchange".', PendingDeprecationWarning)
     #     return self.add_exchange(metabolite, prefix=prefix, time_machine=time_machine)
 
-    def add_exchange(self, metabolite, demand=True, prefix='DM_', bound=1000.0, time_machine=None):
-        """Add an exchange reaction for a metabolite (demand=TRUE: metabolite --> Ø or demand=False: 0 --> metabolite )
-
-        Parameters
-        ----------
-        metabolite : Metabolite
-        demand : bool, optional
-            True for sink type exchange, False for uptake type exchange
-        prefix : str, optional
-            A prefix that will be added to the metabolite ID to be used as the demand reaction's ID (defaults to 'DM_').
-        bound : float, optional
-            Upper bound for sink reaction / lower bound for uptake (multiplied by -1)
-        time_machine : TimeMachine, optional
-            A TimeMachine instance that enables undoing.
-
-        Returns
-        -------
-        Reaction
-            The created demand reaction.
-        """
-        id = str(prefix + metabolite.id)
-        name = "Exchange %s" % metabolite.name if prefix != "DM_" else "Demand %s" % metabolite.name
-        if id in self.reactions:
-            raise ValueError("The metabolite already has a demand reaction.")
-
-        reaction = Reaction()
-        reaction.id = id
-        reaction.name = name
-
-        reaction.add_metabolites({metabolite: -1})
-        if demand:
-            reaction.upper_bound = bound
-            reaction.lower_bound = 0
-        else:
-            reaction.upper_bound = 0
-            reaction.lower_bound = -bound
-
-        if time_machine is not None:
-            time_machine(do=partial(self.add_reactions, [reaction]),
-                         undo=partial(self.remove_reactions, [reaction], delete=False))
-        else:
-            self.add_reactions([reaction])
-        return reaction
+    # def add_exchange(self, metabolite, demand=True, prefix='DM_', bound=1000.0, time_machine=None):
+    #     """Add an exchange reaction for a metabolite (demand=TRUE: metabolite --> Ø or
+    #        demand=False: 0 --> metabolite )
+    #
+    #     Parameters
+    #     ----------
+    #     metabolite : Metabolite
+    #     demand : bool, optional
+    #         True for sink type exchange, False for uptake type exchange
+    #     prefix : str, optional
+    #         A prefix that will be added to the metabolite ID to be
+    #         used as the demand reaction's ID (defaults to 'DM_').
+    #     bound : float, optional
+    #         Upper bound for sink reaction / lower bound for uptake (multiplied by -1)
+    #     time_machine : TimeMachine, optional
+    #         A TimeMachine instance that enables undoing.
+    #
+    #     Returns
+    #     -------
+    #     Reaction
+    #         The created demand reaction.
+    #     """
+    #     id = str(prefix + metabolite.id)
+    #     name = "Exchange %s" % metabolite.name if prefix != "DM_" else "Demand %s" % metabolite.name
+    #     if id in self.reactions:
+    #         raise ValueError("The metabolite already has a demand reaction.")
+    #
+    #     reaction = Reaction()
+    #     reaction.id = id
+    #     reaction.name = name
+    #
+    #     reaction.add_metabolites({metabolite: -1})
+    #     if demand:
+    #         reaction.upper_bound = bound
+    #         reaction.lower_bound = 0
+    #     else:
+    #         reaction.upper_bound = 0
+    #         reaction.lower_bound = -bound
+    #
+    #     if time_machine is not None:
+    #         time_machine(do=partial(self.add_reactions, [reaction]),
+    #                      undo=partial(self.remove_reactions, [reaction], delete=False))
+    #     else:
+    #         self.add_reactions([reaction])
+    #     return reaction
 
     # def fix_objective_as_constraint(self, time_machine=None, fraction=1):
     #     """Fix current objective as an additional constraint (e.g., ..math`c^T v >= max c^T v`).
@@ -727,61 +729,61 @@ class SolverBasedModel(cobra.core.Model):
             time_machine(do=partial(setattr, self, "objective", value),
                          undo=partial(setattr, self, "objective", self.objective))
 
-    def _reaction_for(self, value, time_machine=None, add=True):
-        """
-        Converts an object into a reaction.
-
-        If a Metabolite or a Metabolite id is given, it will return an exchange or demand reaction if it exists.
-        If *add* is true, it adds a demand reaction if it does not exist.
-
-        Parameters
-        ----------
-        value: str, Reaction or Metabolite
-            An object that can be converted to a reaction
-        time_machine: TimeMachine
-            Can be used when *add* is True to revert the model
-        add: bool
-            Adds a demand reaction for a metabolite if a metabolite is found for *value*
-
-        Returns
-        -------
-        Reaction
-
-        Raises
-        ------
-        KeyError
-            If *value* does not match any Reaction or Metabolite
-
-        """
-
-        if isinstance(value, Reaction):
-            value = self.reactions.get_by_id(value.id)
-
-        if isinstance(value, six.string_types):
-            try:
-                value = self.reactions.get_by_id(value)
-            except KeyError:
-                try:
-                    value = self.metabolites.get_by_id(value)
-                except KeyError:
-                    raise KeyError("Invalid target %s." % value)
-
-        if isinstance(value, cobra.core.Metabolite):
-            try:
-                value = self.reactions.get_by_id("EX_%s" % value.id)
-            except KeyError:
-                try:
-                    value = self.reactions.get_by_id("DM_%s" % value.id)
-                except KeyError as e:
-                    if add:
-                        value = self.add_exchange(value, time_machine=time_machine)
-                    else:
-                        raise e
-
-        if value is None:
-            raise KeyError(None)
-
-        return value
+    # def _reaction_for(self, value, time_machine=None, add=True):
+    #     """
+    #     Converts an object into a reaction.
+    #
+    #     If a Metabolite or a Metabolite id is given, it will return an exchange or demand reaction if it exists.
+    #     If *add* is true, it adds a demand reaction if it does not exist.
+    #
+    #     Parameters
+    #     ----------
+    #     value: str, Reaction or Metabolite
+    #         An object that can be converted to a reaction
+    #     time_machine: TimeMachine
+    #         Can be used when *add* is True to revert the model
+    #     add: bool
+    #         Adds a demand reaction for a metabolite if a metabolite is found for *value*
+    #
+    #     Returns
+    #     -------
+    #     Reaction
+    #
+    #     Raises
+    #     ------
+    #     KeyError
+    #         If *value* does not match any Reaction or Metabolite
+    #
+    #     """
+    #
+    #     if isinstance(value, Reaction):
+    #         value = self.reactions.get_by_id(value.id)
+    #
+    #     if isinstance(value, six.string_types):
+    #         try:
+    #             value = self.reactions.get_by_id(value)
+    #         except KeyError:
+    #             try:
+    #                 value = self.metabolites.get_by_id(value)
+    #             except KeyError:
+    #                 raise KeyError("Invalid target %s." % value)
+    #
+    #     if isinstance(value, cobra.core.Metabolite):
+    #         try:
+    #             value = self.reactions.get_by_id("EX_%s" % value.id)
+    #         except KeyError:
+    #             try:
+    #                 value = self.reactions.get_by_id("DM_%s" % value.id)
+    #             except KeyError as e:
+    #                 if add:
+    #                     value = self.add_exchange(value, time_machine=time_machine)
+    #                 else:
+    #                     raise e
+    #
+    #     if value is None:
+    #         raise KeyError(None)
+    #
+    #     return value
 
     def _load_medium_from_dict(self, medium):
         assert isinstance(medium, dict)

@@ -17,6 +17,7 @@ from functools import partial
 import cobra
 import six
 from cameo.util import inheritdocstring
+from cameo.core.utils import add_exchange
 
 logger = logging.getLogger(__name__)
 
@@ -116,7 +117,7 @@ class Metabolite(cobra.core.Metabolite):
                 else:
                     reaction.change_bounds(ub=0, time_machine=time_machine)
         if force_steady_state:
-            self.model.add_exchange(self, prefix="KO_", time_machine=time_machine)
+            add_exchange(self._model, self, prefix="KO_")
         else:
             self._relax_mass_balance_constrain(time_machine)
 
