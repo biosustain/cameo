@@ -34,7 +34,7 @@ from optlang.interface import UNBOUNDED
 import cameo
 from cameo import config
 from cameo.core.result import Result
-from cameo.exceptions import Infeasible
+from cameo.exceptions import Infeasible, SolveError
 from cameo.flux_analysis.util import remove_infeasible_cycles, fix_pfba_as_constraint
 from cameo.parallel import SequentialView
 from cameo.ui import notice
@@ -46,6 +46,137 @@ logger = logging.getLogger(__name__)
 
 __all__ = ['find_blocked_reactions', 'flux_variability_analysis', 'phenotypic_phase_plane',
            'flux_balance_impact_degree']
+
+
+def find_essential_metabolites(model, threshold=1e-6, force_steady_state=False):
+    """Return a list of essential metabolites.
+
+    This can be done in 2 ways:
+
+    1. Implementation follows the description in [1]:
+        "All fluxes around the metabolite M should be restricted to only produce the metabolite,
+         for which balancing constraint of mass conservation is relaxed to allow nonzero values
+         of the incoming fluxes whereas all outgoing fluxes are limited to zero."
+
+    2. Force Steady State approach:
+        All reactions consuming the metabolite are restricted to only produce the metabolite. A demand
+        reaction is added to sink the metabolite produced to keep the problem feasible under
+        the S.v = 0 constraint.
+
+    Briefly, for each metabolite, all reactions that consume that metabolite are blocked and if that makes the
+    model either infeasible or results in near-zero flux in the model objective, then the metabolite is
+    considered essential.
+
+    Parameters
+    ----------
+    model : cameo.core.SolverBasedModel
+        The model to find the essential metabolites for.
+    threshold : float (default 1e-6)
+        Minimal objective flux to be considered viable.
+    force_steady_state: bool
+        If True, uses approach 2.
+
+    References
+    ----------
+    .. [1] Kim, P.-J., Lee, D.-Y., Kim, T. Y., Lee, K. H., Jeong, H., Lee, S. Y., & Park, S. (2007).
+     Metabolite essentiality elucidates robustness of Escherichia coli metabolism. PNAS, 104(34), 13638–13642
+    """
+
+    essential = []
+    # Essential metabolites are only in reactions that carry flux.
+    metabolites = set()
+    model.solver.optimize()
+    if model.solver.status != 'optimal':
+        raise SolveError('optimization failed')
+    solution = get_solution(model)
+    for reaction_id, flux in six.iteritems(solution.fluxes):
+        if abs(flux) > 0:
+            reaction = model.reactions.get_by_id(reaction_id)
+            metabolites.update(reaction.metabolites.keys())
+
+    for metabolite in metabolites:
+        with TimeMachine() as tm:
+            metabolite.knock_out(time_machine=tm, force_steady_state=force_steady_state)
+            model.solver.optimize()
+            if model.solver.status != 'optimal' or model.objective.value < threshold:
+                essential.append(metabolite)
+    return essential
+
+
+def find_essential_reactions(model, threshold=1e-6):
+    """Return a list of essential reactions.
+
+    Parameters
+    ----------
+    model : cameo.core.SolverBasedModel
+        The model to find the essential reactions for.
+    threshold : float (default 1e-6)
+        Minimal objective flux to be considered viable.
+
+    Returns
+    -------
+    list
+        List of essential reactions
+    """
+    essential = []
+    try:
+        model.solver.optimize()
+        if model.solver.status != 'optimal':
+            raise SolveError('optimization failed')
+        solution = get_solution(model)
+        for reaction_id, flux in six.iteritems(solution.fluxes):
+            if abs(flux) > 0:
+                reaction = model.reactions.get_by_id(reaction_id)
+                with TimeMachine() as tm:
+                    reaction.knock_out(time_machine=tm)
+                    model.solver.optimize()
+                    if model.solver.status != 'optimal' or model.objective.value < threshold:
+                        essential.append(reaction)
+
+    except SolveError as e:
+        logger.error('Cannot determine essential reactions for un-optimal model.')
+        raise e
+
+    return essential
+
+
+def find_essential_genes(model, threshold=1e-6):
+    """Return a list of essential genes.
+
+    Parameters
+    ----------
+    model : cameo.core.SolverBasedModel
+        The model to find the essential genes for.
+    threshold : float (default 1e-6)
+        Minimal objective flux to be considered viable.
+
+    Returns
+    -------
+    list
+        List of essential genes
+    """
+    essential = []
+    try:
+        model.solver.optimize()
+        if model.solver.status != 'optimal':
+            raise SolveError('optimization failed')
+        solution = get_solution(model)
+        genes_to_check = set()
+        for reaction_id, flux in six.iteritems(solution.fluxes):
+            if abs(flux) > 0:
+                genes_to_check.update(model.reactions.get_by_id(reaction_id).genes)
+        for gene in genes_to_check:
+            with TimeMachine() as tm:
+                gene.knock_out(time_machine=tm)
+                model.solver.optimize()
+                if model.solver.status != 'optimal' or model.objective.value < threshold:
+                    essential.append(gene)
+
+    except SolveError as e:
+        logger.error('Cannot determine essential genes for un-optimal model.')
+        raise e
+
+    return essential
 
 
 def find_blocked_reactions(model):

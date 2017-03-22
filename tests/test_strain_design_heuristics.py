@@ -68,6 +68,7 @@ from cameo.strain_design.heuristic.evolutionary.variators import (_do_set_n_poin
                                                                   set_indel,
                                                                   set_mutation,
                                                                   set_n_point_crossover)
+from cameo.flux_analysis.analysis import find_essential_genes, find_essential_reactions
 from cameo.util import RandomGenerator as Random
 from cameo.util import TimeMachine
 
@@ -914,7 +915,7 @@ class TestOptimizationResult:
 
 class TestReactionKnockoutOptimization:
     def test_initializer(self, model):
-        essential_reactions = set([r.id for r in model.essential_reactions()])
+        essential_reactions = set([r.id for r in find_essential_reactions(model)])
         objective = biomass_product_coupled_yield(
             "Biomass_Ecoli_core_N_lp_w_fsh_GAM_rp__Nmet2", "EX_ac_lp_e_rp_", "EX_glc_lp_e_rp_")
         rko = ReactionKnockoutOptimization(model=model,
@@ -1013,7 +1014,7 @@ class TestReactionKnockoutOptimization:
 
 class TestGeneKnockoutOptimization:
     def test_initializer(self, model):
-        essential_genes = set([r.id for r in model.essential_genes()])
+        essential_genes = set([r.id for r in find_essential_genes(model)])
         objective = biomass_product_coupled_yield(
             "Biomass_Ecoli_core_N_lp_w_fsh_GAM_rp__Nmet2", "EX_ac_lp_e_rp_", "EX_glc_lp_e_rp_")
         rko = GeneKnockoutOptimization(model=model,
