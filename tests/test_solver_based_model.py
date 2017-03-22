@@ -917,39 +917,39 @@ class TestSolverBasedModel:
         assert core_model.solver.constraints[metabolite.id].expression.has(
             core_model.solver.variables["DM_" + metabolite.id])
 
-    def test_add_ratio_constraint(self, solved_model):
-        solution, model = solved_model
-        assert round(abs(solution.f - 0.873921506968), 7) == 0
-        assert 2 * solution.x_dict['PGI'] != solution.x_dict['G6PDH2r']
-        cp = model.copy()
-        ratio_constr = cp.add_ratio_constraint(cp.reactions.PGI, cp.reactions.G6PDH2r, 0.5)
-        assert ratio_constr.name == 'ratio_constraint_PGI_G6PDH2r'
-        solution = cp.optimize()
-        assert round(abs(solution.f - 0.870407873712), 7) == 0
-        assert round(abs(2 * solution.x_dict['PGI'] - solution.x_dict['G6PDH2r']), 7) == 0
-        cp = model.copy()
-
-        ratio_constr = cp.add_ratio_constraint(cp.reactions.PGI, cp.reactions.G6PDH2r, 0.5)
-        assert ratio_constr.name == 'ratio_constraint_PGI_G6PDH2r'
-        solution = cp.optimize()
-        assert round(abs(solution.f - 0.870407873712), 7) == 0
-        assert round(abs(2 * solution.x_dict['PGI'] - solution.x_dict['G6PDH2r']), 7) == 0
-
-        cp = model.copy()
-        ratio_constr = cp.add_ratio_constraint('PGI', 'G6PDH2r', 0.5)
-        assert ratio_constr.name == 'ratio_constraint_PGI_G6PDH2r'
-        solution = cp.optimize()
-        assert abs(solution.f - 0.870407) < 1e-6
-        assert abs(2 * solution.x_dict['PGI'] - solution.x_dict['G6PDH2r']) < 1e-6
-
-        cp = model.copy()
-        ratio_constr = cp.add_ratio_constraint([cp.reactions.PGI, cp.reactions.ACALD],
-                                               [cp.reactions.G6PDH2r, cp.reactions.ACONTa], 0.5)
-        assert ratio_constr.name == 'ratio_constraint_PGI+ACALD_G6PDH2r+ACONTa'
-        solution = cp.optimize()
-        assert abs(solution.f - 0.872959) < 1e-6
-        assert abs((solution.x_dict['PGI'] + solution.x_dict['ACALD']) -
-                   0.5 * (solution.x_dict['G6PDH2r'] + solution.x_dict['ACONTa'])) < 1e-5
+    # def test_add_ratio_constraint(self, solved_model):
+    #     solution, model = solved_model
+    #     assert round(abs(solution.f - 0.873921506968), 7) == 0
+    #     assert 2 * solution.x_dict['PGI'] != solution.x_dict['G6PDH2r']
+    #     cp = model.copy()
+    #     ratio_constr = cp.add_ratio_constraint(cp.reactions.PGI, cp.reactions.G6PDH2r, 0.5)
+    #     assert ratio_constr.name == 'ratio_constraint_PGI_G6PDH2r'
+    #     solution = cp.optimize()
+    #     assert round(abs(solution.f - 0.870407873712), 7) == 0
+    #     assert round(abs(2 * solution.x_dict['PGI'] - solution.x_dict['G6PDH2r']), 7) == 0
+    #     cp = model.copy()
+    #
+    #     ratio_constr = cp.add_ratio_constraint(cp.reactions.PGI, cp.reactions.G6PDH2r, 0.5)
+    #     assert ratio_constr.name == 'ratio_constraint_PGI_G6PDH2r'
+    #     solution = cp.optimize()
+    #     assert round(abs(solution.f - 0.870407873712), 7) == 0
+    #     assert round(abs(2 * solution.x_dict['PGI'] - solution.x_dict['G6PDH2r']), 7) == 0
+    #
+    #     cp = model.copy()
+    #     ratio_constr = cp.add_ratio_constraint('PGI', 'G6PDH2r', 0.5)
+    #     assert ratio_constr.name == 'ratio_constraint_PGI_G6PDH2r'
+    #     solution = cp.optimize()
+    #     assert abs(solution.f - 0.870407) < 1e-6
+    #     assert abs(2 * solution.x_dict['PGI'] - solution.x_dict['G6PDH2r']) < 1e-6
+    #
+    #     cp = model.copy()
+    #     ratio_constr = cp.add_ratio_constraint([cp.reactions.PGI, cp.reactions.ACALD],
+    #                                            [cp.reactions.G6PDH2r, cp.reactions.ACONTa], 0.5)
+    #     assert ratio_constr.name == 'ratio_constraint_PGI+ACALD_G6PDH2r+ACONTa'
+    #     solution = cp.optimize()
+    #     assert abs(solution.f - 0.872959) < 1e-6
+    #     assert abs((solution.x_dict['PGI'] + solution.x_dict['ACALD']) -
+    #                0.5 * (solution.x_dict['G6PDH2r'] + solution.x_dict['ACONTa'])) < 1e-5
 
     def test_fix_objective_as_constraint(self, core_model):
         # with TimeMachine
@@ -1005,11 +1005,15 @@ class TestSolverBasedModel:
             assert len(medium[medium.reaction_id == rid]) == 1
 
     def test_solver_change_preserves_non_metabolic_constraints(self, core_model):
-        core_model.add_ratio_constraint(core_model.reactions.PGK, core_model.reactions.PFK, 1 / 2)
-        all_constraint_ids = core_model.solver.constraints.keys()
-        assert all_constraint_ids[-1], 'ratio_constraint_PGK_PFK'
-        resurrected = pickle.loads(pickle.dumps(core_model))
-        assert resurrected.solver.constraints.keys() == all_constraint_ids
+        with core_model:
+            constraint = core_model.problem.Constraint(core_model.reactions.PGK.flux_expression -
+                                                       0.5 * core_model.reactions.PFK.flux_expression,
+                                                       lb=0, ub=0)
+            core_model.add_cons_vars(constraint)
+            all_constraint_ids = core_model.solver.constraints.keys()
+            assert all_constraint_ids[-1], 'ratio_constraint_PGK_PFK'
+            resurrected = pickle.loads(pickle.dumps(core_model))
+            assert resurrected.solver.constraints.keys() == all_constraint_ids
 
 
 class TestMetabolite:

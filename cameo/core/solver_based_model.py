@@ -26,11 +26,9 @@ from functools import partial
 import cobra
 import optlang
 import six
-import sympy
 from pandas import DataFrame, pandas
 from sympy import Add
 from sympy import Mul
-from sympy.core.singleton import S
 from cobra.core import get_solution
 
 from cameo import config
@@ -404,67 +402,67 @@ class SolverBasedModel(cobra.core.Model):
     #         time_machine(do=partial(self.solver._add_constraint, constraint, sloppy=True),
     #                      undo=partial(self.solver.remove, constraint))
 
-    def add_ratio_constraint(self, expr1, expr2, ratio, prefix='ratio_constraint_'):
-        """Adds a ratio constraint (expr1/expr2 = ratio) to the model.
-
-        Parameters
-        ----------
-        expr1 : str, Reaction, list or sympy.Expression
-            A reaction, a reaction ID or a linear expression.
-        expr2 : str, Reaction, list or sympy.Expression
-            A reaction, a reaction ID or a linear expression.
-        ratio : float
-            The ratio in expr1/expr2 = ratio
-        prefix : str
-            The prefix that will be added to the constraint ID (defaults to 'ratio_constraint_').
-
-        Returns
-        -------
-        optlang.Constraint
-            The constraint name will be composed of `prefix`
-            and the two reaction IDs (e.g. 'ratio_constraint_reaction1_reaction2').
-
-        Examples
-        --------
-        >>> model.add_ratio_constraint('r1', 'r2', 0.5)
-        >>> print(model.solver.constraints['ratio_constraint_r1_r2'])
-        ratio_constraint: ratio_constraint_r1_r2: 0 <= -0.5 * r1 + 1.0 * PGI <= 0
-        """
-        if isinstance(expr1, six.string_types):
-            prefix_1 = expr1
-            expr1 = self.reactions.get_by_id(expr1).flux_expression
-        elif isinstance(expr1, Reaction):
-            prefix_1 = expr1.id
-            expr1 = expr1.flux_expression
-        elif isinstance(expr1, list):
-            prefix_1 = "+".join(r.id for r in expr1)
-            expr1 = sum([r.flux_expression for r in expr1], S.Zero)
-        elif not isinstance(expr1, sympy.Expr):
-            raise ValueError("'expr1' is not a valid expression")
-        else:
-            prefix_1 = str(expr1)
-
-        if isinstance(expr2, six.string_types):
-            prefix_2 = expr2
-            expr2 = self.reactions.get_by_id(expr2).flux_expression
-        elif isinstance(expr2, Reaction):
-            prefix_2 = expr2.id
-            expr2 = expr2.flux_expression
-        elif isinstance(expr2, list):
-            prefix_2 = "+".join(r.id for r in expr2)
-            expr2 = sum([r.flux_expression for r in expr2], S.Zero)
-        elif not isinstance(expr2, sympy.Expr):
-            raise ValueError("'expr2' is not a valid expression")
-        else:
-            prefix_2 = str(expr2)
-
-        ratio_constraint = self.solver.interface.Constraint(expr1 - ratio * expr2,
-                                                            lb=0,
-                                                            ub=0,
-                                                            name=prefix + prefix_1 + '_' + prefix_2)
-
-        self.solver.add(ratio_constraint, sloppy=True)
-        return ratio_constraint
+    # def add_ratio_constraint(self, expr1, expr2, ratio, prefix='ratio_constraint_'):
+    #     """Adds a ratio constraint (expr1/expr2 = ratio) to the model.
+    #
+    #     Parameters
+    #     ----------
+    #     expr1 : str, Reaction, list or sympy.Expression
+    #         A reaction, a reaction ID or a linear expression.
+    #     expr2 : str, Reaction, list or sympy.Expression
+    #         A reaction, a reaction ID or a linear expression.
+    #     ratio : float
+    #         The ratio in expr1/expr2 = ratio
+    #     prefix : str
+    #         The prefix that will be added to the constraint ID (defaults to 'ratio_constraint_').
+    #
+    #     Returns
+    #     -------
+    #     optlang.Constraint
+    #         The constraint name will be composed of `prefix`
+    #         and the two reaction IDs (e.g. 'ratio_constraint_reaction1_reaction2').
+    #
+    #     Examples
+    #     --------
+    #     >>> model.add_ratio_constraint('r1', 'r2', 0.5)
+    #     >>> print(model.solver.constraints['ratio_constraint_r1_r2'])
+    #     ratio_constraint: ratio_constraint_r1_r2: 0 <= -0.5 * r1 + 1.0 * PGI <= 0
+    #     """
+    #     if isinstance(expr1, six.string_types):
+    #         prefix_1 = expr1
+    #         expr1 = self.reactions.get_by_id(expr1).flux_expression
+    #     elif isinstance(expr1, Reaction):
+    #         prefix_1 = expr1.id
+    #         expr1 = expr1.flux_expression
+    #     elif isinstance(expr1, list):
+    #         prefix_1 = "+".join(r.id for r in expr1)
+    #         expr1 = sum([r.flux_expression for r in expr1], S.Zero)
+    #     elif not isinstance(expr1, sympy.Expr):
+    #         raise ValueError("'expr1' is not a valid expression")
+    #     else:
+    #         prefix_1 = str(expr1)
+    #
+    #     if isinstance(expr2, six.string_types):
+    #         prefix_2 = expr2
+    #         expr2 = self.reactions.get_by_id(expr2).flux_expression
+    #     elif isinstance(expr2, Reaction):
+    #         prefix_2 = expr2.id
+    #         expr2 = expr2.flux_expression
+    #     elif isinstance(expr2, list):
+    #         prefix_2 = "+".join(r.id for r in expr2)
+    #         expr2 = sum([r.flux_expression for r in expr2], S.Zero)
+    #     elif not isinstance(expr2, sympy.Expr):
+    #         raise ValueError("'expr2' is not a valid expression")
+    #     else:
+    #         prefix_2 = str(expr2)
+    #
+    #     ratio_constraint = self.solver.interface.Constraint(expr1 - ratio * expr2,
+    #                                                         lb=0,
+    #                                                         ub=0,
+    #                                                         name=prefix + prefix_1 + '_' + prefix_2)
+    #
+    #     self.solver.add(ratio_constraint, sloppy=True)
+    #     return ratio_constraint
 
     # def optimize(self, objective_sense=None, solution_type=Solution, **kwargs):
     #     """OptlangBasedModel implementation of optimize.
