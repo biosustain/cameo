@@ -127,8 +127,8 @@ def find_essential_reactions(model, threshold=1e-6):
         for reaction_id, flux in six.iteritems(solution.fluxes):
             if abs(flux) > 0:
                 reaction = model.reactions.get_by_id(reaction_id)
-                with TimeMachine() as tm:
-                    reaction.knock_out(time_machine=tm)
+                with model:
+                    reaction.knock_out()
                     model.solver.optimize()
                     if model.solver.status != 'optimal' or model.objective.value < threshold:
                         essential.append(reaction)
@@ -166,8 +166,8 @@ def find_essential_genes(model, threshold=1e-6):
             if abs(flux) > 0:
                 genes_to_check.update(model.reactions.get_by_id(reaction_id).genes)
         for gene in genes_to_check:
-            with TimeMachine() as tm:
-                gene.knock_out(time_machine=tm)
+            with model:
+                gene.knock_out()
                 model.solver.optimize()
                 if model.solver.status != 'optimal' or model.objective.value < threshold:
                     essential.append(gene)
@@ -502,12 +502,12 @@ def _cycle_free_fva(model, reactions=None, sloppy=True, sloppy_bound=666):
                 logger.debug('Cycle detected: {}'.format(reaction.id))
                 cycle_count += 1
                 v2_one_cycle_fluxes = remove_infeasible_cycles(model, v0_fluxes, fix=[reaction.id])
-                with TimeMachine() as tm:
+                with model:
                     for key, v1_flux in six.iteritems(v1_cycle_free_fluxes):
                         if round(v1_flux, config.ndecimals) == 0 and round(v2_one_cycle_fluxes[key],
                                                                            config.ndecimals) != 0:
                             knockout_reaction = model.reactions.get_by_id(key)
-                            knockout_reaction.knock_out(time_machine=tm)
+                            knockout_reaction.knock_out()
                     model.objective.direction = 'min'
                     model.solver.optimize()
                     if model.solver.status == 'optimal':
@@ -541,12 +541,12 @@ def _cycle_free_fva(model, reactions=None, sloppy=True, sloppy_bound=666):
                 logger.debug('Cycle detected: {}'.format(reaction.id))
                 cycle_count += 1
                 v2_one_cycle_fluxes = remove_infeasible_cycles(model, v0_fluxes, fix=[reaction.id])
-                with TimeMachine() as tm:
+                with model:
                     for key, v1_flux in six.iteritems(v1_cycle_free_fluxes):
                         if round(v1_flux, config.ndecimals) == 0 and round(v2_one_cycle_fluxes[key],
                                                                            config.ndecimals) != 0:
                             knockout_reaction = model.reactions.get_by_id(key)
-                            knockout_reaction.knock_out(time_machine=tm)
+                            knockout_reaction.knock_out()
                     model.objective.direction = 'max'
                     model.solver.optimize()
                     if model.solver.status == 'optimal':
@@ -712,7 +712,7 @@ def flux_balance_impact_degree(model, knockouts, view=config.default_view, metho
 
 
 def _fbid_fva(model, knockouts, view):
-    with TimeMachine() as tm:
+    with model, TimeMachine() as tm:
 
         for reaction in model.reactions:
             if reaction.reversibility:
@@ -727,7 +727,7 @@ def _fbid_fva(model, knockouts, view):
         reachable_reactions = wt_fva.data_frame.query("lower_bound != 0 | upper_bound != 0")
 
         for reaction in model.reactions.get_by_any(knockouts):
-            reaction.knock_out(tm)
+            reaction.knock_out()
 
         mt_fva = flux_variability_analysis(model, reactions=reachable_reactions.index, view=view, remove_cycles=False)
         mt_fva._data_frame['upper_bound'] = mt_fva._data_frame.upper_bound.apply(numpy.round)

@@ -313,8 +313,8 @@ class OptKnockResult(StrainDesignMethodResult):
 
         for i, knockouts in progress(enumerate(self._knockouts)):
             try:
-                with TimeMachine() as tm:
-                    [self._model.reactions.get_by_id(ko).knock_out(time_machine=tm) for ko in knockouts]
+                with self._model:
+                    [self._model.reactions.get_by_id(ko).knock_out() for ko in knockouts]
                     fva = flux_variability_analysis(self._model, fraction_of_optimum=0.99, reactions=[self.target])
                 self._processed_knockouts.loc[i] = [knockouts, len(knockouts), self.production[i], self.biomass[i],
                                                     fva.lower_bound(self.target), fva.upper_bound(self.target)]
@@ -350,9 +350,9 @@ class OptKnockResult(StrainDesignMethodResult):
 
     def plot(self, index=0, grid=None, width=None, height=None, title=None, palette=None, **kwargs):
         wt_production = phenotypic_phase_plane(self._model, objective=self._target, variables=[self._biomass.id])
-        with TimeMachine() as tm:
+        with self._model:
             for ko in self.data_frame.loc[index, "reactions"]:
-                self._model.reactions.get_by_id(ko).knock_out(tm)
+                self._model.reactions.get_by_id(ko).knock_out()
 
             mt_production = phenotypic_phase_plane(self._model, objective=self._target, variables=[self._biomass.id])
         if title is None:

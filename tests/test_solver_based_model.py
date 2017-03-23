@@ -399,11 +399,11 @@ class TestReaction:
         for reaction in core_model.reactions:
             assert reaction.lower_bound == original_bounds[reaction.id][0]
             assert reaction.upper_bound == original_bounds[reaction.id][1]
-        with TimeMachine() as tm:
+        with core_model:
             for reaction in core_model.reactions:
                 original_bounds[reaction.id] = (
                     reaction.lower_bound, reaction.upper_bound)
-                reaction.knock_out(time_machine=tm)
+                reaction.knock_out()
                 assert reaction.lower_bound == 0
                 assert reaction.upper_bound == 0
         for reaction in core_model.reactions:
@@ -426,8 +426,8 @@ class TestReaction:
         assert d1._lower_bound == -1000
         assert d1.upper_bound == 0
         assert d1._upper_bound == 0
-        with TimeMachine() as tm:
-            d1.knock_out(time_machine=tm)
+        with tiny_toy_model:
+            d1.knock_out()
             assert d1.lower_bound == 0
             assert d1._lower_bound == 0
             assert d1.upper_bound == 0

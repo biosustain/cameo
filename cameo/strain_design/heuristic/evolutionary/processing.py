@@ -49,16 +49,14 @@ def process_reaction_knockout_solution(model, solution, simulation_method, simul
         A list with: reactions, size, fva_min, fva_max, target flux, biomass flux, yield, fitness
     """
 
-    with TimeMachine() as tm:
+    with model:
         reactions = [model.reactions.get_by_id(rid) for rid in solution]
         for reaction in reactions:
-            reaction.knock_out(tm)
+            reaction.knock_out()
 
         flux_dist = simulation_method(model, reactions=objective_function.reactions,
                                       objective=biomass, **simulation_kwargs)
-        tm(do=partial(setattr, model, "objective", biomass),
-           undo=partial(setattr, model, "objective", model.objective))
-
+        model.objective = biomass
         fva = flux_variability_analysis(model, fraction_of_optimum=0.99, reactions=[target])
         target_yield = flux_dist[target] / abs(flux_dist[substrate])
         return [solution, len(solution), fva.lower_bound(target),

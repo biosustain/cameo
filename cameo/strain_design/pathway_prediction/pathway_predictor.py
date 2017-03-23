@@ -134,8 +134,8 @@ class PathwayResult(Pathway, Result, StrainDesign):
         return area > 1e-5
 
     def production_envelope(self, model, objective=None):
-        with TimeMachine() as tm:
-            self.apply(model, tm)
+        with model:
+            self.apply(model)
             return phenotypic_phase_plane(model, variables=[objective], objective=self.product.id)
 
     def plug_model(self, model, tm=None, adapters=True, exchanges=True):
@@ -341,7 +341,7 @@ class PathwayPredictor(StrainDesignMethod):
                     for adapter in self.adpater_reactions:
                         if product in adapter.metabolites:
                             logger.info('Knocking out adapter reaction %s containing native product.' % adapter)
-                            adapter.knock_out(time_machine=tm)
+                            adapter.knock_out()
                     continue
 
                 pathway = [self.model.reactions.get_by_id(y_var.name[2:]) for y_var in vars_to_cut]
@@ -373,8 +373,8 @@ class PathwayPredictor(StrainDesignMethod):
                 iteration += 1
 
                 # Test pathway in the original model
-                with TimeMachine() as another_tm:
-                    pathway.apply(self.original_model, another_tm)
+                with self.original_model:
+                    pathway.apply(self.original_model)
                     try:
                         solution = fba(self.original_model, objective=pathway.product.id)
                         if solution[pathway.product.id] > non_zero_flux_threshold:

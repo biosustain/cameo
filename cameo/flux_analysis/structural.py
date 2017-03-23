@@ -440,9 +440,9 @@ class MinimalCutSetsEnumerator(ShortestElementaryFluxModes):  # pragma: no cover
     def _allowed_mcs(self, dual_em):
         mcs = self._convert_mcs_to_primal(dual_em)
         if len(self._constraints) > 0:
-            with TimeMachine() as tm:
+            with self._primal_model:
                 for reac_id in mcs:
-                    self._primal_model.reactions.get_by_id(reac_id).knock_out(tm)
+                    self._primal_model.reactions.get_by_id(reac_id).knock_out()
                 self._primal_model.solver.optimize()
                 if self._primal_model.solver.status == 'optimal':
                     return mcs
@@ -606,8 +606,8 @@ class MinimalCutSetsEnumerator(ShortestElementaryFluxModes):  # pragma: no cover
             for reaction in self._primal_model.reactions:
                 # If single knockout causes the constrained model to become infeasible, then no superset
                 # of knockouts can be feasible either.
-                with TimeMachine() as tm:
-                    reaction.knock_out(tm)
+                with self._primal_model:
+                    reaction.knock_out()
                     self._primal_model.solver.optimize()
                     if self._primal_model.solver.status != 'optimal':
                         illegal_knockouts.append(reaction.id)
