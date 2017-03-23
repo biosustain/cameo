@@ -103,7 +103,7 @@ def draw_knockout_result(model, map_name, simulation_method, knockouts, *args, *
     tm = TimeMachine()
 
     try:
-        for reaction in model._ids_to_reactions(knockouts):
+        for reaction in model.reactions.get_by_any(knockouts):
             tm(do=partial(setattr, reaction, 'lower_bound', 0),
                undo=partial(setattr, reaction, 'lower_bound', reaction.lower_bound))
             tm(do=partial(setattr, reaction, 'upper_bound', 0),
