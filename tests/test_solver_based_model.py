@@ -797,15 +797,15 @@ class TestSolverBasedModel:
         core_model.solver.objective = core_model.solver.interface.Objective(expression)
         assert core_model.solver.objective.expression == expression
 
-        core_model.change_objective("ENO")
+        core_model.objective = "ENO"
         eno_obj = core_model.solver.interface.Objective(
             core_model.reactions.ENO.flux_expression, direction="max")
         pfk_obj = core_model.solver.interface.Objective(
             core_model.reactions.PFK.flux_expression, direction="max")
         assert core_model.solver.objective == eno_obj
 
-        with TimeMachine() as tm:
-            core_model.change_objective("PFK", tm)
+        with core_model:
+            core_model.objective = "PFK"
             assert core_model.solver.objective == pfk_obj
         assert core_model.solver.objective == eno_obj
 
