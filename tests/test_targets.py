@@ -23,7 +23,6 @@ from cameo.core.target import (ReactionKnockoutTarget, ReactionModulationTarget,
 from cameo.core.target import (EnsembleTarget, FluxModulationTarget,
                                ReactionInversionTarget, Target)
 from cameo.exceptions import IncompatibleTargets
-from cameo.util import TimeMachine
 
 
 class TestTargets:
@@ -38,8 +37,8 @@ class TestTargets:
 
     def test_reaction_knockout_target(self, model):
         knockout_target = ReactionKnockoutTarget("ACALD")
-        with TimeMachine() as tm:
-            knockout_target.apply(model, time_machine=tm)
+        with model:
+            knockout_target.apply(model)
             assert model.reactions.ACALD.lower_bound == 0
             assert model.reactions.ACALD.upper_bound == 0
 
@@ -56,8 +55,8 @@ class TestTargets:
 
         down_reg_target = ReactionModulationTarget(reaction_id, value, ref_val)
         assert round(abs(down_reg_target.fold_change - fold_change), 5) == 0
-        with TimeMachine() as tm:
-            down_reg_target.apply(model, time_machine=tm)
+        with model:
+            down_reg_target.apply(model)
             assert model.reactions.PGI.upper_bound == 3.4
             assert model.reactions.PGI.lower_bound == -1000
             assert abs(model.optimize().f - 0.8706) < 0.0001
@@ -73,8 +72,8 @@ class TestTargets:
 
         down_reg_target = ReactionModulationTarget(reaction_id, value, ref_val)
         assert round(abs(down_reg_target.fold_change - fold_change), 5) == 0
-        with TimeMachine() as tm:
-            down_reg_target.apply(model, time_machine=tm)
+        with model:
+            down_reg_target.apply(model)
             assert model.reactions.RPI.lower_bound == -1.5
             assert model.reactions.RPI.upper_bound == 1000
             assert abs(model.optimize().f - 0.8691) < 0.0001
@@ -88,8 +87,8 @@ class TestTargets:
 
         reaction.add_metabolites({model.metabolites.atp_c: 1, atp_z: -1})
         knockin_target = ReactionKnockinTarget("atpzase", reaction)
-        with TimeMachine() as tm:
-            knockin_target.apply(model, time_machine=tm)
+        with model:
+            knockin_target.apply(model)
             assert atp_z in model.metabolites
             assert reaction in model.reactions
 
@@ -103,8 +102,8 @@ class TestTargets:
                       [model.metabolites.get_by_id(m) for m in cofactor_id_swaps[1]])
 
         swap_target = ReactionCofactorSwapTarget("GAPD", swap_pairs)
-        with TimeMachine() as tm:
-            swap_target.apply(model, time_machine=tm)
+        with model:
+            swap_target.apply(model)
             assert model.metabolites.nad_c not in model.reactions.GAPD.metabolites
             assert model.metabolites.nadh_c not in model.reactions.GAPD.metabolites
             assert model.metabolites.nadp_c in model.reactions.GAPD.metabolites
@@ -116,8 +115,8 @@ class TestTargets:
         assert model.metabolites.nadh_c in model.reactions.GAPD.metabolites
 
         swap_target = ReactionCofactorSwapTarget("GND", swap_pairs)
-        with TimeMachine() as tm:
-            swap_target.apply(model, time_machine=tm)
+        with model:
+            swap_target.apply(model)
             assert model.metabolites.nad_c in model.reactions.GND.metabolites
             assert model.metabolites.nadh_c in model.reactions.GND.metabolites
             assert model.metabolites.nadp_c not in model.reactions.GND.metabolites
@@ -132,8 +131,8 @@ class TestTargets:
         inversion_target = ReactionInversionTarget("GND", value=-10, reference_value=10)
         assert inversion_target.fold_change == 0
         lower_bound = model.reactions.GND.lower_bound
-        with TimeMachine() as tm:
-            inversion_target.apply(model, time_machine=tm)
+        with model:
+            inversion_target.apply(model)
             assert model.reactions.GND.lower_bound == -10
         assert model.reactions.GND.lower_bound == lower_bound
 
@@ -182,10 +181,9 @@ class TestTargets:
         gene = "b4025"
         knockout_target = GeneKnockoutTarget(gene, accession_id=gene, accession_db='bigg')
         knockout_target_gnomic = knockout_target.to_gnomic()
-        print(genotype_to_string(Genotype([knockout_target_gnomic])))
         assert genotype_to_string(Genotype([knockout_target_gnomic])) == "-b4025#bigg:b4025"
-        with TimeMachine() as tm:
-            knockout_target.apply(model, time_machine=tm)
+        with model:
+            knockout_target.apply(model)
             assert model.reactions.PGI.lower_bound == 0
             assert model.reactions.PGI.upper_bound == 0
             assert abs(model.optimize().f - 0.8631) < 0.0001
@@ -219,7 +217,6 @@ class TestTargets:
 
         flux_modulation_target = FluxModulationTarget("PGK", 0.5, 1, accession_id="PGK", accession_db="bigg")
         flux_modulation_target_gnomic = flux_modulation_target.to_gnomic()
-        print(genotype_to_string(Genotype([flux_modulation_target_gnomic])))
         assert genotype_to_string(Genotype([flux_modulation_target_gnomic])) == "+flux.PGK(value=0.5)#bigg:PGK"
 
     def test_gnomic_integration_ReactionKnockinTarget(self, model):

@@ -19,7 +19,7 @@ from cameo.core.manipulation import swap_cofactors
 from cameo.exceptions import SolveError
 from cameo.strain_design.heuristic.evolutionary.decoders import SetDecoder
 from cameo.strain_design.heuristic.evolutionary.objective_functions import ObjectiveFunction
-from cameo.util import ProblemCache, memoize, TimeMachine
+from cameo.util import ProblemCache, memoize
 
 logger = logging.getLogger(__name__)
 
@@ -113,9 +113,9 @@ class KnockoutEvaluator(TargetEvaluator):
             A single real value or a Pareto, depending on the number of objectives.
         """
         targets = self.decoder(individual)[0]
-        with TimeMachine() as tm:
+        with self.model:
             for target in targets:
-                target.knock_out(time_machine=tm)
+                target.knock_out()
             try:
                 solution = self.simulation_method(self.model,
                                                   cache=self.cache,
@@ -140,9 +140,9 @@ class SwapEvaluator(TargetEvaluator):
     @memoize
     def evaluate_individual(self, individual):
         swap_reactions = self.decoder(individual)[0]
-        with TimeMachine() as tm:
+        with self.model:
             for reaction in swap_reactions:
-                swap_cofactors(reaction, self.model, self.swap_pair, inplace=True, time_machine=tm)
+                swap_cofactors(reaction, self.model, self.swap_pair, inplace=True)
             try:
                 solution = self.simulation_method(self.model,
                                                   cache=self.cache,

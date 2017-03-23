@@ -284,8 +284,8 @@ class TestSimulationMethods:
         reference = {"b1": 10, "v1": 10, "v2": 5, "v3": 0, "v4": 0, "v5": 0, "v6": 5, "b2": 5, "b3": 5}
         expected = {'b1': 10.0, 'b2': 5.0, 'b3': 5.0, 'v1': 10.0,
                     'v2': 5.0, 'v3': 0.0, 'v4': 5.0, 'v5': 5.0, 'v6': 0.0}
-        with TimeMachine() as tm:
-            toy_model.reactions.v6.knock_out(tm)
+        with toy_model:
+            toy_model.reactions.v6.knock_out()
             result = room(toy_model, reference=reference, delta=0, epsilon=0)
 
         for k in reference.keys():
@@ -301,13 +301,13 @@ class TestSimulationMethods:
         expected = {'b1': 8.8, 'b2': 4.4, 'b3': 4.4, 'v1': 8.8,
                     'v2': 3.1, 'v3': 1.3, 'v4': 4.4, 'v5': 3.1, 'v6': 0.0}
 
-        with TimeMachine() as tm:
-            toy_model.reactions.v6.knock_out(tm)
+        with toy_model:
+            toy_model.reactions.v6.knock_out()
             result = moma(toy_model, reference=reference)
 
         for k in reference.keys():
             assert abs(expected[k] - result.fluxes[k]) < 0.1, "%s: %f | %f"
-        assert toy_model.objective is original_objective
+        assert toy_model.objective.expression == original_objective.expression
 
     def test_moma_shlomi_2005_change_ref(self, toy_model):
         if current_solver_name(toy_model) == 'glpk':
@@ -318,17 +318,24 @@ class TestSimulationMethods:
         expected = {'b1': 8.8, 'b2': 4.4, 'b3': 4.4, 'v1': 8.8,
                     'v2': 3.1, 'v3': 1.3, 'v4': 4.4, 'v5': 3.1, 'v6': 0.0}
 
-        with TimeMachine() as tm:
-            toy_model.reactions.v6.knock_out(tm)
+        with toy_model:
+            toy_model.reactions.v6.knock_out()
             result = moma(toy_model, reference=reference)
 
         for k in reference.keys():
             assert abs(expected[k] - result.fluxes[k]) < 0.1, "%s: %f | %f"
-        assert toy_model.objective is original_objective
+        assert toy_model.objective.expression == original_objective.expression
+
+    # TODO: this test should be merged with the one above but problemcache is not resetting the model properly anymore.
+    def test_moma_shlomi_2005_change_ref_1(self, toy_model):
+        if current_solver_name(toy_model) == 'glpk':
+            pytest.skip('glpk does not support qp')
+        expected = {'b1': 8.8, 'b2': 4.4, 'b3': 4.4, 'v1': 8.8,
+                    'v2': 3.1, 'v3': 1.3, 'v4': 4.4, 'v5': 3.1, 'v6': 0.0}
 
         reference_changed = {"b1": 5, "v1": 5, "v2": 5, "v3": 0, "v4": 0, "v5": 0, "v6": 5, "b2": 5, "b3": 5}
-        with TimeMachine() as tm:
-            toy_model.reactions.v6.knock_out(tm)
+        with toy_model:
+            toy_model.reactions.v6.knock_out()
             result_changed = moma(toy_model, reference=reference_changed)
         assert np.all([expected != result_changed.fluxes])
 

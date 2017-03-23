@@ -71,8 +71,8 @@ class TestDifferentialFVA:
         result = DifferentialFVA(model, model.reactions.EX_succ_lp_e_rp_, points=5).run()
         works = []
         for strain_design in result:
-            with TimeMachine() as tm:
-                strain_design.apply(model, tm)
+            with model:
+                strain_design.apply(model)
                 try:
                     solution = fba(model, objective="Biomass_Ecoli_core_N_lp_w_fsh_GAM_rp__Nmet2")
                     works.append(solution["EX_succ_lp_e_rp_"] > 1e-6 and solution.objective_value > 1e-6)

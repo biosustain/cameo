@@ -47,7 +47,7 @@ class Target(object):
         self.accession_id = accession_id
         self.accession_db = accession_db
 
-    def apply(self, model, time_machine=None):
+    def apply(self, model):
         """
         Applies the modification on the target, depending on the target type.
 
@@ -112,7 +112,7 @@ class FluxModulationTarget(Target):
     def get_model_target(self, model):
         raise NotImplementedError
 
-    def apply(self, model, time_machine=None):
+    def apply(self, model):
         """
         Applies a change to the flux. If the fold change is higher than 0 it increases the flux.
         If the target flux is zero it applies a knockout. If the fold change is lower than 0, then it
@@ -122,17 +122,15 @@ class FluxModulationTarget(Target):
         ----------
         model: cameo.core.solver_based_model.SolverBasedModel
             A model.
-        time_machine: cameo.util.TimeMachine
-            A TimeMachine for action stack.
         """
         target = self.get_model_target(model)
 
         if self._value == 0:
-            target.knock_out(time_machine=time_machine)
+            target.knock_out()
         elif self.fold_change > 0:
-            increase_flux(target, self._reference_value, self._value, time_machine=time_machine)
+            increase_flux(target, self._reference_value, self._value)
         elif self.fold_change < 0:
-            decrease_flux(target, self._reference_value, self._value, time_machine=time_machine)
+            decrease_flux(target, self._reference_value, self._value)
 
     def __eq__(self, other):
         if isinstance(other, FluxModulationTarget):
@@ -202,9 +200,9 @@ class ReactionCofactorSwapTarget(Target):
         super(ReactionCofactorSwapTarget, self).__init__(id, *args, **kwargs)
         self.swap_pairs = swap_pairs
 
-    def apply(self, model, time_machine=None):
+    def apply(self, model):
         reaction = model.reactions.get_by_id(self.id)
-        swap_cofactors(reaction, model, self.swap_pairs, time_machine=time_machine)
+        swap_cofactors(reaction, model, self.swap_pairs)
 
     @property
     def swap_str(self):
@@ -273,12 +271,8 @@ class ReactionKnockinTarget(KnockinTarget):
     def __init__(self, id, value, *args, **kwargs):
         super(ReactionKnockinTarget, self).__init__(id, value, *args, **kwargs)
 
-    def apply(self, model, time_machine=None):
-        if time_machine is None:
-            model.add_reaction(self._value)
-        else:
-            time_machine(do=partial(model.add_reaction, self._value),
-                         undo=partial(model.remove_reactions, [self._value], delete=False, remove_orphans=True))
+    def apply(self, model):
+        model.add_reactions([self._value])
 
     def to_gnomic(self):
         accession = Target.to_gnomic(self)
@@ -365,9 +359,9 @@ class GeneKnockoutTarget(GeneModulationTarget):
     def __init__(self, id, *args, **kwargs):
         super(GeneKnockoutTarget, self).__init__(id, 0, None, *args, **kwargs)
 
-    def apply(self, model, time_machine=None):
+    def apply(self, model):
         target = self.get_model_target(model)
-        target.knock_out(time_machine=time_machine)
+        target.knock_out()
 
     def __gt__(self, other):
         if self.id == other.id:
@@ -448,9 +442,9 @@ class ReactionKnockoutTarget(ReactionModulationTarget):
     def __init__(self, id):
         super(ReactionKnockoutTarget, self).__init__(id, 0, None)
 
-    def apply(self, model, time_machine=None):
+    def apply(self, model):
         target = self.get_model_target(model)
-        target.knock_out(time_machine=time_machine)
+        target.knock_out()
 
     def __gt__(self, other):
         if self.id == other.id:
@@ -515,9 +509,9 @@ class ReactionInversionTarget(ReactionModulationTarget):
         else:
             return False
 
-    def apply(self, model, time_machine=None):
+    def apply(self, model):
         reaction = self.get_model_target(model)
-        reverse_flux(reaction, self._reference_value, self._value, time_machine=time_machine)
+        reverse_flux(reaction, self._reference_value, self._value)
 
     def __hash__(self):
         return hash(str(self))
@@ -539,9 +533,9 @@ class EnsembleTarget(Target):
         assert all(t.id == id for t in targets)
         self.targets = list(sorted(targets))
 
-    def apply(self, model, time_machine=None):
+    def apply(self, model):
         for target in self.targets:
-            target.apply(model, time_machine=time_machine)
+            target.apply(model)
 
     def __repr__(self):
         head = "<EnsembleTarget %s" % self.id

@@ -61,30 +61,30 @@ class Gene(cobra.core.Gene):
     #     else:
     #         self._id = value
 
-    def knock_out(self, time_machine=None):
-        """Knockout gene by marking as non-functional and set all its affected reactions' bounds to zero
-
-        Parameters
-        ----------
-        time_machine = TimeMachine
-            A time TimeMachine instance can be provided to easily undo the knockout.
-
-        Returns
-        -------
-        None
-        """
-
-        if time_machine:
-            time_machine(do=partial(setattr, self, 'functional', False),
-                         undo=partial(setattr, self, 'functional', True))
-        else:
-            self.functional = False
-
-        for reaction in self.reactions:
-            if not reaction.functional:
-                if time_machine is not None:
-                    time_machine(do=reaction.knock_out,
-                                 undo=partial(reaction.change_bounds,
-                                              reaction.lower_bound, reaction.upper_bound))
-                else:
-                    reaction.knock_out()
+    # def knock_out(self, time_machine=None):
+    #     """Knockout gene by marking as non-functional and set all its affected reactions' bounds to zero
+    #
+    #     Parameters
+    #     ----------
+    #     time_machine = TimeMachine
+    #         A time TimeMachine instance can be provided to easily undo the knockout.
+    #
+    #     Returns
+    #     -------
+    #     None
+    #     """
+    #
+    #     if time_machine:
+    #         time_machine(do=partial(setattr, self, 'functional', False),
+    #                      undo=partial(setattr, self, 'functional', True))
+    #     else:
+    #         self.functional = False
+    #
+    #     for reaction in self.reactions:
+    #         if not reaction.functional:
+    #             if time_machine is not None:
+    #                 time_machine(do=reaction.knock_out,
+    #                              undo=partial(reaction.change_bounds,
+    #                                           reaction.lower_bound, reaction.upper_bound))
+    #             else:
+    #                 reaction.knock_out()
