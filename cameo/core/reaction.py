@@ -18,7 +18,7 @@ from __future__ import absolute_import, print_function
 import logging
 from functools import partial
 
-import cobra as _cobrapy
+import cobra
 import six
 
 import cameo
@@ -31,7 +31,7 @@ logger.setLevel(logging.DEBUG)
 
 
 @six.add_metaclass(inheritdocstring)
-class Reaction(_cobrapy.core.Reaction):
+class Reaction(cobra.core.Reaction):
     """This class extends the cobrapy Reaction class to work with SolverBasedModel.
 
     Notes
@@ -368,28 +368,28 @@ class Reaction(_cobrapy.core.Reaction):
     def is_exchange(self):
         return (len(self.reactants) == 0 or len(self.products) == 0) and len(self.metabolites) == 1
 
-    def add_metabolites(self, metabolites, combine=True, **kwargs):
-        if combine:
-            old_coefficients = self.metabolites
-        super(Reaction, self).add_metabolites(metabolites, combine=combine, **kwargs)
-        model = self.model
-        if model is not None:
-            for metabolite, coefficient in six.iteritems(metabolites):
-
-                if isinstance(metabolite, six.string_types):  # support metabolites added as strings.
-                    metabolite = model.metabolites.get_by_id(metabolite)
-                if combine:
-                    try:
-                        old_coefficient = old_coefficients[metabolite]
-                    except KeyError:
-                        pass
-                    else:
-                        coefficient = coefficient + old_coefficient
-
-                model.solver.constraints[metabolite.id].set_linear_coefficients({
-                    self.forward_variable: coefficient,
-                    self.reverse_variable: -coefficient
-                })
+    # def add_metabolites(self, metabolites, combine=True, **kwargs):
+    #     if combine:
+    #         old_coefficients = self.metabolites
+    #     super(Reaction, self).add_metabolites(metabolites, combine=combine, **kwargs)
+    #     model = self.model
+    #     if model is not None:
+    #         for metabolite, coefficient in six.iteritems(metabolites):
+    #
+    #             if isinstance(metabolite, six.string_types):  # support metabolites added as strings.
+    #                 metabolite = model.metabolites.get_by_id(metabolite)
+    #             if combine:
+    #                 try:
+    #                     old_coefficient = old_coefficients[metabolite]
+    #                 except KeyError:
+    #                     pass
+    #                 else:
+    #                     coefficient = coefficient + old_coefficient
+    #
+    #             model.solver.constraints[metabolite.id].set_linear_coefficients({
+    #                 self.forward_variable: coefficient,
+    #                 self.reverse_variable: -coefficient
+    #             })
 
     def knock_out(self, time_machine=None):
         """Knockout reaction by setting its bounds to zero.
