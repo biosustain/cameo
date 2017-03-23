@@ -82,10 +82,10 @@ class _OptGeneRunner(_OptimizationRunner):
         assert isinstance(pathway, PathwayResult)
         assert isinstance(aerobic, bool)
 
-        with TimeMachine() as tm:
+        with model:
             if not aerobic and 'EX_o2_e' in model.reactions:
-                model.reactions.EX_o2_e.change_bounds(lb=0, time_machine=tm)
-            pathway.apply(model, tm)
+                model.reactions.EX_o2_e.lower_bound = 0
+            pathway.apply(model)
             model.objective = model.biomass
             opt_gene = OptGene(model=model, plot=False)
             logger.info('Setting time limit for heuristic optimization to {}'.format(max_time))
@@ -105,11 +105,11 @@ class _DifferentialFVARunner(_OptimizationRunner):
         assert isinstance(pathway, PathwayResult)
         assert isinstance(aerobic, bool)
 
-        with TimeMachine() as tm:
+        with model:
             if not aerobic and 'EX_o2_e' in model.reactions:
-                model.reactions.EX_o2_e.change_bounds(lb=0, time_machine=tm)
+                model.reactions.EX_o2_e.lower_bound = 0
 
-            pathway.apply(model, tm)
+            pathway.apply(model)
             model.objective = model.biomass
             diff_fva = DifferentialFVA(design_space_model=model,
                                        objective=pathway.product.id,
@@ -292,11 +292,11 @@ class Designer(object):
 
     @staticmethod
     def evaluate_design(model, strain_design, pathway, aerobic, bpcy, pyield):
-        with TimeMachine() as tm:
+        with model:
             if not aerobic and 'EX_o2_e' in model.reactions:
-                model.reactions.EX_o2_e.change_bounds(lb=0, time_machine=tm)
-            pathway.apply(model, time_machine=tm)
-            strain_design.apply(model, time_machine=tm)
+                model.reactions.EX_o2_e.lower_bound = 0
+            pathway.apply(model)
+            strain_design.apply(model)
             try:
                 solution = fba(model, objective=model.biomass)
                 _bpcy = bpcy(model, solution, strain_design.targets)

@@ -82,9 +82,9 @@ class StrainDesign(object):
         else:
             return False
 
-    def apply(self, model, time_machine=None):
+    def apply(self, model):
         for target in self.targets:
-            target.apply(model, time_machine)
+            target.apply(model)
 
     def __add__(self, other):
         if not isinstance(other, StrainDesign):
