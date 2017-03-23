@@ -585,8 +585,8 @@ class TestSwapOptimization:
         cofactors = ((model.metabolites.nad_c, model.metabolites.nadh_c),
                      (model.metabolites.nadp_c, model.metabolites.nadph_c))
 
-        with TimeMachine() as tm:
-            model.change_objective(model.reactions.EX_etoh_lp_e_rp_, time_machine=tm)
+        with TimeMachine() as tm, model:
+            model.objective = model.reactions.EX_etoh_lp_e_rp_
             swap_cofactors(model.reactions.ALCD2x, model, cofactors, inplace=True, time_machine=tm)
             reactions = ['GAPD', 'AKGDH', 'PDH', 'GLUDy', 'MDH']
             optimization = CofactorSwapOptimization(model=model, objective_function=py, candidate_reactions=reactions)
