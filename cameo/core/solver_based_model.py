@@ -499,11 +499,11 @@ class SolverBasedModel(cobra.core.Model):
     #     else:
     #         return solution
 
-    def __dir__(self):
-        # Hide 'optimize' from user.
-        fields = sorted(dir(type(self)) + list(self.__dict__.keys()))
-        fields.remove('optimize')
-        return fields
+    # def __dir__(self):
+    #     # Hide 'optimize' from user.
+    #     fields = sorted(dir(type(self)) + list(self.__dict__.keys()))
+    #     fields.remove('optimize')
+    #     return fields
 
     # def essential_metabolites(self, threshold=1e-6, force_steady_state=False):
     #     """Return a list of essential metabolites.
@@ -702,17 +702,17 @@ class SolverBasedModel(cobra.core.Model):
 
         return model
 
-    def _ids_to_reactions(self, reactions):
-        """Translate reaction IDs into reactions (skips reactions)."""
-        clean_reactions = list()
-        for reaction in reactions:
-            if isinstance(reaction, six.string_types):
-                clean_reactions.append(self.reactions.get_by_id(reaction))
-            elif isinstance(reaction, Reaction):
-                clean_reactions.append(reaction)
-            else:
-                raise Exception('%s is not a reaction or reaction ID.' % reaction)
-        return clean_reactions
+    # def _ids_to_reactions(self, reactions):
+    #     """Translate reaction IDs into reactions (skips reactions)."""
+    #     clean_reactions = list()
+    #     for reaction in reactions:
+    #         if isinstance(reaction, six.string_types):
+    #             clean_reactions.append(self.reactions.get_by_id(reaction))
+    #         elif isinstance(reaction, Reaction):
+    #             clean_reactions.append(reaction)
+    #         else:
+    #             raise Exception('%s is not a reaction or reaction ID.' % reaction)
+    #     return clean_reactions
 
     def change_objective(self, value, time_machine=None):
         """
