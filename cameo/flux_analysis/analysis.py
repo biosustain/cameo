@@ -314,7 +314,7 @@ def phenotypic_phase_plane(model, variables=[], objective=None, source=None, poi
         else:
             source_reaction = _get_c_source_reaction(model)
 
-        variable_reactions = model._ids_to_reactions(variables)
+        variable_reactions = model.reactions.get_by_any(variables)
         variables_min_max = flux_variability_analysis(model, reactions=variable_reactions, view=SequentialView())
         grid = [numpy.linspace(lower_bound, upper_bound, points, endpoint=True) for
                 reaction_id, lower_bound, upper_bound in
@@ -371,7 +371,7 @@ def _flux_variability_analysis(model, reactions=None):
     if reactions is None:
         reactions = model.reactions
     else:
-        reactions = model._ids_to_reactions(reactions)
+        reactions = model.reactions.get_by_any(reactions)
     fva_sol = OrderedDict()
     lb_flags = dict()
     with TimeMachine() as tm:
@@ -475,7 +475,7 @@ def _cycle_free_fva(model, reactions=None, sloppy=True, sloppy_bound=666):
     if reactions is None:
         reactions = model.reactions
     else:
-        reactions = model._ids_to_reactions(reactions)
+        reactions = model.reactions.get_by_any(reactions)
     fva_sol = OrderedDict()
     for reaction in reactions:
         fva_sol[reaction.id] = dict()
@@ -726,7 +726,7 @@ def _fbid_fva(model, knockouts, view):
 
         reachable_reactions = wt_fva.data_frame.query("lower_bound != 0 | upper_bound != 0")
 
-        for reaction in model._ids_to_reactions(knockouts):
+        for reaction in model.reactions.get_by_any(knockouts):
             reaction.knock_out(tm)
 
         mt_fva = flux_variability_analysis(model, reactions=reachable_reactions.index, view=view, remove_cycles=False)
