@@ -69,7 +69,7 @@ from cameo.strain_design.heuristic.evolutionary.variators import (_do_set_n_poin
                                                                   set_n_point_crossover)
 from cameo.flux_analysis.analysis import find_essential_genes, find_essential_reactions
 from cameo.util import RandomGenerator as Random
-from cameo.util import TimeMachine
+
 
 try:
     from cameo.parallel import RedisQueue
@@ -412,9 +412,9 @@ class TestObjectiveFunctions:
         self._assert_is_pickable(of)
         assert of.name == "bpcy = (%s * min(%s)) / %s" % (biomass, product, substrate)
         reactions = [model.reactions.get_by_id(r) for r in ['ATPS4r', 'CO2t', 'GLUDy', 'PPS', 'PYK']]
-        with TimeMachine() as tm:
+        with model:
             for r in reactions:
-                r.knock_out(tm)
+                r.knock_out()
             fitness = of(model, solution, reactions)
         assert round(abs(0.414851 - fitness), 5) == 0
 
@@ -580,20 +580,26 @@ class TestSwapOptimization:
         assert 'PGI' not in representation
 
     def test_evaluate_swap(self, model):
-        model.reactions.Biomass_Ecoli_core_N_lp_w_fsh_GAM_rp__Nmet2.lower_bound = 0.5
-        py = product_yield(model.reactions.EX_etoh_lp_e_rp_, model.reactions.EX_glc_lp_e_rp_)
         cofactors = ((model.metabolites.nad_c, model.metabolites.nadh_c),
                      (model.metabolites.nadp_c, model.metabolites.nadph_c))
+        with model:
+            swap_cofactors(model.reactions.ALCD2x, model, cofactors, inplace=True)
+            assert model.metabolites.nadp_c in model.reactions.ALCD2x.metabolites
+        assert model.metabolites.nad_c in model.reactions.ALCD2x.metabolites
 
-        with TimeMachine() as tm, model:
+        with model:
+            model.reactions.Biomass_Ecoli_core_N_lp_w_fsh_GAM_rp__Nmet2.lower_bound = 0.5
+            py = product_yield(model.reactions.EX_etoh_lp_e_rp_, model.reactions.EX_glc_lp_e_rp_)
             model.objective = model.reactions.EX_etoh_lp_e_rp_
-            swap_cofactors(model.reactions.ALCD2x, model, cofactors, inplace=True, time_machine=tm)
+            swap_cofactors(model.reactions.ALCD2x, model, cofactors, inplace=True)
             reactions = ['GAPD', 'AKGDH', 'PDH', 'GLUDy', 'MDH']
-            optimization = CofactorSwapOptimization(model=model, objective_function=py, candidate_reactions=reactions)
-            optimization_result = optimization.run(max_evaluations=10000, max_size=1, pop_size=100, variable_size=False,
+            optimization = CofactorSwapOptimization(model=model, objective_function=py,
+                                                    candidate_reactions=reactions)
+            optimization_result = optimization.run(max_evaluations=10000, max_size=1, pop_size=100,
+                                                   variable_size=False,
                                                    mutation_rate=0.5, seed=1485441961)
+            # above should not have added anything to the history
             fitness = optimization_result.data_frame.fitness.max()
-            print(fitness)
             assert round(abs(fitness - 0.322085), 3) == 0
 
 

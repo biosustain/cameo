@@ -391,31 +391,31 @@ class Reaction(cobra.core.Reaction):
     #                 self.reverse_variable: -coefficient
     #             })
 
-    def knock_out(self, time_machine=None):
-        """Knockout reaction by setting its bounds to zero.
-
-        Parameters
-        ----------
-        time_machine = TimeMachine
-            A time TimeMachine instance can be provided to undo the knockout eventually.
-
-        Returns
-        -------
-        None
-        """
-
-        def _revert(reaction, lb, ub):
-            """
-            Set reaction bounds.
-            """
-            reaction.upper_bound = ub
-            reaction.lower_bound = lb
-
-        if time_machine is not None:
-            time_machine(do=super(Reaction, self).knock_out,
-                         undo=partial(_revert, self, self.lower_bound, self.upper_bound))
-        else:
-            super(Reaction, self).knock_out()
+    # def knock_out(self, time_machine=None):
+    #     """Knockout reaction by setting its bounds to zero.
+    #
+    #     Parameters
+    #     ----------
+    #     time_machine = TimeMachine
+    #         A time TimeMachine instance can be provided to undo the knockout eventually.
+    #
+    #     Returns
+    #     -------
+    #     None
+    #     """
+    #
+    #     def _revert(reaction, lb, ub):
+    #         """
+    #         Set reaction bounds.
+    #         """
+    #         reaction.upper_bound = ub
+    #         reaction.lower_bound = lb
+    #
+    #     if time_machine is not None:
+    #         time_machine(do=super(Reaction, self).knock_out,
+    #                      undo=partial(_revert, self, self.lower_bound, self.upper_bound))
+    #     else:
+    #         super(Reaction, self).knock_out()
 
     def pop(self, metabolite_id):
         """Removes a given metabolite from the reaction stoichiometry, and returns the coefficient.

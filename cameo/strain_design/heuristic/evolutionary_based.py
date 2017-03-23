@@ -289,17 +289,17 @@ class OptGeneResult(StrainDesignMethodResult):
             self._processed_solutions = processed_solutions
 
     def display_on_map(self, index=0, map_name=None, palette="YlGnBu"):
-        with TimeMachine() as tm:
+        with self._model:
             for ko in self.data_frame.loc[index, "reactions"]:
-                self._model.reactions.get_by_id(ko).knock_out(tm)
+                self._model.reactions.get_by_id(ko).knock_out()
             fluxes = self._simulation_method(self._model, **self._simulation_kwargs)
             fluxes.display_on_map(map_name=map_name, palette=palette)
 
     def plot(self, index=0, grid=None, width=None, height=None, title=None, palette=None, **kwargs):
         wt_production = phenotypic_phase_plane(self._model, objective=self._target, variables=[self._biomass])
-        with TimeMachine() as tm:
+        with self._model:
             for ko in self.data_frame.loc[index, "reactions"]:
-                self._model.reactions.get_by_id(ko).knock_out(tm)
+                self._model.reactions.get_by_id(ko).knock_out()
             mt_production = phenotypic_phase_plane(self._model, objective=self._target, variables=[self._biomass])
 
         if title is None:

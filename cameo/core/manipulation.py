@@ -23,7 +23,7 @@ import six
 from cameo.core import Reaction
 
 
-def increase_flux(reaction, ref_value, value, time_machine=None):
+def increase_flux(reaction, ref_value, value):
     """
     lb                           0                           ub
     |--------------------------- ' ---------------------------|
@@ -38,23 +38,20 @@ def increase_flux(reaction, ref_value, value, time_machine=None):
         The flux value to come from.
     value: float
         The flux value to achieve.
-    time_machine: TimeMachine
-        The action stack manager.
 
     """
-
     if abs(value) < abs(ref_value):
         raise ValueError("'value' is lower than 'ref_value', this is increase_flux (%f < %f)" % (value, ref_value))
 
     if value > 0:
-        reaction.change_bounds(lb=value, time_machine=time_machine)
+        reaction.lower_bound = value
     elif value < 0:
-        reaction.change_bounds(ub=value, time_machine=time_machine)
+        reaction.upper_bound = value
     else:
-        reaction.knock_out(time_machine=time_machine)
+        reaction.knock_out()
 
 
-def decrease_flux(reaction, ref_value, value, time_machine=None):
+def decrease_flux(reaction, ref_value, value):
     """
     lb                           0                           ub
     |--------------------------- ' ---------------------------|
@@ -69,22 +66,20 @@ def decrease_flux(reaction, ref_value, value, time_machine=None):
         The flux value to come from.
     value: float
         The flux value to achieve.
-    time_machine: TimeMachine
-        The action stack manager.
 
     """
     if abs(value) > abs(ref_value):
         raise ValueError("'value' is higher than 'ref_value', this is decrease_flux (%f < %f)" % (value, ref_value))
 
     if value > 0:
-        reaction.change_bounds(ub=value, time_machine=time_machine)
+        reaction.upper_bound = value
     elif value < 0:
-        reaction.change_bounds(lb=value, time_machine=time_machine)
+        reaction.lower_bound = value
     else:
-        reaction.knock_out(time_machine=time_machine)
+        reaction.knock_out()
 
 
-def reverse_flux(reaction, ref_value, value, time_machine=None):
+def reverse_flux(reaction, ref_value, value):
     """
 
     Forces a reaction to have a minimum flux level in the opposite direction of a reference state.
@@ -101,22 +96,20 @@ def reverse_flux(reaction, ref_value, value, time_machine=None):
         The flux value to come from.
     value: float
         The flux value to achieve.
-    time_machine: TimeMachine
-        The action stack manager.
 
     """
     if (value >= 0) == (ref_value >= 0):
         raise ValueError("'value' and 'ref_value' cannot have the same sign (%.5f, %.5f)" % (value, ref_value))
 
     if value > 0:
-        reaction.change_bounds(ub=value, time_machine=time_machine)
+        reaction.upper_bound = value
     elif value < 0:
-        reaction.change_bounds(lb=value, time_machine=time_machine)
+        reaction.lower_bound = value
     else:
-        reaction.knock_out(time_machine=time_machine)
+        reaction.knock_out()
 
 
-def swap_cofactors(reaction, model, swap_pairs, inplace=True, time_machine=None):
+def swap_cofactors(reaction, model, swap_pairs, inplace=True):
     """
     Swaps the cofactors of a reaction. For speed, it can be done inplace which just changes the coefficients.
     If not done inplace, it will create a new Reaction, add it to the model, and knockout the original reaction.
@@ -132,54 +125,36 @@ def swap_cofactors(reaction, model, swap_pairs, inplace=True, time_machine=None)
     inplace: bool
         If replace is done inplace, it changes the coefficients in the matrix. Otherwise, it creates a new reaction
         with the other cofactors and adds it to the model.
-    time_machine: : TimeMachine
-        The action stack manager.
 
     Returns
     -------
         Reaction
             A reaction with swapped cofactors (the same if inplace).
     """
-
     if all(reaction.metabolites.get(met, False) for met in swap_pairs[0]):
         new_coefficients = {met: -reaction.metabolites[met] for met in swap_pairs[0]}
         new_coefficients.update({new_met: reaction.metabolites[met] for met, new_met in zip(*swap_pairs)})
-        revert_coefficients = {met: -coeff for met, coeff in six.iteritems(new_coefficients)}
     elif all(reaction.metabolites.get(met, False) for met in swap_pairs[1]):
         new_coefficients = {met: -reaction.metabolites[met] for met in swap_pairs[1]}
         new_coefficients.update({new_met: reaction.metabolites[met] for new_met, met in zip(*swap_pairs)})
-        revert_coefficients = {met: -coeff for met, coeff in six.iteritems(new_coefficients)}
     else:
         raise ValueError("%s: Invalid swap pairs %s (%s)" % (reaction.id, str(swap_pairs), reaction.reaction))
 
-    def _inplace(reaction, stoichiometry):
-        reaction.add_metabolites(stoichiometry, combine=True)
+    def _inplace(rxn, stoichiometry):
+        rxn.add_metabolites(stoichiometry, combine=True)
 
-    def _replace(reaction, stoichiometry):
-        new_reaction = Reaction(id="%s_swap" % reaction.id, name=reaction.name,
-                                lower_bound=reaction.lower_bound, upper_bound=reaction.upper_bound)
-        new_reaction.stoichiometry = reaction
+    def _replace(rxn, stoichiometry):
+        new_reaction = Reaction(id="%s_swap" % rxn.id, name=rxn.name,
+                                lower_bound=rxn.lower_bound, upper_bound=rxn.upper_bound)
+        new_reaction.stoichiometry = rxn
         new_reaction.add_metabolites(stoichiometry)
         return new_reaction
 
     if inplace:
-        if time_machine:
-            time_machine(do=partial(_inplace, reaction, new_coefficients),
-                         undo=partial(_inplace, reaction, revert_coefficients))
-        else:
-            _inplace(reaction, new_coefficients)
-
+        _inplace(reaction, new_coefficients)
         return reaction
     else:
         new_reaction = _replace(reaction, new_coefficients)
-        if time_machine:
-            time_machine(do=partial(model.add_reactions, [new_reaction]),
-                         undo=partial(model.remove_reactions, [new_reaction], delete=False))
-            time_machine(do=partial(model.remove_reactions, [reaction], delete=False),
-                         undo=partial(model.add_reactions, [new_reaction]))
-            reaction.knock_out(time_machine)
-        else:
-            model.add_reactions([new_reaction])
-            reaction.knock_out()
-
+        model.add_reactions([new_reaction])
+        reaction.knock_out()
         return new_reaction
