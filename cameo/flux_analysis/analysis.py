@@ -295,7 +295,7 @@ def phenotypic_phase_plane(model, variables=[], objective=None, source=None, poi
 
     if view is None:
         view = config.default_view
-    with TimeMachine() as tm, model:
+    with model:
         if objective is not None:
             if isinstance(objective, Metabolite):
                 try:
@@ -307,7 +307,7 @@ def phenotypic_phase_plane(model, variables=[], objective=None, source=None, poi
             # except KeyError:
             #     pass
 
-            model.change_objective(objective, time_machine=tm)
+            model.objective = objective
 
         if source:
             source_reaction = get_reaction_for(model, source)
@@ -374,8 +374,8 @@ def _flux_variability_analysis(model, reactions=None):
         reactions = model.reactions.get_by_any(reactions)
     fva_sol = OrderedDict()
     lb_flags = dict()
-    with TimeMachine() as tm:
-        model.change_objective(S.Zero, time_machine=tm)
+    with model:
+        model.objective = S.Zero
 
         model.objective.direction = 'min'
         for reaction in reactions:
