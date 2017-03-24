@@ -196,14 +196,14 @@ class biomass_product_coupled_yield(YieldFunction):
         biomass_flux = round(solution.fluxes[self.biomass], config.ndecimals)
         if self.carbon_yield:
             product = model.reaction.get_by_id(self.product)
-            if product.is_exchange:
+            if product.boundary:
                 product_flux = round(solution.fluxes[self.product], config.ndecimals) * product.n_carbon
             else:
                 product_flux = round(solution.fluxes[self.product], config.ndecimals) * product.n_carbon / 2
             substrate_flux = 0
             for substrate_id in self.substrates:
                 substrate = model.reactions.get_by_id(substrate_id)
-                if substrate.is_exchange:
+                if substrate.boundary:
                     substrate_flux += abs(solution.fluxes[substrate_id]) * substrate.n_carbon
                 else:
                     substrate_flux += abs(solution.fluxes[substrate_id]) * substrate.n_carbon / 2
@@ -269,14 +269,14 @@ class biomass_product_coupled_min_yield(biomass_product_coupled_yield):
         min_product_flux = round(fva_res["lower_bound"][self.product], config.ndecimals)
         if self.carbon_yield:
             product = model.reactions.get_by_id(self.product)
-            if product.is_exchange:
+            if product.boundary:
                 product_flux = min_product_flux * product.n_carbon
             else:
                 product_flux = min_product_flux * product.n_carbon / 2
             substrate_flux = 0
             for substrate_id in self.substrates:
                 substrate = model.reactions.get_by_id(substrate_id)
-                if substrate.is_exchange:
+                if substrate.boundary:
                     substrate_flux += abs(solution.fluxes[substrate_id]) * substrate.n_carbon
                 else:
                     substrate_flux += abs(solution.fluxes[substrate_id]) * substrate.n_carbon / 2
@@ -337,14 +337,14 @@ class product_yield(YieldFunction):
     def __call__(self, model, solution, targets):
         if self.carbon_yield:
             product = model.reactions.get_by_id(self.product)
-            if product.is_exchange:
+            if product.boundary:
                 product_flux = round(solution.fluxes[self.product], config.ndecimals) * product.n_carbon
             else:
                 product_flux = round(solution.fluxes[self.product], config.ndecimals) * product.n_carbon / 2
             substrate_flux = 0
             for substrate_id in self.substrates:
                 substrate = model.reactions.get_by_id(substrate_id)
-                if substrate.is_exchange:
+                if substrate.boundary:
                     substrate_flux += abs(solution.fluxes[substrate_id]) * substrate.n_carbon
                 else:
                     substrate_flux += abs(solution.fluxes[substrate_id]) * substrate.n_carbon / 2
