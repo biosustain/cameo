@@ -879,13 +879,13 @@ class TestSolverBasedModel:
             core_model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = 999999.
             find_essential_metabolites(core_model, force_steady_state=True)
 
-    def test_effective_bounds(self, core_model):
-        core_model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = 0.873921
-        for reaction in core_model.reactions:
-            assert abs(reaction.effective_lower_bound - REFERENCE_FVA_SOLUTION_ECOLI_CORE['lower_bound'][
-                reaction.id]) < 0.000001
-            assert abs(reaction.effective_upper_bound - REFERENCE_FVA_SOLUTION_ECOLI_CORE['upper_bound'][
-                reaction.id]) < 0.000001
+    # def test_effective_bounds(self, core_model):
+    #     core_model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = 0.873921
+    #     for reaction in core_model.reactions:
+    #         assert abs(reaction.effective_lower_bound - REFERENCE_FVA_SOLUTION_ECOLI_CORE['lower_bound'][
+    #             reaction.id]) < 0.000001
+    #         assert abs(reaction.effective_upper_bound - REFERENCE_FVA_SOLUTION_ECOLI_CORE['upper_bound'][
+    #             reaction.id]) < 0.000001
 
     # def test_add_ratio_constraint(self, solved_model):
     #     solution, model = solved_model
