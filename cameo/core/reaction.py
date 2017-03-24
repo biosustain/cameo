@@ -335,19 +335,19 @@ class Reaction(cobra.core.Reaction):
     #         model.objective += coef_difference * self.flux_expression
     #     self._objective_coefficient = value
 
-    @property
-    def effective_lower_bound(self):
-        model = self.model
-        fva_result = flux_analysis.flux_variability_analysis(model, reactions=[self], view=SequentialView(),
-                                                             remove_cycles=False)
-        return fva_result['lower_bound'][self.id]
-
-    @property
-    def effective_upper_bound(self):
-        model = self.model
-        fva_result = flux_analysis.flux_variability_analysis(model, reactions=[self], view=SequentialView(),
-                                                             remove_cycles=False)
-        return fva_result['upper_bound'][self.id]
+    # @property
+    # def effective_lower_bound(self):
+    #     model = self.model
+    #     fva_result = flux_analysis.flux_variability_analysis(model, reactions=[self], view=SequentialView(),
+    #                                                          remove_cycles=False)
+    #     return fva_result['lower_bound'][self.id]
+    #
+    # @property
+    # def effective_upper_bound(self):
+    #     model = self.model
+    #     fva_result = flux_analysis.flux_variability_analysis(model, reactions=[self], view=SequentialView(),
+    #                                                          remove_cycles=False)
+    #     return fva_result['upper_bound'][self.id]
 
     # @property
     # def flux(self):
