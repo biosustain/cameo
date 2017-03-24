@@ -332,9 +332,9 @@ class Designer(object):
             if isinstance(host, Model):
                 host = Host(name='UNKNOWN_HOST', models=[host])
             for model in list(host.models):
-                with TimeMachine() as tm:
+                with model:
                     if not aerobic and "EX_o2_e" in model.reactions:
-                        model.reactions.EX_o2_e.change_bounds(lb=0, time_machine=tm)
+                        model.reactions.EX_o2_e.lower_bound = 0
                     identifier = searching()
                     logging.debug('Processing model {} for host {}'.format(model.id, host.name))
                     notice('Predicting pathways for product %s in %s (using model %s).'

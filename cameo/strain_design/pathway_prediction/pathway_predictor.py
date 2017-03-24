@@ -135,7 +135,7 @@ class PathwayResult(Pathway, Result, StrainDesign):
             if exchanges:
                 tm(do=partial(model.add_reactions, self.exchanges),
                    undo=partial(model.remove_reactions, self.exchanges, delete=False, remove_orphans=True))
-            self.product.change_bounds(lb=0, time_machine=tm)
+            self.product.lower_bound = 0
             try:
                 tm(do=partial(model.add_reactions, [self.product]),
                    undo=partial(model.remove_reactions, [self.product], delete=False, remove_orphans=True))
@@ -310,7 +310,7 @@ class PathwayPredictor(StrainDesignMethod):
             except KeyError:
                 product_reaction = add_exchange(self.model, product)
 
-            product_reaction.change_bounds(lb=min_production, time_machine=tm)
+            product_reaction.lower_bound = min_production
             counter = 1
             while counter <= max_predictions:
                 logger.debug('Predicting pathway No. %d' % counter)
