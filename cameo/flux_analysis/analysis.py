@@ -192,9 +192,9 @@ def find_blocked_reactions(model):
         A list of reactions.
 
     """
-    with TimeMachine() as tm:
+    with TimeMachine() as tm, model:
         for exchange in model.exchanges:
-            exchange.change_bounds(-9999, 9999, tm)
+            exchange.bounds = (-9999, 9999)
         fva_solution = flux_variability_analysis(model)
     return frozenset(reaction for reaction in model.reactions
                      if round(fva_solution.lower_bound(reaction.id), config.ndecimals) == 0 and
@@ -657,13 +657,13 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
         return flux, carbon_yield, mass_yield
 
     def _production_envelope_inner(self, point):
-        with TimeMachine() as tm:
+        original_direction = self.model.objective.direction
+        with self.model:
             for (reaction, coordinate) in zip(self.variable_reactions, point):
-                reaction.change_bounds(coordinate, coordinate, time_machine=tm)
+                reaction.bounds = (coordinate, coordinate)
             interval = []
             interval_carbon_yield = []
             interval_mass_yield = []
-            tm(do=int, undo=partial(setattr, self.model.objective, 'direction', self.model.objective.direction))
 
             self.model.objective.direction = 'min'
             flux, carbon_yield, mass_yield = self._interval_estimates()
@@ -676,6 +676,7 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
             interval.append(flux)
             interval_carbon_yield.append(carbon_yield)
             interval_mass_yield.append(mass_yield)
+        self.model.objective.direction = original_direction
 
         intervals = tuple(interval) + tuple(interval_carbon_yield) + tuple(interval_mass_yield)
         return point + intervals
@@ -712,13 +713,13 @@ def flux_balance_impact_degree(model, knockouts, view=config.default_view, metho
 
 
 def _fbid_fva(model, knockouts, view):
-    with model, TimeMachine() as tm:
+    with model:
 
         for reaction in model.reactions:
             if reaction.reversibility:
-                reaction.change_bounds(-1, 1, time_machine=tm)
+                reaction.bounds = (-1, 1)
             else:
-                reaction.change_bounds(0, 1, time_machine=tm)
+                reaction.bounds = (0, 1)
 
         wt_fva = flux_variability_analysis(model, view=view, remove_cycles=False)
         wt_fva._data_frame['upper_bound'] = wt_fva._data_frame.upper_bound.apply(numpy.round)
