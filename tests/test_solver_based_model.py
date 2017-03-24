@@ -935,11 +935,11 @@ class TestSolverBasedModel:
     def test_get_reaction_for(self, core_model):
         with core_model:
             for r in core_model.reactions:
-                assert isinstance(get_reaction_for(core_model, r.id), Reaction)
-                assert isinstance(get_reaction_for(core_model, r), Reaction)
+                assert isinstance(get_reaction_for(core_model, r.id), cobra.core.Reaction)
+                assert isinstance(get_reaction_for(core_model, r), cobra.core.Reaction)
             for m in core_model.metabolites:
-                assert isinstance(get_reaction_for(core_model, m.id), Reaction)
-                assert isinstance(get_reaction_for(core_model, m), Reaction)
+                assert isinstance(get_reaction_for(core_model, m.id), cobra.core.Reaction)
+                assert isinstance(get_reaction_for(core_model, m), cobra.core.Reaction)
 
         with pytest.raises(TypeError):
             get_reaction_for(core_model, None)
