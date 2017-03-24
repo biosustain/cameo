@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
-from functools import partial
 
 import cobra
 import six
 from cameo.util import inheritdocstring
 from cameo.core.utils import add_exchange
+from cobra.util.context import get_context
 
 logger = logging.getLogger(__name__)
 
@@ -59,67 +59,65 @@ class Metabolite(cobra.core.Metabolite):
         """
         return self.elements.get('C', 0)
 
-    @property
-    def constraint(self):
-        if self.model is not None:
-            return self.model.solver.constraints[self.id]
-        else:
-            return None
+    # @property
+    # def constraint(self):
+    #     if self.model is not None:
+    #         return self.model.solver.constraints[self.id]
+    #     else:
+    #         return None
 
-    def _relax_mass_balance_constrain(self, time_machine):
-        if time_machine:
-            time_machine(do=partial(setattr, self.constraint, "lb", -1000 * len(self.reactions)),
-                         undo=partial(setattr, self.constraint, "lb", self.constraint.lb))
-            time_machine(do=partial(setattr, self.constraint, "ub", 1000 * len(self.reactions)),
-                         undo=partial(setattr, self.constraint, "ub", self.constraint.ub))
-        else:
-            self.constraint.lb = None
-            self.constraint.ub = None
-
-    def knock_out(self, time_machine=None, force_steady_state=False):
-        """'Knockout' a metabolite. This can be done in 2 ways:
-
-        1. Implementation follows the description in [1]
-            "All fluxes around the metabolite M should be restricted to only produce the metabolite,
-             for which balancing constraint of mass conservation is relaxed to allow nonzero values
-             of the incoming fluxes whereas all outgoing fluxes are limited to zero."
-
-        2. Force steady state
-            All reactions consuming the metabolite are restricted to only produce the metabolite. A demand
-            reaction is added to sink the metabolite produced to keep the problem feasible under
-            the S.v = 0 constraint.
-
-
-        Knocking out a metabolite overrules the constraints set on the reactions producing the metabolite.
-
-        Parameters
-        ----------
-        time_machine : TimeMachine
-            An action stack to reverse actions
-        force_steady_state: bool
-            If True, uses approach 2.
-
-        References
-        ----------
-        .. [1] Kim, P.-J., Lee, D.-Y., Kim, T. Y., Lee, K. H., Jeong, H., Lee, S. Y., & Park, S. (2007).
-          Metabolite essentiality elucidates robustness of Escherichia coli metabolism. PNAS, 104(34), 13638-13642
-        """
-        # restrict reactions to produce metabolite
-        for reaction in self.reactions:
-            if reaction.metabolites[self] > 0:  # for positive stoichiometric coefficient set lb to 0
-                if reaction.upper_bound < 0:
-                    reaction.change_bounds(lb=0, ub=0, time_machine=time_machine)
-                else:
-                    reaction.change_bounds(lb=0, time_machine=time_machine)
-            elif reaction.metabolites[self] < 0:  # for negative stoichiometric coefficient set ub to 0
-                if reaction.lower_bound > 0:
-                    reaction.change_bounds(lb=0, ub=0, time_machine=time_machine)
-                else:
-                    reaction.change_bounds(ub=0, time_machine=time_machine)
-        if force_steady_state:
-            add_exchange(self._model, self, prefix="KO_")
-        else:
-            self._relax_mass_balance_constrain(time_machine)
+    # def _relax_mass_balance_constrain(self, time_machine):
+    #     if time_machine:
+    #         time_machine(do=partial(setattr, self.constraint, "lb", -1000 * len(self.reactions)),
+    #                      undo=partial(setattr, self.constraint, "lb", self.constraint.lb))
+    #         time_machine(do=partial(setattr, self.constraint, "ub", 1000 * len(self.reactions)),
+    #                      undo=partial(setattr, self.constraint, "ub", self.constraint.ub))
+    #     else:
+    #         self.constraint.lb = None
+    #         self.constraint.ub = None
+    #
+    # def knock_out(self, force_steady_state=False):
+    #     """'Knockout' a metabolite. This can be done in 2 ways:
+    #
+    #     1. Implementation follows the description in [1]
+    #         "All fluxes around the metabolite M should be restricted to only produce the metabolite,
+    #          for which balancing constraint of mass conservation is relaxed to allow nonzero values
+    #          of the incoming fluxes whereas all outgoing fluxes are limited to zero."
+    #
+    #     2. Force steady state
+    #         All reactions consuming the metabolite are restricted to only produce the metabolite. A demand
+    #         reaction is added to sink the metabolite produced to keep the problem feasible under
+    #         the S.v = 0 constraint.
+    #
+    #
+    #     Knocking out a metabolite overrules the constraints set on the reactions producing the metabolite.
+    #
+    #     Parameters
+    #     ----------
+    #     force_steady_state: bool
+    #         If True, uses approach 2.
+    #
+    #     References
+    #     ----------
+    #     .. [1] Kim, P.-J., Lee, D.-Y., Kim, T. Y., Lee, K. H., Jeong, H., Lee, S. Y., & Park, S. (2007).
+    #       Metabolite essentiality elucidates robustness of Escherichia coli metabolism. PNAS, 104(34), 13638-13642
+    #     """
+    #     # restrict reactions to produce metabolite
+    #     for reaction in self.reactions:
+    #         if reaction.metabolites[self] > 0:  # for positive stoichiometric coefficient set lb to 0
+    #             reaction.bounds = (0, 0) if reaction.upper_bound < 0 else (0, reaction.upper_bound)
+    #         elif reaction.metabolites[self] < 0:  # for negative stoichiometric coefficient set ub to 0
+    #             reaction.bounds = (0, 0) if reaction.lower_bound > 0 else (reaction.lower_bound, 0)
+    #     if force_steady_state:
+    #         add_exchange(self._model, self, prefix="KO_")
+    #     else:
+    #         previous_bounds = self.constraint.lb, self.constraint.ub
+    #         self.constraint.lb, self.constraint.ub = None, None
+    #         context = get_context(self)
+    #         if context:
+    #             def reset():
+    #                 self.constraint.lb, self.constraint.ub = previous_bounds
+    #             context(reset)
 
     # @property
     # def id(self):
