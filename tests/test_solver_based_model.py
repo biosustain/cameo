@@ -21,7 +21,8 @@ import os
 import pickle
 
 import cobra.test
-from cobra.util import SolverNotFound
+from cobra.util import SolverNotFound, add_exchange
+
 import numpy
 import pandas
 import pytest
@@ -35,7 +36,7 @@ from cameo.config import solvers
 from cameo.core.gene import Gene
 from cameo.core.metabolite import Metabolite
 from cameo.core.solver_based_model import Reaction
-from cameo.core.utils import get_reaction_for, add_exchange
+from cameo.core.utils import get_reaction_for
 from cameo.exceptions import UndefinedSolution
 from cameo.flux_analysis.structural import create_stoichiometric_array
 from cameo.flux_analysis.analysis import find_essential_genes, find_essential_metabolites, find_essential_reactions
@@ -277,11 +278,11 @@ class TestReaction:
 
     def test_change_bounds(self, core_model):
         reac = core_model.reactions.ACALD
-        reac.change_bounds(lb=2, ub=2)
+        reac.bounds = (2, 2)
         assert reac.lower_bound == 2
         assert reac.upper_bound == 2
-        with TimeMachine() as tm:
-            reac.change_bounds(lb=5, time_machine=tm)
+        with core_model:
+            reac.lower_bound = 5
             assert reac.lower_bound == 5
             assert reac.upper_bound == 5
         assert reac.lower_bound == 2
@@ -757,34 +758,6 @@ class TestSolverBasedModel:
                     assert reaction2.model == core_model
                     assert reaction2 == core_model.reactions.get_by_id(reaction2.id)
 
-    def test_add_exchange(self, core_model):
-        for demand, prefix in {True: 'DemandReaction_', False: 'SupplyReaction_'}.items():
-            for metabolite in core_model.metabolites:
-                demand_reaction = add_exchange(core_model, metabolite, demand=demand, prefix=prefix)
-                assert core_model.reactions.get_by_id(demand_reaction.id) == demand_reaction
-                assert demand_reaction.reactants == [metabolite]
-                assert core_model.solver.constraints[metabolite.id].expression.has(
-                    core_model.solver.variables[prefix + metabolite.id])
-
-    def test_add_exchange_time_machine(self, core_model):
-        for demand, prefix in {True: 'DemandReaction_', False: 'SupplyReaction_'}.items():
-            with core_model:
-                for metabolite in core_model.metabolites:
-                    demand_reaction = add_exchange(core_model, metabolite, demand=demand, prefix=prefix)
-                    assert core_model.reactions.get_by_id(demand_reaction.id) == demand_reaction
-                    assert demand_reaction.reactants == [metabolite]
-                    assert -core_model.solver.constraints[metabolite.id].expression.has(
-                        core_model.solver.variables[prefix + metabolite.id])
-            for metabolite in core_model.metabolites:
-                assert prefix + metabolite.id not in core_model.reactions
-                assert prefix + metabolite.id not in core_model.solver.variables.keys()
-
-    def test_add_existing_exchange(self, core_model):
-        for metabolite in core_model.metabolites:
-            add_exchange(core_model, metabolite, prefix="test")
-            with pytest.raises(ValueError):
-                add_exchange(core_model, metabolite, prefix="test")
-
     def test_objective(self, core_model):
         obj = core_model.objective
         assert {var.name: coef for var, coef in obj.expression.as_coefficients_dict().items()} == \
@@ -912,12 +885,6 @@ class TestSolverBasedModel:
             assert abs(reaction.effective_upper_bound - REFERENCE_FVA_SOLUTION_ECOLI_CORE['upper_bound'][
                 reaction.id]) < 0.000001
 
-    def test_add_exchange_for_non_existing_metabolite(self, core_model):
-        metabolite = Metabolite(id="a_metabolite")
-        add_exchange(core_model, metabolite)
-        assert core_model.solver.constraints[metabolite.id].expression.has(
-            core_model.solver.variables["DM_" + metabolite.id])
-
     # def test_add_ratio_constraint(self, solved_model):
     #     solution, model = solved_model
     #     assert round(abs(solution.f - 0.873921506968), 7) == 0
@@ -1028,24 +995,6 @@ class TestMetabolite:
         met.id = "test2"
         assert "test2" in core_model.metabolites
         assert "test" not in core_model.metabolites
-
-    def test_knock_out(self, core_model):
-        rxn = Reaction('rxn', upper_bound=10, lower_bound=-10)
-        metabolite_a = Metabolite('A')
-        metabolite_b = Metabolite('B')
-        rxn.add_metabolites({metabolite_a: -1, metabolite_b: 1})
-        core_model.add_reaction(rxn)
-        with TimeMachine() as tm:
-            metabolite_a.knock_out(time_machine=tm)
-            assert rxn.upper_bound == 0
-            metabolite_b.knock_out(time_machine=tm)
-            assert rxn.lower_bound == 0
-            assert metabolite_a.constraint.lb == -1000 * len(metabolite_a.reactions)
-            assert metabolite_a.constraint.ub == 1000 * len(metabolite_a.reactions)
-        assert metabolite_a.constraint.lb == 0
-        assert metabolite_a.constraint.ub == 0
-        assert rxn.upper_bound == 10
-        assert rxn.lower_bound == -10
 
     def test_remove_from_model(self, core_model):
         met = core_model.metabolites.get_by_id("g6p_c")

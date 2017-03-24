@@ -95,8 +95,8 @@ def find_essential_metabolites(model, threshold=1e-6, force_steady_state=False):
             metabolites.update(reaction.metabolites.keys())
 
     for metabolite in metabolites:
-        with TimeMachine() as tm:
-            metabolite.knock_out(time_machine=tm, force_steady_state=force_steady_state)
+        with model:
+            metabolite.knock_out(force_steady_state=force_steady_state)
             model.solver.optimize()
             if model.solver.status != 'optimal' or model.objective.value < threshold:
                 essential.append(metabolite)
