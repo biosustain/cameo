@@ -16,7 +16,6 @@
 from __future__ import absolute_import, print_function
 
 import logging
-from functools import partial
 
 import cobra
 import six
@@ -449,17 +448,17 @@ class Reaction(cobra.core.Reaction):
     #     # if remove_orphans:
         #     model.solver.remove([metabolite.model.solver for metabolite in self.metabolites.keys()])
 
-    def change_bounds(self, lb=None, ub=None, time_machine=None):
-        """Changes one or both of the reaction bounds and allows the changes to be reversed with a TimeMachine"""
-        if time_machine is not None:
-            time_machine(do=int,
-                         undo=partial(setattr, self, "lower_bound", self.lower_bound))
-            time_machine(do=int,
-                         undo=partial(setattr, self, "upper_bound", self.upper_bound))
-        if lb is not None:
-            self.lower_bound = lb
-        if ub is not None:
-            self.upper_bound = ub
+    # def change_bounds(self, lb=None, ub=None, time_machine=None):
+    #     """Changes one or both of the reaction bounds and allows the changes to be reversed with a TimeMachine"""
+    #     if time_machine is not None:
+    #         time_machine(do=int,
+    #                      undo=partial(setattr, self, "lower_bound", self.lower_bound))
+    #         time_machine(do=int,
+    #                      undo=partial(setattr, self, "upper_bound", self.upper_bound))
+    #     if lb is not None:
+    #         self.lower_bound = lb
+    #     if ub is not None:
+    #         self.upper_bound = ub
 
     @property
     def n_carbon(self):
