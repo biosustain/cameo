@@ -21,8 +21,6 @@ import cobra
 import six
 
 import cameo
-from cameo import flux_analysis
-from cameo.parallel import SequentialView
 from cameo.util import inheritdocstring
 
 logger = logging.getLogger(__name__)
@@ -416,20 +414,20 @@ class Reaction(cobra.core.Reaction):
     #     else:
     #         super(Reaction, self).knock_out()
 
-    def pop(self, metabolite_id):
-        """Removes a given metabolite from the reaction stoichiometry, and returns the coefficient.
-        """
-        if self._model is None:
-            return super(Reaction, self).pop(metabolite_id)
-        else:
-            if isinstance(metabolite_id, six.string_types):
-                met = self.model.metabolites.get_by_id(metabolite_id)
-            else:
-                met = metabolite_id
-            coef = self.metabolites[met]
-            self.add_metabolites({met: -coef}, combine=True)
-            return coef
-
+    # def pop(self, metabolite_id):
+    #     """Removes a given metabolite from the reaction stoichiometry, and returns the coefficient.
+    #     """
+    #     if self._model is None:
+    #         return super(Reaction, self).pop(metabolite_id)
+    #     else:
+    #         if isinstance(metabolite_id, six.string_types):
+    #             met = self.model.metabolites.get_by_id(metabolite_id)
+    #         else:
+    #             met = metabolite_id
+    #         coef = self.metabolites[met]
+    #         self.add_metabolites({met: -coef}, combine=True)
+    #         return coef
+    #
     # def remove_from_model(self, model=None, remove_orphans=False):
     #     reaction_model = self.model
     #     forward = self.forward_variable
