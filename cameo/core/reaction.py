@@ -361,9 +361,9 @@ class Reaction(cobra.core.Reaction):
     #     else:
     #         return None
 
-    @property
-    def is_exchange(self):
-        return (len(self.reactants) == 0 or len(self.products) == 0) and len(self.metabolites) == 1
+    # @property
+    # def boundary(self):
+    #     return (len(self.reactants) == 0 or len(self.products) == 0) and len(self.metabolites) == 1
 
     # def add_metabolites(self, metabolites, combine=True, **kwargs):
     #     if combine:
