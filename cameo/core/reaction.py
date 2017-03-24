@@ -349,19 +349,19 @@ class Reaction(cobra.core.Reaction):
                                                              remove_cycles=False)
         return fva_result['upper_bound'][self.id]
 
-    @property
-    def flux(self):
-        if self.model is not None:
-            return self.forward_variable.primal - self.reverse_variable.primal
-        else:
-            return None
-
-    @property
-    def reduced_cost(self):
-        if self.model is not None and self.forward_variable.dual is not None:
-            return self.forward_variable.dual - self.reverse_variable.dual
-        else:
-            return None
+    # @property
+    # def flux(self):
+    #     if self.model is not None:
+    #         return self.forward_variable.primal - self.reverse_variable.primal
+    #     else:
+    #         return None
+    #
+    # @property
+    # def reduced_cost(self):
+    #     if self.model is not None and self.forward_variable.dual is not None:
+    #         return self.forward_variable.dual - self.reverse_variable.dual
+    #     else:
+    #         return None
 
     @property
     def is_exchange(self):
