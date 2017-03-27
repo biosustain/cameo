@@ -139,28 +139,28 @@ class SolverBasedModel(cobra.core.Model):
     #         model_copy._solver = copy(self.solver)  # pragma: no cover
     #     return model_copy
 
-    def _repr_html_(self):  # pragma: no cover
-        template = """<table>
-<tr>
-<td>Name</td>
-<td>%(name)s</td>
-</tr>
-<tr>
-<td>Number of metabolites</td>
-<td>%(num_metabolites)s</td>
-</tr>
-<tr>
-<td>Number of reactions</td>
-<td>%(num_reactions)s</td>
-</tr>
-<tr>
-<td>Reactions</td>
-<td><div style="width:100%%; max-height:300px; overflow:auto">%(reactions)s</div></td>
-</tr>
-</table>"""
-        return template % {'name': self.id, 'num_metabolites': len(self.metabolites),
-                           'num_reactions': len(self.reactions),
-                           'reactions': '<br>'.join([r.build_reaction_string() for r in self.reactions])}
+#     def _repr_html_(self):  # pragma: no cover
+#         template = """<table>
+# <tr>
+# <td>Name</td>
+# <td>%(name)s</td>
+# </tr>
+# <tr>
+# <td>Number of metabolites</td>
+# <td>%(num_metabolites)s</td>
+# </tr>
+# <tr>
+# <td>Number of reactions</td>
+# <td>%(num_reactions)s</td>
+# </tr>
+# <tr>
+# <td>Reactions</td>
+# <td><div style="width:100%%; max-height:300px; overflow:auto">%(reactions)s</div></td>
+# </tr>
+# </table>"""
+#         return template % {'name': self.id, 'num_metabolites': len(self.metabolites),
+#                            'num_reactions': len(self.reactions),
+#                            'reactions': '<br>'.join([r.build_reaction_string() for r in self.reactions])}
 
     # @property
     # def objective(self):
