@@ -73,7 +73,7 @@ class _OptimizationRunner(object):
 
 class _OptGeneRunner(_OptimizationRunner):
     def __call__(self, strategy):
-        max_evaluations = 20000
+        max_evaluations = 15000
 
         if self.debug:
             max_evaluations = 1000
@@ -98,7 +98,7 @@ class _OptGeneRunner(_OptimizationRunner):
 
 class _DifferentialFVARunner(_OptimizationRunner):
     def __call__(self, strategy):
-        points = 50
+        points = 30
         surface_only = False
         if self.debug:
             points = 5
@@ -170,7 +170,7 @@ class Designer(object):
         notice("Starting searching for compound %s" % product)
         try:
             product = self.__translate_product_to_universal_reactions_model_metabolite(product, database)
-        except KeyError:
+        except Exception:
             raise KeyError("Product %s is not in the %s database" % (product, database.id))
         pathways = self.predict_pathways(product, hosts=hosts, database=database, aerobic=aerobic)
         optimization_reports = self.optimize_strains(pathways, view, aerobic=aerobic)
@@ -182,8 +182,8 @@ class Designer(object):
 
         Arguments
         ---------
-        pathways: list
-            A list of dictionaries to optimize ([Host, Model] -> PredictedPathways).
+        pathways: dict
+            A dictionary with information of pathways to optimize ([Host, Model] -> PredictedPathways).
         view: object
             A view for multi, single os distributed processing.
         aerobic: bool
@@ -299,13 +299,13 @@ class Designer(object):
                 _bpcy, _pyield, target_flux, biomass = np.nan, np.nan, np.nan, np.nan
             return _bpcy, _pyield, target_flux, biomass
 
-    def predict_pathways(self, product, hosts=None, database=None, aerobic=True):
+    def predict_pathways(self, product, hosts, database, aerobic=True):
         """Predict production routes for a desired product and host spectrum.
         Parameters
         ----------
         product : str or Metabolite
             The desired product.
-        hosts : list or Model or Host
+        hosts : list
             A list of hosts (e.g. cameo.api.hosts), models, mixture thereof, or a single model or host.
         database: SolverBasedModel
             A model to use as database. See also: cameo.models.universal
@@ -317,7 +317,7 @@ class Designer(object):
         dict
             ([Host, Model] -> PredictedPathways)
         """
-        max_predictions = 8
+        max_predictions = 4
         timeout = 3 * 60
 
         pathways = dict()
@@ -357,11 +357,14 @@ class Designer(object):
             return product
         elif isinstance(product, str):
             search_result = products.search(product)
+            search_result = search_result.loc[[i for i in search_result.index if i in database.metabolites]]
+            if len(search_result) == 0:
+                raise ("No compound matches found for query %s" % product)
             notice("Found %d compounds that match query '%s'" % (len(search_result), product))
             self.__display_product_search_result(search_result)
             notice("Choosing best match (%s) ... please interrupt if this is not the desired compound."
-                   % search_result.name[0])
-            self.__display_compound(search_result.InChI[0])
+                   % search_result.name.values[0])
+            self.__display_compound(search_result.InChI.values[0])
             return database.metabolites.get_by_id(search_result.index[0])
 
     @staticmethod

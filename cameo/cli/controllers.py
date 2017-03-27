@@ -108,14 +108,17 @@ class BaseController(CementBaseController):
             view = SequentialView()
 
         design.debug = self.app.pargs.test
+        try:
+            results = design(product=product, hosts=_hosts,
+                             view=view, aerobic=not self.app.pargs.anaerobic)
 
-        results = design(product=product, hosts=_hosts,
-                         view=view, aerobic=not self.app.pargs.anaerobic)
+            results['heterologous_pathway'] = results.heterologous_pathway.apply(str)
+            results['manipulations'] = results.manipulations.apply(str)
 
-        results['heterologous_pathway'] = results.heterologous_pathway.apply(str)
-        results['manipulations'] = results.manipulations.apply(str)
-
-        OUTPUT_WRITER[output_format](results, output)
+            OUTPUT_WRITER[output_format](results, output)
+        except KeyError as e:
+            print(e)
+            exit(1)
 
     @expose(help="Search for products in our internal database")
     def search(self):
