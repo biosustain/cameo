@@ -452,7 +452,8 @@ def _get_c_source_reaction(model):
         model.optimize()
     except (Infeasible, AssertionError):
         return None
-    source_reactions = [(reaction, reaction.flux * reaction.n_carbon) for reaction in medium_reactions if
+
+    source_reactions = [(reaction, reaction.flux * n_carbon(reaction)) for reaction in medium_reactions if
                         reaction.flux < 0]
     sorted_sources = sorted(source_reactions, key=lambda reaction_tuple: reaction_tuple[1])
     return sorted_sources[0][0]
@@ -552,7 +553,7 @@ def _cycle_free_fva(model, reactions=None, sloppy=True, sloppy_bound=666):
                     if model.solver.status == 'optimal':
                         fva_sol[reaction.id]['upper_bound'] = model.objective.value
                     elif model.solver.status == UNBOUNDED:
-                         fva_sol[reaction.id]['upper_bound'] = numpy.inf
+                        fva_sol[reaction.id]['upper_bound'] = numpy.inf
                     else:
                         fva_sol[reaction.id]['upper_bound'] = 0
 
@@ -589,7 +590,7 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
         -------
         float
             reaction flux multiplied by number of carbon in reactants"""
-        carbon = sum(metabolite.n_carbon for metabolite in reaction.reactants)
+        carbon = sum(metabolite.elements.get('C', 0) for metabolite in reaction.reactants)
         try:
             return reaction.flux * carbon
         except AssertionError:
@@ -953,3 +954,7 @@ class FluxBalanceImpactDegreeResult(Result):
 
     def plot(self, grid=None, width=None, height=None, title=None):
         pass
+
+
+def n_carbon(reaction):
+    return sum(metabolite.elements.get('C', 0) for metabolite in reaction.metabolites)
