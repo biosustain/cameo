@@ -197,16 +197,16 @@ class biomass_product_coupled_yield(YieldFunction):
         if self.carbon_yield:
             product = model.reaction.get_by_id(self.product)
             if product.boundary:
-                product_flux = round(solution.fluxes[self.product], config.ndecimals) * product.n_carbon
+                product_flux = round(solution.fluxes[self.product], config.ndecimals) * n_carbon(product)
             else:
-                product_flux = round(solution.fluxes[self.product], config.ndecimals) * product.n_carbon / 2
+                product_flux = round(solution.fluxes[self.product], config.ndecimals) * n_carbon(product) / 2
             substrate_flux = 0
             for substrate_id in self.substrates:
                 substrate = model.reactions.get_by_id(substrate_id)
                 if substrate.boundary:
-                    substrate_flux += abs(solution.fluxes[substrate_id]) * substrate.n_carbon
+                    substrate_flux += abs(solution.fluxes[substrate_id]) * n_carbon(substrate)
                 else:
-                    substrate_flux += abs(solution.fluxes[substrate_id]) * substrate.n_carbon / 2
+                    substrate_flux += abs(solution.fluxes[substrate_id]) * n_carbon(substrate) / 2
             substrate_flux = round(substrate_flux, config.ndecimals)
 
         else:
@@ -270,16 +270,16 @@ class biomass_product_coupled_min_yield(biomass_product_coupled_yield):
         if self.carbon_yield:
             product = model.reactions.get_by_id(self.product)
             if product.boundary:
-                product_flux = min_product_flux * product.n_carbon
+                product_flux = min_product_flux * n_carbon(product)
             else:
-                product_flux = min_product_flux * product.n_carbon / 2
+                product_flux = min_product_flux * n_carbon(product) / 2
             substrate_flux = 0
             for substrate_id in self.substrates:
                 substrate = model.reactions.get_by_id(substrate_id)
                 if substrate.boundary:
-                    substrate_flux += abs(solution.fluxes[substrate_id]) * substrate.n_carbon
+                    substrate_flux += abs(solution.fluxes[substrate_id]) * n_carbon(substrate)
                 else:
-                    substrate_flux += abs(solution.fluxes[substrate_id]) * substrate.n_carbon / 2
+                    substrate_flux += abs(solution.fluxes[substrate_id]) * n_carbon(substrate) / 2
             substrate_flux = round(substrate_flux, config.ndecimals)
         else:
             product_flux = min_product_flux
@@ -338,16 +338,16 @@ class product_yield(YieldFunction):
         if self.carbon_yield:
             product = model.reactions.get_by_id(self.product)
             if product.boundary:
-                product_flux = round(solution.fluxes[self.product], config.ndecimals) * product.n_carbon
+                product_flux = round(solution.fluxes[self.product], config.ndecimals) * n_carbon(product)
             else:
-                product_flux = round(solution.fluxes[self.product], config.ndecimals) * product.n_carbon / 2
+                product_flux = round(solution.fluxes[self.product], config.ndecimals) * n_carbon(product) / 2
             substrate_flux = 0
             for substrate_id in self.substrates:
                 substrate = model.reactions.get_by_id(substrate_id)
                 if substrate.boundary:
-                    substrate_flux += abs(solution.fluxes[substrate_id]) * substrate.n_carbon
+                    substrate_flux += abs(solution.fluxes[substrate_id]) * n_carbon(substrate)
                 else:
-                    substrate_flux += abs(solution.fluxes[substrate_id]) * substrate.n_carbon / 2
+                    substrate_flux += abs(solution.fluxes[substrate_id]) * n_carbon(substrate) / 2
             substrate_flux = round(substrate_flux, config.ndecimals)
         else:
             product_flux = round(solution.fluxes[self.product], config.ndecimals)
@@ -418,3 +418,14 @@ class number_of_knockouts(ObjectiveFunction):
             return 0
         else:
             return np.inf
+
+
+def n_carbon(reaction):
+    """number of carbon atoms
+
+    Returns
+    -------
+    int
+        number of carbons for all metabolites involved in a reaction
+    """
+    return sum(metabolite.elements.get('C', 0) for metabolite in reaction.metabolites)
