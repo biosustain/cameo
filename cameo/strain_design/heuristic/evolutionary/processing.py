@@ -95,17 +95,16 @@ def process_gene_knockout_solution(model, solution, simulation_method, simulatio
         A list with: reactions, genes, size, fva_min, fva_max, target flux, biomass flux, yield, fitness
     """
 
-    with TimeMachine() as tm:
+    with model:
         genes = [model.genes.get_by_id(gid) for gid in solution]
         reactions = find_gene_knockout_reactions(model, solution)
         for reaction in reactions:
-            reaction.knock_out(tm)
+            reaction.knock_out()
 
         reaction_ids = [r.id for r in reactions]
         flux_dist = simulation_method(model, reactions=objective_function.reactions,
                                       objective=biomass, **simulation_kwargs)
-        tm(do=partial(setattr, model, "objective", biomass),
-           undo=partial(setattr, model, "objective", model.objective))
+        model.objective = biomass
 
         fva = flux_variability_analysis(model, fraction_of_optimum=0.99, reactions=[target])
         target_yield = flux_dist[target] / abs(flux_dist[substrate])
