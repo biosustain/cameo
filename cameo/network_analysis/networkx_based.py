@@ -27,7 +27,7 @@ def model_to_network(model, *args, **kwargs):
 
     Parameters
     ----------
-    model : SolverBasedModel
+    model : cobra.core.Model
         The model.
 
     Returns
