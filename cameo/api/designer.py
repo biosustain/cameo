@@ -359,7 +359,7 @@ class Designer(object):
             search_result = products.search(product)
             search_result = search_result.loc[[i for i in search_result.index if i in database.metabolites]]
             if len(search_result) == 0:
-                raise ("No compound matches found for query %s" % product)
+                raise KeyError("No compound matches found for query %s" % product)
             notice("Found %d compounds that match query '%s'" % (len(search_result), product))
             self.__display_product_search_result(search_result)
             notice("Choosing best match (%s) ... please interrupt if this is not the desired compound."
