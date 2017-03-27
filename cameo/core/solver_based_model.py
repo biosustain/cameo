@@ -32,7 +32,6 @@ from cameo.core.gene import Gene
 from cameo.core.metabolite import Metabolite
 from cameo.util import inheritdocstring
 from .reaction import Reaction
-from .solution import LazySolution
 
 __all__ = ['to_solver_based_model', 'SolverBasedModel']
 
@@ -110,8 +109,8 @@ class SolverBasedModel(cobra.core.Model):
         # self._solver = solver_interface.Model()
         # self._solver.objective = solver_interface.Objective(S.Zero)
         # self._populate_solver(self.reactions, self.metabolites)
-        self._timestamp_last_optimization = None
-        self.solution = LazySolution(self)
+        # self._timestamp_last_optimization = None
+        # self.solution = LazySolution(self)
 
     # @property
     # def non_functional_genes(self):
