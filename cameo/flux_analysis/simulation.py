@@ -32,8 +32,6 @@ import numpy
 
 import logging
 
-from functools import partial
-
 import sympy
 from sympy import Add
 from sympy import Mul
@@ -44,7 +42,7 @@ from cobra.exceptions import OptimizationError
 
 from optlang.interface import OptimizationExpression
 from cameo.config import ndecimals
-from cameo.util import TimeMachine, ProblemCache, in_ipnb
+from cameo.util import ProblemCache, in_ipnb
 from cameo.exceptions import SolveError
 from cameo.core.result import Result
 from cameo.visualization.palette import mapper, Palette
@@ -75,10 +73,9 @@ def fba(model, objective=None, reactions=None, *args, **kwargs):
         Contains the result of the linear solver.
 
     """
-    with TimeMachine() as tm:
+    with model:
         if objective is not None:
-            tm(do=partial(setattr, model, 'objective', objective),
-               undo=partial(setattr, model, 'objective', model.objective))
+            model.objective = objective
         model.solver.optimize()
         if model.solver.status != 'optimal':
             raise SolveError('optimization failed')

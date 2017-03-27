@@ -418,10 +418,9 @@ class TestStructural:
         for group in coupled_reactions:
             representative = pick_one(group)
             if representative not in essential_reactions:
-                with TimeMachine() as tm:
+                with core_model:
                     assert core_model == representative.model
-                    tm(do=partial(core_model.remove_reactions, [representative], delete=False),
-                       undo=partial(core_model.add_reactions, [representative]))
+                    core_model.remove_reactions([representative])
                     # # FIXME: Hack because of optlang queue issues with GLPK
                     # core_model.solver.update()
                     assert representative not in core_model.reactions
@@ -437,12 +436,11 @@ class TestStructural:
         for group in coupled_reactions:
             representative = pick_one(group)
             if representative not in essential_reactions:
-                with TimeMachine() as tm:
+                with core_model:
                     fwd_var_name = representative.forward_variable.name
                     rev_var_name = representative.reverse_variable.name
                     assert core_model == representative.model
-                    tm(do=partial(core_model.remove_reactions, [representative], delete=False),
-                       undo=partial(core_model.add_reactions, [representative]))
+                    core_model.remove_reactions([representative])
                     # # FIXME: Hack because of optlang queue issues with GLPK
                     # core_model.solver.update()
                     assert representative not in core_model.reactions

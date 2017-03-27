@@ -48,7 +48,6 @@ from cameo.exceptions import SolveError
 from cameo.strain_design import OptGene, DifferentialFVA
 from cameo.ui import notice, searching, stop_loader
 from cameo.strain_design import pathway_prediction
-from cameo.util import TimeMachine
 from cameo.models import universal
 from cameo.strain_design.heuristic.evolutionary.objective_functions import biomass_product_coupled_min_yield
 from cameo.strain_design.heuristic.evolutionary.objective_functions import product_yield
@@ -329,7 +328,7 @@ class Designer(object):
             if isinstance(host, Model):
                 host = Host(name='UNKNOWN_HOST', models=[host])
             for model in list(host.models):
-                with TimeMachine() as tm, model:
+                with model:
                     if not aerobic and "EX_o2_e" in model.reactions:
                         model.reactions.EX_o2_e.lower_bound = 0
                     identifier = searching()
