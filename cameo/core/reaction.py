@@ -458,16 +458,16 @@ class Reaction(cobra.core.Reaction):
     #     if ub is not None:
     #         self.upper_bound = ub
 
-    @property
-    def n_carbon(self):
-        """number of carbon atoms
-
-        Returns
-        -------
-        int
-           number of carbons for all metabolites involved in a reaction
-        """
-        return sum(metabolite.n_carbon for metabolite in self.metabolites)
+    # @property
+    # def n_carbon(self):
+    #     """number of carbon atoms
+    #
+    #     Returns
+    #     -------
+    #     int
+    #        number of carbons for all metabolites involved in a reaction
+    #     """
+    #     return sum(metabolite.n_carbon for metabolite in self.metabolites)
 
     def _repr_html_(self):
         return """
