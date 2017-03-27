@@ -17,12 +17,13 @@ from __future__ import absolute_import, print_function
 import os
 import six
 import json
-import cameo
 import logging
 import tempfile
 import subprocess
 
 import networkx as nx
+
+from cobra.core import Metabolite, Reaction
 
 from functools import partial
 from io import BytesIO
@@ -211,13 +212,13 @@ def graph_to_svg(g, layout=nx.spring_layout):
     fig = plt.figure(figsize=(8, 8))
     ax = fig.add_subplot(111)
     # draw reaction nodes
-    # rxn_nodes = [node for node in g.nodes() if isinstance(node, cameo.Reaction)]
+    # rxn_nodes = [node for node in g.nodes() if isinstance(node, Reaction)]
     # draw metabolites
-    met_nodes = [node for node in g.nodes() if isinstance(node, cameo.Metabolite)]
+    met_nodes = [node for node in g.nodes() if isinstance(node, Metabolite)]
     nx.draw_networkx_edges(g, nodelist=met_nodes, pos=layout, ax=ax, edge_color='gray', arrows=False, node_color='b')
     labels = dict()
     for node in g.nodes():
-        if isinstance(node, cameo.Reaction):
+        if isinstance(node, Reaction):
             labels[node] = node.name
         else:
             labels[node] = node.name

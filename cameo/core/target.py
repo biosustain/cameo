@@ -118,7 +118,7 @@ class FluxModulationTarget(Target):
 
         Parameters
         ----------
-        model: cameo.core.solver_based_model.SolverBasedModel
+        model: cobra.core.Model
             A model.
         """
         target = self.get_model_target(model)

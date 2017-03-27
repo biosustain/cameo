@@ -13,7 +13,7 @@ def get_reaction_for(model, value, add=True):
 
     Parameters
     ----------
-    model : cameo.core.SolverBasedModel
+    model : cobra.core.Model
         The model to for which to get / create a reaction
     value: str, Reaction or Metabolite
         A reaction identifier, a Reaction or a Metabolite for which an exchange reaction is to be created.
@@ -74,7 +74,7 @@ def load_medium(model, medium_def, copy=False, delimiter="\t"):
 
     Parameters
     ----------
-    model : cameo.core.SolverBasedModel
+    model : cobra.core.Model
         The model to load medium for
     medium_def: str, pandas.DataFrame, dict.
         The medium to load
@@ -85,7 +85,7 @@ def load_medium(model, medium_def, copy=False, delimiter="\t"):
 
     Returns
     -------
-    SolverBasedModel
+    cobra.core.Model
         If copy=True, returns a copy of the model.
 
     """

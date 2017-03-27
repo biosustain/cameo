@@ -28,7 +28,8 @@ from sympy import Add
 from cobra.util import create_stoichiometric_matrix, fix_objective_as_constraint
 from cobra.flux_analysis.parsimonious import add_pfba
 
-import cameo
+from cobra.core import Metabolite, Reaction
+
 from cameo.flux_analysis import remove_infeasible_cycles, structural
 from cameo.flux_analysis.analysis import (find_blocked_reactions,
                                           flux_variability_analysis,
@@ -135,7 +136,7 @@ class TestFluxVariabilityAnalysis:
                 assert abs(
                     fva_solution['upper_bound'][key] - REFERENCE_FVA_SOLUTION_ECOLI_CORE['upper_bound'][key]) < 0.0001
 
-        cycle_reac = cameo.Reaction("minus_PGI")  # Create fake cycle
+        cycle_reac = Reaction("minus_PGI")  # Create fake cycle
         cycle_reac.lower_bound = -1000
         core_model.add_reaction(cycle_reac)
         cycle_reac.add_metabolites({met: -c for met, c in core_model.reactions.PGI.metabolites.items()})
@@ -364,9 +365,9 @@ class TestStructural:
 
     def test_find_dead_end_reactions(self, core_model):
         assert len(structural.find_dead_end_reactions(core_model)) == 0
-        met1 = cameo.Metabolite("fake_metabolite_1")
-        met2 = cameo.Metabolite("fake_metabolite_2")
-        reac = cameo.Reaction("fake_reac")
+        met1 = Metabolite("fake_metabolite_1")
+        met2 = Metabolite("fake_metabolite_2")
+        reac = Reaction("fake_reac")
         reac.add_metabolites({met1: -1, met2: 1})
         core_model.add_reaction(reac)
         assert structural.find_dead_end_reactions(core_model) == {reac}
