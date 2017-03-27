@@ -38,7 +38,7 @@ from cameo.exceptions import Infeasible, SolveError
 from cameo.flux_analysis.util import remove_infeasible_cycles, fix_pfba_as_constraint
 from cameo.parallel import SequentialView
 from cameo.ui import notice
-from cameo.util import TimeMachine, partition, _BIOMASS_RE_
+from cameo.util import partition, _BIOMASS_RE_
 from cameo.core.utils import get_reaction_for, add_exchange
 from cameo.visualization.plotting import plotter
 
@@ -192,7 +192,7 @@ def find_blocked_reactions(model):
         A list of reactions.
 
     """
-    with TimeMachine() as tm, model:
+    with model:
         for exchange in model.exchanges:
             exchange.bounds = (-9999, 9999)
         fva_solution = flux_variability_analysis(model)

@@ -46,7 +46,6 @@ from cameo.exceptions import SolveError
 from cameo.strain_design import OptGene, DifferentialFVA
 from cameo.ui import notice, searching, stop_loader
 from cameo.strain_design import pathway_prediction
-from cameo.util import TimeMachine
 from cameo.models import universal
 from cameo.strain_design.heuristic.evolutionary.objective_functions import biomass_product_coupled_min_yield
 from cameo.strain_design.heuristic.evolutionary.objective_functions import product_yield
