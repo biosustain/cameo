@@ -447,13 +447,12 @@ def _get_c_source_reaction(model):
     Reaction
        The medium reaction with highest input carbon flux
     """
-    medium_reactions = [model.reactions.get_by_id(reaction) for reaction in model.medium.reaction_id]
     try:
         model.optimize()
     except (Infeasible, AssertionError):
         return None
-
-    source_reactions = [(reaction, reaction.flux * n_carbon(reaction)) for reaction in medium_reactions if
+    model_reactions = model.reactions.get_by_any(list(model.medium))
+    source_reactions = [(reaction, reaction.flux * n_carbon(reaction)) for reaction in model_reactions if
                         reaction.flux < 0]
     sorted_sources = sorted(source_reactions, key=lambda reaction_tuple: reaction_tuple[1])
     return sorted_sources[0][0]
