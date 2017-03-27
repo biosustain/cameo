@@ -18,7 +18,7 @@ __all__ = ['create_adapter_reactions', 'display_pathway']
 
 import re
 
-from cameo import Reaction
+from cobra.core import Reaction
 from cameo.ui import notice
 from cameo.util import in_ipnb
 

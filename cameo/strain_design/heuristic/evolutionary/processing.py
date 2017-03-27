@@ -26,7 +26,7 @@ def process_reaction_knockout_solution(model, solution, simulation_method, simul
     Arguments
     ---------
 
-    model: SolverBasedModel
+    model: cobra.core.Model
         A constraint-based model
     solution: tuple - (reactions, knockouts)
         The output of a decoder
@@ -71,7 +71,7 @@ def process_gene_knockout_solution(model, solution, simulation_method, simulatio
     Arguments
     ---------
 
-    model: SolverBasedModel
+    model: cobra.core.Model
         A constraint-based model
     solution: tuple
         The genes
@@ -121,7 +121,7 @@ def process_reaction_swap_solution(model, solution, simulation_method, simulatio
     Arguments
     ---------
 
-    model: SolverBasedModel
+    model: cobra.core.Model
         A constraint-based model
     solution: tuple - (reactions, knockouts)
         The output of a decoder

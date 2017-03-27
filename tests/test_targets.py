@@ -17,7 +17,8 @@ import pytest
 import six
 from gnomic import Genotype, genotype_to_string, Mutation, FeatureTree, Feature, Accession
 
-from cameo import Metabolite, Reaction
+from cobra import Metabolite, Reaction
+
 from cameo.core.target import (ReactionKnockoutTarget, ReactionModulationTarget, GeneKnockoutTarget,
                                ReactionCofactorSwapTarget, ReactionKnockinTarget)
 from cameo.core.target import (EnsembleTarget, FluxModulationTarget,

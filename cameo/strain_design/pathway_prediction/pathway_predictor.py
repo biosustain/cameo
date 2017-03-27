@@ -25,12 +25,12 @@ import six
 from cobra import DictList
 from sympy import Add, Mul, RealNumber
 
-from cameo import Model, Metabolite
+from cobra.core import Model, Metabolite, Reaction
+
 from cameo import fba
 from cameo import models, phenotypic_phase_plane
 from cameo.config import non_zero_flux_threshold
 from cameo.core.pathway import Pathway
-from cameo.core.reaction import Reaction
 from cameo.core.result import Result, MetaInformation
 from cameo.core.strain_design import StrainDesignMethodResult, StrainDesign, StrainDesignMethod
 from cameo.core.target import ReactionKnockinTarget
@@ -76,11 +76,11 @@ class PathwayResult(Pathway, Result, StrainDesign):
             found = False
             for adapter in self.adapters:
                 if metabolite == adapter.products[0]:
-                    metabolite = Metabolite.clone(adapter.reactants[0])
+                    metabolite = adapter.reactants[0]
                     found = False
                     break
             if not found:
-                metabolite = Metabolite.clone(metabolite)
+                metabolite = metabolite
 
             stoichiometry[metabolite] = coefficient
 
@@ -203,9 +203,9 @@ class PathwayPredictor(StrainDesignMethod):
 
     Parameters
     ----------
-    model : SolverBasedModel
+    model : cobra.core.Model
         The model that represents the host organism.
-    universal_model : SolverBasedModel, optional
+    universal_model : cobra.core.Model, optional
         The model that represents the universal set of reactions.
         A default model will be used if omitted.
     mapping : dict, optional
@@ -219,7 +219,7 @@ class PathwayPredictor(StrainDesignMethod):
 
     Attributes
     ----------
-    model : SolverBasedModel
+    model : cobra.core.Model
         The provided model + universal_model + adapter reactions
 
     Examples

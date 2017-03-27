@@ -25,15 +25,12 @@ import optlang
 import pandas
 import six
 import sympy
-from cobra import Metabolite
+from cobra.core import Metabolite, Reaction, Model
 from numpy.linalg import svd
 from scipy.sparse import dok_matrix, lil_matrix
 from six.moves import zip
 
-from cameo import Reaction
-from cameo.core import SolverBasedModel
-from cameo.exceptions import SolveError, Infeasible
-from cameo.util import TimeMachine
+from cameo.exceptions import SolveError
 
 __all__ = ['find_dead_end_reactions', 'find_coupled_reactions', 'ShortestElementaryFluxModes']
 
@@ -484,7 +481,7 @@ class MinimalCutSetsEnumerator(ShortestElementaryFluxModes):  # pragma: no cover
         return set(primal_mcs)
 
     def _make_dual_model(self, model):
-        dual_model = SolverBasedModel(solver_interface=model.solver.interface)
+        dual_model = Model(solver_interface=model.solver.interface)
 
         # Add dual metabolites
         dual_metabolite_names = []

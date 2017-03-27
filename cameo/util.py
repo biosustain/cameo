@@ -634,7 +634,7 @@ def current_solver_name(model):
 
     Parameters
     ----------
-    model : cameo.core.SolverBasedModel
+    model : cobra.core.Model
         A model
 
     Returns

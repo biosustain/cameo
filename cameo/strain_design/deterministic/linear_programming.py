@@ -28,7 +28,7 @@ from cobra.util import fix_objective_as_constraint
 
 from cameo import config
 from cameo import ui
-from cameo.core.solver_based_model_dual import convert_to_dual
+from cameo.core.model_dual import convert_to_dual
 from cameo.core.strain_design import StrainDesignMethodResult, StrainDesignMethod, StrainDesign
 from cameo.core.target import ReactionKnockoutTarget
 from cameo.core.utils import get_reaction_for
@@ -53,7 +53,7 @@ class OptKnock(StrainDesignMethod):
 
     Parameters
     ----------
-    model : SolverBasedModel
+    model : cobra.core.Model
         A model to be used for finding optimal knockouts. Always set a non-zero lower bound on
         biomass reaction before using OptKnock.
     exclude_reactions : iterable of str or Reaction objects

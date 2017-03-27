@@ -47,7 +47,7 @@ class TargetEvaluator(Evaluator):
 
     Attributes
     ----------
-    model : SolverBasedModel
+    model : cobra.core.Model
         A constraint-based model
     decoder : SetDecoder
         A decoder to convert the representation into knockouts
