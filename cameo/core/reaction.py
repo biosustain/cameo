@@ -468,27 +468,27 @@ class Reaction(cobra.core.Reaction):
     #        number of carbons for all metabolites involved in a reaction
     #     """
     #     return sum(metabolite.n_carbon for metabolite in self.metabolites)
-
-    def _repr_html_(self):
-        return """
-        <table>
-            <tr>
-                <td><strong>Id</strong></td><td>%s</td>
-            </tr>
-            <tr>
-                <td><strong>Name</strong></td><td>%s</td>
-            </tr>
-            <tr>
-                <td><strong>Stoichiometry</strong></td><td>%s</td>
-            </tr>
-            <tr>
-                <td><strong>GPR</strong></td><td>%s</td>
-            </tr>
-            <tr>
-                <td><strong>Lower bound</strong></td><td>%f</td>
-            </tr>
-            <tr>
-                <td><strong>Upper bound</strong></td><td>%f</td>
-            </tr>
-        </table>
-        """ % (self.id, self.name, self.reaction, self.gene_reaction_rule, self.lower_bound, self.upper_bound)
+    #
+    # def _repr_html_(self):
+    #     return """
+    #     <table>
+    #         <tr>
+    #             <td><strong>Id</strong></td><td>%s</td>
+    #         </tr>
+    #         <tr>
+    #             <td><strong>Name</strong></td><td>%s</td>
+    #         </tr>
+    #         <tr>
+    #             <td><strong>Stoichiometry</strong></td><td>%s</td>
+    #         </tr>
+    #         <tr>
+    #             <td><strong>GPR</strong></td><td>%s</td>
+    #         </tr>
+    #         <tr>
+    #             <td><strong>Lower bound</strong></td><td>%f</td>
+    #         </tr>
+    #         <tr>
+    #             <td><strong>Upper bound</strong></td><td>%f</td>
+    #         </tr>
+    #     </table>
+    #     """ % (self.id, self.name, self.reaction, self.gene_reaction_rule, self.lower_bound, self.upper_bound)
