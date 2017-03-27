@@ -19,7 +19,7 @@ import itertools
 import logging
 import re
 from collections import OrderedDict
-from functools import partial, reduce
+from functools import reduce
 
 import numpy
 import pandas
@@ -69,7 +69,7 @@ def find_essential_metabolites(model, threshold=1e-6, force_steady_state=False):
 
     Parameters
     ----------
-    model : cameo.core.SolverBasedModel
+    model : cobra.core.Model
         The model to find the essential metabolites for.
     threshold : float (default 1e-6)
         Minimal objective flux to be considered viable.
@@ -108,7 +108,7 @@ def find_essential_reactions(model, threshold=1e-6):
 
     Parameters
     ----------
-    model : cameo.core.SolverBasedModel
+    model : cobra.core.Model
         The model to find the essential reactions for.
     threshold : float (default 1e-6)
         Minimal objective flux to be considered viable.
@@ -145,7 +145,7 @@ def find_essential_genes(model, threshold=1e-6):
 
     Parameters
     ----------
-    model : cameo.core.SolverBasedModel
+    model : cobra.core.Model
         The model to find the essential genes for.
     threshold : float (default 1e-6)
         Minimal objective flux to be considered viable.
@@ -184,7 +184,7 @@ def find_blocked_reactions(model):
 
     Parameters
     ----------
-    model: SolverBasedModel
+    model: cobra.core.Model
 
     Returns
     -------
@@ -207,7 +207,7 @@ def flux_variability_analysis(model, reactions=None, fraction_of_optimum=0., pfb
 
     Parameters
     ----------
-    model : cameo.core.SolverBasedModel
+    model : cobra.core.Model
     reactions: None or iterable
         The list of reaction whose lower and upper bounds should be determined.
         If `None`, all reactions in `model` will be assessed.
@@ -259,7 +259,7 @@ def phenotypic_phase_plane(model, variables=[], objective=None, source=None, poi
 
     Parameters
     ----------
-    model: SolverBasedModel
+    model: cobra.core.Model
     variables: str or reaction or iterable
         A reaction ID, reaction, or list of reactions to be varied.
     objective: str or reaction or optlang.Objective or Metabolite, optional
@@ -289,7 +289,7 @@ def phenotypic_phase_plane(model, variables=[], objective=None, source=None, poi
 
     if isinstance(variables, six.string_types):
         variables = [variables]
-    elif isinstance(variables, cameo.core.reaction.Reaction):
+    elif isinstance(variables, Reaction):
         variables = [variables]
     variable_ids = [var if isinstance(var, six.string_types) else var.id for var in variables]
 
@@ -463,7 +463,7 @@ def _cycle_free_fva(model, reactions=None, sloppy=True, sloppy_bound=666):
 
     Parameters
     ----------
-    model : SolverBasedModel
+    model : cobra.core.Model
     reactions : list
         List of reactions whose flux-ranges should be determined.
     sloppy : boolean, optional
@@ -688,7 +688,7 @@ def flux_balance_impact_degree(model, knockouts, view=config.default_view, metho
 
     Parameters
     ----------
-    model: SolverBasedModel
+    model: cobra.core.Model
         Wild-type model
     knockouts: list
         Reactions to knockout

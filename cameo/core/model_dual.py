@@ -14,7 +14,7 @@
 import six
 from sympy import Add
 
-from cameo.core.solver_based_model import SolverBasedModel
+from cobra.core import Model
 
 
 def convert_to_dual(model):
@@ -102,17 +102,15 @@ def convert_to_dual(model):
     return dual_model
 
 
-def to_dual_model(solver_based_model, solver_interface=None):
-    if not isinstance(solver_based_model, SolverBasedModel):
-        raise TypeError("Input model must be of type 'SolverBasedModel'")
+def to_dual_model(model, solver_interface=None):
     if solver_interface is None:
-        solver_interface = solver_based_model.solver.interface
-    return SolverBasedModelDual(solver_based_model, solver_interface=solver_interface)
+        solver_interface = model.solver.interface
+    return ModelDual(model, solver_interface=solver_interface)
 
 
-class SolverBasedModelDual(SolverBasedModel):  # pragma: no cover  # don't test until it works
+class ModelDual(Model):  # pragma: no cover  # don't test until it works
     """
-    A SolverBasedModel that also contains the dual variables and constraints, allowing primal and dual
+    A cobra.core.Model that also contains the dual variables and constraints, allowing primal and dual
     problems to be combined.
 
     Dual variables corresponding to stoichiometric constraints are prefixed by lambda
@@ -125,20 +123,20 @@ class SolverBasedModelDual(SolverBasedModel):  # pragma: no cover  # don't test 
 
     def __init__(self, *args, **kwargs):
         self._dual_variables = {}
-        super(SolverBasedModelDual, self).__init__(*args, **kwargs)
+        super(ModelDual, self).__init__(*args, **kwargs)
 
-    def _populate_solver(self, reactions):
-        super(SolverBasedModelDual, self)._populate_solver(reactions)
-        metabolites = set.union(*(set(r.metabolites) for r in reactions))
+    def _populate_solver(self, reaction_list, metabolite_list=None):
+        super(ModelDual, self)._populate_solver(reaction_list)
+        metabolites = set.union(*(set(r.metabolites) for r in reaction_list))
         self._populate_metabolites(metabolites)
         objective_coefficients = self.objective.expression.as_coefficients_dict()
         maximization = self.objective.direction == "max"
-        for reaction in reactions:
+        for reaction in reaction_list:
             forward_coeff = objective_coefficients.get(reaction.forward_variable, 0)
             reverse_coeff = objective_coefficients.get(reaction.reverse_variable, 0)
             self._add_reaction_dual_constraint(reaction, forward_coeff, maximization, "fwd")
             self._add_reaction_dual_constraint(reaction, reverse_coeff, maximization, "rvs")
-            self._add_flux_bound_dual_variable(reaction, forward_coeff, maximization, )
+            self._add_flux_bound_dual_variable(reaction, forward_coeff, maximization, None)
 
     def _add_reaction_dual_constraint(self, reaction, coefficient, maximization, prefix):
         """Add a dual constraint corresponding to the reaction's objective coefficient"""
@@ -160,10 +158,10 @@ class SolverBasedModelDual(SolverBasedModel):  # pragma: no cover  # don't test 
         return self.solver.objective
 
     @objective.setter
-    def objective(self, objective):
-        objective = self.solver.interface.Objective(objective)
-        objective_coefficients = objective.expression.as_coefficients_dict()
-        maximization = objective.direction == "max"
+    def objective(self, value):
+        value = self.solver.interface.Objective(value)
+        objective_coefficients = value.expression.as_coefficients_dict()
+        maximization = value.direction == "max"
         for reaction in self.reactions:
             forward_coeff = objective_coefficients.get(reaction.forward_variable, 0)
             reverse_coeff = objective_coefficients.get(reaction.reverse_variable, 0)

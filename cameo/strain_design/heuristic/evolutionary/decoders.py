@@ -42,7 +42,7 @@ class ReactionSetDecoder(SetDecoder):
 
     representation : list
         Reactions.
-    model : SolverBasedModel
+    model : cobra.Model
     groups : list
         A list of dict(reaction: relative_coefficient) where the dict contains coupled reactions.
 
@@ -91,7 +91,7 @@ class GeneSetDecoder(SetDecoder):
 
     representation : list
         Genes to knockout.
-    model : SolverBasedModel
+    model : cobra.Model
     groups : list
         A list of dict(gene: relative_coefficient) where the dict contains coupled genes.
     """

@@ -35,7 +35,7 @@ def remove_infeasible_cycles(model, fluxes, fix=()):
 
     Arguments
     ---------
-    model : SolverBasedModel
+    model : cobra.core.Model
         The model that generated the flux distribution.
     fluxes : dict
         The flux distribution containing infeasible loops.
@@ -107,7 +107,7 @@ def fix_pfba_as_constraint(model, multiplier=1, fraction_of_optimum=1):
 
     Parameters
     ----------
-    model : cameo.core.SolverBasedModel
+    model : cobra.core.Model
         The model to add the pfba constraint to
     multiplier : float
         The multiplier of the minimal sum of all reaction fluxes to use as the constraint.

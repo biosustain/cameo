@@ -30,7 +30,6 @@ import optlang
 import requests
 from cobra.io import load_json_model, read_sbml_model
 
-from cameo.core import to_solver_based_model
 from pandas import DataFrame
 
 from cameo.io import sanitize_ids
@@ -107,7 +106,8 @@ def get_model_from_uminho(query, index, host="http://darwin.di.uminho.pt/models"
     model_index = index[index["name"] == query]['id'].values[0]
     sbml_file = get_sbml_file(model_index, host)
     sbml_file.close()
-    model = to_solver_based_model(read_sbml_model(sbml_file.name), solver_interface)
+    model = read_sbml_model(sbml_file.name)
+    model.solver = solver_interface
     if sanitize:
         sanitize_ids(model)
     return model
@@ -157,7 +157,8 @@ def get_model_from_bigg(id, solver_interface=optlang, sanitize=True):
         raise e
     if response.ok:
         with io.StringIO(response.text) as f:
-            model = to_solver_based_model(load_json_model(f), solver_interface=solver_interface)
+            model = load_json_model(f)
+            model.solver = solver_interface
             if sanitize:
                 sanitize_ids(model)
             return model
