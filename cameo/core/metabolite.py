@@ -1,5 +1,4 @@
 # Copyright 2016 Novo Nordisk Foundation Center for Biosustainability, DTU.
-
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -16,8 +15,6 @@ import logging
 import cobra
 import six
 from cameo.util import inheritdocstring
-from cameo.core.utils import add_exchange
-from cobra.util.context import get_context
 
 logger = logging.getLogger(__name__)
 
@@ -48,16 +45,16 @@ class Metabolite(cobra.core.Metabolite):
     #     super(Metabolite, self).remove_from_model(method, **kwargs)
     #     model.solver.remove(model.solver.constraints[self.id])
 
-    @property
-    def n_carbon(self):
-        """number of carbon atoms
-
-        Returns
-        -------
-        int
-            number of carbons in this metabolite
-        """
-        return self.elements.get('C', 0)
+    # @property
+    # def n_carbon(self):
+    #     """number of carbon atoms
+    #
+    #     Returns
+    #     -------
+    #     int
+    #         number of carbons in this metabolite
+    #     """
+    #     return self.elements.get('C', 0)
 
     # @property
     # def constraint(self):
