@@ -21,7 +21,7 @@ import os
 import pickle
 
 import cobra.test
-from cobra.util import SolverNotFound, add_exchange
+from cobra.util import SolverNotFound
 
 import numpy
 import pandas
@@ -36,11 +36,11 @@ from cameo.config import solvers
 from cameo.core.gene import Gene
 from cameo.core.metabolite import Metabolite
 from cameo.core.solver_based_model import Reaction
-from cameo.core.utils import get_reaction_for
+from cameo.core.utils import get_reaction_for, load_medium, medium
 from cameo.exceptions import UndefinedSolution
 from cameo.flux_analysis.structural import create_stoichiometric_array
 from cameo.flux_analysis.analysis import find_essential_genes, find_essential_metabolites, find_essential_reactions
-from cameo.util import TimeMachine
+
 
 TRAVIS = bool(os.getenv('TRAVIS', False))
 TESTDIR = os.path.dirname(__file__)
@@ -964,15 +964,15 @@ class TestSolverBasedModel:
                 assert stoichiometric_matrix[j, i] == coefficient
 
     def test_set_medium(self, core_model):
-        medium = core_model.medium
+        this_medium = medium(core_model)
         for reaction in core_model.exchanges:
             if reaction.lower_bound == 0:
-                assert reaction.id not in medium.reaction_id.values
+                assert reaction.id not in this_medium.reaction_id.values
             if reaction.lower_bound < 0:
-                assert reaction.id in medium.reaction_id.values
-        core_model.load_medium(medium)
-        for rid in core_model.medium.reaction_id:
-            assert len(medium[medium.reaction_id == rid]) == 1
+                assert reaction.id in this_medium.reaction_id.values
+        load_medium(core_model, this_medium)
+        for rid in medium(core_model).reaction_id:
+            assert len(this_medium[this_medium.reaction_id == rid]) == 1
 
     def test_solver_change_preserves_non_metabolic_constraints(self, core_model):
         with core_model:
