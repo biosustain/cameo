@@ -25,10 +25,8 @@ import networkx as nx
 
 from cobra.core import Metabolite, Reaction
 
-from functools import partial
 from io import BytesIO
 from escher import Builder
-from cameo.util import TimeMachine
 
 try:
     from IPython.display import HTML, SVG
@@ -101,23 +99,11 @@ cdf.embed("%s", 942, 678);
 
 
 def draw_knockout_result(model, map_name, simulation_method, knockouts, *args, **kwargs):
-    tm = TimeMachine()
-
-    try:
+    with model:
         for reaction in model.reactions.get_by_any(knockouts):
-            tm(do=partial(setattr, reaction, 'lower_bound', 0),
-               undo=partial(setattr, reaction, 'lower_bound', reaction.lower_bound))
-            tm(do=partial(setattr, reaction, 'upper_bound', 0),
-               undo=partial(setattr, reaction, 'upper_bound', reaction.upper_bound))
-
+            reaction.knock_out()
         solution = simulation_method(model, *args, **kwargs).x_dict
-        tm.reset()
-
         return Builder(map_name, reaction_data=solution)
-
-    except Exception as e:
-        tm.reset()
-        raise e
 
 
 def inchi_to_svg(inchi, file=None, debug=False, three_d=False):

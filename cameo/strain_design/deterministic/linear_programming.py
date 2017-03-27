@@ -36,7 +36,7 @@ from cameo.exceptions import SolveError
 from cameo.flux_analysis.analysis import phenotypic_phase_plane, flux_variability_analysis, find_essential_reactions
 from cameo.flux_analysis.simulation import fba
 from cameo.flux_analysis.structural import find_coupled_reactions_nullspace
-from cameo.util import TimeMachine, reduce_reaction_set
+from cameo.util import reduce_reaction_set
 from cameo.visualization.plotting import plotter
 
 logger = logging.getLogger(__name__)
@@ -241,7 +241,7 @@ class OptKnock(StrainDesignMethod):
         production_list = []
         biomass_list = []
         loader_id = ui.loading()
-        with TimeMachine() as tm:
+        with self._model:
             self._model.objective = target.id
             self._number_of_knockouts_constraint.lb = self._number_of_knockouts_constraint.ub - max_knockouts
             count = 0
@@ -269,9 +269,7 @@ class OptKnock(StrainDesignMethod):
 
                 if len(knockouts) < max_knockouts:
                     self._number_of_knockouts_constraint.lb = self._number_of_knockouts_constraint.ub - len(knockouts)
-
-                tm(do=partial(self._model.solver.add, integer_cut),
-                   undo=partial(self._model.solver.remove, integer_cut))
+                self._model.add_cons_vars(integer_cut)
                 count += 1
 
             ui.stop_loader(loader_id)
@@ -342,9 +340,9 @@ class OptKnockResult(StrainDesignMethodResult):
         return self._target
 
     def display_on_map(self, index=0, map_name=None, palette="YlGnBu"):
-        with TimeMachine() as tm:
+        with self._model:
             for ko in self.data_frame.loc[index, "reactions"]:
-                self._model.reactions.get_by_id(ko).knock_out(tm)
+                self._model.reactions.get_by_id(ko).knock_out()
             fluxes = fba(self._model)
             fluxes.display_on_map(map_name=map_name, palette=palette)
 
