@@ -22,7 +22,8 @@ import re
 import numpy as np
 from IProgress import ProgressBar, ETA, Bar
 
-from cameo.core import SolverBasedModel
+from cobra.core import Metabolite, Model
+
 from cameo.core.strain_design import StrainDesign
 from cameo.strain_design.pathway_prediction.pathway_predictor import PathwayResult
 
@@ -38,7 +39,8 @@ except ImportError:
 
 from pandas import DataFrame
 
-from cameo import Metabolite, Model, fba
+
+from cameo import fba
 from cameo import config, util
 from cameo.api.hosts import hosts as HOSTS, Host
 from cameo.api.products import products
@@ -82,7 +84,7 @@ class _OptGeneRunner(_OptimizationRunner):
 
         (model, pathway, aerobic) = (strategy[1], strategy[2], strategy[3])
         model = model.copy()
-        assert isinstance(model, SolverBasedModel)
+        assert isinstance(model, Model)
         assert isinstance(pathway, PathwayResult)
         assert isinstance(aerobic, bool)
 
@@ -108,7 +110,7 @@ class _DifferentialFVARunner(_OptimizationRunner):
 
         (model, pathway, aerobic) = (strategy[1], strategy[2], strategy[3])
         model = model.copy()
-        assert isinstance(model, SolverBasedModel)
+        assert isinstance(model, Model)
         assert isinstance(pathway, PathwayResult)
         assert isinstance(aerobic, bool)
 
@@ -227,7 +229,7 @@ class Designer(object):
         strategy_designs : list
             A list of list[StrainDesign]. Each list corresponds to a strategy.
         strategies : list
-            List of [(Host, SolverBasedModel, PathwayResult, Boolean)]. Note: variables: host, model, pathway, anaerobic
+            List of [(Host, Model, PathwayResult, Boolean)]. Note: variables: host, model, pathway, anaerobic
         results : pandas.DataFrame
             An existing DataFrame to be extended.
         progress : IProgress.ProgressBar
@@ -309,7 +311,7 @@ class Designer(object):
             The desired product.
         hosts : list
             A list of hosts (e.g. cameo.api.hosts), models, mixture thereof, or a single model or host.
-        database: SolverBasedModel
+        database: Model
             A model to use as database. See also: cameo.models.universal
         aerobic: bool
             If True, it will set `model.reactions.EX_o2_e.lower_bound` to 0.

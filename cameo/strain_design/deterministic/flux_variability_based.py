@@ -33,6 +33,7 @@ except ImportError:
 from IProgress import ProgressBar
 from pandas import DataFrame, pandas
 
+from cobra.core import Reaction, Metabolite
 from cobra.util import fix_objective_as_constraint
 
 from cameo.visualization.plotting import plotter
@@ -43,8 +44,6 @@ from cameo.util import TimeMachine, in_ipnb, _BIOMASS_RE_, float_floor, float_ce
 from cameo.config import non_zero_flux_threshold, ndecimals
 from cameo.parallel import SequentialView
 
-from cameo.core.reaction import Reaction
-from cameo.core.metabolite import Metabolite
 from cameo.core.utils import get_reaction_for
 
 from cameo.visualization.escher_ext import NotebookBuilder
@@ -98,13 +97,13 @@ class DifferentialFVA(StrainDesignMethod):
 
     Parameters
     ----------
-    design_space_model : SolverBasedModel
+    design_space_model : cobra.core.Model
         A model whose flux ranges will be scanned.
     objective : str or Reaction or Metabolite
         A reaction whose flux or a metabolite whose production should be maximized.
     variables : iterable, optional
         A iterable of n reactions (or IDs) to be scanned (defaults to current objective in design_space_model).
-    reference_model : SolverBasedModel, optional
+    reference_model : cobra.core.Model, optional
         A model whose flux ranges represent the reference state and all calculated
         flux ranges will be compared to. Defaults to design_space_model constrained
         to its maximum objective value.
@@ -734,7 +733,7 @@ class FSEOF(StrainDesignMethod):
 
     Parameters
     ----------
-    model : SolverBasedModel
+    model : cobra.core.Model
     enforced_reaction : Reaction
         The flux that will be enforced. Reaction object or reaction id string.
     primary_objective : Reaction

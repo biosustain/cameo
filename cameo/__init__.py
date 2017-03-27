@@ -94,11 +94,6 @@ del get_versions
 from cameo.io import load_model
 
 from cameo import models
-
-from cameo.core.solver_based_model import SolverBasedModel as Model
-from cameo.core.reaction import Reaction
-from cameo.core.metabolite import Metabolite
-
 from .flux_analysis.analysis import flux_variability_analysis, phenotypic_phase_plane
 from .flux_analysis.simulation import fba, pfba
 

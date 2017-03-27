@@ -24,7 +24,7 @@ import six
 import optlang
 from cobra.io import read_sbml_model, load_json_model
 
-from cameo.core.solver_based_model import SolverBasedModel, to_solver_based_model
+from cobra.core import Model
 from cameo.config import solvers
 
 import logging
@@ -69,14 +69,9 @@ def load_model(path_or_handle, solver_interface=optlang, sanitize=True):
     if sanitize:
         sanitize_ids(model)
 
-    if not isinstance(model, SolverBasedModel):
-        if solver_interface is not None:
-            logger.debug("Changing solver interface to %s" % solver_interface)
-            model = to_solver_based_model(model, solver_interface=solver_interface)
-    else:
-        if solver_interface is not None and not isinstance(model.solver, solver_interface.Model):
-            logger.debug("Changing solver interface to %s" % solver_interface)
-            model.solver = solver_interface
+    if solver_interface is not None and not isinstance(model.solver, solver_interface.Model):
+        logger.debug("Changing solver interface to %s" % solver_interface)
+        model.solver = solver_interface
 
     return model
 
@@ -150,7 +145,7 @@ def sanitize_ids(model):
         metabolite.name = _apply_sanitize_rules(metabolite.name, ID_SANITIZE_RULES_SIMPHENY)
 
     for reaction in model.reactions:
-        if isinstance(model, SolverBasedModel):
+        if isinstance(model, Model):
             forward_variable = reaction.forward_variable
             reverse_variable = reaction.reverse_variable
         rxn_id = reaction.id
@@ -158,12 +153,12 @@ def sanitize_ids(model):
         reaction.nice_id = _apply_sanitize_rules(rxn_id, ID_SANITIZE_RULES_SIMPHENY)
         if reaction.name is not None:
             reaction.name = _apply_sanitize_rules(reaction.name, ID_SANITIZE_RULES_SIMPHENY)
-        if isinstance(model, SolverBasedModel):
+        if isinstance(model, Model):
             forward_variable.name = reaction.id
             if reverse_variable is not None:
                 reverse_variable.name = reaction.reverse_id
 
-    if isinstance(model, SolverBasedModel):
+    if isinstance(model, Model):
         for constraint in model.solver.constraints:
             constraint.name = _apply_sanitize_rules(constraint.name, ID_SANITIZE_RULES_TAB_COMPLETION)
 

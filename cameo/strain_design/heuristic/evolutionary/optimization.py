@@ -27,7 +27,6 @@ from pandas import DataFrame
 
 from cameo import config
 from cameo.core.result import Result
-from cameo.core.solver_based_model import SolverBasedModel
 from cameo.flux_analysis.simulation import pfba, lmoma, moma, room, logger as simulation_logger
 from cameo.flux_analysis.structural import (find_blocked_reactions_nullspace, find_coupled_reactions_nullspace,
                                             nullspace,
@@ -117,7 +116,7 @@ class HeuristicOptimization(object):
 
     Attributes
     ----------
-    model : SolverBasedModel
+    model : cobra.core.Model
         A constraint-based model.
     heuristic_method : inspyred.ec.EvolutionaryComputation
         An evolutionary algorithm.
@@ -653,7 +652,7 @@ class ReactionKnockoutOptimization(KnockoutOptimization):
 
     Attributes
     ----------
-    model : SolverBasedModel
+    model : cobra.core.Model
         A constraint-based model.
     heuristic_method : inspyred.ec.EvolutionaryComputation
         An evolutionary algorithm.
@@ -746,7 +745,7 @@ class GeneKnockoutOptimization(KnockoutOptimization):
 
     Attributes
     ----------
-    model : SolverBasedModel
+    model : cobra.core.Model
         A constraint-based model.
     heuristic_method : inspyred.ec.EvolutionaryComputation
         An evolutionary algorithm.
@@ -849,7 +848,7 @@ class CofactorSwapOptimization(TargetOptimization):
 
     Parameters
     ----------
-    model : SolverBasedModel
+    model : cobra.core.Model
        the model to operator on
     cofactor_id_swaps : tuple
        a tuple of length 2 that defines two lists of metabolite identifiers that should be interchanged during the
@@ -903,7 +902,7 @@ class CofactorSwapOptimization(TargetOptimization):
 
         Arguments
         ---------
-        model: SolverBasedModel
+        model: cobra.core.Model
             A model with reactions to search on.
         swaps: tuple
             Pair of cofactors to swap.

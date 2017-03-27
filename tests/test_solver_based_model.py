@@ -29,13 +29,12 @@ import pytest
 import six
 
 from cobra.util import fix_objective_as_constraint
+from cobra.core import Model, Reaction, Metabolite
 
 import cameo
-from cameo import Model, load_model
+import cameo.core
+from cameo import load_model
 from cameo.config import solvers
-from cameo.core.gene import Gene
-from cameo.core.metabolite import Metabolite
-from cameo.core.solver_based_model import Reaction
 from cameo.core.utils import get_reaction_for, load_medium, medium
 from cameo.exceptions import UndefinedSolution
 from cameo.flux_analysis.structural import create_stoichiometric_array
@@ -96,24 +95,24 @@ def tiny_toy_model(request):
 
 
 class TestReaction:
-    def test_clone_cobrapy_reaction(self):
-        model = cobra.test.create_test_model('textbook')
-        for reaction in model.reactions:
-            cloned_reaction = Reaction.clone(reaction)
-            assert cloned_reaction.gene_reaction_rule == reaction.gene_reaction_rule
-            assert set([gene.id for gene in cloned_reaction.genes]) == set([gene.id for gene in reaction.genes])
-            assert all(isinstance(gene, cameo.core.Gene) for gene in list(cloned_reaction.genes))
-            assert {metabolite.id for metabolite in cloned_reaction.metabolites} == {metabolite.id for metabolite in
-                                                                                     reaction.metabolites}
-            assert all(isinstance(metabolite, cameo.core.Metabolite) for metabolite in cloned_reaction.metabolites)
-            assert {metabolite.id for metabolite in cloned_reaction.products} == {metabolite.id for metabolite in
-                                                                                  reaction.products}
-            assert {metabolite.id for metabolite in cloned_reaction.reactants} == {metabolite.id for metabolite in
-                                                                                   reaction.reactants}
-            assert reaction.id == cloned_reaction.id
-            assert reaction.name == cloned_reaction.name
-            assert reaction.upper_bound == cloned_reaction.upper_bound
-            assert reaction.lower_bound == cloned_reaction.lower_bound
+    # def test_clone_cobrapy_reaction(self):
+    #     model = cobra.test.create_test_model('textbook')
+    #     for reaction in model.reactions:
+    #         cloned_reaction = Reaction.clone(reaction)
+    #         assert cloned_reaction.gene_reaction_rule == reaction.gene_reaction_rule
+    #         assert set([gene.id for gene in cloned_reaction.genes]) == set([gene.id for gene in reaction.genes])
+    #         assert all(isinstance(gene, cobra.core.Gene) for gene in list(cloned_reaction.genes))
+    #         assert {metabolite.id for metabolite in cloned_reaction.metabolites} == {metabolite.id for metabolite in
+    #                                                                                  reaction.metabolites}
+    #         assert all(isinstance(metabolite, cameo.core.Metabolite) for metabolite in cloned_reaction.metabolites)
+    #         assert {metabolite.id for metabolite in cloned_reaction.products} == {metabolite.id for metabolite in
+    #                                                                               reaction.products}
+    #         assert {metabolite.id for metabolite in cloned_reaction.reactants} == {metabolite.id for metabolite in
+    #                                                                                reaction.reactants}
+    #         assert reaction.id == cloned_reaction.id
+    #         assert reaction.name == cloned_reaction.name
+    #         assert reaction.upper_bound == cloned_reaction.upper_bound
+    #         assert reaction.lower_bound == cloned_reaction.lower_bound
 
     # test moved to cobra
     # def test_gene_reaction_rule_setter(self, core_model):
@@ -613,33 +612,33 @@ class TestReaction:
             assert name == reaction.id
 
 
-class TestSolverBasedModel:
-    def test_model_is_subclassed(self, core_model):
-        assert isinstance(core_model, cameo.core.SolverBasedModel)
-        for reac in core_model.reactions:
-            assert isinstance(reac, Reaction)
-            for met in reac.metabolites:
-                assert isinstance(met, Metabolite)
-                assert met in core_model.metabolites
-                assert met is core_model.metabolites.get_by_id(met.id)
-            for gene in reac.genes:
-                assert isinstance(gene, Gene)
-                assert gene in core_model.genes
-                assert gene is core_model.genes.get_by_id(gene.id)
-
-        for gene in core_model.genes:
-            assert isinstance(gene, Gene)
-            for reac in gene.reactions:
-                assert isinstance(reac, Reaction)
-                assert reac in core_model.reactions
-                assert reac is core_model.reactions.get_by_id(reac.id)
-
-        for met in core_model.metabolites:
-            assert isinstance(met, Metabolite)
-            for reac in met.reactions:
-                assert isinstance(reac, Reaction)
-                assert reac in core_model.reactions
-                assert reac is core_model.reactions.get_by_id(reac.id)
+class TestModel:
+    # def test_model_is_subclassed(self, core_model):
+    #     assert isinstance(core_model, cobra.core.Model)
+    #     for reac in core_model.reactions:
+    #         assert isinstance(reac, Reaction)
+    #         for met in reac.metabolites:
+    #             assert isinstance(met, Metabolite)
+    #             assert met in core_model.metabolites
+    #             assert met is core_model.metabolites.get_by_id(met.id)
+    #         for gene in reac.genes:
+    #             assert isinstance(gene, Gene)
+    #             assert gene in core_model.genes
+    #             assert gene is core_model.genes.get_by_id(gene.id)
+    #
+    #     for gene in core_model.genes:
+    #         assert isinstance(gene, Gene)
+    #         for reac in gene.reactions:
+    #             assert isinstance(reac, Reaction)
+    #             assert reac in core_model.reactions
+    #             assert reac is core_model.reactions.get_by_id(reac.id)
+    #
+    #     for met in core_model.metabolites:
+    #         assert isinstance(met, Metabolite)
+    #         for reac in met.reactions:
+    #             assert isinstance(reac, Reaction)
+    #             assert reac in core_model.reactions
+    #             assert reac is core_model.reactions.get_by_id(reac.id)
 
     def test_objective_coefficient_reflects_changed_objective(self, core_model):
         biomass_r = core_model.reactions.get_by_id('Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2')
@@ -660,10 +659,10 @@ class TestSolverBasedModel:
         assert coef_dict[biomass_r.forward_variable] == 1
         assert coef_dict[biomass_r.reverse_variable] == -1
 
-    def test_model_from_other_model(self, core_model):
-        core_model = Model(description=core_model)
-        for reaction in core_model.reactions:
-            assert reaction == core_model.reactions.get_by_id(reaction.id)
+    # def test_model_from_other_model(self, core_model):
+    #     core_model = Model(id_or_model=core_model)
+    #     for reaction in core_model.reactions:
+    #         assert reaction == core_model.reactions.get_by_id(reaction.id)
 
     def test_add_reactions(self, core_model):
         r1 = Reaction('r1')

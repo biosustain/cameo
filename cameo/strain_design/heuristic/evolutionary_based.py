@@ -23,7 +23,7 @@ from IProgress.progressbar import ProgressBar
 from IProgress.widgets import Bar, Percentage
 from pandas import DataFrame
 
-from cameo.core.solver_based_model import SolverBasedModel
+from cobra.core import Model
 from cameo.core.strain_design import StrainDesignMethod, StrainDesignMethodResult, StrainDesign
 from cameo.core.target import ReactionKnockoutTarget, GeneKnockoutTarget, ReactionCofactorSwapTarget
 from cameo.exceptions import SolveError
@@ -49,8 +49,8 @@ logger = logging.getLogger(__name__)
 class OptGene(StrainDesignMethod):
     def __init__(self, model, evolutionary_algorithm=inspyred.ec.GA, manipulation_type="genes", essential_genes=None,
                  essential_reactions=None, plot=True, exclude_non_gene_reactions=True, *args, **kwargs):
-        if not isinstance(model, SolverBasedModel):
-            raise TypeError("Argument 'model' should be of type 'cameo.core.SolverBasedModel'.")
+        if not isinstance(model, Model):
+            raise TypeError("Argument 'model' should be of type 'cobra.core.Model'.")
 
         super(OptGene, self).__init__(*args, **kwargs)
 
@@ -182,7 +182,7 @@ class OptGeneResult(StrainDesignMethodResult):
     def __init__(self, model, knockouts, objective_function, simulation_method, manipulation_type,
                  biomass, target, substrate, simulation_kwargs, *args, **kwargs):
         super(OptGeneResult, self).__init__(self._generate_designs(knockouts, manipulation_type), *args, **kwargs)
-        assert isinstance(model, SolverBasedModel)
+        assert isinstance(model, Model)
 
         self._model = model
         self._knockouts = knockouts
@@ -412,7 +412,7 @@ class HeuristicOptSwapResult(StrainDesignMethodResult):
     def __init__(self, model, swaps, swap_pairs, objective_function, simulation_method, biomass, target,
                  substrate, simulation_kwargs, *args, **kwargs):
         super(HeuristicOptSwapResult, self).__init__(self._generate_designs(swaps, swap_pairs), *args, **kwargs)
-        assert isinstance(model, SolverBasedModel)
+        assert isinstance(model, Model)
 
         self._model = model
         self._swaps = swaps
