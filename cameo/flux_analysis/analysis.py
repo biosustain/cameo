@@ -29,7 +29,7 @@ from cobra.util import fix_objective_as_constraint
 from numpy import trapz
 from six.moves import zip
 from sympy import S
-from optlang.interface import UNBOUNDED
+from optlang.interface import UNBOUNDED, OPTIMAL
 
 import cameo
 from cameo import config
@@ -86,7 +86,7 @@ def find_essential_metabolites(model, threshold=1e-6, force_steady_state=False):
     # Essential metabolites are only in reactions that carry flux.
     metabolites = set()
     model.solver.optimize()
-    if model.solver.status != 'optimal':
+    if model.solver.status != OPTIMAL:
         raise SolveError('optimization failed')
     solution = get_solution(model)
     for reaction_id, flux in six.iteritems(solution.fluxes):
@@ -98,7 +98,7 @@ def find_essential_metabolites(model, threshold=1e-6, force_steady_state=False):
         with model:
             metabolite.knock_out(force_steady_state=force_steady_state)
             model.solver.optimize()
-            if model.solver.status != 'optimal' or model.objective.value < threshold:
+            if model.solver.status != OPTIMAL or model.objective.value < threshold:
                 essential.append(metabolite)
     return essential
 
@@ -121,7 +121,7 @@ def find_essential_reactions(model, threshold=1e-6):
     essential = []
     try:
         model.solver.optimize()
-        if model.solver.status != 'optimal':
+        if model.solver.status != OPTIMAL:
             raise SolveError('optimization failed')
         solution = get_solution(model)
         for reaction_id, flux in six.iteritems(solution.fluxes):
@@ -130,7 +130,7 @@ def find_essential_reactions(model, threshold=1e-6):
                 with model:
                     reaction.knock_out()
                     model.solver.optimize()
-                    if model.solver.status != 'optimal' or model.objective.value < threshold:
+                    if model.solver.status != OPTIMAL or model.objective.value < threshold:
                         essential.append(reaction)
 
     except SolveError as e:
@@ -158,7 +158,7 @@ def find_essential_genes(model, threshold=1e-6):
     essential = []
     try:
         model.solver.optimize()
-        if model.solver.status != 'optimal':
+        if model.solver.status != OPTIMAL:
             raise SolveError('optimization failed')
         solution = get_solution(model)
         genes_to_check = set()
@@ -169,7 +169,7 @@ def find_essential_genes(model, threshold=1e-6):
             with model:
                 gene.knock_out()
                 model.solver.optimize()
-                if model.solver.status != 'optimal' or model.objective.value < threshold:
+                if model.solver.status != OPTIMAL or model.objective.value < threshold:
                     essential.append(gene)
 
     except SolveError as e:
@@ -384,7 +384,7 @@ def _flux_variability_analysis(model, reactions=None):
             model.solver.objective.set_linear_coefficients({reaction.forward_variable: 1.,
                                                             reaction.reverse_variable: -1.})
             model.solver.optimize()
-            if model.solver.status == 'optimal':
+            if model.solver.status == OPTIMAL:
                 fva_sol[reaction.id]['lower_bound'] = model.objective.value
             elif model.solver.status == UNBOUNDED:
                 fva_sol[reaction.id]['lower_bound'] = -numpy.inf
@@ -402,7 +402,7 @@ def _flux_variability_analysis(model, reactions=None):
                                                             reaction.reverse_variable: -1.})
 
             model.solver.optimize()
-            if model.solver.status == 'optimal':
+            if model.solver.status == OPTIMAL:
                 fva_sol[reaction.id]['upper_bound'] = model.objective.value
             elif model.solver.status == UNBOUNDED:
                 fva_sol[reaction.id]['upper_bound'] = numpy.inf
@@ -485,7 +485,7 @@ def _cycle_free_fva(model, reactions=None, sloppy=True, sloppy_bound=666):
         if model.solver.status == UNBOUNDED:
             fva_sol[reaction.id]['lower_bound'] = -numpy.inf
             continue
-        elif model.solver.status != 'optimal':
+        elif model.solver.status != OPTIMAL:
             fva_sol[reaction.id]['lower_bound'] = 0
             continue
         bound = model.objective.value
@@ -510,7 +510,7 @@ def _cycle_free_fva(model, reactions=None, sloppy=True, sloppy_bound=666):
                             knockout_reaction.knock_out()
                     model.objective.direction = 'min'
                     model.solver.optimize()
-                    if model.solver.status == 'optimal':
+                    if model.solver.status == OPTIMAL:
                         fva_sol[reaction.id]['lower_bound'] = model.objective.value
                     elif model.solver.status == UNBOUNDED:
                         fva_sol[reaction.id]['lower_bound'] = -numpy.inf
@@ -524,7 +524,7 @@ def _cycle_free_fva(model, reactions=None, sloppy=True, sloppy_bound=666):
         if model.solver.status == UNBOUNDED:
             fva_sol[reaction.id]['upper_bound'] = numpy.inf
             continue
-        elif model.solver.status != 'optimal':
+        elif model.solver.status != OPTIMAL:
             fva_sol[reaction.id]['upper_bound'] = 0
             continue
         bound = model.objective.value
@@ -549,7 +549,7 @@ def _cycle_free_fva(model, reactions=None, sloppy=True, sloppy_bound=666):
                             knockout_reaction.knock_out()
                     model.objective.direction = 'max'
                     model.solver.optimize()
-                    if model.solver.status == 'optimal':
+                    if model.solver.status == OPTIMAL:
                         fva_sol[reaction.id]['upper_bound'] = model.objective.value
                     elif model.solver.status == UNBOUNDED:
                         fva_sol[reaction.id]['upper_bound'] = numpy.inf
