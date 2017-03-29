@@ -52,7 +52,7 @@ class BaseController(CementBaseController):
     def default(self):
         print("Welcome to cameo. For more information run cameo --help.")
 
-    @expose(help="Find design for a product of interest\n"
+    @expose(help="Find strain designs for a product of interest\n"
                  "    Usage: cameo design --product=acetate\n"
                  "    For more information see the arguments bellow.\n")
     def design(self):
