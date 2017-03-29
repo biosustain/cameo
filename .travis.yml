@@ -21,6 +21,7 @@ branches:
  - master
  - devel
  - devel-nonfree
+ - devel06
  - /^[0-9]+\.[0-9]+\.[0-9]+[.0-9ab]*$/
 
 cache:
