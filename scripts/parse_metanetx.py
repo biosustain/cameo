@@ -20,7 +20,7 @@ import sys
 
 import requests
 import optlang
-from cobra.core.Formula import Formula
+from cobra.Formula import Formula
 from cobra.io.json import save_json_model
 from pandas import read_table, notnull
 

@@ -16,7 +16,7 @@ Manage manipulations such as swapping reaction cofactors, over-express or down-r
 
 """
 
-from cobra.core import Reaction
+from cobra import Reaction
 
 
 def increase_flux(reaction, ref_value, value):
@@ -28,7 +28,7 @@ def increase_flux(reaction, ref_value, value):
 
     Parameters
     ----------
-    reaction: cobra.core.Reaction
+    reaction: cobra.Reaction
         The reaction to over-express.
     ref_value: float
         The flux value to come from.
@@ -56,7 +56,7 @@ def decrease_flux(reaction, ref_value, value):
 
     Parameters
     ----------
-    reaction: cobra.core.Reaction
+    reaction: cobra.Reaction
         The reaction to down_regulate.
     ref_value: float
         The flux value to come from.
@@ -86,7 +86,7 @@ def reverse_flux(reaction, ref_value, value):
 
     Parameters
     ----------
-    reaction: cobra.core.Reaction
+    reaction: cobra.Reaction
         The reaction that will be inverted.
     ref_value: float
         The flux value to come from.
@@ -112,9 +112,9 @@ def swap_cofactors(reaction, model, swap_pairs, inplace=True):
 
     Parameters
     ----------
-    reaction: cobra.core.Reaction
+    reaction: cobra.Reaction
         The reaction to swap.
-    model: cameo.cobra.core.Model
+    model: cameo.cobra.Model
         A constraint-based model.
     swap_pairs: tuple
         A tuple of (cofactors, equivalent_cofactors)

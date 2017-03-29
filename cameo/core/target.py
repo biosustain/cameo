@@ -118,7 +118,7 @@ class FluxModulationTarget(Target):
 
         Parameters
         ----------
-        model: cobra.core.Model
+        model: cobra.Model
             A model.
         """
         target = self.get_model_target(model)

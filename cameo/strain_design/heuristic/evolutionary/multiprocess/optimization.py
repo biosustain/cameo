@@ -73,7 +73,7 @@ class MultiprocessHeuristicOptimization(HeuristicOptimization):
     Attributes
     ----------
 
-    model: cobra.core.Model
+    model: cobra.Model
         A model to simulate.
     objective_function: a list of or one objective_function
         The objective for the algorithm to optimize.
@@ -126,7 +126,7 @@ class MultiprocessKnockoutOptimization(MultiprocessHeuristicOptimization):
     Attributes
     ----------
 
-    model: cobra.core.Model
+    model: cobra.Model
         A model to simulate.
     objective_function: a list of or one objective_function
         The objective for the algorithm to optimize.
@@ -189,7 +189,7 @@ class MultiprocessReactionKnockoutOptimization(MultiprocessKnockoutOptimization)
     Attributes
     ----------
 
-    model: cobra.core.Model
+    model: cobra.Model
         A model to simulate.
     objective_function: a list of or one objective_function
         The objective for the algorithm to optimize.
@@ -232,7 +232,7 @@ class MultiprocessGeneKnockoutOptimization(MultiprocessKnockoutOptimization):
     Attributes
     ----------
 
-    model: cobra.core.Model
+    model: cobra.Model
         A model to simulate.
     objective_function: a list of or one objective_function
         The objective for the algorithm to optimize.

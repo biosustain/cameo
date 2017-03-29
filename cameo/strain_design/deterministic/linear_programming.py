@@ -53,7 +53,7 @@ class OptKnock(StrainDesignMethod):
 
     Parameters
     ----------
-    model : cobra.core.Model
+    model : cobra.Model
         A model to be used for finding optimal knockouts. Always set a non-zero lower bound on
         biomass reaction before using OptKnock.
     exclude_reactions : iterable of str or Reaction objects

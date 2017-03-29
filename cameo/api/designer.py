@@ -22,7 +22,7 @@ import re
 import numpy as np
 from IProgress import ProgressBar, ETA, Bar
 
-from cobra.core import Metabolite, Model
+from cobra import Metabolite, Model
 
 from cameo.core.strain_design import StrainDesign
 from cameo.strain_design.pathway_prediction.pathway_predictor import PathwayResult
@@ -226,7 +226,7 @@ class Designer(object):
         strategy_designs: list
             A list of list[StrainDesign]. Each list corresponds to a strategy.
         strategies: list
-            List of [(Host, cobra.core.Model, PathwayResult, Boolean)]. Note: variables: host, model, pathway, anaerobic
+            List of [(Host, cobra.Model, PathwayResult, Boolean)]. Note: variables: host, model, pathway, anaerobic
         results: pandas.DataFrame
             An existing DataFrame to be extended.
         progress: IProgress.ProgressBar
