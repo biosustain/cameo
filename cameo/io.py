@@ -24,7 +24,7 @@ import six
 import optlang
 from cobra.io import read_sbml_model, load_json_model
 
-from cobra.core import Model
+from cobra import Model
 from cameo.config import solvers
 
 import logging

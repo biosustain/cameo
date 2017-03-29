@@ -24,11 +24,11 @@ import json
 import sys
 
 import requests
-from cobra.core.Formula import Formula
+from cobra.core.formula import Formula
 from cobra.io.json import save_json_model
 from pandas import read_table, notnull
 
-from cameo import Reaction, Metabolite, Model
+from cobra import Reaction, Metabolite, Model
 from cameo.io import _apply_sanitize_rules, ID_SANITIZE_RULES_TAB_COMPLETION, ID_SANITIZE_RULES_SIMPHENY
 
 logger = logging.getLogger('parse_metanetx')

@@ -36,7 +36,7 @@ import sympy
 from sympy import Add
 from sympy import Mul
 from sympy.parsing.sympy_parser import parse_expr
-from cobra.core import get_solution, Reaction
+from cobra import get_solution, Reaction
 from cobra.flux_analysis.parsimonious import add_pfba
 from cobra.exceptions import OptimizationError
 
@@ -64,7 +64,7 @@ def fba(model, objective=None, reactions=None, *args, **kwargs):
 
     Parameters
     ----------
-    model: cobra.core.Model
+    model: cobra.Model
     objective: a valid objective - see SolverBaseModel.objective (optional)
 
     Returns
@@ -92,7 +92,7 @@ def pfba(model, objective=None, reactions=None, fraction_of_optimum=1, *args, **
 
     Parameters
     ----------
-    model : cobra.core.Model
+    model : cobra.Model
         The model to perform pFBA with
     objective: str or reaction or optlang.Objective
         An objective to be minimized/maximized for
@@ -135,7 +135,7 @@ def moma(model, reference=None, cache=None, reactions=None, *args, **kwargs):
 
     Parameters
     ----------
-    model: cobra.core.Model
+    model: cobra.Model
     reference: FluxDistributionResult, dict
     cache: ProblemCache
     reactions: list
@@ -211,7 +211,7 @@ def lmoma(model, reference=None, cache=None, reactions=None, *args, **kwargs):
 
     Parameters
     ----------
-    model: cobra.core.Model
+    model: cobra.Model
     reference: FluxDistributionResult, dict
     cache: ProblemCache
     reactions: list
@@ -312,7 +312,7 @@ def room(model, reference=None, cache=None, delta=0.03, epsilon=0.001, reactions
 
     Parameters
     ----------
-    model: cobra.core.Model
+    model: cobra.Model
     reference: FluxDistributionResult, dict
     delta: float
     epsilon: float

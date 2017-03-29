@@ -58,7 +58,7 @@ class TestModelLoading(object):
     def test_load_model_sbml_path_set_none_interface(self):
         model = load_model(os.path.join(TESTDIR, 'data/EcoliCore.xml'), solver_interface=None)
         assert abs(model.optimize().f - 0.8739215069684306) < 10e-6
-        assert isinstance(model, cobra.core.Model)
+        assert isinstance(model, cobra.Model)
 
     def test_import_model_bigg(self):
         model = cameo.models.bigg.e_coli_core

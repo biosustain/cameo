@@ -20,7 +20,7 @@ import six
 from inspyred.ec.emo import Pareto
 
 from cameo import config, flux_variability_analysis
-from cobra.core import Reaction
+from cobra import Reaction
 
 __all__ = ['biomass_product_coupled_yield', 'product_yield', 'number_of_knockouts']
 

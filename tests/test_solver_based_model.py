@@ -29,7 +29,7 @@ import pytest
 import six
 
 from cobra.util import fix_objective_as_constraint
-from cobra.core import Model, Reaction, Metabolite
+from cobra import Model, Reaction, Metabolite
 
 import cameo
 import cameo.core
@@ -101,7 +101,7 @@ class TestReaction:
     #         cloned_reaction = Reaction.clone(reaction)
     #         assert cloned_reaction.gene_reaction_rule == reaction.gene_reaction_rule
     #         assert set([gene.id for gene in cloned_reaction.genes]) == set([gene.id for gene in reaction.genes])
-    #         assert all(isinstance(gene, cobra.core.Gene) for gene in list(cloned_reaction.genes))
+    #         assert all(isinstance(gene, cobra.Gene) for gene in list(cloned_reaction.genes))
     #         assert {metabolite.id for metabolite in cloned_reaction.metabolites} == {metabolite.id for metabolite in
     #                                                                                  reaction.metabolites}
     #         assert all(isinstance(metabolite, cameo.core.Metabolite) for metabolite in cloned_reaction.metabolites)
@@ -614,7 +614,7 @@ class TestReaction:
 
 class TestModel:
     # def test_model_is_subclassed(self, core_model):
-    #     assert isinstance(core_model, cobra.core.Model)
+    #     assert isinstance(core_model, cobra.Model)
     #     for reac in core_model.reactions:
     #         assert isinstance(reac, Reaction)
     #         for met in reac.metabolites:
@@ -936,11 +936,11 @@ class TestModel:
     def test_get_reaction_for(self, core_model):
         with core_model:
             for r in core_model.reactions:
-                assert isinstance(get_reaction_for(core_model, r.id), cobra.core.Reaction)
-                assert isinstance(get_reaction_for(core_model, r), cobra.core.Reaction)
+                assert isinstance(get_reaction_for(core_model, r.id), cobra.Reaction)
+                assert isinstance(get_reaction_for(core_model, r), cobra.Reaction)
             for m in core_model.metabolites:
-                assert isinstance(get_reaction_for(core_model, m.id), cobra.core.Reaction)
-                assert isinstance(get_reaction_for(core_model, m), cobra.core.Reaction)
+                assert isinstance(get_reaction_for(core_model, m.id), cobra.Reaction)
+                assert isinstance(get_reaction_for(core_model, m), cobra.Reaction)
 
         with pytest.raises(TypeError):
             get_reaction_for(core_model, None)

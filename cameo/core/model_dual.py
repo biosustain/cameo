@@ -14,7 +14,7 @@
 import six
 from sympy import Add
 
-from cobra.core import Model
+from cobra import Model
 
 
 def convert_to_dual(model):
@@ -110,7 +110,7 @@ def to_dual_model(model, solver_interface=None):
 
 class ModelDual(Model):  # pragma: no cover  # don't test until it works
     """
-    A cobra.core.Model that also contains the dual variables and constraints, allowing primal and dual
+    A cobra.Model that also contains the dual variables and constraints, allowing primal and dual
     problems to be combined.
 
     Dual variables corresponding to stoichiometric constraints are prefixed by lambda

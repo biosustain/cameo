@@ -115,7 +115,7 @@ class HeuristicOptimization(object):
 
     Attributes
     ----------
-    model : cobra.core.Model
+    model : cobra.Model
         A constraint-based model.
     heuristic_method : inspyred.ec.EvolutionaryComputation
         An evolutionary algorithm.
@@ -614,7 +614,7 @@ class ReactionKnockoutOptimization(KnockoutOptimization):
 
     Attributes
     ----------
-    model : cobra.core.Model
+    model : cobra.Model
         A constraint-based model.
     heuristic_method : inspyred.ec.EvolutionaryComputation
         An evolutionary algorithm.
@@ -709,7 +709,7 @@ class GeneKnockoutOptimization(KnockoutOptimization):
 
     Attributes
     ----------
-    model : cobra.core.Model
+    model : cobra.Model
         A constraint-based model.
     heuristic_method : inspyred.ec.EvolutionaryComputation
         An evolutionary algorithm.
@@ -810,7 +810,7 @@ class CofactorSwapOptimization(TargetOptimization):
 
     Parameters
     ----------
-    model : cobra.core.Model
+    model : cobra.Model
        the model to operator on
     cofactor_id_swaps : tuple
        a tuple of length 2 that defines two lists of metabolite identifiers that should be interchanged during the
@@ -864,7 +864,7 @@ class CofactorSwapOptimization(TargetOptimization):
 
         Arguments
         ---------
-        model: cobra.core.Model
+        model: cobra.Model
             A model with reactions to search on.
         swaps: tuple
             Pair of cofactors to swap.
