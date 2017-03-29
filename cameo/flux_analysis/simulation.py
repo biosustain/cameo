@@ -40,7 +40,7 @@ from cobra import get_solution, Reaction
 from cobra.flux_analysis.parsimonious import add_pfba
 from cobra.exceptions import OptimizationError
 
-from optlang.interface import OptimizationExpression
+from optlang.interface import OptimizationExpression, OPTIMAL
 from cameo.config import ndecimals
 from cameo.util import ProblemCache, in_ipnb
 from cameo.exceptions import SolveError
@@ -77,7 +77,7 @@ def fba(model, objective=None, reactions=None, *args, **kwargs):
         if objective is not None:
             model.objective = objective
         model.solver.optimize()
-        if model.solver.status != 'optimal':
+        if model.solver.status != OPTIMAL:
             raise SolveError('optimization failed')
         solution = get_solution(model)
         if reactions is not None:
