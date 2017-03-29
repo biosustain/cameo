@@ -26,6 +26,7 @@ from pandas import DataFrame
 from cobra import Model
 from cameo.core.strain_design import StrainDesignMethod, StrainDesignMethodResult, StrainDesign
 from cameo.core.target import ReactionKnockoutTarget, GeneKnockoutTarget, ReactionCofactorSwapTarget
+from cameo.core.manipulation import swap_cofactors
 from cameo.exceptions import SolveError
 from cameo.flux_analysis.analysis import phenotypic_phase_plane
 from cameo.flux_analysis.simulation import fba
@@ -478,7 +479,7 @@ class HeuristicOptSwapResult(StrainDesignMethodResult):
     def display_on_map(self, index=0, map_name=None, palette="YlGnBu"):
         with self._model:
             for ko in self.data_frame.loc[index, "reactions"]:
-                self._model.reactions.get_by_id(ko).swap_cofactors(self._swap_pairs)
+                swap_cofactors(self._model.reactions.get_by_id(ko), self._model, self._swap_pairs)
             fluxes = self._simulation_method(self._model, **self._simulation_kwargs)
             fluxes.display_on_map(map_name=map_name, palette=palette)
 
@@ -486,7 +487,7 @@ class HeuristicOptSwapResult(StrainDesignMethodResult):
         wt_production = phenotypic_phase_plane(self._model, objective=self._target, variables=[self._biomass])
         with self._model:
             for ko in self.data_frame.loc[index, "reactions"]:
-                self._model.reactions.get_by_id(ko).swap_cofactors(self._swap_pairs)
+                swap_cofactors(self._model.reactions.get_by_id(ko), self._model, self._swap_pairs)
             mt_production = phenotypic_phase_plane(self._model, objective=self._target, variables=[self._biomass])
 
         if title is None:
