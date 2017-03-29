@@ -634,7 +634,7 @@ def current_solver_name(model):
 
     Parameters
     ----------
-    model : cobra.core.Model
+    model : cobra.Model
         A model
 
     Returns

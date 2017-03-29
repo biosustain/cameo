@@ -20,7 +20,7 @@ from __future__ import absolute_import, print_function
 import numpy as np
 import six
 
-from cobra.core import Metabolite, Model
+from cobra import Metabolite, Model
 
 from cameo.core.strain_design import StrainDesign
 from cameo.strain_design.pathway_prediction.pathway_predictor import PathwayResult

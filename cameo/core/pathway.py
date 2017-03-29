@@ -19,7 +19,7 @@ from functools import partial, reduce
 import six
 from pandas import DataFrame
 
-from cobra.core import Metabolite, Reaction
+from cobra import Metabolite, Reaction
 
 
 # TODO: Load pathways from SBML and JSON
@@ -119,7 +119,7 @@ class Pathway(object):
 
         Arguments
         ---------
-        model: cobra.core.Model
+        model: cobra.Model
             The model to plug in the pathway
         tm: TimeMachine
             Optionally, a TimeMachine object can be added to the operation

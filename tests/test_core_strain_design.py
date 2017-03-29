@@ -15,7 +15,7 @@
 import pytest
 import six
 
-from cobra.core import Metabolite, Reaction
+from cobra import Metabolite, Reaction
 
 from cameo.core.strain_design import StrainDesign
 from cameo.core.target import (ReactionKnockinTarget, ReactionKnockoutTarget,

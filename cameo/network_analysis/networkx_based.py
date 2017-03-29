@@ -27,7 +27,7 @@ def model_to_network(model, *args, **kwargs):
 
     Parameters
     ----------
-    model : cobra.core.Model
+    model : cobra.Model
         The model.
 
     Returns

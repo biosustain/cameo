@@ -16,7 +16,7 @@ from __future__ import absolute_import, print_function
 
 from functools import partial
 from cobra.manipulation.delete import find_gene_knockout_reactions
-from cobra.core import Reaction
+from cobra import Reaction
 from cameo.flux_analysis.simulation import fba
 from cameo.exceptions import SolveError
 from cameo.util import TimeMachine
