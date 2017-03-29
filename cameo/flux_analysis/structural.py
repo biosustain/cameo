@@ -22,6 +22,7 @@ from itertools import product
 
 import numpy as np
 import optlang
+from optlang.interface import OPTIMAL
 import pandas
 import six
 import sympy
@@ -461,7 +462,7 @@ class MinimalCutSetsEnumerator(ShortestElementaryFluxModes):  # pragma: no cover
                 for reac_id in mcs:
                     self._primal_model.reactions.get_by_id(reac_id).knock_out()
                 self._primal_model.solver.optimize()
-                if self._primal_model.solver.status == 'optimal':
+                if self._primal_model.solver.status == OPTIMAL:
                     return mcs
                 else:
                     return None
@@ -626,7 +627,7 @@ class MinimalCutSetsEnumerator(ShortestElementaryFluxModes):  # pragma: no cover
                 with self._primal_model:
                     reaction.knock_out()
                     self._primal_model.solver.optimize()
-                    if self._primal_model.solver.status != 'optimal':
+                    if self._primal_model.solver.status != OPTIMAL:
                         illegal_knockouts.append(reaction.id)
             self._illegal_knockouts = illegal_knockouts
             return cloned_constraints
