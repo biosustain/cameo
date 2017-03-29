@@ -6,21 +6,10 @@ Welcome to cameo!
 
 **Cameo** is a high-level python library developed to aid the strain
 design process in metabolic engineering projects. The library provides a
-modular framework of simulation methods, strain design methods, access
+modular framework of simulation methods, strain design methods, and access
 to models, that targets developers that want custom analysis workflows.
-
-Computationally heavy methods have been parallelized and can be run on a
-clusters using the IPython parallelization framework (see example and
-documentation for more details). The default fallback is python's
-multiprocessing library.
-
-Furthermore, it will expose (in the near future) a high-level API to users that simply want to compute
-promising strain designs (work in progress ...).
-
-::
-
-    from cameo.api import design
-    design(product='L-Serine')
+Furthermore, it exposes a high-level API to users that just want to
+compute promising strain designs.
 
 You got curious? Head over to `try.cameo.bio <http://try.cameo.bio>`__
 and give it a try.

@@ -9,14 +9,8 @@ What is Cameo?
 
 **Cameo** is a high-level python library developed to aid the strain
 design process in metabolic engineering projects. The library provides a
-modular framework of simulation methods, strain design methods, access
+modular framework of simulation methods, strain design methods, and access
 to models, that targets developers that want custom analysis workflows.
-
-Computationally heavy methods have been parallelized and can be run on a
-clusters using the IPython parallelization framework (see example and
-documentation for more details). The default fallback is python's
-multiprocessing library.
-
 Furthermore, it exposes a high-level API to users that just want to
 compute promising strain designs.
 
@@ -26,17 +20,12 @@ and give it a try.
 Installation
 ~~~~~~~~~~~~
 
-Use pip to install Cameo from
-`PyPI <https://pypi.python.org/pypi/cameo>`__ (we recommend doing this
-inside a `virtual
-environment <http://docs.python-guide.org/en/latest/dev/virtualenvs/>`__).
+Use pip to install cameo from `PyPI <https://pypi.python.org/pypi/cameo>`__.
 
 ::
 
     pip install cameo
 
-We highly recommend updating ``pip`` beforehand
-(``pip install pip --upgrade``).
 
 In case you downloaded the source code, run
 
@@ -46,21 +35,23 @@ In case you downloaded the source code, run
 
 while you are in the top level directory. You might need to run these
 commands with administrative privileges if you're not using a virtual
-environment (using ``sudo`` for example).
+environment (using ``sudo`` for example). Please check the
+`documentation <http://cameo.bio/installation.html>`__
+for more details.
 
 Examples
 ~~~~~~~~
 
 A number of examples are available as static
 (`nbviewer.ipython.org <http://nbviewer.ipython.org/github/biosustain/cameo-notebooks/tree/master/>`__)
-or executable Jupyter (née IPython) notebooks
+or executable Jupyter notebooks
 (`try.cameo.bio <http://try.cameo.bio>`__).
 
 High-level API (for users)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Compute strain engineering strategies for a desired product in a number
-of host organisms using the high-level interface.
+of host organisms using the high-level interface (runtime is on the order of hours).
 
 ::
 
@@ -73,12 +64,17 @@ of host organisms using the high-level interface.
 Command Line Interface (for users)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The API can be called directly from the command line.
-For more information about how to run it, open your terminal and run:
+The high-level API can also be called from the command line.
 
 ::
 
-   cameo --helo
+    cameo design --product vanillin
+
+For more information run
+
+::
+
+    cameo --helo
 
 Low-level API (for developers)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
