@@ -39,7 +39,9 @@ requirements = ['numpy>=1.9.1',
                 'inspyred>=1.0',
                 'lazy-object-proxy>=1.2.0',
                 'palettable>=2.1.1',
-                'gnomic>=0.2.0']
+                'gnomic>=0.2.0',
+                'openpyxl>=2.4.5',
+                'cement>=2.10.2']
 
 extra_requirements = {
     'docs': ['Sphinx>=1.3.5', 'numpydoc>=0.5'],
@@ -50,7 +52,6 @@ extra_requirements = {
     'test': ['pytest', 'pytest-cov'],
     'parallel': ['redis>=2.10.5', 'ipyparallel>=5.0.1'],
     'sbml': ['python-libsbml>=5.13.0', 'lxml>=3.6.0'],
-    'cli': ['cement>=2.10.2', 'xlwt>=1.2.0']
 }
 extra_requirements['all'] = list(set(chain(*extra_requirements.values())))
 
