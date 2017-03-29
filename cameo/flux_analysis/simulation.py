@@ -36,11 +36,13 @@ import sympy
 from sympy import Add
 from sympy import Mul
 from sympy.parsing.sympy_parser import parse_expr
-from cobra import get_solution, Reaction
+from cobra import Reaction
+from cobra.core import get_solution
+from cobra.util import assert_optimal
 from cobra.flux_analysis.parsimonious import add_pfba
 from cobra.exceptions import OptimizationError
 
-from optlang.interface import OptimizationExpression, OPTIMAL
+from optlang.interface import OptimizationExpression
 from cameo.config import ndecimals
 from cameo.util import ProblemCache, in_ipnb
 from cameo.exceptions import SolveError
@@ -77,8 +79,7 @@ def fba(model, objective=None, reactions=None, *args, **kwargs):
         if objective is not None:
             model.objective = objective
         model.solver.optimize()
-        if model.solver.status != OPTIMAL:
-            raise SolveError('optimization failed')
+        assert_optimal(model)
         solution = get_solution(model)
         if reactions is not None:
             result = FluxDistributionResult({r: solution.get_primal_by_id(r) for r in reactions}, solution.f)
