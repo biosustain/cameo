@@ -11,12 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from functools import partial
-
 from cobra.manipulation.delete import find_gene_knockout_reactions
+from cameo.core.manipulation import swap_cofactors
 
 from cameo import flux_variability_analysis
-from cameo.util import TimeMachine
 
 
 def process_reaction_knockout_solution(model, solution, simulation_method, simulation_kwargs,
@@ -147,16 +145,14 @@ def process_reaction_swap_solution(model, solution, simulation_method, simulatio
         [fitness, [fitness]]
     """
 
-    with TimeMachine() as tm:
+    with model:
         reactions = [model.reactions.get_by_id(rid) for rid in solution]
         for reaction in reactions:
-            reaction.swap_cofactors(tm, swap_pairs)
+            swap_cofactors(reaction, model, swap_pairs)
 
         flux_dist = simulation_method(model, reactions=objective_function.reactions,
                                       objective=biomass, **simulation_kwargs)
-        tm(do=partial(setattr, model, "objective", biomass),
-           undo=partial(setattr, model, "objective", model.objective))
-
+        model.objective = biomass
         fva = flux_variability_analysis(model, fraction_of_optimum=0.99, reactions=[target])
         target_yield = flux_dist[target] / abs(flux_dist[substrate])
         return [solution, fva.lower_bound(target),
