@@ -30,13 +30,11 @@ import six
 
 from cobra.util import fix_objective_as_constraint
 from cobra import Model, Reaction, Metabolite
+from cobra.exceptions import OptimizationError
 
-import cameo
-import cameo.core
 from cameo import load_model
 from cameo.config import solvers
 from cameo.core.utils import get_reaction_for, load_medium, medium
-from cameo.exceptions import UndefinedSolution
 from cameo.flux_analysis.structural import create_stoichiometric_array
 from cameo.flux_analysis.analysis import find_essential_genes, find_essential_metabolites, find_essential_reactions
 
@@ -853,14 +851,14 @@ class TestModel:
     def test_essential_genes(self, core_model):
         observed_essential_genes = [g.id for g in find_essential_genes(core_model)]
         assert sorted(observed_essential_genes) == sorted(ESSENTIAL_GENES)
-        with pytest.raises(cameo.exceptions.SolveError):
+        with pytest.raises(OptimizationError):
             core_model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = 999999.
             find_essential_genes(core_model)
 
     def test_essential_reactions(self, core_model):
         observed_essential_reactions = [r.id for r in find_essential_reactions(core_model)]
         assert sorted(observed_essential_reactions) == sorted(ESSENTIAL_REACTIONS)
-        with pytest.raises(cameo.exceptions.SolveError):
+        with pytest.raises(OptimizationError):
             core_model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = 999999.
             find_essential_reactions(core_model)
 
@@ -870,11 +868,11 @@ class TestModel:
         assert sorted(essential_metabolites_unbalanced) == sorted(ESSENTIAL_METABOLITES)
         assert sorted(essential_metabolites_balanced) == sorted(ESSENTIAL_METABOLITES)
 
-        with pytest.raises(cameo.exceptions.SolveError):
+        with pytest.raises(OptimizationError):
             core_model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = 999999.
             find_essential_metabolites(core_model, force_steady_state=False)
 
-        with pytest.raises(cameo.exceptions.SolveError):
+        with pytest.raises(OptimizationError):
             core_model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = 999999.
             find_essential_metabolites(core_model, force_steady_state=True)
 

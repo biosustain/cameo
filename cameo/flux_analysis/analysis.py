@@ -24,8 +24,10 @@ from functools import reduce
 import numpy
 import pandas
 import six
-from cobra import Reaction, Metabolite, get_solution
-from cobra.util import fix_objective_as_constraint
+from cobra import Reaction, Metabolite
+from cobra.core import get_solution
+from cobra.util import fix_objective_as_constraint, assert_optimal
+from cobra.exceptions import Infeasible
 from numpy import trapz
 from six.moves import zip
 from sympy import S
@@ -34,7 +36,7 @@ from optlang.interface import UNBOUNDED, OPTIMAL
 import cameo
 from cameo import config
 from cameo.core.result import Result
-from cameo.exceptions import Infeasible, SolveError
+from cameo.exceptions import SolveError
 from cameo.flux_analysis.util import remove_infeasible_cycles, fix_pfba_as_constraint
 from cameo.parallel import SequentialView
 from cameo.ui import notice
@@ -86,8 +88,7 @@ def find_essential_metabolites(model, threshold=1e-6, force_steady_state=False):
     # Essential metabolites are only in reactions that carry flux.
     metabolites = set()
     model.solver.optimize()
-    if model.solver.status != OPTIMAL:
-        raise SolveError('optimization failed')
+    assert_optimal(model)
     solution = get_solution(model)
     for reaction_id, flux in six.iteritems(solution.fluxes):
         if abs(flux) > 0:
@@ -121,8 +122,7 @@ def find_essential_reactions(model, threshold=1e-6):
     essential = []
     try:
         model.solver.optimize()
-        if model.solver.status != OPTIMAL:
-            raise SolveError('optimization failed')
+        assert_optimal(model)
         solution = get_solution(model)
         for reaction_id, flux in six.iteritems(solution.fluxes):
             if abs(flux) > 0:
@@ -158,8 +158,7 @@ def find_essential_genes(model, threshold=1e-6):
     essential = []
     try:
         model.solver.optimize()
-        if model.solver.status != OPTIMAL:
-            raise SolveError('optimization failed')
+        assert_optimal(model)
         solution = get_solution(model)
         genes_to_check = set()
         for reaction_id, flux in six.iteritems(solution.fluxes):

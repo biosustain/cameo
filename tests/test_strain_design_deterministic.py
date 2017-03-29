@@ -21,15 +21,15 @@ import pytest
 from pandas import DataFrame
 from pandas.util.testing import assert_frame_equal
 
+from cobra.exceptions import Infeasible
+
 import cameo
 from cameo import fba
 from cameo.config import solvers
 from cameo.strain_design.deterministic.flux_variability_based import (FSEOF,
                                                                       DifferentialFVA,
                                                                       FSEOFResult)
-from cameo.exceptions import Infeasible
 from cameo.strain_design.deterministic.linear_programming import OptKnock
-from cameo.util import TimeMachine
 
 TRAVIS = bool(os.getenv('TRAVIS', False))
 TESTDIR = os.path.dirname(__file__)
