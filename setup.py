@@ -47,7 +47,7 @@ extra_requirements = {
     'docs': ['Sphinx>=1.3.5', 'numpydoc>=0.5'],
     'swiglpk': ['swiglpk>=1.2.14'],
     'plotly': ['plotly>=1.9.6'],
-    'bokeh': ['bokeh>=0.11.1'],
+    'bokeh': ['bokeh<=0.12.1'],
     'jupyter': ['jupyter>=1.0.0', 'ipywidgets>=4.1.1'],
     'test': ['pytest', 'pytest-cov'],
     'parallel': ['redis>=2.10.5', 'ipyparallel>=5.0.1'],
