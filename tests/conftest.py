@@ -10,7 +10,6 @@ from cameo.config import solvers
 cameo_directory = abspath(join(dirname(abspath(__file__)), ".."))
 cameo_location = abspath(join(cameo_directory, ".."))
 data_dir = join(cameo_directory, "tests", "data", "")
-solvers = ['cplex'] #TODO: remove this
 
 
 @pytest.fixture(scope="session")
@@ -63,7 +62,7 @@ def toy_model(request, data_directory):
 
 
 # FIXME: should be possible to scope at least to class
-@pytest.fixture(scope="function", params=['glpk'])#params=list(solvers))
+@pytest.fixture(scope="function", params=list(solvers))
 def core_model(request, data_directory):
     ecoli_core = load_model(join(data_directory, 'EcoliCore.xml'), sanitize=False)
     ecoli_core.solver = request.param
