@@ -11,4 +11,3 @@ with open('iJO1366.pickle', 'wb') as out:
 salmonella = cobra.test.create_test_model('salmonella')
 with open('salmonella.pickle', 'wb') as out:
     pickle.dump(salmonella, out)
-

@@ -16,6 +16,7 @@ branches:
  - master
  - devel
  - devel-nonfree
+ - devel06
  - /^[0-9]+\.[0-9]+\.[0-9]+[.0-9ab]*$/
 
 cache:
@@ -36,9 +37,10 @@ before_install:
 - pip install pip --upgrade
 - pip install codecov
 - 'echo "this is a build for: $TRAVIS_BRANCH"'
-- 'if [[ "$TRAVIS_BRANCH" != "devel" ]]; then bash ./.travis/install_cplex.sh; fi'
+- 'if [[ "$TRAVIS_BRANCH" != "devel" && $TRAVIS_PYTHON_VERSION < "3.5" ]]; then bash ./.travis/install_cplex.sh; fi'
 install:
 - pip install flake8 numpy scipy pyzmq pandas pytest pytest-cov
+- pip install git+https://github.com/opencobra/cobrapy.git@cameo#egg=cobrapy
 - pip install .[swiglpk,test,parallel,cli]
 before_script:
 - if [[ $TRAVIS_PYTHON_VERSION == "3.6" ]]; then flake8 .; fi
