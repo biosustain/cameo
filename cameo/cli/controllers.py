@@ -50,6 +50,12 @@ class BaseController(CementBaseController):
 
     @expose(hide=True)
     def default(self):
+        print("Welcome to cameo. For more information run cameo --help.")
+
+    @expose(help="Find strain designs for a product of interest\n"
+                 "    Usage: cameo design --product=acetate\n"
+                 "    For more information see the arguments bellow.\n")
+    def design(self):
         product = None
         output_format = None
         auto_select = self.app.pargs.yes_all

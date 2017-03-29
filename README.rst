@@ -69,6 +69,17 @@ of host organisms using the high-level interface.
 
 `Output <http://nbviewer.ipython.org/github/biosustain/cameo-notebooks/blob/master/8-high-level-API.ipynb>`__
 
+
+Command Line Interface (for users)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The API can be called directly from the command line.
+For more information about how to run it, open your terminal and run:
+
+::
+
+   cameo --helo
+
 Low-level API (for developers)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
