@@ -28,7 +28,7 @@ from sympy import Add
 from cobra.util import create_stoichiometric_matrix, fix_objective_as_constraint
 from cobra.flux_analysis.parsimonious import add_pfba
 
-from cobra.core import Metabolite, Reaction
+from cobra import Metabolite, Reaction
 
 from cameo.flux_analysis import remove_infeasible_cycles, structural
 from cameo.flux_analysis.analysis import (find_blocked_reactions,

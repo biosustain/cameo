@@ -22,7 +22,7 @@ import re
 import numpy as np
 from IProgress import ProgressBar, ETA, Bar
 
-from cobra.core import Metabolite, Model
+from cobra import Metabolite, Model
 
 from cameo.core.strain_design import StrainDesign
 from cameo.strain_design.pathway_prediction.pathway_predictor import PathwayResult

@@ -23,7 +23,7 @@ from IProgress.progressbar import ProgressBar
 from IProgress.widgets import Bar, Percentage
 from pandas import DataFrame
 
-from cobra.core import Model
+from cobra import Model
 from cameo.core.strain_design import StrainDesignMethod, StrainDesignMethodResult, StrainDesign
 from cameo.core.target import ReactionKnockoutTarget, GeneKnockoutTarget, ReactionCofactorSwapTarget
 from cameo.exceptions import SolveError
@@ -50,7 +50,7 @@ class OptGene(StrainDesignMethod):
     def __init__(self, model, evolutionary_algorithm=inspyred.ec.GA, manipulation_type="genes", essential_genes=None,
                  essential_reactions=None, plot=True, exclude_non_gene_reactions=True, *args, **kwargs):
         if not isinstance(model, Model):
-            raise TypeError("Argument 'model' should be of type 'cobra.core.Model'.")
+            raise TypeError("Argument 'model' should be of type 'cobra.Model'.")
 
         super(OptGene, self).__init__(*args, **kwargs)
 
