@@ -23,7 +23,7 @@ import subprocess
 
 import networkx as nx
 
-from cobra.core import Metabolite, Reaction
+from cobra import Metabolite, Reaction
 
 from io import BytesIO
 from escher import Builder

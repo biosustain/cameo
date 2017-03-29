@@ -24,7 +24,7 @@ import six
 from cobra import DictList
 from sympy import Add, Mul, RealNumber
 
-from cobra.core import Model, Metabolite, Reaction
+from cobra import Model, Metabolite, Reaction
 
 from cameo import fba
 from cameo import models, phenotypic_phase_plane
@@ -217,9 +217,9 @@ class PathwayPredictor(StrainDesignMethod):
 
     Parameters
     ----------
-    model : cobra.core.Model
+    model : cobra.Model
         The model that represents the host organism.
-    universal_model : cobra.core.Model, optional
+    universal_model : cobra.Model, optional
         The model that represents the universal set of reactions.
         A default model will be used if omitted.
     mapping : dict, optional
@@ -228,7 +228,7 @@ class PathwayPredictor(StrainDesignMethod):
 
     Attributes
     ----------
-    model : cobra.core.Model
+    model : cobra.Model
         The provided model + universal_model + adapter reactions
 
     Examples

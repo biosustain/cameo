@@ -40,7 +40,7 @@ class ReactionSetDecoder(SetDecoder):
 
     representation : list
         Reactions.
-    model : cobra.core.Model
+    model : cobra.Model
 
     """
 
@@ -77,7 +77,7 @@ class GeneSetDecoder(SetDecoder):
 
     representation : list
         Genes to knockout.
-    model : cobra.core.Model
+    model : cobra.Model
     """
 
     def __init__(self, representation, model, *args, **kwargs):

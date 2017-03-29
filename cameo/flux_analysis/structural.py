@@ -25,7 +25,7 @@ import optlang
 import pandas
 import six
 import sympy
-from cobra.core import Metabolite, Reaction, Model
+from cobra import Metabolite, Reaction, Model
 from numpy.linalg import svd
 from scipy.cluster.hierarchy import linkage
 from scipy.sparse import dok_matrix, lil_matrix
