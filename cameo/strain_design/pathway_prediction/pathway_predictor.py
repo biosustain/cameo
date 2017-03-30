@@ -26,6 +26,7 @@ from cobra import DictList
 from sympy import Add, Mul, RealNumber
 
 from cobra import Model, Metabolite, Reaction
+from cobra.util import SolverNotFound
 
 from cameo import fba
 from cameo import models, phenotypic_phase_plane
@@ -273,7 +274,7 @@ class PathwayPredictor(StrainDesignMethod):
         try:
             logger.info('Trying to set solver to cplex to speed up pathway predictions.')
             self.model.solver = 'cplex'
-        except ValueError:
+        except SolverNotFound:
             logger.info('cplex not available for pathway predictions.')
 
         self.new_reactions = self._extend_model(model.exchanges)
