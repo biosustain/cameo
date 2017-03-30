@@ -19,6 +19,7 @@ import re
 import warnings
 from functools import partial
 from math import ceil
+from copy import copy
 
 import six
 from cobra import DictList
@@ -448,7 +449,7 @@ class PathwayPredictor(StrainDesignMethod):
                 if metabolite.id in original_model_metabolites:
                     continue
 
-            new_reactions.append(reaction.copy())
+            new_reactions.append(copy(reaction))
         self.model.add_reactions(new_reactions)
 
         return new_reactions
