@@ -843,7 +843,7 @@ class FSEOF(StrainDesignMethod):
                 target.lower_bound = level
                 target.upper_bound = level
                 solution = simulation_method(model, **simulation_kwargs)
-                for reaction_id, flux in solution.fluxes.items():
+                for reaction_id, flux in solution.fluxes.iteritems():
                     results[reaction_id].append(round(flux, ndecimals))
 
         # Test each reaction
