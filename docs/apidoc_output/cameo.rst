@@ -7,6 +7,7 @@ Subpackages
 .. toctree::
 
     cameo.api
+    cameo.cli
     cameo.core
     cameo.data
     cameo.flux_analysis
