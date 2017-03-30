@@ -106,7 +106,7 @@ def add_pfba(model, objective=None, fraction_of_optimum=1.0, time_machine=None):
         A time machine to undo the added pFBA objective
     """
     if objective is not None:
-        model.objective = objective
+        model.change_objective(objective, time_machine=time_machine)
     if model.solver.objective.name == '_pfba_objective':
         raise ValueError('model already has pfba objective')
     if fraction_of_optimum > 0:
