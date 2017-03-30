@@ -12,6 +12,14 @@ cameo.core.gene module
     :undoc-members:
     :show-inheritance:
 
+cameo.core.manipulation module
+------------------------------
+
+.. automodule:: cameo.core.manipulation
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 cameo.core.metabolite module
 ----------------------------
 
@@ -64,6 +72,22 @@ cameo.core.solver_based_model_dual module
 -----------------------------------------
 
 .. automodule:: cameo.core.solver_based_model_dual
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+cameo.core.strain_design module
+-------------------------------
+
+.. automodule:: cameo.core.strain_design
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+cameo.core.target module
+------------------------
+
+.. automodule:: cameo.core.target
     :members:
     :undoc-members:
     :show-inheritance:
