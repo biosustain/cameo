@@ -39,7 +39,7 @@ before_install:
 - 'if [[ "$TRAVIS_BRANCH" != "devel" ]]; then bash ./.travis/install_cplex.sh; fi'
 install:
 - pip install flake8 numpy scipy pyzmq pandas pytest pytest-cov
-- pip install .[test,paralleldocs]
+- pip install .[test,parallel,docs]
 before_script:
 - if [[ $TRAVIS_PYTHON_VERSION == "3.6" ]]; then flake8 .; fi
 script:
@@ -55,7 +55,7 @@ notifications:
 before_deploy:
   - pip install twine
   - python setup.py sdist bdist_wheel
-  - if [[ $TRAVIS_PYTHON_VERSION == "3.6" ]]; then cd docs && make html && echo "cameo.bio" > _build/html/CNAME; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == "3.6" ]]; then cd docs && make html; fi
   - cd $TRAVIS_BUILD_DIR
 env:
   global:
@@ -73,6 +73,7 @@ deploy:
       repo: biosustain/cameo
     docs_dir: docs/_build/html
   - provider: pages
+    fqdn: cameo.bio
     local_dir: docs/_build/html
     skip_cleanup: true
     github_token: $GH_TOKEN # Set in travis-ci.org dashboard
