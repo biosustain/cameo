@@ -285,8 +285,7 @@ def lmoma(model, reference=None, cache=None, reactions=None, *args, **kwargs):
         def create_objective(model, variables):
             return model.solver.interface.Objective(add([mul((One, var)) for var in variables]),
                                                     direction="min",
-                                                    sloppy=True)
-
+                                                    sloppy=False)
         cache.add_objective(create_objective, None, cache.variables.values())
 
         try:
