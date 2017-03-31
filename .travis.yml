@@ -47,7 +47,7 @@ script:
   - if [[ $TRAVIS_PYTHON_VERSION == "3.6" ]]; then travis-sphinx --branches=feat-publish-docs-through-travis-ci,devel --pullrequests --nowarn --source=docs build; fi
 after_success:
   - codecov
-  - if [[ $TRAVIS_PYTHON_VERSION == "3.6" ]]; then travis-sphinx --branches=feat-publish-docs-through-travis-ci,devel --pullrequests deploy; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == "3.6" ]]; then echo "cameo.bio" > target/doc/build/CNAME && travis-sphinx --branches=feat-publish-docs-through-travis-ci,devel --pullrequests deploy; fi
 notifications:
   slack:
     rooms:
