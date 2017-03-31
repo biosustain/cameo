@@ -1,6 +1,6 @@
-=====================================================
-Computer Aided Metabolic Engineering and Optimization
-=====================================================
+=================
+Welcome to cameo!
+=================
 
 .. include:: ../README.rst
     :start-after: summary-start

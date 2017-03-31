@@ -6,7 +6,7 @@ Cameo—Computer Aided Metabolic Engineering and Optimization
 |Join the chat at https://gitter.im/biosustain/cameo| |PyPI| |License|
 |Build Status| |Coverage Status| |DOI|
 
-What is Cameo?
+What is cameo?
 ~~~~~~~~~~~~~~
 
 **Cameo** is a high-level python library developed to aid the strain

@@ -38,13 +38,15 @@ before_install:
 - 'echo "this is a build for: $TRAVIS_BRANCH"'
 - 'if [[ "$TRAVIS_BRANCH" != "devel" ]]; then bash ./.travis/install_cplex.sh; fi'
 install:
-- pip install flake8 numpy scipy pyzmq pandas pytest pytest-cov
-- pip install .[swiglpk,test,parallel,cli]
+- pip install flake8 numpy scipy pyzmq pandas pytest pytest-cov travis-sphinx
+- pip install .[swiglpk,test,parallel,cli,doc]
 before_script:
 - if [[ $TRAVIS_PYTHON_VERSION == "3.6" ]]; then flake8 .; fi
-script: pytest -v -rsx --cov --cov-report=xml
+script:
+  - pytest -v -rsx --cov --cov-report=xml
 after_success:
-- codecov
+  - codecov
+  - if [[ $TRAVIS_PYTHON_VERSION == "3.6" ]]; then cd docs && make html && echo "cameo.bio" > _build/html/CNAME; fi
 notifications:
   slack:
     rooms:
@@ -69,6 +71,18 @@ deploy:
       tags: true
       repo: biosustain/cameo
     docs_dir: docs/_build/html
+  - provider: pages
+    local_dir: docs/_build/html
+    skip_cleanup: true
+    github_token: $GH_TOKEN # Set in travis-ci.org dashboard
+    target-branch: gh-pages
+    on:
+      tags: true
+      branch:
+        - master
+        - devel
+      condition: $TRAVIS_PYTHON_VERSION == "3.6"
+      repo: biosustain/cameo
 #  - provider: releases
 #    api_key:
 #      secure: VsKdkwYvp7lf65S/pzLWbrk8PaRAzBVClB57s4jYepx+BbJdPJi5Zwz4zmu0Ifa1K7K2Jh0rITV9GZAyC+0Eq2ffXtZsBOsC5+2yKaWV5WiU7kNdUVhD9EFkUaNknT8+B2/sjPsl+GP8DTzCqstgdGo5EAAnvpV53qIAwwF9n0U=
