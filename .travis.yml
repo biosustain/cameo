@@ -46,8 +46,6 @@ script:
   - pytest -v -rsx --cov --cov-report=xml
 after_success:
   - codecov
-  - if [[ $TRAVIS_PYTHON_VERSION == "3.6" ]]; then cd docs && make html && echo "cameo.bio" > _build/html/CNAME; fi
-  - cd $TRAVIS_BUILD_DIR
 notifications:
   slack:
     rooms:
@@ -57,6 +55,8 @@ notifications:
 before_deploy:
   - pip install twine
   - python setup.py sdist bdist_wheel
+  - if [[ $TRAVIS_PYTHON_VERSION == "3.6" ]]; then cd docs && make html && echo "cameo.bio" > _build/html/CNAME; fi
+  - cd $TRAVIS_BUILD_DIR
 env:
   global:
     secure: QgrOXEgpcH6xgToVfWIX6j6CPvycKMPtNnoYAxPrZjkMzd2aCHHeokv0FZkCn3uePO0I8W8TkKBxilGZbWYoseDq+Snds18sBTG9u2NHvYHnDQb4Oki7+NoxhlnGIOj/8ADONOpc0n7PyFDPK8zmKVZvv9p78OHZO5CmV/ktOeg=
