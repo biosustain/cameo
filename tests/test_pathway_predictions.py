@@ -38,7 +38,7 @@ def pathway_predictor(request, data_directory, universal_model):
     return core_model, predictor
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 def pathway_predictor_result(pathway_predictor):
     core_model, predictor = pathway_predictor
     return core_model, predictor.run(product='L-Serine', max_predictions=1)
