@@ -38,7 +38,7 @@ before_install:
 - 'echo "this is a build for: $TRAVIS_BRANCH"'
 - 'if [[ "$TRAVIS_BRANCH" != "devel" ]]; then bash ./.travis/install_cplex.sh; fi'
 install:
-- pip install flake8 numpy scipy pyzmq pandas pytest pytest-cov travis-sphinx
+- pip install flake8 numpy scipy pyzmq pandas pytest pytest-cov
 - pip install .[swiglpk,test,parallel,cli,doc]
 before_script:
 - if [[ $TRAVIS_PYTHON_VERSION == "3.6" ]]; then flake8 .; fi
@@ -77,10 +77,10 @@ deploy:
     github_token: $GH_TOKEN # Set in travis-ci.org dashboard
     target-branch: gh-pages
     on:
-      tags: true
       branch:
         - master
         - devel
+        - feat-use-travis-gh-pages-deploy
       condition: $TRAVIS_PYTHON_VERSION == "3.6"
       repo: biosustain/cameo
 #  - provider: releases
