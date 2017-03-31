@@ -44,10 +44,8 @@ before_script:
 - if [[ $TRAVIS_PYTHON_VERSION == "3.6" ]]; then flake8 .; fi
 script:
   - pytest -v -rsx --cov --cov-report=xml
-#  - if [[ $TRAVIS_PYTHON_VERSION == "3.6" ]]; then travis-sphinx --branches=master,devel --nowarn --source=docs build; fi
 after_success:
   - codecov
-#  - if [[ $TRAVIS_PYTHON_VERSION == "3.6" ]]; then echo "cameo.bio" > target/doc/build/CNAME && travis-sphinx --branches=master,devel deploy; fi
   - if [[ $TRAVIS_PYTHON_VERSION == "3.6" ]]; then cd docs && make html && echo "cameo.bio" > _build/html/CNAME; fi
 notifications:
   slack:
@@ -79,7 +77,11 @@ deploy:
     github_token: $GH_TOKEN # Set in travis-ci.org dashboard
     target-branch: gh-pages
     on:
-      branch: feat-publish-docs-through-travis-ci
+      tags: true
+      branch:
+        - master
+        - devel
+      condition: $TRAVIS_PYTHON_VERSION == "3.6"
       repo: biosustain/cameo
 #  - provider: releases
 #    api_key:
