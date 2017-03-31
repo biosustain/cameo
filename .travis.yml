@@ -47,7 +47,7 @@ script:
   - if [[ $TRAVIS_PYTHON_VERSION == "3.6" ]]; then travis-sphinx --branches=feat-publish-docs-through-travis-ci --nowarn --source=docs build; fi
 after_success:
 - codecov
-- if [[ $TRAVIS_PYTHON_VERSION == "3.6" ]]; then travis-sphinx --branches=feat-publish-docs-through-travis-ci deploy; fi
+- if [[ $TRAVIS_PYTHON_VERSION == "3.6" ]]; then travis-sphinx --branches=feat-publish-docs-through-travis-ci,devel deploy; fi
 notifications:
   slack:
     rooms:
