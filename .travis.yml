@@ -38,13 +38,16 @@ before_install:
 - 'echo "this is a build for: $TRAVIS_BRANCH"'
 - 'if [[ "$TRAVIS_BRANCH" != "devel" ]]; then bash ./.travis/install_cplex.sh; fi'
 install:
-- pip install flake8 numpy scipy pyzmq pandas pytest pytest-cov
-- pip install .[swiglpk,test,parallel,cli]
+- pip install flake8 numpy scipy pyzmq pandas pytest pytest-cov travis-sphinx
+- pip install .[swiglpk,test,parallel,cli,doc]
 before_script:
 - if [[ $TRAVIS_PYTHON_VERSION == "3.6" ]]; then flake8 .; fi
-script: pytest -v -rsx --cov --cov-report=xml
+script:
+  - pytest -v -rsx --cov --cov-report=xml
+  - travis-sphinx --branches=feat-publish-docs-through-travis-ci --source=doc build
 after_success:
 - codecov
+- travis-sphinx --branches=feat-publish-docs-through-travis-ci deploy
 notifications:
   slack:
     rooms:
