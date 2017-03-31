@@ -44,7 +44,7 @@ before_script:
 - if [[ $TRAVIS_PYTHON_VERSION == "3.6" ]]; then flake8 .; fi
 script:
   - pytest -v -rsx --cov --cov-report=xml
-  - if [[ $TRAVIS_PYTHON_VERSION == "3.6" ]]; then travis-sphinx --branches=feat-publish-docs-through-travis-ci --source=docs build; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == "3.6" ]]; then travis-sphinx --branches=feat-publish-docs-through-travis-ci --nowarn --source=docs build; fi
 after_success:
 - codecov
 - if [[ $TRAVIS_PYTHON_VERSION == "3.6" ]]; then travis-sphinx --branches=feat-publish-docs-through-travis-ci deploy; fi
