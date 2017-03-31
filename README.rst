@@ -51,7 +51,7 @@ for further details.
 Documentation and Examples
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Documentation is available on `http://cameo.bio`__. Numerous `Jupyter notebooks <http://nbviewer.ipython.org/github/biosustain/cameo-notebooks/tree/master/>`__
+Documentation is available on `cameo.bio <http://cameo.bio>`__. Numerous `Jupyter notebooks <http://nbviewer.ipython.org/github/biosustain/cameo-notebooks/tree/master/>`__
 provide examples and tutorials and also form part of the documentation. They are also availabe in executable form on (`try.cameo.bio <http://try.cameo.bio>`__).
 Furthermore, course materials for a two day cell factory engineering course are available `here <https://biosustain.github.io/cell-factory-design-course/>`__.
 
