@@ -7,22 +7,25 @@ and/or that would like to contribute to its development.
 
 
 cameo vs. cobrapy
-=================
+~~~~~~~~~~~~~~~~~
 
+While cameo uses and extends the same data structures as cobrapy, there exist a few notable differences.
 The following provides a comprehensive side-by-side comparison of cobrapy and cameo aiming to make it easier for users
-who are already familiar with cobrapy to get started with cameo. While cameo uses and extends the same data structures
-as provided by cobrapy (`~cameo.core.Reaction`, `~cameo.core.SolverBasedModel`, etc.) and is thus backwards-compatible to it, it deviates
+who are already familiar with cobrapy to get started with cameo.
 
 Solver interface
 ----------------
 
 Cameo deviates from cobrapy in the way optimization problems are solved by using a separate solver interface provided by
-the optlang package (see :ref:`optlang_interface`). The following benefits ....
+the optlang package (see :ref:`optlang_interface`), which has the following benefits:
 
-* Methods that require solving multiple succession will run a lot faster since previously found solution will be reused.
-* Implementation of novel or published becomes a lot easier since optlang (based on the very popular symbolic math library sympy) facilitates the formulation of constraints and objectives using equations (similar to GAMS) instead of matrix formalism.
-* Adding of additional constraints (even non-metabolic ), is straight forwards and eliminates the problem in cobrapy of having to define opti (check out the ice cream sandwich ...)
-* The optimization problem is always accessible and has a one-to-one correspondence to the model.
+* Methods that require solving a model multiple times will run faster since previously found solutions will be
+  automatically re-used by the solvers to warm-start the next optimization.
+* Implementation of novel or published methods becomes easier since optlang (based on the popular symbolic math
+  library sympy) facilitates the formulation of constraints and objectives using equations (similar to GAMS)
+  instead of matrix formalism.
+* Adding additional constraints (even non-metabolic) is straight forwards and eliminates the problem in cobrapy
+  of having to define dummy metabolites etc.
 
 Importing a model
 -----------------
@@ -65,7 +68,7 @@ user to determine if the problem was successfully solved.
     if solution.status == 'optimal':
         # proceed
 
-In our personal opinion, we believe that the more pythonic way is to raise an Exception if the problem could not be solved.
+In order to avoid users accidentally working with non-optimal solutions, cameo will raise an exception instead.
 
 .. code-block:: python
 
@@ -82,23 +85,11 @@ compatibility with cobrapy but we discourage its use.
     optlang
     copy_vs_time_machine
 
-Convenience functions
----------------------
-
-Cameo implements a number of convenience functions that are (currently) not available in cobrapy. For example, instead of
-running flux variability analysis, one can quickly obtain the effective lower and upper bound
-
-.. code-block:: python
-
-    model.reaction.PGK.effective_lower_bound
-
-
-.. _optlang_interface
 
 The optlang solver interface
-============================
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-For efficiency reasons, cameo does not utilize the cobrapy's interface to LP and MILP solver.
+For efficiency reasons, cameo does not utilize cobrapy's interfaces to LP and MILP solvers.
 Instead it utilizes optlang_, which is a generic interface to a number of free and commercial optimization solvers.
 It is based on the popular symbolic math library sympy_ and thus enables the formulation of optimization problems
 using equations instead of matrix formalism.
@@ -112,7 +103,7 @@ The LP/MILP solver can be changed in the following way.
 
     model.solver = 'cplex'
 
-Currently `cplex` and `glpk` are supported.
+Currently `cplex`, `glpk`, and `gurobi` are supported.
 
 Manipulating the solver object
 ------------------------------
@@ -125,14 +116,17 @@ For example, one can inspect the optimization problem in CPLEX LP format by prin
     print(model.solver)
 
 Having access to the `optlang`_ solver object provides for a very convenient way for manipulating the optimization problem.
-It is straightforward to add additional constraints, for example, a flux ratio constraint.
+For example, it is straightforward to add additional constraints, for example, a flux ratio constraint.
 
 .. code-block:: python
 
     reaction1 = model.reactions.PGI
     reaction2 = model.reactions.G6PDH2r
     ratio = 5
-    flux_ratio_constraint = model.solver.interface.Constraint(reaction1.flux_expression - ratio * reaction2.flux_expression, lb=0, ub=0)
+    flux_ratio_constraint = model.solver.interface.Constraint(
+        reaction1.flux_expression - ratio * reaction2.flux_expression,
+        lb=0,
+        ub=0)
     model.solver.add(flux_ratio_constraint)
 
 This will constrain the flux split between glycolysis and pentose phosphate patwhay to 20.
@@ -142,7 +136,8 @@ This will constrain the flux split between glycolysis and pentose phosphate patw
 Good coding practices
 =====================
 
-Cameo developers and user are encouraged to avoid making expensive copies of models and other data structures. Instead, we put forward a design pattern based on transactions.
+Cameo developers and users are encouraged to avoid making copies of models and other data structures. Instead, we put
+ forward a design pattern based on transactions.
 
 .. code-block:: python
 

@@ -1,5 +1,1 @@
-=====================
-Contributing to cameo
-=====================
-
-...
+.. include:: ../CONTRIBUTING.rst
