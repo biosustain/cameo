@@ -14,6 +14,7 @@
 
 from __future__ import absolute_import, print_function
 
+import collections
 import logging
 import time
 import types
@@ -194,7 +195,30 @@ class HeuristicOptimization(object):
             raise TypeError("single objective heuristics do not support multiple objective functions")
         self._heuristic_method = heuristic_method(self.random)
 
-    def run(self, evaluator=None, generator=None, view=config.default_view, maximize=True, **kwargs):
+    def run(self, evaluator=None, generator=None, view=config.default_view, maximize=True, max_time=None, **kwargs):
+        """
+        Runs the evolutionary algorithm.
+
+        Parameters
+        ----------
+        evaluator : function
+            A function that evaluates candidates.
+        generator : function
+            A function that yields candidates.
+        view : cameo.parallel.SequentialView, cameo.parallel.MultiprocessingView
+            A view for single or multiprocessing.
+        maximize : bool
+            The sense of the optimization algorithm.
+        max_time : tuple
+            A tuple with (minutes, seconds) or (hours, minutes, seconds)
+        kwargs : dict
+            See inspyred documentation for more information.
+
+        Returns
+        -------
+        list
+            A list of individuals from the last iteration.
+        """
         if isinstance(self.heuristic_method.archiver, archives.BestSolutionArchive):
             self.heuristic_method.archiver.reset()
 
@@ -205,7 +229,21 @@ class HeuristicOptimization(object):
 
         for observer in self.observers:
             observer.reset()
+
         t = time.time()
+
+        if max_time is not None:
+            terminator = self.heuristic_method.terminator
+            if isinstance(terminator, collections.Iterable):
+                terminator = list(terminator)
+                terminator.append(inspyred.ec.terminators.time_termination)
+            else:
+                terminator = [terminator, inspyred.ec.terminators.time_termination]
+
+            self.heuristic_method.terminator = terminator
+            kwargs['start_time'] = t
+            kwargs['max_time'] = max_time
+
         print(time.strftime("Starting optimization at %a, %d %b %Y %H:%M:%S", time.localtime(t)))
         res = self.heuristic_method.evolve(generator=generator,
                                            maximize=maximize,
@@ -259,11 +297,13 @@ class TargetOptimization(HeuristicOptimization):
 
         Attributes
         ----------
-        simulation_method: see flux_analysis.simulation
-        wt_reference: dict
-        simulation_method: method
+        simulation_method : see flux_analysis.simulation
+            The method used to simulate the model.
+        wt_reference : dict, cameo.flux_analysis.simulation.FluxDistributionResult
+            A dict (dict-like) object with flux values from a reference state.
+        simulation_method : method
            the simulation method to use for evaluating results
-        evaluator: TargetEvaluator
+        evaluator : TargetEvaluator
            the class used to evaluate results
         """
         super(TargetOptimization, self).__init__(*args, **kwargs)
@@ -346,17 +386,26 @@ class TargetOptimization(HeuristicOptimization):
         if self.progress:
             self.observers.append(observers.ProgressObserver())
 
-    def run(self, view=config.default_view, max_size=10, variable_size=True, diversify=False, **kwargs):
+    def run(self, max_size=10, variable_size=True, diversify=False, view=config.default_view, **kwargs):
         """
+        Runs the evolutionary algorithm.
+
         Parameters
         ----------
-        max_size: int
-            Maximum size of a solution, e.g., the maximum number of reactions or genes to knock-out or swap
-        variable_size: boolean
+        max_size : int
+            Maximum size of a solution, e.g., the maximum number of reactions or genes to knock-out or swap.
+        variable_size : boolean
             If true, the solution size can change meaning that the combination of knockouts can have different sizes up
             to max_size. Otherwise it only produces knockout solutions with a fixed number of knockouts.
-        diversify: bool
+        diversify : bool
             It true, the generator will not be allowed to generate repeated candidates in the initial population.
+        view : cameo.parallel.SequentialView, cameo.parallel.MultiprocessingView
+            A view for single or multiprocessing.
+
+        Returns
+        -------
+        TargetOptimizationResult
+            The result of the optimization.
         """
 
         if kwargs.get('seed', None) is None:
