@@ -74,9 +74,11 @@ class _OptimizationRunner(object):
 class _OptGeneRunner(_OptimizationRunner):
     def __call__(self, strategy):
         max_evaluations = 15000
+        max_time = (45, 0)
 
         if self.debug:
             max_evaluations = 1000
+            max_time = (5, 0)
 
         (model, pathway, aerobic) = (strategy[1], strategy[2], strategy[3])
         model = model.copy()
@@ -91,7 +93,7 @@ class _OptGeneRunner(_OptimizationRunner):
             model.objective = model.biomass
             opt_gene = OptGene(model=model, plot=False)
             designs = opt_gene.run(target=pathway.product.id, biomass=model.biomass, substrate=model.carbon_source,
-                                   max_evaluations=max_evaluations, max_knockouts=15)
+                                   max_evaluations=max_evaluations, max_knockouts=15, max_time=max_time)
 
             return designs
 
@@ -182,11 +184,11 @@ class Designer(object):
 
         Arguments
         ---------
-        pathways: dict
+        pathways : dict
             A dictionary with information of pathways to optimize ([Host, Model] -> PredictedPathways).
-        view: object
+        view : object
             A view for multi, single os distributed processing.
-        aerobic: bool
+        aerobic : bool
             If True, it will set `model.reactions.EX_o2_e.lower_bound` to 0.
 
         Returns
@@ -222,15 +224,15 @@ class Designer(object):
 
         Parameters
         ----------
-        strategy_designs: list
+        strategy_designs : list
             A list of list[StrainDesign]. Each list corresponds to a strategy.
-        strategies: list
+        strategies : list
             List of [(Host, SolverBasedModel, PathwayResult, Boolean)]. Note: variables: host, model, pathway, anaerobic
-        results: pandas.DataFrame
+        results : pandas.DataFrame
             An existing DataFrame to be extended.
-        progress: IProgress.ProgressBar
+        progress : IProgress.ProgressBar
             A progress bar handler.
-        offset: int
+        offset : int
             An offset tracker for the progress bar.
 
         Returns

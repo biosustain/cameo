@@ -16,6 +16,7 @@ from __future__ import absolute_import, print_function
 
 import os
 import pickle
+import time
 from collections import namedtuple
 from math import sqrt
 from tempfile import mkstemp
@@ -27,6 +28,7 @@ import six
 from inspyred.ec import Bounder
 from inspyred.ec.emo import Pareto
 from ordered_set import OrderedSet
+from six.moves import range
 
 from cameo import config, fba
 from cameo.core.manipulation import swap_cofactors
@@ -67,7 +69,6 @@ from cameo.strain_design.heuristic.evolutionary.variators import (_do_set_n_poin
                                                                   set_n_point_crossover)
 from cameo.util import RandomGenerator as Random
 from cameo.util import TimeMachine
-from six.moves import range
 
 try:
     from cameo.parallel import RedisQueue
@@ -933,6 +934,20 @@ class TestReactionKnockoutOptimization:
                 expected_results = pickle.load(in_file)
 
         assert results.seed == expected_results.seed
+
+    def test_run_with_time_limit(self, model):
+        # TODO: make optlang deterministic so this results can be permanently stored.
+        objective = biomass_product_coupled_yield(
+            "Biomass_Ecoli_core_N_lp_w_fsh_GAM_rp__Nmet2", "EX_ac_lp_e_rp_", "EX_glc_lp_e_rp_")
+
+        rko = ReactionKnockoutOptimization(model=model,
+                                           simulation_method=fba,
+                                           objective_function=objective)
+        start_time = time.time()
+        rko.run(max_evaluations=3000000, pop_size=10, view=SequentialView(), seed=SEED, max_time=(1, 0))
+        elapsed_time = time.time() - start_time
+
+        assert elapsed_time < 1.25 * 60
 
     def test_run_multi_objective(self, model):
         # TODO: make optlang deterministic so this results can be permanently stored.
