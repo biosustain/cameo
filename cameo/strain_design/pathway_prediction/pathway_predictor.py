@@ -256,6 +256,8 @@ class PathwayPredictor(StrainDesignMethod):
 
         if mapping is None:
             self.mapping = metanetx.all2mnx
+        else:
+            self.mapping = mapping
 
         self.model = model.copy()
 
