@@ -32,7 +32,7 @@ from scipy.cluster.hierarchy import linkage
 from scipy.sparse import dok_matrix, lil_matrix
 from six.moves import zip
 
-from cameo.exceptions import SolveError
+from cobra.exceptions import OptimizationError
 
 __all__ = ['find_dead_end_reactions', 'find_coupled_reactions', 'ShortestElementaryFluxModes']
 
@@ -328,7 +328,7 @@ class ShortestElementaryFluxModes(six.Iterator):
         while True:
             try:
                 self.model.optimize()
-            except SolveError:
+            except OptimizationError:
                 raise StopIteration
             elementary_flux_mode = list()
             exclusion_list = list()
