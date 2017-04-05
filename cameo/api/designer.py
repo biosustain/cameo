@@ -44,7 +44,7 @@ from cameo import fba
 from cameo import config, util
 from cameo.api.hosts import hosts as HOSTS, Host
 from cameo.api.products import products
-from cameo.exceptions import SolveError
+from cobra.exceptions import OptimizationError
 from cameo.strain_design import OptGene, DifferentialFVA
 from cameo.ui import notice, searching, stop_loader
 from cameo.strain_design import pathway_prediction
@@ -298,7 +298,7 @@ class Designer(object):
                 _pyield = pyield(model, solution, strain_design.targets)
                 target_flux = solution.fluxes[pyield.product]
                 biomass = solution.fluxes[bpcy.biomass]
-            except SolveError:
+            except OptimizationError:
                 _bpcy, _pyield, target_flux, biomass = np.nan, np.nan, np.nan, np.nan
             return _bpcy, _pyield, target_flux, biomass
 
