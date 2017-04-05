@@ -27,7 +27,7 @@ from cobra import DictList
 from sympy import Add, Mul, RealNumber
 
 from cobra import Model, Metabolite, Reaction
-from cobra.util import SolverNotFound
+from cobra.util import SolverNotFound, assert_optimal
 
 from cameo import fba
 from cameo import models, phenotypic_phase_plane
@@ -38,7 +38,7 @@ from cameo.core.strain_design import StrainDesignMethodResult, StrainDesign, Str
 from cameo.core.target import ReactionKnockinTarget
 from cameo.core.utils import add_exchange
 from cameo.data import metanetx
-from cameo.exceptions import SolveError
+from cobra.exceptions import OptimizationError
 from cameo.strain_design.pathway_prediction import util
 from cameo.util import TimeMachine
 from cameo.visualization.plotting import plotter
@@ -316,9 +316,10 @@ class PathwayPredictor(StrainDesignMethod):
             counter = 1
             while counter <= max_predictions:
                 logger.debug('Predicting pathway No. %d' % counter)
+                self.model.solver.optimize()
                 try:
-                    self.model.optimize()
-                except SolveError as e:
+                    assert_optimal(self.model)
+                except OptimizationError as e:
                     logger.error('No pathway could be predicted. Terminating pathway predictions.')
                     logger.error(e)
                     break
@@ -376,7 +377,7 @@ class PathwayPredictor(StrainDesignMethod):
                     pathway.apply(self.original_model)
                     try:
                         solution = fba(self.original_model, objective=pathway.product.id)
-                    except SolveError as e:
+                    except OptimizationError as e:
                         logger.error(e)
                         logger.error(
                             "Addition of pathway {} made the model unsolvable. "
