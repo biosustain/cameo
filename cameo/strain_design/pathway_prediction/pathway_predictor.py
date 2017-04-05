@@ -26,7 +26,7 @@ from cobra import DictList
 from sympy import Add, Mul, RealNumber
 
 from cobra import Model, Metabolite, Reaction
-from cobra.util import SolverNotFound
+from cobra.util import SolverNotFound, assert_optimal
 
 from cameo import fba
 from cameo import models, phenotypic_phase_plane
@@ -37,7 +37,7 @@ from cameo.core.strain_design import StrainDesignMethodResult, StrainDesign, Str
 from cameo.core.target import ReactionKnockinTarget
 from cameo.core.utils import add_exchange
 from cameo.data import metanetx
-from cameo.exceptions import SolveError
+from cobra.exceptions import OptimizationError
 from cameo.strain_design.pathway_prediction import util
 from cameo.util import TimeMachine
 from cameo.visualization.plotting import plotter
@@ -227,6 +227,9 @@ class PathwayPredictor(StrainDesignMethod):
     mapping : dict, optional
         A dictionary that contains a mapping between metabolite
         identifiers in `model` and `universal_model`
+    compartment_regexp : str, optional
+        A regular expression that matches host metabolites that
+        should be connected to the universal reaction model.
 
     Attributes
     ----------
@@ -259,6 +262,8 @@ class PathwayPredictor(StrainDesignMethod):
 
         if mapping is None:
             self.mapping = metanetx.all2mnx
+        else:
+            self.mapping = mapping
 
         self.model = model.copy()
 
@@ -321,9 +326,10 @@ class PathwayPredictor(StrainDesignMethod):
 
             while counter <= max_predictions:
                 logger.debug('Predicting pathway No. %d' % counter)
+                self.model.solver.optimize()
                 try:
-                    self.model.optimize()
-                except SolveError as e:
+                    assert_optimal(self.model)
+                except OptimizationError as e:
                     logger.error('No pathway could be predicted. Terminating pathway predictions.')
                     logger.error(e)
                     break
@@ -386,7 +392,7 @@ class PathwayPredictor(StrainDesignMethod):
                             if callback is not None:
                                 callback(pathway)
                             counter += 1
-                    except SolveError:
+                    except OptimizationError:
                         if not silent:
                             print("Pathways is not feasible")
                         continue
