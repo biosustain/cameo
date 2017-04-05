@@ -447,7 +447,7 @@ class Designer(object):
         try:
             flux_dist = fba(model, objective=product)
             return flux_dist[product.id] / abs(flux_dist[source.id])
-        except SolveError:
+        except OptimizationError:
             return 0.0
 
 
