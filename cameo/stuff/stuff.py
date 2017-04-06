@@ -18,7 +18,7 @@ from functools import partial
 from cobra.manipulation.delete import find_gene_knockout_reactions
 from cobra import Reaction
 from cameo.flux_analysis.simulation import fba
-from cameo.exceptions import SolveError
+from cobra.exceptions import OptimizationError
 from cameo.util import TimeMachine
 
 
@@ -47,7 +47,7 @@ def gene_knockout_growth(gene_id, model, threshold=10 ** -6, simulation_method=f
                 f = f / biomass_flux
         else:
             f = 0
-    except SolveError:
+    except OptimizationError:
         f = float('nan')
     finally:
         tm.reset()
@@ -66,7 +66,7 @@ def reaction_component_production(model, reaction):
         tm(do=partial(setattr, model, 'objective', test.id), undo=partial(setattr, model, 'objective', model.objective))
         try:
             print(metabolite.id, "= ", model.optimize().f)
-        except SolveError:
+        except OptimizationError:
             print(metabolite, " cannot be produced (reactions: %s)" % metabolite.reactions)
         finally:
             tm.reset()

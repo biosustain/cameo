@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from cameo.exceptions import SolveError
+from cobra.exceptions import OptimizationError
 
 import sympy
 from sympy import Add, Mul
@@ -74,7 +74,7 @@ def remove_infeasible_cycles(model, fluxes, fix=()):
             reaction_to_fix.bounds = (fluxes[reaction_id], fluxes[reaction_id])
         try:
             solution = model.optimize()
-        except SolveError as e:
+        except OptimizationError as e:
             logger.warning("Couldn't remove cycles from reference flux distribution.")
             raise e
         result = solution.x_dict

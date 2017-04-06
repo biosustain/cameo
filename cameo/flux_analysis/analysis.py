@@ -36,7 +36,7 @@ from optlang.interface import UNBOUNDED, OPTIMAL
 import cameo
 from cameo import config
 from cameo.core.result import Result
-from cameo.exceptions import SolveError
+from cobra.exceptions import OptimizationError
 from cameo.flux_analysis.util import remove_infeasible_cycles, fix_pfba_as_constraint
 from cameo.parallel import SequentialView
 from cameo.ui import notice
@@ -133,7 +133,7 @@ def find_essential_reactions(model, threshold=1e-6):
                     if model.solver.status != OPTIMAL or model.objective.value < threshold:
                         essential.append(reaction)
 
-    except SolveError as e:
+    except OptimizationError as e:
         logger.error('Cannot determine essential reactions for un-optimal model.')
         raise e
 
@@ -171,7 +171,7 @@ def find_essential_genes(model, threshold=1e-6):
                 if model.solver.status != OPTIMAL or model.objective.value < threshold:
                     essential.append(gene)
 
-    except SolveError as e:
+    except OptimizationError as e:
         logger.error('Cannot determine essential genes for un-optimal model.')
         raise e
 
