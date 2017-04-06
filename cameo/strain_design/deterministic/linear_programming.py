@@ -32,7 +32,7 @@ from cameo.core.model_dual import convert_to_dual
 from cameo.core.strain_design import StrainDesignMethodResult, StrainDesignMethod, StrainDesign
 from cameo.core.target import ReactionKnockoutTarget
 from cameo.core.utils import get_reaction_for
-from cameo.exceptions import SolveError
+from cobra.exceptions import OptimizationError
 from cameo.flux_analysis.analysis import phenotypic_phase_plane, flux_variability_analysis, find_essential_reactions
 from cameo.flux_analysis.simulation import fba
 from cameo.flux_analysis.structural import find_coupled_reactions_nullspace
@@ -251,7 +251,7 @@ class OptKnock(StrainDesignMethod):
             while count < max_results:
                 try:
                     solution = self._model.optimize()
-                except SolveError as e:
+                except OptimizationError as e:
                     logger.debug("Problem could not be solved. Terminating and returning " + str(count) + " solutions")
                     logger.debug(str(e))
                     break
@@ -328,7 +328,7 @@ class OptKnockResult(StrainDesignMethodResult):
                     fva = flux_variability_analysis(self._model, fraction_of_optimum=0.99, reactions=[self.target])
                 self._processed_knockouts.loc[i] = [knockouts, len(knockouts), self.production[i], self.biomass[i],
                                                     fva.lower_bound(self.target), fva.upper_bound(self.target)]
-            except SolveError:
+            except OptimizationError:
                 self._processed_knockouts.loc[i] = [numpy.nan for _ in self._processed_knockouts.columns]
 
     @property
