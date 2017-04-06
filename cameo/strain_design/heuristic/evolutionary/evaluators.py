@@ -16,7 +16,6 @@ import logging
 from cobra.exceptions import OptimizationError
 
 from cameo.core.manipulation import swap_cofactors
-from cameo.exceptions import SolveError
 from cameo.strain_design.heuristic.evolutionary.decoders import SetDecoder
 from cameo.strain_design.heuristic.evolutionary.objective_functions import ObjectiveFunction
 from cameo.util import ProblemCache, memoize
@@ -124,7 +123,7 @@ class KnockoutEvaluator(TargetEvaluator):
                                                   reactions=self.objective_function.reactions,
                                                   **self.simulation_kwargs)
                 fitness = self.objective_function(self.model, solution, targets)
-            except (SolveError, OptimizationError) as e:
+            except OptimizationError as e:
                 logger.debug(e)
                 fitness = self.objective_function.worst_fitness()
             return fitness
@@ -151,7 +150,7 @@ class SwapEvaluator(TargetEvaluator):
                                                   reactions=self.objective_function.reactions,
                                                   **self.simulation_kwargs)
                 fitness = self.objective_function(self.model, solution, swap_reactions)
-            except SolveError as e:
+            except OptimizationError as e:
                 logger.debug(e)
                 fitness = self.objective_function.worst_fitness()
 

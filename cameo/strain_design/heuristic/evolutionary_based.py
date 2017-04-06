@@ -27,7 +27,7 @@ from cobra import Model
 from cameo.core.strain_design import StrainDesignMethod, StrainDesignMethodResult, StrainDesign
 from cameo.core.target import ReactionKnockoutTarget, GeneKnockoutTarget, ReactionCofactorSwapTarget
 from cameo.core.manipulation import swap_cofactors
-from cameo.exceptions import SolveError
+from cobra.exceptions import OptimizationError
 from cameo.flux_analysis.analysis import phenotypic_phase_plane
 from cameo.flux_analysis.simulation import fba
 from cameo.strain_design.heuristic.evolutionary.archives import ProductionStrainArchive
@@ -262,7 +262,7 @@ class OptGeneResult(StrainDesignMethodResult):
                     processed_solutions.loc[i] = process_gene_knockout_solution(
                         self._model, solution[0], self._simulation_method, self._simulation_kwargs, self._biomass,
                         self._target, self._substrate, self._objective_function)
-                except SolveError as e:
+                except OptimizationError as e:
                     logger.error(e)
                     processed_solutions.loc[i] = [numpy.nan for _ in processed_solutions.columns]
 
@@ -283,7 +283,7 @@ class OptGeneResult(StrainDesignMethodResult):
                     processed_solutions.loc[i] = process_reaction_knockout_solution(
                         self._model, solution[0], self._simulation_method, self._simulation_kwargs, self._biomass,
                         self._target, self._substrate, self._objective_function)
-                except SolveError as e:
+                except OptimizationError as e:
                     logger.error(e)
                     processed_solutions.loc[i] = [numpy.nan for _ in processed_solutions.columns]
 
@@ -472,7 +472,7 @@ class HeuristicOptSwapResult(StrainDesignMethodResult):
                     processed_solutions.loc[i] = process_reaction_swap_solution(
                         self._model, solution[0], self._simulation_method, self._simulation_kwargs, self._biomass,
                         self._target, self._substrate, self._objective_function, self._swap_pairs)
-                except SolveError as e:
+                except OptimizationError as e:
                     logger.error(e)
                     processed_solutions.loc[i] = [numpy.nan for _ in processed_solutions.columns]
 
