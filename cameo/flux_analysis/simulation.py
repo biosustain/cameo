@@ -45,7 +45,6 @@ from cobra.exceptions import OptimizationError
 from optlang.interface import OptimizationExpression
 from cameo.config import ndecimals
 from cameo.util import ProblemCache, in_ipnb
-from cobra.exceptions import OptimizationError
 from cameo.core.result import Result
 from cameo.visualization.palette import mapper, Palette
 

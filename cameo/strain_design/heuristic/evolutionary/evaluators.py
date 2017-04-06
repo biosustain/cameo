@@ -16,7 +16,6 @@ import logging
 from cobra.exceptions import OptimizationError
 
 from cameo.core.manipulation import swap_cofactors
-from cobra.exceptions import OptimizationError
 from cameo.strain_design.heuristic.evolutionary.decoders import SetDecoder
 from cameo.strain_design.heuristic.evolutionary.objective_functions import ObjectiveFunction
 from cameo.util import ProblemCache, memoize
