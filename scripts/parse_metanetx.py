@@ -20,11 +20,11 @@ import sys
 
 import requests
 import optlang
-from cobra.Formula import Formula
 from cobra.io.json import save_json_model
+from cobra.util import add_exchange
 from pandas import read_table, notnull
-
-from cameo import Reaction, Metabolite, Model
+from cobra import Reaction, Metabolite, Model
+from cobra.core.formula import Formula
 from cameo.io import _apply_sanitize_rules, ID_SANITIZE_RULES_TAB_COMPLETION, ID_SANITIZE_RULES_SIMPHENY
 
 logger = logging.getLogger('parse_metanetx')
@@ -64,13 +64,14 @@ def parse_reaction(formula, irrev_arrow='-->', rev_arrow='<=>'):
     return stoichiometry
 
 
-def construct_universal_model(list_of_db_prefixes):
+def construct_universal_model(list_of_db_prefixes, reac_xref, reac_prop, chem_prop):
     # Select which reactions to include in universal reaction database
 
-    reaction_selection = reac_prop[[
-        any([source.startswith(db_prefix) for db_prefix in list_of_db_prefixes]) and re.match('.*biomass.*', source,
-                                                                                              re.I) is None for source
-        in reac_prop.Source]]
+    mnx_reaction_id_selection = set()
+    for db_prefix in list_of_db_prefixes:
+        mnx_reaction_id_selection.update(reac_xref[reac_xref.XREF.str.startswith(db_prefix)].MNX_ID)
+
+    reaction_selection = reac_prop.loc[mnx_reaction_id_selection]
     reactions = list()
     for index, row in reaction_selection.iterrows():
         try:
@@ -106,7 +107,7 @@ def construct_universal_model(list_of_db_prefixes):
             try:
                 if len(reaction.check_mass_balance()) != 0:
                     continue
-            except AttributeError as e:
+            except (AttributeError, ValueError) as e:
                 logger.debug(str(e))
                 continue
             if row.Balance:
@@ -117,11 +118,12 @@ def construct_universal_model(list_of_db_prefixes):
             reaction.annotation = dict((key, rest[key]) for key in rest if key in ('EC', 'Description'))
             reactions.append(reaction)
 
-    model = Model('metanetx_universal_model_' + '_'.join(list_of_db_prefixes), solver_interface=optlang.interface)
+    model = Model('metanetx_universal_model_' + '_'.join(list_of_db_prefixes))
     model.add_reactions(reactions)
     # Add sinks for all metabolites
     for metabolite in model.metabolites:
-        model.add_demand(metabolite)
+
+        add_exchange(model, metabolite, demand=True)
     return model
 
 
@@ -203,7 +205,7 @@ if __name__ == '__main__':
     db_combinations = [('bigg',), ('rhea',), ('bigg', 'rhea'), ('bigg', 'rhea', 'kegg'),
                        ('bigg', 'rhea', 'kegg', 'brenda')]
     for db_combination in db_combinations:
-        universal_model = construct_universal_model(db_combination)
+        universal_model = construct_universal_model(db_combination, reac_xref, reac_prop, chem_prop)
         # The following is a hack; uncomment the following
         from cobra.io.json import _REQUIRED_REACTION_ATTRIBUTES
 
