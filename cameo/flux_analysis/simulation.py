@@ -45,7 +45,6 @@ from cobra.exceptions import OptimizationError
 from optlang.interface import OptimizationExpression
 from cameo.config import ndecimals
 from cameo.util import ProblemCache, in_ipnb
-from cameo.exceptions import SolveError
 from cameo.core.result import Result
 from cameo.visualization.palette import mapper, Palette
 
@@ -124,7 +123,7 @@ def pfba(model, objective=None, reactions=None, fraction_of_optimum=1, *args, **
                 result = FluxDistributionResult({r: solution.get_primal_by_id(r) for r in reactions}, solution.f)
             else:
                 result = FluxDistributionResult.from_solution(solution)
-        except (SolveError, OptimizationError) as e:
+        except OptimizationError as e:
             logger.error("pfba could not determine an optimal solution for objective %s" % model.objective)
             raise e
         return result
@@ -296,7 +295,7 @@ def lmoma(model, reference=None, cache=None, reactions=None, *args, **kwargs):
             else:
                 result = FluxDistributionResult.from_solution(solution)
             return result
-        except SolveError as e:
+        except OptimizationError as e:
             raise e
     except Exception as e:
         cache.rollback()
@@ -391,7 +390,7 @@ def room(model, reference=None, cache=None, delta=0.03, epsilon=0.001, reactions
             else:
                 result = FluxDistributionResult.from_solution(solution)
             return result
-        except SolveError as e:
+        except OptimizationError as e:
             logger.error("room could not determine an optimal solution for objective %s" % model.objective)
             raise e
 
