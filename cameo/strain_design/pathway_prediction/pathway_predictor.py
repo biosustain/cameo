@@ -42,9 +42,7 @@ from cameo.visualization.plotting import plotter
 
 __all__ = ['PathwayPredictor']
 
-
 logger = logging.getLogger(__name__)
-
 
 add = Add._from_args
 mul = Mul._from_args
@@ -325,9 +323,7 @@ class PathwayPredictor(StrainDesignMethod):
                 product_reaction = self.model.add_exchange(product, time_machine=tm)
 
             product_reaction.change_bounds(lb=min_production, time_machine=tm)
-
-            iteration, counter = 1, 1
-
+            counter = 1
             while counter <= max_predictions:
                 logger.debug('Predicting pathway No. %d' % counter)
                 try:
@@ -360,6 +356,7 @@ class PathwayPredictor(StrainDesignMethod):
                 pathway_metabolites = set([m for pathway_reaction in pathway for m in pathway_reaction.metabolites])
                 logger.info('Pathway predicted: %s' % '\t'.join(
                     [r.build_reaction_string(use_metabolite_names=True) for r in pathway]))
+                pathway_metabolites.add(product)
 
                 # Figure out adapter reactions to include
                 adapters = [adapter for adapter in self.adpater_reactions if adapter.products[0] in pathway_metabolites]
@@ -374,31 +371,36 @@ class PathwayPredictor(StrainDesignMethod):
 
                 pathway = PathwayResult(pathway, exchanges, adapters, product_reaction)
                 if not silent:
-                    util.display_pathway(pathway, iteration)
+                    util.display_pathway(pathway, counter)
 
                 integer_cut = self.model.solver.interface.Constraint(Add(*vars_to_cut),
-                                                                     name="integer_cut_" + str(iteration),
+                                                                     name="integer_cut_" + str(counter),
                                                                      ub=len(vars_to_cut) - 1)
                 logger.debug('Adding integer cut.')
                 tm(do=partial(self.model.solver.add, integer_cut), undo=partial(self.model.solver.remove, integer_cut))
-                iteration += 1
 
                 # Test pathway in the original model
                 with TimeMachine() as another_tm:
                     pathway.apply(self.original_model, another_tm)
                     try:
                         solution = fba(self.original_model, objective=pathway.product.id)
+                    except SolveError as e:
+                        logger.error(e)
+                        logger.error("Addition of pathway {} made the model unsolvable. Skipping pathway.".format(pathway))
+                        continue
+                    else:
                         if solution[pathway.product.id] > non_zero_flux_threshold:
                             pathways.append(pathway)
+                        else:
+                            logger.error(
+                                "Pathway {} couldn't be verified. Production flux {} is below requirement {}. Skipping pathway.".format(
+                                    pathway, solution[pathway.product.id], non_zero_flux_threshold))
                             if not silent:
                                 print("Max flux: %.5f" % solution[pathway.product.id])
-                            if callback is not None:
-                                callback(pathway)
-                            counter += 1
-                    except SolveError:
-                        if not silent:
-                            print("Pathways is not feasible")
-                        continue
+                    finally:
+                        counter += 1
+                        if callback is not None:
+                            callback(pathway)
 
             return PathwayPredictions(pathways)
 
