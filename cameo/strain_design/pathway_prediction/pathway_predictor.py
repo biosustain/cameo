@@ -391,12 +391,12 @@ class PathwayPredictor(StrainDesignMethod):
                     else:
                         if solution[pathway.product.id] > non_zero_flux_threshold:
                             pathways.append(pathway)
+                            if not silent:
+                                print("Max flux: %.5f" % solution[pathway.product.id])
                         else:
                             logger.error(
                                 "Pathway {} couldn't be verified. Production flux {} is below requirement {}. Skipping pathway.".format(
                                     pathway, solution[pathway.product.id], non_zero_flux_threshold))
-                            if not silent:
-                                print("Max flux: %.5f" % solution[pathway.product.id])
                     finally:
                         counter += 1
                         if callback is not None:
