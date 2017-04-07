@@ -13,13 +13,11 @@
 # limitations under the License.
 
 import logging
-import re
 import gzip
 import pickle
 import sys
 
 import requests
-import optlang
 from cobra.core.Formula import Formula
 from cobra.io.json import save_json_model
 from pandas import read_table, notnull
@@ -67,7 +65,7 @@ def parse_reaction(formula, irrev_arrow='-->', rev_arrow='<=>'):
 
 def construct_universal_model(list_of_db_prefixes, reac_xref, reac_prop, chem_prop):
     """"Construct a universal model based on metanetx.
-    
+
     Arguments
     ---------
     list_of_db_prefixes : list
