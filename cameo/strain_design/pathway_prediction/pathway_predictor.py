@@ -17,6 +17,7 @@ from __future__ import absolute_import, print_function
 import logging
 import re
 import warnings
+from collections import Counter
 from functools import partial
 from math import ceil
 
@@ -224,6 +225,11 @@ class PathwayPredictor(StrainDesignMethod):
     mapping : dict, optional
         A dictionary that contains a mapping between metabolite
         identifiers in `model` and `universal_model`
+    compartment_regexp : str, optional
+        A regular expression that matches host metabolites' compartments
+        that should be connected to the universal reaction model. If not
+        provided, the compartment containing most metabolites will be
+        chosen.
 
     Attributes
     ----------
@@ -243,11 +249,15 @@ class PathwayPredictor(StrainDesignMethod):
         """"""
         self.original_model = model
         if compartment_regexp is None:
-            compartment_regexp = re.compile(".*")
+            compartments_tally = Counter(metabolite.compartment for metabolite in self.original_model.metabolites)
+            most_common_compartment = compartments_tally.most_common(n=1)[0][0]
+            compartment_regexp = re.compile(most_common_compartment)
+        else:
+            compartment_regexp = re.compile(compartment_regexp)
 
         if universal_model is None:
             logger.debug("Loading default universal model.")
-            self.universal_model = models.universal.metanetx_universal_model_bigg_rhea
+            self.universal_model = models.universal.metanetx_universal_model_bigg
         elif isinstance(universal_model, Model):
             self.universal_model = universal_model
         else:
@@ -256,6 +266,8 @@ class PathwayPredictor(StrainDesignMethod):
 
         if mapping is None:
             self.mapping = metanetx.all2mnx
+        else:
+            self.mapping = mapping
 
         self.model = model.copy()
 
