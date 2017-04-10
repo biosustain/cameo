@@ -43,17 +43,16 @@ except ImportError:
     pass
 
 # Determine if bokeh is available
-# TODO: This should also check if a bokeh server is actually running.
 try:
-    from bokeh.plotting import output_notebook
-
-    if in_ipnb():
-        output_notebook(hide_banner=True)
-    use_bokeh = True
+    import bokeh
 except ImportError:
     use_bokeh = False
-
-bokeh_url = 'default'
+else:
+    if in_ipnb():
+        from bokeh.plotting import output_notebook
+        output_notebook(hide_banner=True)
+    use_bokeh = True
+    bokeh_url = 'default'
 
 # Set default parallelization view
 default_view = SequentialView()
