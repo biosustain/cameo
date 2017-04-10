@@ -377,7 +377,9 @@ class PathwayPredictor(StrainDesignMethod):
                                                                      name="integer_cut_" + str(counter),
                                                                      ub=len(vars_to_cut) - 1)
                 logger.debug('Adding integer cut.')
-                tm(do=partial(self.model.solver.add, integer_cut), undo=partial(self.model.solver.remove, integer_cut))
+                tm(
+                    do=partial(self.model.solver.add, integer_cut),
+                    undo=partial(self.model.solver.remove, integer_cut))
 
                 # Test pathway in the original model
                 with TimeMachine() as another_tm:
@@ -386,7 +388,9 @@ class PathwayPredictor(StrainDesignMethod):
                         solution = fba(self.original_model, objective=pathway.product.id)
                     except SolveError as e:
                         logger.error(e)
-                        logger.error("Addition of pathway {} made the model unsolvable. Skipping pathway.".format(pathway))
+                        logger.error(
+                            "Addition of pathway {} made the model unsolvable. "
+                            "Skipping pathway.".format(pathway))
                         continue
                     else:
                         if solution[pathway.product.id] > non_zero_flux_threshold:
@@ -395,7 +399,8 @@ class PathwayPredictor(StrainDesignMethod):
                                 print("Max flux: %.5f" % solution[pathway.product.id])
                         else:
                             logger.error(
-                                "Pathway {} couldn't be verified. Production flux {} is below requirement {}. Skipping pathway.".format(
+                                "Pathway {} couldn't be verified. Production flux {}"
+                                "is below requirement {}. Skipping pathway.".format(
                                     pathway, solution[pathway.product.id], non_zero_flux_threshold))
                     finally:
                         counter += 1
