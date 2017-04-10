@@ -167,7 +167,10 @@ class StrainDesignMethodResult(Result):
 
     @property
     def data_frame(self):
-        return DataFrame([design.targets for design in self._designs], columns=["targets"])
+        df = DataFrame(columns=['targets'])
+        for i, design in enumerate(self._designs):
+            df.loc[i] = [design.targets]
+        return df
 
     def display_on_map(self, index, map_name):
         raise NotImplementedError
