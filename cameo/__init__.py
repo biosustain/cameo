@@ -47,7 +47,6 @@ optimization.run(max_evaluations=2000, n=1,
        mutation_rate=0.3, view=cameo.parallel.SequentialView(),
        product="EX_succ_lp_e_rp_", num_elites=1)
 """
-from __future__ import absolute_import, print_function
 
 import os
 import sys
@@ -93,9 +92,6 @@ __version__ = get_versions()['version']
 del get_versions
 
 from cameo.io import load_model
-#except ImportError:
-#    raise
-#    pass
 
 from cameo import models
 
@@ -109,3 +105,5 @@ from .flux_analysis.simulation import fba, pfba
 from ._version import get_versions
 __version__ = get_versions()['version']
 del get_versions
+
+del os, sys, in_ipnb, get_system_info, find_module, find
