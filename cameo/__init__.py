@@ -66,13 +66,13 @@ if sys.version_info[0] == 2:
 
 elif sys.version_info[0] == 3:
     if sys.version_info[1] <= 3:
-        from importlib import find_loader as find
+        from importlib import find_loader as _find
     else:
-        from importlib.util import find_spec as find
+        from importlib.util import find_spec as _find
 
 
     def find_module(name):
-        return find(name) is not None
+        return _find(name) is not None
 
 _cameo_path = __path__[0]
 _cameo_data_path = os.path.join(_cameo_path, 'data')
@@ -106,4 +106,4 @@ from ._version import get_versions
 __version__ = get_versions()['version']
 del get_versions
 
-del os, sys, in_ipnb, get_system_info, find_module, find
+del os, sys, in_ipnb, get_system_info, find_module
