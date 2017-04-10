@@ -15,7 +15,8 @@ from __future__ import absolute_import
 
 import six
 from bokeh.charts import Line, Bar
-from bokeh.models import GridPlot, FactorRange
+from bokeh.models import FactorRange
+from bokeh.layouts import gridplot
 from bokeh.plotting import figure, show
 
 from cameo.util import partition, inheritdocstring, in_ipnb
@@ -161,5 +162,5 @@ class BokehPlotter(AbstractPlotter):
 
     @staticmethod
     def _make_grid(grid):
-        return GridPlot(children=partition(grid.plots, grid.n_rows),
+        return gridplot(children=partition(grid.plots, grid.n_rows),
                         name=grid.title)
