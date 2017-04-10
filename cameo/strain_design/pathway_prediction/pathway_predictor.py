@@ -249,7 +249,7 @@ class PathwayPredictor(StrainDesignMethod):
         if compartment_regexp is None:
             compartments_tally = Counter(metabolite.compartment for metabolite in self.original_model.metabolites)
             most_common_compartment = compartments_tally.most_common(n=1)[0][0]
-            compartment_regexp = re.compile(most_common_compartment)
+            compartment_regexp = re.compile('^' + most_common_compartment + '$')
         else:
             compartment_regexp = re.compile(compartment_regexp)
 
