@@ -251,7 +251,7 @@ class DifferentialFVA(StrainDesignMethod):
         columns = self.variables + [self.objective]
         self.grid = DataFrame(grid, columns=columns)
 
-    def run(self, surface_only=True, improvements_only=True, view=None):
+    def run(self, surface_only=True, improvements_only=True, progress=True, view=None):
         """Run the differential flux variability analysis.
 
         Parameters
@@ -261,6 +261,8 @@ class DifferentialFVA(StrainDesignMethod):
         improvements_only : bool, optional
             If only grid points should should be scanned that constitute and improvement in production
             over the reference state (defaults to True).
+        progress : bool, optional
+            If a progress bar should be shown.
         view : SequentialView or MultiprocessingView or ipython.cluster.DirectView, optional
             A parallelization view (defaults to SequentialView).
 
@@ -295,10 +297,13 @@ class DifferentialFVA(StrainDesignMethod):
 
             self._init_search_grid(surface_only=surface_only, improvements_only=improvements_only)
 
-            progress = ProgressBar(len(self.grid))
             func_obj = _DifferentialFvaEvaluator(self.design_space_model, self.variables, self.objective,
                                                  included_reactions)
-            results = list(progress(view.imap(func_obj, self.grid.iterrows())))
+            if progress:
+                progress = ProgressBar(len(self.grid))
+                results = list(progress(view.imap(func_obj, self.grid.iterrows())))
+            else:
+                results = list(view.map(func_obj, self.grid.iterrows()))
 
         solutions = dict((tuple(point.iteritems()), fva_result) for (point, fva_result) in results)
         reference_intervals = self.reference_flux_ranges[['lower_bound', 'upper_bound']].values
