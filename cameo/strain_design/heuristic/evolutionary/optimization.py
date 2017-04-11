@@ -625,9 +625,9 @@ class TargetOptimizationResult(Result):
         for index, solution in enumerate(solutions):
             targets = self._decoder(solution.candidate, flat=True)
             if len(targets) > 0:
-                decoded_solutions.loc[index] = [targets, solution.fitness]
+                decoded_solutions.loc[index] = [tuple(targets), solution.fitness]
 
-        decoded_solutions.drop_duplicates(inplace=True)
+        decoded_solutions.drop_duplicates(inplace=True, subset="targets")
         decoded_solutions.reset_index(inplace=True)
 
         return decoded_solutions
