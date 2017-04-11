@@ -17,10 +17,7 @@
 
 from __future__ import absolute_import, print_function
 
-import re
-
 import numpy as np
-from IProgress import ProgressBar, ETA, Bar
 
 from cameo.core import SolverBasedModel
 from cameo.core.strain_design import StrainDesign
@@ -64,23 +61,21 @@ logger = logging.getLogger(__name__)
 
 
 class _OptimizationRunner(object):
-    def __init__(self, debug=False):
-        self.debug = debug
+
+    def __init__(self, options):
+        self.options = options
 
     def __call__(self, strategy):
         raise NotImplementedError
 
 
 class _OptGeneRunner(_OptimizationRunner):
+
     def __call__(self, strategy):
         max_evaluations = 15000
-        max_time = (45, 0)
+        max_time = (self.options.heuristic_optimization_timeout, 0)
 
-        if self.debug:
-            max_evaluations = 1000
-            max_time = (5, 0)
-
-        (model, pathway, aerobic) = (strategy[1], strategy[2], strategy[3])
+        model, pathway, aerobic = strategy['model'], strategy['pathway'], strategy['aerobic']
         model = model.copy()
         assert isinstance(model, SolverBasedModel)
         assert isinstance(pathway, PathwayResult)
@@ -100,13 +95,8 @@ class _OptGeneRunner(_OptimizationRunner):
 
 class _DifferentialFVARunner(_OptimizationRunner):
     def __call__(self, strategy):
-        points = 30
-        surface_only = False
-        if self.debug:
-            points = 5
-            surface_only = True
 
-        (model, pathway, aerobic) = (strategy[1], strategy[2], strategy[3])
+        model, pathway, aerobic = strategy['model'], strategy['pathway'], strategy['aerobic']
         model = model.copy()
         assert isinstance(model, SolverBasedModel)
         assert isinstance(pathway, PathwayResult)
@@ -121,10 +111,22 @@ class _DifferentialFVARunner(_OptimizationRunner):
             diff_fva = DifferentialFVA(design_space_model=model,
                                        objective=pathway.product.id,
                                        variables=[model.biomass],
-                                       points=points)
-            designs = diff_fva.run(improvements_only=True, surface_only=surface_only)
+                                       points=self.options.differential_fva_points)
+            designs = diff_fva.run(improvements_only=True, surface_only=True, progress=False)
 
             return designs
+
+
+class DesignerOptions(object):
+
+    def __init__(self):
+        self.differential_fva = True
+        self.heuristic_optimization = True
+        self.max_pathway_predictions = 1
+        self.differential_fva_points = 10
+        self.pathway_prediction_timeout = 10      # min
+        self.heuristic_optimization_timeout = 45  # min
+        self.verbose = True
 
 
 class Designer(object):
@@ -136,11 +138,14 @@ class Designer(object):
     designs = design(product='L-glutamate')
     """
 
-    def __init__(self, debug=False):
-        """"""
-        self.debug = debug
+    def __init__(self):
+        self.options = DesignerOptions()
 
-    def __call__(self, product='L-glutamate', hosts=HOSTS, database=None, aerobic=True, view=config.default_view):
+    def __call__(self, product='L-glutamate',
+                 hosts=HOSTS,
+                 database=None,
+                 aerobic=True,
+                 view=config.default_view):
         """The works.
 
         The following workflow will be followed to determine suitable
@@ -167,7 +172,7 @@ class Designer(object):
         Designs
         """
         if database is None:
-            database = universal.metanetx_universal_model_bigg_rhea
+            database = universal.metanetx_universal_model_bigg
 
         notice("Starting searching for compound %s" % product)
         try:
@@ -197,28 +202,31 @@ class Designer(object):
             A data frame with strain designs processed and ranked.
 
         """
-        opt_gene_runner = _OptGeneRunner(self.debug)
-        differential_fva_runner = _DifferentialFVARunner(self.debug)
-        strategies = [(host, model, pathway, aerobic) for (host, model) in pathways for pathway in pathways[host, model]
-                      if pathway.needs_optimization(model, objective=model.biomass)]
+        strategies = [{'host': host.name, 'model': model, 'pathway': pathway, 'aerobic': aerobic} for (host, model) in
+                      pathways for pathway in pathways[host, model] if
+                      pathway.needs_optimization(model, objective=model.biomass)]
 
         print("Optimizing %i pathways" % len(strategies))
 
         results = DataFrame(columns=["host", "model", "manipulations", "heterologous_pathway",
                                      "fitness", "yield", "product", "biomass", "method"])
 
-        mapped_designs1 = view.map(opt_gene_runner, strategies)
-        mapped_designs2 = view.map(differential_fva_runner, strategies)
-        progress = ProgressBar(maxval=len(mapped_designs1) + len(mapped_designs2),
-                               widgets=["Processing solutions: ", Bar(), ETA()])
-        progress.start()
-        results = self.build_results_data(mapped_designs1, strategies, results, progress)
-        results = self.build_results_data(mapped_designs2, strategies, results, progress, offset=len(mapped_designs1))
-        progress.finish()
+        if self.options.heuristic_optimization:
+            logger.info('Running heuristic optimizations on predicted pathways.')
+            opt_gene_runner = _OptGeneRunner(options=self.options)
+            designs = view.map(opt_gene_runner, strategies)
+            logger.info('Processing heuristic optimization results.')
+            results = self.build_results_data(designs, strategies, results)
+        if self.options.differential_fva:
+            logger.info('Running differential flux variability analysis on predicted pathways.')
+            differential_fva_runner = _DifferentialFVARunner(options=self.options)
+            designs = view.map(differential_fva_runner, strategies)
+            logger.info('Processing differential flux variability analysis results.')
+            results = self.build_results_data(designs, strategies, results)
 
         return results
 
-    def build_results_data(self, strategy_designs, strategies, results, progress, offset=0):
+    def build_results_data(self, strategy_designs, strategies, results):
         """
         Process the designs and add them to the `results` DataFrame.
 
@@ -230,10 +238,6 @@ class Designer(object):
             List of [(Host, SolverBasedModel, PathwayResult, Boolean)]. Note: variables: host, model, pathway, anaerobic
         results : pandas.DataFrame
             An existing DataFrame to be extended.
-        progress : IProgress.ProgressBar
-            A progress bar handler.
-        offset : int
-            An offset tracker for the progress bar.
 
         Returns
         -------
@@ -244,13 +248,13 @@ class Designer(object):
         for i, strain_designs in enumerate(strategy_designs):
             strategy = strategies[i]
             _results = DataFrame(columns=results.columns, index=[j for j in range(len(strain_designs))])
-            manipulations, fitness, yields, target_flux, biomass = self.process_strain_designs(strain_designs,
-                                                                                               *strategy[1:])
+            manipulations, fitness, yields, target_flux, biomass = \
+                self.process_strain_designs(strain_designs, **strategy)
             for j, strain_design in enumerate(manipulations):
                 _results.loc[j, 'manipulations'] = strain_design
-                _results.loc[j, 'heterologous_pathway'] = strategy[2]
-            _results['host'] = strategy[0].name
-            _results['model'] = strategy[1].id
+                _results.loc[j, 'heterologous_pathway'] = strategy['pathway']
+            _results['host'] = strategy['host']
+            _results['model'] = strategy['model'].id
             _results['fitness'] = fitness
             _results['yield'] = yields
             _results['biomass'] = biomass
@@ -258,10 +262,9 @@ class Designer(object):
             _results['method'] = "DifferentialFVA+PathwayFinder"
 
             results = results.append(_results, ignore_index=True)
-            progress.update(i + offset)
         return results
 
-    def process_strain_designs(self, strain_designs, model, pathway, aerobic):
+    def process_strain_designs(self, strain_designs, model=None, pathway=None, aerobic=None, **kwargs):
         model = model.copy()
         assert isinstance(pathway, StrainDesign)
         assert isinstance(pathway, PathwayResult)
@@ -319,9 +322,6 @@ class Designer(object):
         dict
             ([Host, Model] -> PredictedPathways)
         """
-        max_predictions = 4
-        timeout = 3 * 60
-
         pathways = dict()
         product = self.__translate_product_to_universal_reactions_model_metabolite(product, database)
         for host in hosts:
@@ -337,18 +337,11 @@ class Designer(object):
                     notice('Predicting pathways for product %s in %s (using model %s).'
                            % (product.name, host, model.id))
                     logging.debug('Predicting pathways for model {}'.format(model.id))
-                    pathway_predictor = pathway_prediction.PathwayPredictor(model,
-                                                                            universal_model=database,
-                                                                            compartment_regexp=re.compile(".*_c$"))
-
-                    if self.debug:
-                        max_predictions = 2
-                        timeout = 60
-
+                    pathway_predictor = pathway_prediction.PathwayPredictor(model, universal_model=database)
                     predicted_pathways = pathway_predictor.run(product,
-                                                               max_predictions=max_predictions,
-                                                               timeout=timeout,
-                                                               silent=True)
+                                                               max_predictions=self.options.max_pathway_predictions,
+                                                               timeout=self.options.pathway_prediction_timeout,
+                                                               silent=not self.options.verbose)
                     stop_loader(identifier)
                     pathways[(host, model)] = predicted_pathways
                     self.__display_pathways_information(predicted_pathways, host, model)
