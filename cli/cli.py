@@ -32,25 +32,13 @@ logging.basicConfig()
 logger = logging.getLogger('cameo')
 logger.setLevel('WARNING')
 
-# from tqdm import tqdm
-#
-# class TqdmHandler(logging.StreamHandler):
-#     def __init__(self):
-#         logging.StreamHandler.__init__(self)
-#
-#     def emit(self, record):
-#         msg = self.format(record)
-#         tqdm.write(msg)
-#
-# handler = TqdmHandler()
-# logger.addHandler(handler)
-
 OUTPUT_WRITER = {
     "xlsx": lambda df, path: df.to_excel(path),
     "csv": lambda df, path: df.to_csv(path, sep=","),
     "tsv": lambda df, path: df.to_csv(path, sep="\t"),
 }
-VALID_OUTPUT_FORMATS = tuple(OUTPUT_WRITER.keys())
+VALID_OUTPUT_FORMATS = list(OUTPUT_WRITER.keys())
+VALID_OUTPUT_FORMATS.append('pickle')
 
 
 @click.group()
@@ -60,8 +48,8 @@ def main():
 
 
 @main.command()
-@click.option('-o', '--output', default='-', help='Number of greetings.', type=click.Path())
-@click.option('-f', '--format', default='xlsx', prompt='Format',
+@click.option('-o', '--output', default='-', help='Number of greetings.', multiple=True, type=click.Path())
+@click.option('-f', '--format', default='pickle', prompt='Format', multiple=True,
               type=click.Choice(VALID_OUTPUT_FORMATS), help='Output file format (default xlsx).')
 @click.option('-h', '--host', default='ecoli', multiple=True,
               type=click.Choice(['ecoli', 'scerevisiae']),
@@ -109,15 +97,20 @@ def design(product, host, output, format, cores, aerobic, differential_fva, heur
 
     results = design(product=product, hosts=hosts,
                      view=view, aerobic=aerobic)
-
-    results['heterologous_pathway'] = results.heterologous_pathway.apply(str)
-    results['manipulations'] = results.manipulations.apply(str)
-
     click.echo(results)
 
-    OUTPUT_WRITER[format](results, output)
-    with open(output + '.pcl', 'wb') as f:
-        pickle.dump(results, f)
+    for output, format in zip(output, format):
+        if format == 'pickle':
+            click.echo('Pickling results into {}'.format(output))
+            with open(output, 'wb') as f:
+                pickle.dump(results, f)
+        else:
+            click.echo('Writing results into {} using format "{}"'.format(output, format))
+            results['heterologous_pathway'] = results.heterologous_pathway.apply(str)
+            results['manipulations'] = results.manipulations.apply(str)
+            OUTPUT_WRITER[format](results, output)
+
+    click.echo(results)
 
 
 @main.command()
