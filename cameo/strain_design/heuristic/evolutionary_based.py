@@ -125,7 +125,7 @@ class OptGene(StrainDesignMethod):
         -------
         OptGeneResult
         """
-
+        logger.info('Starting optgene')
         target = self._model._reaction_for(target, time_machine=time_machine)
         biomass = self._model._reaction_for(biomass, time_machine=time_machine)
         substrate = self._model._reaction_for(substrate, time_machine=time_machine)
@@ -134,7 +134,7 @@ class OptGene(StrainDesignMethod):
             objective_function = biomass_product_coupled_min_yield(biomass, target, substrate)
         else:
             objective_function = biomass_product_coupled_yield(biomass, target, substrate)
-
+        logger.info('Starting objective_function: {}'.format(objective_function))
         if self.manipulation_type is "genes":
             optimization_algorithm = GeneKnockoutOptimization(
                 model=self._model,
@@ -153,7 +153,7 @@ class OptGene(StrainDesignMethod):
                 use_nullspace_simplification=use_nullspace_simplification)
         else:
             raise ValueError("Invalid manipulation type %s" % self.manipulation_type)
-
+        logger.info(kwargs)
         optimization_algorithm.simulation_kwargs = kwargs
         optimization_algorithm.simulation_method = simulation_method
         optimization_algorithm.archiver = ProductionStrainArchive()

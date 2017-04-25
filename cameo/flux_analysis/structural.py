@@ -39,7 +39,6 @@ from cameo.util import TimeMachine
 __all__ = ['find_dead_end_reactions', 'find_coupled_reactions', 'ShortestElementaryFluxModes']
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
 
 
 def create_stoichiometric_array(model, array_type='dense', dtype=None):
@@ -129,9 +128,19 @@ def nullspace(matrix, atol=1e-13, rtol=0):
         nullspace; each element in numpy.dot(A, ns) will be approximately
         zero.
     """
-
+    logger.debug('matrix = np.atleast_2d(matrix)')
     matrix = np.atleast_2d(matrix)
+    import pickle
+    with open('/Users/niso/Downloads/matrix.pcl', 'wb') as f:
+        pickle.dump(matrix, f)
+    import os
+    try:
+        logger.debug("OPENBLAS_NUM_THREADS: {}".format(os.environ['OPENBLAS_NUM_THREADS']))
+    except KeyError:
+        logger.debug('OPENBLAS_NUM_THREADS not set.')
+    logger.debug('u, s, vh = svd(matrix)')
     u, s, vh = svd(matrix)
+    logger.debug('tol = max(atol, rtol * s[0])')
     tol = max(atol, rtol * s[0])
     nnz = (s >= tol).sum()
     ns = vh[nnz:].conj().T

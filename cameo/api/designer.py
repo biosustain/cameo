@@ -87,8 +87,10 @@ class _OptGeneRunner(_OptimizationRunner):
             pathway.apply(model, tm)
             model.objective = model.biomass
             opt_gene = OptGene(model=model, plot=False)
+            logger.info('Setting time limit for heuristic optimization to {}'.format(max_time))
             designs = opt_gene.run(target=pathway.product.id, biomass=model.biomass, substrate=model.carbon_source,
                                    max_evaluations=max_evaluations, max_knockouts=15, max_time=max_time)
+            logger.debug('Termination cause: {}'.format(designs._knockouts.heuristic_method.termination_cause))
 
             return designs
 

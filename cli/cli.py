@@ -32,6 +32,9 @@ logging.basicConfig()
 logger = logging.getLogger('cameo')
 logger.setLevel('WARNING')
 
+inspyred_logger = logging.getLogger('inspyred.ec')
+inspyred_logger.setLevel('DEBUG')
+
 OUTPUT_WRITER = {
     "xlsx": lambda df, path: df.to_excel(path),
     "csv": lambda df, path: df.to_csv(path, sep=","),
@@ -84,11 +87,14 @@ def design(product, host, output, format, cores, aerobic, differential_fva, heur
     hosts = [getattr(hosts, host) for host in host]
 
     if cores > 1:
-        view = MultiprocessingView(processes=cores)
+        # view = MultiprocessingView(processes=cores)
+        from multiprocessing import Pool
+        view = Pool(processes=cores)
     elif cores == 1:
         view = SequentialView()
 
     design.options.pathway_prediction_timeout = pathway_prediction_timeout * 60
+    click.echo(heuristic_optimization_timeout)
     design.options.heuristic_optimization_timeout = heuristic_optimization_timeout
     design.options.max_pathway_predictions = max_pathway_predictions
     design.options.differential_fva = differential_fva

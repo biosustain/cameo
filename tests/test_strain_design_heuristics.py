@@ -33,6 +33,7 @@ from six.moves import range
 from cameo import config, fba
 from cameo.core.manipulation import swap_cofactors
 from cameo.parallel import SequentialView
+from cameo.strain_design import OptGene
 from cameo.strain_design.heuristic.evolutionary.archives import (BestSolutionArchive,
                                                                  Individual)
 from cameo.strain_design.heuristic.evolutionary.decoders import (GeneSetDecoder,
@@ -944,10 +945,24 @@ class TestReactionKnockoutOptimization:
                                            simulation_method=fba,
                                            objective_function=objective)
         start_time = time.time()
+        # rko.simulation_kwargs = {'max_time': (1, 0)}
+        # rko.run(max_evaluations=3000000, pop_size=10, view=SequentialView(), seed=SEED)
         rko.run(max_evaluations=3000000, pop_size=10, view=SequentialView(), seed=SEED, max_time=(1, 0))
         elapsed_time = time.time() - start_time
 
         assert elapsed_time < 1.25 * 60
+
+    def test_optgene_with_time_limit(self, model):
+        ko = OptGene(model)
+        start_time = time.time()
+        ko.run(target="EX_ac_lp_e_rp_",
+               biomass="Biomass_Ecoli_core_N_lp_w_fsh_GAM_rp__Nmet2",
+               substrate="EX_glc_lp_e_rp_", max_evaluations=3000000, seed=SEED, max_time=(1, 0))
+        elapsed_time = time.time() - start_time
+
+        # assert elapsed_time < 1.25 * 60
+        print(elapsed_time)
+        assert elapsed_time < 2 * 60
 
     def test_run_multi_objective(self, model):
         # TODO: make optlang deterministic so this results can be permanently stored.

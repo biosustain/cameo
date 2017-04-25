@@ -14,6 +14,8 @@
 
 from __future__ import absolute_import, print_function
 
+import os
+
 import logging
 from multiprocessing import Pool, cpu_count
 
@@ -30,6 +32,8 @@ class MultiprocessingView(Singleton):
     """Provides a parallel view (similar to IPython)"""
 
     def __init__(self, processes=cpu_count(), **kwargs):
+        self._old_environ = dict(os.environ)
+        os.environ.update({'OPENBLAS_NUM_THREADS': '1'})  # Hack to prevent https://github.com/numpy/numpy/issues/654
         self._processes = processes
         self._kwargs = kwargs
         if not hasattr(self, '_pool'):
@@ -67,6 +71,8 @@ class MultiprocessingView(Singleton):
         return self._processes
 
     def shutdown(self):
+        os.environ.clear()
+        os.environ.update(self._old_environ)
         if self._pool is not None:
             logger.debug('Terminating multiprocessing pool')
             try:

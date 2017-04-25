@@ -59,7 +59,6 @@ KNOCKOUTS = 'Knockouts'
 REACTIONS = 'Reactions'
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 PRE_CONFIGURED = {
     inspyred.ec.GA: [
@@ -219,6 +218,7 @@ class HeuristicOptimization(object):
         list
             A list of individuals from the last iteration.
         """
+        logger.info('self.__name__: {}'.format(max_time))
         if isinstance(self.heuristic_method.archiver, archives.BestSolutionArchive):
             self.heuristic_method.archiver.reset()
 
@@ -239,6 +239,7 @@ class HeuristicOptimization(object):
                 terminator.append(inspyred.ec.terminators.time_termination)
             else:
                 terminator = [terminator, inspyred.ec.terminators.time_termination]
+                logger.debug('terminator: {}'.format(terminator))
 
             self.heuristic_method.terminator = terminator
             kwargs['start_time'] = t
@@ -749,7 +750,6 @@ class GeneKnockoutOptimization(KnockoutOptimization):
             self.genes = set([g.id for g in self.model.genes])
         else:
             self.genes = genes
-        logger.debug("Computing essential genes...")
         if essential_genes is None:
             self.essential_genes = {g.id for g in self.model.essential_genes()}
         else:
@@ -762,7 +762,6 @@ class GeneKnockoutOptimization(KnockoutOptimization):
             dead_end_genes = {g for g in self.model.genes if all(r in dead_end_reactions for r in g.reactions)}
             genes = [g for g in self.model.genes if g not in self.essential_genes and g.id not in dead_end_genes]
             self.representation = [g.id for g in genes]
-
         else:
             self.representation = list(self.genes.difference(self.essential_genes))
 
