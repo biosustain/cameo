@@ -1,7 +1,6 @@
 import six
 import csv
 
-from cobra.util import add_exchange
 from pandas import DataFrame
 
 
@@ -37,7 +36,7 @@ def get_reaction_for(model, value, add=True):
         reactions = model.reactions.query("^(EX|DM)_{}$".format(metabolite.id))
         if len(reactions) == 0:
             if add:
-                reactions = [add_exchange(model, metabolite)]
+                reactions = [model.add_boundary(metabolite, type='demand')]
             else:
                 raise KeyError('Invalid target %s' % value)
     return reactions[0]
