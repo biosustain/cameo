@@ -410,6 +410,7 @@ class TestReaction:
             assert reaction.lower_bound == original_bounds[reaction.id][0]
             assert reaction.upper_bound == original_bounds[reaction.id][1]
 
+    @pytest.mark.xfail(reason="to be implemented in cobra")
     def test_repr_html_(self, core_model):
         assert '<table>' in core_model.reactions[0]._repr_html_()
 
@@ -1006,6 +1007,7 @@ class TestMetabolite:
         assert not (met.id in core_model.metabolites)
         assert not (met.id in core_model.solver.constraints)
 
+    @pytest.mark.xfail(reason='to be implemented in cobra')
     def test_notebook_repr(self):
         met = Metabolite(id="test", name="test metabolites", formula="CH4")
         expected = """
