@@ -26,8 +26,8 @@ import pandas
 import six
 from cobra import Reaction, Metabolite
 from cobra.core import get_solution
-from cobra.util import fix_objective_as_constraint, assert_optimal
-from cobra.exceptions import Infeasible
+from cobra.util import fix_objective_as_constraint, assert_optimal, get_context
+from cobra.exceptions import Infeasible, OptimizationError
 from numpy import trapz
 from six.moves import zip
 from sympy import S
@@ -36,18 +36,70 @@ from optlang.interface import UNBOUNDED, OPTIMAL
 import cameo
 from cameo import config
 from cameo.core.result import Result
-from cobra.exceptions import OptimizationError
 from cameo.flux_analysis.util import remove_infeasible_cycles, fix_pfba_as_constraint
 from cameo.parallel import SequentialView
 from cameo.ui import notice
 from cameo.util import partition, _BIOMASS_RE_
-from cameo.core.utils import get_reaction_for, add_exchange
+from cameo.core.utils import get_reaction_for
 from cameo.visualization.plotting import plotter
 
 logger = logging.getLogger(__name__)
 
 __all__ = ['find_blocked_reactions', 'flux_variability_analysis', 'phenotypic_phase_plane',
            'flux_balance_impact_degree']
+
+
+def knock_out_metabolite(metabolite, force_steady_state=False):
+    """'Knockout' a metabolite. This can be done in 2 ways:
+
+    1. Implementation follows the description in [1] "All fluxes around
+    the metabolite M should be restricted to only produce the
+    metabolite, for which balancing constraint of mass conservation is
+    relaxed to allow nonzero values of the incoming fluxes whereas all
+    outgoing fluxes are limited to zero."
+
+    2. Force steady state All reactions consuming the metabolite are
+    restricted to only produce the metabolite. A demand reaction is
+    added to sink the metabolite produced to keep the problem feasible
+    under the S.v = 0 constraint.
+
+
+    Knocking out a metabolite overrules the constraints set on the
+    reactions producing the metabolite.
+
+    Parameters
+    ----------
+    force_steady_state: bool
+        If True, uses approach 2.
+
+    References
+    ----------
+    .. [1] Kim, P.-J., Lee, D.-Y., Kim, T. Y., Lee, K. H., Jeong, H.,
+    Lee, S. Y., & Park, S. (2007). Metabolite essentiality elucidates
+    robustness of Escherichia coli metabolism. PNAS, 104(34), 13638-13642
+
+    """
+    # restrict reactions to produce metabolite
+    for rxn in metabolite.reactions:
+        if rxn.metabolites[metabolite] > 0:
+            rxn.bounds = (0, 0) if rxn.upper_bound < 0 \
+                else (0, rxn.upper_bound)
+        elif rxn.metabolites[metabolite] < 0:
+            rxn.bounds = (0, 0) if rxn.lower_bound > 0 \
+                else (rxn.lower_bound, 0)
+    if force_steady_state:
+        metabolite._model.add_boundary(metabolite, type="knock-out",
+                                       lb=0, ub=1000,
+                                       reaction_id="KO_{}".format(metabolite.id))
+    else:
+        previous_bounds = metabolite.constraint.lb, metabolite.constraint.ub
+        metabolite.constraint.lb, metabolite.constraint.ub = None, None
+        context = get_context(metabolite)
+        if context:
+            def reset():
+                metabolite.constraint.lb, metabolite.constraint.ub = previous_bounds
+
+            context(reset)
 
 
 def find_essential_metabolites(model, threshold=1e-6, force_steady_state=False):
@@ -97,7 +149,7 @@ def find_essential_metabolites(model, threshold=1e-6, force_steady_state=False):
 
     for metabolite in metabolites:
         with model:
-            metabolite.knock_out(force_steady_state=force_steady_state)
+            knock_out_metabolite(metabolite, force_steady_state=force_steady_state)
             model.solver.optimize()
             if model.solver.status != OPTIMAL or model.objective.value < threshold:
                 essential.append(metabolite)
@@ -300,7 +352,7 @@ def phenotypic_phase_plane(model, variables=[], objective=None, source=None, poi
                 try:
                     objective = model.reactions.get_by_id("DM_%s" % objective.id)
                 except KeyError:
-                    objective = add_exchange(model, objective)
+                    objective = model.add_boundary(objective, type='demand')
             # try:
             #     objective = model.reaction_for(objective, time_machine=tm)
             # except KeyError:

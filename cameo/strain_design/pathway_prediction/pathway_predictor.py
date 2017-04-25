@@ -28,6 +28,7 @@ from sympy import Add, Mul, RealNumber
 
 from cobra import Model, Metabolite, Reaction
 from cobra.util import SolverNotFound, assert_optimal
+from cobra.exceptions import OptimizationError
 
 from cameo import fba
 from cameo import models, phenotypic_phase_plane
@@ -36,9 +37,7 @@ from cameo.core.pathway import Pathway
 from cameo.core.result import Result, MetaInformation
 from cameo.core.strain_design import StrainDesignMethodResult, StrainDesign, StrainDesignMethod
 from cameo.core.target import ReactionKnockinTarget
-from cameo.core.utils import add_exchange
 from cameo.data import metanetx
-from cobra.exceptions import OptimizationError
 from cameo.strain_design.pathway_prediction import util
 from cameo.util import TimeMachine
 from cameo.visualization.plotting import plotter
@@ -323,7 +322,7 @@ class PathwayPredictor(StrainDesignMethod):
             try:
                 product_reaction = self.model.reactions.get_by_id('DM_' + product.id)
             except KeyError:
-                product_reaction = add_exchange(self.model, product)
+                product_reaction = self.model.add_boundary(product, type='demand')
 
             product_reaction.lower_bound = min_production
             counter = 1

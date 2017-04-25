@@ -349,7 +349,7 @@ class TestRemoveCycles:
             core_model.objective = core_model.solver.interface.Objective(
                 Add(*core_model.solver.variables.values()), name='Max all fluxes')
             solution = core_model.optimize()
-            assert abs(solution.data_frame.fluxes.abs().sum() - 2508.293334) < 1e-6
+            assert abs(solution.to_frame().fluxes.abs().sum() - 2508.293334) < 1e-6
             fluxes = solution.fluxes
             core_model.objective = original_objective
         clean_fluxes = remove_infeasible_cycles(core_model, fluxes)
