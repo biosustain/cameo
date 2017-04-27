@@ -517,6 +517,15 @@ class TargetOptimizationResult(Result):
     def __len__(self):
         return len(self._solutions)
 
+    def __getstate__(self):
+        d = dict(self.__dict__)
+        d['heuristic_method'].logger = None
+        d['heuristic_method']._kwargs['_ec'].logger = None
+        return d
+
+    def __setstate__(self, d):
+        self.__dict__.update(d)
+
     def _repr_html_(self):
         template = """
         <h4>Result:</h4>

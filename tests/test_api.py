@@ -15,6 +15,7 @@
 
 import os
 import re
+import pickle
 
 import pytest
 
@@ -39,6 +40,7 @@ def test_api():
     pathways = api.design.predict_pathways(product=UNIVERSALMODEL.metabolites.ser__L_c, hosts=[mock_host],
                                            database=UNIVERSALMODEL, aerobic=True)
     optimization_reports = api.design.optimize_strains(pathways, config.default_view, aerobic=True)
+    pickle.loads(pickle.dumps(optimization_reports))
     assert len(optimization_reports) > 0
 
 
