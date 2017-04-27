@@ -14,9 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 __all__ = ['main']
 
+import sys
 import pickle
 import multiprocessing
 
@@ -29,11 +29,14 @@ pandas.options.display.max_rows = 30
 import logging
 
 logging.basicConfig()
-logger = logging.getLogger('cameo')
+logger = logging.getLogger(__name__)
 logger.setLevel('WARNING')
 
+cameo_logger = logging.getLogger('cameo')
+cameo_logger.setLevel('WARNING')
+
 inspyred_logger = logging.getLogger('inspyred.ec')
-inspyred_logger.setLevel('DEBUG')
+inspyred_logger.setLevel('WARNING')
 
 OUTPUT_WRITER = {
     "xlsx": lambda df, path: df.to_excel(path),
@@ -83,13 +86,30 @@ def design(product, host, output, format, cores, aerobic, differential_fva, heur
     from cameo.parallel import MultiprocessingView, SequentialView
 
     logger.setLevel(logging)
+    cameo_logger.setLevel(logging)
+    inspyred_logger.setLevel(logging)
 
     hosts = [getattr(hosts, host) for host in host]
 
     if cores > 1:
-        # view = MultiprocessingView(processes=cores)
-        from multiprocessing import Pool
-        view = Pool(processes=cores)
+        if sys.platform == 'darwin':  # check if numpy is compatible with multiprocessing
+            logger.debug('On OS X, testing if numpy is compatible with multiprocessing')
+            import numpy
+            logger.debug('numpy.config: {}'.format(numpy.__config__.blas_opt_info))
+            if 'Accelerate' in str(numpy.__config__.blas_opt_info):
+                click.echo(click.style('WARNING! It looks like the present installation of numpy '
+                                       'is linked against the accelerate framework, which '
+                                       'unfortunately is incompatible with multiprocessing'
+                                       'and might cause the program to hang at some point. '
+                                       'Either set --cores 1 to run sequentially or consider '
+                                       'installing numpy via conda (https://conda.io/docs/installation.html), '
+                                       'which should fix this issue. \n'
+                                       'Proceed with caution ...',
+                                       fg='red'),
+                           err=True)
+                click.confirm('Do you want to proceed?', abort=True)
+
+        view = MultiprocessingView(processes=cores)
     elif cores == 1:
         view = SequentialView()
 
