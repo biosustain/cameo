@@ -945,8 +945,6 @@ class TestReactionKnockoutOptimization:
                                            simulation_method=fba,
                                            objective_function=objective)
         start_time = time.time()
-        # rko.simulation_kwargs = {'max_time': (1, 0)}
-        # rko.run(max_evaluations=3000000, pop_size=10, view=SequentialView(), seed=SEED)
         rko.run(max_evaluations=3000000, pop_size=10, view=SequentialView(), seed=SEED, max_time=(1, 0))
         elapsed_time = time.time() - start_time
 

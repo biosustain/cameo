@@ -218,7 +218,6 @@ class HeuristicOptimization(object):
         list
             A list of individuals from the last iteration.
         """
-        logger.info('self.__name__: {}'.format(max_time))
         if isinstance(self.heuristic_method.archiver, archives.BestSolutionArchive):
             self.heuristic_method.archiver.reset()
 
@@ -239,7 +238,6 @@ class HeuristicOptimization(object):
                 terminator.append(inspyred.ec.terminators.time_termination)
             else:
                 terminator = [terminator, inspyred.ec.terminators.time_termination]
-                logger.debug('terminator: {}'.format(terminator))
 
             self.heuristic_method.terminator = terminator
             kwargs['start_time'] = t
