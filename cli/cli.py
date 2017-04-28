@@ -16,9 +16,9 @@
 
 __all__ = ['main']
 
-import sys
-import pickle
 import multiprocessing
+import pickle
+import sys
 
 import click
 import pandas
@@ -47,40 +47,53 @@ VALID_OUTPUT_FORMATS = list(OUTPUT_WRITER.keys())
 VALID_OUTPUT_FORMATS.append('pickle')
 
 
+def print_version(ctx, param, value):
+    if not value or ctx.resilient_parsing:
+        return
+    from cameo import __version__
+    click.echo(__version__)
+    ctx.exit()
+
+
 @click.group()
-def main():
-    """Cameo command line interface"""
+@click.option('--version', is_eager=True, callback=print_version, default=False, is_flag=True,
+              help='Display version information.')
+def main(version):
+    """cameo command line interface"""
     pass
 
 
 @main.command()
-@click.option('-o', '--output', default='-', help='Number of greetings.', multiple=True, type=click.Path())
+@click.option('-o', '--output', default='-', multiple=True, type=click.Path(),
+              help='Output filename. Multiple output files can be provided (pair with respective format options).')
 @click.option('-f', '--format', default='pickle', prompt='Format', multiple=True,
               type=click.Choice(VALID_OUTPUT_FORMATS), help='Output file format (default xlsx).')
 @click.option('-h', '--host', default='ecoli', multiple=True,
               type=click.Choice(['ecoli', 'scerevisiae']),
               help='The host organisms to consider (default: all). '
                    'Multiple hosts can be specified by repeating --host HOST')
+@click.option('--aerobic', default=True, is_flag=True, help='Make oxygen available to the host organism (default).')
 @click.option('--cores', default=1, type=click.IntRange(1, multiprocessing.cpu_count()),
-              help='Number of CPU cores to use.')
-@click.option('--aerobic', default=True, is_flag=True, help='Anaerobic condicitons.')
-@click.option('--differential-fva/--no-differential-fva', default=True, help='...')
-@click.option('--heuristic-optimization/--no-heuristic-optimization', default=True, help='...')
-@click.option('--max-pathway-predictions', default=1, help='Maximum number of predicted pathways.')
-@click.option('--differential-fva-points', default=10, help='Grid pints for differential flux variability analysis.')
+              help='Number of CPU cores to use (default 1).')
+@click.option('--differential-fva/--no-differential-fva', default=True,
+              help='Perform differential flux variability analysis to determine flux modulation targets (default).')
+@click.option('--heuristic-optimization/--no-heuristic-optimization', default=True,
+              help='Find gene knockout targets through heuristic optimization (default).')
+@click.option('--max-pathway-predictions', default=1,
+              help='Maximum number of heterologous pathways to predict (default 1).')
+@click.option('--differential-fva-points', default=10, help='Grid points for differential FVA (default 10).')
 @click.option('--pathway-prediction-timeout', default=10 * 60,
-              help='Time limit (min) for for individual pathway predictions.')
+              help='Time limit (min) for individual pathway predictions (default 10 min).')
 @click.option('--heuristic-optimization-timeout', default=45,
-              help='Time limit (min) on individual heuristic optimizations.')
-@click.option('-v', '--verbose', default=True, is_flag=True, help='Extra verbose')
+              help='Time limit (min) on individual heuristic optimizations (default 45 min).')
 @click.option('--logging', default='ERROR',
               type=click.Choice(['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG']),
-              help='Choose between ERROR, INFO, DEBUG (default is WARNING).')
+              help='Logging level (default WARNING).')
 @click.argument('product')
 def design(product, host, output, format, cores, aerobic, differential_fva, heuristic_optimization,
            max_pathway_predictions, differential_fva_points, pathway_prediction_timeout,
-           heuristic_optimization_timeout, verbose, logging):
-    """Compute strain designs for desired products and host organisms."""
+           heuristic_optimization_timeout, logging):
+    """Compute strain designs for desired product."""
     from cameo.api.designer import design
     from cameo.api.hosts import hosts
     from cameo.parallel import MultiprocessingView, SequentialView
@@ -144,8 +157,9 @@ def design(product, host, output, format, cores, aerobic, differential_fva, heur
 def search(product):
     """Search for available products.
 
-    PRODUCT: The target product. You can search by name, InChI, MNX ID, or source and ...
-
+    PRODUCT: The target product. You can search by name, InChI, and metanetx ID.
+    
+    \b
     Examples
     --------
     $ cameo search chebi:30838  # search for itaconate
