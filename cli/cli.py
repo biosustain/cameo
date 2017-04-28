@@ -69,9 +69,9 @@ def main(version):
 @main.command()
 @click.option('-o', '--output', default='-', multiple=True, type=click.Path(),
               help='Output filename. Multiple output files can be provided (pair with respective format options).')
-@click.option('-f', '--format', default='pickle', prompt='Format', multiple=True,
-              type=click.Choice(VALID_OUTPUT_FORMATS), help='Output file format (default xlsx).')
-@click.option('-h', '--host', default='ecoli', multiple=True,
+@click.option('-f', '--format', multiple=True, default=['csv'],
+              type=click.Choice(VALID_OUTPUT_FORMATS), help='Output file format (default csv).')
+@click.option('-h', '--host', default=['ecoli'], multiple=True,
               type=click.Choice(['ecoli', 'scerevisiae']),
               help='The host organisms to consider (default: all). '
                    'Multiple hosts can be specified by repeating --host HOST')
@@ -130,7 +130,6 @@ def design(product, host, output, format, cores, aerobic, differential_fva, heur
         view = SequentialView()
 
     design.options.pathway_prediction_timeout = pathway_prediction_timeout * 60
-    click.echo(heuristic_optimization_timeout)
     design.options.heuristic_optimization_timeout = heuristic_optimization_timeout
     design.options.max_pathway_predictions = max_pathway_predictions
     design.options.differential_fva = differential_fva
