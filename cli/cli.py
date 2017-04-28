@@ -38,9 +38,6 @@ logger.setLevel('WARNING')
 cameo_logger = logging.getLogger('cameo')
 cameo_logger.setLevel('WARNING')
 
-inspyred_logger = logging.getLogger('inspyred.ec')
-inspyred_logger.setLevel('WARNING')
-
 OUTPUT_WRITER = {
     "xlsx": lambda df, path: df.to_excel(path),
     "csv": lambda df, path: df.to_csv(path, sep=","),
@@ -103,7 +100,6 @@ def design(product, host, output, format, cores, aerobic, differential_fva, heur
 
     logger.setLevel(logging)
     cameo_logger.setLevel(logging)
-    inspyred_logger.setLevel(logging)
 
     hosts = [getattr(hosts, host) for host in host]
 
