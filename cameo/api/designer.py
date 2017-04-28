@@ -18,6 +18,7 @@
 from __future__ import absolute_import, print_function
 
 import numpy as np
+import six
 
 from cameo.core import SolverBasedModel
 from cameo.core.strain_design import StrainDesign
@@ -352,7 +353,7 @@ class Designer(object):
     def __translate_product_to_universal_reactions_model_metabolite(self, product, database):
         if isinstance(product, Metabolite):
             return product
-        elif isinstance(product, str):
+        elif isinstance(product, six.text_type) or isinstance(product, six.string_type):
             search_result = products.search(product)
             search_result = search_result.loc[[i for i in search_result.index if i in database.metabolites]]
             if len(search_result) == 0:
