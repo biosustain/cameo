@@ -925,6 +925,9 @@ class TestReactionKnockoutOptimization:
 
         results = rko.run(max_evaluations=3000, pop_size=10, view=SequentialView(), seed=SEED)
 
+        assert len(results.data_frame.targets) > 0
+        assert len(results.data_frame.targets) == len(results.data_frame.targets.apply(tuple).unique())
+
         with open(result_file, 'wb') as in_file:
             pickle.dump(results, in_file)
 
@@ -944,6 +947,7 @@ class TestReactionKnockoutOptimization:
         rko = ReactionKnockoutOptimization(model=model,
                                            simulation_method=fba,
                                            objective_function=objective)
+
         start_time = time.time()
         rko.run(max_evaluations=3000000, pop_size=10, view=SequentialView(), seed=SEED, max_time=(1, 0))
         elapsed_time = time.time() - start_time
@@ -980,6 +984,8 @@ class TestReactionKnockoutOptimization:
                                            heuristic_method=inspyred.ec.emo.NSGA2)
 
         results = rko.run(max_evaluations=3000, pop_size=10, view=SequentialView(), seed=SEED)
+
+        assert len(results.data_frame.targets) == len(results.data_frame.targets.apply(tuple).unique())
 
         with open(result_file, 'wb') as in_file:
             pickle.dump(results, in_file)
@@ -1018,6 +1024,8 @@ class TestGeneKnockoutOptimization:
 
         results = rko.run(max_evaluations=3000, pop_size=10, view=SequentialView(), seed=SEED)
 
+        assert len(results.data_frame.targets) == len(results.data_frame.targets.apply(tuple).unique())
+
         with open(result_file, 'wb') as in_file:
             pickle.dump(results, in_file)
 
@@ -1045,6 +1053,8 @@ class TestGeneKnockoutOptimization:
 
         results = rko.run(max_evaluations=3000, pop_size=10, view=SequentialView(), seed=SEED)
 
+        assert len(results.data_frame.targets) == len(results.data_frame.targets.apply(tuple).unique())
+
         with open(result_file, 'wb') as in_file:
             pickle.dump(results, in_file)
 
@@ -1055,6 +1065,21 @@ class TestGeneKnockoutOptimization:
                 expected_results = pickle.load(in_file)
 
         assert results.seed == expected_results.seed
+
+    def test_run_with_time_limit(self, model):
+        # TODO: make optlang deterministic so this results can be permanently stored.
+        objective = biomass_product_coupled_yield(
+            "Biomass_Ecoli_core_N_lp_w_fsh_GAM_rp__Nmet2", "EX_ac_lp_e_rp_", "EX_glc_lp_e_rp_")
+
+        rko = ReactionKnockoutOptimization(model=model,
+                                           simulation_method=fba,
+                                           objective_function=objective)
+
+        start_time = time.time()
+        rko.run(max_evaluations=3000000, pop_size=10, view=SequentialView(), seed=SEED, max_time=(1, 0))
+        elapsed_time = time.time() - start_time
+
+        assert elapsed_time < 1.25 * 60
 
 
 class TestVariator:
