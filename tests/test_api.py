@@ -14,8 +14,8 @@
 # limitations under the License.
 
 import os
-import re
 import pickle
+import re
 
 import pytest
 
@@ -54,9 +54,7 @@ def test_compound_repr():
 
 def test_products():
     assert api.products.search('3-hydroxy propionate').index[0] == 'MNXM872'
-    with pytest.raises(Exception) as excinfo:
-        api.products.search('old spice')
-    excinfo.match("No compound matches found for query.*")
+    assert len(api.products.search('old spice')) == 0
 
 
 def test_hosts():
