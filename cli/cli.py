@@ -158,7 +158,7 @@ def search(product):
     """Search for available products.
 
     PRODUCT: The target product. You can search by name, InChI, and metanetx ID.
-    
+
     \b
     Examples
     --------
