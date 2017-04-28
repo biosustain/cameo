@@ -121,7 +121,7 @@ class TestRedisQueue:
         queue.put("a")
         v = queue.get_nowait()
         assert v == "a"
-        assert isinstance(v, str)
+        assert isinstance(v, six.string_types)
 
         # put float
         queue.put(1.)

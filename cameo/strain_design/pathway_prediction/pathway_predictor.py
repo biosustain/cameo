@@ -454,7 +454,7 @@ class PathwayPredictor(StrainDesignMethod):
         return new_reactions
 
     def _find_product(self, product):
-        if isinstance(product, str):
+        if isinstance(product, six.string_types):
             for metabolite in self.model.metabolites:
                 if metabolite.id == product:
                     return metabolite

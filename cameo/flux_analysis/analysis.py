@@ -154,11 +154,11 @@ def phenotypic_phase_plane(model, variables=[], objective=None, source=None, poi
         phase plane analysis. Biotechnology and Bioengineering, 77(1), 27–36. doi:10.1002/bit.10047
     """
 
-    if isinstance(variables, str):
+    if isinstance(variables, six.string_types):
         variables = [variables]
     elif isinstance(variables, cameo.core.reaction.Reaction):
         variables = [variables]
-    variable_ids = [var if isinstance(var, str) else var.id for var in variables]
+    variable_ids = [var if isinstance(var, six.string_types) else var.id for var in variables]
 
     if view is None:
         view = config.default_view

@@ -153,7 +153,7 @@ class DifferentialFVA(StrainDesignMethod):
                 self.objective = self.design_space_model.add_demand(objective).id
             except ValueError:
                 self.objective = self.design_space_model.reactions.get_by_id("DM_" + objective.id).id
-        elif isinstance(objective, str):
+        elif isinstance(objective, six.string_types):
             self.objective = objective
         else:
             raise ValueError('You need to provide an objective as a Reaction, Metabolite or a reaction id')
@@ -587,7 +587,7 @@ class DifferentialFVAResult(StrainDesignMethodResult):
             ((-2*std, color), (-std, color) (0 color) (std, color) (2*std, color))
 
         """
-        if isinstance(palette, str):
+        if isinstance(palette, six.string_types):
             palette = mapper.map_palette(palette, 5)
             palette = palette.hex_colors
 
@@ -760,7 +760,7 @@ class FSEOF(StrainDesignMethod):
                 self.primary_objective = primary_objective
             else:
                 raise ValueError("The reaction " + primary_objective.id + " does not belong to the model")
-        elif isinstance(primary_objective, str):
+        elif isinstance(primary_objective, six.string_types):
             if primary_objective in model.reactions:
                 self.primary_objective = model.reactions.get_by_id(primary_objective)
             else:
