@@ -16,6 +16,9 @@
 
 __all__ = ['main']
 
+import warnings
+warnings.simplefilter("ignore", UserWarning)
+
 import multiprocessing
 import pickle
 import sys
