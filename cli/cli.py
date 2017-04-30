@@ -64,15 +64,15 @@ def main(version):
 
 
 @main.command()
-@click.option('-o', '--output', default='-', multiple=True, type=click.Path(),
+@click.option('-o', '--output', default=['-'], multiple=True, type=click.Path(),
               help='Output filename. Multiple output files can be provided (pair with respective format options).')
 @click.option('-f', '--format', multiple=True, default=['csv'],
               type=click.Choice(VALID_OUTPUT_FORMATS), help='Output file format (default csv).')
 @click.option('-h', '--host', default=['ecoli'], multiple=True,
               type=click.Choice(['ecoli', 'scerevisiae']),
               help='The host organisms to consider (default: all). '
-                   'Multiple hosts can be specified by repeating --host HOST')
-@click.option('--aerobic', default=True, is_flag=True, help='Make oxygen available to the host organism (default).')
+                   'Multiple hosts can be specified by repeating --host HOST.')
+@click.option('--aerobic/--anaerobic', default=True, is_flag=True, help='Make oxygen available to the host organism (default).')
 @click.option('--cores', default=1, type=click.IntRange(1, multiprocessing.cpu_count()),
               help='Number of CPU cores to use (default 1).')
 @click.option('--differential-fva/--no-differential-fva', default=True,

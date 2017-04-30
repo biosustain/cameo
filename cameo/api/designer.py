@@ -219,17 +219,17 @@ class Designer(object):
             opt_gene_runner = _OptGeneRunner(options=self.options)
             designs = view.map(opt_gene_runner, strategies)
             logger.info('Processing heuristic optimization results.')
-            results = self.build_results_data(designs, strategies, results)
+            results = self.build_results_data(designs, strategies, results, 'PathwayPredictor+OptGene')
         if self.options.differential_fva:
             logger.info('Running differential flux variability analysis on predicted pathways.')
             differential_fva_runner = _DifferentialFVARunner(options=self.options)
             designs = view.map(differential_fva_runner, strategies)
             logger.info('Processing differential flux variability analysis results.')
-            results = self.build_results_data(designs, strategies, results)
+            results = self.build_results_data(designs, strategies, results, 'PathwayPredictor+DifferentialFVA')
 
         return results
 
-    def build_results_data(self, strategy_designs, strategies, results):
+    def build_results_data(self, strategy_designs, strategies, results, method_name):
         """
         Process the designs and add them to the `results` DataFrame.
 
@@ -262,7 +262,7 @@ class Designer(object):
             _results['yield'] = yields
             _results['biomass'] = biomass
             _results['product'] = target_flux
-            _results['method'] = "DifferentialFVA+PathwayFinder"
+            _results['method'] = method_name  # TODO: determine method name from targets
 
             results = results.append(_results, ignore_index=True)
         return results
@@ -334,7 +334,7 @@ class Designer(object):
             for model in list(host.models):
                 with TimeMachine() as tm:
                     if not aerobic and "EX_o2_e" in model.reactions:
-                        model.reactions.EX_o2_e.change_bounds(lb=0, time_machin=tm)
+                        model.reactions.EX_o2_e.change_bounds(lb=0, time_machine=tm)
                     identifier = searching()
                     logging.debug('Processing model {} for host {}'.format(model.id, host.name))
                     notice('Predicting pathways for product %s in %s (using model %s).'
