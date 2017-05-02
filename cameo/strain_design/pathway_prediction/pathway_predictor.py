@@ -57,23 +57,6 @@ class PathwayResult(Pathway, Result, StrainDesign):
         self.product = product
         self.targets = self._build_targets()
 
-    def __getstate__(self):
-        state = Result.__getstate__(self)
-        state['reactions'] = self.reactions
-        state['exchanges'] = self.exchanges
-        state['adapters'] = self.adapters
-        state['product'] = self.product
-        state['targets'] = self.targets
-        return state
-
-    def __setstate__(self, state):
-        Result.__setstate__(self, state)
-        self.reactions = state['reactions']
-        self.exchanges = state['exchanges']
-        self.adapters = state['adapters']
-        self.product = state['product']
-        self.targets = state['targets']
-
     def _replace_adapted_metabolites(self, reaction):
         """
         Replace adapted metabolites by model metabolites
@@ -471,7 +454,7 @@ class PathwayPredictor(StrainDesignMethod):
         return new_reactions
 
     def _find_product(self, product):
-        if isinstance(product, str):
+        if isinstance(product, six.string_types):
             for metabolite in self.model.metabolites:
                 if metabolite.id == product:
                     return metabolite

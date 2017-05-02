@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 # Copyright 2017 The Novo Nordisk Foundation Center for Biosustainability, DTU.
 
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,12 +11,5 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-try:
-    from cameo.cli import CameoApp
 
-    if __name__ == '__main__':
-        with CameoApp() as app:
-            app.run()
-except RuntimeError as e:
-    print(e)
-    exit(1)
+from .cli import *

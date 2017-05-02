@@ -39,9 +39,12 @@ class Host(object):
         self.name = name
         self.models = util.IntelliContainer()
         for id, biomass, carbon_source in zip(models, biomass, carbon_sources):
-            model = Proxy(partial(load_model, os.path.join(MODEL_DIRECTORY, id + '.json')))
-            setattr(model, "biomass", biomass)
-            setattr(model, "carbon_source", carbon_source)
+            def lazy_model_init(path):
+                model = load_model(path)
+                setattr(model, "biomass", biomass)
+                setattr(model, "carbon_source", carbon_source)
+                return model
+            model = Proxy(partial(lazy_model_init, os.path.join(MODEL_DIRECTORY, id + '.json')))
             self.models[id] = model
 
     def __str__(self):

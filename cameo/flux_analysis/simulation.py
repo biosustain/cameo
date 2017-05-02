@@ -456,7 +456,7 @@ class FluxDistributionResult(Result):
     def __getitem__(self, item):
         if isinstance(item, cameo.Reaction):
             return self.fluxes[item.id]
-        elif isinstance(item, str):
+        elif isinstance(item, six.string_types):
             try:
                 return self.fluxes[item]
             except KeyError:
@@ -522,7 +522,7 @@ class FluxDistributionResult(Result):
         tuple
             ((-2*std, color), (-std, color) (0 color) (std, color) (2*std, color))
         """
-        if isinstance(palette, str):
+        if isinstance(palette, six.string_types):
             palette = mapper.map_palette(palette, 3)
             palette = palette.hex_colors
 

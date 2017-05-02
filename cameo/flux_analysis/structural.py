@@ -39,7 +39,6 @@ from cameo.util import TimeMachine
 __all__ = ['find_dead_end_reactions', 'find_coupled_reactions', 'ShortestElementaryFluxModes']
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
 
 
 def create_stoichiometric_array(model, array_type='dense', dtype=None):
@@ -129,7 +128,6 @@ def nullspace(matrix, atol=1e-13, rtol=0):
         nullspace; each element in numpy.dot(A, ns) will be approximately
         zero.
     """
-
     matrix = np.atleast_2d(matrix)
     u, s, vh = svd(matrix)
     tol = max(atol, rtol * s[0])

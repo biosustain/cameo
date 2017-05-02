@@ -59,7 +59,6 @@ KNOCKOUTS = 'Knockouts'
 REACTIONS = 'Reactions'
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 PRE_CONFIGURED = {
     inspyred.ec.GA: [
@@ -517,53 +516,13 @@ class TargetOptimizationResult(Result):
         return len(self._solutions)
 
     def __getstate__(self):
-        state = super(TargetOptimizationResult, self).__getstate__()
-        state.update({'model': self.model,
-                      'view': self._view,
-                      'decoder': self._decoder,
-                      'evaluator': self._evaluator,
-                      'simulation_method': self.simulation_method,
-                      'simulation_kwargs': self.simulation_kwargs,
-                      'heuristic_method.__class__': self.heuristic_method.__class__,
-                      'heuristic_method.maximize': self.heuristic_method.maximize,
-                      'heuristic_method.variator': self.heuristic_method.variator,
-                      'heuristic_method.terminator': self.heuristic_method.terminator,
-                      'heuristic_method.archiver': self.heuristic_method.archiver,
-                      'heuristic_method.archive': self.heuristic_method.archive,
-                      'heuristic_method.termination_cause': self.heuristic_method.termination_cause,
-                      'heuristic_method._random': self.heuristic_method._random,
-                      'heuristic_method.generator': self.heuristic_method.generator,
-                      'heuristic_method._kwargs': self.heuristic_method._kwargs,
-                      'objective_function': self.objective_function,
-                      'target_type': self.target_type,
-                      'solutions': self._solutions,
-                      'seed': self.seed,
-                      'metadata': self._metadata})
-        del state['heuristic_method._kwargs']['_ec']
-        return state
+        d = dict(self.__dict__)
+        d['heuristic_method'].logger = None
+        d['heuristic_method']._kwargs['_ec'].logger = None
+        return d
 
-    def __setstate__(self, state):
-        super(TargetOptimizationResult, self).__setstate__(state)
-        self.model = state['model']
-        self.simulation_method = state['simulation_method']
-        self.simulation_kwargs = state['simulation_kwargs']
-        self.seed = state['seed']
-        self.view = state['view']
-        random = state['heuristic_method._random']
-        self.heuristic_method = state['heuristic_method.__class__'](random)
-        self.heuristic_method.maximize = state['heuristic_method.maximize']
-        self.heuristic_method.terminator = state['heuristic_method.terminator']
-        self.heuristic_method.termination_cause = state['heuristic_method.termination_cause']
-        self.heuristic_method.archiver = state['heuristic_method.archiver']
-        self.heuristic_method.archive = state['heuristic_method.archive']
-        self.heuristic_method._kwargs = state['heuristic_method._kwargs']
-        self.heuristic_method._kwargs['_ec'] = self.heuristic_method
-        self.objective_functions = state['objective_function']
-        self.target_type = state['target_type']
-        self._solutions = state['solutions']
-        self._metadata = state['metadata']
-        self._decoder = state['decoder']
-        self._evaluator = state['evaluator']
+    def __setstate__(self, d):
+        self.__dict__.update(d)
 
     def _repr_html_(self):
         template = """
@@ -798,7 +757,6 @@ class GeneKnockoutOptimization(KnockoutOptimization):
             self.genes = set([g.id for g in self.model.genes])
         else:
             self.genes = genes
-        logger.debug("Computing essential genes...")
         if essential_genes is None:
             self.essential_genes = {g.id for g in self.model.essential_genes()}
         else:
@@ -811,7 +769,6 @@ class GeneKnockoutOptimization(KnockoutOptimization):
             dead_end_genes = {g for g in self.model.genes if all(r in dead_end_reactions for r in g.reactions)}
             genes = [g for g in self.model.genes if g not in self.essential_genes and g.id not in dead_end_genes]
             self.representation = [g.id for g in genes]
-
         else:
             self.representation = list(self.genes.difference(self.essential_genes))
 
