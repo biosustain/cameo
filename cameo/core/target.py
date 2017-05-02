@@ -15,7 +15,7 @@ from functools import partial
 
 import numpy
 import six
-from gnomic import Accession, Feature, Del, Mutation, Sub, Ins
+from gnomic import Accession, Feature, Del, Mutation, Sub, Ins, Type
 
 from cameo import ui
 from cameo.core.manipulation import swap_cofactors, increase_flux, decrease_flux, reverse_flux
@@ -34,13 +34,18 @@ class Target(object):
 
     Attributes
     ----------
-    id: str
+    id : str
         The identifier of the target. The id must be present in the COBRA model.
-
+    accession_id : str (optional)
+        An accession identifier in a database.
+    accession_db : str (optional)
+        The database corresponding to `accession_id`. 
     """
 
-    def __init__(self, id):
+    def __init__(self, id, accession_id=None, accession_db=None):
         self.id = id
+        self.accession_id = accession_id
+        self.accession_db = accession_db
 
     def apply(self, model, time_machine=None):
         """
@@ -67,7 +72,13 @@ class Target(object):
         If gnomic is available, return a Gnomic representation of the Target.
 
         """
-        return Accession(identifier=self.id)
+        if self.accession_id:
+            if self.accession_db:
+                return Accession(identifier=self.accession_id, database=self.accession_db)
+            else:
+                return Accession(identifier=self.accession_id)
+        else:
+            return None
 
     def __repr__(self):
         return "<Target %s>" % self.id
@@ -253,8 +264,8 @@ class ReactionCofactorSwapTarget(Target):
 
 
 class KnockinTarget(Target):
-    def __init__(self, id, value):
-        super(KnockinTarget, self).__init__(id)
+    def __init__(self, id, value, *args, **kwargs):
+        super(KnockinTarget, self).__init__(id, *args, **kwargs)
         self._value = value
 
     def to_gnomic(self):
@@ -271,8 +282,8 @@ class KnockinTarget(Target):
 
 
 class ReactionKnockinTarget(KnockinTarget):
-    def __init__(self, id, value):
-        super(ReactionKnockinTarget, self).__init__(id, value)
+    def __init__(self, id, value, *args, **kwargs):
+        super(ReactionKnockinTarget, self).__init__(id, value, *args, **kwargs)
 
     def apply(self, model, time_machine=None):
         # TODO: this is an hack. The objective_coefficient becomes 1 w/o explicitly being changed.
@@ -285,7 +296,10 @@ class ReactionKnockinTarget(KnockinTarget):
 
     def to_gnomic(self):
         accession = Target.to_gnomic(self)
-        feature = Feature(accession=accession, type='reaction')
+        if accession is None:
+            feature = Feature(type=Type('reaction'), name=self.id)
+        else:
+            feature = Feature(accession=accession, type=Type('reaction'), name=self.id)
         return Ins(feature)
 
     def __gt__(self, other):
