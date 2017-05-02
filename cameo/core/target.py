@@ -15,7 +15,7 @@ from functools import partial
 
 import numpy
 import six
-from gnomic import Accession, Feature, Del, Mutation, Ins, Type
+from gnomic import Accession, Feature, Del, Mutation, Ins, Type, Genotype, genotype_to_string, genotype_to_text
 
 from cameo import ui
 from cameo.core.manipulation import swap_cofactors, increase_flux, decrease_flux, reverse_flux
@@ -157,18 +157,7 @@ class FluxModulationTarget(Target):
             return numpy.inf
 
     def __str__(self):
-        if self._value == 0:
-            s = ui.delta() + self.id
-        elif self.fold_change > 0:
-            s = ui.upreg(self.fold_change) + self.id
-        elif self.fold_change < 0:
-            s = ui.downreg(self.fold_change) + self.id
-        else:
-            s = RuntimeError("fold_change shouldn't be 0")
-        if six.PY2:
-            return s.encode('utf-8')
-
-        return s
+        return genotype_to_string(Genotype([self.to_gnomic()]))
 
     def __repr__(self):
         if self._value == 0:
@@ -184,14 +173,7 @@ class FluxModulationTarget(Target):
         return hash(str(self))
 
     def _repr_html_(self):
-        if self._value == 0:
-            return "&Delta;%s" % self.id
-        elif self.fold_change > 0:
-            return "&uarr;(%.3f)%s" % (self.fold_change, self.id)
-        elif self.fold_change < 0:
-            return "&darr;(%.3f)%s" % (self.fold_change, self.id)
-        else:
-            raise RuntimeError("fold_change shouldn't be 0")
+        return genotype_to_text(Genotype([self.to_gnomic()]))
 
     def to_gnomic(self):
         accession = Target.to_gnomic(self)
@@ -332,7 +314,7 @@ class ReactionKnockinTarget(KnockinTarget):
             return False
 
     def __str__(self):
-        return "::%s" % self.id
+        return genotype_to_string(Genotype([self.to_gnomic()]))
 
     def __repr__(self):
         return "<ReactionKnockin %s>" % self.id
