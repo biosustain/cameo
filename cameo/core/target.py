@@ -19,12 +19,7 @@ import six
 
 from cameo.core.manipulation import swap_cofactors, increase_flux, decrease_flux, reverse_flux
 
-try:
-    from gnomic import Accession, Feature, Del, Mutation, Sub, Ins
-
-    _gnomic_available_ = True
-except (ImportError, SyntaxError):  # SyntaxError from py2 incompatible syntax
-    _gnomic_available_ = False
+from gnomic import Accession, Feature, Del, Mutation, Sub, Ins
 
 from cameo import ui
 from cameo.exceptions import IncompatibleTargets
@@ -75,11 +70,7 @@ class Target(object):
         If gnomic is available, return a Gnomic representation of the Target.
 
         """
-        if _gnomic_available_:
-            return Accession(identifier=self.id)
-        else:
-            raise SystemError("Gnomic is only compatible with python >= 3 (%i.%i)" %
-                              (sys.version_info.major, sys.version_info.minor))
+        return Accession(identifier=self.id)
 
     def __repr__(self):
         return "<Target %s>" % self.id
