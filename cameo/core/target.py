@@ -323,7 +323,7 @@ class ReactionKnockinTarget(KnockinTarget):
         return hash(str(self))
 
     def _repr_html_(self):
-        return "::%s" % self.id
+        return genotype_to_text(Genotype([self.to_gnomic()]))
 
 
 class GeneModulationTarget(FluxModulationTarget):

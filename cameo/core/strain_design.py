@@ -26,12 +26,7 @@ from cameo.core.result import Result
 from cameo.core.target import EnsembleTarget, Target
 from cameo.visualization.plotting import plotter
 
-try:
-    from gnomic import Genotype
-    _gnomic_available_ = True
-except Exception:
-    _gnomic_available_ = False
-
+from gnomic import Genotype
 
 __all__ = ['StrainDesign', 'StrainDesignMethod', 'StrainDesignMethodResult']
 
@@ -135,11 +130,7 @@ class StrainDesign(object):
         return " ".join(t._repr_html_() for t in self.targets)
 
     def to_gnomic(self):
-        if _gnomic_available_:
-            return Genotype([target.to_gnomic() for target in self.targets])
-        else:
-            raise SystemError("Gnomic is only compatible with python >= 3 (%i.%i)" %
-                              (sys.version_info.major, sys.version_info.minor))
+        return Genotype([target.to_gnomic() for target in self.targets])
 
 
 class StrainDesignMethodResult(Result):
