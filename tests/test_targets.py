@@ -15,6 +15,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 import pytest
 import six
+from gnomic import Genotype, genotype_to_string, Mutation, FeatureTree, Feature, Accession
 
 from cameo import Metabolite, Reaction
 from cameo.core.target import (ReactionKnockoutTarget, ReactionModulationTarget, GeneKnockoutTarget,
@@ -179,8 +180,10 @@ class TestTargets:
 
     def test_gene_knockout_target(self, model):
         gene = "b4025"
-
-        knockout_target = GeneKnockoutTarget(gene)
+        knockout_target = GeneKnockoutTarget(gene, accession_id=gene, accession_db='bigg')
+        knockout_target_gnomic = knockout_target.to_gnomic()
+        print(genotype_to_string(Genotype([knockout_target_gnomic])))
+        assert genotype_to_string(Genotype([knockout_target_gnomic])) == "-b4025#bigg:b4025"
         with TimeMachine() as tm:
             knockout_target.apply(model, time_machine=tm)
             assert model.reactions.PGI.lower_bound == 0
@@ -198,68 +201,42 @@ class TestTargets:
     def test_gene_down_regulation_target(self):
         raise NotImplementedError
 
-    def test_gnomic_integration(self, model):
-        from gnomic.models import Accession, Feature, Mutation, FeatureTree
+    def test_gnomic_integration_Target(self, model):
         abstract_target = Target("test")
+        abstract_target_gnomic = abstract_target.to_gnomic()
+        assert abstract_target_gnomic is None
+        abstract_target = Target("test", accession_id='test', accession_db='test')
         abstract_target_gnomic = abstract_target.to_gnomic()
         assert isinstance(abstract_target_gnomic, Accession)
         assert abstract_target_gnomic.identifier == abstract_target.id
 
+    def test_gnomic_integration_FluxModulationTarget(self, model):
+        # with pytest.raises(ValueError):
+        #     FluxModulationTarget("test", 0, 0)  # TODO: this should really not be possible
         flux_modulation_target = FluxModulationTarget("test", 1, 0)
         flux_modulation_target_gnomic = flux_modulation_target.to_gnomic()
-        flux_mod_new = flux_modulation_target_gnomic.new
-        flux_mod_old = flux_modulation_target_gnomic.old
-        assert isinstance(flux_modulation_target_gnomic, Mutation)
-        assert isinstance(flux_mod_old, FeatureTree)
-        assert isinstance(flux_mod_old[0], Feature)
-        assert flux_mod_old[0].accession.identifier == flux_modulation_target.id
-        assert flux_mod_old[0].variant is None
-        assert flux_mod_old[0].type == 'flux'
-        assert isinstance(flux_mod_new, FeatureTree)
-        assert isinstance(flux_mod_new[0], Feature)
-        assert flux_mod_new[0].accession.identifier == flux_modulation_target.id
-        assert flux_mod_new[0].type == 'flux'
-        assert flux_mod_new[0].variant == "over-expression(%.3f)" % flux_modulation_target.fold_change
+        assert genotype_to_string(Genotype([flux_modulation_target_gnomic])) == "+flux.test(value=1)"
 
-        flux_modulation_target = FluxModulationTarget("test", 0.5, 1)
+        flux_modulation_target = FluxModulationTarget("PGK", 0.5, 1, accession_id="PGK", accession_db="bigg")
         flux_modulation_target_gnomic = flux_modulation_target.to_gnomic()
-        flux_mod_new = flux_modulation_target_gnomic.new
-        flux_mod_old = flux_modulation_target_gnomic.old
-        assert isinstance(flux_modulation_target_gnomic, Mutation)
-        assert isinstance(flux_mod_old, FeatureTree)
-        assert isinstance(flux_mod_old[0], Feature)
-        assert flux_mod_old[0].accession.identifier == flux_modulation_target.id
-        assert flux_mod_old[0].variant is None
-        assert flux_mod_old[0].type == 'flux'
-        assert isinstance(flux_mod_new, FeatureTree)
-        assert isinstance(flux_mod_new[0], Feature)
-        assert flux_mod_new[0].accession.identifier == flux_modulation_target.id
-        assert flux_mod_new[0].type == 'flux'
-        assert flux_mod_new[0].variant == "down-regulation(%.3f)" % flux_modulation_target.fold_change
+        print(genotype_to_string(Genotype([flux_modulation_target_gnomic])))
+        assert genotype_to_string(Genotype([flux_modulation_target_gnomic])) == "+flux.PGK(value=0.5)#bigg:PGK"
 
-        flux_modulation_target = FluxModulationTarget("test", 0, 1)
-        flux_modulation_target_gnomic = flux_modulation_target.to_gnomic()
-        assert isinstance(flux_modulation_target_gnomic, Mutation)
-        assert isinstance(flux_modulation_target_gnomic.old, FeatureTree)
-        assert isinstance(flux_modulation_target_gnomic.old[0], Feature)
-        assert flux_modulation_target_gnomic.old[0].accession.identifier == flux_modulation_target.id
-        assert flux_modulation_target_gnomic.old[0].variant is None
-        assert flux_modulation_target_gnomic.old[0].type == 'flux'
-        assert flux_modulation_target_gnomic.new is None
-
+    def test_gnomic_integration_ReactionKnockinTarget(self, model):
         reaction = Reaction(id="atpzase", name="Cosmic ATP generator")
         atp_z = Metabolite(id="atp_z", name="Cosmic ATP", compartment="c")
 
         reaction.add_metabolites({model.metabolites.atp_c: 1, atp_z: -1})
         knockin_target = ReactionKnockinTarget("atpzase", reaction)
         knockin_target_gnomic = knockin_target.to_gnomic()
-        assert isinstance(knockin_target_gnomic, Mutation)
-        assert isinstance(knockin_target_gnomic.new, FeatureTree)
-        assert isinstance(knockin_target_gnomic.new[0], Feature)
-        assert knockin_target_gnomic.new[0].accession.identifier == knockin_target.id
-        assert knockin_target_gnomic.new[0].variant is None
-        assert knockin_target_gnomic.new[0].type == 'reaction'
-        assert knockin_target_gnomic.old is None
+        assert genotype_to_string(Genotype([knockin_target_gnomic])) == "+reaction.atpzase"
+
+        reaction.add_metabolites({model.metabolites.atp_c: 1, atp_z: -1})
+        knockin_target = ReactionKnockinTarget("atpzase", reaction, accession_id='atpzase', accession_db='unicorn')
+        knockin_target_gnomic = knockin_target.to_gnomic()
+        assert genotype_to_string(Genotype([knockin_target_gnomic])) == "+reaction.atpzase#unicorn:atpzase"
+
+    def test_gnomic_integration_ReactionCofactorSwapTarget(self, model):
 
         cofactor_id_swaps = [("nad_c", "nadh_c"), ("nadp_c", "nadph_c")]
 
@@ -268,18 +245,7 @@ class TestTargets:
 
         swap_target = ReactionCofactorSwapTarget("GAPD", swap_pairs)
         swap_target_gnomic = swap_target.to_gnomic()
-
-        assert isinstance(swap_target_gnomic, Mutation)
-        assert isinstance(swap_target_gnomic.old, FeatureTree)
-        assert isinstance(swap_target_gnomic.old[0], Feature)
-        assert swap_target_gnomic.old[0].accession.identifier == swap_target.id
-        assert swap_target_gnomic.old[0].variant is None
-        assert swap_target_gnomic.old[0].type == 'reaction'
-        assert isinstance(swap_target_gnomic.new, FeatureTree)
-        assert isinstance(swap_target_gnomic.new[0], Feature)
-        assert swap_target_gnomic.new[0].accession.identifier == swap_target.id + swap_target.swap_str
-        assert swap_target_gnomic.new[0].variant is None
-        assert swap_target_gnomic.new[0].type == 'reaction'
+        assert genotype_to_string(Genotype([swap_target_gnomic])) == "+reaction.GAPD(nad_c=nadp_c;nadh_c=nadph_c)"
 
 
 class TestEnsembleTargets:
