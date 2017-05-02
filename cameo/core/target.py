@@ -296,10 +296,7 @@ class ReactionKnockinTarget(KnockinTarget):
 
     def to_gnomic(self):
         accession = Target.to_gnomic(self)
-        if accession is None:
-            feature = Feature(type=Type('reaction'), name=self.id)
-        else:
-            feature = Feature(accession=accession, type=Type('reaction'), name=self.id)
+        feature = Feature(accession=accession, type=Type('reaction'), name=self.id)
         return Ins(feature)
 
     def __gt__(self, other):

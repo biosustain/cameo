@@ -198,7 +198,6 @@ class TestTargets:
     def test_gene_down_regulation_target(self):
         raise NotImplementedError
 
-    @pytest.mark.skikpif(six.PY2, reason='gnomic is not compatible with python 2')
     def test_gnomic_integration(self, model):
         from gnomic.models import Accession, Feature, Mutation, FeatureTree
         abstract_target = Target("test")
