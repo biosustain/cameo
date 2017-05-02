@@ -11,17 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import sys
 from functools import partial
 
 import numpy
 import six
-
-from cameo.core.manipulation import swap_cofactors, increase_flux, decrease_flux, reverse_flux
-
 from gnomic import Accession, Feature, Del, Mutation, Sub, Ins
 
 from cameo import ui
+from cameo.core.manipulation import swap_cofactors, increase_flux, decrease_flux, reverse_flux
 from cameo.exceptions import IncompatibleTargets
 
 __all__ = ["GeneModulationTarget", "GeneKnockoutTarget", "ReactionCofactorSwapTarget", "ReactionKnockinTarget",
