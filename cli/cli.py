@@ -72,7 +72,8 @@ def main(version):
               type=click.Choice(['ecoli', 'scerevisiae']),
               help='The host organisms to consider (default: all). '
                    'Multiple hosts can be specified by repeating --host HOST.')
-@click.option('--aerobic/--anaerobic', default=True, is_flag=True, help='Make oxygen available to the host organism (default).')
+@click.option('--aerobic/--anaerobic', default=True, is_flag=True,
+              help='Make oxygen available to the host organism (default).')
 @click.option('--cores', default=1, type=click.IntRange(1, multiprocessing.cpu_count()),
               help='Number of CPU cores to use (default 1).')
 @click.option('--differential-fva/--no-differential-fva', default=True,
