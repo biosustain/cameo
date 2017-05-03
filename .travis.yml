@@ -38,7 +38,6 @@ before_install:
 - 'echo "this is a build for: $TRAVIS_BRANCH"'
 - 'if [[ "$TRAVIS_BRANCH" != "devel" ]]; then bash ./.travis/install_cplex.sh; fi'
 install:
-- pip install git+https://github.com/biosustain/gnomic.git --upgrade  # temporarily install dev version of gnomic
 - pip install flake8 numpy scipy pyzmq pandas pytest pytest-cov
 - pip install .[test,parallel,docs]
 before_script:
