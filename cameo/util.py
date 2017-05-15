@@ -622,6 +622,7 @@ def decompose_reaction_groups(reaction_groups, reactions):
         for g in reaction_groups:
             if element in g:
                 to_replace[element] = g.keys()
+                break
         if element not in to_replace:
             to_keep.append(element)
 
