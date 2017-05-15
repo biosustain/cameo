@@ -601,19 +601,31 @@ class TestDecoders:
     def test_set_decoder(self, model):
         representation = [1, 2, 'a', 'b', None, '0']
         decoder = SetDecoder(representation, model)
-        assert decoder([]) == []
+        assert decoder([])[0] == []
         for i in range(len(representation)):
-            assert decoder([i]) == [representation[i]]
+            assert decoder([i])[0] == [representation[i]]
 
     def test_reaction_set_decoder(self, model):
         decoder = ReactionSetDecoder([r.id for r in model.reactions], model)
-        reactions = decoder([1, 2, 3, 4])
+        reactions = decoder([1, 2, 3, 4])[0]
         for i in range(1, 5):
             assert model.reactions[i] == reactions[i - 1]
 
+    def test_reaction_set_decoder_with_groups(self, model):
+        groups = [{model.reactions[1]: 1, model.reactions[11]: 1, model.reactions[12]: 5},
+                  {model.reactions[2]: 1, model.reactions[13]: 1, model.reactions[14]: 5},]
+
+        decoder = ReactionSetDecoder([r.id for r in model.reactions[0:10]], model, groups=groups)
+        combinations = decoder([1, 2, 3, 4])
+        for reactions in combinations:
+            for i in range(1, 5):
+                reaction = reactions[i - 1]
+                group = next((g for g in groups if reaction in g), {reaction: 1})
+                assert model.reactions[i] in group
+
     def test_gene_set_decoder(self, model):
         decoder = GeneSetDecoder([g.id for g in model.genes], model)
-        genes = decoder([1, 2, 3, 4])
+        genes = decoder([1, 2, 3, 4])[0]
         for i in range(1, 5):
             assert model.genes[i] == genes[i - 1]
 
