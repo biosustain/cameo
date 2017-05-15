@@ -178,9 +178,9 @@ def find_coupled_reactions_nullspace(model, ns=None, tol=1e-10):
 
     for i, reaction_i in enumerate(non_blocked_reactions):
         left = non_blocked_ns[i]
-        group = next((g for g in groups if reaction_i in g), None)
+        group = six.next((g for g in groups if reaction_i in g), None)
         if group:
-            reaction_i = next(l for l, c in six.iteritems(group) if c == 1)
+            reaction_i = six.next(l for l, c in six.iteritems(group) if c == 1)
             left = non_blocked_ns[reaction_index[reaction_i]]
         else:
             group = {reaction_i: 1}
