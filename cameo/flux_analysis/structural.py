@@ -27,7 +27,6 @@ import six
 import sympy
 from cobra import Metabolite
 from numpy.linalg import svd
-from scipy.cluster.hierarchy import linkage
 from scipy.sparse import dok_matrix, lil_matrix
 from six.moves import zip
 
@@ -149,6 +148,21 @@ def find_blocked_reactions_nullspace(model, ns=None, tol=1e-10):
 def find_coupled_reactions_nullspace(model, ns=None, tol=1e-10):
     """
     Find groups of reactions whose fluxes are forced to be multiples of each other.
+
+    Parameters
+    ----------
+    model: SolverBasedModel
+        A constraint-based model.
+    ns: numpy.array
+        The nullspace if already computed somewhere else.
+    tol: float
+        Value after which a value is treated as zero.
+
+    Returns
+    -------
+    list:
+        A list with groups: dictionaries {reaction: relative_coefficient}
+
     """
     if ns is None:
         ns = nullspace(create_stoichiometric_array(model))
@@ -156,25 +170,34 @@ def find_coupled_reactions_nullspace(model, ns=None, tol=1e-10):
     non_blocked_ns = ns[~mask]
     non_blocked_reactions = np.array(list(model.reactions))[~mask]
 
-    # Calculate correlation coefficients (perfect correlation means that one is a scalar multiple of the other)
     corr_mat = np.corrcoef(non_blocked_ns)
     dist_mat = 1 - np.abs(corr_mat)
+    groups = []
 
-    # Perform a linkage clustering
-    link = linkage(dist_mat, method="complete")
+    reaction_index = {r: i for i, r in enumerate(non_blocked_reactions)}
 
-    # Filter the linkage results (only distance = 0)
-    good_link = [a for a in link if a[2] < tol]
+    for i, reaction_i in enumerate(non_blocked_reactions):
+        reaction_i = non_blocked_reactions[i]
+        left = non_blocked_ns[i]
+        group = next((g for g in groups if reaction_i in g), None)
+        if group:
+            reaction_i = next(l for l, c in six.iteritems(group) if c == 1)
+            left = non_blocked_ns[reaction_index[reaction_i]]
+        else:
+            group = {reaction_i: 1}
+            groups.append(group)
 
-    # Aggregate groups
-    group_dict = {i: {i} for i in range(len(non_blocked_reactions))}
-    for i, n in enumerate(range(len(non_blocked_reactions), len(non_blocked_reactions) + len(good_link))):
-        a = good_link[i]
-        group_dict[n] = group_dict[a[0]] | group_dict[a[1]]
-        del group_dict[a[0]]
-        del group_dict[a[1]]
+        good_corr_index = np.argwhere(dist_mat[i] < tol).reshape(-1)
+        for j in good_corr_index:
+            if j == i:
+                continue
+            reaction_j = non_blocked_reactions[j]
+            right = non_blocked_ns[j]
+            ratio = left/right
+            if abs(max(ratio) - min(ratio)) < tol * 100:
+                group[reaction_j] = round(ratio.mean(), 10)
 
-    groups = [frozenset(non_blocked_reactions[list(v)]) for v in group_dict.values() if len(v) > 1]
+    groups = [g for g in groups if len(g) > 1]
 
     return groups
 
