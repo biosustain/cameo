@@ -193,7 +193,7 @@ def find_coupled_reactions_nullspace(model, ns=None, tol=1e-10):
                 continue
             reaction_j = non_blocked_reactions[j]
             right = non_blocked_ns[j]
-            ratio = left/right
+            ratio = left / right
             if abs(max(ratio) - min(ratio)) < tol * 100:
                 group[reaction_j] = round(ratio.mean(), 10)
 

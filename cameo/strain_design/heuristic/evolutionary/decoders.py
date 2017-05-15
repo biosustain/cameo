@@ -96,7 +96,7 @@ class GeneSetDecoder(SetDecoder):
         A list of dict(gene: relative_coefficient) where the dict contains coupled genes.
     """
 
-    def __init__(self, representation, model, groups=None,  *args, **kwargs):
+    def __init__(self, representation, model, groups=None, *args, **kwargs):
         super(GeneSetDecoder, self).__init__(representation, model, *args, **kwargs)
         self.groups = groups
 

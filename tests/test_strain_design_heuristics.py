@@ -613,7 +613,7 @@ class TestDecoders:
 
     def test_reaction_set_decoder_with_groups(self, model):
         groups = [{model.reactions[1]: 1, model.reactions[11]: 1, model.reactions[12]: 5},
-                  {model.reactions[2]: 1, model.reactions[13]: 1, model.reactions[14]: 5},]
+                  {model.reactions[2]: 1, model.reactions[13]: 1, model.reactions[14]: 5}]
 
         decoder = ReactionSetDecoder([r.id for r in model.reactions[0:10]], model, groups=groups)
         combinations = decoder([1, 2, 3, 4])
