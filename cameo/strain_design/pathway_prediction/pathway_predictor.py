@@ -95,7 +95,11 @@ class PathwayResult(Pathway, Result, StrainDesign):
         targets = DictList()
         for reaction in self.reactions:
             reaction = self._replace_adapted_metabolites(reaction)
-            targets.append(ReactionKnockinTarget(reaction.id, reaction))
+            if reaction.id in metanetx.mnx2all:
+                target = ReactionKnockinTarget(reaction.id, reaction, accession_id=reaction.id, accession_db='metanetx')
+            else:
+                target = ReactionKnockinTarget(reaction.id, reaction)
+            targets.append(target)
 
         for reaction in self.exchanges:
             reaction = self._replace_adapted_metabolites(reaction)
