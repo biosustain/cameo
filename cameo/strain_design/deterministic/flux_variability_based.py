@@ -25,6 +25,8 @@ from uuid import uuid4
 import numpy
 import six
 
+from cameo.flux_analysis.structural import nullspace, find_blocked_reactions_nullspace, create_stoichiometric_array
+
 try:
     from IPython.core.display import display, HTML, Javascript
 except ImportError:
@@ -136,11 +138,14 @@ class DifferentialFVA(StrainDesignMethod):
         super(DifferentialFVA, self).__init__()
 
         self.design_space_model = design_space_model
+        self.design_space_nullspace = nullspace(create_stoichiometric_array(self.design_space_model))
         if reference_model is None:
             self.reference_model = self.design_space_model.copy()
             self.reference_model.fix_objective_as_constraint()
+            self.reference_nullspace = self.design_space_nullspace
         else:
             self.reference_model = reference_model
+            self.reference_nullspace = nullspace(create_stoichiometric_array(self.reference_model))
 
         if isinstance(objective, Reaction):
             self.objective = objective.id
@@ -182,6 +187,14 @@ class DifferentialFVA(StrainDesignMethod):
                 self.exclude.append(elem.id)
             else:
                 self.exclude.append(elem)
+
+        design_space_blocked_reactions = find_blocked_reactions_nullspace(self.design_space_model,
+                                                                          self.design_space_nullspace)
+        self.exclude += [reaction.id for reaction in design_space_blocked_reactions]
+
+        reference_blocked_reactions = find_blocked_reactions_nullspace(self.reference_model, self.reference_nullspace)
+        self.exclude += [reaction.id for reaction in reference_blocked_reactions]
+
         self.exclude += [reaction.id for reaction in self.design_space_model.exchanges]
         self.exclude += [reaction.id for reaction in self.reference_model.exchanges]
 
