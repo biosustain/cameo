@@ -129,17 +129,17 @@ class PathwayResult(Pathway, Result, StrainDesign):
         warnings.warn("The 'plug_model' method as been deprecated. Use apply instead.", DeprecationWarning)
         if tm is not None:
             tm(do=partial(model.add_reactions, self.reactions),
-               undo=partial(model.remove_reactions, self.reactions, delete=False, remove_orphans=True))
+               undo=partial(model.remove_reactions, self.reactions, remove_orphans=True))
             if adapters:
                 tm(do=partial(model.add_reactions, self.adapters),
-                   undo=partial(model.remove_reactions, self.adapters, delete=False, remove_orphans=True))
+                   undo=partial(model.remove_reactions, self.adapters, remove_orphans=True))
             if exchanges:
                 tm(do=partial(model.add_reactions, self.exchanges),
-                   undo=partial(model.remove_reactions, self.exchanges, delete=False, remove_orphans=True))
+                   undo=partial(model.remove_reactions, self.exchanges, remove_orphans=True))
             self.product.lower_bound = 0
             try:
                 tm(do=partial(model.add_reactions, [self.product]),
-                   undo=partial(model.remove_reactions, [self.product], delete=False, remove_orphans=True))
+                   undo=partial(model.remove_reactions, [self.product], remove_orphans=True))
             except Exception:
                 logger.warning("Exchange %s already in model" % self.product.id)
                 pass
