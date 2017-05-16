@@ -66,8 +66,10 @@ class TestModelLoading(object):
 
     @pytest.mark.skipif(libsbml is None, reason="minho has fbc < 2, requiring missing lisbml")
     def test_import_model_minho(self):
-        model = cameo.models.minho.__getattr__('Ecoli core Model')
-        assert model.id == 'Ecoli_core_model'
+        model = cameo.models.minho
+        if model.status != 'indexed':
+            pytest.skip('failed to index minho db')
+        assert model.__getattr__('Ecoli core Model').id == 'Ecoli_core_model'
 
     def test_invalid_path(self):
         with pytest.raises(Exception):

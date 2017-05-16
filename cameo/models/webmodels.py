@@ -173,13 +173,14 @@ class ModelDB(object):
         self._index_key = index_key
         self._get_model_method = get_model_method
         self._index = None
+        self.status = ''
 
     def _index_models(self):
         try:
             self._index = self._index_method()
+            self.status = 'indexed'
         except requests.ConnectionError:
-            self._index = ["no_models_available"]
-            self.no_models_available = "The server could not be reached. Make sure you are connected to the internet"
+            self.status = "The server could not be reached. Make sure you are connected to the internet"
 
     def __dir__(self):
         if self._index is None:
