@@ -685,7 +685,7 @@ class TestModel:
         assert coefficients_dict[core_model.reactions.r2.reverse_variable] == -3.
 
     def test_remove_reactions_1(self, core_model):
-        core_model.remove_reactions([core_model.reactions.PGI, core_model.reactions.PGK], delete=False)
+        core_model.remove_reactions([core_model.reactions.PGI, core_model.reactions.PGK])
         assert "PGI" not in core_model.reactions
         assert "PGK" not in core_model.reactions
         assert "PGI" not in core_model.reactions
@@ -708,7 +708,7 @@ class TestModel:
     def test_remove_and_add_reactions(self, core_model):
         model_copy = core_model.copy()
         pgi, pgk = model_copy.reactions.PGI, model_copy.reactions.PGK
-        model_copy.remove_reactions([pgi, pgk], delete=False)
+        model_copy.remove_reactions([pgi, pgk])
         assert "PGI" not in model_copy.reactions
         assert "PGK" not in model_copy.reactions
         assert "PGI" in core_model.reactions

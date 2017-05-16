@@ -1,6 +1,6 @@
 sphinx-rtd-theme>=0.1.6
 numpydoc>=0.5
-cobra>=0.6.0a2f
+cobra>=0.6.1
 sympy==0.7.5
 optlang==0.2.9
 mock>=1.0.1
