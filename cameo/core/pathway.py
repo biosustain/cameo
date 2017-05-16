@@ -128,7 +128,7 @@ class Pathway(object):
 
         if tm is not None:
             tm(do=partial(model.add_reactions, self.reactions),
-               undo=partial(model.remove_reactions, self.reactions, delete=False))
+               undo=partial(model.remove_reactions, self.reactions))
         else:
             model.add_reactions(self.reactions)
 
