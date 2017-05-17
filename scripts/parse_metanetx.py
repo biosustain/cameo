@@ -216,8 +216,14 @@ if __name__ == '__main__':
     # generate universal reaction models
     db_combinations = [('bigg',), ('rhea',), ('bigg', 'rhea'), ('bigg', 'rhea', 'kegg'),
                        ('bigg', 'rhea', 'kegg', 'brenda')]
+    largest_universal_model = None
     for db_combination in db_combinations:
         universal_model = construct_universal_model(db_combination, reac_xref, reac_prop, chem_prop)
+        if largest_universal_model is None:
+            largest_universal_model = universal_model
+        else:
+            if len(set(largest_universal_model.metabolites)) < len(set(universal_model.metabolites)):
+                largest_universal_model = universal_model
         # The following is a hack; uncomment the following
         from cobra.io.json import _REQUIRED_REACTION_ATTRIBUTES
 
@@ -225,6 +231,8 @@ if __name__ == '__main__':
         with open('../cameo/models/universal_models/{model_name}.json'.format(model_name=universal_model.id), 'w') as f:
             save_json_model(universal_model, f)
 
+    metabolite_ids_in_largest_model = [m.id for m in largest_universal_model.metabolites]
     chem_prop_filtered = chem_prop.dropna(subset=['name'])
+    chem_prop_filtered = chem_prop_filtered[chem_prop_filtered.index.isin(metabolite_ids_in_largest_model)]
     with gzip.open('../cameo/data/metanetx_chem_prop.json.gz', 'wt') as f:
         chem_prop_filtered.to_json(f, force_ascii=True)
