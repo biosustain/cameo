@@ -18,21 +18,21 @@ __all__ = ['bigg2mnx', 'mnx2bigg', 'all2mnx', 'mnx2all']
 
 import six
 import os
-import six.moves.cPickle as pickle
+import json
 import gzip
+
+import pandas
 
 import cameo
 
-with open(os.path.join(cameo._cameo_data_path, 'metanetx.pickle'), 'rb') as f:
-    _METANETX = pickle.load(f)
+
+with gzip.open(os.path.join(cameo._cameo_data_path, 'metanetx.json.gz'), 'rt') as f:
+    _METANETX = json.load(f)
 
 bigg2mnx = _METANETX['bigg2mnx']
 mnx2bigg = _METANETX['mnx2bigg']
 all2mnx = _METANETX['all2mnx']
 mnx2all = {v: k for k, v in six.iteritems(all2mnx)}
 
-with gzip.open(os.path.join(cameo._cameo_data_path, 'metanetx_chem_prop.pklz'), 'rb') as f:
-    if six.PY3:
-        chem_prop = pickle.load(f, encoding='utf-8')
-    else:
-        chem_prop = pickle.load(f)
+with gzip.open(os.path.join(cameo._cameo_data_path, 'metanetx_chem_prop.json.gz'), 'rt') as f:
+    chem_prop = pandas.read_json(f)

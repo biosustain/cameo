@@ -12,9 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import sys
+import six
+if six.PY2:
+    print("This script can only be run with python>=3!")
+    sys.exit(-1)
+
 import logging
 import gzip
-import pickle
+import json
 import sys
 
 import requests
@@ -204,8 +210,8 @@ if __name__ == '__main__':
         add_to_bigg_mapping(xref, metanetx['bigg2mnx'], metanetx['mnx2bigg'])
         add_to_all_mapping(xref, metanetx['all2mnx'])
 
-    with open('../cameo/data/metanetx.pickle', 'wb') as f:
-        pickle.dump(metanetx, f, protocol=2)
+    with gzip.open('../cameo/data/metanetx.json.gz', 'wt') as f:
+        json.dump(metanetx, f)
 
     # generate universal reaction models
     db_combinations = [('bigg',), ('rhea',), ('bigg', 'rhea'), ('bigg', 'rhea', 'kegg'),
@@ -220,5 +226,5 @@ if __name__ == '__main__':
             save_json_model(universal_model, f)
 
     chem_prop_filtered = chem_prop.dropna(subset=['name'])
-    with gzip.open('../cameo/data/metanetx_chem_prop.pklz', 'wb') as f:
-        pickle.dump(chem_prop_filtered, f, protocol=2)
+    with gzip.open('../cameo/data/metanetx_chem_prop.json.gz', 'wt') as f:
+        chem_prop_filtered.to_json(f, force_ascii=True)
