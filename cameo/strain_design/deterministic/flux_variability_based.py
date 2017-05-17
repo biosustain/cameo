@@ -333,20 +333,20 @@ class DifferentialFVA(StrainDesignMethod):
             df['suddenly_essential'] = False
             df['free_flux'] = False
 
-            ko_selection = df[(df.lower_bound == 0) & (df.upper_bound == 0) &
-                              (ref_upper_bound != 0) & (ref_lower_bound != 0)]
+            ko_selection = df.loc[(df.lower_bound == 0) & (df.upper_bound == 0) &
+                                  (ref_upper_bound != 0) & (ref_lower_bound != 0)]
 
-            flux_reversal_selection = df[((ref_upper_bound < 0) & (df.lower_bound > 0) |
-                                          ((ref_lower_bound > 0) & (df.upper_bound < 0)))]
+            flux_reversal_selection = df.loc[((ref_upper_bound < 0) & (df.lower_bound > 0) |
+                                             ((ref_lower_bound > 0) & (df.upper_bound < 0)))]
 
-            suddenly_essential_selection = df[((df.lower_bound <= 0) & (df.lower_bound > 0)) |
-                                              ((ref_lower_bound >= 0) & (df.upper_bound <= 0))]
+            suddenly_essential_selection = df.loc[((df.lower_bound <= 0) & (df.lower_bound > 0)) |
+                                                  ((ref_lower_bound >= 0) & (df.upper_bound <= 0))]
 
             is_reversible = [self.design_space_model.reactions.get_by_id(i).reversibility for i in df.index]
             not_reversible = [not v for v in is_reversible]
-            free_flux_selection = df[((df.lower_bound == -1000) & (df.upper_bound == 1000) & is_reversible) |
-                                     ((df.lower_bound == 0) & (df.upper_bound == 1000) & not_reversible) |
-                                     ((df.lower_bound == -1000) & (df.upper_bound == 0) & not_reversible)]
+            free_flux_selection = df.loc[((df.lower_bound == -1000) & (df.upper_bound == 1000) & is_reversible) |
+                                         ((df.lower_bound == 0) & (df.upper_bound == 1000) & not_reversible) |
+                                         ((df.lower_bound == -1000) & (df.upper_bound == 0) & not_reversible)]
 
             df.loc[suddenly_essential_selection.index, 'suddenly_essential'] = True
             df.loc[ko_selection.index, 'KO'] = True
@@ -355,8 +355,8 @@ class DifferentialFVA(StrainDesignMethod):
 
             df['excluded'] = [index in self.exclude for index in df.index]
 
-        multi_index = [(key[0][1], key[1][1]) for key in solutions.keys()]
-        solutions_multi_index = pandas.concat(solutions.values(), axis=0, keys=multi_index)
+        multi_index = [(key[0][1], key[1][1]) for key in solutions]
+        solutions_multi_index = pandas.concat(list(solutions.values()), axis=0, keys=multi_index)
         solutions_multi_index.index.set_names(['biomass', 'production', 'reaction'], inplace=True)
         return DifferentialFVAResult(solutions_multi_index, self.envelope,
                                      self.reference_flux_ranges, self.reference_flux_dist)
