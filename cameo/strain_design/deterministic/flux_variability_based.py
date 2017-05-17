@@ -355,7 +355,10 @@ class DifferentialFVA(StrainDesignMethod):
 
             df['excluded'] = [index in self.exclude for index in df.index]
 
-        return DifferentialFVAResult(pandas.Panel(solutions), self.envelope,
+        multi_index = [(key[0][1], key[1][1]) for key in solutions.keys()]
+        solutions_multi_index = pandas.concat(solutions.values(), axis=0, keys=multi_index)
+        solutions_multi_index.index.set_names(['biomass', 'production', 'reaction'], inplace=True)
+        return DifferentialFVAResult(solutions_multi_index, self.envelope,
                                      self.reference_flux_ranges, self.reference_flux_dist)
 
 
@@ -450,8 +453,7 @@ class DifferentialFVAResult(StrainDesignMethodResult):
             A list of cameo.core.strain_design.StrainDesign for each DataFrame in solutions.
         """
         designs = []
-
-        for _, solution in solutions.iteritems():
+        for _, solution in solutions.groupby(('biomass', 'production')):
             targets = []
             relevant_targets = solution[numpy.abs(solution.normalized_gaps) > non_zero_flux_threshold]
             relevant_targets = relevant_targets[relevant_targets.excluded.eq(False)]
