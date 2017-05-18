@@ -338,7 +338,7 @@ class DifferentialFVA(StrainDesignMethod):
             df['free_flux'] = False
 
             df.loc[(df.lower_bound == 0) & (df.upper_bound == 0) &
-                   (ref_upper_bound != 0) & (ref_lower_bound != 0) , 'KO'] = True
+                   (ref_upper_bound != 0) & (ref_lower_bound != 0), 'KO'] = True
 
             df.loc[((ref_upper_bound < 0) & (df.lower_bound > 0) |
                    ((ref_lower_bound > 0) & (df.upper_bound < 0))), 'flux_reversal'] = True
