@@ -502,16 +502,20 @@ class DifferentialFVAResult(StrainDesignMethodResult):
 
     def __getitem__(self, item):
         columns = ["lower_bound", "upper_bound", "gaps", "normalized_gaps", "KO", "flux_reversal", "suddenly_essential"]
-        rows = list(range(len(self.solutions)))
-        values = numpy.ndarray((len(rows), len(columns)))
-        for i in rows:
-            values[i] = self.solutions.iloc[i].loc[item].values
+        grouped = self.solutions.groupby(['biomass', 'production'],
+                                         as_index=False, sort=False)
+        return grouped.get_group(item)[columns]
 
-        data = DataFrame(values, index=rows, columns=columns)
-        data["KO"] = data["KO"].values.astype(numpy.bool)
-        data["flux_reversal"] = data["flux_reversal"].values.astype(numpy.bool)
-        data["suddenly_essential"] = data["suddenly_essential"].values.astype(numpy.bool)
-        return data
+    def nth_panel(self, index):
+        """
+        Return the nth DataFrame defined by (biomass, production) pairs.
+
+        When the solutions were still based on pandas.Panel this was simply
+        self.solutions.iloc
+        """
+        grouped = self.solutions.groupby(['biomass', 'production'],
+                                         as_index=False, sort=False)
+        return grouped.get_group(sorted(grouped.groups.keys())[index])
 
     def plot(self, index=None, variables=None, grid=None, width=None, height=None, title=None, palette=None, **kwargs):
         if index is not None:
