@@ -531,8 +531,6 @@ class DifferentialFVAResult(StrainDesignMethodResult):
         title = "Compare WT solution %i" % index if title is None else title
 
         wt_fva_res = self.reference_fva.loc[variables]
-        grouped = self.solutions.groupby(['biomass', 'production'],
-                                         as_index=False, sort=False)
         strain_fva_res = self.nth_panel(index).loc[variables]
         dataframe = pandas.DataFrame(columns=["lb", "ub", "strain", "reaction"])
         for reaction_id, row in wt_fva_res.iterrows():
