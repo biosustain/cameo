@@ -533,7 +533,7 @@ class DifferentialFVAResult(StrainDesignMethodResult):
         wt_fva_res = self.reference_fva.loc[variables]
         grouped = self.solutions.groupby(['biomass', 'production'],
                                          as_index=False, sort=False)
-        strain_fva_res = grouped.get_group(sorted(grouped.groups.keys())[index]).loc[variables]
+        strain_fva_res = self.nth_panel(index).loc[variables]
         dataframe = pandas.DataFrame(columns=["lb", "ub", "strain", "reaction"])
         for reaction_id, row in wt_fva_res.iterrows():
             _df = pandas.DataFrame([[row['lower_bound'], row['upper_bound'], "WT", reaction_id]],
@@ -628,9 +628,7 @@ class DifferentialFVAResult(StrainDesignMethodResult):
             values = self.solutions['normalized_gaps'].values
             values = values[numpy.isfinite(values)]
 
-            grouped = self.solutions.groupby(['biomass', 'production'],
-                                             as_index=False, sort=False)
-            data = grouped.get_group(sorted(grouped.groups.keys())[index])
+            data = self.nth_panel(index)
             # Find values above decimal precision and not NaN
             data = data.loc[
                 ~numpy.isnan(data['normalized_gaps']) &
