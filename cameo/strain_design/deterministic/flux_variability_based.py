@@ -559,15 +559,17 @@ class DifferentialFVAResult(StrainDesignMethodResult):
 
     def _repr_html_(self):
         def _data_frame(solution):
-            notice("%s: %f" % self.solutions.axes[0][solution - 1][0])
-            notice("%s: %f" % self.solutions.axes[0][solution - 1][1])
-            df = self.solutions.iloc[solution - 1]
-            df = df[abs(df.normalized_gaps) >= non_zero_flux_threshold]
-            df = df.sort_values('normalized_gaps')
+            df = self.nth_panel(solution - 1)
+            notice("biomass: {0:g}".format(df['biomass'].iat[0]))
+            notice("production: {0:g}".format(df['production'].iat[0]))
+            df = df.loc[abs(df['normalized_gaps']) >= non_zero_flux_threshold]
+            df.sort_values('normalized_gaps', inplace=True)
             display(df)
 
-        interact(_data_frame, solution=[1, len(self.solutions)])
-        return ""
+        num = len(self.solutions.groupby(['biomass', 'production'],
+                                         as_index=False, sort=False))
+        interact(_data_frame, solution=(1, num))
+        return ''
 
     @property
     def data_frame(self):
