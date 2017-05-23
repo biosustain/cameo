@@ -8,7 +8,7 @@ tabulate
 numpy>=1.9.1
 scipy>=0.9.0
 blessings>=1.5.1
-pandas>=0.15.2
+pandas==0.18.1
 ordered-set>=1.2
 inspyred>=1.0
 cobra==0.5.11
