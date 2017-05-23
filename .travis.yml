@@ -38,7 +38,7 @@ before_install:
 - 'echo "this is a build for: $TRAVIS_BRANCH"'
 - 'if [[ "$TRAVIS_BRANCH" != "devel" ]]; then bash ./.travis/install_cplex.sh; fi'
 install:
-- pip install flake8 numpy scipy pyzmq pandas pytest pytest-cov
+- pip install flake8 numpy scipy pyzmq pandas==0.18.1 pytest pytest-cov
 - pip install .[test,parallel,docs]
 before_script:
 - if [[ $TRAVIS_PYTHON_VERSION == "3.6" ]]; then flake8 .; fi
