@@ -340,36 +340,47 @@ class DifferentialFVA(StrainDesignMethod):
         ref_lower_bound = self.reference_flux_ranges.lower_bound.apply(
             lambda v: 0 if abs(v) < non_zero_flux_threshold else v)
 
-        for df in six.itervalues(solutions):
+        collection = list()
+        for key, df in six.iteritems(solutions):
+            df['biomass'] = key[0][1]
+            df['production'] = key[1][1]
+
             df['KO'] = False
             df['flux_reversal'] = False
             df['suddenly_essential'] = False
             df['free_flux'] = False
 
-            ko_selection = df[(df.lower_bound == 0) & (df.upper_bound == 0) &
-                              (ref_upper_bound != 0) & (ref_lower_bound != 0)]
+            df.loc[(df.lower_bound == 0) & (df.upper_bound == 0) &
+                   (ref_upper_bound != 0) & (ref_lower_bound != 0), 'KO'] = True
 
-            flux_reversal_selection = df[((ref_upper_bound < 0) & (df.lower_bound > 0) |
-                                          ((ref_lower_bound > 0) & (df.upper_bound < 0)))]
+            df.loc[((ref_upper_bound < 0) & (df.lower_bound > 0) |
+                   ((ref_lower_bound > 0) & (df.upper_bound < 0))), 'flux_reversal'] = True
 
-            suddenly_essential_selection = df[((df.lower_bound <= 0) & (df.lower_bound > 0)) |
-                                              ((ref_lower_bound >= 0) & (df.upper_bound <= 0))]
+            df.loc[((df.lower_bound <= 0) & (df.lower_bound > 0)) |
+                   ((ref_lower_bound >= 0) & (df.upper_bound <= 0)), 'suddenly_essential'] = True
 
-            is_reversible = [self.design_space_model.reactions.get_by_id(i).reversibility for i in df.index]
-            not_reversible = [not v for v in is_reversible]
-            free_flux_selection = df[((df.lower_bound == -1000) & (df.upper_bound == 1000) & is_reversible) |
-                                     ((df.lower_bound == 0) & (df.upper_bound == 1000) & not_reversible) |
-                                     ((df.lower_bound == -1000) & (df.upper_bound == 0) & not_reversible)]
+            is_reversible = numpy.asarray([
+                self.design_space_model.reactions.get_by_id(i).reversibility for i in df.index], dtype=bool)
+            not_reversible = numpy.logical_not(is_reversible)
 
-            df.loc[suddenly_essential_selection.index, 'suddenly_essential'] = True
-            df.loc[ko_selection.index, 'KO'] = True
-            df.loc[flux_reversal_selection.index, 'flux_reversal'] = True
-            df.loc[free_flux_selection.index, 'free_flux'] = True
+            df.loc[((df.lower_bound == -1000) & (df.upper_bound == 1000) & is_reversible) |
+                   ((df.lower_bound == 0) & (df.upper_bound == 1000) & not_reversible) |
+                   ((df.lower_bound == -1000) & (df.upper_bound == 0) & not_reversible), 'free_flux'] = True
 
-            df['excluded'] = [index in self.exclude for index in df.index]
+            df['reaction'] = df.index
+            df['excluded'] = df['reaction'].isin(self.exclude)
 
-        return DifferentialFVAResult(pandas.Panel(solutions), self.envelope,
-                                     self.reference_flux_ranges, self.reference_flux_dist)
+            collection.append(df)
+
+#        multi_index = [(key[0][1], key[1][1]) for key in solutions]
+#        solutions_multi_index = pandas.concat(list(solutions.values()),
+        # axis=0, keys=multi_index)#
+#        solutions_multi_index.index.set_names(['biomass', 'production',
+        # 'reaction'], inplace=True)
+        total = pandas.concat(collection, ignore_index=True, copy=False)
+        total.sort_values(['biomass', 'production', 'reaction'], inplace=True)
+        total.index = total['reaction']
+        return DifferentialFVAResult(total, self.envelope, self.reference_flux_ranges, self.reference_flux_dist)
 
 
 class DifferentialFVAResult(StrainDesignMethodResult):
@@ -463,12 +474,13 @@ class DifferentialFVAResult(StrainDesignMethodResult):
             A list of cameo.core.strain_design.StrainDesign for each DataFrame in solutions.
         """
         designs = []
-
-        for _, solution in solutions.iteritems():
+        for _, solution in solutions.groupby(('biomass', 'production')):
             targets = []
-            relevant_targets = solution[numpy.abs(solution.normalized_gaps) > non_zero_flux_threshold]
-            relevant_targets = relevant_targets[relevant_targets.excluded.eq(False)]
-            relevant_targets = relevant_targets[relevant_targets.free_flux.eq(False)]
+            relevant_targets = solution.loc[
+                (numpy.abs(solution['normalized_gaps']) > non_zero_flux_threshold) &
+                numpy.logical_not(solution['excluded']) &
+                numpy.logical_not(solution['free_flux'])
+            ]
             for rid, relevant_row in relevant_targets.iterrows():
                 if relevant_row.KO:
                     targets.append(ReactionKnockoutTarget(rid))
@@ -503,16 +515,20 @@ class DifferentialFVAResult(StrainDesignMethodResult):
 
     def __getitem__(self, item):
         columns = ["lower_bound", "upper_bound", "gaps", "normalized_gaps", "KO", "flux_reversal", "suddenly_essential"]
-        rows = list(range(len(self.solutions)))
-        values = numpy.ndarray((len(rows), len(columns)))
-        for i in rows:
-            values[i] = self.solutions.iloc[i].loc[item].values
+        grouped = self.solutions.groupby(['biomass', 'production'],
+                                         as_index=False, sort=False)
+        return grouped.get_group(item)[columns]
 
-        data = DataFrame(values, index=rows, columns=columns)
-        data["KO"] = data["KO"].values.astype(numpy.bool)
-        data["flux_reversal"] = data["flux_reversal"].values.astype(numpy.bool)
-        data["suddenly_essential"] = data["suddenly_essential"].values.astype(numpy.bool)
-        return data
+    def nth_panel(self, index):
+        """
+        Return the nth DataFrame defined by (biomass, production) pairs.
+
+        When the solutions were still based on pandas.Panel this was simply
+        self.solutions.iloc
+        """
+        grouped = self.solutions.groupby(['biomass', 'production'],
+                                         as_index=False, sort=False)
+        return grouped.get_group(sorted(grouped.groups.keys())[index])
 
     def plot(self, index=None, variables=None, grid=None, width=None, height=None, title=None, palette=None, **kwargs):
         if index is not None:
@@ -528,7 +544,7 @@ class DifferentialFVAResult(StrainDesignMethodResult):
         title = "Compare WT solution %i" % index if title is None else title
 
         wt_fva_res = self.reference_fva.loc[variables]
-        strain_fva_res = self.solutions.iloc[index].loc[variables]
+        strain_fva_res = self.nth_panel(index).loc[variables]
         dataframe = pandas.DataFrame(columns=["lb", "ub", "strain", "reaction"])
         for reaction_id, row in wt_fva_res.iterrows():
             _df = pandas.DataFrame([[row['lower_bound'], row['upper_bound'], "WT", reaction_id]],
@@ -548,31 +564,29 @@ class DifferentialFVAResult(StrainDesignMethodResult):
 
     def _plot_production_envelope(self, title=None, width=None, height=None, grid=None):
         title = "DifferentialFVA Result" if title is None else title
-        x = [elem[0][1] for elem in list(self.solutions.items)]
-        y = [elem[1][1] for elem in list(self.solutions.items)]
-        colors = ["red" for _ in x]
-        points = zip(x, y)
+        points = list(self.solutions.loc[
+            numpy.logical_not(self.solutions.duplicated(['biomass', 'production'])),
+            ['biomass', 'production']].itertuples(index=False))
+        colors = ["red"] * len(points)
         self.phase_plane.plot(title=title, grid=grid, width=width, heigth=height, points=points, points_colors=colors)
 
     def _repr_html_(self):
         def _data_frame(solution):
-            notice("%s: %f" % self.solutions.axes[0][solution - 1][0])
-            notice("%s: %f" % self.solutions.axes[0][solution - 1][1])
-            df = self.solutions.iloc[solution - 1]
-            df = df[abs(df.normalized_gaps) >= non_zero_flux_threshold]
-            df = df.sort_values('normalized_gaps')
+            df = self.nth_panel(solution - 1)
+            notice("biomass: {0:g}".format(df['biomass'].iat[0]))
+            notice("production: {0:g}".format(df['production'].iat[0]))
+            df = df.loc[abs(df['normalized_gaps']) >= non_zero_flux_threshold]
+            df.sort_values('normalized_gaps', inplace=True)
             display(df)
 
-        interact(_data_frame, solution=[1, len(self.solutions)])
-        return ""
+        num = len(self.solutions.groupby(['biomass', 'production'],
+                                         as_index=False, sort=False))
+        interact(_data_frame, solution=(1, num))
+        return ''
 
     @property
     def data_frame(self):
         return self.solutions
-
-    @property
-    def normalized_gaps(self):
-        return numpy.concatenate(self.solutions.iloc[:, :, 3].values).astype(float)
 
     def display_on_map(self, index=0, map_name=None, palette="RdYlBu", **kwargs):
         # TODO: hack escher to use iterative maps
@@ -607,8 +621,9 @@ class DifferentialFVAResult(StrainDesignMethodResult):
         elif isinstance(palette, Palette):
             palette = palette.hex_colors
 
-        values = [abs(v) for v in self.normalized_gaps if not (numpy.isnan(v) or numpy.isinf(v))]
-        values += [-v for v in values]
+        values = self.solutions['normalized_gaps'].values
+        values = numpy.abs(values[numpy.isfinite(values)])
+        values = numpy.append(values, -values)
 
         std = numpy.std(values)
 
@@ -623,29 +638,26 @@ class DifferentialFVAResult(StrainDesignMethodResult):
             else:
                 map_json = None
 
-            values = self.normalized_gaps
+            values = self.solutions['normalized_gaps'].values
+            values = values[numpy.isfinite(values)]
 
-            values = values[~numpy.isnan(values)]
-            values = values[~numpy.isinf(values)]
+            data = self.nth_panel(index)
+            # Find values above decimal precision and not NaN
+            data = data.loc[
+                ~numpy.isnan(data['normalized_gaps']) &
+                (data['normalized_gaps'].abs() > non_zero_flux_threshold)]
+            data.index = data['reaction']
 
-            data = self.solutions.iloc[index]
-            # Find values above decimal precision
-            data = data[numpy.abs(data.normalized_gaps.astype(float)) > non_zero_flux_threshold]
-            # Remove NaN rows
-            data = data[~numpy.isnan(data.normalized_gaps.astype(float))]
+            reaction_data = data['normalized_gaps'].copy()
+            reaction_data[numpy.isposinf(reaction_data)] = reaction_data.max()
+            reaction_data[numpy.isneginf(reaction_data)] = reaction_data.min()
 
-            reaction_data = dict(data.normalized_gaps)
-            for rid, gap in six.iteritems(reaction_data):
-                if numpy.isposinf(gap):
-                    gap = numpy.max(values)
-                elif numpy.isneginf(gap):
-                    gap = numpy.min(values)
 
-                reaction_data[rid] = gap
+            reaction_data = dict(reaction_data.iteritems())
+            reaction_data['max'] = numpy.abs(values).max()
+            reaction_data['min'] = -reaction_data['max']
 
             scale = self.plot_scale(palette)
-            reaction_data['min'] = min(numpy.abs(values) * -1)
-            reaction_data['max'] = max(numpy.abs(values))
 
             reaction_scale = [dict(type='min', color=scale[0][1], size=24),
                               dict(type='value', value=scale[0][0], color=scale[0][1], size=21),
