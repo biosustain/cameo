@@ -2,14 +2,24 @@ language: python
 sudo: required
 dist: trusty
 
-python:
-  - '2.7'
-  - '3.4'
-  - '3.5'
-  - '3.6'
-
 matrix:
   fast_finish: true
+  include:
+    - python: '3.5'
+      env:
+        - TOXENV=flake8
+    - python: '2.7'
+      env:
+        - TOXENV=py27
+    - python: '3.4'
+      env:
+        - TOXENV=py34
+    - python: '3.5'
+      env:
+        - TOXENV=py35
+    - python: '3.6'
+      env:
+        - TOXENV=py36
 
 branches:
  only:
@@ -20,8 +30,10 @@ branches:
 
 cache:
 - pip: true
+
 services:
 - redis-server
+
 addons:
   apt:
     packages:
@@ -32,20 +44,18 @@ addons:
     - glpk-utils
     - pandoc
     - openbabel
+
 before_install:
-- pip install pip --upgrade
-- pip install codecov
+- travis_retry pip install --upgrade pip setuptools wheel tox
 - 'echo "this is a build for: $TRAVIS_BRANCH"'
 - 'if [[ "$TRAVIS_BRANCH" != "devel" ]]; then bash ./.travis/install_cplex.sh; fi'
+
 install:
-- pip install flake8 numpy scipy pyzmq pandas pytest pytest-cov
 - pip install .[test,parallel,docs]
-before_script:
-- if [[ $TRAVIS_PYTHON_VERSION == "3.6" ]]; then flake8 .; fi
+
 script:
-  - pytest -v -rsx --cov --cov-report=xml
-after_success:
-  - codecov
+  - tox
+
 notifications:
   slack:
     rooms:
@@ -55,7 +65,9 @@ notifications:
 before_deploy:
   - pip install twine
   - python setup.py sdist bdist_wheel
-  - if [[ $TRAVIS_PYTHON_VERSION == "3.6" ]]; then cd docs && make apidoc && make html && touch _build/html/.nojekyll; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == "3.6" ]]; then
+        cd docs && make apidoc && make html && touch _build/html/.nojekyll;
+    fi
   - cd $TRAVIS_BUILD_DIR
 env:
   global:
