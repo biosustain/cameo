@@ -5,21 +5,16 @@ dist: trusty
 matrix:
   fast_finish: true
   include:
-    - python: '3.5'
-      env:
-        - TOXENV=flake8
-    - python: '2.7'
-      env:
-        - TOXENV=py27
     - python: '3.4'
-      env:
-        - TOXENV=py34
+      env: TOXENV=flake8
+    - python: '2.7'
+      env: TOXENV=py27
+    - python: '3.4'
+      env: TOXENV=py34
     - python: '3.5'
-      env:
-        - TOXENV=py35
+      env: TOXENV=py35
     - python: '3.6'
-      env:
-        - TOXENV=py36
+      env: TOXENV=py36
 
 branches:
  only:
@@ -50,9 +45,6 @@ before_install:
 - 'echo "this is a build for: $TRAVIS_BRANCH"'
 - 'if [[ "$TRAVIS_BRANCH" != "devel" ]]; then bash ./.travis/install_cplex.sh; fi'
 
-install:
-- pip install .[test,parallel,docs]
-
 script:
   - tox
 
@@ -66,6 +58,7 @@ before_deploy:
   - pip install twine
   - python setup.py sdist bdist_wheel
   - if [[ $TRAVIS_PYTHON_VERSION == "3.6" ]]; then
+        pip install .[docs];
         cd docs && make apidoc && make html && touch _build/html/.nojekyll;
     fi
   - cd $TRAVIS_BUILD_DIR
