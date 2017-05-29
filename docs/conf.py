@@ -59,7 +59,8 @@ extensions = [
     'sphinx.ext.ifconfig',
     'sphinx.ext.viewcode',
     'sphinx.ext.napoleon',
-    'sphinx.ext.intersphinx'
+    'sphinx.ext.intersphinx',
+    'numpydoc'
 ]
 
 intersphinx_mapping = {'cobrapy': ('https://cobrapy.readthedocs.org/en/latest/', None)}

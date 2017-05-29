@@ -37,7 +37,7 @@ from cameo.flux_analysis.structural import nullspace
 from cameo.parallel import MultiprocessingView, SequentialView
 from cameo.util import TimeMachine, current_solver_name, pick_one
 
-TRAVIS = bool(os.getenv('TRAVIS', False))
+TRAVIS = 'TRAVIS' in os.environ
 TEST_DIR = os.path.dirname(__file__)
 
 REFERENCE_FVA_SOLUTION_ECOLI_CORE = pandas.read_csv(os.path.join(TEST_DIR, 'data/REFERENCE_flux_ranges_EcoliCore.csv'),
