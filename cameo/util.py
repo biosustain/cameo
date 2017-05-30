@@ -602,6 +602,33 @@ def reduce_reaction_set(reaction_set, groups):
     return result
 
 
+def decompose_reaction_groups(reaction_groups, reactions):
+    """
+
+    reaction_groups : list
+        A list with dictionaries (element: relative_coefficient)
+    reactions : list, set, tuple
+        A collection of reactions.
+
+    Returns
+    -------
+    list
+        A list of all possible group substitutions.
+
+    """
+    to_keep = []
+    to_replace = {}
+    for element in reactions:
+        for g in reaction_groups:
+            if element in g:
+                to_replace[element] = g.keys()
+                break
+        if element not in to_replace:
+            to_keep.append(element)
+
+    return (list(combo) + to_keep for combo in itertools.product(*to_replace.values()))
+
+
 def current_solver_name(model):
     """Give a string representation for an optlang interface.
 

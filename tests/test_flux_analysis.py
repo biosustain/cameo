@@ -396,7 +396,7 @@ class TestStructural:
         coupled_reactions = structural.find_coupled_reactions_nullspace(core_model)
         for essential_reaction in essential_reactions:
             for group in coupled_reactions:
-                assert isinstance(group, frozenset)
+                assert isinstance(group, dict)
                 if essential_reaction in group:
                     assert all(group_reaction in essential_reactions for group_reaction in group)
 

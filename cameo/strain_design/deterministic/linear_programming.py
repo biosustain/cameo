@@ -33,7 +33,7 @@ from cameo.exceptions import SolveError
 from cameo.flux_analysis.analysis import phenotypic_phase_plane, flux_variability_analysis
 from cameo.flux_analysis.simulation import fba
 from cameo.flux_analysis.structural import find_coupled_reactions_nullspace
-from cameo.util import TimeMachine, reduce_reaction_set
+from cameo.util import TimeMachine, reduce_reaction_set, decompose_reaction_groups
 from cameo.visualization.plotting import plotter
 
 logger = logging.getLogger(__name__)
@@ -122,8 +122,9 @@ class OptKnock(StrainDesignMethod):
         print(len(self._model.reactions))
 
     def _reduce_to_nullspace(self, reactions):
-        reaction_groups = find_coupled_reactions_nullspace(self._model)
-        reduced_reactions = reduce_reaction_set(reactions, reaction_groups)
+        self.reaction_groups = find_coupled_reactions_nullspace(self._model)
+        reaction_groups_keys = [set(group) for group in self.reaction_groups]
+        reduced_reactions = reduce_reaction_set(reactions, reaction_groups_keys)
         return reduced_reactions
 
     def _build_problem(self, essential_reactions, use_nullspace_simplification):
@@ -136,6 +137,8 @@ class OptKnock(StrainDesignMethod):
         reactions = set(self._model.reactions) - set(self.essential_reactions)
         if use_nullspace_simplification:
             reactions = self._reduce_to_nullspace(reactions)
+        else:
+            self.reaction_groups = None
 
         self._make_dual()
 
@@ -248,13 +251,21 @@ class OptKnock(StrainDesignMethod):
                     logger.debug(str(e))
                     break
 
-                knockouts = set(reaction.id for y, reaction in self._y_vars.items() if round(y.primal, 3) == 0)
+                knockouts = tuple(reaction for y, reaction in self._y_vars.items() if round(y.primal, 3) == 0)
                 assert len(knockouts) <= max_knockouts
 
-                knockout_list.append(knockouts)
-                fluxes_list.append(solution.fluxes)
-                production_list.append(solution.f)
-                biomass_list.append(solution.fluxes[biomass.id])
+                if self.reaction_groups:
+                    combinations = decompose_reaction_groups(self.reaction_groups, knockouts)
+                    for kos in combinations:
+                        knockout_list.append({r.id for r in kos})
+                        fluxes_list.append(solution.fluxes)
+                        production_list.append(solution.f)
+                        biomass_list.append(solution.fluxes[biomass.id])
+                else:
+                    knockout_list.append({r.id for r in knockouts})
+                    fluxes_list.append(solution.fluxes)
+                    production_list.append(solution.f)
+                    biomass_list.append(solution.fluxes[biomass.id])
 
                 # Add an integer cut
                 y_vars_to_cut = [y for y in self._y_vars if round(y.primal, 3) == 0]
@@ -270,6 +281,7 @@ class OptKnock(StrainDesignMethod):
                 count += 1
 
             ui.stop_loader(loader_id)
+
             return OptKnockResult(self._original_model, knockout_list, fluxes_list,
                                   production_list, biomass_list, target.id, biomass)
 
