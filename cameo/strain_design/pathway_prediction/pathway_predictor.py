@@ -17,6 +17,7 @@ from __future__ import absolute_import, print_function
 import logging
 import re
 import warnings
+from collections import Counter
 from functools import partial
 from math import ceil
 
@@ -41,9 +42,7 @@ from cameo.visualization.plotting import plotter
 
 __all__ = ['PathwayPredictor']
 
-
 logger = logging.getLogger(__name__)
-
 
 add = Add._from_args
 mul = Mul._from_args
@@ -96,7 +95,11 @@ class PathwayResult(Pathway, Result, StrainDesign):
         targets = DictList()
         for reaction in self.reactions:
             reaction = self._replace_adapted_metabolites(reaction)
-            targets.append(ReactionKnockinTarget(reaction.id, reaction))
+            if reaction.id in metanetx.mnx2all:
+                target = ReactionKnockinTarget(reaction.id, reaction, accession_id=reaction.id, accession_db='metanetx')
+            else:
+                target = ReactionKnockinTarget(reaction.id, reaction)
+            targets.append(target)
 
         for reaction in self.exchanges:
             reaction = self._replace_adapted_metabolites(reaction)
@@ -207,6 +210,11 @@ class PathwayPredictor(StrainDesignMethod):
     mapping : dict, optional
         A dictionary that contains a mapping between metabolite
         identifiers in `model` and `universal_model`
+    compartment_regexp : str, optional
+        A regular expression that matches host metabolites' compartments
+        that should be connected to the universal reaction model. If not
+        provided, the compartment containing most metabolites will be
+        chosen.
 
     Attributes
     ----------
@@ -226,11 +234,15 @@ class PathwayPredictor(StrainDesignMethod):
         """"""
         self.original_model = model
         if compartment_regexp is None:
-            compartment_regexp = re.compile(".*")
+            compartments_tally = Counter(metabolite.compartment for metabolite in self.original_model.metabolites)
+            most_common_compartment = compartments_tally.most_common(n=1)[0][0]
+            compartment_regexp = re.compile('^' + most_common_compartment + '$')
+        else:
+            compartment_regexp = re.compile(compartment_regexp)
 
         if universal_model is None:
             logger.debug("Loading default universal model.")
-            self.universal_model = models.universal.metanetx_universal_model_bigg_rhea
+            self.universal_model = models.universal.metanetx_universal_model_bigg
         elif isinstance(universal_model, Model):
             self.universal_model = universal_model
         else:
@@ -239,6 +251,8 @@ class PathwayPredictor(StrainDesignMethod):
 
         if mapping is None:
             self.mapping = metanetx.all2mnx
+        else:
+            self.mapping = mapping
 
         self.model = model.copy()
 
@@ -296,9 +310,7 @@ class PathwayPredictor(StrainDesignMethod):
                 product_reaction = self.model.add_exchange(product, time_machine=tm)
 
             product_reaction.change_bounds(lb=min_production, time_machine=tm)
-
-            iteration, counter = 1, 1
-
+            counter = 1
             while counter <= max_predictions:
                 logger.debug('Predicting pathway No. %d' % counter)
                 try:
@@ -331,6 +343,7 @@ class PathwayPredictor(StrainDesignMethod):
                 pathway_metabolites = set([m for pathway_reaction in pathway for m in pathway_reaction.metabolites])
                 logger.info('Pathway predicted: %s' % '\t'.join(
                     [r.build_reaction_string(use_metabolite_names=True) for r in pathway]))
+                pathway_metabolites.add(product)
 
                 # Figure out adapter reactions to include
                 adapters = [adapter for adapter in self.adpater_reactions if adapter.products[0] in pathway_metabolites]
@@ -345,31 +358,41 @@ class PathwayPredictor(StrainDesignMethod):
 
                 pathway = PathwayResult(pathway, exchanges, adapters, product_reaction)
                 if not silent:
-                    util.display_pathway(pathway, iteration)
+                    util.display_pathway(pathway, counter)
 
                 integer_cut = self.model.solver.interface.Constraint(Add(*vars_to_cut),
-                                                                     name="integer_cut_" + str(iteration),
+                                                                     name="integer_cut_" + str(counter),
                                                                      ub=len(vars_to_cut) - 1)
                 logger.debug('Adding integer cut.')
-                tm(do=partial(self.model.solver.add, integer_cut), undo=partial(self.model.solver.remove, integer_cut))
-                iteration += 1
+                tm(
+                    do=partial(self.model.solver.add, integer_cut),
+                    undo=partial(self.model.solver.remove, integer_cut))
 
                 # Test pathway in the original model
                 with TimeMachine() as another_tm:
                     pathway.apply(self.original_model, another_tm)
                     try:
                         solution = fba(self.original_model, objective=pathway.product.id)
+                    except SolveError as e:
+                        logger.error(e)
+                        logger.error(
+                            "Addition of pathway {} made the model unsolvable. "
+                            "Skipping pathway.".format(pathway))
+                        continue
+                    else:
                         if solution[pathway.product.id] > non_zero_flux_threshold:
                             pathways.append(pathway)
                             if not silent:
                                 print("Max flux: %.5f" % solution[pathway.product.id])
-                            if callback is not None:
-                                callback(pathway)
-                            counter += 1
-                    except SolveError:
-                        if not silent:
-                            print("Pathways is not feasible")
-                        continue
+                        else:
+                            logger.error(
+                                "Pathway {} couldn't be verified. Production flux {}"
+                                "is below requirement {}. Skipping pathway.".format(
+                                    pathway, solution[pathway.product.id], non_zero_flux_threshold))
+                    finally:
+                        counter += 1
+                        if callback is not None:
+                            callback(pathway)
 
             return PathwayPredictions(pathways)
 
@@ -435,7 +458,7 @@ class PathwayPredictor(StrainDesignMethod):
         return new_reactions
 
     def _find_product(self, product):
-        if isinstance(product, str):
+        if isinstance(product, six.string_types):
             for metabolite in self.model.metabolites:
                 if metabolite.id == product:
                     return metabolite

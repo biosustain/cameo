@@ -14,6 +14,8 @@
 
 from __future__ import absolute_import
 
+from cameo.util import decompose_reaction_groups
+
 __all__ = ['ReactionSetDecoder', 'GeneSetDecoder']
 
 
@@ -27,80 +29,98 @@ class SetDecoder(object):
         self.representation = representation
         self.model = model
 
-    def __call__(self, individual, flat=False):
-        return [self.representation[index] for index in individual]
+    def __call__(self, individual, flat=False, decompose=False):
+        return [[self.representation[index] for index in individual]]
 
 
 class ReactionSetDecoder(SetDecoder):
     """
     Decoder for set representation. Converts an integer set into reactions.
 
-    Parameters
+    Attributes
     ----------
 
     representation : list
         Reactions.
     model : SolverBasedModel
+    groups : list
+        A list of dict(reaction: relative_coefficient) where the dict contains coupled reactions.
 
     """
 
-    def __init__(self, representation, model, *args, **kwargs):
+    def __init__(self, representation, model, groups=None, *args, **kwargs):
         super(ReactionSetDecoder, self).__init__(representation, model, *args, **kwargs)
+        self.groups = groups
 
-    def __call__(self, individual, flat=False):
+    def __call__(self, individual, flat=False, decompose=False):
         """
         Parameters
         ----------
 
-        individual: list
-            a list of integers
-        flat: bool
+        individual : list
+            a list of integers.
+        flat : bool
             if True, returns strings. Otherwise returns Reaction.
+        decompose : bool
+            If groups are available returns all possible substitutions.
 
         Returns
         -------
         list
-            Decoded representation
+            list of decoded representation (more then one combination is possible with decompositions)
 
         """
         reactions = [self.model.reactions.get_by_id(self.representation[index]) for index in individual]
+
+        if decompose and self.groups:
+            combinations = decompose_reaction_groups(self.groups, reactions)
+        else:
+            combinations = [reactions]
+
         if flat:
-            return tuple(r.id for r in reactions)
-        return tuple(reactions)
+            return [tuple(r.id for r in reactions) for reactions in combinations]
+        return [tuple(reactions) for reactions in combinations]
 
 
 class GeneSetDecoder(SetDecoder):
     """
     Decoder for set representation. Converts an integer set into genes.
-    Parameters
+
+    Attributes
     ----------
 
     representation : list
         Genes to knockout.
     model : SolverBasedModel
+    groups : list
+        A list of dict(gene: relative_coefficient) where the dict contains coupled genes.
     """
 
-    def __init__(self, representation, model, *args, **kwargs):
+    def __init__(self, representation, model, groups=None, *args, **kwargs):
         super(GeneSetDecoder, self).__init__(representation, model, *args, **kwargs)
+        self.groups = groups
 
-    def __call__(self, individual, flat=False):
+    def __call__(self, individual, flat=False, decompose=False):
         """
         Parameters
         ----------
 
-        individual: list
-            a list of integers
-        flat: bool
-            if True, returns strings. Otherwise returns Gene
+        individual : list
+            a list of integers.
+        flat : bool
+            if True, returns strings. Otherwise returns Gene.
+        decompose : bool
+            If groups are available returns all possible substitutions.
+
 
         Returns
         -------
         list
-            Decoded representation.
+            list of decoded representation (more then one combination is possible with decompositions).
 
         """
         genes = [self.model.genes.get_by_id(self.representation[index]) for index in individual]
 
         if flat:
-            return tuple(g.id for g in genes)
-        return tuple(genes)
+            return [tuple(g.id for g in genes)]
+        return [tuple(genes)]

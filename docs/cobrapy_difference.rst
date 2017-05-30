@@ -47,4 +47,4 @@ cobrapy:
         # proceed
 
 It is important to note that cameo models maintain `optimize` to maintain
-compatibility with cobrapy but we discourage its use.
+compatibility with cobrapy.

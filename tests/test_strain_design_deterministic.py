@@ -62,10 +62,10 @@ class TestFSEOF:
 class TestDifferentialFVA:
     def test_minimal_input(self, model):
         result = DifferentialFVA(model, model.reactions.EX_succ_lp_e_rp_, points=5).run()
-        ref_df = (pandas.read_csv(os.path.join(TESTDIR, 'data/REFERENCE_DiffFVA1.csv'), index_col=0)
-                  .astype("O")
-                  .sort_index(axis=1))
-        pandas.util.testing.assert_frame_equal(result.data_frame.iloc[0].sort_index(axis=1), ref_df)
+        ref_df = pandas.read_csv(os.path.join(TESTDIR, 'data/REFERENCE_DiffFVA1.csv'), index_col=0)
+        this_df = result.nth_panel(0)
+        this_df.index.name = None
+        pandas.util.testing.assert_frame_equal(this_df[ref_df.columns], ref_df)
 
     def test_apply_designs(self, model):
         result = DifferentialFVA(model, model.reactions.EX_succ_lp_e_rp_, points=5).run()
@@ -87,10 +87,10 @@ class TestDifferentialFVA:
         target = reference_model.reactions.EX_succ_lp_e_rp_
         target.lower_bound = 2
         result = DifferentialFVA(model, target, reference_model=reference_model, points=5).run()
-        ref_df = (pandas.read_csv(os.path.join(TESTDIR, 'data/REFERENCE_DiffFVA2.csv'), index_col=0)
-                  .astype("O")
-                  .sort_index(axis=1))
-        pandas.util.testing.assert_frame_equal(result.data_frame.iloc[0].sort_index(axis=1), ref_df)
+        ref_df = pandas.read_csv(os.path.join(TESTDIR, 'data/REFERENCE_DiffFVA2.csv'), index_col=0)
+        this_df = result.nth_panel(0)
+        this_df.index.name = None
+        pandas.util.testing.assert_frame_equal(this_df[ref_df.columns], ref_df)
 
 
 @pytest.mark.skipif('cplex' not in solvers, reason="No cplex interface available")

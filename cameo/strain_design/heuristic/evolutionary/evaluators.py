@@ -110,7 +110,7 @@ class KnockoutEvaluator(TargetEvaluator):
         fitness
             A single real value or a Pareto, depending on the number of objectives.
         """
-        targets = self.decoder(individual)
+        targets = self.decoder(individual)[0]
         with TimeMachine() as tm:
             for target in targets:
                 target.knock_out(time_machine=tm)
@@ -137,7 +137,7 @@ class SwapEvaluator(TargetEvaluator):
 
     @memoize
     def evaluate_individual(self, individual):
-        swap_reactions = self.decoder(individual)
+        swap_reactions = self.decoder(individual)[0]
         with TimeMachine() as tm:
             for reaction in swap_reactions:
                 swap_cofactors(reaction, self.model, self.swap_pair, inplace=True, time_machine=tm)

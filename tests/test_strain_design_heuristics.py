@@ -16,6 +16,7 @@ from __future__ import absolute_import, print_function
 
 import os
 import pickle
+import time
 from collections import namedtuple
 from math import sqrt
 from tempfile import mkstemp
@@ -27,10 +28,12 @@ import six
 from inspyred.ec import Bounder
 from inspyred.ec.emo import Pareto
 from ordered_set import OrderedSet
+from six.moves import range
 
 from cameo import config, fba
 from cameo.core.manipulation import swap_cofactors
 from cameo.parallel import SequentialView
+from cameo.strain_design import OptGene
 from cameo.strain_design.heuristic.evolutionary.archives import (BestSolutionArchive,
                                                                  Individual)
 from cameo.strain_design.heuristic.evolutionary.decoders import (GeneSetDecoder,
@@ -67,7 +70,6 @@ from cameo.strain_design.heuristic.evolutionary.variators import (_do_set_n_poin
                                                                   set_n_point_crossover)
 from cameo.util import RandomGenerator as Random
 from cameo.util import TimeMachine
-from six.moves import range
 
 try:
     from cameo.parallel import RedisQueue
@@ -599,19 +601,31 @@ class TestDecoders:
     def test_set_decoder(self, model):
         representation = [1, 2, 'a', 'b', None, '0']
         decoder = SetDecoder(representation, model)
-        assert decoder([]) == []
+        assert decoder([])[0] == []
         for i in range(len(representation)):
-            assert decoder([i]) == [representation[i]]
+            assert decoder([i])[0] == [representation[i]]
 
     def test_reaction_set_decoder(self, model):
         decoder = ReactionSetDecoder([r.id for r in model.reactions], model)
-        reactions = decoder([1, 2, 3, 4])
+        reactions = decoder([1, 2, 3, 4])[0]
         for i in range(1, 5):
             assert model.reactions[i] == reactions[i - 1]
 
+    def test_reaction_set_decoder_with_groups(self, model):
+        groups = [{model.reactions[1]: 1, model.reactions[11]: 1, model.reactions[12]: 5},
+                  {model.reactions[2]: 1, model.reactions[13]: 1, model.reactions[14]: 5}]
+
+        decoder = ReactionSetDecoder([r.id for r in model.reactions[0:10]], model, groups=groups)
+        combinations = decoder([1, 2, 3, 4])
+        for reactions in combinations:
+            for i in range(1, 5):
+                reaction = reactions[i - 1]
+                group = next((g for g in groups if reaction in g), {reaction: 1})
+                assert model.reactions[i] in group
+
     def test_gene_set_decoder(self, model):
         decoder = GeneSetDecoder([g.id for g in model.genes], model)
-        genes = decoder([1, 2, 3, 4])
+        genes = decoder([1, 2, 3, 4])[0]
         for i in range(1, 5):
             assert model.genes[i] == genes[i - 1]
 
@@ -923,6 +937,9 @@ class TestReactionKnockoutOptimization:
 
         results = rko.run(max_evaluations=3000, pop_size=10, view=SequentialView(), seed=SEED)
 
+        assert len(results.data_frame.targets) > 0
+        assert len(results.data_frame.targets) == len(results.data_frame.targets.apply(tuple).unique())
+
         with open(result_file, 'wb') as in_file:
             pickle.dump(results, in_file)
 
@@ -933,6 +950,33 @@ class TestReactionKnockoutOptimization:
                 expected_results = pickle.load(in_file)
 
         assert results.seed == expected_results.seed
+
+    def test_run_with_time_limit(self, model):
+        # TODO: make optlang deterministic so this results can be permanently stored.
+        objective = biomass_product_coupled_yield(
+            "Biomass_Ecoli_core_N_lp_w_fsh_GAM_rp__Nmet2", "EX_ac_lp_e_rp_", "EX_glc_lp_e_rp_")
+
+        rko = ReactionKnockoutOptimization(model=model,
+                                           simulation_method=fba,
+                                           objective_function=objective)
+
+        start_time = time.time()
+        rko.run(max_evaluations=3000000, pop_size=10, view=SequentialView(), seed=SEED, max_time=(1, 0))
+        elapsed_time = time.time() - start_time
+
+        assert elapsed_time < 1.25 * 60
+
+    def test_optgene_with_time_limit(self, model):
+        ko = OptGene(model)
+        start_time = time.time()
+        ko.run(target="EX_ac_lp_e_rp_",
+               biomass="Biomass_Ecoli_core_N_lp_w_fsh_GAM_rp__Nmet2",
+               substrate="EX_glc_lp_e_rp_", max_evaluations=3000000, seed=SEED, max_time=(1, 0))
+        elapsed_time = time.time() - start_time
+
+        # assert elapsed_time < 1.25 * 60
+        print(elapsed_time)
+        assert elapsed_time < 2 * 60
 
     def test_run_multi_objective(self, model):
         # TODO: make optlang deterministic so this results can be permanently stored.
@@ -952,6 +996,8 @@ class TestReactionKnockoutOptimization:
                                            heuristic_method=inspyred.ec.emo.NSGA2)
 
         results = rko.run(max_evaluations=3000, pop_size=10, view=SequentialView(), seed=SEED)
+
+        assert len(results.data_frame.targets) == len(results.data_frame.targets.apply(tuple).unique())
 
         with open(result_file, 'wb') as in_file:
             pickle.dump(results, in_file)
@@ -990,6 +1036,8 @@ class TestGeneKnockoutOptimization:
 
         results = rko.run(max_evaluations=3000, pop_size=10, view=SequentialView(), seed=SEED)
 
+        assert len(results.data_frame.targets) == len(results.data_frame.targets.apply(tuple).unique())
+
         with open(result_file, 'wb') as in_file:
             pickle.dump(results, in_file)
 
@@ -1017,6 +1065,8 @@ class TestGeneKnockoutOptimization:
 
         results = rko.run(max_evaluations=3000, pop_size=10, view=SequentialView(), seed=SEED)
 
+        assert len(results.data_frame.targets) == len(results.data_frame.targets.apply(tuple).unique())
+
         with open(result_file, 'wb') as in_file:
             pickle.dump(results, in_file)
 
@@ -1027,6 +1077,21 @@ class TestGeneKnockoutOptimization:
                 expected_results = pickle.load(in_file)
 
         assert results.seed == expected_results.seed
+
+    def test_run_with_time_limit(self, model):
+        # TODO: make optlang deterministic so this results can be permanently stored.
+        objective = biomass_product_coupled_yield(
+            "Biomass_Ecoli_core_N_lp_w_fsh_GAM_rp__Nmet2", "EX_ac_lp_e_rp_", "EX_glc_lp_e_rp_")
+
+        rko = ReactionKnockoutOptimization(model=model,
+                                           simulation_method=fba,
+                                           objective_function=objective)
+
+        start_time = time.time()
+        rko.run(max_evaluations=3000000, pop_size=10, view=SequentialView(), seed=SEED, max_time=(1, 0))
+        elapsed_time = time.time() - start_time
+
+        assert elapsed_time < 1.25 * 60
 
 
 class TestVariator:

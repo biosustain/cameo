@@ -1,73 +1,86 @@
 Cameo—Computer Aided Metabolic Engineering and Optimization
 -----------------------------------------------------------
 
+.. summary-start
+
 |Join the chat at https://gitter.im/biosustain/cameo| |PyPI| |License|
 |Build Status| |Coverage Status| |DOI|
 
-What is Cameo?
+What is cameo?
 ~~~~~~~~~~~~~~
 
 **Cameo** is a high-level python library developed to aid the strain
 design process in metabolic engineering projects. The library provides a
-modular framework of simulation methods, strain design methods, access
-to models, that targets developers that want custom analysis workflows.
-
-Computationally heavy methods have been parallelized and can be run on a
-clusters using the IPython parallelization framework (see example and
-documentation for more details). The default fallback is python's
-multiprocessing library.
-
+modular framework of simulation and strain design methods that targets
+developers that want to develop new design algorithms and custom analysis workflows.
 Furthermore, it exposes a high-level API to users that just want to
 compute promising strain designs.
 
-You got curious? Head over to `try.cameo.bio <http://try.cameo.bio>`__
+Curious? Head over to `try.cameo.bio <http://try.cameo.bio>`__
 and give it a try.
+
+.. summary-end
 
 Installation
 ~~~~~~~~~~~~
 
-Use pip to install Cameo from
-`PyPI <https://pypi.python.org/pypi/cameo>`__ (we recommend doing this
-inside a `virtual
-environment <http://docs.python-guide.org/en/latest/dev/virtualenvs/>`__).
+.. installation-start
+
+Use pip to install cameo from `PyPI <https://pypi.python.org/pypi/cameo>`__.
 
 ::
 
-    pip install cameo
+    $ pip install cameo
 
-We highly recommend updating ``pip`` beforehand
-(``pip install pip --upgrade``).
 
-In case you downloaded the source code, run
+In case you downloaded or cloned the source code from `GitHub <https://github.com/biosustain/cameo>`__
+or your own fork, you can run the following to install cameo for development.
 
 ::
 
-    pip install -e .  # recommended
+    $ pip install -e <path-to-cameo-repo>  # recommended
 
-while you are in the top level directory. You might need to run these
-commands with administrative privileges if you're not using a virtual
-environment (using ``sudo`` for example).
 
-Examples
-~~~~~~~~
+You might need to run these commands with administrative
+privileges if you're not using a virtual environment (using ``sudo`` for example).
+Please check the `documentation <http://cameo.bio/installation.html>`__
+for further details.
 
-A number of examples are available as static
-(`nbviewer.ipython.org <http://nbviewer.ipython.org/github/biosustain/cameo-notebooks/tree/master/>`__)
-or executable Jupyter (née IPython) notebooks
-(`try.cameo.bio <http://try.cameo.bio>`__).
+.. installation-end
 
+Documentation and Examples
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Documentation is available on `cameo.bio <http://cameo.bio>`__. Numerous `Jupyter notebooks <http://nbviewer.ipython.org/github/biosustain/cameo-notebooks/tree/master/>`__
+provide examples and tutorials and also form part of the documentation. They are also availabe in executable form on (`try.cameo.bio <http://try.cameo.bio>`__).
+Furthermore, course materials for a two day cell factory engineering course are available `here <https://biosustain.github.io/cell-factory-design-course/>`__.
+
+.. showcase-start
 High-level API (for users)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Compute strain engineering strategies for a desired product in a number
-of host organisms using the high-level interface.
+of host organisms using the high-level interface (runtime is on the order of hours).
 
 ::
 
     from cameo.api import design
     design(product='L-Serine')
 
-`Output <http://nbviewer.ipython.org/github/biosustain/cameo-notebooks/blob/master/8-high-level-API.ipynb>`__
+`Output <http://nbviewer.ipython.org/github/biosustain/cameo-notebooks/blob/master/08-high-level-API.ipynb>`__
+
+
+The high-level API can also be called from the command line.
+
+::
+
+    $ cameo design --product vanillin
+
+For more information run
+
+::
+
+    $ cameo --help
 
 Low-level API (for developers)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -88,7 +101,7 @@ Find gene knockout targets using evolutionary computation.
     ko = GeneKnockoutOptimization(model=model, objective_function=obj)
     ko.run(max_evaluations=50000, n=1, mutation_rate=0.15, indel_rate=0.185)
 
-`Output <http://nbviewer.ipython.org/github/biosustain/cameo-notebooks/blob/master/6-predict-gene-knockout-strategies.ipynb>`__
+`Output <http://nbviewer.ipython.org/github/biosustain/cameo-notebooks/blob/master/05-predict-gene-knockout-strategies.ipynb>`__
 
 Predict heterologous pathways for a desired chemical.
 
@@ -98,36 +111,18 @@ Predict heterologous pathways for a desired chemical.
     predictor = pathway_prediction.PathwayPredictor(model)
     pathways = predictor.run(product="vanillin")
 
-`Output <http://nbviewer.ipython.org/github/biosustain/cameo-notebooks/blob/master/7-predict-heterologous-pathways.ipynb>`__
+`Output <http://nbviewer.ipython.org/github/biosustain/cameo-notebooks/blob/master/07-predict-heterologous-pathways.ipynb>`__
 
-Dependencies
-~~~~~~~~~~~~
+.. showcase-end
 
-This library depends on:
-
--  `cobrapy <https://github.com/opencobra/cobrapy>`__ for
-   constraint-based modeling
--  `optlang <https://github.com/biosustain/optlang>`__ for heuristic
-   optimization and mathematical programming
-
-Furthermore, the following dependencies are needed:
-
--  `numpy <http://www.numpy.org/>`__ and
-   `scipy <http://www.scipy.org/>`__ for obvious reasons.
--  `IPython <http://ipython.org/>`__ is needed for parallel computations
-   and notebook interface.
--  `bokeh <http://bokeh.pydata.org/>`__ is needed for reporting progress
-   and plotting in the IPython notebook interface.
--  `pandas <http://pandas.pydata.org/>`__ is needed because most
-   functions returns results as pandas DataFrames.
--  `inspyred <https://pypi.python.org/pypi/inspyred>`__ for evolutionary
-   computations.
 
 Contributions
 ~~~~~~~~~~~~~
 
 ..are very welcome! Please read the `guideline <CONTRIBUTING.rst>`__ for instructions how to contribute.
 
+
+.. url-marker
 
 .. |Join the chat at https://gitter.im/biosustain/cameo| image:: https://badges.gitter.im/biosustain/cameo.svg
    :target: https://gitter.im/biosustain/cameo?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge

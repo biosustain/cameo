@@ -15,8 +15,6 @@ Furthermore, `course materials`_ are available for a 2-day course in cell factor
     07-predict-heterologous-pathways
     08-high-level-API
     09-vanillin-production
-    11-multiprocess
-    12-advanced-usage-of-heuristic-optimization.rst
 
 
 .. _try.cameo.bio: http://try.cameo.bio

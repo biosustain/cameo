@@ -11,22 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import sys
 from functools import partial
 
 import numpy
 import six
-
-from cameo.core.manipulation import swap_cofactors, increase_flux, decrease_flux, reverse_flux
-
-try:
-    from gnomic import Accession, Feature, Del, Mutation, Sub, Ins
-
-    _gnomic_available_ = True
-except (ImportError, SyntaxError):  # SyntaxError from py2 incompatible syntax
-    _gnomic_available_ = False
+from gnomic import Accession, Feature, Del, Mutation, Ins, Type, Genotype, genotype_to_string, genotype_to_text
 
 from cameo import ui
+from cameo.core.manipulation import swap_cofactors, increase_flux, decrease_flux, reverse_flux
 from cameo.exceptions import IncompatibleTargets
 
 __all__ = ["GeneModulationTarget", "GeneKnockoutTarget", "ReactionCofactorSwapTarget", "ReactionKnockinTarget",
@@ -42,13 +34,18 @@ class Target(object):
 
     Attributes
     ----------
-    id: str
+    id : str
         The identifier of the target. The id must be present in the COBRA model.
-
+    accession_id : str (optional)
+        An accession identifier in a database.
+    accession_db : str (optional)
+        The database corresponding to `accession_id`.
     """
 
-    def __init__(self, id):
+    def __init__(self, id, accession_id=None, accession_db=None):
         self.id = id
+        self.accession_id = accession_id
+        self.accession_db = accession_db
 
     def apply(self, model, time_machine=None):
         """
@@ -75,11 +72,13 @@ class Target(object):
         If gnomic is available, return a Gnomic representation of the Target.
 
         """
-        if _gnomic_available_:
-            return Accession(identifier=self.id)
+        if self.accession_id:
+            if self.accession_db:
+                return Accession(identifier=self.accession_id, database=self.accession_db)
+            else:
+                return Accession(identifier=self.accession_id)
         else:
-            raise SystemError("Gnomic is only compatible with python >= 3 (%i.%i)" %
-                              (sys.version_info.major, sys.version_info.minor))
+            return None
 
     def __repr__(self):
         return "<Target %s>" % self.id
@@ -102,8 +101,11 @@ class FluxModulationTarget(Target):
     """
     __gnomic_feature_type__ = 'flux'
 
-    def __init__(self, id, value, reference_value):
-        super(FluxModulationTarget, self).__init__(id)
+    def __init__(self, id, value, reference_value, *args, **kwargs):
+        super(FluxModulationTarget, self).__init__(id, *args, **kwargs)
+        # TODO: refactor targets to make the following work
+        # if value == 0:
+        #     raise ValueError("Please use ReactionKnockoutTarget if flux = 0.")
         self._value = value
         self._reference_value = reference_value
 
@@ -155,18 +157,7 @@ class FluxModulationTarget(Target):
             return numpy.inf
 
     def __str__(self):
-        if self._value == 0:
-            s = ui.delta() + self.id
-        elif self.fold_change > 0:
-            s = ui.upreg(self.fold_change) + self.id
-        elif self.fold_change < 0:
-            s = ui.downreg(self.fold_change) + self.id
-        else:
-            s = RuntimeError("fold_change shouldn't be 0")
-        if six.PY2:
-            return s.encode('utf-8')
-
-        return s
+        return genotype_to_string(Genotype([self.to_gnomic()]))
 
     def __repr__(self):
         if self._value == 0:
@@ -182,28 +173,24 @@ class FluxModulationTarget(Target):
         return hash(str(self))
 
     def _repr_html_(self):
-        if self._value == 0:
-            return "&Delta;%s" % self.id
-        elif self.fold_change > 0:
-            return "&uarr;(%.3f)%s" % (self.fold_change, self.id)
-        elif self.fold_change < 0:
-            return "&darr;(%.3f)%s" % (self.fold_change, self.id)
-        else:
-            raise RuntimeError("fold_change shouldn't be 0")
+        return genotype_to_text(Genotype([self.to_gnomic()]))
 
     def to_gnomic(self):
         accession = Target.to_gnomic(self)
-        feature = Feature(accession=accession, type=self.__gnomic_feature_type__)
         if self._value == 0:
+            feature = Feature(name=self.id, accession=accession, type=Type(self.__gnomic_feature_type__))
             return Del(feature)
-        elif self.fold_change > 0:
-            over_expression = Feature(accession=accession, type=self.__gnomic_feature_type__,
-                                      variant="over-expression(%.3f)" % self.fold_change)
-            return Mutation(feature, over_expression)
-        elif self.fold_change < 0:
-            under_expression = Feature(accession=accession, type=self.__gnomic_feature_type__,
-                                       variant="down-regulation(%.3f)" % self.fold_change)
-            return Mutation(feature, under_expression)
+        elif self.fold_change != 0:
+            feature = Feature(name=self.id, accession=accession, type=Type(self.__gnomic_feature_type__),
+                              variant="value={}".format(self._value))
+            return Ins(feature)
+        # TODO: swap above with following once gnomic's genotype_to_string properly deals with substitutions
+        # elif self.fold_change != 0:
+        #     old_feature = Feature(name=self.id, accession=accession, type=Type(self.__gnomic_feature_type__),
+        #                       variant="flux={}".format(self._reference_value))
+        #     new_feature = Feature(name=self.id, accession=accession, type=Type(self.__gnomic_feature_type__),
+        #                           variant="flux={}".format(self._value))
+        #     return Sub(old_feature, new_feature)
 
 
 class ReactionCofactorSwapTarget(Target):
@@ -211,8 +198,8 @@ class ReactionCofactorSwapTarget(Target):
     Swap cofactors of a given reaction.
     """
 
-    def __init__(self, id, swap_pairs):
-        super(ReactionCofactorSwapTarget, self).__init__(id)
+    def __init__(self, id, swap_pairs, *args, **kwargs):
+        super(ReactionCofactorSwapTarget, self).__init__(id, *args, **kwargs)
         self.swap_pairs = swap_pairs
 
     def apply(self, model, time_machine=None):
@@ -225,10 +212,10 @@ class ReactionCofactorSwapTarget(Target):
 
     def to_gnomic(self):
         accession = Target.to_gnomic(self)
-        new_accession = Accession(self.id + self.swap_str)
-        original_feature = Feature(accession=accession, type='reaction')
-        new_feature = Feature(accession=new_accession, type='reaction')
-        return Sub(original_feature, new_feature)
+        pairs = [(metabolite1.id, metabolite2.id) for metabolite1, metabolite2 in zip(*self.swap_pairs)]
+        feature = Feature(name=self.id, accession=accession, type=Type('reaction'),
+                          variant=";".join(["=".join(pair) for pair in pairs]))
+        return Mutation(old=None, new=feature)
 
     def __repr__(self):
         return "<ReactionCofactorSwap %s swap=%s>" % (self.id, self.swap_str)
@@ -265,8 +252,8 @@ class ReactionCofactorSwapTarget(Target):
 
 
 class KnockinTarget(Target):
-    def __init__(self, id, value):
-        super(KnockinTarget, self).__init__(id)
+    def __init__(self, id, value, *args, **kwargs):
+        super(KnockinTarget, self).__init__(id, *args, **kwargs)
         self._value = value
 
     def to_gnomic(self):
@@ -283,8 +270,8 @@ class KnockinTarget(Target):
 
 
 class ReactionKnockinTarget(KnockinTarget):
-    def __init__(self, id, value):
-        super(ReactionKnockinTarget, self).__init__(id, value)
+    def __init__(self, id, value, *args, **kwargs):
+        super(ReactionKnockinTarget, self).__init__(id, value, *args, **kwargs)
 
     def apply(self, model, time_machine=None):
         # TODO: this is an hack. The objective_coefficient becomes 1 w/o explicitly being changed.
@@ -297,7 +284,7 @@ class ReactionKnockinTarget(KnockinTarget):
 
     def to_gnomic(self):
         accession = Target.to_gnomic(self)
-        feature = Feature(accession=accession, type='reaction')
+        feature = Feature(accession=accession, type=Type('reaction'), name=self.id)
         return Ins(feature)
 
     def __gt__(self, other):
@@ -327,7 +314,7 @@ class ReactionKnockinTarget(KnockinTarget):
             return False
 
     def __str__(self):
-        return "::%s" % self.id
+        return genotype_to_string(Genotype([self.to_gnomic()]))
 
     def __repr__(self):
         return "<ReactionKnockin %s>" % self.id
@@ -336,14 +323,14 @@ class ReactionKnockinTarget(KnockinTarget):
         return hash(str(self))
 
     def _repr_html_(self):
-        return "::%s" % self.id
+        return genotype_to_text(Genotype([self.to_gnomic()]))
 
 
 class GeneModulationTarget(FluxModulationTarget):
     __gnomic_feature_type__ = "gene"
 
-    def __init__(self, id, value, reference_value):
-        super(GeneModulationTarget, self).__init__(id, value, reference_value)
+    def __init__(self, id, value, reference_value, *args, **kwargs):
+        super(GeneModulationTarget, self).__init__(id, value, reference_value, *args, **kwargs)
 
     def get_model_target(self, model):
         return model.genes.get_by_id(self.id)
@@ -377,8 +364,8 @@ class GeneKnockoutTarget(GeneModulationTarget):
     Gene Knockout Target. Knockout a gene present in a COBRA model.
     """
 
-    def __init__(self, id):
-        super(GeneKnockoutTarget, self).__init__(id, 0, None)
+    def __init__(self, id, *args, **kwargs):
+        super(GeneKnockoutTarget, self).__init__(id, 0, None, *args, **kwargs)
 
     def apply(self, model, time_machine=None):
         target = self.get_model_target(model)
@@ -410,6 +397,11 @@ class GeneKnockoutTarget(GeneModulationTarget):
 
     def __hash__(self):
         return hash(str(self))
+
+    def to_gnomic(self):
+        accession = Target.to_gnomic(self)
+        feature = Feature(name=self.id, accession=accession)
+        return Del(feature)
 
 
 class ReactionModulationTarget(FluxModulationTarget):
@@ -560,7 +552,6 @@ class EnsembleTarget(Target):
 
         return head + "|" + body + "|" + end
 
-    # TODO implement gnomic compatibility
     def to_gnomic(self):
         raise NotImplementedError
 

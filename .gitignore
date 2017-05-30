@@ -25,12 +25,13 @@ develop-eggs
 lib
 lib64
 __pycache__
+docs/apidoc_output/
 
 # Installer logs
 pip-log.txt
 
 # Unit test / coverage reports
-.coverage
+.coverage*
 .tox
 nosetests.xml
 

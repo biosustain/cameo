@@ -14,6 +14,7 @@
 
 from __future__ import absolute_import, print_function
 
+import collections
 import logging
 import time
 import types
@@ -58,7 +59,6 @@ KNOCKOUTS = 'Knockouts'
 REACTIONS = 'Reactions'
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 PRE_CONFIGURED = {
     inspyred.ec.GA: [
@@ -194,7 +194,30 @@ class HeuristicOptimization(object):
             raise TypeError("single objective heuristics do not support multiple objective functions")
         self._heuristic_method = heuristic_method(self.random)
 
-    def run(self, evaluator=None, generator=None, view=config.default_view, maximize=True, **kwargs):
+    def run(self, evaluator=None, generator=None, view=config.default_view, maximize=True, max_time=None, **kwargs):
+        """
+        Runs the evolutionary algorithm.
+
+        Parameters
+        ----------
+        evaluator : function
+            A function that evaluates candidates.
+        generator : function
+            A function that yields candidates.
+        view : cameo.parallel.SequentialView, cameo.parallel.MultiprocessingView
+            A view for single or multiprocessing.
+        maximize : bool
+            The sense of the optimization algorithm.
+        max_time : tuple
+            A tuple with (minutes, seconds) or (hours, minutes, seconds)
+        kwargs : dict
+            See inspyred documentation for more information.
+
+        Returns
+        -------
+        list
+            A list of individuals from the last iteration.
+        """
         if isinstance(self.heuristic_method.archiver, archives.BestSolutionArchive):
             self.heuristic_method.archiver.reset()
 
@@ -205,7 +228,21 @@ class HeuristicOptimization(object):
 
         for observer in self.observers:
             observer.reset()
+
         t = time.time()
+
+        if max_time is not None:
+            terminator = self.heuristic_method.terminator
+            if isinstance(terminator, collections.Iterable):
+                terminator = list(terminator)
+                terminator.append(inspyred.ec.terminators.time_termination)
+            else:
+                terminator = [terminator, inspyred.ec.terminators.time_termination]
+
+            self.heuristic_method.terminator = terminator
+            kwargs['start_time'] = t
+            kwargs['max_time'] = max_time
+
         print(time.strftime("Starting optimization at %a, %d %b %Y %H:%M:%S", time.localtime(t)))
         res = self.heuristic_method.evolve(generator=generator,
                                            maximize=maximize,
@@ -259,11 +296,13 @@ class TargetOptimization(HeuristicOptimization):
 
         Attributes
         ----------
-        simulation_method: see flux_analysis.simulation
-        wt_reference: dict
-        simulation_method: method
+        simulation_method : see flux_analysis.simulation
+            The method used to simulate the model.
+        wt_reference : dict, cameo.flux_analysis.simulation.FluxDistributionResult
+            A dict (dict-like) object with flux values from a reference state.
+        simulation_method : method
            the simulation method to use for evaluating results
-        evaluator: TargetEvaluator
+        evaluator : TargetEvaluator
            the class used to evaluate results
         """
         super(TargetOptimization, self).__init__(*args, **kwargs)
@@ -346,17 +385,26 @@ class TargetOptimization(HeuristicOptimization):
         if self.progress:
             self.observers.append(observers.ProgressObserver())
 
-    def run(self, view=config.default_view, max_size=10, variable_size=True, diversify=False, **kwargs):
+    def run(self, max_size=10, variable_size=True, diversify=False, view=config.default_view, **kwargs):
         """
+        Runs the evolutionary algorithm.
+
         Parameters
         ----------
-        max_size: int
-            Maximum size of a solution, e.g., the maximum number of reactions or genes to knock-out or swap
-        variable_size: boolean
+        max_size : int
+            Maximum size of a solution, e.g., the maximum number of reactions or genes to knock-out or swap.
+        variable_size : boolean
             If true, the solution size can change meaning that the combination of knockouts can have different sizes up
             to max_size. Otherwise it only produces knockout solutions with a fixed number of knockouts.
-        diversify: bool
+        diversify : bool
             It true, the generator will not be allowed to generate repeated candidates in the initial population.
+        view : cameo.parallel.SequentialView, cameo.parallel.MultiprocessingView
+            A view for single or multiprocessing.
+
+        Returns
+        -------
+        TargetOptimizationResult
+            The result of the optimization.
         """
 
         if kwargs.get('seed', None) is None:
@@ -468,53 +516,13 @@ class TargetOptimizationResult(Result):
         return len(self._solutions)
 
     def __getstate__(self):
-        state = super(TargetOptimizationResult, self).__getstate__()
-        state.update({'model': self.model,
-                      'view': self._view,
-                      'decoder': self._decoder,
-                      'evaluator': self._evaluator,
-                      'simulation_method': self.simulation_method,
-                      'simulation_kwargs': self.simulation_kwargs,
-                      'heuristic_method.__class__': self.heuristic_method.__class__,
-                      'heuristic_method.maximize': self.heuristic_method.maximize,
-                      'heuristic_method.variator': self.heuristic_method.variator,
-                      'heuristic_method.terminator': self.heuristic_method.terminator,
-                      'heuristic_method.archiver': self.heuristic_method.archiver,
-                      'heuristic_method.archive': self.heuristic_method.archive,
-                      'heuristic_method.termination_cause': self.heuristic_method.termination_cause,
-                      'heuristic_method._random': self.heuristic_method._random,
-                      'heuristic_method.generator': self.heuristic_method.generator,
-                      'heuristic_method._kwargs': self.heuristic_method._kwargs,
-                      'objective_function': self.objective_function,
-                      'target_type': self.target_type,
-                      'solutions': self._solutions,
-                      'seed': self.seed,
-                      'metadata': self._metadata})
-        del state['heuristic_method._kwargs']['_ec']
-        return state
+        d = dict(self.__dict__)
+        d['heuristic_method'].logger = None
+        d['heuristic_method']._kwargs['_ec'].logger = None
+        return d
 
-    def __setstate__(self, state):
-        super(TargetOptimizationResult, self).__setstate__(state)
-        self.model = state['model']
-        self.simulation_method = state['simulation_method']
-        self.simulation_kwargs = state['simulation_kwargs']
-        self.seed = state['seed']
-        self.view = state['view']
-        random = state['heuristic_method._random']
-        self.heuristic_method = state['heuristic_method.__class__'](random)
-        self.heuristic_method.maximize = state['heuristic_method.maximize']
-        self.heuristic_method.terminator = state['heuristic_method.terminator']
-        self.heuristic_method.termination_cause = state['heuristic_method.termination_cause']
-        self.heuristic_method.archiver = state['heuristic_method.archiver']
-        self.heuristic_method.archive = state['heuristic_method.archive']
-        self.heuristic_method._kwargs = state['heuristic_method._kwargs']
-        self.heuristic_method._kwargs['_ec'] = self.heuristic_method
-        self.objective_functions = state['objective_function']
-        self.target_type = state['target_type']
-        self._solutions = state['solutions']
-        self._metadata = state['metadata']
-        self._decoder = state['decoder']
-        self._evaluator = state['evaluator']
+    def __setstate__(self, d):
+        self.__dict__.update(d)
 
     def _repr_html_(self):
         template = """
@@ -573,12 +581,15 @@ class TargetOptimizationResult(Result):
 
     def _decode_solutions(self, solutions):
         decoded_solutions = DataFrame(columns=["targets", "fitness"])
-        for index, solution in enumerate(solutions):
-            targets = self._decoder(solution.candidate, flat=True)
-            if len(targets) > 0:
-                decoded_solutions.loc[index] = [targets, solution.fitness]
+        index = 0
+        for solution in solutions:
+            combinations = self._decoder(solution.candidate, flat=True, decompose=True)
+            for targets in combinations:
+                if len(targets) > 0:
+                    decoded_solutions.loc[index] = [tuple(targets), solution.fitness]
+                    index += 1
 
-        decoded_solutions.drop_duplicates(inplace=True)
+        decoded_solutions.drop_duplicates(inplace=True, subset="targets")
         decoded_solutions.reset_index(inplace=True)
 
         return decoded_solutions
@@ -671,10 +682,12 @@ class ReactionKnockoutOptimization(KnockoutOptimization):
                          r.id not in self.essential_reactions]
 
             groups = find_coupled_reactions_nullspace(self.model, ns=ns)
-            groups = [group for group in groups if any(r.id in reactions for r in group)]
-            reduced_set = reduce_reaction_set(reactions, groups)
+            groups_keys = [set(group) for group in groups if any(r.id in reactions for r in group)]
+            reduced_set = reduce_reaction_set(reactions, groups_keys)
             to_keep = [r.id for r in reduced_set]
+
         else:
+            groups = None
             to_keep = set(r.id for r in self.model.reactions)
             to_keep.difference_update(r.id for r in self.model.exchanges)
             to_keep.difference_update(self.essential_reactions)
@@ -682,7 +695,7 @@ class ReactionKnockoutOptimization(KnockoutOptimization):
 
         self.representation = to_keep
         self._target_type = REACTION_KNOCKOUT_TYPE
-        self._decoder = decoders.ReactionSetDecoder(self.representation, self.model)
+        self._decoder = decoders.ReactionSetDecoder(self.representation, self.model, groups=groups)
         self._evaluator = evaluators.KnockoutEvaluator(model=self.model,
                                                        decoder=self._decoder,
                                                        objective_function=self.objective_function,
@@ -749,7 +762,6 @@ class GeneKnockoutOptimization(KnockoutOptimization):
             self.genes = set([g.id for g in self.model.genes])
         else:
             self.genes = genes
-        logger.debug("Computing essential genes...")
         if essential_genes is None:
             self.essential_genes = {g.id for g in self.model.essential_genes()}
         else:
@@ -762,7 +774,6 @@ class GeneKnockoutOptimization(KnockoutOptimization):
             dead_end_genes = {g for g in self.model.genes if all(r in dead_end_reactions for r in g.reactions)}
             genes = [g for g in self.model.genes if g not in self.essential_genes and g.id not in dead_end_genes]
             self.representation = [g.id for g in genes]
-
         else:
             self.representation = list(self.genes.difference(self.essential_genes))
 

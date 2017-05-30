@@ -14,6 +14,7 @@
 # limitations under the License.
 
 import os
+import pickle
 import re
 
 import pytest
@@ -39,6 +40,7 @@ def test_api():
     pathways = api.design.predict_pathways(product=UNIVERSALMODEL.metabolites.ser__L_c, hosts=[mock_host],
                                            database=UNIVERSALMODEL, aerobic=True)
     optimization_reports = api.design.optimize_strains(pathways, config.default_view, aerobic=True)
+    pickle.loads(pickle.dumps(optimization_reports))
     assert len(optimization_reports) > 0
 
 
@@ -52,9 +54,7 @@ def test_compound_repr():
 
 def test_products():
     assert api.products.search('3-hydroxy propionate').index[0] == 'MNXM872'
-    with pytest.raises(Exception) as excinfo:
-        api.products.search('old spice')
-    excinfo.match("No compound matches found for query.*")
+    assert len(api.products.search('old spice')) == 0
 
 
 def test_hosts():

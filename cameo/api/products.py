@@ -57,6 +57,9 @@ class Products(object):
         pandas.DataFrame
             A dataframe containing the scored search results.
         """
+        matches = self._search_by_mnx_id(query)
+        if len(matches) > 0:
+            return matches
         matches = self._search_by_source(query)
         if len(matches) > 0:
             return matches
@@ -70,7 +73,15 @@ class Products(object):
         if len(matches) > 0:
             return matches
         else:
-            raise Exception("No compound matches found for query %s" % query)
+            return self._empty_result()
+
+    def _search_by_mnx_id(self, mnx_id):
+        try:
+            selection = self.data_frame.loc[[mnx_id]]
+            selection['search_rank'] = 0
+            return selection
+        except KeyError:
+            return self._empty_result()
 
     def _search_by_name_fuzzy(self, name):
         original_possibilities = self.data_frame.name.dropna()
@@ -83,10 +94,18 @@ class Products(object):
         return selection.sort_values('search_rank')
 
     def _search_by_source(self, source_id):
-        return self.data_frame[self.data_frame.source == source_id.lower()]
+        if source_id in metanetx.all2mnx:
+            mnx_id = metanetx.all2mnx[source_id]
+            selection = self.data_frame.loc[[mnx_id]]
+            selection['search_rank'] = 0
+            return selection
+        else:
+            return self._empty_result()
 
     def _search_by_inchi(self, inchi):
-        return self.data_frame[self.data_frame.InChI == inchi]
+        selection = self.data_frame[self.data_frame.InChI == inchi]
+        selection['search_rank'] = 0
+        return selection
 
     def _search_by_inchi_fuzzy(self, inchi):
         # TODO: use openbabel if available
@@ -95,6 +114,9 @@ class Products(object):
         selection = DataFrame(self.data_frame[self.data_frame.InChI.isin(matches)])
         selection['search_rank'] = selection.name.map(ranks)
         return selection.sort_values('search_rank')
+
+    def _empty_result(self):
+        return DataFrame(columns=self.data_frame.columns.tolist().append('search_rank'))
 
 
 products = Products()

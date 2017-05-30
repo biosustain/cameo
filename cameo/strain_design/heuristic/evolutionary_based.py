@@ -90,33 +90,33 @@ class OptGene(StrainDesignMethod):
         """
         Parameters
         ----------
-        target: str, Metabolite or Reaction
+        target : str, Metabolite or Reaction
             The design target
-        biomass: str, Metabolite or Reaction
+        biomass : str, Metabolite or Reaction
             The biomass definition in the model
-        substrate: str, Metabolite or Reaction
+        substrate : str, Metabolite or Reaction
             The main carbon source
-        max_knockouts: int
+        max_knockouts : int
             Max number of knockouts allowed
-        variable_size: bool
+        variable_size : bool
             If true, all candidates have the same size. Otherwise the candidate size can be from 1 to max_knockouts.
-        simulation_method: function
+        simulation_method : function
             Any method from cameo.flux_analysis.simulation or equivalent
-        growth_coupled: bool
+        growth_coupled : bool
             If true will use the minimum flux rate to compute the fitness
-        max_evaluations: int
+        max_evaluations : int
             Number of evaluations before stop
-        population_size: int
+        population_size : int
             Number of individuals in each generation
-        time_machine: TimeMachine
+        time_machine : TimeMachine
             See TimeMachine
-        max_results: int
+        max_results : int
             Max number of different designs to return if found.
-        kwargs: dict
+        kwargs : dict
             Arguments for the simulation method.
-        seed: int
+        seed : int
             A seed for random.
-        use_nullspace_simplification: Boolean (default True)
+        use_nullspace_simplification : Boolean (default True)
             Use a basis for the nullspace to find groups of reactions whose fluxes are multiples of each other and dead
             end reactions. From each of these groups only 1 reaction will be included as a possible knockout.
 
@@ -125,7 +125,6 @@ class OptGene(StrainDesignMethod):
         -------
         OptGeneResult
         """
-
         target = self._model._reaction_for(target, time_machine=time_machine)
         biomass = self._model._reaction_for(biomass, time_machine=time_machine)
         substrate = self._model._reaction_for(substrate, time_machine=time_machine)
@@ -134,7 +133,6 @@ class OptGene(StrainDesignMethod):
             objective_function = biomass_product_coupled_min_yield(biomass, target, substrate)
         else:
             objective_function = biomass_product_coupled_yield(biomass, target, substrate)
-
         if self.manipulation_type is "genes":
             optimization_algorithm = GeneKnockoutOptimization(
                 model=self._model,
@@ -153,7 +151,6 @@ class OptGene(StrainDesignMethod):
                 use_nullspace_simplification=use_nullspace_simplification)
         else:
             raise ValueError("Invalid manipulation type %s" % self.manipulation_type)
-
         optimization_algorithm.simulation_kwargs = kwargs
         optimization_algorithm.simulation_method = simulation_method
         optimization_algorithm.archiver = ProductionStrainArchive()
@@ -341,31 +338,31 @@ class HeuristicOptSwap(StrainDesignMethod):
         """
         Parameters
         ----------
-        target: str, Metabolite or Reaction
+        target : str, Metabolite or Reaction
             The design target.
-        biomass: str, Metabolite or Reaction
+        biomass : str, Metabolite or Reaction
             The biomass definition in the model.
-        substrate: str, Metabolite or Reaction
+        substrate : str, Metabolite or Reaction
             The main carbon source.
-        max_swaps: int
+        max_swaps : int
             Max number of swaps allowed.
-        variable_size: bool
+        variable_size : bool
             If true, all candidates have the same size. Otherwise the candidate size can be from 1 to max_knockouts.
-        simulation_method: function
+        simulation_method : function
             Any method from cameo.flux_analysis.simulation or equivalent.
-        growth_coupled: bool
+        growth_coupled : bool
             If true will use the minimum flux rate to compute the fitness.
-        max_evaluations: int
+        max_evaluations : int
             Number of evaluations before stop.
-        population_size: int
+        population_size : int
             Number of individuals in each generation.
-        time_machine: TimeMachine
+        time_machine : TimeMachine
             See TimeMachine.
-        max_results: int
+        max_results : int
             Max number of different designs to return if found.
-        kwargs: dict
+        kwargs : dict
             Arguments for the simulation method.
-        seed: int
+        seed : int
             A seed for random.
 
 

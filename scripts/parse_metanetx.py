@@ -12,14 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import sys
+import six
+if six.PY2:
+    print("This script can only be run with python>=3!")
+    sys.exit(-1)
+
 import logging
-import re
 import gzip
-import pickle
+import json
 import sys
 
 import requests
-import optlang
 from cobra.core.Formula import Formula
 from cobra.io.json import save_json_model
 from pandas import read_table, notnull
@@ -34,6 +38,7 @@ logger = logging.getLogger('parse_metanetx')
 
 
 def parse_reaction(formula, irrev_arrow='-->', rev_arrow='<=>'):
+    """Parse a metanetx reaction formula."""
     def parse_rhs_side(string):
         return parse_one_side(string, factor=1.)
 
@@ -64,13 +69,27 @@ def parse_reaction(formula, irrev_arrow='-->', rev_arrow='<=>'):
     return stoichiometry
 
 
-def construct_universal_model(list_of_db_prefixes):
+def construct_universal_model(list_of_db_prefixes, reac_xref, reac_prop, chem_prop):
+    """"Construct a universal model based on metanetx.
+
+    Arguments
+    ---------
+    list_of_db_prefixes : list
+        A list of database prefixes, e.g., ['bigg', 'rhea']
+    reac_xref : pandas.DataFrame
+        A dataframe of http://www.metanetx.org/cgi-bin/mnxget/mnxref/reac_xref.tsv
+    reac_prop : pandas.DataFrame
+        A dataframe of http://www.metanetx.org/cgi-bin/mnxget/mnxref/reac_prop.tsv
+    chem_prop : pandas.DataFrame
+        A dataframe of http://www.metanetx.org/cgi-bin/mnxget/mnxref/chem_prop.tsv
+    """
     # Select which reactions to include in universal reaction database
 
-    reaction_selection = reac_prop[[
-        any([source.startswith(db_prefix) for db_prefix in list_of_db_prefixes]) and re.match('.*biomass.*', source,
-                                                                                              re.I) is None for source
-        in reac_prop.Source]]
+    mnx_reaction_id_selection = set()
+    for db_prefix in list_of_db_prefixes:
+        mnx_reaction_id_selection.update(reac_xref[reac_xref.XREF.str.startswith(db_prefix)].MNX_ID)
+
+    reaction_selection = reac_prop.loc[mnx_reaction_id_selection]
     reactions = list()
     for index, row in reaction_selection.iterrows():
         try:
@@ -85,12 +104,6 @@ def construct_universal_model(list_of_db_prefixes):
                 except:
                     logger.debug('Cannot parse formula %s. Skipping formula' % chem_prop.loc[met.id].formula)
                     continue
-                # if met.formula.weight is None:
-                #     logger.debug('Cannot calculate weight for formula %s.
-                #  Skipping reaction %s' % (met.formula, row.Equation))
-                #     # print('Cannot calculate weight for formula %s.
-                # Skipping reaction %s' % (met.formula, row.Equation))
-                #     continue
                 try:
                     met.charge = int(chem_prop.loc[met.id].charge)
                 except (ValueError, TypeError):
@@ -106,7 +119,7 @@ def construct_universal_model(list_of_db_prefixes):
             try:
                 if len(reaction.check_mass_balance()) != 0:
                     continue
-            except AttributeError as e:
+            except (AttributeError, ValueError) as e:
                 logger.debug(str(e))
                 continue
             if row.Balance:
@@ -117,7 +130,7 @@ def construct_universal_model(list_of_db_prefixes):
             reaction.annotation = dict((key, rest[key]) for key in rest if key in ('EC', 'Description'))
             reactions.append(reaction)
 
-    model = Model('metanetx_universal_model_' + '_'.join(list_of_db_prefixes), solver_interface=optlang.interface)
+    model = Model('metanetx_universal_model_' + '_'.join(list_of_db_prefixes))
     model.add_reactions(reactions)
     # Add sinks for all metabolites
     for metabolite in model.metabolites:
@@ -126,6 +139,7 @@ def construct_universal_model(list_of_db_prefixes):
 
 
 def load_metanetx_files():
+    """"Update metanetx data."""
     BASE_URL = 'http://www.metanetx.org/cgi-bin/mnxget/mnxref/{}.tsv'
     for filename in ['chem_prop', 'chem_xref', 'reac_prop', 'reac_xref', 'comp_prop', 'comp_xref']:
         response = requests.get(BASE_URL.format(filename))
@@ -196,14 +210,20 @@ if __name__ == '__main__':
         add_to_bigg_mapping(xref, metanetx['bigg2mnx'], metanetx['mnx2bigg'])
         add_to_all_mapping(xref, metanetx['all2mnx'])
 
-    with open('../cameo/data/metanetx.pickle', 'wb') as f:
-        pickle.dump(metanetx, f, protocol=2)
+    with gzip.open('../cameo/data/metanetx.json.gz', 'wt') as f:
+        json.dump(metanetx, f)
 
     # generate universal reaction models
     db_combinations = [('bigg',), ('rhea',), ('bigg', 'rhea'), ('bigg', 'rhea', 'kegg'),
                        ('bigg', 'rhea', 'kegg', 'brenda')]
+    largest_universal_model = None
     for db_combination in db_combinations:
-        universal_model = construct_universal_model(db_combination)
+        universal_model = construct_universal_model(db_combination, reac_xref, reac_prop, chem_prop)
+        if largest_universal_model is None:
+            largest_universal_model = universal_model
+        else:
+            if len(set(largest_universal_model.metabolites)) < len(set(universal_model.metabolites)):
+                largest_universal_model = universal_model
         # The following is a hack; uncomment the following
         from cobra.io.json import _REQUIRED_REACTION_ATTRIBUTES
 
@@ -211,6 +231,8 @@ if __name__ == '__main__':
         with open('../cameo/models/universal_models/{model_name}.json'.format(model_name=universal_model.id), 'w') as f:
             save_json_model(universal_model, f)
 
+    metabolite_ids_in_largest_model = [m.id for m in largest_universal_model.metabolites]
     chem_prop_filtered = chem_prop.dropna(subset=['name'])
-    with gzip.open('../cameo/data/metanetx_chem_prop.pklz', 'wb') as f:
-        pickle.dump(chem_prop_filtered, f, protocol=2)
+    chem_prop_filtered = chem_prop_filtered[chem_prop_filtered.index.isin(metabolite_ids_in_largest_model)]
+    with gzip.open('../cameo/data/metanetx_chem_prop.json.gz', 'wt') as f:
+        chem_prop_filtered.to_json(f, force_ascii=True)

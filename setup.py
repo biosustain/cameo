@@ -39,18 +39,18 @@ requirements = ['numpy>=1.9.1',
                 'inspyred>=1.0',
                 'lazy-object-proxy>=1.2.0',
                 'palettable>=2.1.1',
-                'gnomic>=0.2.0']
+                'gnomic>=0.5.1',
+                'openpyxl>=2.4.5',
+                'click>=6.7']
 
 extra_requirements = {
     'docs': ['Sphinx>=1.3.5', 'numpydoc>=0.5'],
-    'swiglpk': ['swiglpk>=1.2.14'],
     'plotly': ['plotly>=1.9.6'],
-    'bokeh': ['bokeh>=0.11.1'],
+    'bokeh': ['bokeh<=0.12.1'],
     'jupyter': ['jupyter>=1.0.0', 'ipywidgets>=4.1.1'],
     'test': ['pytest', 'pytest-cov'],
     'parallel': ['redis>=2.10.5', 'ipyparallel>=5.0.1'],
-    'sbml': ['python-libsbml>=5.13.0', 'lxml>=3.6.0'],
-    'cli': ['cement>=2.10.2', 'xlwt>=1.2.0']
+    'sbml': ['python-libsbml>=5.13.0', 'lxml>=3.6.0']
 }
 extra_requirements['all'] = list(set(chain(*extra_requirements.values())))
 
@@ -71,10 +71,13 @@ setup(
     install_requires=requirements,
     extras_require=extra_requirements,
     include_package_data=True,
-    scripts=['bin/cameo'],
+    entry_points='''
+            [console_scripts]
+            cameo=cli:main
+        ''',
     author='Nikolaus Sonnenschein, Joao Cardoso, Emre Özdemir, Kristian Jensen',
     author_email='niko.sonnenschein@gmail.com',
-    description='cameo - computer aided metabolic engineering & optimziation',
+    description='cameo - computer aided metabolic engineering & optimization',
     license='Apache License Version 2.0',
     keywords='biology metabolism bioinformatics',
     url='http://cameo.bio',

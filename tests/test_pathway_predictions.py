@@ -14,6 +14,7 @@
 
 from __future__ import absolute_import, print_function
 
+import pickle
 import re
 from os.path import join
 
@@ -44,18 +45,11 @@ def pathway_predictor_result(pathway_predictor):
 
 
 class TestPathwayPredictor:
-
     def test_setting_incorrect_universal_model_raises(self, pathway_predictor):
         model, predictor = pathway_predictor
         with pytest.raises(ValueError) as excinfo:
             PathwayPredictor(model, universal_model='Mickey_Mouse')
         assert re.search(r'Provided universal_model.*', str(excinfo.value))
-
-    # def test_predict_native_compound_returns_shorter_alternatives(self):
-    #     result = self.pathway_predictor.run(product='Phosphoenolpyruvate', max_predictions=1)
-    #     self.assertTrue(len(result.pathways) == 1)
-    #     self.assertTrue(len(result.pathways[0].pathway) == 3)
-    #     self.assertTrue(len(result.pathways[0].adapters) == 0)
 
     def test_predict_non_native_compound(self, pathway_predictor):
         model, predictor = pathway_predictor
@@ -88,18 +82,30 @@ class TestPathwayPredictor:
                         assert metabolite.id in metabolite_ids
 
 
-class PathwayPredictionsTestCase:
+class TestPathwayResult:
     def test_pathway(self, pathway_predictor_result):
         model, result = pathway_predictor_result
         pathway = result[0]
-        biomass = 'Biomass_Ecoli_core_N_lp_w_fsh_GAM_rp__Nmet2'
+        biomass = 'Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2'
         assert isinstance(pathway, PathwayResult)
         assert isinstance(pathway, Pathway)
         assert isinstance(pathway.production_envelope(model, objective=biomass), PhenotypicPhasePlaneResult)
         assert pathway.needs_optimization(model, objective=biomass)
 
+    def test_pickle_pathway(self, pathway_predictor_result):
+        model, result = pathway_predictor_result
+        dump = pickle.dumps(result[0])
+        result_recovered = pickle.loads(dump)
+
+        assert set(r.id for r in result[0].reactions) == set(r.id for r in result_recovered.reactions)
+        assert set(r.id for r in result[0].targets) == set(r.id for r in result_recovered.targets)
+        assert set(r.id for r in result[0].adapters) == set(r.id for r in result_recovered.adapters)
+        assert set(r.id for r in result[0].exchanges) == set(r.id for r in result_recovered.exchanges)
+        assert result[0].product.id == result_recovered.product.id
+
     def test_plug_model_without_time_machine(self, pathway_predictor_result):
         model, result = pathway_predictor_result
+        model = model.copy()
         result[0].plug_model(model)
         for reaction in result[0].reactions:
             assert reaction in model.reactions
