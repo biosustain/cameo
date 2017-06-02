@@ -581,10 +581,13 @@ class TargetOptimizationResult(Result):
 
     def _decode_solutions(self, solutions):
         decoded_solutions = DataFrame(columns=["targets", "fitness"])
-        for index, solution in enumerate(solutions):
-            targets = self._decoder(solution.candidate, flat=True)
-            if len(targets) > 0:
-                decoded_solutions.loc[index] = [tuple(targets), solution.fitness]
+        index = 0
+        for solution in solutions:
+            combinations = self._decoder(solution.candidate, flat=True, decompose=True)
+            for targets in combinations:
+                if len(targets) > 0:
+                    decoded_solutions.loc[index] = [tuple(targets), solution.fitness]
+                    index += 1
 
         decoded_solutions.drop_duplicates(inplace=True, subset="targets")
         decoded_solutions.reset_index(inplace=True)
@@ -679,10 +682,12 @@ class ReactionKnockoutOptimization(KnockoutOptimization):
                          r.id not in self.essential_reactions]
 
             groups = find_coupled_reactions_nullspace(self.model, ns=ns)
-            groups = [group for group in groups if any(r.id in reactions for r in group)]
-            reduced_set = reduce_reaction_set(reactions, groups)
+            groups_keys = [set(group) for group in groups if any(r.id in reactions for r in group)]
+            reduced_set = reduce_reaction_set(reactions, groups_keys)
             to_keep = [r.id for r in reduced_set]
+
         else:
+            groups = None
             to_keep = set(r.id for r in self.model.reactions)
             to_keep.difference_update(r.id for r in self.model.exchanges)
             to_keep.difference_update(self.essential_reactions)
@@ -690,7 +695,7 @@ class ReactionKnockoutOptimization(KnockoutOptimization):
 
         self.representation = to_keep
         self._target_type = REACTION_KNOCKOUT_TYPE
-        self._decoder = decoders.ReactionSetDecoder(self.representation, self.model)
+        self._decoder = decoders.ReactionSetDecoder(self.representation, self.model, groups=groups)
         self._evaluator = evaluators.KnockoutEvaluator(model=self.model,
                                                        decoder=self._decoder,
                                                        objective_function=self.objective_function,

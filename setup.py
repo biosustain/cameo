@@ -77,7 +77,7 @@ setup(
         ''',
     author='Nikolaus Sonnenschein, Joao Cardoso, Emre Özdemir, Kristian Jensen',
     author_email='niko.sonnenschein@gmail.com',
-    description='cameo - computer aided metabolic engineering & optimziation',
+    description='cameo - computer aided metabolic engineering & optimization',
     license='Apache License Version 2.0',
     keywords='biology metabolism bioinformatics',
     url='http://cameo.bio',
