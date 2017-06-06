@@ -56,6 +56,7 @@ provide examples and tutorials and also form part of the documentation. They are
 Furthermore, course materials for a two day cell factory engineering course are available `here <https://biosustain.github.io/cell-factory-design-course/>`__.
 
 .. showcase-start
+
 High-level API (for users)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -136,4 +137,3 @@ Contributions
    :target: https://coveralls.io/r/biosustain/cameo?branch=devel
 .. |DOI| image:: https://zenodo.org/badge/5031/biosustain/cameo.svg
    :target: https://zenodo.org/badge/latestdoi/5031/biosustain/cameo
-
