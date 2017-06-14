@@ -697,11 +697,12 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
         return [self._production_envelope_inner(point) for point in points]
 
     def _interval_estimates(self):
-        try:
-            flux = self.model.optimize().f
+        self.model.solver.optimize()
+        if self.model.solver.status == OPTIMAL:
+            flux = self.model.solver.objective.value
             carbon_yield = self.carbon_yield()
             mass_yield = self.mass_yield()
-        except (AssertionError, Infeasible):
+        else:
             flux = 0
             carbon_yield = 0
             mass_yield = 0

@@ -19,7 +19,6 @@ from __future__ import absolute_import
 import copy
 import os
 import re
-from functools import partial
 
 import numpy as np
 import pandas
@@ -39,7 +38,7 @@ from cameo.flux_analysis.simulation import fba, lmoma, moma, pfba, room
 from cameo.flux_analysis.structural import nullspace
 from cameo.flux_analysis.analysis import find_essential_reactions
 from cameo.parallel import MultiprocessingView, SequentialView
-from cameo.util import TimeMachine, current_solver_name, pick_one
+from cameo.util import current_solver_name, pick_one
 
 TRAVIS = 'TRAVIS' in os.environ
 TEST_DIR = os.path.dirname(__file__)
