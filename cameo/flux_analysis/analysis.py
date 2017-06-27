@@ -301,7 +301,7 @@ def flux_variability_analysis(model, reactions=None, fraction_of_optimum=0., pfb
     return FluxVariabilityResult(solution)
 
 
-def phenotypic_phase_plane(model, variables=[], objective=None, source=None, points=20, view=None):
+def phenotypic_phase_plane(model, variables, objective=None, source=None, points=20, view=None):
     """Phenotypic phase plane analysis [1].
 
     Implements a phenotypic phase plan analysis with interpretation same as
