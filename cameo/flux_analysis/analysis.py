@@ -13,13 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import absolute_import, print_function
+from __future__ import absolute_import, print_function, division
 
 import itertools
 import logging
 import re
 from collections import OrderedDict
 from functools import reduce
+from operator import itemgetter
 
 import numpy
 import pandas
@@ -27,7 +28,7 @@ import six
 from cobra import Reaction, Metabolite
 from cobra.core import get_solution
 from cobra.util import fix_objective_as_constraint, assert_optimal, get_context
-from cobra.exceptions import Infeasible, OptimizationError
+from cobra.exceptions import OptimizationError
 from numpy import trapz
 from six.moves import zip
 from sympy import S
@@ -318,7 +319,7 @@ def phenotypic_phase_plane(model, variables, objective=None, source=None, points
         (defaults to the current model objective).
     source: Reaction or reaction identifier
         The reaction to use as the source when calculating mass and carbon yield. Set to the medium reaction with the
-        highest input carbon flux if left none.
+        highest input carbon flux if left None.
     points: int or iterable
         Number of points to be interspersed between the variable bounds.
         A list of same same dimensions as `variables` can be used to specify
@@ -360,10 +361,10 @@ def phenotypic_phase_plane(model, variables, objective=None, source=None, points
 
             model.objective = objective
 
-        if source:
+        if source is not None:
             source_reaction = get_reaction_for(model, source)
         else:
-            source_reaction = _get_c_source_reaction(model)
+            source_reaction = get_c_source_reaction(model)
 
         variable_reactions = model.reactions.get_by_any(variables)
         variables_min_max = flux_variability_analysis(model, reactions=variable_reactions, view=SequentialView())
@@ -490,7 +491,7 @@ def _flux_variability_analysis(model, reactions=None):
     return df
 
 
-def _get_c_source_reaction(model):
+def get_c_source_reaction(model):
     """ carbon source reactions
 
     Returns
@@ -499,14 +500,60 @@ def _get_c_source_reaction(model):
        The medium reaction with highest input carbon flux
     """
     try:
-        model.optimize()
-    except (Infeasible, AssertionError):
+        model.solver.optimize()
+        assert_optimal(model)
+    except OptimizationError:
         return None
-    model_reactions = model.reactions.get_by_any(list(model.medium))
-    source_reactions = [(reaction, reaction.flux * n_carbon(reaction)) for reaction in model_reactions if
-                        reaction.flux < 0]
-    sorted_sources = sorted(source_reactions, key=lambda reaction_tuple: reaction_tuple[1])
-    return sorted_sources[0][0]
+    medium_reactions = model.reactions.get_by_any(list(model.medium))
+    medium_reactions_fluxes = [(rxn, total_carbon_flux(rxn, consumption=True)) for rxn in medium_reactions]
+    source_reactions = [(rxn, c_flux) for rxn, c_flux in medium_reactions_fluxes if c_flux > 0]
+    try:
+        return max(source_reactions, key=itemgetter(1))[0]
+    except ValueError:
+        return None
+
+
+def total_carbon_flux(reaction, consumption=True):
+    """summed product carbon flux for a reaction
+
+    Parameters
+    ----------
+    reaction : Reaction
+        the reaction to carbon return flux for
+    consumption : bool
+        flux for consumed metabolite, else produced
+
+    Returns
+    -------
+    float
+        reaction flux multiplied by number of carbon for the products of the reaction"""
+    direction = 1 if consumption else -1
+    c_flux = [reaction.flux * coeff * met.elements.get('C', 0) * direction
+              for met, coeff in reaction.metabolites.items()]
+    return sum([flux for flux in c_flux if flux > 0])
+
+
+def single_flux(reaction, consumption=True):
+    """flux into single product for a reaction
+
+    only defined for reactions with single products
+
+    Parameters
+    ----------
+    reaction : Reaction
+        the reaction to product flux for
+    consumption : bool
+        flux for consumed metabolite, else produced
+
+    Returns
+    -------
+    tuple
+        metabolite, flux for the metabolite"""
+    if len(list(reaction.metabolites)) != 1:
+        raise ValueError('product flux only defined for single metabolite reactions')
+    met, coeff = next(six.iteritems(reaction.metabolites))
+    direction = 1 if consumption else -1
+    return met, reaction.flux * coeff * direction
 
 
 def _cycle_free_fva(model, reactions=None, sloppy=True, sloppy_bound=666):
@@ -624,28 +671,8 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
         objective_reactions = [reaction for reaction in model.reactions
                                if reaction.objective_coefficient != 0]
         if len(objective_reactions) != 1:
-            raise Exception('multiple objectives not supported')
+            raise NotImplementedError('complex objectives not supported')
         self.product_reaction = objective_reactions[0]
-
-    @classmethod
-    def carbon_flux(cls, reaction):
-        """ carbon flux for reactions
-
-        Parameters
-        ----------
-        reaction : Reaction
-            the reaction to carbon return flux for
-
-        Returns
-        -------
-        float
-            reaction flux multiplied by number of carbon in reactants"""
-        carbon = sum(metabolite.elements.get('C', 0) for metabolite in reaction.reactants)
-        try:
-            return reaction.flux * carbon
-        except AssertionError:
-            # optimized flux can be out of bounds, in that case return as missing value
-            return numpy.nan
 
     def carbon_yield(self):
         """ mol product per mol carbon input
@@ -655,12 +682,14 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
         float
             the mol carbon atoms in the product (as defined by the model objective) divided by the mol carbon in the
             input reactions (as defined by the model medium) or zero in case of division by zero arises"""
-        carbon_input_flux = self.carbon_flux(self.source)
-        carbon_output_flux = self.carbon_flux(self.product_reaction)
+        if self.source is None:
+            return numpy.nan
+        carbon_input_flux = total_carbon_flux(self.source, consumption=True)
+        carbon_output_flux = total_carbon_flux(self.product_reaction, consumption=False)
         try:
-            return carbon_output_flux / (carbon_input_flux * -1)
+            return carbon_output_flux / carbon_input_flux
         except ZeroDivisionError:
-            return 0
+            return numpy.nan
 
     def mass_yield(self):
         """ gram product divided by gram of feeding source
@@ -674,24 +703,15 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
         float
             gram product per 1 g of feeding source or nan if more than one product or feeding source
         """
-        not_unique = (len(self.source.metabolites) != 1,
-                      len(self.product_reaction.metabolites) != 1)
-        if any(not_unique):
+        if self.source is None:
             return numpy.nan
         try:
-            source_flux = self.source.flux
-            product_flux = self.product_reaction.flux
-        except AssertionError:
+            source, source_flux = single_flux(self.source, consumption=True)
+            product, product_flux = single_flux(self.product_reaction, consumption=False)
+        except ValueError:
             return numpy.nan
-        source_metabolite = list(self.source.metabolites)[0]
-        product_metabolite = list(self.product_reaction.metabolites)[0]
-        product_mass = product_metabolite.formula_weight
-        source_mass = source_metabolite.formula_weight
-        try:
-            mol_prod_mol_src = product_flux / (source_flux * -1)
-            return (mol_prod_mol_src * product_mass) / source_mass
-        except ZeroDivisionError:
-            return 0
+        mol_prod_mol_src = product_flux / source_flux
+        return (mol_prod_mol_src * product.formula_weight) / source.formula_weight
 
     def __call__(self, points):
         return [self._production_envelope_inner(point) for point in points]
@@ -703,9 +723,9 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
             carbon_yield = self.carbon_yield()
             mass_yield = self.mass_yield()
         else:
-            flux = 0
-            carbon_yield = 0
-            mass_yield = 0
+            flux = numpy.nan
+            carbon_yield = numpy.nan
+            mass_yield = numpy.nan
         return flux, carbon_yield, mass_yield
 
     def _production_envelope_inner(self, point):
