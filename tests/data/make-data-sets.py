@@ -17,7 +17,7 @@ ppp2d.data_frame.to_csv(os.path.join(TESTDIR, 'REFERENCE_PPP_o2_glc_EcoliCore.cs
 
 model = CORE_MODEL.copy()
 model.solver = 'glpk'
-objective = model.add_demand(model.metabolites.ac_c)
+objective = model.add_boundary(model.metabolites.ac_c, type='demand')
 model.objective = objective
 ppp = phenotypic_phase_plane(model, ['EX_o2_LPAREN_e_RPAREN_'])
 ppp.data_frame.to_csv(os.path.join(TESTDIR, 'REFERENCE_PPP_o2_EcoliCore_ac.csv'), float_format='%.3f')
