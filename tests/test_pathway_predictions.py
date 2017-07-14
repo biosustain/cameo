@@ -45,11 +45,13 @@ def pathway_predictor_result(pathway_predictor):
 
 
 class TestPathwayPredictor:
-    def test_setting_incorrect_universal_model_raises(self, pathway_predictor):
-        model, predictor = pathway_predictor
+    def test_incorrect_arguments_raises(self, pathway_predictor):
+        model, _ = pathway_predictor
         with pytest.raises(ValueError) as excinfo:
             PathwayPredictor(model, universal_model='Mickey_Mouse')
         assert re.search(r'Provided universal_model.*', str(excinfo.value))
+        with pytest.raises(ValueError) as excinfo:
+            PathwayPredictor(model, compartment_regexp='Mickey_Mouse')
 
     def test_predict_non_native_compound(self, pathway_predictor):
         model, predictor = pathway_predictor
