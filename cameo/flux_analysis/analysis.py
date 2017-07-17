@@ -403,8 +403,10 @@ def _nice_id(reaction):
     if isinstance(reaction, Reaction):
         if hasattr(reaction, 'nice_id'):
             nice_id = reaction.nice_id
-        else:
+        elif len(reaction.metabolites) < 5:
             nice_id = reaction
+        else:
+            nice_id = reaction.id
     else:
         nice_id = str(reaction)
     return nice_id
@@ -871,8 +873,7 @@ class PhenotypicPhasePlaneResult(Result):
                                           'carbon yield, src={}'.format(self.source_reaction),
                                           '[mmol(C)/mmol(C(src)) h^-1]')}
         if estimate not in possible_estimates:
-            raise Exception('estimate must be one of %s' %
-                            ', '.join(possible_estimates.keys()))
+            raise ValueError('estimate must be one of %s' % ', '.join(possible_estimates.keys()))
         upper, lower, description, unit = possible_estimates[estimate]
         if title is None:
             title = "Phenotypic Phase Plane ({})".format(description)
