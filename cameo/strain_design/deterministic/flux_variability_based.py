@@ -329,11 +329,13 @@ class DifferentialFVA(StrainDesignMethod):
             sol['gaps'] = gaps
             if self.normalize_ranges_by is not None:
                 normalizer = sol.lower_bound[self.normalize_ranges_by]
-                normalized_intervals = sol[['lower_bound', 'upper_bound']].values / normalizer
+                if normalizer > non_zero_flux_threshold:
+                    normalized_intervals = sol[['lower_bound', 'upper_bound']].values / normalizer
 
-                normalized_gaps = [self._interval_gap(interval1, interval2) for interval1, interval2 in
-                                   my_zip(reference_intervals, normalized_intervals)]
-                sol['normalized_gaps'] = normalized_gaps
+                    sol['normalized_gaps'] = [self._interval_gap(interval1, interval2) for interval1, interval2 in
+                                              my_zip(reference_intervals, normalized_intervals)]
+                else:
+                    sol['normalized_gaps'] = [numpy.nan] * len(sol.lower_bound)
             else:
                 sol['normalized_gaps'] = gaps
 
