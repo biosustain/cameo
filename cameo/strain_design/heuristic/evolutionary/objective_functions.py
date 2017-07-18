@@ -208,15 +208,13 @@ class biomass_product_coupled_yield(YieldFunction):
                 else:
                     substrate_flux += abs(solution.fluxes[substrate_id]) * n_carbon(substrate) / 2
             substrate_flux = round(substrate_flux, config.ndecimals)
-
         else:
             product_flux = round(solution.fluxes[self.product], config.ndecimals)
             substrate_flux = round(sum(abs(solution.fluxes[s]) for s in self.substrates), config.ndecimals)
-        try:
+        if substrate_flux > config.non_zero_flux_threshold:
             return (biomass_flux * product_flux) / substrate_flux
-
-        except ZeroDivisionError:
-            return 0.0
+        else:
+            return 0.
 
     def _repr_latex_(self):
         if self.carbon_yield:
