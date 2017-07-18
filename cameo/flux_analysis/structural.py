@@ -164,7 +164,7 @@ def find_coupled_reactions_nullspace(model, ns=None, tol=1e-10):
     """
     if ns is None:
         ns = nullspace(create_stoichiometric_array(model))
-    mask = (np.abs(ns) <= tol).all(1)  # Mask for blocked reactions
+    mask = (np.abs(ns) <= tol).all(axis=1)  # Mask for blocked reactions
     non_blocked_ns = ns[~mask]
     non_blocked_reactions = np.array(list(model.reactions))[~mask]
 
@@ -190,7 +190,7 @@ def find_coupled_reactions_nullspace(model, ns=None, tol=1e-10):
                 continue
             reaction_j = non_blocked_reactions[j]
             right = non_blocked_ns[j]
-            ratio = left / right
+            ratio = np.apply_along_axis(lambda x: x[0] / x[1] if abs(x[1]) > 0. else np.inf, 0, np.array([left, right]))
             if abs(max(ratio) - min(ratio)) < tol * 100:
                 group[reaction_j] = round(ratio.mean(), 10)
 
