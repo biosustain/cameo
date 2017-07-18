@@ -81,7 +81,7 @@ def fba(model, objective=None, reactions=None, *args, **kwargs):
         assert_optimal(model)
         solution = get_solution(model)
         if reactions is not None:
-            result = FluxDistributionResult({r: solution.get_primal_by_id(r) for r in reactions}, solution.f)
+            result = FluxDistributionResult({r: solution[r] for r in reactions}, solution.f)
         else:
             result = FluxDistributionResult.from_solution(solution)
         return result
@@ -235,7 +235,7 @@ def lmoma(model, reference=None, cache=None, reactions=None, *args, **kwargs):
 
     cache.begin_transaction()
 
-    if not isinstance(reference, (dict, FluxDistributionResult)):
+    if not isinstance(reference, (dict, pandas.Series, FluxDistributionResult)):
         raise TypeError("reference must be a flux distribution (dict or FluxDistributionResult")
 
     try:
@@ -337,7 +337,7 @@ def room(model, reference=None, cache=None, delta=0.03, epsilon=0.001, reactions
 
     cache.begin_transaction()
 
-    if not isinstance(reference, (dict, FluxDistributionResult)):
+    if not isinstance(reference, (dict, pandas.Series, FluxDistributionResult)):
         raise TypeError("reference must be a flux distribution (dict or FluxDistributionResult")
 
     try:
@@ -438,7 +438,7 @@ class FluxDistributionResult(Result):
 
     @property
     def data_frame(self):
-        return pandas.DataFrame(list(self._fluxes.values()), index=list(self._fluxes.keys()), columns=['flux'])
+        return pandas.DataFrame(list(self._fluxes.values), index=list(self._fluxes.keys()), columns=['flux'])
 
     @property
     def fluxes(self):
