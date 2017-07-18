@@ -132,9 +132,9 @@ def construct_universal_model(list_of_db_prefixes, reac_xref, reac_prop, chem_pr
 
     model = Model('metanetx_universal_model_' + '_'.join(list_of_db_prefixes))
     model.add_reactions(reactions)
-    # Add sinks for all metabolites
+    # Add demands for all metabolites
     for metabolite in model.metabolites:
-        model.add_demand(metabolite)
+        model.add_boundary(metabolite, type='demand')
     return model
 
 

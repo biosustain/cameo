@@ -105,7 +105,7 @@ class TestPathwayResult:
         assert set(r.id for r in result[0].exchanges) == set(r.id for r in result_recovered.exchanges)
         assert result[0].product.id == result_recovered.product.id
 
-    def test_plug_model_without_time_machine(self, pathway_predictor_result):
+    def test_plug_model_without_context(self, pathway_predictor_result):
         model, result = pathway_predictor_result
         model = model.copy()
         result[0].plug_model(model)
@@ -118,10 +118,10 @@ class TestPathwayResult:
         for reaction in result[0].adapters:
             assert reaction in model.reactions
 
-    def test_plug_model_with_time_machine(self, pathway_predictor_result):
+    def test_plug_model_with_context(self, pathway_predictor_result):
         model, result = pathway_predictor_result
-        with TimeMachine() as tm:
-            result[0].plug_model(model, tm=tm)
+        with model:
+            result[0].plug_model(model)
 
         for reaction in result[0].reactions:
             assert reaction not in model.reactions
