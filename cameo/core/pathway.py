@@ -109,10 +109,9 @@ class Pathway(object):
                                   reaction.name + sep +
                                   reaction.notes.get("pathway_note", "") + "\n")
 
-    def plug_model(self, model, tm=None):
+    def plug_model(self, model):
         """
         Plugs the pathway to a model.
-        If a TimeMachine is provided, the reactions will be removed after reverting the TimeMachine.
 
         Metabolites are matched in the model by id. For metabolites with no ID in the model, an exchange reaction
         is added to the model
@@ -121,19 +120,11 @@ class Pathway(object):
         ---------
         model: cobra.Model
             The model to plug in the pathway
-        tm: TimeMachine
-            Optionally, a TimeMachine object can be added to the operation
-
         """
 
-        if tm is not None:
-            tm(do=partial(model.add_reactions, self.reactions),
-               undo=partial(model.remove_reactions, self.reactions))
-        else:
-            model.add_reactions(self.reactions)
-
+        model.add_reactions(self.reactions)
         metabolites = set(reduce(lambda x, y: x + y, [list(r.metabolites.keys()) for r in self.reactions], []))
-        exchanges = [model.add_demand(m, prefix="EX_", time_machine=tm) for m in metabolites if len(m.reactions) == 1]
+        exchanges = [model.add_boundary(m) for m in metabolites if len(m.reactions) == 1]
         for exchange in exchanges:
             exchange.lower_bound = 0
 

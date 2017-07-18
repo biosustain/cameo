@@ -125,37 +125,20 @@ class PathwayResult(Pathway, Result, StrainDesign):
             self.apply(model)
             return phenotypic_phase_plane(model, variables=[objective], objective=self.product.id)
 
-    def plug_model(self, model, tm=None, adapters=True, exchanges=True):
+    def plug_model(self, model, adapters=True, exchanges=True):
         warnings.warn("The 'plug_model' method as been deprecated. Use apply instead.", DeprecationWarning)
-        if tm is not None:
-            tm(do=partial(model.add_reactions, self.reactions),
-               undo=partial(model.remove_reactions, self.reactions, remove_orphans=True))
-            if adapters:
-                tm(do=partial(model.add_reactions, self.adapters),
-                   undo=partial(model.remove_reactions, self.adapters, remove_orphans=True))
-            if exchanges:
-                tm(do=partial(model.add_reactions, self.exchanges),
-                   undo=partial(model.remove_reactions, self.exchanges, remove_orphans=True))
-            self.product.lower_bound = 0
-            try:
-                tm(do=partial(model.add_reactions, [self.product]),
-                   undo=partial(model.remove_reactions, [self.product], remove_orphans=True))
-            except Exception:
-                logger.warning("Exchange %s already in model" % self.product.id)
-                pass
-        else:
-            model.add_reactions(self.reactions)
-            if adapters:
-                model.add_reactions(self.adapters)
-            if exchanges:
-                model.add_reactions(self.exchanges)
+        model.add_reactions(self.reactions)
+        if adapters:
+            model.add_reactions(self.adapters)
+        if exchanges:
+            model.add_reactions(self.exchanges)
 
-            self.product.lower_bound = 0
-            try:
-                model.add_reaction(self.product)
-            except Exception:
-                logger.warning("Exchange %s already in model" % self.product.id)
-                pass
+        self.product.lower_bound = 0
+        try:
+            model.add_reaction(self.product)
+        except Exception:
+            logger.warning("Exchange %s already in model" % self.product.id)
+            pass
 
 
 class PathwayPredictions(StrainDesignMethodResult):
@@ -168,10 +151,10 @@ class PathwayPredictions(StrainDesignMethodResult):
     def pathways(self):
         return self._designs
 
-    def plug_model(self, model, index, tm=None):
+    def plug_model(self, model, index):
         warnings.warn("The 'plug_model' method as been deprecated. You can use result[i].apply instead",
                       DeprecationWarning)
-        self.pathways[index].plug_model(model, tm)
+        self.pathways[index].plug_model(model)
 
     def __getitem__(self, item):
         return self.pathways[item]

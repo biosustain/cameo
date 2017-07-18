@@ -153,11 +153,11 @@ class DifferentialFVA(StrainDesignMethod):
             self.objective = objective.id
         elif isinstance(objective, Metabolite):
             try:
-                self.reference_model.add_demand(objective)
+                self.reference_model.add_boundary(objective, type='demand')
             except ValueError:
                 pass
             try:
-                self.objective = self.design_space_model.add_demand(objective).id
+                self.objective = self.design_space_model.add_boundary(objective, type='demand').id
             except ValueError:
                 self.objective = self.design_space_model.reactions.get_by_id("DM_" + objective.id).id
         elif isinstance(objective, six.string_types):
