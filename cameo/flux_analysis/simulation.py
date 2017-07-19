@@ -37,7 +37,7 @@ from sympy import Add
 from sympy import Mul
 from sympy.parsing.sympy_parser import parse_expr
 from cobra import Reaction
-from cobra.flux_analysis.parsimonious import add_pfba
+from cobra.flux_analysis import pfba as cobrapy_pfba
 from cobra.exceptions import OptimizationError
 
 from optlang.interface import OptimizationExpression
@@ -77,7 +77,7 @@ def fba(model, objective=None, reactions=None, *args, **kwargs):
             model.objective = objective
         solution = model.optimize(raise_error=True)
         if reactions is not None:
-            result = FluxDistributionResult({r: solution[r] for r in reactions}, solution.f)
+            result = FluxDistributionResult({r: solution[r] for r in reactions}, solution.objective_value)
         else:
             result = FluxDistributionResult.from_solution(solution)
         return result
@@ -110,18 +110,8 @@ def pfba(model, objective=None, reactions=None, fraction_of_optimum=1, *args, **
      genome-scale models. Molecular Systems Biology, 6, 390. doi:10.1038/msb.2010.47
 
     """
-    with model:
-        add_pfba(model, objective=objective, fraction_of_optimum=fraction_of_optimum)
-        try:
-            solution = model.optimize(raise_error=True)
-            if reactions is not None:
-                result = FluxDistributionResult({r: solution.get_primal_by_id(r) for r in reactions}, solution.f)
-            else:
-                result = FluxDistributionResult.from_solution(solution)
-        except OptimizationError as e:
-            logger.error("pfba could not determine an optimal solution for objective %s" % model.objective)
-            raise e
-        return result
+    solution = cobrapy_pfba(model, objective=objective, fraction_of_optimum=fraction_of_optimum, reactions=reactions)
+    return FluxDistributionResult.from_solution(solution)
 
 
 def moma(model, reference=None, cache=None, reactions=None, *args, **kwargs):
