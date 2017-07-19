@@ -16,7 +16,6 @@ from __future__ import print_function
 
 import logging
 import warnings
-from functools import partial
 
 import numpy
 from IProgress.progressbar import ProgressBar
@@ -248,7 +247,7 @@ class OptKnock(StrainDesignMethod):
             count = 0
             while count < max_results:
                 try:
-                    solution = self._model.optimize()
+                    solution = self._model.optimize(raise_error=True)
                 except OptimizationError as e:
                     logger.debug("Problem could not be solved. Terminating and returning " + str(count) + " solutions")
                     logger.debug(str(e))

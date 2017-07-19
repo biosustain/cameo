@@ -73,7 +73,7 @@ def remove_infeasible_cycles(model, fluxes, fix=()):
             reaction_to_fix = model.reactions.get_by_id(reaction_id)
             reaction_to_fix.bounds = (fluxes[reaction_id], fluxes[reaction_id])
         try:
-            solution = model.optimize()
+            solution = model.optimize(raise_error=True)
         except OptimizationError as e:
             logger.warning("Couldn't remove cycles from reference flux distribution.")
             raise e
@@ -102,7 +102,7 @@ def fix_pfba_as_constraint(model, multiplier=1, fraction_of_optimum=1):
         model.solver.remove(fix_constraint_name)
     with model:
         add_pfba(model, fraction_of_optimum=fraction_of_optimum)
-        pfba_objective_value = model.optimize().objective_value * multiplier
+        pfba_objective_value = model.slim_optimize(error_value=None) * multiplier
         constraint = model.solver.interface.Constraint(model.objective.expression,
                                                        name=fix_constraint_name,
                                                        ub=pfba_objective_value)

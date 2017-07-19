@@ -27,7 +27,7 @@ import pandas
 import six
 from cobra import Reaction, Metabolite
 from cobra.core import get_solution
-from cobra.util import fix_objective_as_constraint, assert_optimal, get_context
+from cobra.util import fix_objective_as_constraint, get_context
 from cobra.exceptions import OptimizationError
 from numpy import trapz
 from six.moves import zip
@@ -140,9 +140,7 @@ def find_essential_metabolites(model, threshold=1e-6, force_steady_state=False):
     essential = []
     # Essential metabolites are only in reactions that carry flux.
     metabolites = set()
-    model.solver.optimize()
-    assert_optimal(model)
-    solution = get_solution(model)
+    solution = model.optimize(raise_error=True)
     for reaction_id, flux in six.iteritems(solution.fluxes):
         if abs(flux) > 0:
             reaction = model.reactions.get_by_id(reaction_id)
@@ -174,9 +172,7 @@ def find_essential_reactions(model, threshold=1e-6):
     """
     essential = []
     try:
-        model.solver.optimize()
-        assert_optimal(model)
-        solution = get_solution(model)
+        solution = model.optimize(raise_error=True)
         for reaction_id, flux in six.iteritems(solution.fluxes):
             if abs(flux) > 0:
                 reaction = model.reactions.get_by_id(reaction_id)
@@ -210,9 +206,7 @@ def find_essential_genes(model, threshold=1e-6):
     """
     essential = []
     try:
-        model.solver.optimize()
-        assert_optimal(model)
-        solution = get_solution(model)
+        solution = model.optimize(raise_error=True)
         genes_to_check = set()
         for reaction_id, flux in six.iteritems(solution.fluxes):
             if abs(flux) > 0:
@@ -502,8 +496,7 @@ def get_c_source_reaction(model):
        The medium reaction with highest input carbon flux
     """
     try:
-        model.solver.optimize()
-        assert_optimal(model)
+        model.slim_optimize(error_value=None)
     except OptimizationError:
         return None
     medium_reactions = model.reactions.get_by_any(list(model.medium))

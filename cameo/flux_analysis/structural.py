@@ -347,7 +347,7 @@ class ShortestElementaryFluxModes(six.Iterator):
     def __generate_elementary_modes(self):
         while True:
             try:
-                self.model.optimize()
+                self.model.slim_optimize(error_value=None)
             except OptimizationError:
                 raise StopIteration
             elementary_flux_mode = list()
