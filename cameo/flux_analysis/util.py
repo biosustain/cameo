@@ -17,7 +17,7 @@ from cobra.exceptions import OptimizationError
 
 import sympy
 from sympy import Add, Mul
-from cameo.flux_analysis.simulation import add_pfba
+from cobra.flux_analysis.parsimonious import add_pfba
 
 import logging
 
