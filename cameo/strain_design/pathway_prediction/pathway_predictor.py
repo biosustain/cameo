@@ -27,7 +27,7 @@ from cobra import DictList
 from sympy import Add, Mul, RealNumber
 
 from cobra import Model, Metabolite, Reaction
-from cobra.util import SolverNotFound, assert_optimal
+from cobra.util import SolverNotFound
 from cobra.exceptions import OptimizationError
 
 from cameo import fba
@@ -298,9 +298,8 @@ class PathwayPredictor(StrainDesignMethod):
             counter = 1
             while counter <= max_predictions:
                 logger.debug('Predicting pathway No. %d' % counter)
-                self.model.solver.optimize()
                 try:
-                    assert_optimal(self.model)
+                    self.model.slim_optimize(error_value=None)
                 except OptimizationError as e:
                     logger.error('No pathway could be predicted. Terminating pathway predictions.')
                     logger.error(e)

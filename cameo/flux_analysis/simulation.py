@@ -37,8 +37,6 @@ from sympy import Add
 from sympy import Mul
 from sympy.parsing.sympy_parser import parse_expr
 from cobra import Reaction
-from cobra.core import get_solution
-from cobra.util import assert_optimal
 from cobra.flux_analysis.parsimonious import add_pfba
 from cobra.exceptions import OptimizationError
 
@@ -77,9 +75,7 @@ def fba(model, objective=None, reactions=None, *args, **kwargs):
     with model:
         if objective is not None:
             model.objective = objective
-        model.solver.optimize()
-        assert_optimal(model)
-        solution = get_solution(model)
+        solution = model.optimize(raise_error=True)
         if reactions is not None:
             result = FluxDistributionResult({r: solution[r] for r in reactions}, solution.f)
         else:
@@ -117,8 +113,7 @@ def pfba(model, objective=None, reactions=None, fraction_of_optimum=1, *args, **
     with model:
         add_pfba(model, objective=objective, fraction_of_optimum=fraction_of_optimum)
         try:
-            model.solver.optimize()
-            solution = get_solution(model)
+            solution = model.optimize(raise_error=True)
             if reactions is not None:
                 result = FluxDistributionResult({r: solution.get_primal_by_id(r) for r in reactions}, solution.f)
             else:
@@ -193,7 +188,8 @@ def moma(model, reference=None, cache=None, reactions=None, *args, **kwargs):
 
         cache.add_objective(create_objective, None, cache.variables.values())
 
-        solution = model.optimize()
+        solution = model.optimize(raise_error=True)
+
         if reactions is not None:
             result = FluxDistributionResult({r: solution.get_primal_by_id(r) for r in reactions}, solution.f)
         else:
@@ -289,7 +285,7 @@ def lmoma(model, reference=None, cache=None, reactions=None, *args, **kwargs):
 
         try:
 
-            solution = model.optimize()
+            solution = model.optimize(raise_error=True)
             if reactions is not None:
                 result = FluxDistributionResult({r: solution.get_primal_by_id(r) for r in reactions}, solution.f)
             else:
@@ -384,7 +380,7 @@ def room(model, reference=None, cache=None, delta=0.03, epsilon=0.001, reactions
         model.objective = model.solver.interface.Objective(add([mul([One, var]) for var in cache.variables.values()]),
                                                            direction='min')
         try:
-            solution = model.optimize()
+            solution = model.optimize(raise_error=True)
             if reactions is not None:
                 result = FluxDistributionResult({r: solution.get_primal_by_id(r) for r in reactions}, solution.f)
             else:
