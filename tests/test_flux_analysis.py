@@ -28,6 +28,7 @@ from cobra.util import create_stoichiometric_matrix, fix_objective_as_constraint
 from cobra.flux_analysis.parsimonious import add_pfba
 
 from cobra import Metabolite, Reaction
+from cobra.flux_analysis import find_essential_reactions
 
 from cameo.flux_analysis import remove_infeasible_cycles, structural
 from cameo.flux_analysis.analysis import (find_blocked_reactions,
@@ -36,7 +37,6 @@ from cameo.flux_analysis.analysis import (find_blocked_reactions,
                                           fix_pfba_as_constraint)
 from cameo.flux_analysis.simulation import fba, lmoma, moma, pfba, room
 from cameo.flux_analysis.structural import nullspace
-from cameo.flux_analysis.analysis import find_essential_reactions
 from cameo.parallel import MultiprocessingView, SequentialView
 from cameo.util import current_solver_name, pick_one
 

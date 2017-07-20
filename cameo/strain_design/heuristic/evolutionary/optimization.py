@@ -31,7 +31,7 @@ from cameo.flux_analysis.simulation import pfba, lmoma, moma, room, logger as si
 from cameo.flux_analysis.structural import (find_blocked_reactions_nullspace, find_coupled_reactions_nullspace,
                                             nullspace,
                                             create_stoichiometric_array)
-from cameo.flux_analysis.analysis import find_essential_genes, find_essential_reactions
+from cobra.flux_analysis import find_essential_genes, find_essential_reactions
 from cameo.strain_design.heuristic.evolutionary import archives
 from cameo.strain_design.heuristic.evolutionary import decoders
 from cameo.strain_design.heuristic.evolutionary import evaluators
