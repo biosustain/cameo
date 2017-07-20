@@ -35,7 +35,10 @@ MODEL_DIRECTORY = os.path.join(os.path.join(cameo.__path__[0]), 'models/json')
 
 
 class Host(object):
-    def __init__(self, name='', models=[], biomass=[], carbon_sources=[]):
+    def __init__(self, name='', models=None, biomass=None, carbon_sources=None):
+        models = models or []
+        biomass = biomass or []
+        carbon_sources = carbon_sources or []
         self.name = name
         self.models = util.IntelliContainer()
         for id, biomass, carbon_source in zip(models, biomass, carbon_sources):
