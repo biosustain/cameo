@@ -36,7 +36,8 @@ from cameo import load_model
 from cameo.config import solvers
 from cameo.core.utils import get_reaction_for, load_medium, medium
 from cameo.flux_analysis.structural import create_stoichiometric_array
-from cameo.flux_analysis.analysis import find_essential_genes, find_essential_metabolites, find_essential_reactions
+from cameo.flux_analysis.analysis import find_essential_metabolites
+from cobra.flux_analysis import find_essential_genes, find_essential_reactions
 
 
 TRAVIS = bool(os.getenv('TRAVIS', False))
