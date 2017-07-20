@@ -68,7 +68,7 @@ from cameo.strain_design.heuristic.evolutionary.variators import (_do_set_n_poin
                                                                   set_indel,
                                                                   set_mutation,
                                                                   set_n_point_crossover)
-from cameo.flux_analysis.analysis import find_essential_genes, find_essential_reactions
+from cobra.flux_analysis import find_essential_genes, find_essential_reactions
 from cameo.util import RandomGenerator as Random
 
 

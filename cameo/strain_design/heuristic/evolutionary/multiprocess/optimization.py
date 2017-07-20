@@ -23,7 +23,7 @@ from cameo import config
 from cameo import parallel
 from cameo import util
 from cameo.flux_analysis.simulation import pfba
-from cameo.flux_analysis.analysis import find_essential_genes, find_essential_reactions
+from cobra.flux_analysis import find_essential_genes, find_essential_reactions
 from cameo.strain_design.heuristic.evolutionary import ReactionKnockoutOptimization, GeneKnockoutOptimization
 from cameo.strain_design.heuristic.evolutionary.multiprocess.migrators import MultiprocessingMigrator
 from cameo.strain_design.heuristic.evolutionary.multiprocess.observers import \
