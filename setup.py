@@ -49,7 +49,7 @@ extra_requirements = {
     'plotly': ['plotly>=1.9.6'],
     'bokeh': ['bokeh<=0.12.1'],
     'jupyter': ['jupyter>=1.0.0', 'ipywidgets>=4.1.1'],
-    'test': ['pytest', 'pytest-cov'],
+    'test': ['pytest', 'pytest-cov', 'pytest-benchmark'],
     'parallel': ['redis>=2.10.5', 'ipyparallel>=5.0.1'],
     'sbml': ['python-libsbml>=5.13.0', 'lxml>=3.6.0']
 }
