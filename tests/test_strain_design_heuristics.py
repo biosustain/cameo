@@ -509,7 +509,10 @@ class TestKnockoutEvaluator:
 
         assert abs(fitness - 0.41) < 0.02
 
-    def test_evaluate_multiobjective(self, model):
+    def test_ko_evaluate_single_objective_benchmark(self, benchmark, model):
+        benchmark(self.test_evaluate_single_objective, model)
+
+    def test_evaluate_multi_objective(self, model):
         representation = ["ATPS4r", "PYK", "GLUDy", "PPS", "CO2t", "PDH",
                           "FUM", "FBA", "G6PDH2r", "FRD7", "PGL", "PPC"]
         decoder = ReactionSetDecoder(representation, model)
@@ -525,6 +528,9 @@ class TestKnockoutEvaluator:
         assert isinstance(fitness, Pareto)
         assert abs(fitness[0] - 0.41) < 0.02
         assert abs(fitness[1] - 1.57) < 0.035
+
+    def test_ko_evaluate_multi_objective_benchmark(self, benchmark, model):
+        benchmark(self.test_evaluate_multi_objective, model)
 
     def test_evaluate_infeasible_solution(self, model):
         representation = ["ENO", "ATPS4r", "PYK", "GLUDy", "PPS", "CO2t", "PDH",
@@ -919,6 +925,23 @@ class TestOptimizationResult:
             assert solutions.archive.count(individual) == 1, "%s is unique in archive" % individual
 
 
+@pytest.fixture(scope="session")
+def reaction_ko_single_objective(model):
+    objective = biomass_product_coupled_yield(
+        "Biomass_Ecoli_core_N_lp_w_fsh_GAM_rp__Nmet2", "EX_ac_lp_e_rp_", "EX_glc_lp_e_rp_")
+    return ReactionKnockoutOptimization(model=model, simulation_method=fba, objective_function=objective)
+
+
+@pytest.fixture(scope="session")
+def reaction_ko_multi_objective(model):
+    objective1 = biomass_product_coupled_yield(
+        "Biomass_Ecoli_core_N_lp_w_fsh_GAM_rp__Nmet2", "EX_ac_lp_e_rp_", "EX_glc_lp_e_rp_")
+    objective2 = number_of_knockouts()
+    objective = MultiObjectiveFunction([objective1, objective2])
+    return ReactionKnockoutOptimization(model=model, simulation_method=fba, objective_function=objective,
+                                        heuristic_method=inspyred.ec.emo.NSGA2)
+
+
 class TestReactionKnockoutOptimization:
     def test_initializer(self, model):
         essential_reactions = set([r.id for r in find_essential_reactions(model)])
@@ -932,18 +955,10 @@ class TestReactionKnockoutOptimization:
         assert rko._target_type == "reaction"
         assert isinstance(rko._decoder, ReactionSetDecoder)
 
-    def test_run_single_objective(self, model):
+    def test_run_single_objective(self, reaction_ko_single_objective):
         # TODO: make optlang deterministic so this results can be permanently stored.
         _, result_file = mkstemp('.pkl')
-        objective = biomass_product_coupled_yield(
-            "Biomass_Ecoli_core_N_lp_w_fsh_GAM_rp__Nmet2", "EX_ac_lp_e_rp_", "EX_glc_lp_e_rp_")
-
-        rko = ReactionKnockoutOptimization(model=model,
-                                           simulation_method=fba,
-                                           objective_function=objective)
-
-        results = rko.run(max_evaluations=3000, pop_size=10, view=SequentialView(), seed=SEED)
-
+        results = reaction_ko_single_objective.run(max_evaluations=3000, pop_size=10, view=SequentialView(), seed=SEED)
         assert len(results.data_frame.targets) > 0
         assert len(results.data_frame.targets) == len(results.data_frame.targets.apply(tuple).unique())
 
@@ -957,6 +972,9 @@ class TestReactionKnockoutOptimization:
                 expected_results = pickle.load(in_file)
 
         assert results.seed == expected_results.seed
+
+    def test_run_reaction_single_ko_objective_benchmark(self, benchmark, reaction_ko_single_objective):
+        benchmark(reaction_ko_single_objective.run, max_evaluations=3000, pop_size=10, view=SequentialView(), seed=SEED)
 
     def test_run_with_time_limit(self, model):
         # TODO: make optlang deterministic so this results can be permanently stored.
@@ -985,24 +1003,10 @@ class TestReactionKnockoutOptimization:
         print(elapsed_time)
         assert elapsed_time < 2 * 60
 
-    def test_run_multi_objective(self, model):
+    def test_run_multi_objective(self, model, reaction_ko_multi_objective):
         # TODO: make optlang deterministic so this results can be permanently stored.
         _, result_file = mkstemp('.pkl')
-
-        objective1 = biomass_product_coupled_yield(
-            "Biomass_Ecoli_core_N_lp_w_fsh_GAM_rp__Nmet2",
-            "EX_ac_lp_e_rp_",
-            "EX_glc_lp_e_rp_")
-
-        objective2 = number_of_knockouts()
-        objective = MultiObjectiveFunction([objective1, objective2])
-
-        rko = ReactionKnockoutOptimization(model=model,
-                                           simulation_method=fba,
-                                           objective_function=objective,
-                                           heuristic_method=inspyred.ec.emo.NSGA2)
-
-        results = rko.run(max_evaluations=3000, pop_size=10, view=SequentialView(), seed=SEED)
+        results = reaction_ko_multi_objective.run(max_evaluations=3000, pop_size=10, view=SequentialView(), seed=SEED)
 
         assert len(results.data_frame.targets) == len(results.data_frame.targets.apply(tuple).unique())
 
@@ -1016,6 +1020,26 @@ class TestReactionKnockoutOptimization:
                 expected_results = pickle.load(in_file)
 
         assert results.seed == expected_results.seed
+
+    def test_run_reaction_ko_multi_objective_benchmark(self, benchmark, reaction_ko_multi_objective):
+        benchmark(reaction_ko_multi_objective.run, max_evaluations=3000, pop_size=10, view=SequentialView(), seed=SEED)
+
+
+@pytest.fixture(scope="session")
+def gene_ko_single_objective(model):
+    objective = biomass_product_coupled_yield(
+        "Biomass_Ecoli_core_N_lp_w_fsh_GAM_rp__Nmet2", "EX_ac_lp_e_rp_", "EX_glc_lp_e_rp_")
+    return GeneKnockoutOptimization(model=model, simulation_method=fba, objective_function=objective)
+
+
+@pytest.fixture(scope="session")
+def gene_ko_multi_objective(model):
+    objective1 = biomass_product_coupled_yield(
+        "Biomass_Ecoli_core_N_lp_w_fsh_GAM_rp__Nmet2", "EX_ac_lp_e_rp_", "EX_glc_lp_e_rp_")
+    objective2 = number_of_knockouts()
+    objective = MultiObjectiveFunction([objective1, objective2])
+    return GeneKnockoutOptimization(model=model, simulation_method=fba, objective_function=objective,
+                                    heuristic_method=inspyred.ec.emo.NSGA2)
 
 
 class TestGeneKnockoutOptimization:
@@ -1031,17 +1055,10 @@ class TestGeneKnockoutOptimization:
         assert rko._target_type == "gene"
         assert isinstance(rko._decoder, GeneSetDecoder)
 
-    def test_run_single_objective(self, model):
+    def test_run_single_objective(self, model, gene_ko_single_objective):
         # TODO: make optlang deterministic so this results can be permanently stored.
         _, result_file = mkstemp('.pkl')
-        objective = biomass_product_coupled_yield(
-            "Biomass_Ecoli_core_N_lp_w_fsh_GAM_rp__Nmet2", "EX_ac_lp_e_rp_", "EX_glc_lp_e_rp_")
-
-        rko = GeneKnockoutOptimization(model=model,
-                                       simulation_method=fba,
-                                       objective_function=objective)
-
-        results = rko.run(max_evaluations=3000, pop_size=10, view=SequentialView(), seed=SEED)
+        results = gene_ko_single_objective.run(max_evaluations=3000, pop_size=10, view=SequentialView(), seed=SEED)
 
         assert len(results.data_frame.targets) == len(results.data_frame.targets.apply(tuple).unique())
 
@@ -1056,21 +1073,14 @@ class TestGeneKnockoutOptimization:
 
         assert results.seed == expected_results.seed
 
-    def test_run_multi_objective(self, model):
+    def test_run_gene_ko_single_objective_benchmark(self, gene_ko_single_objective, benchmark):
+        benchmark(gene_ko_single_objective.run, max_evaluations=3000, pop_size=10, view=SequentialView(), seed=SEED)
+
+    def test_run_multi_objective(self, model, gene_ko_multi_objective):
         # TODO: make optlang deterministic so this results can be permanently stored.
         _, result_file = mkstemp('.pkl')
-        objective1 = biomass_product_coupled_yield(
-            "Biomass_Ecoli_core_N_lp_w_fsh_GAM_rp__Nmet2", "EX_ac_lp_e_rp_", "EX_glc_lp_e_rp_")
 
-        objective2 = number_of_knockouts()
-        objective = MultiObjectiveFunction([objective1, objective2])
-
-        rko = GeneKnockoutOptimization(model=model,
-                                       simulation_method=fba,
-                                       objective_function=objective,
-                                       heuristic_method=inspyred.ec.emo.NSGA2)
-
-        results = rko.run(max_evaluations=3000, pop_size=10, view=SequentialView(), seed=SEED)
+        results = gene_ko_multi_objective.run(max_evaluations=3000, pop_size=10, view=SequentialView(), seed=SEED)
 
         assert len(results.data_frame.targets) == len(results.data_frame.targets.apply(tuple).unique())
 
@@ -1084,6 +1094,9 @@ class TestGeneKnockoutOptimization:
                 expected_results = pickle.load(in_file)
 
         assert results.seed == expected_results.seed
+
+    def test_run_gene_ko_multi_objective_benchmark(self, gene_ko_multi_objective, benchmark):
+        benchmark(gene_ko_multi_objective.run, max_evaluations=3000, pop_size=10, view=SequentialView(), seed=SEED)
 
     def test_run_with_time_limit(self, model):
         # TODO: make optlang deterministic so this results can be permanently stored.

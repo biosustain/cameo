@@ -43,6 +43,11 @@ def cplex_optknock(model):
     return cplex_core, OptKnock(cplex_core)
 
 
+@pytest.fixture(scope='module')
+def diff_fva(model):
+    return DifferentialFVA(model, model.reactions.EX_succ_lp_e_rp_, points=5)
+
+
 class TestFSEOF:
     def test_fseof(self, model):
         objective = model.objective
@@ -60,15 +65,15 @@ class TestFSEOF:
 
 
 class TestDifferentialFVA:
-    def test_minimal_input(self, model):
-        result = DifferentialFVA(model, model.reactions.EX_succ_lp_e_rp_, points=5).run()
+    def test_minimal_input(self, diff_fva):
+        result = diff_fva.run()
         ref_df = pandas.read_csv(os.path.join(TESTDIR, 'data/REFERENCE_DiffFVA1.csv'), index_col=0)
         this_df = result.nth_panel(0)
         this_df.index.name = None
         pandas.util.testing.assert_frame_equal(this_df[ref_df.columns], ref_df)
 
-    def test_apply_designs(self, model):
-        result = DifferentialFVA(model, model.reactions.EX_succ_lp_e_rp_, points=5).run()
+    def test_apply_designs(self, model, diff_fva):
+        result = diff_fva.run()
         works = []
         for strain_design in result:
             with model:
@@ -79,6 +84,9 @@ class TestDifferentialFVA:
                 except Infeasible:
                     works.append(False)
         assert any(works)
+
+    def test_diff_fva_benchmark(self, diff_fva, benchmark):
+        benchmark(diff_fva.run)
 
     def test_with_reference_model(self, model):
         reference_model = model.copy()
@@ -103,6 +111,11 @@ class TestOptKnock:
         assert len(result.knockouts[0]) == 0
         assert len(list(result)) == 1
         assert isinstance(result.data_frame, DataFrame)
+
+    def test_optknock_benchmark(self, cplex_optknock, benchmark):
+        _, optknock = cplex_optknock
+        benchmark(optknock.run, max_knockouts=2, target="EX_ac_lp_e_rp_",
+                  biomass="Biomass_Ecoli_core_N_lp_w_fsh_GAM_rp__Nmet2", max_results=1)
 
     def test_result_is_correct(self, cplex_optknock):
         model, optknock = cplex_optknock

@@ -61,6 +61,10 @@ class TestPathwayPredictor:
         assert len(result.pathways[0].reactions) == 3
         assert len(result.pathways[0].adapters) == 0
 
+    def test_pathway_predictor_benchmark(self, benchmark, pathway_predictor):
+        model, predictor = pathway_predictor
+        benchmark(predictor.run, product='L-Serine', max_predictions=1)
+
     def test_contains_right_adapters_and_exchanges(self, pathway_predictor):
         model, predictor = pathway_predictor
         result = predictor.run(product='L-Serine', max_predictions=1)
