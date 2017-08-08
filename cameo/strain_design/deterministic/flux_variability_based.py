@@ -561,7 +561,7 @@ class DifferentialFVAResult(StrainDesignMethodResult):
             dataframe = dataframe.append(_df)
 
         plot = plotter.flux_variability_analysis(dataframe, grid=grid, width=width, height=height,
-                                                 title=title, x_axis_label="Reactions", y_axis_label="Flux limits",
+                                                 title=title, x_axis_label="Flux limits", y_axis_label="Reactions",
                                                  palette=palette)
 
         plotter.display(plot)
