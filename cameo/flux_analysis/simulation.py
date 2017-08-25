@@ -24,26 +24,23 @@ Currently implements:
 
 from __future__ import absolute_import, print_function
 
-import os
-import six
-
-import pandas
-import numpy
-
 import logging
+import os
 
+import numpy
+import pandas
+import six
 import sympy
+from cobra import Reaction
+from cobra.flux_analysis import pfba as cobrapy_pfba
+from optlang.interface import OptimizationExpression
 from sympy import Add
 from sympy import Mul
 from sympy.parsing.sympy_parser import parse_expr
-from cobra import Reaction
-from cobra.flux_analysis import pfba as cobrapy_pfba
-from cobra.exceptions import OptimizationError
 
-from optlang.interface import OptimizationExpression
 from cameo.config import ndecimals
-from cameo.util import ProblemCache, in_ipnb
 from cameo.core.result import Result
+from cameo.util import ProblemCache, in_ipnb
 from cameo.visualization.palette import mapper, Palette
 
 __all__ = ['fba', 'pfba', 'moma', 'lmoma', 'room']
@@ -185,6 +182,9 @@ def moma(model, reference=None, cache=None, reactions=None, *args, **kwargs):
         else:
             result = FluxDistributionResult.from_solution(solution)
         return result
+    except Exception as e:
+        cache.rollback()
+        raise e
     finally:
         if volatile:
             cache.reset()
@@ -250,7 +250,7 @@ def lmoma(model, reference=None, cache=None, reactions=None, *args, **kwargs):
                                                                name=constraint_id)
                 return constraint
 
-            cache.add_constraint("c_%s_ub" % rid, create_upper_constraint, update_upper_constraint,
+            cache.add_constraint("lmoma_const_%s_ub" % rid, create_upper_constraint, update_upper_constraint,
                                  cache.variables[pos_var_id], reaction, flux_value)
 
             def update_lower_constraint(model, constraint, var, reaction, flux_value):
@@ -264,7 +264,7 @@ def lmoma(model, reference=None, cache=None, reactions=None, *args, **kwargs):
                                                                name=constraint_id)
                 return constraint
 
-            cache.add_constraint("c_%s_lb" % rid, create_lower_constraint, update_lower_constraint,
+            cache.add_constraint("lmoma_const_%s_lb" % rid, create_lower_constraint, update_lower_constraint,
                                  cache.variables[neg_var_id], reaction, flux_value)
 
         def create_objective(model, variables):
@@ -273,16 +273,13 @@ def lmoma(model, reference=None, cache=None, reactions=None, *args, **kwargs):
                                                     sloppy=False)
         cache.add_objective(create_objective, None, cache.variables.values())
 
-        try:
+        solution = model.optimize(raise_error=True)
+        if reactions is not None:
+            result = FluxDistributionResult({r: solution.get_primal_by_id(r) for r in reactions}, solution.f)
+        else:
+            result = FluxDistributionResult.from_solution(solution)
+        return result
 
-            solution = model.optimize(raise_error=True)
-            if reactions is not None:
-                result = FluxDistributionResult({r: solution.get_primal_by_id(r) for r in reactions}, solution.f)
-            else:
-                result = FluxDistributionResult.from_solution(solution)
-            return result
-        except OptimizationError as e:
-            raise e
     except Exception as e:
         cache.rollback()
         raise e
@@ -345,10 +342,10 @@ def room(model, reference=None, cache=None, delta=0.03, epsilon=0.001, reactions
 
             def update_upper_constraint(model, constraint, reaction, variable, flux_value, epsilon):
                 w_u = flux_value + delta * abs(flux_value) + epsilon
-                constraint._set_coefficients_low_level({variable: reaction.upper_bound - w_u})
+                constraint.set_linear_coefficients({variable: reaction.upper_bound - w_u})
                 constraint.ub = w_u
 
-            cache.add_constraint("c_%s_upper" % rid, create_upper_constraint, update_upper_constraint,
+            cache.add_constraint("room_const_%s_upper" % rid, create_upper_constraint, update_upper_constraint,
                                  reaction, cache.variables["y_%s" % rid], flux_value, epsilon)
 
             def create_lower_constraint(model, constraint_id, reaction, variable, flux_value, epsilon):
@@ -361,24 +358,21 @@ def room(model, reference=None, cache=None, delta=0.03, epsilon=0.001, reactions
 
             def update_lower_constraint(model, constraint, reaction, variable, flux_value, epsilon):
                 w_l = flux_value - delta * abs(flux_value) - epsilon
-                constraint._set_coefficients_low_level({variable: reaction.lower_bound - w_l})
+                constraint.set_linear_coefficients({variable: reaction.lower_bound - w_l})
                 constraint.lb = w_l
 
-            cache.add_constraint("c_%s_lower" % rid, create_lower_constraint, update_lower_constraint,
+            cache.add_constraint("room_const_%s_lower" % rid, create_lower_constraint, update_lower_constraint,
                                  reaction, cache.variables["y_%s" % rid], flux_value, epsilon)
 
         model.objective = model.solver.interface.Objective(add([mul([One, var]) for var in cache.variables.values()]),
                                                            direction='min')
-        try:
-            solution = model.optimize(raise_error=True)
-            if reactions is not None:
-                result = FluxDistributionResult({r: solution.get_primal_by_id(r) for r in reactions}, solution.f)
-            else:
-                result = FluxDistributionResult.from_solution(solution)
-            return result
-        except OptimizationError as e:
-            logger.error("room could not determine an optimal solution for objective %s" % model.objective)
-            raise e
+
+        solution = model.optimize(raise_error=True)
+        if reactions is not None:
+            result = FluxDistributionResult({r: solution.get_primal_by_id(r) for r in reactions}, solution.f)
+        else:
+            result = FluxDistributionResult.from_solution(solution)
+        return result
 
     except Exception as e:
         cache.rollback()
@@ -531,7 +525,6 @@ class FluxDistributionResult(Result):
 if __name__ == '__main__':
     import time
     from cobra.io import read_sbml_model
-    from cobra.flux_analysis.parsimonious import optimize_minimal_flux
     from cameo import load_model
 
     # sbml_path = '../../tests/data/EcoliCore.xml'

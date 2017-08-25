@@ -23,12 +23,12 @@ import re
 import numpy as np
 import pandas
 import pytest
-from sympy import Add
-from cobra.util import create_stoichiometric_matrix, fix_objective_as_constraint
-from cobra.flux_analysis.parsimonious import add_pfba
-
 from cobra import Metabolite, Reaction
+from cobra.exceptions import OptimizationError
 from cobra.flux_analysis import find_essential_reactions
+from cobra.flux_analysis.parsimonious import add_pfba
+from cobra.util import create_stoichiometric_matrix, fix_objective_as_constraint
+from sympy import Add
 
 from cameo.flux_analysis import remove_infeasible_cycles, structural
 from cameo.flux_analysis.analysis import (find_blocked_reactions,
@@ -38,7 +38,7 @@ from cameo.flux_analysis.analysis import (find_blocked_reactions,
 from cameo.flux_analysis.simulation import fba, lmoma, moma, pfba, room
 from cameo.flux_analysis.structural import nullspace
 from cameo.parallel import MultiprocessingView, SequentialView
-from cameo.util import current_solver_name, pick_one
+from cameo.util import current_solver_name, pick_one, ProblemCache
 
 TRAVIS = 'TRAVIS' in os.environ
 TEST_DIR = os.path.dirname(__file__)
@@ -244,6 +244,8 @@ class TestSimulationMethods:
         distance = sum((abs(solution[v] - pfba_solution[v]) for v in pfba_solution.keys()))
         assert abs(0 - distance) > 1e-6, "lmoma distance without knockouts must be 0 (was %f)" % distance
         assert core_model.objective.expression == original_objective.expression
+        assert not any(v.name.startswith("u_") for v in core_model.solver.variables)
+        assert not any(c.name.startswith("lmoma_const_") for c in core_model.solver.constraints)
 
     def test_lmoma_with_reaction_filter(self, core_model):
         original_objective = core_model.objective
@@ -252,6 +254,8 @@ class TestSimulationMethods:
                          reactions=['EX_o2_LPAREN_e_RPAREN_', 'EX_glc_LPAREN_e_RPAREN_'])
         assert len(solution.fluxes) == 2
         assert core_model.objective.expression == original_objective.expression
+        assert not any(v.name.startswith("u_") for v in core_model.solver.variables)
+        assert not any(c.name.startswith("lmoma_const_") for c in core_model.solver.constraints)
 
     def test_moma(self, core_model):
         if current_solver_name(core_model) == 'glpk':
@@ -262,6 +266,8 @@ class TestSimulationMethods:
         distance = sum((abs(solution[v] - pfba_solution[v]) for v in pfba_solution.keys()))
         assert abs(0 - distance) < 1e-6, "moma distance without knockouts must be 0 (was %f)" % distance
         assert core_model.objective.expression == original_objective.expression
+        assert not any(v.name.startswith("moma_aux_") for v in core_model.solver.variables)
+        assert not any(c.name.startswith("moma_const_") for c in core_model.solver.constraints)
 
     def test_room(self, core_model):
         original_objective = core_model.objective
@@ -270,6 +276,8 @@ class TestSimulationMethods:
         assert abs(0 - solution.objective_value) < 1e-6, \
             "room objective without knockouts must be 0 (was %f)" % solution.objective_value
         assert core_model.objective.expression == original_objective.expression
+        assert not any(v.name.startswith("y_") for v in core_model.solver.variables)
+        assert not any(c.name.startswith("moma_const_") for c in core_model.solver.constraints)
 
     def test_room_with_reaction_filter(self, core_model):
         original_objective = core_model.objective
@@ -278,12 +286,71 @@ class TestSimulationMethods:
                         reactions=['EX_o2_LPAREN_e_RPAREN_', 'EX_glc_LPAREN_e_RPAREN_'])
         assert len(solution.fluxes) == 2
         assert core_model.objective.expression == original_objective.expression
+        assert not any(v.name.startswith("y_") for v in core_model.solver.variables)
+
+    def test_moma_with_cache(self, core_model):
+        if current_solver_name(core_model) == 'glpk':
+            pytest.skip('glpk does not support qp')
+        original_objective = core_model.objective
+        pfba_solution = pfba(core_model)
+        essential_reactions = find_essential_reactions(core_model)
+        cache = ProblemCache(core_model)
+        for r in core_model.reactions:
+            if r not in essential_reactions:
+                with core_model:
+                    r.knock_out()
+                    moma(core_model, reference=pfba_solution, cache=cache)
+                    assert any(v.name.startswith("moma_aux_") for v in core_model.solver.variables)
+                    assert any(c.name.startswith("moma_const_") for c in core_model.solver.constraints)
+        cache.reset()
+        assert core_model.objective.expression == original_objective.expression
+        assert not any(v.name.startswith("moma_aux_") for v in core_model.solver.variables)
+        assert not any(c.name.startswith("moma_const_") for c in core_model.solver.constraints)
+
+    def test_lmoma_with_cache(self, core_model):
+        original_objective = core_model.objective
+        pfba_solution = pfba(core_model)
+        essential_reactions = find_essential_reactions(core_model)
+        cache = ProblemCache(core_model)
+        for r in core_model.reactions:
+            if r not in essential_reactions:
+                with core_model:
+                    r.knock_out()
+                    lmoma(core_model, reference=pfba_solution, cache=cache)
+                    assert any(v.name.startswith("u_") for v in core_model.solver.variables)
+                    assert any(c.name.startswith("lmoma_const_") for c in core_model.solver.constraints)
+        cache.reset()
+        assert core_model.objective.expression == original_objective.expression
+        assert not any(v.name.startswith("u_") for v in core_model.solver.variables)
+        assert not any(c.name.startswith("lmoma_const_") for c in core_model.solver.constraints)
+
+    def test_room_with_cache(self, core_model):
+        original_objective = core_model.objective
+        pfba_solution = pfba(core_model)
+        essential_reactions = find_essential_reactions(core_model)
+        cache = ProblemCache(core_model)
+        for r in core_model.reactions:
+            if r not in essential_reactions:
+                with core_model:
+                    r.knock_out()
+                    try:
+                        room(core_model, reference=pfba_solution, cache=cache)
+                        assert any(v.name.startswith("y_") for v in core_model.solver.variables)
+                        assert any(c.name.startswith("room_const_") for c in core_model.solver.constraints)
+                    except OptimizationError:  # TODO: room shouldn't return infeasible for non-essential reacitons
+                        continue
+        cache.reset()
+        assert core_model.objective.expression == original_objective.expression
+        assert not any(v.name.startswith("y_") for v in core_model.solver.variables)
+        assert not any(c.name.startswith("room_const_") for c in core_model.solver.constraints)
 
     def test_room_shlomi_2005(self, toy_model):
         original_objective = toy_model.objective
         reference = {"b1": 10, "v1": 10, "v2": 5, "v3": 0, "v4": 0, "v5": 0, "v6": 5, "b2": 5, "b3": 5}
         expected = {'b1': 10.0, 'b2': 5.0, 'b3': 5.0, 'v1': 10.0,
                     'v2': 5.0, 'v3': 0.0, 'v4': 5.0, 'v5': 5.0, 'v6': 0.0}
+        assert not any(v.name.startswith("y_") for v in toy_model.solver.variables)
+
         with toy_model:
             toy_model.reactions.v6.knock_out()
             result = room(toy_model, reference=reference, delta=0, epsilon=0)
@@ -291,6 +358,7 @@ class TestSimulationMethods:
         for k in reference.keys():
             assert abs(expected[k] - result.fluxes[k]) < 0.1, "%s: %f | %f"
         assert toy_model.objective.expression == original_objective.expression
+        assert not any(v.name.startswith("y_") for v in toy_model.variables)
 
     def test_moma_shlomi_2005(self, toy_model):
         if current_solver_name(toy_model) == 'glpk':
@@ -308,6 +376,7 @@ class TestSimulationMethods:
         for k in reference.keys():
             assert abs(expected[k] - result.fluxes[k]) < 0.1, "%s: %f | %f"
         assert toy_model.objective.expression == original_objective.expression
+        assert not any(v.name.startswith("u_") for v in toy_model.solver.variables)
 
     def test_moma_shlomi_2005_change_ref(self, toy_model):
         if current_solver_name(toy_model) == 'glpk':
@@ -325,8 +394,9 @@ class TestSimulationMethods:
         for k in reference.keys():
             assert abs(expected[k] - result.fluxes[k]) < 0.1, "%s: %f | %f"
         assert toy_model.objective.expression == original_objective.expression
+        assert not any(v.name.startswith("u_") for v in toy_model.solver.variables)
 
-    # TODO: this test should be merged with the one above but problemcache is not resetting the model properly anymore.
+    # TODO: this test should be merged with the one above but problem cache is not resetting the model properly anymore.
     def test_moma_shlomi_2005_change_ref_1(self, toy_model):
         if current_solver_name(toy_model) == 'glpk':
             pytest.skip('glpk does not support qp')
@@ -338,6 +408,7 @@ class TestSimulationMethods:
             toy_model.reactions.v6.knock_out()
             result_changed = moma(toy_model, reference=reference_changed)
         assert np.all([expected != result_changed.fluxes])
+        assert not any(v.name.startswith("u_") for v in toy_model.solver.variables)
 
 
 class TestRemoveCycles:
