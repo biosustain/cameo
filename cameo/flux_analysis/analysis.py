@@ -94,7 +94,7 @@ def knock_out_metabolite(metabolite, force_steady_state=False):
                                        reaction_id="KO_{}".format(metabolite.id))
     else:
         previous_bounds = metabolite.constraint.lb, metabolite.constraint.ub
-        metabolite.constraint.lb, metabolite.constraint.ub = None, None
+        metabolite.constraint.lb, metabolite.constraint.ub = -1000, 1000
         context = get_context(metabolite)
         if context:
             def reset():
