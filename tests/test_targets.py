@@ -210,16 +210,18 @@ class TestTargets:
         assert isinstance(abstract_target_gnomic, Accession)
         assert abstract_target_gnomic.identifier == abstract_target.id
 
-    def test_gnomic_integration_FluxModulationTarget(self, model):
+        def test_gnomic_integration_FluxModulationTarget(self, model):
         # with pytest.raises(ValueError):
         #     FluxModulationTarget("test", 0, 0)  # TODO: this should really not be possible
         flux_modulation_target = FluxModulationTarget("test", 1, 0)
         flux_modulation_target_gnomic = flux_modulation_target.to_gnomic()
-        assert genotype_to_string(Genotype([flux_modulation_target_gnomic])) == "+flux.test(value=1)"
+        expected = "flux.test(value=1)>flux.test(value=0)"
+        assert genotype_to_string(Genotype([flux_modulation_target_gnomic])) == expected 
 
         flux_modulation_target = FluxModulationTarget("PGK", 0.5, 1, accession_id="PGK", accession_db="bigg")
         flux_modulation_target_gnomic = flux_modulation_target.to_gnomic()
-        assert genotype_to_string(Genotype([flux_modulation_target_gnomic])) == "+flux.PGK(value=0.5)#bigg:PGK"
+        expected = "flux.PGK(value=1)#bigg:PGK>flux.PGK(value=0.5)#bigg:PGK"
+        assert genotype_to_string(Genotype([flux_modulation_target_gnomic])) == expected 
 
     def test_gnomic_integration_ReactionKnockinTarget(self, model):
         reaction = Reaction(id="atpzase", name="Cosmic ATP generator")
@@ -244,7 +246,8 @@ class TestTargets:
 
         swap_target = ReactionCofactorSwapTarget("GAPD", swap_pairs)
         swap_target_gnomic = swap_target.to_gnomic()
-        assert genotype_to_string(Genotype([swap_target_gnomic])) == "+reaction.GAPD(nad_c=nadp_c;nadh_c=nadph_c)"
+        expected = "reaction.GAPD(cofactors=nad_c,nadh_c)>reaction.GAPD(cofactors=nadp_c,nadph_c)"
+        assert genotype_to_string(Genotype([swap_target_gnomic])) == expected
 
 
 class TestEnsembleTargets:
