@@ -209,8 +209,8 @@ class TestTargets:
         abstract_target_gnomic = abstract_target.to_gnomic()
         assert isinstance(abstract_target_gnomic, Accession)
         assert abstract_target_gnomic.identifier == abstract_target.id
-
-        def test_gnomic_integration_FluxModulationTarget(self, model):
+        
+    def test_gnomic_integration_FluxModulationTarget(self, model):
         # with pytest.raises(ValueError):
         #     FluxModulationTarget("test", 0, 0)  # TODO: this should really not be possible
         flux_modulation_target = FluxModulationTarget("test", 1, 0)
