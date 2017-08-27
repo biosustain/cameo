@@ -15,8 +15,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 import pytest
 import six
-from gnomic import Genotype, genotype_to_string, Mutation, FeatureTree, Feature, Accession
 
+from gnomic.types import Accession, Feature, Change
+from gnomic.utils import genotype_to_string, genotype_to_text
 from cobra import Metabolite, Reaction
 
 from cameo.core.target import (ReactionKnockoutTarget, ReactionModulationTarget, GeneKnockoutTarget,
