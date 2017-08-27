@@ -179,7 +179,7 @@ class FluxModulationTarget(Target):
             return Change(before=feature)
         elif self.fold_change != 0:
             wt_feature = Feature(name=self.id, accession=accession, type=self.__gnomic_feature_type__,
-                                 variant=["value=wt"])
+                                 variant=["value={}".format(self._reference_value)]))
             feature = Feature(name=self.id, accession=accession, type=self.__gnomic_feature_type__,
                               variant=["value={}".format(self._value)])
             return Change(before=wt_feature, after=feature)
