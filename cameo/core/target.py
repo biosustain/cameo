@@ -179,9 +179,9 @@ class FluxModulationTarget(Target):
             return Change(before=feature)
         elif self.fold_change != 0:
             wt_feature = Feature(name=self.id, accession=accession, type=self.__gnomic_feature_type__,
-                                   variant="value=wt")
+                                   variant=["value=wt"])
             feature = Feature(name=self.id, accession=accession, type=self.__gnomic_feature_type__,
-                              variant="value={}".format(self._value))
+                              variant=["value={}".format(self._value)])
             return Change(before=wt_feature, after=feature)
         # TODO: swap above with following once gnomic's genotype_to_string properly deals with substitutions
         # elif self.fold_change != 0:
@@ -213,10 +213,10 @@ class ReactionCofactorSwapTarget(Target):
         accession = Target.to_gnomic(self)
         pairs = [(metabolite1.id, metabolite2.id) for metabolite1, metabolite2 in zip(*self.swap_pairs)]
         wt_feature = Feature(name=self.id, accession=accession, type='reaction',
-                    variant="cofactors=%s" % ",".join(pairs[0]))
+                    variant=["cofactors=%s" % ",".join(pairs[0])])
 
         feature = Feature(name=self.id, accession=accession, type='reaction',
-                          variant="cofactors=%s" % ",".join(pairs[1]))
+                          variant=["cofactors=%s" % ",".join(pairs[1])])
         return Change(before=wt_feature, after=feature)
 
     def __repr__(self):
