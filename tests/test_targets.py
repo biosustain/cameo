@@ -16,6 +16,9 @@
 import pytest
 import six
 
+
+from gnomic.genotype import Genotype
+
 from gnomic.types import Accession, Feature, Change
 from gnomic.utils import genotype_to_string, genotype_to_text
 from cobra import Metabolite, Reaction
