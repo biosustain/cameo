@@ -183,10 +183,10 @@ class FluxModulationTarget(Target):
             old_feature = Feature(name=self.id, accession=accession, type=self.__gnomic_feature_type__,
                                   variant=["value={}".format(self._value)])
         else:
-           raise RuntimeError("fold_change shouldn't be 0")
-           
+            raise RuntimeError("fold_change shouldn't be 0")
+
         return Change(before=old_feature, after=new_feature)
-        
+
 
 class ReactionCofactorSwapTarget(Target):
     """
