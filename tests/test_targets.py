@@ -218,7 +218,7 @@ class TestTargets:
         #     FluxModulationTarget("test", 0, 0)  # TODO: this should really not be possible
         flux_modulation_target = FluxModulationTarget("test", 1, 0)
         flux_modulation_target_gnomic = flux_modulation_target.to_gnomic()
-        expected = "flux.test(value=1)>flux.test(value=0)"
+        expected = "flux.test(value=0)>flux.test(value=1)"
         assert genotype_to_string(Genotype([flux_modulation_target_gnomic])) == expected 
 
         flux_modulation_target = FluxModulationTarget("PGK", 0.5, 1, accession_id="PGK", accession_db="bigg")
