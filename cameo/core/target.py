@@ -211,7 +211,7 @@ class ReactionCofactorSwapTarget(Target):
 
     def to_gnomic(self):
         accession = Target.to_gnomic(self)
-        pairs = [(metabolite1.id, metabolite2.id) for metabolite1, metabolite2 in zip(*self.swap_pairs)]
+        pairs = [(m.id for m in pair) for pair in self.swap_pairs]
         wt_feature = Feature(name=self.id, accession=accession, type='reaction',
                              variant=["cofactors=%s" % ",".join(pairs[0])])
 
