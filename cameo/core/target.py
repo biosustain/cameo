@@ -13,8 +13,8 @@
 # limitations under the License.
 
 import numpy
-from gnomic.types import Accession, Feature, Change
 from gnomic.genotype import Genotype
+from gnomic.types import Accession, Feature, Change
 from gnomic.utils import genotype_to_string, genotype_to_text
 
 from cameo.core.manipulation import swap_cofactors, increase_flux, decrease_flux, reverse_flux
@@ -178,9 +178,9 @@ class FluxModulationTarget(Target):
             old_feature = Feature(name=self.id, accession=accession, type=self.__gnomic_feature_type__)
             new_feature = None
         elif self.fold_change != 0:
-            new_feature = Feature(name=self.id, accession=accession, type=self.__gnomic_feature_type__,
-                                  variant=["value={}".format(self._reference_value)])
             old_feature = Feature(name=self.id, accession=accession, type=self.__gnomic_feature_type__,
+                                  variant=["value={}".format(self._reference_value)])
+            new_feature = Feature(name=self.id, accession=accession, type=self.__gnomic_feature_type__,
                                   variant=["value={}".format(self._value)])
         else:
             raise RuntimeError("fold_change shouldn't be 0")
