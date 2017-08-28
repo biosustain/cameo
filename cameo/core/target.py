@@ -175,22 +175,18 @@ class FluxModulationTarget(Target):
     def to_gnomic(self):
         accession = Target.to_gnomic(self)
         if self._value == 0:
-            feature = Feature(name=self.id, accession=accession, type=self.__gnomic_feature_type__)
-            return Change(before=feature)
+            old_feature = Feature(name=self.id, accession=accession, type=self.__gnomic_feature_type__)
+            new_feature = None
         elif self.fold_change != 0:
-            wt_feature = Feature(name=self.id, accession=accession, type=self.__gnomic_feature_type__,
-                                 variant=["value={}".format(self._reference_value)])
-            feature = Feature(name=self.id, accession=accession, type=self.__gnomic_feature_type__,
-                              variant=["value={}".format(self._value)])
-            return Change(before=wt_feature, after=feature)
-        # TODO: swap above with following once gnomic's genotype_to_string properly deals with substitutions
-        # elif self.fold_change != 0:
-        #     old_feature = Feature(name=self.id, accession=accession, type=Type(self.__gnomic_feature_type__),
-        #                       variant="flux={}".format(self._reference_value))
-        #     new_feature = Feature(name=self.id, accession=accession, type=Type(self.__gnomic_feature_type__),
-        #                           variant="flux={}".format(self._value))
-        #     return Sub(old_feature, new_feature)
-
+            new_feature = Feature(name=self.id, accession=accession, type=self.__gnomic_feature_type__,
+                                  variant=["value={}".format(self._reference_value)])
+            old_feature = Feature(name=self.id, accession=accession, type=self.__gnomic_feature_type__,
+                                  variant=["value={}".format(self._value)])
+        else:
+           raise RuntimeError("fold_change shouldn't be 0")
+           
+        return Change(before=old_feature, after=new_feature)
+        
 
 class ReactionCofactorSwapTarget(Target):
     """
