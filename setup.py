@@ -40,7 +40,7 @@ requirements = ['numpy>=1.9.1',
                 'inspyred>=1.0',
                 'lazy-object-proxy>=1.2.0',
                 'palettable>=2.1.1',
-                'gnomic>=0.5.1',
+                'gnomic==0.6.0',
                 'openpyxl>=2.4.5',
                 'click>=6.7']
 

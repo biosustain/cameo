@@ -191,6 +191,25 @@ def find_coupled_reactions_nullspace(model, ns=None, tol=1e-10):
             reaction_j = non_blocked_reactions[j]
             right = non_blocked_ns[j]
             ratio = np.apply_along_axis(lambda x: x[0] / x[1] if abs(x[1]) > 0. else np.inf, 0, np.array([left, right]))
+
+            # special case:
+            # if ratio is 1 (a/b == 1) then a == b.
+            # but if a = 0 and b = 0, then a/b = np.inf.
+            # solution:
+            # mask inf from ratio
+            # check if non-inf elements ratio is ~1
+            # check if left and right values are 0 for indices with inf ratio
+            # if yes, replace with 1
+            inf_mask = np.isinf(ratio)
+            non_inf = ratio[~inf_mask]
+
+            if (abs((non_inf - 1)) < tol * 100).all():
+                right_is_zero = (abs(right[inf_mask]) < tol).all()
+                left_is_zero = (abs(left[inf_mask]) < tol).all()
+
+                if right_is_zero and left_is_zero:
+                    ratio[inf_mask] = 1
+
             if abs(max(ratio) - min(ratio)) < tol * 100:
                 group[reaction_j] = round(ratio.mean(), 10)
 
