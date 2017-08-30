@@ -244,8 +244,8 @@ class ProblemCache(object):
         """
         Removes all constraints and variables from the cache.
         """
-        variables = self.variables.keys()
-        constraints = self.constraints.keys()
+        variables = list(self.variables.keys())
+        constraints = list(self.constraints.keys())
         while len(self._contexts) > 0:
             manager = self._contexts.pop()
             manager.reset()
