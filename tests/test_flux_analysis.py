@@ -329,6 +329,7 @@ class TestSimulationMethods:
         pfba_solution = pfba(core_model)
         essential_reactions = find_essential_reactions(core_model)
         cache = ProblemCache(core_model)
+        infeasible = 0
         for r in core_model.reactions:
             if r not in essential_reactions:
                 with core_model:
@@ -337,14 +338,18 @@ class TestSimulationMethods:
                         room(core_model, reference=pfba_solution, cache=cache)
                         assert any(v.name.startswith("y_") for v in core_model.solver.variables)
                         assert any(c.name.startswith("room_const_") for c in core_model.solver.constraints)
-                    except OptimizationError:  # TODO: room shouldn't return infeasible for non-essential reacitons
+                    except OptimizationError:  # TODO: room shouldn't return infeasible for non-essential reactions
+                        infeasible += 1
                         continue
+        assert infeasible < len(core_model.reactions)
         cache.reset()
         assert core_model.objective.expression == original_objective.expression
         assert not any(v.name.startswith("y_") for v in core_model.solver.variables)
         assert not any(c.name.startswith("room_const_") for c in core_model.solver.constraints)
 
     def test_room_shlomi_2005(self, toy_model):
+        if current_solver_name(toy_model) == "glpk":
+            pytest.xfail("this test doesn't work with glpk")
         original_objective = toy_model.objective
         reference = {"b1": 10, "v1": 10, "v2": 5, "v3": 0, "v4": 0, "v5": 0, "v6": 5, "b2": 5, "b3": 5}
         expected = {'b1': 10.0, 'b2': 5.0, 'b3': 5.0, 'v1': 10.0,
