@@ -1,0 +1,8 @@
+# Release notes for cameo 0.11.2
+
+## Fixes
+
+- Fix the ProblemCache used in moma, lmoma and room to use cobrapy's
+  HistoryManager instead of the TimeMachine, resolving an issue which
+  caused repeated application of these methods on the same model to
+  fail.
