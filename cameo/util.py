@@ -32,6 +32,7 @@ import numpy
 import pandas
 import pip
 import six
+from cobra.util.context import HistoryManager
 from numpy.random import RandomState
 from six.moves import range
 
@@ -120,50 +121,51 @@ class ProblemCache(object):
     """
 
     def __init__(self, model):
-        self.time_machine = None
+        self.history_manager = None
         self._model = model
         self.variables = {}
         self.constraints = {}
         self.objective = None
-        self.original_objective = model.objective
-        self.time_machine = TimeMachine()
+        self.original_objective = model.solver.objective
+        self._contexts = [HistoryManager()]
         self.transaction_id = None
 
     def begin_transaction(self):
         """
         Creates a time point. If rollback is called, the variables and constrains will be reverted to this point.
         """
-        self.transaction_id = uuid1()
-        self.time_machine(do=int, undo=int, bookmark=self.transaction_id)
+        self._contexts.append(HistoryManager())
 
     @property
     def model(self):
         return self._model
 
     def _append_constraint(self, constraint_id, create, *args, **kwargs):
-        self.constraints[constraint_id] = create(self.model, constraint_id, *args, **kwargs)
-        self._model.solver.add(self.constraints[constraint_id])
+        constraint = self.constraints[constraint_id] = create(self._model, constraint_id, *args, **kwargs)
+        assert constraint_id in self.constraints
+        self._model.solver.add(constraint)
 
     def _remove_constraint(self, constraint_id):
         constraint = self.constraints.pop(constraint_id)
-        self.model.solver.remove(constraint)
+        self._model.solver.remove(constraint)
 
     def _append_variable(self, variable_id, create, *args, **kwargs):
-        self.variables[variable_id] = create(self.model, variable_id, *args, **kwargs)
-        self.model.solver.add(self.variables[variable_id])
+        variable = self.variables[variable_id] = create(self._model, variable_id, *args, **kwargs)
+        assert variable_id in self.variables
+        self._model.solver.add(variable)
 
     def _remove_variable(self, variable_id):
         variable = self.variables.pop(variable_id)
-        self.model.solver.remove(variable)
+        self._model.solver.remove(variable)
 
     def _rebuild_variable(self, variable):
         (type, lb, ub, name) = variable.type, variable.lb, variable.ub, variable.name
 
         def rebuild():
-            self.model.solver.remove(variable)
+            self._model.solver.remove(variable)
             new_variable = self.model.solver.interface.Variable(name, lb=lb, ub=ub, type=type)
             self.variables[name] = variable
-            self.model.solver.add(new_variable, sloppy=True)
+            self._model.solver.add(new_variable, sloppy=True)
 
         return rebuild
 
@@ -179,21 +181,22 @@ class ProblemCache(object):
 
         Arguments
         ---------
-        constraint_id: str
+        constraint_id : str
             The identifier of the constraint
-        create: function
+        create : function
             A function that creates an optlang.interface.Constraint
-        update: function
+        update : function
             a function that updates an optlang.interface.Constraint
         """
-        if constraint_id in self.constraints:
-            if update is not None:
-                update(self.model, self.constraints[constraint_id], *args, **kwargs)
-        else:
-            self.time_machine(
-                do=partial(self._append_constraint, constraint_id, create, *args, **kwargs),
-                undo=partial(self._remove_constraint, constraint_id)
-            )
+        context = self._contexts[-1]
+
+        if constraint_id not in self.constraints:
+            self._append_constraint(constraint_id, create, *args, **kwargs)
+            context(partial(self._remove_constraint, constraint_id))
+        elif update is not None:
+            update(self._model, self.constraints[constraint_id], *args, **kwargs)
+
+        assert constraint_id in self.constraints
 
     def add_variable(self, variable_id, create, update, *args, **kwargs):
         """
@@ -207,60 +210,60 @@ class ProblemCache(object):
 
         Arguments
         ---------
-        constraint_id: str
+        variable_id : str
             The identifier of the constraint
-        create: function
+        create : function
             A function that creates an optlang.interface.Variable
-        update: function
+        update : function
             a function that updates an optlang.interface.Variable
         """
-        if variable_id in self.variables:
-            if update is not None:
-                self.time_machine(
-                    do=partial(update, self.model, self.variables[variable_id], *args, **kwargs),
-                    undo=self._rebuild_variable(self.variables[variable_id]))
-        else:
-            self.time_machine(
-                do=partial(self._append_variable, variable_id, create, *args, **kwargs),
-                undo=partial(self._remove_variable, variable_id)
-            )
+        context = self._contexts[-1]
+        if variable_id not in self.variables:
+            self._append_variable(variable_id, create, *args, **kwargs)
+            context(partial(self._remove_variable, variable_id))
+        elif update is not None:
+            # rebuild_function = self._rebuild_variable(self.variables[variable_id])
+            update(self._model, self.variables[variable_id], *args, **kwargs)
+            # context(rebuild_function)
+
+        assert variable_id in self.variables
 
     def add_objective(self, create, update, *args):
+        context = self._contexts[-1]
         if self.objective is None:
-            self.objective = create(self.model, *args)
-            self.time_machine(
-                do=partial(setattr, self.model, 'objective', self.objective),
-                undo=partial(setattr, self.model, 'objective', self.model.objective)
-            )
-        else:
-            if update:
-                self.objective = update(self.model, *args)
-                self.time_machine(
-                    do=partial(setattr, self.model, 'objective', self.objective),
-                    undo=partial(setattr, self.model, 'objective', self.model.objective)
-                )
+            previous_objective = self._model.solver.objective
+            self.model.solver.objective = self.objective = create(self._model, *args)
+            context(partial(setattr, self._model.solver, 'objective', previous_objective))
+
+        elif update:
+            previous_objective = self._model.solver.objective
+            self.model.solver.objective = self.objective = update(self._model, *args)
+            context(partial(setattr, self._model.solver, 'objective', previous_objective))
 
     def reset(self):
         """
         Removes all constraints and variables from the cache.
         """
-        self.model.solver.remove(self.constraints.values())
-        self.model.solver.remove(self.variables.values())
-        self.model.objective = self.original_objective
+        variables = list(self.variables.keys())
+        constraints = list(self.constraints.keys())
+        while len(self._contexts) > 0:
+            manager = self._contexts.pop()
+            manager.reset()
+        self._contexts.append(HistoryManager())
+        assert all(var_id not in self._model.solver.variables for var_id in variables)
+        assert all(const_id not in self._model.solver.constraints for const_id in constraints)
         self.variables = {}
-        self.objective = None
         self.constraints = {}
-        self.transaction_id = None
-        self.time_machine.history.clear()
+        self._model.objective = self.original_objective
+        self.objective = None
 
     def rollback(self):
         """
         Returns to the previous transaction start point.
         """
-        if self.transaction_id is None:
+        if len(self._contexts) < 2:
             raise RuntimeError("Start transaction must be called before rollback")
-        self.time_machine.undo(self.transaction_id)
-        self.transaction_id = None
+        self._contexts.pop().reset()
 
     def __enter__(self):
         """
@@ -271,6 +274,7 @@ class ProblemCache(object):
         You want to run room/lmoma for every single knockout.
         >>> with ProblemCache(model) as cache:
         >>>     for reaction in reactions:
+        >>>         reaction.knock_out()
         >>>         result = lmoma(model, reference=reference, cache=cache)
 
         Returns
