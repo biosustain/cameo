@@ -132,14 +132,12 @@ class PathwayResult(Pathway, Result, StrainDesign):
             model.add_reactions(self.adapters)
         if exchanges:
             model.add_reactions(self.exchanges)
-
-        self.product.lower_bound = 0
         try:
             model.add_reaction(self.product)
         except Exception:
             logger.warning("Exchange %s already in model" % self.product.id)
             pass
-
+        self.product.lower_bound = 0
 
 class PathwayPredictions(StrainDesignMethodResult):
     __method_name__ = "PathwayPredictor"

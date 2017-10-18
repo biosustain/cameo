@@ -925,14 +925,14 @@ class TestOptimizationResult:
             assert solutions.archive.count(individual) == 1, "%s is unique in archive" % individual
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def reaction_ko_single_objective(model):
     objective = biomass_product_coupled_yield(
         "Biomass_Ecoli_core_N_lp_w_fsh_GAM_rp__Nmet2", "EX_ac_lp_e_rp_", "EX_glc_lp_e_rp_")
     return ReactionKnockoutOptimization(model=model, simulation_method=fba, objective_function=objective)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def reaction_ko_multi_objective(model):
     objective1 = biomass_product_coupled_yield(
         "Biomass_Ecoli_core_N_lp_w_fsh_GAM_rp__Nmet2", "EX_ac_lp_e_rp_", "EX_glc_lp_e_rp_")
@@ -1025,14 +1025,14 @@ class TestReactionKnockoutOptimization:
         benchmark(reaction_ko_multi_objective.run, max_evaluations=3000, pop_size=10, view=SequentialView(), seed=SEED)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def gene_ko_single_objective(model):
     objective = biomass_product_coupled_yield(
         "Biomass_Ecoli_core_N_lp_w_fsh_GAM_rp__Nmet2", "EX_ac_lp_e_rp_", "EX_glc_lp_e_rp_")
     return GeneKnockoutOptimization(model=model, simulation_method=fba, objective_function=objective)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def gene_ko_multi_objective(model):
     objective1 = biomass_product_coupled_yield(
         "Biomass_Ecoli_core_N_lp_w_fsh_GAM_rp__Nmet2", "EX_ac_lp_e_rp_", "EX_glc_lp_e_rp_")
