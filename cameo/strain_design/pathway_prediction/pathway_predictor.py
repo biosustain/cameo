@@ -139,6 +139,7 @@ class PathwayResult(Pathway, Result, StrainDesign):
             pass
         self.product.lower_bound = 0
 
+
 class PathwayPredictions(StrainDesignMethodResult):
     __method_name__ = "PathwayPredictor"
 
