@@ -45,7 +45,7 @@ else:
     if in_ipnb():
         from bokeh.plotting import output_notebook
         output_notebook(hide_banner=True)
-    use_bokeh = True
+    use_bokeh = False
     bokeh_url = 'default'
 
 # Set default parallelization view

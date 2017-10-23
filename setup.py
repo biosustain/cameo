@@ -42,12 +42,11 @@ requirements = ['numpy>=1.9.1',
                 'palettable>=2.1.1',
                 'gnomic==0.6.0',
                 'openpyxl>=2.4.5',
-                'click>=6.7']
+                'click>=6.7',
+                'plotly>=1.9.6']
 
 extra_requirements = {
     'docs': ['Sphinx>=1.3.5', 'numpydoc>=0.5'],
-    'plotly': ['plotly>=1.9.6'],
-    'bokeh': ['bokeh<=0.12.1'],
     'jupyter': ['jupyter>=1.0.0', 'ipywidgets>=4.1.1'],
     'test': ['pytest', 'pytest-cov', 'pytest-benchmark'],
     'parallel': ['redis>=2.10.5', 'ipyparallel>=5.0.1'],
