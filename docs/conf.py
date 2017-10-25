@@ -60,8 +60,10 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx.ext.napoleon',
     'sphinx.ext.intersphinx',
+    'nbsphinx',
     'numpydoc'
 ]
+nbsphinx_execute = 'never'
 
 intersphinx_mapping = {'cobrapy': ('https://cobrapy.readthedocs.org/en/latest/', None)}
 
@@ -119,7 +121,8 @@ version = release
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
-exclude_patterns = ['_build']
+exclude_patterns = ['_build', '**.ipynb_checkpoints', 'notebooks/Advanced-SynBio-for-Cell-Factories-Course',
+                    'notebooks/other']
 
 # The reST default role (used for this markup: `text`) to use for all
 # documents.
@@ -162,7 +165,8 @@ html_theme_options = {
     'github_user': 'biosustain',
     'github_repo': 'cameo',
     'travis_button': 'biosustain/cameo',
-    'codecov_button': 'biosustain/cameo'
+    'codecov_button': 'biosustain/cameo',
+    'page_width': '1200px'
 }
 
 # Add any paths that contain custom themes here, relative to this directory.
