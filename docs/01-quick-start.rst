@@ -14,7 +14,7 @@ as well.
 Step 1: Load a model
 --------------------
 
-Loading a model is easy. Just import the ``~cameo.io.load_model``
+Loading a model is easy. Just import the `~cameo.io.load_model`
 function.
 
 .. code:: python
@@ -74,7 +74,7 @@ Step 2: Simulate a model
 ------------------------
 
 The model can be simulated by executing
-``~cameo.core.solver_based_model.SolverBasedModel.solve``.
+`~cameo.core.solver_based_model.SolverBasedModel.solve`.
 
 .. code:: python
 
@@ -83,7 +83,7 @@ The model can be simulated by executing
 A quick overview of the solution can be obtained in form of a pandas
 `DataFrame <http://pandas.pydata.org/pandas-docs/stable/generated/pandas.DataFrame.html>`__
 (all solution objects in cameo provide access to data frames through a
-``data_frame`` attribute).
+`data_frame` attribute).
 
 .. code:: python
 
@@ -156,7 +156,7 @@ A quick overview of the solution can be obtained in form of a pandas
 
 
 
-The data frame is accessible through ``solution.data_frame``.
+The data frame is accessible through `solution.data_frame`.
 
 .. code:: python
 
@@ -308,7 +308,7 @@ Step 3: Exploring a model
 
 Objects—models, reactions, metabolites, genes—can easily be explored in
 the Jupyter notebook, taking advantage of tab completion. For example,
-place your cursor after the period in ``model.reactions.`` and press the
+place your cursor after the period in `model.reactions.` and press the
 TAB key. A dialog will appear that allows you to navigate the list of
 reactions encoded in the model.
 
@@ -385,7 +385,7 @@ cases.
 
     # model.reactions.12DGR120tipp  # uncommenting and running this cell will produce a syntax error
 
-In these cases you need to use the ``model.reactions.get_by_id``.
+In these cases you need to use the `model.reactions.get_by_id`.
 
 .. code:: python
 
@@ -418,7 +418,7 @@ In these cases you need to use the ``model.reactions.get_by_id``.
 
 
 
-Metabolites are accessible through ``model.metabolites``. For example,
+Metabolites are accessible through `model.metabolites`. For example,
 D-glucose in the cytosolic compartment.
 
 .. code:: python
@@ -468,7 +468,7 @@ And it is easy to find the associated reactions
 
 
 A list of the genes encoded in the model can be accessed via
-``model.genes``.
+`model.genes`.
 
 .. code:: python
 
@@ -495,7 +495,7 @@ A list of the genes encoded in the model can be accessed via
 A few additional attributes have been added that are not available in a
 `cobrapy <https://opencobra.github.io/cobrapy/>`__ model. For example,
 exchange reactions that allow certain metabolites to enter or leave the
-model can be accessed through ``model.exchanges``.
+model can be accessed through `model.exchanges`.
 
 .. code:: python
 
@@ -519,7 +519,7 @@ model can be accessed through ``model.exchanges``.
 
 
 
-Or, the current medium can be accessed through ``model.medium``.
+Or, the current medium can be accessed through `model.medium`.
 
 .. code:: python
 

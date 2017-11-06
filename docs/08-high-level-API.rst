@@ -4,10 +4,10 @@ High-level interface for users
 
 Users primarily interested in using cameo as a tool for enumerating
 metabolic engineering strategies have access to cameo's advanced
-programming interface via ``cameo.api`` that provides access to
-potential products (``cameo.api.products``), host organisms
-(``cameo.api.hosts``) and a configurable design function
-(``cameo.api.design``). Running ``cameo.api.design`` requires only
+programming interface via `cameo.api` that provides access to
+potential products (`cameo.api.products`), host organisms
+(`cameo.api.hosts`) and a configurable design function
+(`cameo.api.design`). Running `cameo.api.design` requires only
 minimal input.
 
 .. raw:: html

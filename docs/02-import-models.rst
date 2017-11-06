@@ -5,7 +5,7 @@ Import models
 Import models from files
 ------------------------
 
-The function ``~cameo.io.load_model`` accepts a number of different file
+The function `~cameo.io.load_model` accepts a number of different file
 formats like `SBML <http://sbml.org/>`__ (Systems Biology Markup
 Language) for example.
 
@@ -64,7 +64,7 @@ Import models from the internet
 -------------------------------
 
 In the previous quick start `chapter <1-quick-start.ipynb>`__ we
-demonstrated how to use ``~cameo.io.load_model`` to import a model by
+demonstrated how to use `~cameo.io.load_model` to import a model by
 ID. But where did the model come from? Cameo has currently access to two
 model repositories on the internet, http://bigg.ucsd.edu and
 http://darwin.di.uminho.pt/models.
@@ -437,7 +437,7 @@ http://darwin.di.uminho.pt/models.
 
 Models from `BiGG <http://bigg.ucsd.edu>`__ and the `University of
 Minho <http://darwin.di.uminho.pt/models>`__ can conveniently be accessd
-via ``~cameo.models.bigg`` and ``~cameo.models.minho`` respectively.
+via `~cameo.models.bigg` and `~cameo.models.minho` respectively.
 
 .. code:: python
 
