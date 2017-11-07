@@ -23,8 +23,8 @@ be installed using virtualenv-burrito_. Once you installed virtualenv_ and virtu
 
 and then continue with the installation instructions described above.
 
-Alternatively you can use ``conda`` if you are an `Anaconda <https://anaconda.org/>`__ user (there is no conda recipe for cameo though so you'll
-still need to install it using ``pip``). Do the following to create a virtual environment and get some of the heavier dependencies out of the way.
+Alternatively you can use `conda` if you are an `Anaconda <https://anaconda.org/>`__ user (there is no conda recipe for cameo though so you'll
+still need to install it using `pip`). Do the following to create a virtual environment and get some of the heavier dependencies out of the way.
 
 .. code-block:: guess
 

@@ -329,3 +329,7 @@ texinfo_documents = [
 intersphinx_mapping = {'http://docs.python.org/': None}
 
 autodoc_member_order = 'bysource'
+
+
+def setup(app):
+    app.add_javascript('https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js')
