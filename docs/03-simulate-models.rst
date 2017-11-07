@@ -68,7 +68,7 @@ Load a model.
     model = load_model('iJO1366')
 
 In cameo, flux balance analysis can be performed with the function
-``fba``.
+`fba`.
 
 .. code:: ipython3
 
@@ -82,10 +82,10 @@ In cameo, flux balance analysis can be performed with the function
     Wall time: 145 ms
 
 
-Basically, ``fba`` calls ``model.solve()`` and wraps the optimization
-solution in a ``FluxDistributionResult`` object. The maximum objective
+Basically, `fba` calls `model.solve()` and wraps the optimization
+solution in a `FluxDistributionResult` object. The maximum objective
 values (corresponding to a maximum growth rate) can obtained throug
-``result.objective_value``.
+`result.objective_value`.
 
 .. code:: ipython3
 
@@ -306,7 +306,7 @@ minimize flux magnitude as well in order to keep protein costs low.
     ~ & ~ \mathbf{v}_{lb} \leq \mathbf{v} \leq \mathbf{v}_{ub} \,.
    \end{align}
 
-In cameo, pFBA can be performed with the function ``pfba``.
+In cameo, pFBA can be performed with the function `pfba`.
 
 .. code:: ipython3
 
@@ -320,7 +320,7 @@ In cameo, pFBA can be performed with the function ``pfba``.
     Wall time: 604 ms
 
 
-The ``objective_function`` value is :math:`\lvert \mathbf{v} \rvert` …
+The `objective_function` value is :math:`\lvert \mathbf{v} \rvert` ...
 
 .. code:: ipython3
 
@@ -335,7 +335,7 @@ The ``objective_function`` value is :math:`\lvert \mathbf{v} \rvert` …
 
 
 
-… which is smaller than flux vector of the original FBA solution.
+... which is smaller than flux vector of the original FBA solution.
 
 .. code:: ipython3
 
@@ -362,7 +362,7 @@ ROOM. In *cameo* we implement a linear version of MOMA.
 Simulating knockouts:
 
 -  Manipulate the bounds of the reaction (or use the shorthand method
-   knock_out)
+   knock\_out)
 
 .. code:: ipython3
 

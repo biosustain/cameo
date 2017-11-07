@@ -6,7 +6,7 @@ Easy strain design using a high-level interface
 
    <div class="alert alert-warning">
 
-WARNING: if you’re running this notebook on
+WARNING: if you're running this notebook on
 `try.cameo.bio <http://try.cameo.bio>`__, things might run very slow due
 to our inability to provide access to the
 `CPLEX <https://www-01.ibm.com/software/commerce/optimization/cplex-optimizer/>`__
@@ -18,11 +18,11 @@ and restart due to memory limitations on the server.
    </div>
 
 Users primarily interested in using cameo as a tool for enumerating
-metabolic engineering strategies have access to cameo’s advanced
-programming interface via ``cameo.api`` that provides access to
-potential products (``cameo.api.products``), host organisms
-(``cameo.api.hosts``) and a configurable design function
-(``cameo.api.design``). Running ``cameo.api.design`` requires only
+metabolic engineering strategies have access to cameo's advanced
+programming interface via `cameo.api` that provides access to
+potential products (`cameo.api.products`), host organisms
+(`cameo.api.hosts`) and a configurable design function
+(`cameo.api.design`). Running `cameo.api.design` requires only
 minimal input and will run the following workflow.
 
 Import the advanced interface.
@@ -153,7 +153,7 @@ Host organisms
 
 Currently the following host organisms and respective models are
 available in cameo. More hosts and models will be added in the future
-(please get in touch with us if you’d like to get a particular host
+(please get in touch with us if you'd like to get a particular host
 organism included).
 
 .. code:: ipython3
@@ -172,8 +172,8 @@ organism included).
 Computing strain engineering strategies
 ---------------------------------------
 
-For demonstration purposes, we’ll set a few options to limit the
-computational time. Also we’ll create a multiprocessing view to take
+For demonstration purposes, we'll set a few options to limit the
+computational time. Also we'll create a multiprocessing view to take
 advantage of multicore CPUs (strain design algorithms will be run in
 parallel for individually predicted heterologous pathways).
 

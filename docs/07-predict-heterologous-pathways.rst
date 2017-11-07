@@ -17,7 +17,7 @@ reaction database that enumerates the shortest pathways.
 
    <div class="alert alert-warning">
 
-If you’re running this notebook on
+If you're running this notebook on
 `try.cameo.bio <http://try.cameo.bio>`__, things might run very slow due
 to our inability to provide access to the proprietary
 `CPLEX <https://www-01.ibm.com/software/commerce/optimization/cplex-optimizer/>`__

@@ -54,7 +54,7 @@ updatenb:
 
 ipy2rst:
 	for i in notebooks/*.ipynb; do if [ $$i != "notebooks/index.ipynb" ] ; then jupyter nbconvert $$i --to rst; fi done
-	sed -i '' 's/``/`/g' *.rst
+	find ./notebooks -name '*.rst' -type f -exec sed -i -e 's/``/`/g' {} \;
 	mv notebooks/*.rst .
 
 apidoc:
