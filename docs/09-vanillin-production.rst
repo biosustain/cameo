@@ -140,8 +140,8 @@ stands for protocatechuic aldehyde, SAM stands for S-adenosylmethionine.
 3DSD stands for 3-dedhydroshikimate dehydratase, ACAR stands for aryl
 carboxylic acid reductase, PPTase stands for phosphopantetheine
 transferase, hsOMT stands for O-methyltransferase, and UGT stands for
-UDP-glycosyltransferase. Adapted from Hansen et al. [5]. Brochado et
-al. Microbial Cell Factories 2010 9:84 doi:10.1186/1475-2859-9-84
+UDP-glycosyltransferase. Adapted from Hansen et al. [5]. Brochado et al.
+Microbial Cell Factories 2010 9:84 doi:10.1186/1475-2859-9-84
 
 Using **cameo**, is very easy to generate a pathway and add it to a
 model.
@@ -324,12 +324,12 @@ at different growth rates.
     <div id="5c5304bb-10b2-4c4d-aaf9-1d99cd6294c2" style="height: 432px; width: 700px;" class="plotly-graph-div"></div><script type="text/javascript">require(["plotly"], function(Plotly) { window.PLOTLYENV=window.PLOTLYENV || {};window.PLOTLYENV.BASE_URL="https://plot.ly";Plotly.newPlot("5c5304bb-10b2-4c4d-aaf9-1d99cd6294c2", [{"type": "scatter", "x": [0.0, 0.020538018605683977, 0.041076037211367954, 0.06161405581705193, 0.08215207442273591, 0.10269009302841989, 0.12322811163410385, 0.14376613023978785, 0.16430414884547181, 0.18484216745115578, 0.20538018605683978, 0.22591820466252374, 0.2464562232682077, 0.2669942418738917, 0.2875322604795757, 0.30807027908525964, 0.32860829769094363, 0.3491463162966276, 0.36968433490231156, 0.39022235350799556, 0.39022235350799556, 0.36968433490231156, 0.3491463162966276, 0.32860829769094363, 0.30807027908525964, 0.2875322604795757, 0.2669942418738917, 0.2464562232682077, 0.22591820466252374, 0.20538018605683978, 0.18484216745115578, 0.16430414884547181, 0.14376613023978785, 0.12322811163410385, 0.10269009302841989, 0.08215207442273591, 0.06161405581705193, 0.041076037211367954, 0.020538018605683977, 0.0, 0.0, 0.0], "y": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0758718612222331, 0.15132209066930447, 0.22677232011638537, 0.3022225495634491, 0.37767277901051166, 0.4531230084576059, 0.5285732379046628, 0.6040234673517402, 0.6794736967987972, 0.7549239262458727, 0.8303741556929607, 0.9058243851400395, 0.9812746145871144, 1.0567047423527218, 1.13196321751329, 1.2069375692336708, 1.278929551676292, 1.3507550984187944, 1.4225806451612932, 0.0, 1.4225806451612932], "mode": "line", "name": "WT", "hoverinfo": "none", "fillcolor": "#B3E2CD", "opacity": 0.3, "fill": "toself", "marker": {"line": {"color": "#B3E2CD"}, "opacity": 0.3}}], {"title": "Phenotypic Phase Plane (flux)", "xaxis": {"title": "BIOMASS_SC5_notrace [h^-1]"}, "yaxis": {"title": "EX_vnl_b_glu_c: vnl_b_glu_c -->  [mmol gDW^-1 h^-1]"}, "width": 700, "height": 432}, {"showLink": true, "linkText": "Export to plot.ly"})});</script>
 
 
-To find gene knockout targets, we use ``cameo.strain_design.heuristic``
+To find gene knockout targets, we use `cameo.strain_design.heuristic`
 package which implements the OptGene strategy.
 
 The authors used the biomass-product coupled yield (bpcy) for
 optimization which is the equivalent of running OptGene in non-robust
-mode. All simulations were computed using MOMA we use it’s equivalent
+mode. All simulations were computed using MOMA we use it's equivalent
 linear version (minimizing the absolute distance instead of the
 quadratic distance). The linear MOMA version is faster than the original
 MOMA formulation.

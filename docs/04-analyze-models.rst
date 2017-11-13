@@ -567,7 +567,7 @@ constraints.
 
 
 The computed data can be inspected in the format of a pandas data frame
-by calling ``result.data_frame``
+by calling `result.data_frame`
 
 .. code:: ipython3
 

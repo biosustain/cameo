@@ -7,14 +7,14 @@ Getting started with cameo
 (**CO**\ nstraints-\ **B**\ ased **R**\ econstruction and **A**\ nalysis
 tool for **Py**\ thon). So, in addition to following this quick start
 guide and other **cameo** tutorials, we encourage you to explore
-cobrapy’s
+cobrapy's
 `documentation <https://cobrapy.readthedocs.org/en/latest/cobra.core.html>`__
 as well.
 
 Step 1: Load a model
 --------------------
 
-Loading a model is easy. Just import the ``~cameo.io.load_model``
+Loading a model is easy. Just import the `~cameo.io.load_model`
 function.
 
 .. code:: ipython3
@@ -69,7 +69,7 @@ Step 2: Simulate a model
 ------------------------
 
 The model can be simulated by executing
-``~cameo.core.solver_based_model.SolverBasedModel.solve``.
+`~cameo.core.solver_based_model.SolverBasedModel.solve`.
 
 .. code:: ipython3
 
@@ -78,7 +78,7 @@ The model can be simulated by executing
 A quick overview of the solution can be obtained in form of a pandas
 `DataFrame <http://pandas.pydata.org/pandas-docs/stable/generated/pandas.DataFrame.html>`__
 (all solution objects in cameo provide access to data frames through a
-``data_frame`` attribute).
+`data_frame` attribute).
 
 .. code:: ipython3
 
@@ -175,7 +175,7 @@ A quick overview of the solution can be obtained in form of a pandas
 
 
 A data frame representation of the solution is accessible via
-``solution.to_frame()``.
+`solution.to_frame()`.
 
 .. code:: ipython3
 
@@ -271,7 +271,7 @@ A data frame representation of the solution is accessible via
 
 
 
-Data frames make it very easy to process results. For example, let’s
+Data frames make it very easy to process results. For example, let's
 take a look at reactions with flux != 0
 
 .. code:: ipython3
@@ -373,7 +373,7 @@ Step 3: Exploring a model
 
 Objects—models, reactions, metabolites, genes—can easily be explored in
 the Jupyter notebook, taking advantage of tab completion. For example,
-place your cursor after the period in ``model.reactions.`` and press the
+place your cursor after the period in `model.reactions.` and press the
 TAB key. A dialog will appear that allows you to navigate the list of
 reactions encoded in the model.
 
@@ -454,7 +454,7 @@ cases.
 
     # model.reactions.12DGR120tipp  # uncommenting and running this cell will produce a syntax error
 
-In these cases you need to use the ``model.reactions.get_by_id``.
+In these cases you need to use the `model.reactions.get_by_id`.
 
 .. code:: ipython3
 
@@ -489,7 +489,7 @@ In these cases you need to use the ``model.reactions.get_by_id``.
 
 
 
-Metabolites are accessible through ``model.metabolites``. For example,
+Metabolites are accessible through `model.metabolites`. For example,
 D-glucose in the cytosolic compartment.
 
 .. code:: ipython3
@@ -550,7 +550,7 @@ And it is easy to find the associated reactions
 
 
 A list of the genes encoded in the model can be accessed via
-``model.genes``.
+`model.genes`.
 
 .. code:: ipython3
 
@@ -577,7 +577,7 @@ A list of the genes encoded in the model can be accessed via
 A few additional attributes have been added that are not available in a
 `cobrapy <https://opencobra.github.io/cobrapy/>`__ model. For example,
 exchange reactions that allow certain metabolites to enter or leave the
-model can be accessed through ``model.exchanges``.
+model can be accessed through `model.exchanges`.
 
 .. code:: ipython3
 
@@ -601,7 +601,7 @@ model can be accessed through ``model.exchanges``.
 
 
 
-Or, the current medium can be accessed through ``model.medium``.
+Or, the current medium can be accessed through `model.medium`.
 
 .. code:: ipython3
 
@@ -685,7 +685,7 @@ Or, the current medium can be accessed through ``model.medium``.
 
 
 
-It is also possible to get a list of essential reactions …
+It is also possible to get a list of essential reactions ...
 
 .. code:: ipython3
 
@@ -710,7 +710,7 @@ It is also possible to get a list of essential reactions …
 
 
 
-… and essential genes.
+... and essential genes.
 
 .. code:: ipython3
 
