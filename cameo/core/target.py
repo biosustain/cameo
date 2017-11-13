@@ -178,10 +178,10 @@ class FluxModulationTarget(Target):
             old_feature = Feature(name=self.id, accession=accession, type=self.__gnomic_feature_type__)
             new_feature = None
         elif self.fold_change != 0:
-            old_feature = Feature(name=self.id, accession=accession, type=self.__gnomic_feature_type__,
-                                  variant=["value={}".format(self._reference_value)])
+            old_feature = Feature(name=self.id, type=self.__gnomic_feature_type__,
+                                  variant=tuple(["value={}".format(self._reference_value)]))
             new_feature = Feature(name=self.id, accession=accession, type=self.__gnomic_feature_type__,
-                                  variant=["value={}".format(self._value)])
+                                  variant=tuple(["value={}".format(self._value)]))
         else:
             raise RuntimeError("fold_change shouldn't be 0")
 

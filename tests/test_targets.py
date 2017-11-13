@@ -223,8 +223,8 @@ class TestTargets:
 
         flux_modulation_target = FluxModulationTarget("PGK", 0.5, 1, accession_id="PGK", accession_db="bigg")
         flux_modulation_target_gnomic = flux_modulation_target.to_gnomic()
-        expected = "flux.PGK(value=0.5)#bigg:PGK"
-        assert genotype_to_string(Genotype([flux_modulation_target_gnomic])) == expected 
+        expected = "flux.PGK#bigg:PGK(value=0.5)"
+        assert genotype_to_string(Genotype([flux_modulation_target_gnomic])) == expected
 
     def test_gnomic_integration_ReactionKnockinTarget(self, model):
         reaction = Reaction(id="atpzase", name="Cosmic ATP generator")
