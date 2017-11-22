@@ -33,14 +33,14 @@ requirements = ['numpy>=1.9.1',
                 'optlang>=1.2.1',
                 'numexpr>=2.4',
                 'requests>=2.10.0',
-                'networkx>=1.9.1',
+                'networkx==1.9.1',
                 'six>=1.9.0',
                 'escher>=1.1.2',
                 'IProgress>=0.4',
                 'inspyred>=1.0',
                 'lazy-object-proxy>=1.2.0',
                 'palettable>=2.1.1',
-                'gnomic==0.6.0',
+                'gnomic==1.0.1',
                 'openpyxl>=2.4.5',
                 'click>=6.7']
 
@@ -49,7 +49,7 @@ extra_requirements = {
     'plotly': ['plotly>=1.9.6'],
     'bokeh': ['bokeh<=0.12.1'],
     'jupyter': ['jupyter>=1.0.0', 'ipywidgets>=4.1.1'],
-    'test': ['pytest', 'pytest-cov'],
+    'test': ['pytest', 'pytest-cov', 'pytest-benchmark'],
     'parallel': ['redis>=2.10.5', 'ipyparallel>=5.0.1'],
     'sbml': ['python-libsbml>=5.13.0', 'lxml>=3.6.0']
 }

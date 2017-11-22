@@ -123,7 +123,7 @@ exclude_patterns = ['_build']
 
 # The reST default role (used for this markup: `text`) to use for all
 # documents.
-default_role = 'py:obj'
+default_role = 'any'
 
 # If true, '()' will be appended to :func: etc. cross-reference text.
 # add_function_parentheses = True
@@ -162,7 +162,8 @@ html_theme_options = {
     'github_user': 'biosustain',
     'github_repo': 'cameo',
     'travis_button': 'biosustain/cameo',
-    'codecov_button': 'biosustain/cameo'
+    'codecov_button': 'biosustain/cameo',
+    'page_width': '1200px'
 }
 
 # Add any paths that contain custom themes here, relative to this directory.
@@ -329,3 +330,7 @@ texinfo_documents = [
 intersphinx_mapping = {'http://docs.python.org/': None}
 
 autodoc_member_order = 'bysource'
+
+
+def setup(app):
+    app.add_javascript('https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js')
