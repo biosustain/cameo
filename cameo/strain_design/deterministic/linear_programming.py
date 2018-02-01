@@ -131,7 +131,7 @@ class OptKnock(StrainDesignMethod):
     def _build_problem(self, essential_reactions, use_nullspace_simplification):
         logger.debug("Starting to formulate OptKnock problem")
 
-        self.essential_reactions = find_essential_reactions(self._model).union(self._model.exchanges)
+        self.essential_reactions = find_essential_reactions(self._model, processes=1).union(self._model.exchanges)
         if essential_reactions:
             self.essential_reactions.update(set(get_reaction_for(self._model, r) for r in essential_reactions))
 
