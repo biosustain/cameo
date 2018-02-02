@@ -672,8 +672,8 @@ class ReactionKnockoutOptimization(KnockoutOptimization):
         if essential_reactions is None:
             self.essential_reactions = set(r.id for r in find_essential_reactions(self.model, processes=1))
         else:
-            self.essential_reactions = set([r.id for r in find_essential_reactions(self.model, processes=1)]
-                                           + essential_reactions)
+            self.essential_reactions = set([r.id for r in find_essential_reactions(self.model, processes=1)])
+            self.essential_reactions.update(essential_reactions)
 
         if use_nullspace_simplification:
             ns = nullspace(create_stoichiometric_array(self.model))
