@@ -214,7 +214,7 @@ class MultiprocessReactionKnockoutOptimization(MultiprocessKnockoutOptimization)
             self.reactions = reactions
 
         if essential_reactions is None:
-            self.essential_reactions = set([r.id for r in find_essential_reactions(self.model)])
+            self.essential_reactions = set([r.id for r in find_essential_reactions(self.model, processes=1)])
         else:
             self.essential_reactions = essential_reactions
 
@@ -257,7 +257,7 @@ class MultiprocessGeneKnockoutOptimization(MultiprocessKnockoutOptimization):
             self.genes = genes
 
         if essential_genes is None:
-            self.essential_genes = set([g.id for g in find_essential_genes(self.model)])
+            self.essential_genes = set([g.id for g in find_essential_genes(self.model, processes=1)])
         else:
             self.essential_genes = essential_genes
 
