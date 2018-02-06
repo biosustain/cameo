@@ -7,7 +7,7 @@ Getting started with cameo
 (**CO**\ nstraints-\ **B**\ ased **R**\ econstruction and **A**\ nalysis
 tool for **Py**\ thon). So, in addition to following this quick start
 guide and other **cameo** tutorials, we encourage you to explore
-cobrapy's
+cobrapy’s
 `documentation <https://cobrapy.readthedocs.org/en/latest/cobra.core.html>`__
 as well.
 
@@ -21,15 +21,15 @@ function.
 
     from cameo import load_model
 
-For example, load the most current genome-scale metabolic reconstruction
-of *Escherichia coli*.
+For example, load a genome-scale metabolic reconstruction of
+*Escherichia coli*.
 
 .. code:: ipython3
 
     model = load_model("iJO1366")
 
-Models, reactions, metabolites, etc., provide return HTML when evaluated
-in Jupyter notebooks and can thus be easily inspected.
+Models, reactions, metabolites, etc., return HTML when evaluated in
+Jupyter notebooks and can be easily inspected.
 
 .. code:: ipython3
 
@@ -47,7 +47,7 @@ in Jupyter notebooks and can thus be easily inspected.
                     <td>iJO1366</td>
                 </tr><tr>
                     <td><strong>Memory address</strong></td>
-                    <td>0x0115c8ceb8</td>
+                    <td>0x01120756d8</td>
                 </tr><tr>
                     <td><strong>Number of metabolites</strong></td>
                     <td>1805</td>
@@ -59,7 +59,7 @@ in Jupyter notebooks and can thus be easily inspected.
                     <td>-1.0*BIOMASS_Ec_iJO1366_core_53p95M_reverse_5c8b1 + 1.0*BIOMASS_Ec_iJO1366_core_53p95M</td>
                 </tr><tr>
                     <td><strong>Compartments</strong></td>
-                    <td>periplasm, cytosol, extracellular space</td>
+                    <td>extracellular space, cytosol, periplasm</td>
                 </tr>
               </table>
 
@@ -68,17 +68,13 @@ in Jupyter notebooks and can thus be easily inspected.
 Step 2: Simulate a model
 ------------------------
 
-The model can be simulated by executing
-`~cameo.core.solver_based_model.SolverBasedModel.solve`.
+The model can be simulated by executing `optimize`.
 
 .. code:: ipython3
 
     solution = model.optimize()
 
-A quick overview of the solution can be obtained in form of a pandas
-`DataFrame <http://pandas.pydata.org/pandas-docs/stable/generated/pandas.DataFrame.html>`__
-(all solution objects in cameo provide access to data frames through a
-`data_frame` attribute).
+A quick overview of the solution can be obtained in inspecting it.
 
 .. code:: ipython3
 
@@ -89,18 +85,18 @@ A quick overview of the solution can be obtained in form of a pandas
 
 .. raw:: html
 
-    <h3>Optimal solution with objective value 0.982</h3><br><div>
-    <style>
-        .dataframe thead tr:only-child th {
-            text-align: right;
-        }
-    
-        .dataframe thead th {
-            text-align: left;
+    <strong><em>Optimal</em> solution with objective value 0.982</strong><br><div>
+    <style scoped>
+        .dataframe tbody tr th:only-of-type {
+            vertical-align: middle;
         }
     
         .dataframe tbody tr th {
             vertical-align: top;
+        }
+    
+        .dataframe thead th {
+            text-align: right;
         }
     </style>
     <table border="1" class="dataframe">
@@ -113,29 +109,29 @@ A quick overview of the solution can be obtained in form of a pandas
       </thead>
       <tbody>
         <tr>
-          <th>DM_4crsol_c</th>
-          <td>2.1907e-04</td>
-          <td>0.0000</td>
+          <th>12DGR120tipp</th>
+          <td>0.000000</td>
+          <td>0.000000</td>
         </tr>
         <tr>
-          <th>DM_5drib_c</th>
-          <td>2.2103e-04</td>
-          <td>0.0000</td>
+          <th>12DGR140tipp</th>
+          <td>0.000000</td>
+          <td>0.000000</td>
         </tr>
         <tr>
-          <th>DM_aacald_c</th>
-          <td>-0.0000e+00</td>
-          <td>0.0000</td>
+          <th>12DGR141tipp</th>
+          <td>0.000000</td>
+          <td>0.000000</td>
         </tr>
         <tr>
-          <th>DM_amob_c</th>
-          <td>1.9647e-06</td>
-          <td>0.0000</td>
+          <th>12DGR160tipp</th>
+          <td>0.000000</td>
+          <td>0.000000</td>
         </tr>
         <tr>
-          <th>DM_mththf_c</th>
-          <td>4.4010e-04</td>
-          <td>0.0000</td>
+          <th>12DGR161tipp</th>
+          <td>0.000000</td>
+          <td>-0.008295</td>
         </tr>
         <tr>
           <th>...</th>
@@ -144,28 +140,28 @@ A quick overview of the solution can be obtained in form of a pandas
         </tr>
         <tr>
           <th>ZN2abcpp</th>
-          <td>0.0000e+00</td>
-          <td>-0.0083</td>
+          <td>0.000000</td>
+          <td>-0.008295</td>
         </tr>
         <tr>
           <th>ZN2t3pp</th>
-          <td>0.0000e+00</td>
-          <td>-0.0021</td>
+          <td>0.000000</td>
+          <td>-0.002074</td>
         </tr>
         <tr>
           <th>ZN2tpp</th>
-          <td>3.3499e-04</td>
-          <td>0.0000</td>
+          <td>0.000335</td>
+          <td>0.000000</td>
         </tr>
         <tr>
           <th>ZNabcpp</th>
-          <td>0.0000e+00</td>
-          <td>-0.0083</td>
+          <td>0.000000</td>
+          <td>-0.008295</td>
         </tr>
         <tr>
           <th>Zn2tex</th>
-          <td>3.3499e-04</td>
-          <td>-0.0000</td>
+          <td>0.000335</td>
+          <td>-0.000000</td>
         </tr>
       </tbody>
     </table>
@@ -187,17 +183,17 @@ A data frame representation of the solution is accessible via
 .. raw:: html
 
     <div>
-    <style>
-        .dataframe thead tr:only-child th {
-            text-align: right;
-        }
-    
-        .dataframe thead th {
-            text-align: left;
+    <style scoped>
+        .dataframe tbody tr th:only-of-type {
+            vertical-align: middle;
         }
     
         .dataframe tbody tr th {
             vertical-align: top;
+        }
+    
+        .dataframe thead th {
+            text-align: right;
         }
     </style>
     <table border="1" class="dataframe">
@@ -210,29 +206,154 @@ A data frame representation of the solution is accessible via
       </thead>
       <tbody>
         <tr>
-          <th>DM_4crsol_c</th>
-          <td>2.1907e-04</td>
-          <td>0.0000</td>
+          <th>12DGR120tipp</th>
+          <td>0.000000</td>
+          <td>0.000000e+00</td>
         </tr>
         <tr>
-          <th>DM_5drib_c</th>
-          <td>2.2103e-04</td>
-          <td>0.0000</td>
+          <th>12DGR140tipp</th>
+          <td>0.000000</td>
+          <td>0.000000e+00</td>
         </tr>
         <tr>
-          <th>DM_aacald_c</th>
-          <td>-0.0000e+00</td>
-          <td>0.0000</td>
+          <th>12DGR141tipp</th>
+          <td>0.000000</td>
+          <td>0.000000e+00</td>
         </tr>
         <tr>
-          <th>DM_amob_c</th>
-          <td>1.9647e-06</td>
-          <td>0.0000</td>
+          <th>12DGR160tipp</th>
+          <td>0.000000</td>
+          <td>0.000000e+00</td>
         </tr>
         <tr>
-          <th>DM_mththf_c</th>
-          <td>4.4010e-04</td>
-          <td>0.0000</td>
+          <th>12DGR161tipp</th>
+          <td>0.000000</td>
+          <td>-8.295308e-03</td>
+        </tr>
+        <tr>
+          <th>12DGR180tipp</th>
+          <td>0.000000</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>12DGR181tipp</th>
+          <td>0.000000</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>12PPDRtex</th>
+          <td>0.000000</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>12PPDRtpp</th>
+          <td>0.000000</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>12PPDStex</th>
+          <td>0.000000</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>12PPDStpp</th>
+          <td>0.000000</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>14GLUCANabcpp</th>
+          <td>0.000000</td>
+          <td>-5.551115e-17</td>
+        </tr>
+        <tr>
+          <th>14GLUCANtexi</th>
+          <td>0.000000</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>23CAMPtex</th>
+          <td>0.000000</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>23CCMPtex</th>
+          <td>0.000000</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>23CGMPtex</th>
+          <td>0.000000</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>23CUMPtex</th>
+          <td>0.000000</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>23DAPPAt2pp</th>
+          <td>0.000000</td>
+          <td>1.517883e-18</td>
+        </tr>
+        <tr>
+          <th>23DAPPAtex</th>
+          <td>0.000000</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>23PDE2pp</th>
+          <td>0.000000</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>23PDE4pp</th>
+          <td>0.000000</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>23PDE7pp</th>
+          <td>0.000000</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>23PDE9pp</th>
+          <td>0.000000</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>26DAHtex</th>
+          <td>0.000000</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>2AGPA120tipp</th>
+          <td>0.000000</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>2AGPA140tipp</th>
+          <td>0.000000</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>2AGPA141tipp</th>
+          <td>0.000000</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>2AGPA160tipp</th>
+          <td>0.000000</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>2AGPA161tipp</th>
+          <td>0.000000</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>2AGPA180tipp</th>
+          <td>0.000000</td>
+          <td>0.000000e+00</td>
         </tr>
         <tr>
           <th>...</th>
@@ -240,29 +361,154 @@ A data frame representation of the solution is accessible via
           <td>...</td>
         </tr>
         <tr>
+          <th>VALTRS</th>
+          <td>0.000000</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>VALabcpp</th>
+          <td>0.000000</td>
+          <td>-6.221481e-03</td>
+        </tr>
+        <tr>
+          <th>VALt2rpp</th>
+          <td>0.000000</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>VALtex</th>
+          <td>0.000000</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>VPAMTr</th>
+          <td>0.000000</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>WCOS</th>
+          <td>0.000000</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>X5PL3E</th>
+          <td>0.000000</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>XAND</th>
+          <td>0.000000</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>XANt2pp</th>
+          <td>0.000000</td>
+          <td>-2.073827e-03</td>
+        </tr>
+        <tr>
+          <th>XANtex</th>
+          <td>0.000000</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>XANtpp</th>
+          <td>0.000000</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>XMPtex</th>
+          <td>0.000000</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>XPPT</th>
+          <td>0.000000</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>XTSNH</th>
+          <td>0.000000</td>
+          <td>-8.295308e-03</td>
+        </tr>
+        <tr>
+          <th>XTSNt2rpp</th>
+          <td>0.000000</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>XTSNtex</th>
+          <td>0.000000</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>XYLI1</th>
+          <td>0.000000</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>XYLI2</th>
+          <td>0.000000</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>XYLK</th>
+          <td>0.000000</td>
+          <td>-1.387779e-17</td>
+        </tr>
+        <tr>
+          <th>XYLK2</th>
+          <td>0.000000</td>
+          <td>-1.387779e-17</td>
+        </tr>
+        <tr>
+          <th>XYLUt2pp</th>
+          <td>0.000000</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>XYLUtex</th>
+          <td>0.000000</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>XYLabcpp</th>
+          <td>0.000000</td>
+          <td>-6.221481e-03</td>
+        </tr>
+        <tr>
+          <th>XYLt2pp</th>
+          <td>0.000000</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>XYLtex</th>
+          <td>0.000000</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
           <th>ZN2abcpp</th>
-          <td>0.0000e+00</td>
-          <td>-0.0083</td>
+          <td>0.000000</td>
+          <td>-8.295308e-03</td>
         </tr>
         <tr>
           <th>ZN2t3pp</th>
-          <td>0.0000e+00</td>
-          <td>-0.0021</td>
+          <td>0.000000</td>
+          <td>-2.073827e-03</td>
         </tr>
         <tr>
           <th>ZN2tpp</th>
-          <td>3.3499e-04</td>
-          <td>0.0000</td>
+          <td>0.000335</td>
+          <td>0.000000e+00</td>
         </tr>
         <tr>
           <th>ZNabcpp</th>
-          <td>0.0000e+00</td>
-          <td>-0.0083</td>
+          <td>0.000000</td>
+          <td>-8.295308e-03</td>
         </tr>
         <tr>
           <th>Zn2tex</th>
-          <td>3.3499e-04</td>
-          <td>-0.0000</td>
+          <td>0.000335</td>
+          <td>-0.000000e+00</td>
         </tr>
       </tbody>
     </table>
@@ -271,7 +517,7 @@ A data frame representation of the solution is accessible via
 
 
 
-Data frames make it very easy to process results. For example, let's
+Data frames make it very easy to process results. For example, let’s
 take a look at reactions with flux != 0
 
 .. code:: ipython3
@@ -284,17 +530,17 @@ take a look at reactions with flux != 0
 .. raw:: html
 
     <div>
-    <style>
-        .dataframe thead tr:only-child th {
-            text-align: right;
-        }
-    
-        .dataframe thead th {
-            text-align: left;
+    <style scoped>
+        .dataframe tbody tr th:only-of-type {
+            vertical-align: middle;
         }
     
         .dataframe tbody tr th {
             vertical-align: top;
+        }
+    
+        .dataframe thead th {
+            text-align: right;
         }
     </style>
     <table border="1" class="dataframe">
@@ -307,29 +553,154 @@ take a look at reactions with flux != 0
       </thead>
       <tbody>
         <tr>
-          <th>DM_4crsol_c</th>
-          <td>2.1907e-04</td>
-          <td>0.0000e+00</td>
+          <th>3OAR140</th>
+          <td>0.076452</td>
+          <td>0.000000e+00</td>
         </tr>
         <tr>
-          <th>DM_5drib_c</th>
-          <td>2.2103e-04</td>
-          <td>0.0000e+00</td>
+          <th>3OAS140</th>
+          <td>0.076452</td>
+          <td>0.000000e+00</td>
         </tr>
         <tr>
-          <th>DM_amob_c</th>
-          <td>1.9647e-06</td>
-          <td>0.0000e+00</td>
+          <th>5DOAN</th>
+          <td>0.000221</td>
+          <td>0.000000e+00</td>
         </tr>
         <tr>
-          <th>DM_mththf_c</th>
-          <td>4.4010e-04</td>
-          <td>0.0000e+00</td>
+          <th>A5PISO</th>
+          <td>0.038226</td>
+          <td>0.000000e+00</td>
         </tr>
         <tr>
-          <th>BIOMASS_Ec_iJO1366_core_53p95M</th>
-          <td>9.8237e-01</td>
-          <td>1.8492e-15</td>
+          <th>AACPS3</th>
+          <td>0.125378</td>
+          <td>-1.387779e-16</td>
+        </tr>
+        <tr>
+          <th>AACPS4</th>
+          <td>0.147776</td>
+          <td>-2.775558e-17</td>
+        </tr>
+        <tr>
+          <th>AACPS7</th>
+          <td>0.076452</td>
+          <td>-2.775558e-17</td>
+        </tr>
+        <tr>
+          <th>ACACT1r</th>
+          <td>0.349606</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>ACACT2r</th>
+          <td>0.349606</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>ACACT3r</th>
+          <td>0.349606</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>ACACT4r</th>
+          <td>0.349606</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>ACACT5r</th>
+          <td>0.349606</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>ACACT6r</th>
+          <td>0.273154</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>ACACT7r</th>
+          <td>0.273154</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>ACCOAC</th>
+          <td>0.076458</td>
+          <td>-7.090682e-17</td>
+        </tr>
+        <tr>
+          <th>ACGK</th>
+          <td>0.290578</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>ACGS</th>
+          <td>0.290578</td>
+          <td>2.927346e-17</td>
+        </tr>
+        <tr>
+          <th>ACHBS</th>
+          <td>0.285408</td>
+          <td>-6.938894e-18</td>
+        </tr>
+        <tr>
+          <th>ACLS</th>
+          <td>0.858857</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>ACOAD1f</th>
+          <td>-0.349606</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>ACOAD2f</th>
+          <td>-0.349606</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>ACOAD3f</th>
+          <td>-0.349606</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>ACOAD4f</th>
+          <td>-0.349606</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>ACOAD5f</th>
+          <td>-0.349606</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>ACOAD6f</th>
+          <td>-0.273154</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>ACOAD7f</th>
+          <td>-0.125378</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>ACODA</th>
+          <td>0.290578</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>ACONTa</th>
+          <td>4.857777</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>ACONTb</th>
+          <td>4.857777</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>ACOTA</th>
+          <td>-0.290578</td>
+          <td>0.000000e+00</td>
         </tr>
         <tr>
           <th>...</th>
@@ -337,33 +708,158 @@ take a look at reactions with flux != 0
           <td>...</td>
         </tr>
         <tr>
+          <th>TMDS</th>
+          <td>0.025705</td>
+          <td>-5.551115e-17</td>
+        </tr>
+        <tr>
+          <th>TMPK</th>
+          <td>0.000219</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>TMPPP</th>
+          <td>0.000219</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>TPI</th>
+          <td>7.645371</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>TRDR</th>
+          <td>0.243502</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>TRPAS2</th>
+          <td>-0.055841</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>TRPS3</th>
+          <td>0.055841</td>
+          <td>2.775558e-17</td>
+        </tr>
+        <tr>
+          <th>TYRL</th>
+          <td>0.000219</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>TYRTA</th>
+          <td>-0.135684</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>U23GAAT</th>
+          <td>0.038226</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>UAAGDS</th>
+          <td>0.027298</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>UAGAAT</th>
+          <td>0.038226</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>UAGCVT</th>
+          <td>0.027298</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>UAGDP</th>
+          <td>0.092822</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>UAGPT3</th>
+          <td>0.027298</td>
+          <td>-5.551115e-17</td>
+        </tr>
+        <tr>
+          <th>UAMAGS</th>
+          <td>0.027298</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>UAMAS</th>
+          <td>0.027298</td>
+          <td>5.551115e-17</td>
+        </tr>
+        <tr>
+          <th>UAPGR</th>
+          <td>0.027298</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>UDCPDP</th>
+          <td>0.027298</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>UDCPDPS</th>
+          <td>0.000054</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>UGMDDS</th>
+          <td>0.027298</td>
+          <td>1.110223e-16</td>
+        </tr>
+        <tr>
+          <th>UHGADA</th>
+          <td>0.038226</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>UMPK</th>
+          <td>0.371375</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
+          <th>UPP3MT</th>
+          <td>0.000219</td>
+          <td>1.110223e-16</td>
+        </tr>
+        <tr>
+          <th>UPP3S</th>
+          <td>0.000438</td>
+          <td>0.000000e+00</td>
+        </tr>
+        <tr>
           <th>UPPDC1</th>
-          <td>2.1907e-04</td>
-          <td>0.0000e+00</td>
+          <td>0.000219</td>
+          <td>0.000000e+00</td>
         </tr>
         <tr>
           <th>USHD</th>
-          <td>1.9113e-02</td>
-          <td>0.0000e+00</td>
+          <td>0.019113</td>
+          <td>0.000000e+00</td>
         </tr>
         <tr>
           <th>VALTA</th>
-          <td>-4.1570e-01</td>
-          <td>0.0000e+00</td>
+          <td>-0.415702</td>
+          <td>0.000000e+00</td>
         </tr>
         <tr>
           <th>ZN2tpp</th>
-          <td>3.3499e-04</td>
-          <td>0.0000e+00</td>
+          <td>0.000335</td>
+          <td>0.000000e+00</td>
         </tr>
         <tr>
           <th>Zn2tex</th>
-          <td>3.3499e-04</td>
-          <td>-0.0000e+00</td>
+          <td>0.000335</td>
+          <td>-0.000000e+00</td>
         </tr>
       </tbody>
     </table>
-    <p>437 rows × 2 columns</p>
+    <p>436 rows × 2 columns</p>
     </div>
 
 
@@ -393,10 +889,13 @@ reactions encoded in the model.
                 </tr><tr>
                     <td><strong>Name</strong></td><td>Phosphoglycerate kinase</td>
                 </tr><tr>
+                    <td><strong>Memory address</strong></td>
+                    <td>0x01129829b0</td>
+                </tr><tr>
                     <td><strong>Stoichiometry</strong></td>
                     <td>
                         <p style='text-align:right'>3pg_c + atp_c <=> 13dpg_c + adp_c</p>
-                        <p style='text-align:right'>3-Phospho-D-glycerate + ATP <=> 3-Phospho-D-glyceroyl phosphate + ADP</p>
+                        <p style='text-align:right'>3-Phospho-D-glycerate + ATP C10H12N5O13P3 <=> 3-Phospho-D-glyceroyl phosphate + ADP C10H12N5O10P2</p>
                     </td>
                 </tr><tr>
                     <td><strong>GPR</strong></td><td>b2926</td>
@@ -429,10 +928,13 @@ dehydrogenase*) reaction in the model.
                 </tr><tr>
                     <td><strong>Name</strong></td><td>Erythrose 4-phosphate dehydrogenase</td>
                 </tr><tr>
+                    <td><strong>Memory address</strong></td>
+                    <td>0x0112606160</td>
+                </tr><tr>
                     <td><strong>Stoichiometry</strong></td>
                     <td>
                         <p style='text-align:right'>e4p_c + h2o_c + nad_c <=> 4per_c + 2.0 h_c + nadh_c</p>
-                        <p style='text-align:right'>D-Erythrose 4-phosphate + H2O + Nicotinamide adenine dinucleotide <=> 4-Phospho-D-erythronate + 2.0 H+ + Nicotinamide adenine dinucleotide - reduced</p>
+                        <p style='text-align:right'>D-Erythrose 4-phosphate + H2O H2O + Nicotinamide adenine dinucleotide <=> 4-Phospho-D-erythronate + 2.0 H+ + Nicotinamide adenine dinucleotide - reduced</p>
                     </td>
                 </tr><tr>
                     <td><strong>GPR</strong></td><td>b2927 or b1779</td>
@@ -446,7 +948,7 @@ dehydrogenase*) reaction in the model.
 
 
 
-Be aware though that due variable naming restrictions in Python dot
+Be aware that, due to variable naming restrictions in Python, dot
 notation access to reactions (and other objects) might not work in some
 cases.
 
@@ -454,7 +956,7 @@ cases.
 
     # model.reactions.12DGR120tipp  # uncommenting and running this cell will produce a syntax error
 
-In these cases you need to use the `model.reactions.get_by_id`.
+In those cases you need to use the `model.reactions.get_by_id`.
 
 .. code:: ipython3
 
@@ -471,6 +973,9 @@ In these cases you need to use the `model.reactions.get_by_id`.
                     <td><strong>Reaction identifier</strong></td><td>12DGR120tipp</td>
                 </tr><tr>
                     <td><strong>Name</strong></td><td>1,2 diacylglycerol transport via flipping (periplasm to cytoplasm, n-C12:0)</td>
+                </tr><tr>
+                    <td><strong>Memory address</strong></td>
+                    <td>0x0112506ba8</td>
                 </tr><tr>
                     <td><strong>Stoichiometry</strong></td>
                     <td>
@@ -490,7 +995,7 @@ In these cases you need to use the `model.reactions.get_by_id`.
 
 
 Metabolites are accessible through `model.metabolites`. For example,
-D-glucose in the cytosolic compartment.
+D-glucose in the cytosol compartment.
 
 .. code:: ipython3
 
@@ -505,12 +1010,18 @@ D-glucose in the cytosolic compartment.
             <table>
                 <tr>
                     <td><strong>Metabolite identifier</strong></td><td>glc__D_c</td>
-                </tr>
-                <tr>
+                </tr><tr>
                     <td><strong>Name</strong></td><td>D-Glucose</td>
-                </tr>
-                <tr>
+                </tr><tr>
+                    <td><strong>Memory address</strong></td>
+                    <td>0x01120db4a8</td>
+                </tr><tr>
                     <td><strong>Formula</strong></td><td>C6H12O6</td>
+                </tr><tr>
+                    <td><strong>Compartment</strong></td><td>c</td>
+                </tr><tr>
+                    <td><strong>In 19 reaction(s)</strong></td><td>
+                        GLCt2pp, GLCATr, TRE6PH, MLTG2, G6PP, LACZ, MLTG3, AMALT1, HEX1, XYLI2, MLTG4, GALS3, GLCabcpp, AMALT2, MLTG5, AMALT3, AMALT4, TREH, MLTG1</td>
                 </tr>
             </table>
 
@@ -527,25 +1038,25 @@ And it is easy to find the associated reactions
 
 .. parsed-literal::
 
-    frozenset({<Reaction MLTG1 at 0x1163779b0>,
-               <Reaction MLTG2 at 0x1163779e8>,
-               <Reaction TRE6PH at 0x116557ac8>,
-               <Reaction G6PP at 0x116206b00>,
-               <Reaction MLTG3 at 0x116377ba8>,
-               <Reaction GLCabcpp at 0x11623f3c8>,
-               <Reaction MLTG4 at 0x116377c18>,
-               <Reaction AMALT2 at 0x11605b438>,
-               <Reaction GLCt2pp at 0x11623f470>,
-               <Reaction MLTG5 at 0x116377c88>,
-               <Reaction TREH at 0x116557d30>,
-               <Reaction AMALT1 at 0x11605b588>,
-               <Reaction AMALT3 at 0x11605b6a0>,
-               <Reaction GLCATr at 0x1162336a0>,
-               <Reaction AMALT4 at 0x11605b710>,
-               <Reaction XYLI2 at 0x1165a1f28>,
-               <Reaction HEX1 at 0x1162a7748>,
-               <Reaction LACZ at 0x1162f0f98>,
-               <Reaction GALS3 at 0x1162157f0>})
+    frozenset({<Reaction AMALT1 at 0x11257a978>,
+               <Reaction AMALT2 at 0x11257aa58>,
+               <Reaction AMALT3 at 0x11257aa90>,
+               <Reaction AMALT4 at 0x11257ab00>,
+               <Reaction G6PP at 0x112671940>,
+               <Reaction GALS3 at 0x112679630>,
+               <Reaction GLCATr at 0x1126864e0>,
+               <Reaction GLCabcpp at 0x11268d240>,
+               <Reaction GLCt2pp at 0x11268d438>,
+               <Reaction HEX1 at 0x1126bf588>,
+               <Reaction LACZ at 0x1126e2940>,
+               <Reaction MLTG1 at 0x1129253c8>,
+               <Reaction MLTG2 at 0x112925518>,
+               <Reaction MLTG3 at 0x112925550>,
+               <Reaction MLTG4 at 0x1129255c0>,
+               <Reaction MLTG5 at 0x112925630>,
+               <Reaction TRE6PH at 0x112a0b4e0>,
+               <Reaction TREH at 0x112a0b748>,
+               <Reaction XYLI2 at 0x112a30940>})
 
 
 
@@ -561,23 +1072,22 @@ A list of the genes encoded in the model can be accessed via
 
 .. parsed-literal::
 
-    [<Gene b2215 at 0x10c6f3780>,
-     <Gene b1377 at 0x10950b4e0>,
-     <Gene b0241 at 0x109351be0>,
-     <Gene b0929 at 0x109351048>,
-     <Gene b4035 at 0x109351d68>,
-     <Gene b4033 at 0x109344b38>,
-     <Gene b4034 at 0x115e60518>,
-     <Gene b4032 at 0x115e60550>,
-     <Gene b4036 at 0x115e60588>,
-     <Gene b4213 at 0x115e605c0>]
+    [<Gene b0002 at 0x103f25748>,
+     <Gene b0003 at 0x1034ec2e8>,
+     <Gene b0004 at 0x1034fe3c8>,
+     <Gene b0007 at 0x1034fe438>,
+     <Gene b0008 at 0x1034f4780>,
+     <Gene b0009 at 0x1034f4c88>,
+     <Gene b0019 at 0x11237cd30>,
+     <Gene b0025 at 0x11237cd68>,
+     <Gene b0026 at 0x11237cda0>,
+     <Gene b0029 at 0x11237cdd8>]
 
 
 
-A few additional attributes have been added that are not available in a
-`cobrapy <https://opencobra.github.io/cobrapy/>`__ model. For example,
-exchange reactions that allow certain metabolites to enter or leave the
-model can be accessed through `model.exchanges`.
+Other additional attributes can be accessed to explore the model. For
+example, exchange reactions that allow certain metabolites to enter or
+leave the model can be accessed through `model.exchanges`.
 
 .. code:: ipython3
 
@@ -588,16 +1098,16 @@ model can be accessed through `model.exchanges`.
 
 .. parsed-literal::
 
-    [<Reaction DM_4crsol_c at 0x115f44390>,
-     <Reaction DM_5drib_c at 0x115f443c8>,
-     <Reaction DM_aacald_c at 0x115f44400>,
-     <Reaction DM_amob_c at 0x115f44438>,
-     <Reaction DM_mththf_c at 0x115f44470>,
-     <Reaction DM_oxam_c at 0x115f444a8>,
-     <Reaction EX_12ppd__R_e at 0x115f44550>,
-     <Reaction EX_12ppd__S_e at 0x115f44588>,
-     <Reaction EX_14glucan_e at 0x115f445c0>,
-     <Reaction EX_15dap_e at 0x115f445f8>]
+    [<Reaction DM_4crsol_c at 0x1125f7160>,
+     <Reaction DM_5drib_c at 0x1125f7470>,
+     <Reaction DM_aacald_c at 0x1125f74a8>,
+     <Reaction DM_amob_c at 0x1125f75c0>,
+     <Reaction DM_mththf_c at 0x1125f75f8>,
+     <Reaction DM_oxam_c at 0x1125f7630>,
+     <Reaction EX_12ppd__R_e at 0x112613438>,
+     <Reaction EX_12ppd__S_e at 0x112613470>,
+     <Reaction EX_14glucan_e at 0x112613668>,
+     <Reaction EX_15dap_e at 0x112613780>]
 
 
 
@@ -605,132 +1115,87 @@ Or, the current medium can be accessed through `model.medium`.
 
 .. code:: ipython3
 
-    model.medium.T
-
-
-
-
-.. raw:: html
-
-    <div>
-    <style>
-        .dataframe thead tr:only-child th {
-            text-align: right;
-        }
-    
-        .dataframe thead th {
-            text-align: left;
-        }
-    
-        .dataframe tbody tr th {
-            vertical-align: top;
-        }
-    </style>
-    <table border="1" class="dataframe">
-      <thead>
-        <tr style="text-align: right;">
-          <th></th>
-          <th>bound</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <th>EX_ca2_e</th>
-          <td>1000.00</td>
-        </tr>
-        <tr>
-          <th>EX_cbl1_e</th>
-          <td>0.01</td>
-        </tr>
-        <tr>
-          <th>EX_cl_e</th>
-          <td>1000.00</td>
-        </tr>
-        <tr>
-          <th>EX_co2_e</th>
-          <td>1000.00</td>
-        </tr>
-        <tr>
-          <th>EX_cobalt2_e</th>
-          <td>1000.00</td>
-        </tr>
-        <tr>
-          <th>...</th>
-          <td>...</td>
-        </tr>
-        <tr>
-          <th>EX_sel_e</th>
-          <td>1000.00</td>
-        </tr>
-        <tr>
-          <th>EX_slnt_e</th>
-          <td>1000.00</td>
-        </tr>
-        <tr>
-          <th>EX_so4_e</th>
-          <td>1000.00</td>
-        </tr>
-        <tr>
-          <th>EX_tungs_e</th>
-          <td>1000.00</td>
-        </tr>
-        <tr>
-          <th>EX_zn2_e</th>
-          <td>1000.00</td>
-        </tr>
-      </tbody>
-    </table>
-    <p>25 rows × 1 columns</p>
-    </div>
-
-
-
-It is also possible to get a list of essential reactions ...
-
-.. code:: ipython3
-
-    from cameo.flux_analysis.analysis import find_essential_reactions
-    find_essential_reactions(model)[0:10]
+    model.medium
 
 
 
 
 .. parsed-literal::
 
-    [<Reaction DM_4crsol_c at 0x115f44390>,
-     <Reaction DM_5drib_c at 0x115f443c8>,
-     <Reaction DM_amob_c at 0x115f44438>,
-     <Reaction DM_mththf_c at 0x115f44470>,
-     <Reaction BIOMASS_Ec_iJO1366_core_53p95M at 0x115f44518>,
-     <Reaction EX_ca2_e at 0x115f5c3c8>,
-     <Reaction EX_cl_e at 0x115f5c588>,
-     <Reaction EX_cobalt2_e at 0x115f5c668>,
-     <Reaction EX_cu2_e at 0x115f5c860>,
-     <Reaction EX_glc__D_e at 0x115f697b8>]
+    {'EX_ca2_e': 1000.0,
+     'EX_cbl1_e': 0.01,
+     'EX_cl_e': 1000.0,
+     'EX_co2_e': 1000.0,
+     'EX_cobalt2_e': 1000.0,
+     'EX_cu2_e': 1000.0,
+     'EX_fe2_e': 1000.0,
+     'EX_fe3_e': 1000.0,
+     'EX_glc__D_e': 10.0,
+     'EX_h2o_e': 1000.0,
+     'EX_h_e': 1000.0,
+     'EX_k_e': 1000.0,
+     'EX_mg2_e': 1000.0,
+     'EX_mn2_e': 1000.0,
+     'EX_mobd_e': 1000.0,
+     'EX_na1_e': 1000.0,
+     'EX_nh4_e': 1000.0,
+     'EX_ni2_e': 1000.0,
+     'EX_o2_e': 1000.0,
+     'EX_pi_e': 1000.0,
+     'EX_sel_e': 1000.0,
+     'EX_slnt_e': 1000.0,
+     'EX_so4_e': 1000.0,
+     'EX_tungs_e': 1000.0,
+     'EX_zn2_e': 1000.0}
 
 
 
-... and essential genes.
+It is also possible to get a list of essential reactions …
 
 .. code:: ipython3
 
-    from cameo.flux_analysis.analysis import find_essential_genes
-    find_essential_genes(model)[0:10]
+    from cobra.flux_analysis import find_essential_reactions
+    list(find_essential_reactions(model))[0:10]
 
 
 
 
 .. parsed-literal::
 
-    [<Gene b4245 at 0x115e90048>,
-     <Gene b0109 at 0x115f08080>,
-     <Gene b2838 at 0x115ea80f0>,
-     <Gene b0423 at 0x115f380f0>,
-     <Gene b2574 at 0x115e90128>,
-     <Gene b3809 at 0x115ea8128>,
-     <Gene b4407 at 0x115f38128>,
-     <Gene b0175 at 0x115ea8160>,
-     <Gene b3992 at 0x115f38160>,
-     <Gene b0928 at 0x115e90198>]
+    [<Reaction THDPS at 0x1129fc080>,
+     <Reaction UAAGDS at 0x112a1a080>,
+     <Reaction PPNDH at 0x1129a60b8>,
+     <Reaction CYSTL at 0x1125d40f0>,
+     <Reaction E4PD at 0x112606160>,
+     <Reaction KDOPP at 0x1126e2198>,
+     <Reaction DHAD2 at 0x1125ea198>,
+     <Reaction APRAUR at 0x1125881d0>,
+     <Reaction METS at 0x11291e1d0>,
+     <Reaction PAPPT3 at 0x11297c1d0>]
+
+
+
+… and essential genes.
+
+.. code:: ipython3
+
+    from cobra.flux_analysis import find_essential_genes
+    list(find_essential_genes(model))[0:10]
+
+
+
+
+.. parsed-literal::
+
+    [<Gene b1662 at 0x1123b6048>,
+     <Gene b4245 at 0x112506128>,
+     <Gene b3633 at 0x1123f0198>,
+     <Gene b3634 at 0x1123f01d0>,
+     <Gene b3639 at 0x1123f0208>,
+     <Gene b4261 at 0x112506208>,
+     <Gene b1415 at 0x1123ae240>,
+     <Gene b4262 at 0x112506240>,
+     <Gene b3642 at 0x1123f0278>,
+     <Gene b1693 at 0x1123b6278>]
 
 
