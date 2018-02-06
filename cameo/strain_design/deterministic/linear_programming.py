@@ -11,6 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""
+This module contains algorithms based on linear programming techniques, including mixed-integer linear programming
+"""
 
 from __future__ import print_function
 
@@ -131,7 +134,7 @@ class OptKnock(StrainDesignMethod):
     def _build_problem(self, essential_reactions, use_nullspace_simplification):
         logger.debug("Starting to formulate OptKnock problem")
 
-        self.essential_reactions = find_essential_reactions(self._model).union(self._model.exchanges)
+        self.essential_reactions = find_essential_reactions(self._model, processes=1).union(self._model.exchanges)
         if essential_reactions:
             self.essential_reactions.update(set(get_reaction_for(self._model, r) for r in essential_reactions))
 
