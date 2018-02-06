@@ -14,7 +14,6 @@ Furthermore, `course materials`_ are available for a 2-day course in cell factor
     06-predict-gene-modulation-targets
     07-predict-heterologous-pathways
     08-high-level-API
-    09-vanillin-production
 
 
 .. _try.cameo.bio: http://try.cameo.bio
