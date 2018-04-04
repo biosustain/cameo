@@ -181,7 +181,7 @@ class Designer(object):
         notice("Starting searching for compound %s" % product)
         try:
             product = self.__translate_product_to_universal_reactions_model_metabolite(product, database)
-        except Exception:
+        except KeyError:
             raise KeyError("Product %s is not in the %s database" % (product, database.id))
         pathways = self.predict_pathways(product, hosts=hosts, database=database, aerobic=aerobic)
         optimization_reports = self.optimize_strains(pathways, view, aerobic=aerobic)
@@ -354,7 +354,7 @@ class Designer(object):
     def __translate_product_to_universal_reactions_model_metabolite(self, product, database):
         if isinstance(product, Metabolite):
             return product
-        elif isinstance(product, six.text_type) or isinstance(product, six.string_type):
+        elif isinstance(product, six.text_type) or isinstance(product, six.string_types):
             search_result = products.search(product)
             search_result = search_result.loc[[i for i in search_result.index if i in database.metabolites]]
             if len(search_result) == 0:
