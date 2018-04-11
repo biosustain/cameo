@@ -19,6 +19,8 @@ compute promising strain designs.
 Curious? Head over to `try.cameo.bio <http://try.cameo.bio>`__
 and give it a try.
 
+Please cite https://doi.org/10.1021/acssynbio.7b00423 if you've used cameo in a scientific publication.
+
 .. summary-end
 
 Installation
@@ -120,7 +122,7 @@ Predict heterologous pathways for a desired chemical.
 Contributions
 ~~~~~~~~~~~~~
 
-..are very welcome! Please read the `guideline <CONTRIBUTING.rst>`__ for instructions how to contribute.
+... are very welcome! Please read the `guideline <CONTRIBUTING.rst>`__ for instructions how to contribute.
 
 
 .. url-marker
