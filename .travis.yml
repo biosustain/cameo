@@ -33,11 +33,6 @@ services:
 addons:
   apt:
     packages:
-    - swig
-    - libzmq3-dev
-    - libgmp-dev
-    - libglpk-dev
-    - glpk-utils
     - pandoc
     - openbabel
 
@@ -47,7 +42,7 @@ before_install:
 - 'if [[ "$TRAVIS_BRANCH" != "devel" && ($TRAVIS_PYTHON_VERSION == "3.4" || $TRAVIS_PYTHON_VERSION == "2.7") ]]; then bash ./.travis/install_cplex.sh; fi'
 
 script:
-  - tox
+  - travis_wait tox
 
 notifications:
   slack:
