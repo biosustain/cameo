@@ -422,7 +422,7 @@ class TestRemoveCycles:
             fix_objective_as_constraint(core_model)
             original_objective = copy.copy(core_model.objective)
             core_model.objective = core_model.solver.interface.Objective(
-                Add(*core_model.solver.variables.values()), name='Max all fluxes')
+                Add(*core_model.solver.variables.values()), name='Max_all_fluxes')
             solution = core_model.optimize()
             assert abs(solution.to_frame().fluxes.abs().sum() - 2508.293334) < 1e-6
             fluxes = solution.fluxes

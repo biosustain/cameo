@@ -30,7 +30,7 @@ from uuid import uuid1
 
 import numpy
 import pandas
-import pip
+import pkg_resources
 import six
 from cobra.util.context import HistoryManager
 from numpy.random import RandomState
@@ -523,9 +523,8 @@ def memoize(function, memo={}):
 
 
 def get_system_info():
-    # pip freeze (adapted from http://stackoverflow.com/a/24322465/280182)
     package_info = list()
-    for dist in pip.get_installed_distributions():
+    for dist in pkg_resources.working_set:
         req = str(dist.as_requirement())
         package_info.append(req)
     return dict(package_info=package_info,

@@ -2,15 +2,17 @@ language: python
 sudo: required
 dist: trusty
 
+env:
+  global:
+    - GITHUB_REPO=biosustain/cameo
+
 matrix:
   fast_finish: true
   include:
-    - python: '3.4'
+    - python: '3.5'
       env: TOXENV=flake8
     - python: '2.7'
       env: TOXENV=py27
-    - python: '3.4'
-      env: TOXENV=py34
     - python: '3.5'
       env: TOXENV=py35
     - python: '3.6'
@@ -21,7 +23,6 @@ branches:
  - master
  - devel
  - devel-nonfree
- - devel06
  - /^[0-9]+\.[0-9]+\.[0-9]+[.0-9ab]*$/
 
 cache:
@@ -33,39 +34,23 @@ services:
 addons:
   apt:
     packages:
-    - swig
-    - libzmq3-dev
-    - libgmp-dev
-    - libglpk-dev
-    - glpk-utils
     - pandoc
     - openbabel
 
 before_install:
-- travis_retry pip install --upgrade pip setuptools wheel tox
-- 'echo "this is a build for: $TRAVIS_BRANCH"'
-- 'if [[ "$TRAVIS_BRANCH" != "devel" && ($TRAVIS_PYTHON_VERSION == "3.4" || $TRAVIS_PYTHON_VERSION == "2.7") ]]; then bash ./.travis/install_cplex.sh; fi'
+- pip install --upgrade pip setuptools wheel tox
+- bash ./.travis/install_cplex.sh
 
 script:
-  - tox
+  - travis_wait tox
 
-notifications:
-  slack:
-    rooms:
-      - biosustain:UGm09rOjMCgXko3rS3wUivoX
-    on_success: change
-    on_failure: change
 before_deploy:
-  - pip install twine
-  - python setup.py sdist bdist_wheel
   - if [[ $TRAVIS_PYTHON_VERSION == "3.6" ]]; then
         pip install .[docs,jupyter];
         cd docs && make apidoc && make html && touch _build/html/.nojekyll;
     fi
-  - cd $TRAVIS_BUILD_DIR
-env:
-  global:
-    secure: QgrOXEgpcH6xgToVfWIX6j6CPvycKMPtNnoYAxPrZjkMzd2aCHHeokv0FZkCn3uePO0I8W8TkKBxilGZbWYoseDq+Snds18sBTG9u2NHvYHnDQb4Oki7+NoxhlnGIOj/8ADONOpc0n7PyFDPK8zmKVZvv9p78OHZO5CmV/ktOeg=
+  - cd "${TRAVIS_BUILD_DIR}"
+
 deploy:
   - provider: pypi
     user: Nikolaus.Sonnenschein
@@ -76,7 +61,7 @@ deploy:
     on:
       branch: master
       tags: true
-      repo: biosustain/cameo
+      repo: $GITHUB_REPO
     docs_dir: docs/_build/html
   - provider: pages
     fqdn: cameo.bio
@@ -89,7 +74,7 @@ deploy:
         - master
         - devel
       condition: $TRAVIS_PYTHON_VERSION == "3.6"
-      repo: biosustain/cameo
+      repo: $GITHUB_REPO
 #  - provider: releases
 #    api_key:
 #      secure: VsKdkwYvp7lf65S/pzLWbrk8PaRAzBVClB57s4jYepx+BbJdPJi5Zwz4zmu0Ifa1K7K2Jh0rITV9GZAyC+0Eq2ffXtZsBOsC5+2yKaWV5WiU7kNdUVhD9EFkUaNknT8+B2/sjPsl+GP8DTzCqstgdGo5EAAnvpV53qIAwwF9n0U=
@@ -97,6 +82,12 @@ deploy:
 #    file: dist/cameo*.whl
 #    skip_cleanup: true
 #    on:
-#      all_branches: true
 #      tags: true
-#      repo: biosustain/cameo
+#      repo: $GITHUB_REPO
+
+notifications:
+  slack:
+    rooms:
+      - biosustain:UGm09rOjMCgXko3rS3wUivoX
+    on_success: change
+    on_failure: change
