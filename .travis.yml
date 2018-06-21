@@ -58,6 +58,7 @@ deploy:
       secure: nxjszXtUzQfnLlfg0cmFjd9gRekXDog6dkkN1rMc7CIWH2gZ1gAX4sNETVChnuSmu9egzhuIkviHstRrdyGoEZ7ZkHlTXmpVAs9AY96eMSejnwHHODhYno0jB7DjGcfejodLF+lo6lWz7S7mXXwML6YLM3xxG+AOjLHlHbPTaKc=
     distributions: sdist bdist_wheel
     skip_cleanup: true
+    skip_existing: true
     on:
       branch: master
       tags: true
