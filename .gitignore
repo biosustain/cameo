@@ -54,3 +54,6 @@ docs/_build
 /.DS_Store
 .cache
 /coverage.xml
+
+cplex/
+cplex*.tar.gz
