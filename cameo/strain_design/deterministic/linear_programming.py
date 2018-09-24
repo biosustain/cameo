@@ -45,7 +45,7 @@ from cameo.visualization.plotting import plotter
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["OptKnock"]
+__all__ = ["OptKnock", "GrowthCouplingPotential"]
 
 
 class OptKnock(StrainDesignMethod):
@@ -426,3 +426,265 @@ class OptKnockResult(StrainDesignMethodResult):
         </ul>
         %s""" % (self._target, self.data_frame._repr_html_())
         return html_string
+
+
+class GrowthCouplingPotential(StrainDesignMethod):
+    """
+    Optimize the Growth Coupling Potential through a combination of knockouts, knockins and medium additions
+
+    Parameters
+    ----------
+    model : cobra.Model
+        A cobra model object containing the target reaction as well as all native and heterologous reactions.
+    target : cobra.Reaction or string
+        The reaction (or reaction ID) that is to be growth-coupled
+    knockout_reactions : list
+        A list of ID's for the reactions that the algorithm should attempt to knock out
+    knockin_reactions : list
+        A List of ID's for the reactions that are heterologous and that the algorithm should attempt to add
+    medium_additions : list
+        A list of metabolite ID's for the the metabolites that should potentially be added to the medium
+    n_knockouts : int
+        The maximum allowed number of knockouts
+    n_knockins : int
+        The maximum allowed number of knockins
+    n_medium : int
+        The maximum allowed number of medium additions
+    """
+    def __init__(
+            self, model, target, knockout_reactions, knockin_reactions, medium_additions,
+            n_knockouts, n_knockin, n_medium,
+            *args, **kwargs
+    ):
+        super(GrowthCouplingPotential, self).__init__(*args, **kwargs)
+
+        # Check model for forced fluxes, which should not be present. The zero solution must be allowed.
+        for r in model.reactions:
+            if r.lower_bound > 0 or r.upper_bound < 0:
+                raise ValueError(
+                    "%s has a forced flux. Remove the reaction or change its bounds for the function to work." % r.id)
+
+        # If a cobra.Reaction is given as target, convert to its ID string.
+        if isinstance(target, cobra.core.Reaction):
+            target = target.id
+            self.target = target
+
+        self.original_model = model
+        self.model = model = model.copy()
+
+        # Add boundary reactions for these metabolites named "ADD_<metabolitename>" to the model, with bounds (-10,0).
+        medium_addition_reactions = []  # List of the addition reactions added to the model
+        for m in medium_additions:
+            met = model.metabolites.get_by_id(m)
+            r = model.add_boundary(met, type="medium addition", reaction_id=("ADD_" + m), lb=-10, ub=0)
+            # r.type = "medium"
+            medium_addition_reactions.append(r.id)
+
+        # Create a set of reactions that should not be considered for knockout (from exclude_from_knockouts list of ids)
+        excluded_reactions = set()
+        for r_id in exclude_reaction_ids:
+            excluded_reactions.add(model.reactions.get_by_id(r_id))
+
+        # Set the solver to Gurobi for the fastest result. Set to CPLEX if Gurobi is not available.
+        if "gurobi" in cobra.util.solver.solvers.keys():
+            logger.info("Changing solver to Gurobi and tweaking some parameters.")
+            if "gurobi_interface" not in model.solver.interface.__name__:
+                model.solver = "gurobi"
+            # The tolerances are set to the minimum value. This gives maximum precision.
+            problem = model.solver.problem
+            problem.params.NodeMethod = 1  # primal simplex node relaxation
+            problem.params.FeasibilityTol = 1e-9  # If a flux limited to 0 by a constraint, which range around it is still considered the same as 0 > set smallest possible
+            problem.params.OptimalityTol = 1e-3  # how sure the solver has to be about this optimum being really the best it has.
+            problem.params.IntFeasTol = 1e-9  # If a value is set to an integer, how much may it still vary? > set smallest possible
+            problem.params.MIPgapAbs = 1e-9
+            problem.params.MIPgap = 1e-9
+            # problem.params.TimeLimit = 200 # Use max 200 seconds when called, return best solution after that
+            # problem.params.PoolSearchMode = 1 #0 for only finding the optimum, 1 for finding more solutions (but no quality guaranteed), 2 for finding the n best possible solutions
+            # problem.params.PoolSolutions = 10 # Number of solutions kept when finding the optimal solution
+            # problem.params.PoolGap = 0.9 # only store solutions within 90% of the optimal objective value
+
+        elif "cplex" in cobra.util.solver.solvers.keys():
+            logger.warning(
+                "Changing solver to CPLEX, as Gurobi is not available. This may cause a big slowdown and limit options afterwards.")
+            if "cplex_interface" not in model.solver.interface.__name__:
+                model.solver = "cplex"
+            # The tolerances are set to the minimum value. This gives maximum precision.
+            problem = model.solver.problem
+            problem.parameters.mip.strategy.startalgorithm.set(1)  # primal simplex node relaxation
+            problem.parameters.simplex.tolerances.feasibility.set(
+                1e-9)  # If a flux limited to 0 by a constraint, which range around it is still considered the same as 0 > set smallest possible
+            problem.parameters.simplex.tolerances.optimality.set(
+                1e-3)  # possibly fine with 1e-3, try if allowed. Is how sure the solver has to be about this optimum being really the best it has.
+            problem.parameters.mip.tolerances.integrality.set(
+                1e-9)  # If a value is set to an integer, how much may it still vary? > set smallest possible
+            problem.parameters.mip.tolerances.absmipgap.set(1e-9)
+            problem.parameters.mip.tolerances.mipgap.set(1e-9)
+            # problem.parameters.mip.pool.relgap.set(0.9) # For populate: find all solutions within 10% of the optimum for relgap = 0.1
+            # problem.parameters.timelimit.set(200) # Use max 200 seconds for solving
+            # problem.parameters.mip.limits.populate.set(20) # Find max 20 solutions (=default)
+
+        else:
+            logger.warning("You are trying to run 'GrowthCouplingPotential' with %s. This might not end well." %
+                           model.solver.interface.__name__.split(".")[-1])
+
+        # Remove reactions that are blocked: no flux through these reactions possible.
+        # This will reduce the search space for the solver, if not done already.
+        if remove_blocked:
+            blocked_reactions = cameo.flux_analysis.analysis.find_blocked_reactions(model)
+            model.remove_reactions(blocked_reactions)
+            logger.debug("Removed " + str(len(blocked_reactions)) + " reactions that were blocked")
+
+        # Make dual
+        copied_model = model.copy()
+        copied_model.optimize()
+        dual_problem = convert_linear_problem_to_dual(copied_model.solver)
+        logger.debug("Dual problem successfully created")
+
+        # Combine primal and dual
+        primal_problem = model.solver
+
+        for var in dual_problem.variables:  # All variables in the dual are copied to the primal
+            var = primal_problem.interface.Variable.clone(var)
+            primal_problem.add(var)
+        for const in dual_problem.constraints:  # All constraints in the dual are copied to the primal
+            const = primal_problem.interface.Constraint.clone(const, model=primal_problem)
+            primal_problem.add(const)
+        logger.debug("Dual and primal combined")
+
+        dual_problem.optimize()
+
+        # Dictionaries to hold the binary control variables:
+        native_y_vars = {}  # 1 for knockout, 0 for active
+        heterologous_y_vars = {}  # 1 for knockin, 0 for inactive
+        medium_y_vars = {}  # 1 for medium addition (up to -10), 0 for no addition
+
+        # Now the fun stuff
+        constrained_dual_vars = set()
+
+        # Fill the dictionaries with binary variables
+        # For the knockouts: only for the native reactions which are not exchanges
+        # for reaction in [r for r in model.reactions - excluded_reactions if r.type == "native"]:
+        for reac_id in knockout_reactions:
+            reaction = model.get_by_id(reac_id)
+
+            # Add constraint variables
+            interface = model.solver.interface
+            y_var = interface.Variable("y_" + reaction.id, type="binary")
+
+            # Constrain the primal: flux through reactions within (-1000, 1000)
+            model.solver.add(interface.Constraint(reaction.flux_expression - 1000 * (1 - y_var), ub=0,
+                                                  name="primal_y_const_" + reaction.id + "_ub"))
+            model.solver.add(interface.Constraint(reaction.flux_expression + 1000 * (1 - y_var), lb=0,
+                                                  name="primal_y_const_" + reaction.id + "_lb"))
+
+            # Constrain the dual
+            constrained_vars = []
+
+            if reaction.upper_bound != 0:
+                dual_forward_ub = model.solver.variables["dual_" + reaction.forward_variable.name + "_ub"]
+                model.solver.add(interface.Constraint(dual_forward_ub - 1000 * y_var, ub=0))
+                constrained_vars.append(dual_forward_ub)
+            if reaction.lower_bound != 0:
+                dual_reverse_ub = model.solver.variables["dual_" + reaction.reverse_variable.name + "_ub"]
+                model.solver.add(interface.Constraint(dual_reverse_ub - 1000 * y_var, ub=0))
+                constrained_vars.append(dual_reverse_ub)
+            constrained_dual_vars.update(constrained_vars)
+
+            # Add to dictionary with binary variables for native reactions:
+            native_y_vars[y_var] = reaction
+
+        # For the knockins and medium additions:
+        for reac_id in knockin_reactions + medium_addition_reactions:
+            reaction = model.get_by_id(reac_id)
+            # Add constraint variables
+            interface = model.solver.interface
+            y_var = interface.Variable("y_" + reaction.id, type="binary")
+
+            # Constrain the primal: flux through reaction within (-1000, 1000)
+            model.solver.add(interface.Constraint(reaction.flux_expression - 1000 * y_var, ub=0,
+                                                  name="primal_y_const_" + reaction.id + "_ub"))
+            model.solver.add(interface.Constraint(reaction.flux_expression + 1000 * y_var, lb=0,
+                                                  name="primal_y_const_" + reaction.id + "_lb"))
+
+            # Constrain the dual
+            constrained_vars = []
+
+            if reaction.upper_bound != 0:
+                dual_forward_ub = model.solver.variables["dual_" + reaction.forward_variable.name + "_ub"]
+                model.solver.add(interface.Constraint(dual_forward_ub - 1000 * (1 - y_var), ub=0))
+                constrained_vars.append(dual_forward_ub)
+            if reaction.lower_bound != 0:
+                dual_reverse_ub = model.solver.variables["dual_" + reaction.reverse_variable.name + "_ub"]
+                model.solver.add(interface.Constraint(dual_reverse_ub - 1000 * (1 - y_var), ub=0))
+                constrained_vars.append(dual_reverse_ub)
+            constrained_dual_vars.update(constrained_vars)
+
+            # Add y variable to the corresponding modifications dictionary
+            if reac_id in medium_addition_reactions:  # reaction.type == "medium":
+                medium_y_vars[y_var] = reaction
+            elif reac_id in knockin_reactions:  # reaction.type == "heterologous":
+                heterologous_y_vars[y_var] = reaction
+            else:
+                raise RuntimeError("Something is wrong")
+
+        logger.debug("Control variables created")
+
+        # Set the objective
+        primal_objective = model.solver.objective
+        dual_objective = interface.Objective.clone(
+            dual_problem.objective, model=model.solver
+        )
+
+        reduced_expression = optlang.symbolics.Add(
+            *((c * v) for v, c in dual_objective.expression.as_coefficients_dict().items()
+              if v not in constrained_dual_vars)
+        )
+        dual_objective = interface.Objective(reduced_expression, direction=dual_objective.direction)
+
+        full_objective = interface.Objective(primal_objective.expression - dual_objective.expression, direction="max")
+        model.objective = full_objective
+        logger.debug("Objective created")
+
+        # Add number of knockouts constraint. ub=K+1 as the target will be forced to be 1 as well
+        knockout_number_constraint = model.solver.interface.Constraint(
+            optlang.symbolics.Add(*native_y_vars), lb=0, ub=n_knockouts + 1, name="number_of_knockouts_constraint"
+        )
+        model.solver.add(knockout_number_constraint)
+
+        # Add number of knockins constraint
+        knockin_number_constraint = model.solver.interface.Constraint(
+            optlang.symbolics.Add(*heterologous_y_vars), lb=0, ub=n_knockin, name="number_of_knockins_constraint"
+        )
+        model.solver.add(knockin_number_constraint)
+
+        # Add number of medium additions constraint
+        medium_additions_number_constraint = model.solver.interface.Constraint(
+            optlang.symbolics.Add(*medium_y_vars), lb=0, ub=n_medium, name="number_of_medium_additions_constraint"
+        )
+        model.solver.add(medium_additions_number_constraint)
+
+        logger.debug("Added constraint for number of knockouts, knockins and medium additions")
+
+        # Force target control variable to be 1, but allow flux in primal
+        model.solver.constraints["primal_y_const_" + target + "_lb"].lb = -2000
+        model.solver.constraints["primal_y_const_" + target + "_ub"].ub = 2000
+        model.variables["y_" + target].lb = 1
+
+        self.model = model
+        self.native_y_vars = native_y_vars
+        self.heterologous_y_vars = heterologous_y_vars
+        self.medium_y_vars = medium_y_vars
+
+    def run(self):
+        """
+        Run the GrowthCouplingPotential method
+        """
+        self.model.optimize()
+        knockouts = [reac for var, reac in self.native_y_vars.items() if var.primal > 0.9 and reac.id != self.target]
+        knockins = [reac for var, reac in self.heterologous_y_vars.items() if var.primal > 0.9]
+        medium_additions = [reac for var, reac in self.medium_y_vars.items() if var.primal > 0.9]
+        return {
+            "knockouts": knockouts,
+            "knockins": knockins,
+            "medium": medium_additions
+        }
