@@ -31,6 +31,10 @@ from cobra.util import fix_objective_as_constraint
 from cobra.exceptions import OptimizationError
 from cobra.flux_analysis import find_essential_reactions
 
+import optlang
+from optlang.duality import convert_linear_problem_to_dual
+
+import cameo
 from cameo import config
 from cameo import ui
 from cameo.core.model_dual import convert_to_dual
@@ -432,6 +436,13 @@ class GrowthCouplingPotential(StrainDesignMethod):
     """
     Optimize the Growth Coupling Potential through a combination of knockouts, knockins and medium additions
 
+    Use the 'run' method to optimize the MILP problem and find the best solution.
+
+    In order to find multiple sub-optimal solutions through the use of solution pools, please refer to the
+    relevant solvers documentation. The underlying solver object can be accessed through
+        GrowthCouplingPotential(...).model.solver.problem
+
+
     Parameters
     ----------
     model : cobra.Model
@@ -453,10 +464,9 @@ class GrowthCouplingPotential(StrainDesignMethod):
     """
     def __init__(
             self, model, target, knockout_reactions, knockin_reactions, medium_additions,
-            n_knockouts, n_knockin, n_medium,
-            *args, **kwargs
+            n_knockouts, n_knockin, n_medium, remove_blocked=True, **kwargs
     ):
-        super(GrowthCouplingPotential, self).__init__(*args, **kwargs)
+        super(GrowthCouplingPotential, self).__init__(**kwargs)
 
         # Check model for forced fluxes, which should not be present. The zero solution must be allowed.
         for r in model.reactions:
@@ -467,7 +477,10 @@ class GrowthCouplingPotential(StrainDesignMethod):
         # If a cobra.Reaction is given as target, convert to its ID string.
         if isinstance(target, cobra.core.Reaction):
             target = target.id
-            self.target = target
+        self.target = target
+
+        if target not in knockout_reactions:
+            knockout_reactions.append(target)
 
         self.original_model = model
         self.model = model = model.copy()
@@ -480,11 +493,6 @@ class GrowthCouplingPotential(StrainDesignMethod):
             # r.type = "medium"
             medium_addition_reactions.append(r.id)
 
-        # Create a set of reactions that should not be considered for knockout (from exclude_from_knockouts list of ids)
-        excluded_reactions = set()
-        for r_id in exclude_reaction_ids:
-            excluded_reactions.add(model.reactions.get_by_id(r_id))
-
         # Set the solver to Gurobi for the fastest result. Set to CPLEX if Gurobi is not available.
         if "gurobi" in cobra.util.solver.solvers.keys():
             logger.info("Changing solver to Gurobi and tweaking some parameters.")
@@ -493,33 +501,36 @@ class GrowthCouplingPotential(StrainDesignMethod):
             # The tolerances are set to the minimum value. This gives maximum precision.
             problem = model.solver.problem
             problem.params.NodeMethod = 1  # primal simplex node relaxation
-            problem.params.FeasibilityTol = 1e-9  # If a flux limited to 0 by a constraint, which range around it is still considered the same as 0 > set smallest possible
-            problem.params.OptimalityTol = 1e-3  # how sure the solver has to be about this optimum being really the best it has.
-            problem.params.IntFeasTol = 1e-9  # If a value is set to an integer, how much may it still vary? > set smallest possible
+            problem.params.FeasibilityTol = 1e-9
+            problem.params.OptimalityTol = 1e-3
+            problem.params.IntFeasTol = 1e-9
             problem.params.MIPgapAbs = 1e-9
             problem.params.MIPgap = 1e-9
             # problem.params.TimeLimit = 200 # Use max 200 seconds when called, return best solution after that
-            # problem.params.PoolSearchMode = 1 #0 for only finding the optimum, 1 for finding more solutions (but no quality guaranteed), 2 for finding the n best possible solutions
+            # problem.params.PoolSearchMode = 1 #0 for only finding the optimum,
+            #      1 for finding more solutions (but no quality guaranteed), 2 for finding the n best possible solutions
             # problem.params.PoolSolutions = 10 # Number of solutions kept when finding the optimal solution
             # problem.params.PoolGap = 0.9 # only store solutions within 90% of the optimal objective value
 
         elif "cplex" in cobra.util.solver.solvers.keys():
             logger.warning(
-                "Changing solver to CPLEX, as Gurobi is not available. This may cause a big slowdown and limit options afterwards.")
+                "Changing solver to CPLEX, as Gurobi is not available."
+                "This may cause a big slowdown and limit options afterwards.")
             if "cplex_interface" not in model.solver.interface.__name__:
                 model.solver = "cplex"
             # The tolerances are set to the minimum value. This gives maximum precision.
             problem = model.solver.problem
             problem.parameters.mip.strategy.startalgorithm.set(1)  # primal simplex node relaxation
             problem.parameters.simplex.tolerances.feasibility.set(
-                1e-9)  # If a flux limited to 0 by a constraint, which range around it is still considered the same as 0 > set smallest possible
+                1e-9)
             problem.parameters.simplex.tolerances.optimality.set(
-                1e-3)  # possibly fine with 1e-3, try if allowed. Is how sure the solver has to be about this optimum being really the best it has.
+                1e-3)
             problem.parameters.mip.tolerances.integrality.set(
-                1e-9)  # If a value is set to an integer, how much may it still vary? > set smallest possible
+                1e-9)
             problem.parameters.mip.tolerances.absmipgap.set(1e-9)
             problem.parameters.mip.tolerances.mipgap.set(1e-9)
-            # problem.parameters.mip.pool.relgap.set(0.9) # For populate: find all solutions within 10% of the optimum for relgap = 0.1
+            # problem.parameters.mip.pool.relgap.set(0.9)
+            #      For populate: find all solutions within 10% of the optimum for relgap = 0.1
             # problem.parameters.timelimit.set(200) # Use max 200 seconds for solving
             # problem.parameters.mip.limits.populate.set(20) # Find max 20 solutions (=default)
 
@@ -565,7 +576,7 @@ class GrowthCouplingPotential(StrainDesignMethod):
         # For the knockouts: only for the native reactions which are not exchanges
         # for reaction in [r for r in model.reactions - excluded_reactions if r.type == "native"]:
         for reac_id in knockout_reactions:
-            reaction = model.get_by_id(reac_id)
+            reaction = model.reactions.get_by_id(reac_id)
 
             # Add constraint variables
             interface = model.solver.interface
@@ -595,7 +606,7 @@ class GrowthCouplingPotential(StrainDesignMethod):
 
         # For the knockins and medium additions:
         for reac_id in knockin_reactions + medium_addition_reactions:
-            reaction = model.get_by_id(reac_id)
+            reaction = model.reactions.get_by_id(reac_id)
             # Add constraint variables
             interface = model.solver.interface
             y_var = interface.Variable("y_" + reaction.id, type="binary")
@@ -679,12 +690,14 @@ class GrowthCouplingPotential(StrainDesignMethod):
         """
         Run the GrowthCouplingPotential method
         """
-        self.model.optimize()
-        knockouts = [reac for var, reac in self.native_y_vars.items() if var.primal > 0.9 and reac.id != self.target]
-        knockins = [reac for var, reac in self.heterologous_y_vars.items() if var.primal > 0.9]
-        medium_additions = [reac for var, reac in self.medium_y_vars.items() if var.primal > 0.9]
+        sol = self.model.optimize()
+        objective_value = sol.f
+        knockouts = [reac.id for var, reac in self.native_y_vars.items() if var.primal > 0.9 and reac.id != self.target]
+        knockins = [reac.id for var, reac in self.heterologous_y_vars.items() if var.primal > 0.9]
+        medium_additions = [reac.id for var, reac in self.medium_y_vars.items() if var.primal > 0.9]
         return {
             "knockouts": knockouts,
             "knockins": knockins,
-            "medium": medium_additions
+            "medium": medium_additions,
+            "obj_val": objective_value
         }
