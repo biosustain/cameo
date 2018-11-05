@@ -679,8 +679,12 @@ class ReactionKnockoutOptimization(KnockoutOptimization):
             ns = nullspace(create_stoichiometric_array(self.model))
             dead_ends = set(find_blocked_reactions_nullspace(self.model, ns=ns))
             exchanges = set(self.model.exchanges)
-            reactions = [r for r in self.model.reactions if r not in exchanges and r not in dead_ends and
-                         r.id not in self.essential_reactions]
+            reactions = [
+                r for r in self.model.reactions
+                if (r not in exchanges) and (
+                    r not in dead_ends) and (
+                        r.id not in self.essential_reactions)
+            ]
 
             groups = find_coupled_reactions_nullspace(self.model, ns=ns)
             groups_keys = [set(group) for group in groups if any(r.id in reactions for r in group)]

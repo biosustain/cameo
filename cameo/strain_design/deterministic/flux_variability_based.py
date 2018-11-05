@@ -77,7 +77,7 @@ logger = logging.getLogger(__name__)
 
 
 class DifferentialFVA(StrainDesignMethod):
-    """Differential flux variability analysis.
+    r"""Differential flux variability analysis.
 
     Compares flux ranges of a reference model to a set of models that
     have been parameterized to lie on a grid of evenly spaced points in the
@@ -354,22 +354,37 @@ class DifferentialFVA(StrainDesignMethod):
             df['suddenly_essential'] = False
             df['free_flux'] = False
 
-            df.loc[(df.lower_bound == 0) & (df.upper_bound == 0) &
-                   (ref_upper_bound != 0) & (ref_lower_bound != 0), 'KO'] = True
+            df.loc[
+                (df.lower_bound == 0) & (
+                    df.upper_bound == 0) & (
+                        ref_upper_bound != 0) & (
+                            ref_lower_bound != 0),
+                'KO'
+            ] = True
 
-            df.loc[((ref_upper_bound < 0) & (df.lower_bound > 0) |
-                   ((ref_lower_bound > 0) & (df.upper_bound < 0))), 'flux_reversal'] = True
+            df.loc[
+                ((ref_upper_bound < 0) & (df.lower_bound > 0) | (
+                    (ref_lower_bound > 0) & (df.upper_bound < 0))),
+                'flux_reversal'
+            ] = True
 
-            df.loc[((df.lower_bound <= 0) & (df.lower_bound > 0)) |
-                   ((ref_lower_bound >= 0) & (df.upper_bound <= 0)), 'suddenly_essential'] = True
+            df.loc[
+                ((df.lower_bound <= 0) & (df.lower_bound > 0)) | (
+                    (ref_lower_bound >= 0) & (df.upper_bound <= 0)),
+                'suddenly_essential'
+            ] = True
 
             is_reversible = numpy.asarray([
-                self.design_space_model.reactions.get_by_id(i).reversibility for i in df.index], dtype=bool)
+                self.design_space_model.reactions.get_by_id(i).reversibility
+                for i in df.index], dtype=bool)
             not_reversible = numpy.logical_not(is_reversible)
 
-            df.loc[((df.lower_bound == -1000) & (df.upper_bound == 1000) & is_reversible) |
-                   ((df.lower_bound == 0) & (df.upper_bound == 1000) & not_reversible) |
-                   ((df.lower_bound == -1000) & (df.upper_bound == 0) & not_reversible), 'free_flux'] = True
+            df.loc[
+                ((df.lower_bound == -1000) & (df.upper_bound == 1000) & is_reversible) | (
+                    (df.lower_bound == 0) & (df.upper_bound == 1000) & not_reversible) | (
+                        (df.lower_bound == -1000) & (df.upper_bound == 0) & not_reversible),
+                'free_flux'
+            ] = True
 
             df['reaction'] = df.index
             df['excluded'] = df['reaction'].isin(self.exclude)
@@ -481,9 +496,9 @@ class DifferentialFVAResult(StrainDesignMethodResult):
         for _, solution in solutions.groupby(('biomass', 'production')):
             targets = []
             relevant_targets = solution.loc[
-                (numpy.abs(solution['normalized_gaps']) > non_zero_flux_threshold) &
-                numpy.logical_not(solution['excluded']) &
-                numpy.logical_not(solution['free_flux'])
+                (numpy.abs(solution['normalized_gaps']) > non_zero_flux_threshold) & (
+                    numpy.logical_not(solution['excluded'])) & (
+                        numpy.logical_not(solution['free_flux']))
             ]
             for rid, relevant_row in relevant_targets.iterrows():
                 if relevant_row.KO:
@@ -648,8 +663,9 @@ class DifferentialFVAResult(StrainDesignMethodResult):
             data = self.nth_panel(index)
             # Find values above decimal precision and not NaN
             data = data.loc[
-                ~numpy.isnan(data['normalized_gaps']) &
-                (data['normalized_gaps'].abs() > non_zero_flux_threshold)]
+                ~numpy.isnan(data['normalized_gaps']) & (
+                    data['normalized_gaps'].abs() > non_zero_flux_threshold)
+            ]
             data.index = data['reaction']
 
             reaction_data = data['normalized_gaps'].copy()

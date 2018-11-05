@@ -119,10 +119,12 @@ class OptKnock(StrainDesignMethod):
 
     def _remove_blocked_reactions(self):
         fva_res = flux_variability_analysis(self._model, fraction_of_optimum=0)
+        # FIXME: Iterate over the index only (reaction identifiers).
         blocked = [
             self._model.reactions.get_by_id(reaction) for reaction, row in fva_res.data_frame.iterrows()
-            if (round(row["lower_bound"], config.ndecimals) ==
-                round(row["upper_bound"], config.ndecimals) == 0)]
+            if (round(row["lower_bound"], config.ndecimals) == round(
+                row["upper_bound"], config.ndecimals) == 0)
+        ]
         self._model.remove_reactions(blocked)
 
     def _reduce_to_nullspace(self, reactions):
