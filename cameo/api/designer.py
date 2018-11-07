@@ -351,7 +351,7 @@ class Designer(object):
                     self.__display_pathways_information(predicted_pathways, host, model)
         return pathways
 
-    def __translate_product_to_universal_reactions_model_metabolite(self, product, database):
+    def translate_product_to_universal_reactions_model_metabolite(self, product, database):
         if isinstance(product, Metabolite):
             return product
         elif isinstance(product, six.text_type) or isinstance(product, six.string_types):
