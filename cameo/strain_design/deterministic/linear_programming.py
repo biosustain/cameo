@@ -730,9 +730,12 @@ class GrowthCouplingPotential(StrainDesignMethod):
 
         if self.use_solution_pool:
             solution_pool = self.extract_gurobi_solution_pool()
+            return solution_pool
         else:
             objective_value = sol.f
-            knockouts = [reac.id for var, reac in self.native_y_vars.items() if var.primal > 0.9 and reac.id != self.target]
+            knockouts = [
+                reac.id for var, reac in self.native_y_vars.items() if var.primal > 0.9 and reac.id != self.target
+            ]
             knockins = [reac.id for var, reac in self.heterologous_y_vars.items() if var.primal > 0.9]
             medium_additions = [reac.id for var, reac in self.medium_y_vars.items() if var.primal > 0.9]
             return {
