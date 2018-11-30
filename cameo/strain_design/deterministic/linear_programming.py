@@ -461,10 +461,12 @@ class GrowthCouplingPotential(StrainDesignMethod):
         The maximum allowed number of knockins
     n_medium : int
         The maximum allowed number of medium additions
+    use_solution_pool : Bool
+        Set to True when using the Gurobi solver to identify multiple alternative solutions at once
     """
     def __init__(
             self, model, target, knockout_reactions, knockin_reactions, medium_additions,
-            n_knockouts, n_knockin, n_medium, remove_blocked=True, **kwargs
+            n_knockouts, n_knockin, n_medium, remove_blocked=True, use_solution_pool=False, **kwargs
     ):
         super(GrowthCouplingPotential, self).__init__(**kwargs)
 
@@ -483,6 +485,7 @@ class GrowthCouplingPotential(StrainDesignMethod):
             knockout_reactions.append(target)
 
         self.original_model = model
+        self.biomass_id = [r for r in model.reactions if r.objective_coefficient != 0][0].id
         self.model = model = model.copy()
 
         # Add boundary reactions for these metabolites named "ADD_<metabolitename>" to the model, with bounds (-10,0).
@@ -686,18 +689,128 @@ class GrowthCouplingPotential(StrainDesignMethod):
         self.heterologous_y_vars = heterologous_y_vars
         self.medium_y_vars = medium_y_vars
 
-    def run(self):
+        self.knockout_reactions = knockout_reactions
+        self.knockin_reactions = knockin_reactions
+        self.medium_additions = medium_additions
+
+        self.use_solution_pool = use_solution_pool
+
+        self.model.solver.configuration.presolve = True
+
+        if use_solution_pool:
+            if "gurobi_interface" not in model.solver.interface.__name__:
+                raise NotImplementedError("Solution pools are currently only available with the Gurobi solver")
+
+            self.model.solver.problem.params.PoolSearchMode = 2
+
+            # Don't store solutions with objective = 0
+            self.model.solver.problem.params.PoolGap = 0.99
+
+    def run(self, pool_size=None, pool_time_limit=None):
         """
         Run the GrowthCouplingPotential method
+
+        pool_size: None or int
+            The number of alternative solutions to find (0 - 2,000,000,000)
+        pool_time_limit: None or int
+            The maximum time (in seconds) to spend finding solutions. Will terminate with a time_limit status.
         """
+        if self.use_solution_pool:
+            if pool_size is not None:
+                self.model.solver.problem.params.PoolSolutions = pool_size
+
+            if pool_time_limit is not None:
+                self.model.solver.problem.params.TimeLimit = pool_time_limit
+
         sol = self.model.optimize()
-        objective_value = sol.f
-        knockouts = [reac.id for var, reac in self.native_y_vars.items() if var.primal > 0.9 and reac.id != self.target]
-        knockins = [reac.id for var, reac in self.heterologous_y_vars.items() if var.primal > 0.9]
-        medium_additions = [reac.id for var, reac in self.medium_y_vars.items() if var.primal > 0.9]
-        return {
-            "knockouts": knockouts,
-            "knockins": knockins,
-            "medium": medium_additions,
-            "obj_val": objective_value
-        }
+
+        if self.use_solution_pool:
+            solution_pool = self.extract_gurobi_solution_pool()
+        else:
+            objective_value = sol.f
+            knockouts = [reac.id for var, reac in self.native_y_vars.items() if var.primal > 0.9 and reac.id != self.target]
+            knockins = [reac.id for var, reac in self.heterologous_y_vars.items() if var.primal > 0.9]
+            medium_additions = [reac.id for var, reac in self.medium_y_vars.items() if var.primal > 0.9]
+            return {
+                "knockouts": knockouts,
+                "knockins": knockins,
+                "medium": medium_additions,
+                "obj_val": objective_value
+            }
+
+    def extract_gurobi_solution_pool(self):
+        """
+        Extracts the individual solutions from an MILP solution pool created by the Gurobi solver.
+        Returns the solution pool and a header with information to accompany the list of dicts.
+        """
+
+        target_id = self.target
+        biomass_id = self.biomass_id
+
+        milp = self.model
+        if "gurobi_interface" not in milp.solver.interface.__name__:
+            raise ValueError(
+                "The solver for the MILP is not Gurobi. This function only works for Gurobi created solution pools.")
+        if target_id not in milp.solver.problem.getVars():
+            raise ValueError("Specified target reaction ID %s not found in the variable list." % target_id)
+        if biomass_id not in milp.solver.problem.getVars():
+            raise ValueError("Specified biomass reaction ID %s not found in the variable list." % biomass_id)
+
+        solution_pool = []
+        for solution_number in range(milp.solver.problem.solcount):
+            solution = {}
+            milp.solver.problem.params.SolutionNumber = solution_number
+            solution["number"] = solution_number
+            # Note that the objective is the growth coupling potential, not the growth or production rate
+            solution["objective"] = milp.solver.problem.PoolObjVal
+
+            # Prepare dict for looping over variables
+            target_flux_name = "target_flux_(%s)" % target_id
+            biomass_id_reverse = biomass_id + "_reverse_"
+            target_id_reverse = target_id + "_reverse_"
+
+            solution["growth_coupling_slope"] = None
+            solution[target_flux_name] = 0
+            solution["growth_rate"] = 0
+            solution["growth_without_target"] = None
+            solution["knockout"] = []
+            solution["knockin"] = []
+            solution["medium_addition"] = []
+
+            for v in milp.solver.problem.getVars():
+                if v.VarName.startswith("y_") and v.xn > 0.99:
+                    reaction_id = v.VarName[2:]  # removing "y_"
+                    if reaction_id == self.target:
+                        continue
+                    if reaction_id in self.knockout_reactions:
+                        solution["knockout"].append(reaction_id)
+                    elif reaction_id in self.knockin_reactions:
+                        solution["knockin"].append(reaction_id)
+                    elif reaction_id in self.medium_additions:
+                        solution["medium_addition"].append(reaction_id)
+                    else:
+                        raise RuntimeError(reaction_id)
+
+                # Extract target flux and growth rate. Subtract the forward and reverse fluxes to get the net flux.
+                if v.VarName == target_id:
+                    solution[target_flux_name] += v.xn
+                if v.VarName.startswith(target_id_reverse):
+                    solution[target_flux_name] -= v.xn
+                if v.VarName == biomass_id:
+                    solution["growth_rate"] += v.xn
+                if v.VarName.startswith(biomass_id_reverse):
+                    solution["growth_rate"] -= v.xn
+
+
+            solution["growth_without_target"] = solution["growth_rate"] - solution["objective"]
+            if round(solution["objective"], 7) > 0:
+                solution["growth_coupling_slope"] = solution[target_flux_name] / solution["objective"]
+
+            solution_pool.append(solution)
+
+        return solution_pool
+
+    @staticmethod
+    def write_solutions_to_file(solutions, filename):
+        import pandas as pd
+        pd.DataFrame(solutions).to_csv(filename)
