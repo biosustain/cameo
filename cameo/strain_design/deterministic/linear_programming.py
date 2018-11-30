@@ -546,6 +546,10 @@ class GrowthCouplingPotential(StrainDesignMethod):
         if remove_blocked:
             blocked_reactions = cameo.flux_analysis.analysis.find_blocked_reactions(model)
             model.remove_reactions(blocked_reactions)
+            blocked_reaction_ids = [r.id for r in blocked_reactions]
+            knockout_reactions = [r for r in knockout_reactions if r not in blocked_reaction_ids]
+            knockin_reactions = [r for r in knockin_reactions if r not in blocked_reaction_ids]
+            medium_additions = [r for r in medium_additions if r not in blocked_reaction_ids]
             logger.debug("Removed " + str(len(blocked_reactions)) + " reactions that were blocked")
 
         # Make dual
