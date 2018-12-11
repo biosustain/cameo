@@ -831,14 +831,14 @@ class TestModel:
 
     @pytest.mark.skipif('cplex' not in solvers, reason='no cplex')
     def test_change_solver_to_cplex_and_check_copy_works(self, core_model):
-        assert round(abs(core_model.optimize().objective_value - 0.8739215069684306), 7) == 0
+        assert round(abs(core_model.slim_optimize() - 0.8739215069684306), 7) == 0
         core_model_copy = core_model.copy()
-        assert round(abs(core_model_copy.optimize().objective_value - 0.8739215069684306), 7) == 0
+        assert round(abs(core_model_copy.slim_optimize() - 0.8739215069684306), 7) == 0
         # Second, change existing glpk based model to cplex
         core_model.solver = 'cplex'
-        assert round(abs(core_model.optimize().objective_value - 0.8739215069684306), 7) == 0
+        assert round(abs(core_model.slim_optimize() - 0.8739215069684306), 7) == 0
         core_model_copy = copy.copy(core_model)
-        assert round(abs(core_model_copy.optimize().objective_value - 0.8739215069684306), 7) == 0
+        assert round(abs(core_model_copy.slim_optimize() - 0.8739215069684306), 7) == 0
 
     def test_copy_preserves_existing_solution(self, solved_model):
         solution, model = solved_model

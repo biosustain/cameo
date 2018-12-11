@@ -44,20 +44,20 @@ class TestModelLoading(object):
     def test_load_model_pickle_handle(self, solver_interface):
         with open(os.path.join(TESTDIR, 'data/iJO1366.pickle'), 'rb') as handle:
             model = load_model(handle, solver_interface=solver_interface)
-        assert abs(model.optimize().objective_value - 0.9823718127269768) < 10e-6
+        assert abs(model.slim_optimize() - 0.9823718127269768) < 10e-6
 
     def test_load_model_sbml_path(self, solver_interface):
         model = load_model(os.path.join(TESTDIR, 'data/iJO1366.xml'), solver_interface=solver_interface)
-        assert abs(model.optimize().objective_value - 0.9823718127269768) < 10e-6
+        assert abs(model.slim_optimize() - 0.9823718127269768) < 10e-6
 
     def test_load_model_sbml_handle(self, solver_interface):
         with open(os.path.join(TESTDIR, 'data/iJO1366.xml')) as handle:
             model = load_model(handle, solver_interface=solver_interface)
-        assert abs(model.optimize().objective_value - 0.9823718127269768) < 10e-6
+        assert abs(model.slim_optimize() - 0.9823718127269768) < 10e-6
 
     def test_load_model_sbml_path_set_none_interface(self):
         model = load_model(os.path.join(TESTDIR, 'data/EcoliCore.xml'), solver_interface=None)
-        assert abs(model.optimize().objective_value - 0.8739215069684306) < 10e-6
+        assert abs(model.slim_optimize() - 0.8739215069684306) < 10e-6
         assert isinstance(model, cobra.Model)
 
     def test_import_model_bigg(self):
