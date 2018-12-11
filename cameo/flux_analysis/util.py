@@ -77,7 +77,7 @@ def remove_infeasible_cycles(model, fluxes, fix=()):
         except OptimizationError as e:
             logger.warning("Couldn't remove cycles from reference flux distribution.")
             raise e
-        result = solution.x_dict
+        result = solution.fluxes
         return result
 
 

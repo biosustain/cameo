@@ -102,7 +102,7 @@ def draw_knockout_result(model, map_name, simulation_method, knockouts, *args, *
     with model:
         for reaction in model.reactions.get_by_any(knockouts):
             reaction.knock_out()
-        solution = simulation_method(model, *args, **kwargs).x_dict
+        solution = simulation_method(model, *args, **kwargs).fluxes
         return Builder(map_name, reaction_data=solution)
 
 

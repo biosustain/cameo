@@ -31,7 +31,7 @@ model = load_model('EcoliCore.xml')
 
 # optimize the model and print the objective value
 solution = model.optimize()
-print 'Objective value:', solution.f
+print 'Objective value:', solution.objective_value
 
 # Determine a set of gene deletions that will optimize the production
 # of a desired compound

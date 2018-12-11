@@ -523,7 +523,7 @@ def _cycle_free_fva(model, reactions=None, sloppy=True, sloppy_bound=666):
         else:
             logger.debug('Determine if {} with bound {} is a cycle'.format(reaction.id, bound))
             solution = get_solution(model)
-            v0_fluxes = solution.x_dict
+            v0_fluxes = solution.fluxes
             v1_cycle_free_fluxes = remove_infeasible_cycles(model, v0_fluxes)
             if abs(v1_cycle_free_fluxes[reaction.id] - bound) < 10 ** -6:
                 fva_sol[reaction.id]['lower_bound'] = bound
@@ -562,7 +562,7 @@ def _cycle_free_fva(model, reactions=None, sloppy=True, sloppy_bound=666):
         else:
             logger.debug('Determine if {} with bound {} is a cycle'.format(reaction.id, bound))
             solution = get_solution(model)
-            v0_fluxes = solution.x_dict
+            v0_fluxes = solution.fluxes
             v1_cycle_free_fluxes = remove_infeasible_cycles(model, v0_fluxes)
             if abs(v1_cycle_free_fluxes[reaction.id] - bound) < 1e-6:
                 fva_sol[reaction.id]['upper_bound'] = v0_fluxes[reaction.id]
