@@ -70,6 +70,7 @@ def tiny_toy_model(request):
     d1.add_metabolites({m1: -1})
     d1.upper_bound = 0
     d1.lower_bound = -1000
+    d1.bounds = 0, -1000
     tiny.add_reactions([d1])
     tiny.solver = request.param
     return tiny
@@ -78,7 +79,7 @@ def tiny_toy_model(request):
 # class TestLazySolution:
 #     def test_self_invalidation(self, solved_model):
 #         solution, model = solved_model
-#         assert abs(solution.f - 0.873921506968431) < 0.000001
+#         assert abs(solution.objective_value - 0.873921506968431) < 0.000001
 #         model.optimize()
 #         with pytest.raises(UndefinedSolution):
 #             getattr(solution, 'f')
@@ -833,14 +834,14 @@ class TestModel:
 
     @pytest.mark.skipif('cplex' not in solvers, reason='no cplex')
     def test_change_solver_to_cplex_and_check_copy_works(self, core_model):
-        assert round(abs(core_model.optimize().f - 0.8739215069684306), 7) == 0
+        assert round(abs(core_model.optimize().objective_value - 0.8739215069684306), 7) == 0
         core_model_copy = core_model.copy()
-        assert round(abs(core_model_copy.optimize().f - 0.8739215069684306), 7) == 0
+        assert round(abs(core_model_copy.optimize().objective_value - 0.8739215069684306), 7) == 0
         # Second, change existing glpk based model to cplex
         core_model.solver = 'cplex'
-        assert round(abs(core_model.optimize().f - 0.8739215069684306), 7) == 0
+        assert round(abs(core_model.optimize().objective_value - 0.8739215069684306), 7) == 0
         core_model_copy = copy.copy(core_model)
-        assert round(abs(core_model_copy.optimize().f - 0.8739215069684306), 7) == 0
+        assert round(abs(core_model_copy.optimize().objective_value - 0.8739215069684306), 7) == 0
 
     def test_copy_preserves_existing_solution(self, solved_model):
         solution, model = solved_model
@@ -893,27 +894,27 @@ class TestModel:
 
     # def test_add_ratio_constraint(self, solved_model):
     #     solution, model = solved_model
-    #     assert round(abs(solution.f - 0.873921506968), 7) == 0
+    #     assert round(abs(solution.objective_value - 0.873921506968), 7) == 0
     #     assert 2 * solution.x_dict['PGI'] != solution.x_dict['G6PDH2r']
     #     cp = model.copy()
     #     ratio_constr = cp.add_ratio_constraint(cp.reactions.PGI, cp.reactions.G6PDH2r, 0.5)
     #     assert ratio_constr.name == 'ratio_constraint_PGI_G6PDH2r'
     #     solution = cp.optimize()
-    #     assert round(abs(solution.f - 0.870407873712), 7) == 0
+    #     assert round(abs(solution.objective_value - 0.870407873712), 7) == 0
     #     assert round(abs(2 * solution.x_dict['PGI'] - solution.x_dict['G6PDH2r']), 7) == 0
     #     cp = model.copy()
     #
     #     ratio_constr = cp.add_ratio_constraint(cp.reactions.PGI, cp.reactions.G6PDH2r, 0.5)
     #     assert ratio_constr.name == 'ratio_constraint_PGI_G6PDH2r'
     #     solution = cp.optimize()
-    #     assert round(abs(solution.f - 0.870407873712), 7) == 0
+    #     assert round(abs(solution.objective_value - 0.870407873712), 7) == 0
     #     assert round(abs(2 * solution.x_dict['PGI'] - solution.x_dict['G6PDH2r']), 7) == 0
     #
     #     cp = model.copy()
     #     ratio_constr = cp.add_ratio_constraint('PGI', 'G6PDH2r', 0.5)
     #     assert ratio_constr.name == 'ratio_constraint_PGI_G6PDH2r'
     #     solution = cp.optimize()
-    #     assert abs(solution.f - 0.870407) < 1e-6
+    #     assert abs(solution.objective_value - 0.870407) < 1e-6
     #     assert abs(2 * solution.x_dict['PGI'] - solution.x_dict['G6PDH2r']) < 1e-6
     #
     #     cp = model.copy()
@@ -921,7 +922,7 @@ class TestModel:
     #                                            [cp.reactions.G6PDH2r, cp.reactions.ACONTa], 0.5)
     #     assert ratio_constr.name == 'ratio_constraint_PGI+ACALD_G6PDH2r+ACONTa'
     #     solution = cp.optimize()
-    #     assert abs(solution.f - 0.872959) < 1e-6
+    #     assert abs(solution.objective_value - 0.872959) < 1e-6
     #     assert abs((solution.x_dict['PGI'] + solution.x_dict['ACALD']) -
     #                0.5 * (solution.x_dict['G6PDH2r'] + solution.x_dict['ACONTa'])) < 1e-5
 

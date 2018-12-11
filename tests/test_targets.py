@@ -64,7 +64,7 @@ class TestTargets:
             down_reg_target.apply(model)
             assert model.reactions.PGI.upper_bound == 3.4
             assert model.reactions.PGI.lower_bound == -1000
-            assert abs(model.optimize().f - 0.8706) < 0.0001
+            assert abs(model.optimize().objective_value - 0.8706) < 0.0001
 
         assert model.reactions.PGI.upper_bound == 1000
         assert model.reactions.PGI.lower_bound == -1000
@@ -81,7 +81,7 @@ class TestTargets:
             down_reg_target.apply(model)
             assert model.reactions.RPI.lower_bound == -1.5
             assert model.reactions.RPI.upper_bound == 1000
-            assert abs(model.optimize().f - 0.8691) < 0.0001
+            assert abs(model.optimize().objective_value - 0.8691) < 0.0001
 
         assert model.reactions.RPI.lower_bound == -1000
         assert model.reactions.RPI.upper_bound == 1000
@@ -191,7 +191,7 @@ class TestTargets:
             knockout_target.apply(model)
             assert model.reactions.PGI.lower_bound == 0
             assert model.reactions.PGI.upper_bound == 0
-            assert abs(model.optimize().f - 0.8631) < 0.0001
+            assert abs(model.optimize().objective_value - 0.8631) < 0.0001
 
         assert model.reactions.PGI.lower_bound == -1000
         assert model.reactions.PGI.upper_bound == 1000
