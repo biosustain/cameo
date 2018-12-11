@@ -267,12 +267,12 @@ class OptKnock(StrainDesignMethod):
                     for kos in combinations:
                         knockout_list.append({r.id for r in kos})
                         fluxes_list.append(solution.fluxes)
-                        production_list.append(solution.f)
+                        production_list.append(solution.objective_value)
                         biomass_list.append(solution.fluxes[biomass.id])
                 else:
                     knockout_list.append({r.id for r in knockouts})
                     fluxes_list.append(solution.fluxes)
-                    production_list.append(solution.f)
+                    production_list.append(solution.objective_value)
                     biomass_list.append(solution.fluxes[biomass.id])
 
                 # Add an integer cut
