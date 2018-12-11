@@ -68,9 +68,7 @@ def tiny_toy_model(request):
     m1 = Metabolite("M1")
     d1 = Reaction("ex1")
     d1.add_metabolites({m1: -1})
-    d1.upper_bound = 0
-    d1.lower_bound = -1000
-    d1.bounds = 0, -1000
+    d1.bounds = -1000, 0
     tiny.add_reactions([d1])
     tiny.solver = request.param
     return tiny
@@ -207,8 +205,7 @@ class TestReaction:
 
     def test_set_bounds_scenario_3(self, core_model):
         reac = core_model.reactions.ACALD
-        reac.upper_bound = -10
-        reac.lower_bound = -10
+        reac.bounds = -10, -10
         assert reac.lower_bound == -10
         assert reac.upper_bound == -10
         reac.lower_bound = -9
@@ -243,7 +240,7 @@ class TestReaction:
         assert reac.reverse_variable.ub == 2
 
     def test_set_upper_before_lower_bound_to_0(self, core_model):
-        core_model.reactions.GAPD.upper_bound = 0
+        core_model.reactions.GAPD.bounds = 0, 0
         core_model.reactions.GAPD.lower_bound = 0
         assert core_model.reactions.GAPD.lower_bound == 0
         assert core_model.reactions.GAPD.upper_bound == 0
@@ -805,24 +802,24 @@ class TestModel:
     # def test_solver_change(self, core_model):
     #     solver_id = id(core_model.solver)
     #     problem_id = id(core_model.solver.problem)
-    #     solution = core_model.optimize().x_dict
+    #     solution = core_model.optimize().fluxes
     #     core_model.solver = 'glpk'
     #     assert id(core_model.solver) != solver_id
     #     assert id(core_model.solver.problem) != problem_id
     #     new_solution = core_model.optimize()
     #     for key in list(solution.keys()):
-    #         assert round(abs(new_solution.x_dict[key] - solution[key]), 7) == 0
+    #         assert round(abs(new_solution.fluxes[key] - solution[key]), 7) == 0
     #
     # def test_solver_change_with_optlang_interface(self, core_model):
     #     solver_id = id(core_model.solver)
     #     problem_id = id(core_model.solver.problem)
-    #     solution = core_model.optimize().x_dict
+    #     solution = core_model.optimize().fluxes
     #     core_model.solver = optlang.glpk_interface
     #     assert id(core_model.solver) != solver_id
     #     assert id(core_model.solver.problem) != problem_id
     #     new_solution = core_model.optimize()
     #     for key in list(solution.keys()):
-    #         assert round(abs(new_solution.x_dict[key] - solution[key]), 7) == 0
+    #         assert round(abs(new_solution.fluxes[key] - solution[key]), 7) == 0
 
     def test_invalid_solver_change_raises(self, core_model):
         with pytest.raises(SolverNotFound):
@@ -895,27 +892,27 @@ class TestModel:
     # def test_add_ratio_constraint(self, solved_model):
     #     solution, model = solved_model
     #     assert round(abs(solution.objective_value - 0.873921506968), 7) == 0
-    #     assert 2 * solution.x_dict['PGI'] != solution.x_dict['G6PDH2r']
+    #     assert 2 * solution.fluxes['PGI'] != solution.fluxes['G6PDH2r']
     #     cp = model.copy()
     #     ratio_constr = cp.add_ratio_constraint(cp.reactions.PGI, cp.reactions.G6PDH2r, 0.5)
     #     assert ratio_constr.name == 'ratio_constraint_PGI_G6PDH2r'
     #     solution = cp.optimize()
     #     assert round(abs(solution.objective_value - 0.870407873712), 7) == 0
-    #     assert round(abs(2 * solution.x_dict['PGI'] - solution.x_dict['G6PDH2r']), 7) == 0
+    #     assert round(abs(2 * solution.fluxes['PGI'] - solution.fluxes['G6PDH2r']), 7) == 0
     #     cp = model.copy()
     #
     #     ratio_constr = cp.add_ratio_constraint(cp.reactions.PGI, cp.reactions.G6PDH2r, 0.5)
     #     assert ratio_constr.name == 'ratio_constraint_PGI_G6PDH2r'
     #     solution = cp.optimize()
     #     assert round(abs(solution.objective_value - 0.870407873712), 7) == 0
-    #     assert round(abs(2 * solution.x_dict['PGI'] - solution.x_dict['G6PDH2r']), 7) == 0
+    #     assert round(abs(2 * solution.fluxes['PGI'] - solution.fluxes['G6PDH2r']), 7) == 0
     #
     #     cp = model.copy()
     #     ratio_constr = cp.add_ratio_constraint('PGI', 'G6PDH2r', 0.5)
     #     assert ratio_constr.name == 'ratio_constraint_PGI_G6PDH2r'
     #     solution = cp.optimize()
     #     assert abs(solution.objective_value - 0.870407) < 1e-6
-    #     assert abs(2 * solution.x_dict['PGI'] - solution.x_dict['G6PDH2r']) < 1e-6
+    #     assert abs(2 * solution.fluxes['PGI'] - solution.fluxes['G6PDH2r']) < 1e-6
     #
     #     cp = model.copy()
     #     ratio_constr = cp.add_ratio_constraint([cp.reactions.PGI, cp.reactions.ACALD],
@@ -923,8 +920,8 @@ class TestModel:
     #     assert ratio_constr.name == 'ratio_constraint_PGI+ACALD_G6PDH2r+ACONTa'
     #     solution = cp.optimize()
     #     assert abs(solution.objective_value - 0.872959) < 1e-6
-    #     assert abs((solution.x_dict['PGI'] + solution.x_dict['ACALD']) -
-    #                0.5 * (solution.x_dict['G6PDH2r'] + solution.x_dict['ACONTa'])) < 1e-5
+    #     assert abs((solution.fluxes['PGI'] + solution.fluxes['ACALD']) -
+    #                0.5 * (solution.fluxes['G6PDH2r'] + solution.fluxes['ACONTa'])) < 1e-5
 
     def test_fix_objective_as_constraint(self, core_model):
         # with TimeMachine
