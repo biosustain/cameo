@@ -160,3 +160,6 @@ venv.bak/
 # mypy
 .mypy_cache/
 
+
+cplex/
+cplex*.tar.gz
