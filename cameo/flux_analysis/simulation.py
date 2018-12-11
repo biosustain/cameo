@@ -541,13 +541,13 @@ if __name__ == '__main__':
     # print("cobra fba")
     # tic = time.time()
     # cb_model.optimize(solver='cglpk')
-    # print("flux sum:", sum([abs(val) for val in list(cb_model.solution.x_dict.values())]))
+    # print("flux sum:", sum([abs(val) for val in list(cb_model.solution.fluxes.values())]))
     # print("cobra fba runtime:", time.time() - tic)
 
     # print("cobra pfba")
     # tic = time.time()
     # optimize_minimal_flux(cb_model, solver='cglpk')
-    # print("flux sum:", sum([abs(val) for val in list(cb_model.solution.x_dict.values())]))
+    # print("flux sum:", sum([abs(val) for val in list(cb_model.solution.fluxes.values())]))
     # print("cobra pfba runtime:", time.time() - tic)
 
     print("pfba")
