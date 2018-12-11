@@ -178,7 +178,8 @@ def moma(model, reference=None, cache=None, reactions=None, *args, **kwargs):
         solution = model.optimize(raise_error=True)
 
         if reactions is not None:
-            result = FluxDistributionResult({r: solution.get_primal_by_id(r) for r in reactions}, solution.f)
+            result = FluxDistributionResult(
+                {r: solution.get_primal_by_id(r) for r in reactions}, solution.objective_value)
         else:
             result = FluxDistributionResult.from_solution(solution)
         return result
@@ -275,7 +276,8 @@ def lmoma(model, reference=None, cache=None, reactions=None, *args, **kwargs):
 
         solution = model.optimize(raise_error=True)
         if reactions is not None:
-            result = FluxDistributionResult({r: solution.get_primal_by_id(r) for r in reactions}, solution.f)
+            result = FluxDistributionResult(
+                {r: solution.get_primal_by_id(r) for r in reactions}, solution.objective_value)
         else:
             result = FluxDistributionResult.from_solution(solution)
         return result
@@ -369,7 +371,8 @@ def room(model, reference=None, cache=None, delta=0.03, epsilon=0.001, reactions
 
         solution = model.optimize(raise_error=True)
         if reactions is not None:
-            result = FluxDistributionResult({r: solution.get_primal_by_id(r) for r in reactions}, solution.f)
+            result = FluxDistributionResult(
+                {r: solution.get_primal_by_id(r) for r in reactions}, solution.objective_value)
         else:
             result = FluxDistributionResult.from_solution(solution)
         return result
@@ -392,7 +395,7 @@ class FluxDistributionResult(Result):
 
     @classmethod
     def from_solution(cls, solution, *args, **kwargs):
-        return cls(solution.fluxes, solution.f, *args, **kwargs)
+        return cls(solution.fluxes, solution.objective_value, *args, **kwargs)
 
     def __init__(self, fluxes, objective_value, *args, **kwargs):
         super(FluxDistributionResult, self).__init__(*args, **kwargs)
