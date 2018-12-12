@@ -3,11 +3,10 @@
 set -eu
 
 # Build on master and tags.
-# $CPLEX_URL and $GH_TOKEN is defined in the Travis repository settings.
 if [[ ("${TRAVIS_BRANCH}" == "master" || -n "${TRAVIS_TAG}") \
 && ("${TRAVIS_PYTHON_VERSION}" == "2.7" || "${TRAVIS_PYTHON_VERSION}" == "3.5") ]];then
-    python ./.travis/load_dependency.py "${GH_TOKEN}" "cplex-python${TRAVIS_PYTHON_VERSION}.tar.gz"
-    tar xzf cplex-python${TRAVIS_PYTHON_VERSION}.tar.gz
+    curl -O $CPLEX_SECRET  # check lastpass
+    tar xzf cplex-python3.6.tar.gz
     PYTHON_VERSION=${TRAVIS_PYTHON_VERSION}
     if [ "${PYTHON_VERSION}" == "3.5" ]
     then
