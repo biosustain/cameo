@@ -102,12 +102,14 @@ class Pathway(object):
         with open(file_path, "w") as output_file:
             for reaction in self.reactions:
                 equation = _build_equation(reaction.metabolites)
-                output_file.write(reaction.id + sep +
-                                  equation + sep +
-                                  reaction.lower_bound + sep +
-                                  reaction.upper_bound + sep +
-                                  reaction.name + sep +
-                                  reaction.notes.get("pathway_note", "") + "\n")
+                output_file.write(sep.join(map(str, [
+                    reaction.id,
+                    equation,
+                    reaction.lower_bound,
+                    reaction.upper_bound,
+                    reaction.name,
+                    reaction.notes.get("pathway_note", "")
+                ])) + "\n")
 
     def plug_model(self, model):
         """

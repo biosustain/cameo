@@ -119,10 +119,12 @@ class OptKnock(StrainDesignMethod):
 
     def _remove_blocked_reactions(self):
         fva_res = flux_variability_analysis(self._model, fraction_of_optimum=0)
+        # FIXME: Iterate over the index only (reaction identifiers).
         blocked = [
             self._model.reactions.get_by_id(reaction) for reaction, row in fva_res.data_frame.iterrows()
-            if (round(row["lower_bound"], config.ndecimals) ==
-                round(row["upper_bound"], config.ndecimals) == 0)]
+            if (round(row["lower_bound"], config.ndecimals) == round(
+                row["upper_bound"], config.ndecimals) == 0)
+        ]
         self._model.remove_reactions(blocked)
 
     def _reduce_to_nullspace(self, reactions):
@@ -265,12 +267,12 @@ class OptKnock(StrainDesignMethod):
                     for kos in combinations:
                         knockout_list.append({r.id for r in kos})
                         fluxes_list.append(solution.fluxes)
-                        production_list.append(solution.f)
+                        production_list.append(solution.objective_value)
                         biomass_list.append(solution.fluxes[biomass.id])
                 else:
                     knockout_list.append({r.id for r in knockouts})
                     fluxes_list.append(solution.fluxes)
-                    production_list.append(solution.f)
+                    production_list.append(solution.objective_value)
                     biomass_list.append(solution.fluxes[biomass.id])
 
                 # Add an integer cut

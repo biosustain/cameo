@@ -342,8 +342,11 @@ class GeneModulationTarget(FluxModulationTarget):
 
     def __eq__(self, other):
         if isinstance(other, GeneModulationTarget):
-            return (self.id == other.id and self._value == other._value and
-                    self._reference_value == other._reference_value)
+            return (
+                (self.id == other.id) and (
+                    self._value == other._value) and (
+                        self._reference_value == other._reference_value)
+            )
         else:
             return False
 
@@ -425,8 +428,11 @@ class ReactionModulationTarget(FluxModulationTarget):
 
     def __eq__(self, other):
         if isinstance(other, ReactionModulationTarget):
-            return (self.id == other.id and self._value == other._value and
-                    self._reference_value == other._reference_value)
+            return (
+                (self.id == other.id) and (
+                    self._value == other._value) and (
+                        self._reference_value == other._reference_value)
+            )
         else:
             return False
 

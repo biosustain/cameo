@@ -172,9 +172,13 @@ def find_blocked_reactions(model):
         for exchange in model.exchanges:
             exchange.bounds = (-9999, 9999)
         fva_solution = flux_variability_analysis(model)
-    return frozenset(reaction for reaction in model.reactions
-                     if round(fva_solution.lower_bound(reaction.id), config.ndecimals) == 0 and
-                     round(fva_solution.upper_bound(reaction.id), config.ndecimals) == 0)
+    return frozenset(
+        reaction for reaction in model.reactions
+        if round(
+            fva_solution.lower_bound(reaction.id),
+            config.ndecimals) == 0 and round(
+            fva_solution.upper_bound(reaction.id), config.ndecimals) == 0
+    )
 
 
 def flux_variability_analysis(model, reactions=None, fraction_of_optimum=0., pfba_factor=None,
@@ -303,14 +307,16 @@ def phenotypic_phase_plane(model, variables, objective=None, source=None, points
 
     nice_variable_ids = [_nice_id(reaction) for reaction in variable_reactions]
     variable_reactions_ids = [reaction.id for reaction in variable_reactions]
-    phase_plane = pandas.DataFrame(envelope,
-                                   columns=(variable_reactions_ids +
-                                            ['objective_lower_bound',
-                                             'objective_upper_bound',
-                                             'c_yield_lower_bound',
-                                             'c_yield_upper_bound',
-                                             'mass_yield_lower_bound',
-                                             'mass_yield_upper_bound']))
+    phase_plane = pandas.DataFrame(
+        envelope, columns=(variable_reactions_ids + [
+            'objective_lower_bound',
+            'objective_upper_bound',
+            'c_yield_lower_bound',
+            'c_yield_upper_bound',
+            'mass_yield_lower_bound',
+            'mass_yield_upper_bound'
+        ])
+    )
 
     if objective is None:
         objective = model.objective
@@ -517,7 +523,7 @@ def _cycle_free_fva(model, reactions=None, sloppy=True, sloppy_bound=666):
         else:
             logger.debug('Determine if {} with bound {} is a cycle'.format(reaction.id, bound))
             solution = get_solution(model)
-            v0_fluxes = solution.x_dict
+            v0_fluxes = solution.fluxes
             v1_cycle_free_fluxes = remove_infeasible_cycles(model, v0_fluxes)
             if abs(v1_cycle_free_fluxes[reaction.id] - bound) < 10 ** -6:
                 fva_sol[reaction.id]['lower_bound'] = bound
@@ -556,7 +562,7 @@ def _cycle_free_fva(model, reactions=None, sloppy=True, sloppy_bound=666):
         else:
             logger.debug('Determine if {} with bound {} is a cycle'.format(reaction.id, bound))
             solution = get_solution(model)
-            v0_fluxes = solution.x_dict
+            v0_fluxes = solution.fluxes
             v1_cycle_free_fluxes = remove_infeasible_cycles(model, v0_fluxes)
             if abs(v1_cycle_free_fluxes[reaction.id] - bound) < 1e-6:
                 fva_sol[reaction.id]['upper_bound'] = v0_fluxes[reaction.id]
