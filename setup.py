@@ -46,7 +46,7 @@ requirements = ['numpy>=1.9.1',
 
 extra_requirements = {
     'docs': ['Sphinx>=1.3.5', 'numpydoc>=0.5'],
-    'plotly': ['plotly>=1.9.6'],
+    'plotly': ['plotly>=3.0.0'],
     'bokeh': ['bokeh<=0.12.1'],
     'jupyter': ['jupyter>=1.0.0', 'ipywidgets>=4.1.1'],
     'test': ['pytest', 'pytest-cov', 'pytest-benchmark'],

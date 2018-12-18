@@ -120,7 +120,7 @@ class PlotlyPlotter(AbstractPlotter):
             y.extend([lb[0], ub[0]])
 
         scatter = go.Scatter(x=x, y=y,
-                             mode="line",
+                             mode="lines",
                              name=variable,
                              hoverinfo='none',
                              fillcolor=color,
