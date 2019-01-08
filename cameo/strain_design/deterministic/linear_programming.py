@@ -80,7 +80,7 @@ class OptKnock(StrainDesignMethod):
     >>> from cameo.strain_design.deterministic import OptKnock
     >>> model = models.bigg.e_coli_core
     >>> model.reactions.Biomass_Ecoli_core_w_GAM.lower_bound = 0.1
-    >>> model.solver = "cplex" # Using cplex is recommended
+    >>> model.solver = "gurobi" # Using gurobi or cplex is recommended
     >>> optknock = OptKnock(model)
     >>> result = optknock.run(k=2, target="EX_ac_e", max_results=3)
     """
@@ -91,7 +91,19 @@ class OptKnock(StrainDesignMethod):
         self._model = model.copy()
         self._original_model = model
 
-        if "cplex" in config.solvers:
+        if "gurobi" in config.solvers:
+            logger.info("Changing solver to Gurobi and tweaking some parameters.")
+            if "gurobi_interface" not in model.solver.interface.__name__:
+                model.solver = "gurobi"
+            # The tolerances are set to the minimum value. This gives maximum precision.
+            problem = model.solver.problem
+            problem.params.NodeMethod = 1  # primal simplex node relaxation
+            problem.params.FeasibilityTol = 1e-9
+            problem.params.OptimalityTol = 1e-3
+            problem.params.IntFeasTol = 1e-9
+            problem.params.MIPgapAbs = 1e-9
+            problem.params.MIPgap = 1e-9
+        elif "cplex" in config.solvers:
             logger.debug("Changing solver to cplex and tweaking some parameters.")
             if "cplex_interface" not in self._model.solver.interface.__name__:
                 self._model.solver = "cplex"
