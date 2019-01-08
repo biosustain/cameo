@@ -26,6 +26,7 @@ from IProgress.widgets import Bar, Percentage
 from pandas import DataFrame
 from sympy import Add
 
+import cobra
 from cobra.util import fix_objective_as_constraint
 from cobra.exceptions import OptimizationError
 from cobra.flux_analysis import find_essential_reactions
@@ -122,10 +123,18 @@ class OptKnock(StrainDesignMethod):
             fix_objective_as_constraint(self._model, fraction=fraction_of_optimum)
         if remove_blocked:
             self._remove_blocked_reactions()
-        if not exclude_reactions:
+        if exclude_reactions:
+            # Convert exclude_reactions to reaction ID's
+            exclude_reactions = [
+                r.id if isinstance(r, cobra.core.Reaction) else r for r in exclude_reactions
+            ]
+            for r_id in exclude_reactions:
+                if not r_id in self._model.reactions:
+                    raise ValueError("Excluded reaction {} is not in the model".format(r_id))
+        else:
             exclude_reactions = []
         if exclude_non_gene_reactions:
-            exclude_reactions += [r for r in self._model.reactions if not r.genes]
+            exclude_reactions += [r.id for r in self._model.reactions if not r.genes]
 
         self._build_problem(exclude_reactions, use_nullspace_simplification)
 
@@ -152,7 +161,7 @@ class OptKnock(StrainDesignMethod):
         if exclude_reactions:
             self.exclude_reactions = set.union(
                 self.essential_reactions,
-                set(get_reaction_for(self._model, r) for r in exclude_reactions)
+                set(self._model.reactions.get_by_id(r) for r in exclude_reactions)
             )
 
         reactions = set(self._model.reactions) - self.exclude_reactions
