@@ -129,7 +129,7 @@ class OptKnock(StrainDesignMethod):
                 r.id if isinstance(r, cobra.core.Reaction) else r for r in exclude_reactions
             ]
             for r_id in exclude_reactions:
-                if not r_id in self._model.reactions:
+                if r_id not in self._model.reactions:
                     raise ValueError("Excluded reaction {} is not in the model".format(r_id))
         else:
             exclude_reactions = []
