@@ -133,14 +133,17 @@ class OptKnock(StrainDesignMethod):
         reduced_reactions = reduce_reaction_set(reactions, reaction_groups_keys)
         return reduced_reactions
 
-    def _build_problem(self, essential_reactions, use_nullspace_simplification):
+    def _build_problem(self, exclude_reactions, use_nullspace_simplification):
         logger.debug("Starting to formulate OptKnock problem")
 
         self.essential_reactions = find_essential_reactions(self._model, processes=1).union(self._model.exchanges)
-        if essential_reactions:
-            self.essential_reactions.update(set(get_reaction_for(self._model, r) for r in essential_reactions))
+        if exclude_reactions:
+            self.exclude_reactions = set.union(
+                self.essential_reactions,
+                set(get_reaction_for(self._model, r) for r in exclude_reactions)
+            )
 
-        reactions = set(self._model.reactions) - self.essential_reactions
+        reactions = set(self._model.reactions) - self.exclude_reactions
         if use_nullspace_simplification:
             reactions = self._reduce_to_nullspace(reactions)
         else:
@@ -154,7 +157,7 @@ class OptKnock(StrainDesignMethod):
         y_vars = {}
         constrained_dual_vars = set()
         for reaction in reactions:
-            if reaction not in self.essential_reactions and reaction.lower_bound <= 0 <= reaction.upper_bound:
+            if reaction not in self.exclude_reactions and reaction.lower_bound <= 0 <= reaction.upper_bound:
                 y_var, constrained_vars = self._add_knockout_constraints(reaction)
                 y_vars[y_var] = reaction
                 constrained_dual_vars.update(constrained_vars)
