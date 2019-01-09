@@ -26,6 +26,7 @@ from IProgress.widgets import Bar, Percentage
 from pandas import DataFrame
 from sympy import Add
 
+import cobra
 from cobra.util import fix_objective_as_constraint
 from cobra.exceptions import OptimizationError
 from cobra.flux_analysis import find_essential_reactions
@@ -80,7 +81,7 @@ class OptKnock(StrainDesignMethod):
     >>> from cameo.strain_design.deterministic import OptKnock
     >>> model = models.bigg.e_coli_core
     >>> model.reactions.Biomass_Ecoli_core_w_GAM.lower_bound = 0.1
-    >>> model.solver = "cplex" # Using cplex is recommended
+    >>> model.solver = "gurobi" # Using gurobi or cplex is recommended
     >>> optknock = OptKnock(model)
     >>> result = optknock.run(k=2, target="EX_ac_e", max_results=3)
     """
@@ -91,7 +92,19 @@ class OptKnock(StrainDesignMethod):
         self._model = model.copy()
         self._original_model = model
 
-        if "cplex" in config.solvers:
+        if "gurobi" in config.solvers:
+            logger.info("Changing solver to Gurobi and tweaking some parameters.")
+            if "gurobi_interface" not in model.solver.interface.__name__:
+                model.solver = "gurobi"
+            # The tolerances are set to the minimum value. This gives maximum precision.
+            problem = model.solver.problem
+            problem.params.NodeMethod = 1  # primal simplex node relaxation
+            problem.params.FeasibilityTol = 1e-9
+            problem.params.OptimalityTol = 1e-3
+            problem.params.IntFeasTol = 1e-9
+            problem.params.MIPgapAbs = 1e-9
+            problem.params.MIPgap = 1e-9
+        elif "cplex" in config.solvers:
             logger.debug("Changing solver to cplex and tweaking some parameters.")
             if "cplex_interface" not in self._model.solver.interface.__name__:
                 self._model.solver = "cplex"
@@ -110,10 +123,18 @@ class OptKnock(StrainDesignMethod):
             fix_objective_as_constraint(self._model, fraction=fraction_of_optimum)
         if remove_blocked:
             self._remove_blocked_reactions()
-        if not exclude_reactions:
+        if exclude_reactions:
+            # Convert exclude_reactions to reaction ID's
+            exclude_reactions = [
+                r.id if isinstance(r, cobra.core.Reaction) else r for r in exclude_reactions
+            ]
+            for r_id in exclude_reactions:
+                if r_id not in self._model.reactions:
+                    raise ValueError("Excluded reaction {} is not in the model".format(r_id))
+        else:
             exclude_reactions = []
         if exclude_non_gene_reactions:
-            exclude_reactions += [r for r in self._model.reactions if not r.genes]
+            exclude_reactions += [r.id for r in self._model.reactions if not r.genes]
 
         self._build_problem(exclude_reactions, use_nullspace_simplification)
 
@@ -133,14 +154,17 @@ class OptKnock(StrainDesignMethod):
         reduced_reactions = reduce_reaction_set(reactions, reaction_groups_keys)
         return reduced_reactions
 
-    def _build_problem(self, essential_reactions, use_nullspace_simplification):
+    def _build_problem(self, exclude_reactions, use_nullspace_simplification):
         logger.debug("Starting to formulate OptKnock problem")
 
         self.essential_reactions = find_essential_reactions(self._model, processes=1).union(self._model.exchanges)
-        if essential_reactions:
-            self.essential_reactions.update(set(get_reaction_for(self._model, r) for r in essential_reactions))
+        if exclude_reactions:
+            self.exclude_reactions = set.union(
+                self.essential_reactions,
+                set(self._model.reactions.get_by_id(r) for r in exclude_reactions)
+            )
 
-        reactions = set(self._model.reactions) - self.essential_reactions
+        reactions = set(self._model.reactions) - self.exclude_reactions
         if use_nullspace_simplification:
             reactions = self._reduce_to_nullspace(reactions)
         else:
@@ -154,7 +178,7 @@ class OptKnock(StrainDesignMethod):
         y_vars = {}
         constrained_dual_vars = set()
         for reaction in reactions:
-            if reaction not in self.essential_reactions and reaction.lower_bound <= 0 <= reaction.upper_bound:
+            if reaction not in self.exclude_reactions and reaction.lower_bound <= 0 <= reaction.upper_bound:
                 y_var, constrained_vars = self._add_knockout_constraints(reaction)
                 y_vars[y_var] = reaction
                 constrained_dual_vars.update(constrained_vars)
