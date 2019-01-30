@@ -92,3 +92,4 @@ notifications:
       - biosustain:UGm09rOjMCgXko3rS3wUivoX
     on_success: change
     on_failure: change
+  webhooks: https://outlook.office.com/webhook/b8227dba-b24f-45a3-9003-f7f272951748@f251f123-c9ce-448e-9277-34bb285911d9/TravisCI/b740e1a7a9d9490cab9ce232cf2ba2e0/bd4e219e-da75-4442-aa94-89215e885b2a
