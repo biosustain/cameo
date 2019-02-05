@@ -299,9 +299,9 @@ class PathwayPredictor(StrainDesignMethod):
                 logger.debug('Predicting pathway No. %d' % counter)
                 try:
                     self.model.slim_optimize(error_value=None)
-                except OptimizationError as e:
+                except OptimizationError as err:
                     logger.error('No pathway could be predicted. Terminating pathway predictions.')
-                    logger.error(e)
+                    logger.error(err)
                     break
 
                 vars_to_cut = list()
@@ -355,28 +355,28 @@ class PathwayPredictor(StrainDesignMethod):
                 # Test pathway in the original model
                 with self.original_model:
                     pathway.apply(self.original_model)
+                    self.original_model.objective = pathway.product.id
                     try:
-                        solution = fba(self.original_model, objective=pathway.product.id)
-                    except OptimizationError as e:
-                        logger.error(e)
+                        value = self.original_model.slim_optimize(error_value=None)
+                    except OptimizationError as err:
+                        logger.error(err)
                         logger.error(
                             "Addition of pathway {} made the model unsolvable. "
                             "Skipping pathway.".format(pathway))
                         continue
                     else:
-                        if solution[pathway.product.id] > non_zero_flux_threshold:
+                        if value > non_zero_flux_threshold:
                             pathways.append(pathway)
-                            if not silent:
-                                print("Max flux: %.5f" % solution[pathway.product.id])
+                            logger.info("Max flux: %.5G", value)
+                            counter += 1
+                            if callback is not None:
+                                callback(pathway)
                         else:
-                            logger.error(
-                                "Pathway {} couldn't be verified. Production flux {}"
-                                "is below requirement {}. Skipping pathway.".format(
-                                    pathway, solution[pathway.product.id], non_zero_flux_threshold))
-                    finally:
-                        counter += 1
-                        if callback is not None:
-                            callback(pathway)
+                            logger.warning(
+                                "Pathway %r could not be verified. Production "
+                                "flux %.5G is below the requirement %.5G. "
+                                "Skipping.", pathway, value,
+                                non_zero_flux_threshold)
 
             return PathwayPredictions(pathways)
 
