@@ -537,7 +537,7 @@ def in_ipnb():
     """
     Check if it is running inside an IPython Notebook (updated for new notebooks)
     """
-    return pandas.core.common.in_ipython_frontend()
+    return pandas.io.formats.console.in_ipython_frontend()
 
 
 def str_to_valid_variable_name(s):
