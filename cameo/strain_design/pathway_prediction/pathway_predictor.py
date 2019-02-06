@@ -294,9 +294,10 @@ class PathwayPredictor(StrainDesignMethod):
                 product_reaction = self.model.add_boundary(product, type='demand')
 
             product_reaction.lower_bound = min_production
-            counter = 1
-            while counter <= max_predictions:
-                logger.debug('Predicting pathway No. %d' % counter)
+            pathway_counter = 1
+            integer_cut_counter = 1
+            while pathway_counter <= max_predictions:
+                logger.debug('Predicting pathway No. %d' % pathway_counter)
                 try:
                     self.model.slim_optimize(error_value=None)
                 except OptimizationError as err:
@@ -342,10 +343,10 @@ class PathwayPredictor(StrainDesignMethod):
 
                 pathway = PathwayResult(pathway, exchanges, adapters, product_reaction)
                 if not silent:
-                    util.display_pathway(pathway, counter)
+                    util.display_pathway(pathway, pathway_counter)
 
                 integer_cut = self.model.solver.interface.Constraint(Add(*vars_to_cut),
-                                                                     name="integer_cut_" + str(counter),
+                                                                     name="integer_cut_" + str(integer_cut_counter),
                                                                      ub=len(vars_to_cut) - 1)
                 logger.debug('Adding integer cut.')
                 tm(
@@ -368,7 +369,8 @@ class PathwayPredictor(StrainDesignMethod):
                         if value > non_zero_flux_threshold:
                             pathways.append(pathway)
                             logger.info("Max flux: %.5G", value)
-                            counter += 1
+                            pathway_counter += 1
+                            integer_cut_counter += 1
                             if callback is not None:
                                 callback(pathway)
                         else:
@@ -377,6 +379,7 @@ class PathwayPredictor(StrainDesignMethod):
                                 "flux %.5G is below the requirement %.5G. "
                                 "Skipping.", pathway, value,
                                 non_zero_flux_threshold)
+                            integer_cut_counter += 1
 
             return PathwayPredictions(pathways)
 
