@@ -112,9 +112,9 @@ def set_mutation(random, individual, args):
     mutation_rate = float(args.get('mutation_rate', .1))
     for value in individual:
         if random.random() < mutation_rate and len(indices) > 0:
-                index = random.sample(indices, 1)[0]
-                indices.remove(index)
-                new_individual.append(index)
+            index = random.sample(indices, 1)[0]
+            indices.remove(index)
+            new_individual.append(index)
         else:
             new_individual.append(value)
 
@@ -234,9 +234,9 @@ def multiple_chromosome_set_indel(random, individual, args):
         indel_rate = args.get('%s_indel_rate' % key, .1)
         if random.random() < indel_rate:
             if random.random() > 0.5 and len(new_individual[key]) < max_size and len(indices) > 0:
-                    index = random.sample(indices, 1)[0]
-                    indices.remove(index)
-                    new_individual[key].append(index)
+                index = random.sample(indices, 1)[0]
+                indices.remove(index)
+                new_individual[key].append(index)
             else:
                 if len(individual[key]) > 1:
                     new_individual[key] = random.sample(new_individual[key], len(new_individual[key]) - 1)

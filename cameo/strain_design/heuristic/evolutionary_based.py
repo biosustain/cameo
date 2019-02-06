@@ -134,7 +134,7 @@ class OptGene(StrainDesignMethod):
             objective_function = biomass_product_coupled_min_yield(biomass, target, substrate)
         else:
             objective_function = biomass_product_coupled_yield(biomass, target, substrate)
-        if self.manipulation_type is "genes":
+        if self.manipulation_type == "genes":
             optimization_algorithm = GeneKnockoutOptimization(
                 model=self._model,
                 heuristic_method=self._algorithm,
@@ -142,7 +142,7 @@ class OptGene(StrainDesignMethod):
                 plot=self.plot,
                 objective_function=objective_function,
                 use_nullspace_simplification=use_nullspace_simplification)
-        elif self.manipulation_type is "reactions":
+        elif self.manipulation_type == "reactions":
             optimization_algorithm = ReactionKnockoutOptimization(
                 model=self._model,
                 heuristic_method=self._algorithm,
