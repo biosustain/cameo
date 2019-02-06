@@ -342,7 +342,7 @@ class PlotlyPlotter(AbstractPlotter):
 
     @property
     def _display(self):
-        if self.get_option('mode') is "offline":
+        if self.get_option('mode') == "offline":
             from plotly.offline import iplot
             self._oflline()
         else:

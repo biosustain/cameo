@@ -188,9 +188,9 @@ class StrainDesignMethodResult(Result):
         counts = DataFrame(columns=['count'])
         for design in self._designs:
             for target in design:
-                    if target.id not in counts.index:
-                        counts.loc[target.id, 'count'] = 0
-                    counts.loc[target.id, 'count'] += 1
+                if target.id not in counts.index:
+                    counts.loc[target.id, 'count'] = 0
+                counts.loc[target.id, 'count'] += 1
             counts['frequency'] = counts['count'].apply(lambda c: c / len(self._designs))
 
         plotter.frequency(counts, title=title, width=width, height=height, **kwargs)
