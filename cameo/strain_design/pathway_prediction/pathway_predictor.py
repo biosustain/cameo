@@ -359,7 +359,7 @@ class PathwayPredictor(StrainDesignMethod):
                     pathway.apply(self.original_model)
                     self.original_model.objective = pathway.product.id
                     try:
-                        value = self.original_model.slim_optimize(error_value=None)
+                        production_flux = self.original_model.slim_optimize(error_value=None)
                     except OptimizationError as err:
                         logger.error(err)
                         logger.error(
@@ -367,9 +367,9 @@ class PathwayPredictor(StrainDesignMethod):
                             "Skipping pathway.", pathway)
                         continue
                     else:
-                        if value > non_zero_flux_threshold:
+                        if production_flux > non_zero_flux_threshold:
                             pathways.append(pathway)
-                            logger.info("Max flux: %.5G", value)
+                            logger.info("Max flux: %.5G", production_flux)
                             pathway_counter += 1
                             integer_cut_counter += 1
                             if callback is not None:
@@ -378,7 +378,7 @@ class PathwayPredictor(StrainDesignMethod):
                             logger.warning(
                                 "Pathway %r could not be verified. Production "
                                 "flux %.5G is below the requirement %.5G. "
-                                "Skipping.", pathway, value,
+                                "Skipping.", pathway, production_flux,
                                 non_zero_flux_threshold)
                             integer_cut_counter += 1
 
