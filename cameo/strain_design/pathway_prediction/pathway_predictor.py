@@ -315,18 +315,19 @@ class PathwayPredictor(StrainDesignMethod):
                 if len(vars_to_cut) == 0:
                     # no pathway found:
                     logger.info("It seems %s is a native product in model %s. "
-                                "Let's see if we can find better heterologous pathways." % (product, self.model))
+                                "Let's see if we can find better heterologous pathways.", product, self.model)
                     # knockout adapter with native product
                     for adapter in self.adpater_reactions:
                         if product in adapter.metabolites:
-                            logger.info('Knocking out adapter reaction %s containing native product.' % adapter)
+                            logger.info('Knocking out adapter reaction %s '
+                                        'containing native product.', adapter)
                             adapter.knock_out()
                     continue
 
                 pathway = [self.model.reactions.get_by_id(y_var.name[2:]) for y_var in vars_to_cut]
 
                 pathway_metabolites = set([m for pathway_reaction in pathway for m in pathway_reaction.metabolites])
-                logger.info('Pathway predicted: %s' % '\t'.join(
+                logger.info('Pathway predicted: %s', '\t'.join(
                     [r.build_reaction_string(use_metabolite_names=True) for r in pathway]))
                 pathway_metabolites.add(product)
 
@@ -362,8 +363,8 @@ class PathwayPredictor(StrainDesignMethod):
                     except OptimizationError as err:
                         logger.error(err)
                         logger.error(
-                            "Addition of pathway {} made the model unsolvable. "
-                            "Skipping pathway.".format(pathway))
+                            "Addition of pathway %r made the model unsolvable. "
+                            "Skipping pathway.", pathway)
                         continue
                     else:
                         if value > non_zero_flux_threshold:
