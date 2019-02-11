@@ -371,7 +371,6 @@ class PathwayPredictor(StrainDesignMethod):
                             pathways.append(pathway)
                             logger.info("Max flux: %.5G", production_flux)
                             pathway_counter += 1
-                            integer_cut_counter += 1
                             if callback is not None:
                                 callback(pathway)
                         else:
@@ -380,7 +379,8 @@ class PathwayPredictor(StrainDesignMethod):
                                 "flux %.5G is below the requirement %.5G. "
                                 "Skipping.", pathway, production_flux,
                                 non_zero_flux_threshold)
-                            integer_cut_counter += 1
+                    finally:
+                        integer_cut_counter += 1
 
             return PathwayPredictions(pathways)
 
