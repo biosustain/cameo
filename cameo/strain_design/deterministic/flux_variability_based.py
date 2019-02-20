@@ -197,8 +197,8 @@ class DifferentialFVA(StrainDesignMethod):
         reference_blocked_reactions = find_blocked_reactions_nullspace(self.reference_model, self.reference_nullspace)
         self.exclude += [reaction.id for reaction in reference_blocked_reactions]
 
-        self.exclude += [reaction.id for reaction in self.design_space_model.exchanges]
-        self.exclude += [reaction.id for reaction in self.reference_model.exchanges]
+        self.exclude += [reaction.id for reaction in self.design_space_model.boundary]
+        self.exclude += [reaction.id for reaction in self.reference_model.boundary]
 
         self.exclude += [reaction.id for reaction in self.design_space_model.reactions
                          if _BIOMASS_RE_.match(reaction.id)]
@@ -856,7 +856,7 @@ class FSEOF(StrainDesignMethod):
         ndecimals = config.ndecimals
 
         # Exclude list
-        exclude = list(exclude) + model.exchanges
+        exclude = list(exclude) + model.boundary
         exclude_ids = [target.id]
         for reaction in exclude:
             if isinstance(reaction, Reaction):

@@ -42,7 +42,7 @@ def iaf1260(data_directory):
 @pytest.fixture(scope="session")
 def universal_model(data_directory):
     universal = load_model(join(data_directory, 'iJO1366.xml'), sanitize=False)
-    universal.remove_reactions(universal.exchanges)
+    universal.remove_reactions(universal.boundary)
     return universal
 
 

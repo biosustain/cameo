@@ -246,7 +246,7 @@ class PathwayPredictor(StrainDesignMethod):
         except SolverNotFound:
             logger.info('cplex not available for pathway predictions.')
 
-        self.new_reactions = self._extend_model(model.exchanges)
+        self.new_reactions = self._extend_model(model.boundary)
 
         logger.debug("Adding adapter reactions to connect model with universal model.")
         self.adpater_reactions = util.create_adapter_reactions(model.metabolites, self.universal_model,
@@ -421,7 +421,7 @@ class PathwayPredictor(StrainDesignMethod):
         self._y_vars_ids = [var.name for var in y_vars]
 
     def _extend_model(self, original_exchanges):
-        for exchange in self.model.exchanges:
+        for exchange in self.model.boundary:
             if len(exchange.reactants) > 0 >= exchange.lower_bound:
                 exchange.upper_bound = 999999.
 
@@ -431,7 +431,7 @@ class PathwayPredictor(StrainDesignMethod):
                                       r in original_exchanges for m, coeff in six.iteritems(r.metabolites)
                                       if len(r.metabolites) == 1 and coeff < 0 < r.upper_bound]
 
-        universal_exchanges = self.universal_model.exchanges
+        universal_exchanges = self.universal_model.boundary
         for reaction in self.universal_model.reactions:
             if reaction in self.model.reactions:
                 continue

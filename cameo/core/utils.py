@@ -48,7 +48,7 @@ def medium(model):
     reaction_names = []
     lower_bounds = []
     upper_bounds = []
-    for ex in model.exchanges:
+    for ex in model.boundary:
         metabolite = list(ex.metabolites.keys())[0]
         coeff = ex.metabolites[metabolite]
         if coeff * ex.lower_bound > 0:
@@ -107,7 +107,7 @@ def load_medium(model, medium_def, copy=False, delimiter="\t"):
 
 def _load_medium_from_dict(model, medium_def):
     assert isinstance(medium_def, dict)
-    for ex_reaction in model.exchanges:
+    for ex_reaction in model.boundary:
         ex_reaction.lower_bound = medium_def.get(ex_reaction.id, 0)
 
 
@@ -126,7 +126,7 @@ def _load_medium_from_file(model, file_path, delimiter="\t"):
 
 def _load_medium_from_dataframe(model, medium_df):
     assert isinstance(medium_df, DataFrame)
-    for ex_reaction in model.exchanges:
+    for ex_reaction in model.boundary:
         if ex_reaction.id in medium_df.reaction_id.values:
             medium_row = medium_df[medium_df.reaction_id == ex_reaction.id]
             ex_reaction.lower_bound = medium_row.lower_bound.values[0]

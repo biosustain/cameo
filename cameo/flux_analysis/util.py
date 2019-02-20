@@ -49,7 +49,7 @@ def remove_infeasible_cycles(model, fluxes, fix=()):
     """
     with model:
         # make sure the original object is restored
-        exchange_reactions = model.exchanges
+        exchange_reactions = model.boundary
         exchange_ids = [exchange.id for exchange in exchange_reactions]
         internal_reactions = [reaction for reaction in model.reactions if reaction.id not in exchange_ids]
         for exchange in exchange_reactions:
