@@ -169,7 +169,7 @@ def find_blocked_reactions(model):
 
     """
     with model:
-        for exchange in model.exchanges:
+        for exchange in model.boundary:
             exchange.bounds = (-9999, 9999)
         fva_solution = flux_variability_analysis(model)
     return frozenset(

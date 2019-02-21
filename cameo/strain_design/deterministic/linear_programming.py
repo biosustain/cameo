@@ -157,7 +157,7 @@ class OptKnock(StrainDesignMethod):
     def _build_problem(self, exclude_reactions, use_nullspace_simplification):
         logger.debug("Starting to formulate OptKnock problem")
 
-        self.essential_reactions = find_essential_reactions(self._model, processes=1).union(self._model.exchanges)
+        self.essential_reactions = find_essential_reactions(self._model, processes=1).union(self._model.boundary)
         if exclude_reactions:
             self.exclude_reactions = set.union(
                 self.essential_reactions,

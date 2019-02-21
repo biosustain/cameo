@@ -27,7 +27,7 @@ from cameo.api.products import Compound
 MODELS = os.path.dirname(models.__file__)
 
 UNIVERSALMODEL = load_model(os.path.join(MODELS, 'json/iJO1366.json'))
-UNIVERSALMODEL.remove_reactions(UNIVERSALMODEL.exchanges)
+UNIVERSALMODEL.remove_reactions(UNIVERSALMODEL.boundary)
 
 
 def test_api():

@@ -302,7 +302,7 @@ class ShortestElementaryFluxModes(six.Iterator):
             self._elementary_mode_generator = self.__generate_elementary_modes()
 
     def __set_exchange_bounds(self):
-        exchanges = self.model.exchanges
+        exchanges = self.model.boundary
         min_bound = min(exchange.lower_bound for exchange in exchanges)
         max_bound = max(exchange.upper_bound for exchange in exchanges)
         for exchange in exchanges:

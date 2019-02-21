@@ -678,7 +678,7 @@ class ReactionKnockoutOptimization(KnockoutOptimization):
         if use_nullspace_simplification:
             ns = nullspace(create_stoichiometric_array(self.model))
             dead_ends = set(find_blocked_reactions_nullspace(self.model, ns=ns))
-            exchanges = set(self.model.exchanges)
+            exchanges = set(self.model.boundary)
             reactions = [
                 r for r in self.model.reactions
                 if (r not in exchanges) and (
@@ -694,7 +694,7 @@ class ReactionKnockoutOptimization(KnockoutOptimization):
         else:
             groups = None
             to_keep = set(r.id for r in self.model.reactions)
-            to_keep.difference_update(r.id for r in self.model.exchanges)
+            to_keep.difference_update(r.id for r in self.model.boundary)
             to_keep.difference_update(self.essential_reactions)
             to_keep = list(to_keep)
 
