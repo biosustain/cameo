@@ -77,7 +77,7 @@ The high-level API can also be called from the command line.
 
 ::
 
-    $ cameo design --product vanillin
+    $ cameo design vanillin
 
 For more information run
 
