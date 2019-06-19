@@ -371,6 +371,11 @@ class DifferentialFVA(StrainDesignMethod):
         ref_lower_bound = self.reference_flux_ranges.lower_bound.apply(
             lambda v: 0 if abs(v) < non_zero_flux_threshold else v)
 
+        # Determine where the reference flux range overlaps with zero.
+        zero_overlap_mask = numpy.asarray([
+            self._interval_overlap(interval1, (0, 0)) > 0
+            for interval1 in reference_intervals
+        ], dtype=bool)
         collection = list()
         for key, df in six.iteritems(solutions):
             df['biomass'] = key[0][1]
@@ -396,8 +401,8 @@ class DifferentialFVA(StrainDesignMethod):
             ] = True
 
             df.loc[
-                ((df.lower_bound <= 0) & (df.lower_bound > 0)) | (
-                    (ref_lower_bound >= 0) & (df.upper_bound <= 0)),
+                (zero_overlap_mask & (df.lower_bound > 0)) | (
+                    zero_overlap_mask & (df.upper_bound < 0)),
                 'suddenly_essential'
             ] = True
 
