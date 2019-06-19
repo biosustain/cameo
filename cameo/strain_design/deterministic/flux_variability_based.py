@@ -323,7 +323,13 @@ class DifferentialFVA(StrainDesignMethod):
         solutions = dict((tuple(point.iteritems()), fva_result) for (point, fva_result) in results)
         reference_intervals = self.reference_flux_ranges[['lower_bound', 'upper_bound']].values
         if self.normalize_ranges_by is not None:
-            norm = reference_intervals.lower_bound[self.normalize_ranges_by]
+            # The most obvious flux to normalize by is the biomass reaction
+            # flux. This is probably always greater than zero. Just in case
+            # the model is defined differently or some other normalizing
+            # reaction is chosen, we use the absolute value.
+            norm = abs(
+                reference_intervals.lower_bound[self.normalize_ranges_by]
+            )
             if norm > non_zero_flux_threshold:
                 normalized_reference_intervals = reference_intervals[['lower_bound', 'upper_bound']].values / norm
             else:
@@ -339,7 +345,8 @@ class DifferentialFVA(StrainDesignMethod):
                     my_zip(reference_intervals, intervals)]
             sol['gaps'] = gaps
             if self.normalize_ranges_by is not None:
-                normalizer = sol.lower_bound[self.normalize_ranges_by]
+                # See comment above regarding normalization.
+                normalizer = abs(sol.lower_bound[self.normalize_ranges_by])
                 if normalizer > non_zero_flux_threshold:
                     normalized_intervals = sol[['lower_bound', 'upper_bound']].values / normalizer
 
