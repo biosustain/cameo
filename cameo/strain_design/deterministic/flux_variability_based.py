@@ -224,6 +224,15 @@ class DifferentialFVA(StrainDesignMethod):
         else:
             self.normalize_ranges_by = normalize_ranges_by
 
+        self.included_reactions = {
+            r.id for r in self.reference_model.reactions
+            if r.id not in self.exclude
+        }
+        # Re-introduce key reactions in case they were excluded.
+        self.included_reactions.update(self.variables)
+        self.included_reactions.add(self.objective)
+        self.included_reactions.add(self.normalize_ranges_by)
+
     @staticmethod
     def _interval_overlap(interval1, interval2):
         return min(interval1[1] - interval2[0], interval2[1] - interval1[0])
@@ -309,19 +318,27 @@ class DifferentialFVA(StrainDesignMethod):
             else:
                 view = view
 
-            included_reactions = [reaction.id for reaction in self.reference_model.reactions if
-                                  reaction.id not in self.exclude] + self.variables + [self.objective]
+            self.reference_flux_dist = pfba(
+                self.reference_model,
+                fraction_of_optimum=0.99
+            )
 
-            self.reference_flux_dist = pfba(self.reference_model, fraction_of_optimum=0.99)
-
-            self.reference_flux_ranges = flux_variability_analysis(self.reference_model, reactions=included_reactions,
-                                                                   view=view, remove_cycles=False,
-                                                                   fraction_of_optimum=0.75).data_frame
+            self.reference_flux_ranges = flux_variability_analysis(
+                self.reference_model,
+                reactions=self.included_reactions,
+                view=view,
+                remove_cycles=False,
+                fraction_of_optimum=0.75
+            ).data_frame
 
             self._init_search_grid(surface_only=surface_only, improvements_only=improvements_only)
 
-            func_obj = _DifferentialFvaEvaluator(self.design_space_model, self.variables, self.objective,
-                                                 included_reactions)
+            func_obj = _DifferentialFvaEvaluator(
+                self.design_space_model,
+                self.variables,
+                self.objective,
+                self.included_reactions
+            )
             if progress:
                 progress = ProgressBar(len(self.grid))
                 results = list(progress(view.imap(func_obj, self.grid.iterrows())))
