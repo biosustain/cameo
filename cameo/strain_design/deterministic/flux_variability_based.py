@@ -182,6 +182,14 @@ class DifferentialFVA(StrainDesignMethod):
                     self.variables.append(variable.id)
                 else:
                     self.variables.append(variable)
+        if len(self.variables) > 1:
+            raise NotImplementedError(
+                "We also think that searching the production envelope over "
+                "more than one variable would be a neat feature. However, "
+                "at the moment there are some assumptions in the code that "
+                "prevent this and we don't have the resources to change it. "
+                "Pull request welcome ;-)"
+            )
 
         self.exclude = list()
         for elem in exclude:
