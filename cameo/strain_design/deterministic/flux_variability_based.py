@@ -322,6 +322,17 @@ class DifferentialFVA(StrainDesignMethod):
 
         solutions = dict((tuple(point.iteritems()), fva_result) for (point, fva_result) in results)
         reference_intervals = self.reference_flux_ranges[['lower_bound', 'upper_bound']].values
+        if self.normalize_ranges_by is not None:
+            norm = reference_intervals.lower_bound[self.normalize_ranges_by]
+            if norm > non_zero_flux_threshold:
+                normalized_reference_intervals = reference_intervals[['lower_bound', 'upper_bound']].values / norm
+            else:
+                raise ValueError(
+                    "The reaction that you have chosen for normalization '{}' "
+                    "has zero flux in the reference state. Please choose another "
+                    "one.".format(self.normalize_ranges_by)
+                )
+
         for sol in six.itervalues(solutions):
             intervals = sol[['lower_bound', 'upper_bound']].values
             gaps = [self._interval_gap(interval1, interval2) for interval1, interval2 in
@@ -333,7 +344,8 @@ class DifferentialFVA(StrainDesignMethod):
                     normalized_intervals = sol[['lower_bound', 'upper_bound']].values / normalizer
 
                     sol['normalized_gaps'] = [self._interval_gap(interval1, interval2) for interval1, interval2 in
-                                              my_zip(reference_intervals, normalized_intervals)]
+                                              my_zip(normalized_reference_intervals,
+                                                     normalized_intervals)]
                 else:
                     sol['normalized_gaps'] = [numpy.nan] * len(sol.lower_bound)
             else:
