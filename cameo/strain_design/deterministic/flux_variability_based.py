@@ -231,7 +231,8 @@ class DifferentialFVA(StrainDesignMethod):
         # Re-introduce key reactions in case they were excluded.
         self.included_reactions.update(self.variables)
         self.included_reactions.add(self.objective)
-        self.included_reactions.add(self.normalize_ranges_by)
+        if self.normalize_ranges_by is not None:
+            self.included_reactions.add(self.normalize_ranges_by)
 
     @staticmethod
     def _interval_overlap(interval1, interval2):
