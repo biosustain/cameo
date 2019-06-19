@@ -44,6 +44,9 @@ before_install:
 script:
   - travis_wait tox
 
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
+
 before_deploy:
   - if [[ $TRAVIS_PYTHON_VERSION == "3.6" ]]; then
         pip install .[docs,jupyter];
