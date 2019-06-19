@@ -353,10 +353,10 @@ class DifferentialFVA(StrainDesignMethod):
             # the model is defined differently or some other normalizing
             # reaction is chosen, we use the absolute value.
             norm = abs(
-                reference_intervals.lower_bound[self.normalize_ranges_by]
+                self.reference_flux_ranges.lower_bound[self.normalize_ranges_by]
             )
             if norm > non_zero_flux_threshold:
-                normalized_reference_intervals = reference_intervals[['lower_bound', 'upper_bound']].values / norm
+                normalized_reference_intervals = reference_intervals / norm
             else:
                 raise ValueError(
                     "The reaction that you have chosen for normalization '{}' "
