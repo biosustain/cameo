@@ -225,7 +225,7 @@ class DifferentialFVA(StrainDesignMethod):
             self.normalize_ranges_by = normalize_ranges_by
 
         self.included_reactions = {
-            r.id for r in self.reference_model.reactions
+            r.id for r in self.design_space_model.reactions
             if r.id not in self.exclude
         }
         # Re-introduce key reactions in case they were excluded.
@@ -284,7 +284,8 @@ class DifferentialFVA(StrainDesignMethod):
         columns = self.variables + [self.objective]
         self.grid = DataFrame(grid, columns=columns)
 
-    def run(self, surface_only=True, improvements_only=True, progress=True, view=None):
+    def run(self, surface_only=True, improvements_only=True, progress=True,
+            view=None, fraction_of_optimum=0.99):
         """Run the differential flux variability analysis.
 
         Parameters
@@ -298,12 +299,49 @@ class DifferentialFVA(StrainDesignMethod):
             If a progress bar should be shown.
         view : SequentialView or MultiprocessingView or ipython.cluster.DirectView, optional
             A parallelization view (defaults to SequentialView).
+        fraction_of_optimum : float, optional
+            A value between zero and one that determines the width of the
+            flux ranges of the reference solution. The lower the value,
+            the larger the ranges.
 
         Returns
         -------
         pandas.Panel
             A pandas Panel containing a results DataFrame for every grid point scanned.
         """
+        # Calculate the reference state.
+        self.reference_flux_dist = pfba(
+            self.reference_model,
+            fraction_of_optimum=fraction_of_optimum
+        )
+
+        self.reference_flux_ranges = flux_variability_analysis(
+            self.reference_model,
+            reactions=self.included_reactions,
+            view=view,
+            remove_cycles=False,
+            fraction_of_optimum=fraction_of_optimum
+        ).data_frame
+        reference_intervals = self.reference_flux_ranges[['lower_bound', 'upper_bound']].values
+
+        if self.normalize_ranges_by is not None:
+            logger.info(self.reference_flux_ranges.loc[self.normalize_ranges_by, ])
+            # The most obvious flux to normalize by is the biomass reaction
+            # flux. This is probably always greater than zero. Just in case
+            # the model is defined differently or some other normalizing
+            # reaction is chosen, we use the absolute value.
+            norm = abs(
+                self.reference_flux_ranges.lower_bound[self.normalize_ranges_by]
+            )
+            if norm > non_zero_flux_threshold:
+                normalized_reference_intervals = reference_intervals / norm
+            else:
+                raise ValueError(
+                    "The reaction that you have chosen for normalization '{}' "
+                    "has zero flux in the reference state. Please choose another "
+                    "one.".format(self.normalize_ranges_by)
+                )
+
         with TimeMachine() as tm:
             # Make sure that the design_space_model is initialized to its original state later
             for variable in self.variables:
@@ -318,19 +356,6 @@ class DifferentialFVA(StrainDesignMethod):
                 view = config.default_view
             else:
                 view = view
-
-            self.reference_flux_dist = pfba(
-                self.reference_model,
-                fraction_of_optimum=0.99
-            )
-
-            self.reference_flux_ranges = flux_variability_analysis(
-                self.reference_model,
-                reactions=self.included_reactions,
-                view=view,
-                remove_cycles=False,
-                fraction_of_optimum=0.75
-            ).data_frame
 
             self._init_search_grid(surface_only=surface_only, improvements_only=improvements_only)
 
@@ -347,23 +372,6 @@ class DifferentialFVA(StrainDesignMethod):
                 results = list(view.map(func_obj, self.grid.iterrows()))
 
         solutions = dict((tuple(point.iteritems()), fva_result) for (point, fva_result) in results)
-        reference_intervals = self.reference_flux_ranges[['lower_bound', 'upper_bound']].values
-        if self.normalize_ranges_by is not None:
-            # The most obvious flux to normalize by is the biomass reaction
-            # flux. This is probably always greater than zero. Just in case
-            # the model is defined differently or some other normalizing
-            # reaction is chosen, we use the absolute value.
-            norm = abs(
-                self.reference_flux_ranges.lower_bound[self.normalize_ranges_by]
-            )
-            if norm > non_zero_flux_threshold:
-                normalized_reference_intervals = reference_intervals / norm
-            else:
-                raise ValueError(
-                    "The reaction that you have chosen for normalization '{}' "
-                    "has zero flux in the reference state. Please choose another "
-                    "one.".format(self.normalize_ranges_by)
-                )
 
         for sol in six.itervalues(solutions):
             intervals = sol[['lower_bound', 'upper_bound']].values
