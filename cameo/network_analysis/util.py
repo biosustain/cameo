@@ -20,8 +20,8 @@ __all__ = ['distance_based_on_molecular_formula']
 def distance_based_on_molecular_formula(metabolite1, metabolite2, normalize=True):
     """Calculate the distance of two metabolites bases on the molecular formula
 
-    Arguments
-    ---------
+    Parameters
+    ----------
     metabolite1 : Metabolite
         The first metabolite.
     metabolite2 : Metabolite
@@ -33,6 +33,7 @@ def distance_based_on_molecular_formula(metabolite1, metabolite2, normalize=True
     -------
     float
         The distance between metabolite1 and metabolite2.
+
     """
     if len(metabolite1.elements) == 0 or len(metabolite2.elements) == 0:
         raise ValueError('Cannot calculate distance between metabolites %s and %s' % (metabolite1, metabolite2))

@@ -191,8 +191,8 @@ class Designer(object):
         """
         Optimize targets for the identified pathways. The optimization will only run if the pathway can be optimized.
 
-        Arguments
-        ---------
+        Parameters
+        ----------
         pathways : dict
             A dictionary with information of pathways to optimize ([Host, Model] -> PredictedPathways).
         view : object

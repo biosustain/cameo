@@ -60,8 +60,8 @@ class MultiprocessingMigrator(object):
     - *evaluate_migrant* -- should new migrants be evaluated before
       adding them to the population (default False)
 
-    Arguments
-    ---------
+    Parameters
+    ----------
     max_migrants: int
         Number of migrants in the queue at the same time.
     connection_kwargs: keyword arguments:

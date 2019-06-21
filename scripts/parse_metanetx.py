@@ -72,8 +72,8 @@ def parse_reaction(formula, irrev_arrow='-->', rev_arrow='<=>'):
 def construct_universal_model(list_of_db_prefixes, reac_xref, reac_prop, chem_prop):
     """"Construct a universal model based on metanetx.
 
-    Arguments
-    ---------
+    Parameters
+    ----------
     list_of_db_prefixes : list
         A list of database prefixes, e.g., ['bigg', 'rhea']
     reac_xref : pandas.DataFrame
@@ -82,6 +82,7 @@ def construct_universal_model(list_of_db_prefixes, reac_xref, reac_prop, chem_pr
         A dataframe of http://www.metanetx.org/cgi-bin/mnxget/mnxref/reac_prop.tsv
     chem_prop : pandas.DataFrame
         A dataframe of http://www.metanetx.org/cgi-bin/mnxget/mnxref/chem_prop.tsv
+
     """
     # Select which reactions to include in universal reaction database
 

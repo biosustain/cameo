@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 def remove_infeasible_cycles(model, fluxes, fix=()):
     """Remove thermodynamically infeasible cycles from a flux distribution.
 
-    Arguments
+    Parameters
     ---------
     model : cobra.Model
         The model that generated the flux distribution.

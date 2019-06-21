@@ -622,8 +622,8 @@ class DifferentialFVAResult(StrainDesignMethodResult):
         p[0] p[0] ..  p[1] .. p[2] ..  p[3] .. p[-1] p[-1]
 
 
-        Arguments
-        ---------
+        Parameters
+        ----------
         palette: Palette, list, str
             A Palette from palettable of equivalent, a list of colors (size 5) or a palette name
 
