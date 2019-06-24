@@ -233,6 +233,7 @@ class DifferentialFVA(StrainDesignMethod):
         self.included_reactions.add(self.objective)
         if self.normalize_ranges_by is not None:
             self.included_reactions.add(self.normalize_ranges_by)
+        self.included_reactions = sorted(self.included_reactions)
 
     @staticmethod
     def _interval_overlap(interval1, interval2):
@@ -322,16 +323,20 @@ class DifferentialFVA(StrainDesignMethod):
             remove_cycles=False,
             fraction_of_optimum=fraction_of_optimum
         ).data_frame
-        reference_intervals = self.reference_flux_ranges[['lower_bound', 'upper_bound']].values
+        reference_intervals = self.reference_flux_ranges.loc[
+            self.included_reactions,
+            ['lower_bound', 'upper_bound']
+        ].values
 
         if self.normalize_ranges_by is not None:
-            logger.info(self.reference_flux_ranges.loc[self.normalize_ranges_by, ])
+            logger.debug(self.reference_flux_ranges.loc[self.normalize_ranges_by, ])
             # The most obvious flux to normalize by is the biomass reaction
             # flux. This is probably always greater than zero. Just in case
             # the model is defined differently or some other normalizing
             # reaction is chosen, we use the absolute value.
             norm = abs(
-                self.reference_flux_ranges.lower_bound[self.normalize_ranges_by]
+                self.reference_flux_ranges.at[self.normalize_ranges_by,
+                                              "lower_bound"]
             )
             if norm > non_zero_flux_threshold:
                 normalized_reference_intervals = reference_intervals / norm
@@ -374,21 +379,30 @@ class DifferentialFVA(StrainDesignMethod):
         solutions = dict((tuple(point.iteritems()), fva_result) for (point, fva_result) in results)
 
         for sol in six.itervalues(solutions):
-            intervals = sol[['lower_bound', 'upper_bound']].values
-            gaps = [self._interval_gap(interval1, interval2) for interval1, interval2 in
-                    my_zip(reference_intervals, intervals)]
+            intervals = sol.loc[
+                self.included_reactions,
+                ['lower_bound', 'upper_bound']
+            ].values
+            gaps = [
+                self._interval_gap(interval1, interval2)
+                for interval1, interval2 in my_zip(reference_intervals, intervals)
+            ]
             sol['gaps'] = gaps
             if self.normalize_ranges_by is not None:
                 # See comment above regarding normalization.
                 normalizer = abs(sol.lower_bound[self.normalize_ranges_by])
                 if normalizer > non_zero_flux_threshold:
-                    normalized_intervals = sol[['lower_bound', 'upper_bound']].values / normalizer
+                    normalized_intervals = sol.loc[
+                        self.included_reactions,
+                        ['lower_bound', 'upper_bound']
+                    ].values / normalizer
 
-                    sol['normalized_gaps'] = [self._interval_gap(interval1, interval2) for interval1, interval2 in
-                                              my_zip(normalized_reference_intervals,
-                                                     normalized_intervals)]
+                    sol['normalized_gaps'] = [
+                        self._interval_gap(interval1, interval2)
+                        for interval1, interval2 in my_zip(
+                            normalized_reference_intervals, normalized_intervals)]
                 else:
-                    sol['normalized_gaps'] = [numpy.nan] * len(sol.lower_bound)
+                    sol['normalized_gaps'] = numpy.nan
             else:
                 sol['normalized_gaps'] = gaps
 
