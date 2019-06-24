@@ -143,7 +143,6 @@ class DifferentialFVA(StrainDesignMethod):
         self.design_space_nullspace = nullspace(create_stoichiometric_array(self.design_space_model))
         if reference_model is None:
             self.reference_model = self.design_space_model.copy()
-            fix_objective_as_constraint(self.reference_model)
             self.reference_nullspace = self.design_space_nullspace
         else:
             self.reference_model = reference_model
