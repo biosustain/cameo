@@ -286,7 +286,7 @@ class DifferentialFVA(StrainDesignMethod):
         self.grid = DataFrame(grid, columns=columns)
 
     def run(self, surface_only=True, improvements_only=True, progress=True,
-            view=None, fraction_of_optimum=0.99):
+            view=None, fraction_of_optimum=1.0):
         """Run the differential flux variability analysis.
 
         Parameters
