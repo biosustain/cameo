@@ -605,7 +605,7 @@ class DifferentialFVAResult(StrainDesignMethodResult):
         """
         grouped = self.solutions.groupby(['biomass', 'production'],
                                          as_index=False, sort=False)
-        return grouped.get_group(sorted(grouped.groups.keys())[index])
+        return grouped.get_group(sorted(grouped.groups.keys())[index]).copy()
 
     def plot(self, index=None, variables=None, grid=None, width=None, height=None, title=None, palette=None, **kwargs):
         if index is not None:
