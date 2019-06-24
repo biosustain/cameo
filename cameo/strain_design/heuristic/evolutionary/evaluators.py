@@ -99,8 +99,8 @@ class KnockoutEvaluator(TargetEvaluator):
         """
         Evaluates a single individual.
 
-        Arguments
-        ---------
+        Parameters
+        ----------
 
         individual: set
             The encoded representation of a single individual.

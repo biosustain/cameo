@@ -49,15 +49,16 @@ class Pathway(object):
     @classmethod
     def from_file(cls, file_path, sep="\t"):
         """
-        Read a pathway from a file. The file format is:
+        Read a pathway from a file.
+
+        The file format is:
         reaction_id<sep>equation<sep>lower_limit<sep>upper_limit<sep>name<sep>comments\n
 
         The equation is defined by:
         coefficient * substrate_name#substrate_id + ... <=> coefficient * product_name#product_id
 
-        Arguments
-        ---------
-
+        Parameters
+        ----------
         file_path: str
             The path to the file containing the pathway
         sep: str
@@ -66,6 +67,7 @@ class Pathway(object):
         Returns
         -------
         Pathway
+
         """
         reactions = []
         metabolites = {}
@@ -86,18 +88,17 @@ class Pathway(object):
         """
         Writes the pathway to a file.
 
-        Arguments
-        ---------
-
+        Parameters
+        ----------
         file_path: str
             The path to the file where the pathway will be written
         sep: str
             The separator between elements in the file (default: "\t")
 
-
         See Also
         --------
         Pathway.from_file
+
         """
         with open(file_path, "w") as output_file:
             for reaction in self.reactions:
@@ -113,17 +114,17 @@ class Pathway(object):
 
     def plug_model(self, model):
         """
-        Plugs the pathway to a model.
+        Plug the pathway to a model.
 
         Metabolites are matched in the model by id. For metabolites with no ID in the model, an exchange reaction
         is added to the model
 
-        Arguments
-        ---------
+        Parameters
+        ----------
         model: cobra.Model
             The model to plug in the pathway
-        """
 
+        """
         model.add_reactions(self.reactions)
         metabolites = set(reduce(lambda x, y: x + y, [list(r.metabolites.keys()) for r in self.reactions], []))
         exchanges = [model.add_boundary(m) for m in metabolites if len(m.reactions) == 1]

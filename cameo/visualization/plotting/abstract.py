@@ -83,8 +83,8 @@ class AbstractPlotter(object):
             10     0      MT         0.4
             2      0      MT         0.5
 
-        Arguments
-        ---------
+        Parameters
+        ----------
         dataframe: pandas.DataFrame
             The data to plot.
 
@@ -110,7 +110,11 @@ class AbstractPlotter(object):
         Returns
         -------
         a plottable object
-            see AbstractPlotter.display
+
+        See Also
+        --------
+        AbstractPlotter.display
+
         """
         raise NotImplementedError
 
@@ -127,8 +131,8 @@ class AbstractPlotter(object):
             10     0      WT        0.4     0.5
             2      0      WT        0.5     0.3
 
-        Arguments
-        ---------
+        Parameters
+        ----------
         dataframe: pandas.DataFrame
             The data to plot.
 
@@ -156,7 +160,11 @@ class AbstractPlotter(object):
         Returns
         -------
         a plottable object
-            see AbstractPlotter.display
+
+        See Also
+        --------
+        AbstractPlotter.display
+
         """
         raise NotImplementedError
 
@@ -172,8 +180,8 @@ class AbstractPlotter(object):
             10     -10    MT         PFK1
             2      0      MT         ADT
 
-        Arguments
-        ---------
+        Parameters
+        ----------
         dataframe: pandas.DataFrame
             The data to plot.
         grid: AbstractGrid
@@ -199,6 +207,7 @@ class AbstractPlotter(object):
         See Also
         --------
         AbstractPlotter.display
+
         """
         raise NotImplementedError
 
@@ -214,8 +223,8 @@ class AbstractPlotter(object):
             3         -10    0      1
             4         0      1      -10
 
-        Arguments
-        ---------
+        Parameters
+        ----------
         dataframe: pandas.DataFrame
             The data to plot.
         grid: AbstractGrid
@@ -241,6 +250,7 @@ class AbstractPlotter(object):
         See Also
         --------
         AbstractPlotter.display
+
         """
 
         raise NotImplementedError
@@ -257,8 +267,8 @@ class AbstractPlotter(object):
             C         1         0.032
             D         0         0.0
 
-        Arguments
-        ---------
+        Parameters
+        ----------
         dataframe: pandas.DataFrame
             The data to plot.
         grid: AbstractGrid
@@ -284,6 +294,7 @@ class AbstractPlotter(object):
         See Also
         --------
         AbstractPlotter.display
+
         """
 
         raise NotImplementedError

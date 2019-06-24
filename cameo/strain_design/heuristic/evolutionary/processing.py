@@ -21,8 +21,8 @@ def process_reaction_knockout_solution(model, solution, simulation_method, simul
                                        biomass, target, substrate, objective_function):
     """
 
-    Arguments
-    ---------
+    Parameters
+    ----------
 
     model: cobra.Model
         A constraint-based model
@@ -40,11 +40,12 @@ def process_reaction_knockout_solution(model, solution, simulation_method, simul
         The main carbon source uptake rate
     objective_function: cameo.strain_design.heuristic.evolutionary.objective_functions.ObjectiveFunction
         The objective function used for evaluation.
+
     Returns
     -------
-
     list
         A list with: reactions, size, fva_min, fva_max, target flux, biomass flux, yield, fitness
+
     """
 
     with model:
@@ -66,9 +67,8 @@ def process_gene_knockout_solution(model, solution, simulation_method, simulatio
                                    biomass, target, substrate, objective_function):
     """
 
-    Arguments
-    ---------
-
+    Parameters
+    ----------
     model: cobra.Model
         A constraint-based model
     solution: tuple
@@ -88,9 +88,9 @@ def process_gene_knockout_solution(model, solution, simulation_method, simulatio
 
     Returns
     -------
-
     list
         A list with: reactions, genes, size, fva_min, fva_max, target flux, biomass flux, yield, fitness
+
     """
 
     with model:
@@ -115,9 +115,8 @@ def process_reaction_swap_solution(model, solution, simulation_method, simulatio
                                    target, substrate, objective_function, swap_pairs):
     """
 
-    Arguments
-    ---------
-
+    Parameters
+    ----------
     model: cobra.Model
         A constraint-based model
     solution: tuple - (reactions, knockouts)
@@ -139,10 +138,10 @@ def process_reaction_swap_solution(model, solution, simulation_method, simulatio
 
     Returns
     -------
-
     list
         A list with: reactions, size, fva_min, fva_max, target flux, biomass flux, yield, fitness,
         [fitness, [fitness]]
+
     """
 
     with model:

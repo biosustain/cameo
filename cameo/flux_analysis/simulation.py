@@ -461,8 +461,8 @@ class FluxDistributionResult(Result):
         p[2]  p[2] .. p[1] .. p[0] .. p[1] ..  p[2]   p[2]
 
 
-        Arguments
-        ---------
+        Parameters
+        ----------
         palette: Palette, list, str
             A Palette from palettable of equivalent, a list of colors (size 3) or a palette name
 
@@ -470,6 +470,7 @@ class FluxDistributionResult(Result):
         -------
         tuple
             ((-2*std, color), (-std, color) (0 color) (std, color) (2*std, color))
+
         """
         if isinstance(palette, six.string_types):
             palette = mapper.map_palette(palette, 3)

@@ -179,14 +179,15 @@ class ProblemCache(object):
 
         "args" in the first example must match args on the second example.
 
-        Arguments
-        ---------
+        Parameters
+        ----------
         constraint_id : str
             The identifier of the constraint
         create : function
             A function that creates an optlang.interface.Constraint
         update : function
             a function that updates an optlang.interface.Constraint
+
         """
         context = self._contexts[-1]
 
@@ -208,14 +209,15 @@ class ProblemCache(object):
 
         "args" in the first example must match args on the second example.
 
-        Arguments
-        ---------
+        Parameters
+        ----------
         variable_id : str
             The identifier of the constraint
         create : function
             A function that creates an optlang.interface.Variable
         update : function
             a function that updates an optlang.interface.Variable
+
         """
         context = self._contexts[-1]
         if variable_id not in self.variables:

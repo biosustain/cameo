@@ -47,14 +47,7 @@ class Target(object):
         self.accession_db = accession_db
 
     def apply(self, model):
-        """
-        Applies the modification on the target, depending on the target type.
-
-        See Also
-        --------
-        Subclass implementations
-
-        """
+        """Apply the modification to the target, depending on the type."""
         raise NotImplementedError
 
     def __eq__(self, other):
@@ -95,7 +88,10 @@ class FluxModulationTarget(Target):
 
     See Also
     --------
-    ReactionModulationTarget, ReactionKnockoutTarget, GeneModulationTarget and GeneKnockoutTarget for implementation.
+    ReactionModulationTarget
+    ReactionKnockoutTarget
+    GeneModulationTarget
+    GeneKnockoutTarget
 
     """
     __gnomic_feature_type__ = 'flux'

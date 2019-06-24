@@ -30,8 +30,8 @@ __all__ = ['create_adapter_reactions', 'display_pathway']
 def create_adapter_reactions(original_metabolites, universal_model, mapping, compartment_regexp):
     """Create adapter reactions that connect host and universal model.
 
-    Arguments
-    ---------
+    Parameters
+    ----------
     original_metabolites : list
         List of host metabolites.
     universal_model : cobra.Model
@@ -43,8 +43,9 @@ def create_adapter_reactions(original_metabolites, universal_model, mapping, com
 
     Returns
     -------
-    reactions : list
+    list
         The list of adapter reactions.
+
     """
     adapter_reactions = []
     metabolites_in_main_compartment = [m for m in original_metabolites if compartment_regexp.match(m.compartment)]
