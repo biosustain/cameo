@@ -68,9 +68,15 @@ class TestDifferentialFVA:
     def test_minimal_input(self, diff_fva):
         result = diff_fva.run()
         ref_df = pandas.read_csv(os.path.join(TESTDIR, 'data/REFERENCE_DiffFVA1.csv'), index_col=0)
+        ref_df.sort_index(inplace=True)
         this_df = result.nth_panel(0)
         this_df.index.name = None
-        pandas.util.testing.assert_frame_equal(this_df[ref_df.columns], ref_df)
+        this_df.sort_index(inplace=True)
+        pandas.util.testing.assert_frame_equal(
+            this_df[ref_df.columns],
+            ref_df,
+            check_less_precise=2  # Number of digits for equality check.
+        )
 
     def test_apply_designs(self, model, diff_fva):
         result = diff_fva.run()
@@ -96,9 +102,15 @@ class TestDifferentialFVA:
         target.lower_bound = 2
         result = DifferentialFVA(model, target, reference_model=reference_model, points=5).run()
         ref_df = pandas.read_csv(os.path.join(TESTDIR, 'data/REFERENCE_DiffFVA2.csv'), index_col=0)
+        ref_df.sort_index(inplace=True)
         this_df = result.nth_panel(0)
         this_df.index.name = None
-        pandas.util.testing.assert_frame_equal(this_df[ref_df.columns], ref_df)
+        this_df.sort_index(inplace=True)
+        pandas.util.testing.assert_frame_equal(
+            this_df[ref_df.columns],
+            ref_df,
+            check_less_precise=2  # Number of digits for equality check.
+        )
 
 
 @pytest.mark.skipif('cplex' not in solvers, reason="No cplex interface available")
