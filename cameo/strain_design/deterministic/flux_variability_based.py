@@ -322,6 +322,9 @@ class DifferentialFVA(StrainDesignMethod):
             remove_cycles=False,
             fraction_of_optimum=fraction_of_optimum
         ).data_frame
+        self.reference_flux_ranges[
+            self.reference_flux_ranges.abs() < non_zero_flux_threshold
+        ] = 0.0
         reference_intervals = self.reference_flux_ranges.loc[
             self.included_reactions,
             ['lower_bound', 'upper_bound']
@@ -378,6 +381,7 @@ class DifferentialFVA(StrainDesignMethod):
         solutions = dict((tuple(point.iteritems()), fva_result) for (point, fva_result) in results)
 
         for sol in six.itervalues(solutions):
+            sol[sol.abs() < non_zero_flux_threshold] = 0.0
             intervals = sol.loc[
                 self.included_reactions,
                 ['lower_bound', 'upper_bound']
@@ -405,11 +409,6 @@ class DifferentialFVA(StrainDesignMethod):
             else:
                 sol['normalized_gaps'] = gaps
 
-        ref_upper_bound = self.reference_flux_ranges.upper_bound.apply(
-            lambda v: 0 if abs(v) < non_zero_flux_threshold else v)
-        ref_lower_bound = self.reference_flux_ranges.lower_bound.apply(
-            lambda v: 0 if abs(v) < non_zero_flux_threshold else v)
-
         # Determine where the reference flux range overlaps with zero.
         zero_overlap_mask = numpy.asarray([
             self._interval_overlap(interval1, (0, 0)) > 0
@@ -428,14 +427,14 @@ class DifferentialFVA(StrainDesignMethod):
             df.loc[
                 (df.lower_bound == 0) & (
                     df.upper_bound == 0) & (
-                        ref_upper_bound != 0) & (
-                            ref_lower_bound != 0),
+                        self.reference_flux_ranges.upper_bound != 0) & (
+                            self.reference_flux_ranges.lower_bound != 0),
                 'KO'
             ] = True
 
             df.loc[
-                ((ref_upper_bound < 0) & (df.lower_bound > 0) | (
-                    (ref_lower_bound > 0) & (df.upper_bound < 0))),
+                ((self.reference_flux_ranges.upper_bound < 0) & (df.lower_bound > 0) | (
+                    (self.reference_flux_ranges.lower_bound > 0) & (df.upper_bound < 0))),
                 'flux_reversal'
             ] = True
 
