@@ -21,10 +21,9 @@ import pytest
 from pandas import DataFrame
 from pandas.util.testing import assert_frame_equal
 
-from cobra.exceptions import Infeasible
+from cobra.exceptions import OptimizationError
 
 import cameo
-from cameo import fba
 from cameo.config import solvers
 from cameo.strain_design.deterministic.flux_variability_based import (FSEOF,
                                                                       DifferentialFVA,
@@ -85,9 +84,9 @@ class TestDifferentialFVA:
             with model:
                 strain_design.apply(model)
                 try:
-                    solution = fba(model, objective="Biomass_Ecoli_core_N_lp_w_fsh_GAM_rp__Nmet2")
+                    solution = model.optimize(raise_error=True)
                     works.append(solution["EX_succ_lp_e_rp_"] > 1e-6 and solution.objective_value > 1e-6)
-                except Infeasible:
+                except OptimizationError:
                     works.append(False)
         assert any(works)
 
