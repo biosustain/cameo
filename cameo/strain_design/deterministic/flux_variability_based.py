@@ -428,7 +428,7 @@ class DifferentialFVA(StrainDesignMethod):
                 (df.lower_bound == 0) & (
                     df.upper_bound == 0) & (
                         ~zero_overlap_mask
-                    ),
+                ),
                 'KO'
             ] = True
 
