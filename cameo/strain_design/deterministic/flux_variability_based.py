@@ -427,8 +427,8 @@ class DifferentialFVA(StrainDesignMethod):
             df.loc[
                 (df.lower_bound == 0) & (
                     df.upper_bound == 0) & (
-                        self.reference_flux_ranges.upper_bound != 0) & (
-                            self.reference_flux_ranges.lower_bound != 0),
+                        ~zero_overlap_mask
+                    ),
                 'KO'
             ] = True
 
@@ -447,7 +447,7 @@ class DifferentialFVA(StrainDesignMethod):
             is_reversible = numpy.asarray([
                 self.design_space_model.reactions.get_by_id(i).reversibility
                 for i in df.index], dtype=bool)
-            not_reversible = numpy.logical_not(is_reversible)
+            not_reversible = ~is_reversible
 
             df.loc[
                 ((df.lower_bound == -1000) & (df.upper_bound == 1000) & is_reversible) | (
