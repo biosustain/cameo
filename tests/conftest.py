@@ -19,7 +19,9 @@ def data_directory():
 
 @pytest.fixture(scope='session')
 def model(data_directory):
-    return load_model(join(data_directory, 'EcoliCore.xml'))
+    m = load_model(join(data_directory, 'EcoliCore.xml'))
+    m.solver = "glpk"
+    return m
 
 
 @pytest.fixture(scope="session")

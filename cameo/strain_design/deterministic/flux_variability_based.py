@@ -143,7 +143,6 @@ class DifferentialFVA(StrainDesignMethod):
         self.design_space_nullspace = nullspace(create_stoichiometric_array(self.design_space_model))
         if reference_model is None:
             self.reference_model = self.design_space_model.copy()
-            fix_objective_as_constraint(self.reference_model)
             self.reference_nullspace = self.design_space_nullspace
         else:
             self.reference_model = reference_model
@@ -182,6 +181,14 @@ class DifferentialFVA(StrainDesignMethod):
                     self.variables.append(variable.id)
                 else:
                     self.variables.append(variable)
+        if len(self.variables) > 1:
+            raise NotImplementedError(
+                "We also think that searching the production envelope over "
+                "more than one variable would be a neat feature. However, "
+                "at the moment there are some assumptions in the code that "
+                "prevent this and we don't have the resources to change it. "
+                "Pull request welcome ;-)"
+            )
 
         self.exclude = list()
         for elem in exclude:
@@ -215,6 +222,17 @@ class DifferentialFVA(StrainDesignMethod):
             self.normalize_ranges_by = normalize_ranges_by.id
         else:
             self.normalize_ranges_by = normalize_ranges_by
+
+        self.included_reactions = {
+            r.id for r in self.design_space_model.reactions
+            if r.id not in self.exclude
+        }
+        # Re-introduce key reactions in case they were excluded.
+        self.included_reactions.update(self.variables)
+        self.included_reactions.add(self.objective)
+        if self.normalize_ranges_by is not None:
+            self.included_reactions.add(self.normalize_ranges_by)
+        self.included_reactions = sorted(self.included_reactions)
 
     @staticmethod
     def _interval_overlap(interval1, interval2):
@@ -266,7 +284,8 @@ class DifferentialFVA(StrainDesignMethod):
         columns = self.variables + [self.objective]
         self.grid = DataFrame(grid, columns=columns)
 
-    def run(self, surface_only=True, improvements_only=True, progress=True, view=None):
+    def run(self, surface_only=True, improvements_only=True, progress=True,
+            view=None, fraction_of_optimum=1.0):
         """Run the differential flux variability analysis.
 
         Parameters
@@ -280,12 +299,56 @@ class DifferentialFVA(StrainDesignMethod):
             If a progress bar should be shown.
         view : SequentialView or MultiprocessingView or ipython.cluster.DirectView, optional
             A parallelization view (defaults to SequentialView).
+        fraction_of_optimum : float, optional
+            A value between zero and one that determines the width of the
+            flux ranges of the reference solution. The lower the value,
+            the larger the ranges.
 
         Returns
         -------
         pandas.Panel
             A pandas Panel containing a results DataFrame for every grid point scanned.
         """
+        # Calculate the reference state.
+        self.reference_flux_dist = pfba(
+            self.reference_model,
+            fraction_of_optimum=fraction_of_optimum
+        )
+
+        self.reference_flux_ranges = flux_variability_analysis(
+            self.reference_model,
+            reactions=self.included_reactions,
+            view=view,
+            remove_cycles=False,
+            fraction_of_optimum=fraction_of_optimum
+        ).data_frame
+        self.reference_flux_ranges[
+            self.reference_flux_ranges.abs() < non_zero_flux_threshold
+        ] = 0.0
+        reference_intervals = self.reference_flux_ranges.loc[
+            self.included_reactions,
+            ['lower_bound', 'upper_bound']
+        ].values
+
+        if self.normalize_ranges_by is not None:
+            logger.debug(self.reference_flux_ranges.loc[self.normalize_ranges_by, ])
+            # The most obvious flux to normalize by is the biomass reaction
+            # flux. This is probably always greater than zero. Just in case
+            # the model is defined differently or some other normalizing
+            # reaction is chosen, we use the absolute value.
+            norm = abs(
+                self.reference_flux_ranges.at[self.normalize_ranges_by,
+                                              "lower_bound"]
+            )
+            if norm > non_zero_flux_threshold:
+                normalized_reference_intervals = reference_intervals / norm
+            else:
+                raise ValueError(
+                    "The reaction that you have chosen for normalization '{}' "
+                    "has zero flux in the reference state. Please choose another "
+                    "one.".format(self.normalize_ranges_by)
+                )
+
         with TimeMachine() as tm:
             # Make sure that the design_space_model is initialized to its original state later
             for variable in self.variables:
@@ -301,19 +364,14 @@ class DifferentialFVA(StrainDesignMethod):
             else:
                 view = view
 
-            included_reactions = [reaction.id for reaction in self.reference_model.reactions if
-                                  reaction.id not in self.exclude] + self.variables + [self.objective]
-
-            self.reference_flux_dist = pfba(self.reference_model, fraction_of_optimum=0.99)
-
-            self.reference_flux_ranges = flux_variability_analysis(self.reference_model, reactions=included_reactions,
-                                                                   view=view, remove_cycles=False,
-                                                                   fraction_of_optimum=0.75).data_frame
-
             self._init_search_grid(surface_only=surface_only, improvements_only=improvements_only)
 
-            func_obj = _DifferentialFvaEvaluator(self.design_space_model, self.variables, self.objective,
-                                                 included_reactions)
+            func_obj = _DifferentialFvaEvaluator(
+                self.design_space_model,
+                self.variables,
+                self.objective,
+                self.included_reactions
+            )
             if progress:
                 progress = ProgressBar(len(self.grid))
                 results = list(progress(view.imap(func_obj, self.grid.iterrows())))
@@ -321,29 +379,41 @@ class DifferentialFVA(StrainDesignMethod):
                 results = list(view.map(func_obj, self.grid.iterrows()))
 
         solutions = dict((tuple(point.iteritems()), fva_result) for (point, fva_result) in results)
-        reference_intervals = self.reference_flux_ranges[['lower_bound', 'upper_bound']].values
+
         for sol in six.itervalues(solutions):
-            intervals = sol[['lower_bound', 'upper_bound']].values
-            gaps = [self._interval_gap(interval1, interval2) for interval1, interval2 in
-                    my_zip(reference_intervals, intervals)]
+            sol[sol.abs() < non_zero_flux_threshold] = 0.0
+            intervals = sol.loc[
+                self.included_reactions,
+                ['lower_bound', 'upper_bound']
+            ].values
+            gaps = [
+                self._interval_gap(interval1, interval2)
+                for interval1, interval2 in my_zip(reference_intervals, intervals)
+            ]
             sol['gaps'] = gaps
             if self.normalize_ranges_by is not None:
-                normalizer = sol.lower_bound[self.normalize_ranges_by]
+                # See comment above regarding normalization.
+                normalizer = abs(sol.lower_bound[self.normalize_ranges_by])
                 if normalizer > non_zero_flux_threshold:
-                    normalized_intervals = sol[['lower_bound', 'upper_bound']].values / normalizer
+                    normalized_intervals = sol.loc[
+                        self.included_reactions,
+                        ['lower_bound', 'upper_bound']
+                    ].values / normalizer
 
-                    sol['normalized_gaps'] = [self._interval_gap(interval1, interval2) for interval1, interval2 in
-                                              my_zip(reference_intervals, normalized_intervals)]
+                    sol['normalized_gaps'] = [
+                        self._interval_gap(interval1, interval2)
+                        for interval1, interval2 in my_zip(
+                            normalized_reference_intervals, normalized_intervals)]
                 else:
-                    sol['normalized_gaps'] = [numpy.nan] * len(sol.lower_bound)
+                    sol['normalized_gaps'] = numpy.nan
             else:
                 sol['normalized_gaps'] = gaps
 
-        ref_upper_bound = self.reference_flux_ranges.upper_bound.apply(
-            lambda v: 0 if abs(v) < non_zero_flux_threshold else v)
-        ref_lower_bound = self.reference_flux_ranges.lower_bound.apply(
-            lambda v: 0 if abs(v) < non_zero_flux_threshold else v)
-
+        # Determine where the reference flux range overlaps with zero.
+        zero_overlap_mask = numpy.asarray([
+            self._interval_overlap(interval1, (0, 0)) > 0
+            for interval1 in reference_intervals
+        ], dtype=bool)
         collection = list()
         for key, df in six.iteritems(solutions):
             df['biomass'] = key[0][1]
@@ -357,27 +427,27 @@ class DifferentialFVA(StrainDesignMethod):
             df.loc[
                 (df.lower_bound == 0) & (
                     df.upper_bound == 0) & (
-                        ref_upper_bound != 0) & (
-                            ref_lower_bound != 0),
+                        ~zero_overlap_mask
+                ),
                 'KO'
             ] = True
 
             df.loc[
-                ((ref_upper_bound < 0) & (df.lower_bound > 0) | (
-                    (ref_lower_bound > 0) & (df.upper_bound < 0))),
+                ((self.reference_flux_ranges.upper_bound < 0) & (df.lower_bound > 0) | (
+                    (self.reference_flux_ranges.lower_bound > 0) & (df.upper_bound < 0))),
                 'flux_reversal'
             ] = True
 
             df.loc[
-                ((df.lower_bound <= 0) & (df.lower_bound > 0)) | (
-                    (ref_lower_bound >= 0) & (df.upper_bound <= 0)),
+                (zero_overlap_mask & (df.lower_bound > 0)) | (
+                    zero_overlap_mask & (df.upper_bound < 0)),
                 'suddenly_essential'
             ] = True
 
             is_reversible = numpy.asarray([
                 self.design_space_model.reactions.get_by_id(i).reversibility
                 for i in df.index], dtype=bool)
-            not_reversible = numpy.logical_not(is_reversible)
+            not_reversible = ~is_reversible
 
             df.loc[
                 ((df.lower_bound == -1000) & (df.upper_bound == 1000) & is_reversible) | (
@@ -547,7 +617,7 @@ class DifferentialFVAResult(StrainDesignMethodResult):
         """
         grouped = self.solutions.groupby(['biomass', 'production'],
                                          as_index=False, sort=False)
-        return grouped.get_group(sorted(grouped.groups.keys())[index])
+        return grouped.get_group(sorted(grouped.groups.keys())[index]).copy()
 
     def plot(self, index=None, variables=None, grid=None, width=None, height=None, title=None, palette=None, **kwargs):
         if index is not None:

@@ -21,10 +21,9 @@ import pytest
 from pandas import DataFrame
 from pandas.util.testing import assert_frame_equal
 
-from cobra.exceptions import Infeasible
+from cobra.exceptions import OptimizationError
 
 import cameo
-from cameo import fba
 from cameo.config import solvers
 from cameo.strain_design.deterministic.flux_variability_based import (FSEOF,
                                                                       DifferentialFVA,
@@ -68,9 +67,15 @@ class TestDifferentialFVA:
     def test_minimal_input(self, diff_fva):
         result = diff_fva.run()
         ref_df = pandas.read_csv(os.path.join(TESTDIR, 'data/REFERENCE_DiffFVA1.csv'), index_col=0)
+        ref_df.sort_index(inplace=True)
         this_df = result.nth_panel(0)
         this_df.index.name = None
-        pandas.util.testing.assert_frame_equal(this_df[ref_df.columns], ref_df)
+        this_df.sort_index(inplace=True)
+        pandas.util.testing.assert_frame_equal(
+            this_df[ref_df.columns],
+            ref_df,
+            check_less_precise=2  # Number of digits for equality check.
+        )
 
     def test_apply_designs(self, model, diff_fva):
         result = diff_fva.run()
@@ -79,9 +84,9 @@ class TestDifferentialFVA:
             with model:
                 strain_design.apply(model)
                 try:
-                    solution = fba(model, objective="Biomass_Ecoli_core_N_lp_w_fsh_GAM_rp__Nmet2")
+                    solution = model.optimize(raise_error=True)
                     works.append(solution["EX_succ_lp_e_rp_"] > 1e-6 and solution.objective_value > 1e-6)
-                except Infeasible:
+                except OptimizationError:
                     works.append(False)
         assert any(works)
 
@@ -96,9 +101,15 @@ class TestDifferentialFVA:
         target.lower_bound = 2
         result = DifferentialFVA(model, target, reference_model=reference_model, points=5).run()
         ref_df = pandas.read_csv(os.path.join(TESTDIR, 'data/REFERENCE_DiffFVA2.csv'), index_col=0)
+        ref_df.sort_index(inplace=True)
         this_df = result.nth_panel(0)
         this_df.index.name = None
-        pandas.util.testing.assert_frame_equal(this_df[ref_df.columns], ref_df)
+        this_df.sort_index(inplace=True)
+        pandas.util.testing.assert_frame_equal(
+            this_df[ref_df.columns],
+            ref_df,
+            check_less_precise=2  # Number of digits for equality check.
+        )
 
 
 @pytest.mark.skipif('cplex' not in solvers, reason="No cplex interface available")
