@@ -480,6 +480,9 @@ class DifferentialFVAResult(StrainDesignMethodResult):
         self.reference_fva = reference_fva
         self.reference_fluxes = reference_fluxes
         self.solutions = solutions
+        self.groups = self.solutions.groupby(
+            ('biomass', 'production'), as_index=False, sort=False
+        )
 
     @classmethod
     def _closest_bound(cls, ref_interval, row_interval):
@@ -563,7 +566,7 @@ class DifferentialFVAResult(StrainDesignMethodResult):
             A list of cameo.core.strain_design.StrainDesign for each DataFrame in solutions.
         """
         designs = []
-        for _, solution in solutions.groupby(('biomass', 'production')):
+        for _, solution in solutions.groupby(('biomass', 'production'), as_index=False, sort=False):
             targets = []
             relevant_targets = solution.loc[
                 (numpy.abs(solution['normalized_gaps']) > non_zero_flux_threshold) & (
@@ -603,10 +606,7 @@ class DifferentialFVAResult(StrainDesignMethodResult):
         return designs
 
     def __getitem__(self, item):
-        columns = ["lower_bound", "upper_bound", "gaps", "normalized_gaps", "KO", "flux_reversal", "suddenly_essential"]
-        grouped = self.solutions.groupby(['biomass', 'production'],
-                                         as_index=False, sort=False)
-        return grouped.get_group(item)[columns]
+        return self.groups.get_group(item).copy()
 
     def nth_panel(self, index):
         """
@@ -615,9 +615,7 @@ class DifferentialFVAResult(StrainDesignMethodResult):
         When the solutions were still based on pandas.Panel this was simply
         self.solutions.iloc
         """
-        grouped = self.solutions.groupby(['biomass', 'production'],
-                                         as_index=False, sort=False)
-        return grouped.get_group(sorted(grouped.groups.keys())[index]).copy()
+        return self.groups.get_group(sorted(self.groups.groups.keys())[index]).copy()
 
     def plot(self, index=None, variables=None, grid=None, width=None, height=None, title=None, palette=None, **kwargs):
         if index is not None:
@@ -668,8 +666,7 @@ class DifferentialFVAResult(StrainDesignMethodResult):
             df.sort_values('normalized_gaps', inplace=True)
             display(df)
 
-        num = len(self.solutions.groupby(['biomass', 'production'],
-                                         as_index=False, sort=False))
+        num = len(self.groups)
         interact(_data_frame, solution=(1, num))
         return ''
 
