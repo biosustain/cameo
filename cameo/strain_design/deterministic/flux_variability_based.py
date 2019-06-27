@@ -469,58 +469,21 @@ class DifferentialFVA(StrainDesignMethod):
         total = pandas.concat(collection, ignore_index=True, copy=False)
         total.sort_values(['biomass', 'production', 'reaction'], inplace=True)
         total.index = total['reaction']
-        return DifferentialFVAResult(total, self.envelope, self.reference_flux_ranges, self.reference_flux_dist)
+        return DifferentialFVAResult(total, self.envelope, self.reference_flux_ranges)
 
 
 class DifferentialFVAResult(StrainDesignMethodResult):
-    def __init__(self, solutions, phase_plane, reference_fva, reference_fluxes, *args, **kwargs):
+    def __init__(self, solutions, phase_plane, reference_fva, **kwargs):
         self.phase_plane = phase_plane
-        super(DifferentialFVAResult, self).__init__(self._generate_designs(solutions, reference_fva, reference_fluxes),
-                                                    *args, **kwargs)
+        super(DifferentialFVAResult, self).__init__(self._generate_designs(solutions, reference_fva), **kwargs)
         self.reference_fva = reference_fva
-        self.reference_fluxes = reference_fluxes
         self.solutions = solutions
         self.groups = self.solutions.groupby(
             ('biomass', 'production'), as_index=False, sort=False
         )
 
     @classmethod
-    def _closest_bound(cls, ref_interval, row_interval):
-        """
-        Finds the closest bound (upper or lower) of the reference to the interval.
-        It returns the name of the bound and the sign.
-
-        Parameters
-        ----------
-        ref_interval: tuple, list
-            The reference interval.
-        row_interval: tuple, list
-            The row interval
-
-        Returns
-        -------
-        string, bool
-
-        """
-
-        distances = [ref_interval[0] - row_interval[1], ref_interval[1] - row_interval[0]]
-        # if the dist(ref_lb, ref_ub) > dist(ref_ub, row_lb)
-        if distances[0] > distances[1]:
-            # if ref_lb > 0
-            if row_interval[0] > 0:
-                return 'lower_bound', True
-            else:
-                return 'upper_bound', False
-        # if the dist(ref_lb, ref_ub) < dist(ref_ub, row_lb)
-        else:
-            # if ref_lb > 0
-            if row_interval[0] > 0:
-                return 'upper_bound', True
-            else:
-                return 'lower_bound', False
-
-    @classmethod
-    def _generate_designs(cls, solutions, reference_fva, reference_fluxes):
+    def _generate_designs(cls, solutions, reference_fva):
         """
         Generates strain designs for Differential FVA.
 
@@ -531,8 +494,9 @@ class DifferentialFVAResult(StrainDesignMethodResult):
 
         #### 2. Flux reversal
 
-            If the new flux is negative then it should be at least the upper bound of the interval.
-            Otherwise it should be at least the lower bound of the interval.
+            If the new flux is negative then it should be at least the upper
+            bound of the interval. Otherwise it should be at least the lower
+            bound of the interval.
 
         #### 3. The flux increases or decreases
 
@@ -557,8 +521,6 @@ class DifferentialFVAResult(StrainDesignMethodResult):
             The DifferentialFVA panel with all the solutions. Each DataFrame is a design.
         reference_fva: pandas.DataFrame
             The FVA limits for the reference strain.
-        reference_fluxes:
-            The optimal flux distribution for the reference strain.
 
         Returns
         -------
@@ -568,39 +530,78 @@ class DifferentialFVAResult(StrainDesignMethodResult):
         designs = []
         for _, solution in solutions.groupby(('biomass', 'production'), as_index=False, sort=False):
             targets = []
-            relevant_targets = solution.loc[
-                (numpy.abs(solution['normalized_gaps']) > non_zero_flux_threshold) & (
-                    numpy.logical_not(solution['excluded'])) & (
-                        numpy.logical_not(solution['free_flux']))
+            relevant_targets = solution[
+                (solution['normalized_gaps'].abs() > non_zero_flux_threshold) & (
+                    ~solution['excluded']) & (
+                        ~solution['free_flux'])
             ]
-            for rid, relevant_row in relevant_targets.iterrows():
-                if relevant_row.KO:
-                    targets.append(ReactionKnockoutTarget(rid))
-                elif relevant_row.flux_reversal:
-                    if reference_fva['upper_bound'][rid] > 0:
-                        targets.append(ReactionInversionTarget(rid,
-                                                               value=float_ceil(relevant_row.upper_bound, ndecimals),
-                                                               reference_value=reference_fluxes[rid]))
-                    else:
-                        targets.append(ReactionInversionTarget(rid,
-                                                               value=float_floor(relevant_row.lower_bound, ndecimals),
-                                                               reference_value=reference_fluxes[rid]))
+            # Generate all knock-out targets.
+            for rid in relevant_targets.loc[relevant_targets["KO"], "reaction"]:
+                targets.append(ReactionKnockoutTarget(rid))
+            # Generate all flux inversion targets.
+            for row in relevant_targets[
+                relevant_targets["flux_reversal"]
+            ].itertuples():
+                rid = row.Index
+                ref_lower = reference_fva.at[rid, 'lower_bound']
+                ref_upper = reference_fva.at[rid, 'upper_bound']
+                if ref_upper > 0:
+                    # Production point is negative so closest inversion is
+                    # from reference lower bound to production upper bound.
+                    targets.append(ReactionInversionTarget(
+                        rid,
+                        value=row.upper_bound,
+                        reference_value=ref_lower
+                    ))
                 else:
-                    gap_sign = relevant_row.normalized_gaps > 0
-
-                    ref_interval = reference_fva[['lower_bound', 'upper_bound']].loc[rid].values
-                    row_interval = (relevant_row.lower_bound, relevant_row.upper_bound)
-
-                    closest_bound, ref_sign = cls._closest_bound(ref_interval, row_interval)
-
-                    if gap_sign ^ ref_sign:
-                        value = float_ceil(relevant_row.upper_bound, ndecimals)
-                    else:
-                        value = float_floor(relevant_row.lower_bound, ndecimals)
-
-                    targets.append(ReactionModulationTarget(rid,
-                                                            value=value,
-                                                            reference_value=reference_fva[closest_bound][rid]))
+                    # Production point is positive so closest inversion is
+                    # from reference upper bound to production lower bound.
+                    targets.append(ReactionInversionTarget(
+                        rid,
+                        value=row.lower_bound,
+                        reference_value=ref_upper
+                    ))
+            # Generate all suddenly essential targets where we know the
+            # reference interval lies around zero.
+            for row in relevant_targets[
+                relevant_targets["suddenly_essential"]
+            ].itertuples():
+                rid = row.Index
+                if row.lower_bound > 0:
+                    targets.append(ReactionModulationTarget(
+                        rid,
+                        value=row.lower_bound,
+                        reference_value=reference_fva.at[rid, "upper_bound"]
+                    ))
+                else:
+                    targets.append(ReactionModulationTarget(
+                        rid,
+                        value=row.upper_bound,
+                        reference_value=reference_fva.at[rid, "lower_bound"]
+                    ))
+            # Generate all other flux modulation targets.
+            for row in relevant_targets[
+                (~relevant_targets["KO"]) & (
+                    ~relevant_targets["flux_reversal"]) & (
+                        ~relevant_targets["suddenly_essential"])
+            ].itertuples():
+                rid = row.Index
+                ref_lower = reference_fva.at[rid, 'lower_bound']
+                ref_upper = reference_fva.at[rid, 'upper_bound']
+                if row.normalized_gaps > 0:
+                    targets.append(ReactionModulationTarget(
+                        rid,
+                        value=row.lower_bound,
+                        reference_value=ref_upper,
+                        fold_change=row.normalized_gaps
+                    ))
+                else:
+                    targets.append(ReactionModulationTarget(
+                        rid,
+                        value=row.upper_bound,
+                        reference_value=ref_lower,
+                        fold_change=row.normalized_gaps
+                    ))
 
             designs.append(StrainDesign(targets))
         return designs

@@ -96,13 +96,26 @@ class FluxModulationTarget(Target):
     """
     __gnomic_feature_type__ = 'flux'
 
-    def __init__(self, id, value, reference_value, *args, **kwargs):
-        super(FluxModulationTarget, self).__init__(id, *args, **kwargs)
+    def __init__(self, id, value, reference_value, fold_change=None, **kwargs):
+        super(FluxModulationTarget, self).__init__(id, **kwargs)
         # TODO: refactor targets to make the following work
         # if value == 0:
         #     raise ValueError("Please use ReactionKnockoutTarget if flux = 0.")
         self._value = value
         self._reference_value = reference_value
+        if fold_change is not None:
+            self.fold_change = fold_change
+        else:
+            try:
+                # FIXME (Moritz): Using absolute values here doesn't make sense
+                #  to me.
+                ref = abs(self._reference_value)
+                val = abs(self._value)
+                self.fold_change = (val - ref) / ref
+            except TypeError:
+                self.fold_change = numpy.nan
+            except ZeroDivisionError:
+                self.fold_change = numpy.inf
 
     def get_model_target(self, model):
         raise NotImplementedError
@@ -133,22 +146,6 @@ class FluxModulationTarget(Target):
         else:
             return False
 
-    @property
-    def fold_change(self):
-        """
-        (B - A)/A
-
-        Return
-        ------
-            float
-        """
-        try:
-            ref = abs(self._reference_value)
-            val = abs(self._value)
-            return (val - ref) / ref
-        except ZeroDivisionError:
-            return numpy.inf
-
     def __str__(self):
         return genotype_to_string(Genotype([self.to_gnomic()]))
 
@@ -160,7 +157,7 @@ class FluxModulationTarget(Target):
         elif self.fold_change < 0:
             return "<FluxModulationTarget DOWN(%.3f)-%s>" % (self.fold_change, self.id)
         else:
-            raise RuntimeError("fold_change shouldn't be 0")
+            raise ValueError("fold_change shouldn't be 0")
 
     def __hash__(self):
         return hash(str(self))
@@ -398,8 +395,10 @@ class GeneKnockoutTarget(GeneModulationTarget):
 class ReactionModulationTarget(FluxModulationTarget):
     __gnomic_feature_type__ = "reaction"
 
-    def __init__(self, id, value, reference_value):
-        super(ReactionModulationTarget, self).__init__(id, value, reference_value)
+    def __init__(self, id, value, reference_value, **kwargs):
+        super(ReactionModulationTarget, self).__init__(
+            id, value, reference_value, **kwargs
+        )
 
     def get_model_target(self, model):
         return model.reactions.get_by_id(self.id)
