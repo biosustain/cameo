@@ -589,6 +589,12 @@ class DifferentialFVAResult(StrainDesignMethodResult):
                 ref_lower = reference_fva.at[rid, 'lower_bound']
                 ref_upper = reference_fva.at[rid, 'upper_bound']
                 if row.normalized_gaps > 0:
+                    # For now we ignore reactions that have a positive
+                    # normalized gap, indicating that their flux is important
+                    # for production, but where the reference flux is higher
+                    # than the production flux.
+                    if abs(ref_upper) > abs(row.lower_bound):
+                        continue
                     targets.append(ReactionModulationTarget(
                         rid,
                         value=row.lower_bound,
@@ -596,6 +602,12 @@ class DifferentialFVAResult(StrainDesignMethodResult):
                         fold_change=row.normalized_gaps
                     ))
                 else:
+                    # For now we ignore reactions that have a negative
+                    # normalized gap, indicating that their flux needs to
+                    # decrease in production, but where the production
+                    # interval is larger than the reference interval.
+                    if abs(row.upper_bound) > abs(ref_lower):
+                        continue
                     targets.append(ReactionModulationTarget(
                         rid,
                         value=row.upper_bound,
