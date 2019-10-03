@@ -367,7 +367,7 @@ class TimeMachine(object):
 
     def __str__(self):
         info = '\n'
-        for item in self.history:
+        for item in self.history.items():
             info += self._history_item_to_str(item)
         return info
 
