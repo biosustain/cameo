@@ -39,4 +39,4 @@ class MultipleChromosomeGenome(object):
         return new_genome
 
     def __repr__(self):
-        return "| ".join(["%s: %s" % (k, list(v)) for k, v in self.chromosomes.items())]
+        return "| ".join(["%s: %s" % (k, list(v)) for k, v in self.chromosomes.items()]
