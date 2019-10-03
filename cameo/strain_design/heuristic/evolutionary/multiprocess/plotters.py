@@ -16,7 +16,7 @@ from __future__ import absolute_import, print_function
 
 __all__ = ['IPythonNotebookBokehMultiprocessPlotObserver']
 
-import six.moves.queue
+from multiprocessing.queues import Full
 from pandas import DataFrame
 from cameo import config
 from cameo.strain_design.heuristic.evolutionary.multiprocess.observers import AbstractParallelObserver, \
@@ -100,7 +100,7 @@ class IPythonNotebookBokehMultiprocessPlotObserverClient(AbstractParallelObserve
                 'iteration': self.iteration,
                 'index': self.index,
                 'n': args.get('n', 1)})
-        except six.moves.queue.Full:
+        except Full:
             pass
 
     def reset(self):

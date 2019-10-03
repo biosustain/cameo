@@ -23,7 +23,6 @@ from functools import partial
 from uuid import uuid4
 
 import numpy
-import six
 
 from cameo.flux_analysis.structural import nullspace, find_blocked_reactions_nullspace, create_stoichiometric_array
 
@@ -68,8 +67,6 @@ with warnings.catch_warnings():
             from ipywidgets import interact, IntSlider
         except ImportError:
             pass
-
-zip = my_zip = six.moves.zip
 
 __all__ = ['DifferentialFVA', 'FSEOF']
 
@@ -159,7 +156,7 @@ class DifferentialFVA(StrainDesignMethod):
                 self.objective = self.design_space_model.add_boundary(objective, type='demand').id
             except ValueError:
                 self.objective = self.design_space_model.reactions.get_by_id("DM_" + objective.id).id
-        elif isinstance(objective, six.string_types):
+        elif isinstance(objective, str):
             self.objective = objective
         else:
             raise ValueError('You need to provide an objective as a Reaction, Metabolite or a reaction id')
@@ -380,7 +377,7 @@ class DifferentialFVA(StrainDesignMethod):
 
         solutions = dict((tuple(point.iteritems()), fva_result) for (point, fva_result) in results)
 
-        for sol in six.itervalues(solutions):
+        for sol in solutions.values():
             sol[sol.abs() < non_zero_flux_threshold] = 0.0
             intervals = sol.loc[
                 self.included_reactions,
@@ -388,7 +385,7 @@ class DifferentialFVA(StrainDesignMethod):
             ].values
             gaps = [
                 self._interval_gap(interval1, interval2)
-                for interval1, interval2 in my_zip(reference_intervals, intervals)
+                for interval1, interval2 in zip(reference_intervals, intervals)
             ]
             sol['gaps'] = gaps
             if self.normalize_ranges_by is not None:
@@ -402,7 +399,7 @@ class DifferentialFVA(StrainDesignMethod):
 
                     sol['normalized_gaps'] = [
                         self._interval_gap(interval1, interval2)
-                        for interval1, interval2 in my_zip(
+                        for interval1, interval2 in zip(
                             normalized_reference_intervals, normalized_intervals)]
                 else:
                     sol['normalized_gaps'] = numpy.nan
@@ -415,7 +412,7 @@ class DifferentialFVA(StrainDesignMethod):
             for interval1 in reference_intervals
         ], dtype=bool)
         collection = list()
-        for key, df in six.iteritems(solutions):
+        for key, df in solutions.items():
             df['biomass'] = key[0][1]
             df['production'] = key[1][1]
 
@@ -713,7 +710,7 @@ class DifferentialFVAResult(StrainDesignMethodResult):
             ((-2*std, color), (-std, color) (0 color) (std, color) (2*std, color))
 
         """
-        if isinstance(palette, six.string_types):
+        if isinstance(palette, str):
             palette = mapper.map_palette(palette, 5)
             palette = palette.hex_colors
 
@@ -885,7 +882,7 @@ class FSEOF(StrainDesignMethod):
                 self.primary_objective = primary_objective
             else:
                 raise ValueError("The reaction " + primary_objective.id + " does not belong to the model")
-        elif isinstance(primary_objective, six.string_types):
+        elif isinstance(primary_objective, str):
             if primary_objective in model.reactions:
                 self.primary_objective = model.reactions.get_by_id(primary_objective)
             else:
@@ -1038,7 +1035,7 @@ class FSEOFResult(StrainDesignMethodResult):
     def _generate_designs(reference, enforced_levels, reaction_results):
         for i, level in enumerate(enforced_levels):
             targets = []
-            for reaction, value in six.iteritems(reaction_results):
+            for reaction, value in reaction_results.items():
                 if abs(reference[reaction.id]) > 0:
                     if value[i] == 0:
                         targets.append(ReactionKnockoutTarget(reaction.id))

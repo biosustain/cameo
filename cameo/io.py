@@ -20,7 +20,6 @@ except ImportError:
     import pickle
 
 import os
-import six
 import optlang
 from cobra.io import read_sbml_model, load_json_model
 
@@ -49,12 +48,12 @@ def load_model(path_or_handle, solver_interface=optlang, sanitize=True):
     """
     solver_interface = solvers.get(solver_interface, solver_interface)
 
-    if isinstance(path_or_handle, six.string_types) and not os.path.isfile(path_or_handle):
+    if isinstance(path_or_handle, str) and not os.path.isfile(path_or_handle):
         from cameo.models.webmodels import load_webmodel
         logger.debug("Given path is not a file. Trying to load from webmodels")
         model = load_webmodel(path_or_handle, solver_interface)
     else:
-        if isinstance(path_or_handle, six.string_types):
+        if isinstance(path_or_handle, str):
             # Open the given file
             path = path_or_handle
             handle = open(path_or_handle, 'rb')

@@ -16,9 +16,7 @@ from __future__ import absolute_import, print_function
 
 from threading import Thread
 
-import six
-from six.moves import range
-from six.moves.queue import Empty
+from multiprocessing.queues import Empty
 
 from uuid import uuid4
 
@@ -134,7 +132,7 @@ class CliMultiprocessProgressObserver(AbstractParallelObserver):
 
     def _listen(self):
         AbstractParallelObserver._listen(self)
-        for i, progress in six.iteritems(self.progress_bar):
+        for i, progress in self.progress_bar.items():
             progress.finish()
 
     class TerminalWriter(object):

@@ -24,7 +24,6 @@ from cameo.network_analysis.util import distance_based_on_molecular_formula
 from cameo.util import (ProblemCache, RandomGenerator, Singleton, TimeMachine,
                         float_ceil, float_floor, frozendict, generate_colors,
                         partition)
-from six.moves import range
 
 SEED = 1234
 

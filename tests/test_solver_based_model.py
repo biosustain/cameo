@@ -26,7 +26,6 @@ from cobra.util import SolverNotFound
 import numpy
 import pandas
 import pytest
-import six
 
 from cobra.util import fix_objective_as_constraint
 from cobra import Model, Reaction, Metabolite
@@ -392,7 +391,7 @@ class TestReaction:
             reaction.knock_out()
             assert reaction.lower_bound == 0
             assert reaction.upper_bound == 0
-        for k, (lb, ub) in six.iteritems(original_bounds):
+        for k, (lb, ub) in original_bounds.items():
             core_model.reactions.get_by_id(k).lower_bound = lb
             core_model.reactions.get_by_id(k).upper_bound = ub
         for reaction in core_model.reactions:

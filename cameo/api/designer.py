@@ -18,7 +18,6 @@
 from __future__ import absolute_import, print_function
 
 import numpy as np
-import six
 
 from cobra import Metabolite, Model
 
@@ -354,7 +353,7 @@ class Designer(object):
     def translate_product_to_universal_reactions_model_metabolite(self, product, database):
         if isinstance(product, Metabolite):
             return product
-        elif isinstance(product, six.text_type) or isinstance(product, six.string_types):
+        elif isinstance(product, str):
             search_result = products.search(product)
             search_result = search_result.loc[[i for i in search_result.index if i in database.metabolites]]
             if len(search_result) == 0:

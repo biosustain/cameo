@@ -15,8 +15,6 @@ from __future__ import absolute_import
 
 import collections
 
-import six
-
 from cameo.visualization.palette import mapper, Palette
 
 GOLDEN_RATIO = 1.618033988
@@ -332,7 +330,7 @@ class AbstractPlotter(object):
 
     @staticmethod
     def _palette(palette, number):
-        if isinstance(palette, six.string_types):
+        if isinstance(palette, str):
             palette = mapper.map_palette(palette, number)
 
         if isinstance(palette, collections.Iterable):

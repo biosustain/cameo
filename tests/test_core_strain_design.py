@@ -13,7 +13,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 
 import pytest
-import six
 
 from cobra import Metabolite, Reaction
 
@@ -93,7 +92,6 @@ class TestStrainDesign:
         assert t4 not in strain_design3
         assert t5 in strain_design3
 
-    @pytest.mark.skipif(six.PY2, reason="Gnomic is not compatible with python 2")
     def test_design_to_gnomic(self, cad_reaction):
         from gnomic import Genotype
         t1 = ReactionKnockoutTarget('PGI')

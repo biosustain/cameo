@@ -14,7 +14,6 @@
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 import pytest
-import six
 
 
 from gnomic.genotype import Genotype
@@ -212,14 +211,14 @@ class TestTargets:
         abstract_target_gnomic = abstract_target.to_gnomic()
         assert isinstance(abstract_target_gnomic, Accession)
         assert abstract_target_gnomic.identifier == abstract_target.id
-        
+
     def test_gnomic_integration_FluxModulationTarget(self, model):
         # with pytest.raises(ValueError):
         #     FluxModulationTarget("test", 0, 0)  # TODO: this should really not be possible
         flux_modulation_target = FluxModulationTarget("test", 1, 0)
         flux_modulation_target_gnomic = flux_modulation_target.to_gnomic()
         expected = "flux.test(value=1)"
-        assert genotype_to_string(Genotype([flux_modulation_target_gnomic])) == expected 
+        assert genotype_to_string(Genotype([flux_modulation_target_gnomic])) == expected
 
         flux_modulation_target = FluxModulationTarget("PGK", 0.5, 1, accession_id="PGK", accession_db="bigg")
         flux_modulation_target_gnomic = flux_modulation_target.to_gnomic()
