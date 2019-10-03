@@ -13,10 +13,6 @@
 # limitations under the License.
 
 import sys
-import six
-if six.PY2:
-    print("This script can only be run with python>=3!")
-    sys.exit(-1)
 
 import logging
 import gzip

@@ -14,12 +14,12 @@
 
 from __future__ import absolute_import, print_function
 
-import six.moves.queue
 try:
     from cameo.parallel import RedisQueue
 except ImportError:
     RedisQueue = None
 from uuid import uuid4
+from multiprocessing.queues import Full, Empty
 
 import logging
 
@@ -86,11 +86,11 @@ class MultiprocessingMigrator(object):
                 migrant.fitness = fit[0]
                 args["_ec"].num_evaluations += 1
             population[migrant_index] = migrant
-        except six.moves.queue.Empty:
+        except Empty:
             logger.debug("Empty queue")
         try:
             logger.debug("Robinson Crusoe leaves an island")
             self.migrants.put_nowait(old_migrant)
-        except six.moves.queue.Full:
+        except Full:
             logger.debug("Full queue")
         return population

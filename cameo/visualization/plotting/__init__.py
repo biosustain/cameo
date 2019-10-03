@@ -15,8 +15,6 @@ from __future__ import absolute_import
 
 from warnings import warn
 
-import six
-
 from cameo.visualization.plotting.abstract import AbstractPlotter
 
 __all__ = ["plotter"]
@@ -68,7 +66,7 @@ class _plotting:
         if key not in ["_engine", "engine"]:
             raise KeyError(key)
         else:
-            if isinstance(item, six.string_types):
+            if isinstance(item, str):
                 item = _engines[item]()
 
             if not isinstance(item, AbstractPlotter):

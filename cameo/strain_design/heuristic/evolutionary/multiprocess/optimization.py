@@ -17,7 +17,6 @@ from __future__ import absolute_import, print_function
 from functools import reduce
 
 import inspyred
-from six.moves import range
 
 from cameo import config
 from cameo import parallel

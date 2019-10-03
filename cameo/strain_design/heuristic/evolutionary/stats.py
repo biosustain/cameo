@@ -14,8 +14,6 @@
 
 from __future__ import absolute_import, print_function
 
-from six.moves import zip
-
 from inspyred.ec.emo import Pareto
 import numpy as np
 from cameo import config

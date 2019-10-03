@@ -17,12 +17,11 @@ from __future__ import absolute_import, print_function
 import os
 import warnings
 from multiprocessing import cpu_count
+from multiprocessing.queues import Full, Empty
 
 import pytest
 
-import six.moves.queue
 from cameo.parallel import SequentialView
-from six.moves import range
 
 views = [SequentialView()]
 
@@ -96,17 +95,17 @@ class TestRedisQueue:
         print(os.getenv('REDIS_PORT_6379_TCP_ADDR'))
         queue = RedisQueue("test-queue-size-1", maxsize=1, host=REDIS_HOST)
         queue.put(1)
-        with pytest.raises(six.moves.queue.Full):
+        with pytest.raises(Full):
             queue.put(1)
 
         queue = RedisQueue("test-queue-size-2", maxsize=2, host=REDIS_HOST)
         queue.put(1)
         queue.put(1)
-        with pytest.raises(six.moves.queue.Full):
+        with pytest.raises(Full):
             queue.put(1)
         queue.get()
         queue.get()
-        with pytest.raises(six.moves.queue.Empty):
+        with pytest.raises(Empty):
             queue.get_nowait()
 
     def test_queue_objects(self):
@@ -121,7 +120,7 @@ class TestRedisQueue:
         queue.put("a")
         v = queue.get_nowait()
         assert v == "a"
-        assert isinstance(v, six.string_types)
+        assert isinstance(v, str)
 
         # put float
         queue.put(1.)

@@ -16,7 +16,6 @@
 
 from functools import partial, reduce
 
-import six
 from pandas import DataFrame
 
 from cobra import Metabolite, Reaction
@@ -168,9 +167,9 @@ def _parse_equation(equation, metabolites):
 
 
 def _build_equation(stoichiometry):
-    products = {m: v for m, v in six.iteritems(stoichiometry) if v > 0}
-    reactants = {m: v for m, v in six.iteritems(stoichiometry) if v < 0}
+    products = {m: v for m, v in stoichiometry.items() if v > 0}
+    reactants = {m: v for m, v in stoichiometry.items() if v < 0}
 
-    products = " + ".join(["%f * %s#%s" % (v, m.name, m.id) for m, v in six.iteritems(products)])
-    reactants = " + ".join(["%f * %s#%s" % (-v, m.name, m.id) for m, v in six.iteritems(reactants)])
+    products = " + ".join(["%f * %s#%s" % (v, m.name, m.id) for m, v in products.items()])
+    reactants = " + ".join(["%f * %s#%s" % (-v, m.name, m.id) for m, v in reactants.items()])
     return reactants + " <=> " + products

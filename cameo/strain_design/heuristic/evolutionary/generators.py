@@ -16,9 +16,6 @@ from __future__ import absolute_import, print_function
 
 from collections import OrderedDict
 
-from six.moves import range
-from six.moves import zip
-
 from cameo.strain_design.heuristic.evolutionary.genomes import MultipleChromosomeGenome
 
 __all__ = ['set_generator']
