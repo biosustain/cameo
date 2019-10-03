@@ -377,7 +377,7 @@ class DifferentialFVA(StrainDesignMethod):
 
         solutions = dict((tuple(point.iteritems()), fva_result) for (point, fva_result) in results)
 
-        for sol in solutions.values():
+        for sol in solutions.items():
             sol[sol.abs() < non_zero_flux_threshold] = 0.0
             intervals = sol.loc[
                 self.included_reactions,
