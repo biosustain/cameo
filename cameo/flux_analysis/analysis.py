@@ -480,7 +480,7 @@ def single_flux(reaction, consumption=True):
         metabolite, flux for the metabolite"""
     if len(list(reaction.metabolites)) != 1:
         raise ValueError('product flux only defined for single metabolite reactions')
-    met, coeff = next(reaction.metabolites.items())
+    met, coeff = list(reaction.metabolites.items())[0]
     direction = 1 if consumption else -1
     return met, reaction.flux * coeff * direction
 
