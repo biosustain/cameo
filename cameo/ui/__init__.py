@@ -15,6 +15,7 @@
 
 from __future__ import absolute_import, print_function
 
+from builtins import str
 from uuid import uuid4
 
 try:

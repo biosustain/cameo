@@ -14,6 +14,10 @@
 
 from __future__ import absolute_import, print_function
 
+from builtins import str
+from builtins import map
+from builtins import range
+from builtins import object
 from functools import partial
 from itertools import chain
 
@@ -36,7 +40,7 @@ def problem_cache_trial(core_model):
     return core_model, reference, n_constraints, n_variables
 
 
-class TestTimeMachine:
+class TestTimeMachine(object):
     def test_one_change_list(self):
         tm = TimeMachine()
         l = [1, 2, 3, 4]
@@ -90,7 +94,7 @@ def some_method_that_adds_stuff(model, cache):
         cache.add_constraint("c_%i" % (i + 1), create_constraint, update_constraint, [v1, v2], -20, 100)
 
 
-class TestProblemCache:
+class TestProblemCache(object):
     def test_add_variable(self, core_model):
         cache = ProblemCache(core_model)
 
@@ -192,7 +196,7 @@ class TestProblemCache:
         assert n_variables == len(core_model.solver.variables)
 
 
-class TestRandomGenerator:
+class TestRandomGenerator(object):
     def test_random(self):
         random = RandomGenerator()
         for _ in range(1000):
@@ -250,7 +254,7 @@ class TestRandomGenerator:
         assert value == random.uniform()
 
 
-class TestUtils:
+class TestUtils(object):
     def test_color_generation(self):
         for i in range(1, 100):
             color_map = generate_colors(i)
@@ -262,7 +266,7 @@ class TestUtils:
         iterables = [
             [1, 2, 3, 4, 5, 6, 7, 8, 9],
             {5, 3, 8, 3, 8, 5, 8, 0, 10, 11, 15},
-            range(29)
+            list(range(29))
         ]
         for fixture in iterables:
             test_output = partition(fixture, chunks)
@@ -312,7 +316,7 @@ class TestUtils:
             assert new_value == 0
 
 
-class TestFrozendict:
+class TestFrozendict(object):
     def test_frozen_attributes(self):
         frozen_dict = frozendict({"A": 1, "B": 2, "C": 3, "D": 4, "E": [2, 3, 4, 5]})
         with pytest.raises(AttributeError):
@@ -331,7 +335,7 @@ class TestFrozendict:
         assert hasattr(frozen_dict, "__hash__")
 
 
-class TestSingleton:
+class TestSingleton(object):
     def test_singleton(self):
         s1 = Singleton()
         s2 = Singleton()

@@ -13,7 +13,13 @@
 # limitations under the License.
 
 from __future__ import absolute_import
-
+from __future__ import division
+import six
+from builtins import next
+from builtins import zip
+from builtins import range
+from past.utils import old_div
+from builtins import object
 import math
 
 import plotly.graph_objs as go
@@ -23,7 +29,7 @@ from cameo.util import zip_repeat, in_ipnb, inheritdocstring, partition
 from cameo.visualization.plotting.abstract import AbstractPlotter
 
 
-class PlotlyPlotter(AbstractPlotter, metaclass=inheritdocstring):
+class PlotlyPlotter(six.with_metaclass(inheritdocstring, AbstractPlotter)):
     class Figure(object):
         def __init__(self, data=None, layout=None):
             self.data = data
@@ -144,7 +150,7 @@ class PlotlyPlotter(AbstractPlotter, metaclass=inheritdocstring):
             data.append(scatter)
 
         if points is not None:
-            x, y = zip(*points)
+            x, y = list(zip(*points))
             scatter = go.Scatter(x=x, y=y, mode="markers", name="Data Points",
                                  marker=dict(color="green" if points_colors is None else points_colors))
             data.append(scatter)
@@ -194,7 +200,7 @@ class PlotlyPlotter(AbstractPlotter, metaclass=inheritdocstring):
             data.append(surface)
 
         if points is not None:
-            x, y, z = zip(*points)
+            x, y, z = list(zip(*points))
             scatter = go.Scatter3d(x=x, y=y, z=z, mode="markers", name="Data Points",
                                    marker=dict(color="green" if points_colors is None else points_colors))
             data.append(scatter)
@@ -232,9 +238,9 @@ class PlotlyPlotter(AbstractPlotter, metaclass=inheritdocstring):
             opacity=alpha,
             hoverinfo='none'
         )
-        for x0, x1, y in zip(ub, lb, range(len(factores))):
+        for x0, x1, y in zip(ub, lb, list(range(len(factores)))):
             y_ = y + 1
-            rect = self.Rectangle(x0, x1, y_ + height - step / 2, y_ + height + step / 2,
+            rect = self.Rectangle(x0, x1, y_ + height - old_div(step, 2), y_ + height + old_div(step, 2),
                                   fill_color=color,
                                   line_color=color,
                                   line_width=0,
@@ -256,7 +262,7 @@ class PlotlyPlotter(AbstractPlotter, metaclass=inheritdocstring):
         shapes = []
         n = len(variables)
         step = 1.0 / float(len(variables))
-        for variable, i, color in zip(variables, range(n), self._palette(palette, n)):
+        for variable, i, color in zip(variables, list(range(n)), self._palette(palette, n)):
             _dataframe = dataframe[dataframe["strain"] == variable]
             scatter_, shapes_ = self._make_fva_bars(factors, _dataframe, i * step, step, color, variable)
             data.append(scatter_)
@@ -351,7 +357,7 @@ class PlotlyPlotter(AbstractPlotter, metaclass=inheritdocstring):
     @staticmethod
     def _make_grid(grid):
         rows = grid.n_rows
-        columns = math.ceil(len(grid.plots) / rows)
+        columns = math.ceil(old_div(len(grid.plots), rows))
 
         plot = tools.make_subplots(rows=rows, cols=columns, subplot_titles=[p.layout['title'] for p in grid.plots])
         plot['layout']['width'] = grid.width

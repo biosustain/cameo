@@ -14,7 +14,13 @@
 # limitations under the License.
 
 from __future__ import absolute_import, print_function
-
+from __future__ import division
+import six
+from builtins import str
+from builtins import zip
+from builtins import range
+from builtins import object
+from past.utils import old_div
 import logging
 import os
 import re
@@ -156,7 +162,7 @@ class DifferentialFVA(StrainDesignMethod):
                 self.objective = self.design_space_model.add_boundary(objective, type='demand').id
             except ValueError:
                 self.objective = self.design_space_model.reactions.get_by_id("DM_" + objective.id).id
-        elif isinstance(objective, str):
+        elif isinstance(objective, six.string_types):
             self.objective = objective
         else:
             raise ValueError('You need to provide an objective as a Reaction, Metabolite or a reaction id')
@@ -260,7 +266,7 @@ class DifferentialFVA(StrainDesignMethod):
             if distance > max_distance:
                 max_distance = distance
                 max_interval = (lb, ub)
-        step_size = (max_interval[1] - max_interval[0]) / (self.points - 1)
+        step_size = old_div((max_interval[1] - max_interval[0]), (self.points - 1))
         grid = list()
         minimal_reference_production = self.reference_flux_ranges['lower_bound'][self.objective]
         for i, row in self.envelope.iterrows():
@@ -338,7 +344,7 @@ class DifferentialFVA(StrainDesignMethod):
                                               "lower_bound"]
             )
             if norm > non_zero_flux_threshold:
-                normalized_reference_intervals = reference_intervals / norm
+                normalized_reference_intervals = old_div(reference_intervals, norm)
             else:
                 raise ValueError(
                     "The reaction that you have chosen for normalization '{}' "
@@ -375,9 +381,9 @@ class DifferentialFVA(StrainDesignMethod):
             else:
                 results = list(view.map(func_obj, self.grid.iterrows()))
 
-        solutions = dict((tuple(point.iteritems()), fva_result) for (point, fva_result) in results)
+        solutions = dict((tuple(point.items()), fva_result) for (point, fva_result) in results)
 
-        for sol in solutions.values():
+        for sol in list(solutions.values()):
             sol[sol.abs() < non_zero_flux_threshold] = 0.0
             intervals = sol.loc[
                 self.included_reactions,
@@ -392,10 +398,10 @@ class DifferentialFVA(StrainDesignMethod):
                 # See comment above regarding normalization.
                 normalizer = abs(sol.lower_bound[self.normalize_ranges_by])
                 if normalizer > non_zero_flux_threshold:
-                    normalized_intervals = sol.loc[
+                    normalized_intervals = old_div(sol.loc[
                         self.included_reactions,
                         ['lower_bound', 'upper_bound']
-                    ].values / normalizer
+                    ].values, normalizer)
 
                     sol['normalized_gaps'] = [
                         self._interval_gap(interval1, interval2)
@@ -412,7 +418,7 @@ class DifferentialFVA(StrainDesignMethod):
             for interval1 in reference_intervals
         ], dtype=bool)
         collection = list()
-        for key, df in solutions.items():
+        for key, df in list(solutions.items()):
             df['biomass'] = key[0][1]
             df['production'] = key[1][1]
 
@@ -710,7 +716,7 @@ class DifferentialFVAResult(StrainDesignMethodResult):
             ((-2*std, color), (-std, color) (0 color) (std, color) (2*std, color))
 
         """
-        if isinstance(palette, str):
+        if isinstance(palette, six.string_types):
             palette = mapper.map_palette(palette, 5)
             palette = palette.hex_colors
 
@@ -750,7 +756,7 @@ class DifferentialFVAResult(StrainDesignMethodResult):
             reaction_data[numpy.isneginf(reaction_data)] = reaction_data.min()
 
 
-            reaction_data = dict(reaction_data.iteritems())
+            reaction_data = dict(iter(reaction_data.items()))
             reaction_data['max'] = numpy.abs(values).max()
             reaction_data['min'] = -reaction_data['max']
 
@@ -882,7 +888,7 @@ class FSEOF(StrainDesignMethod):
                 self.primary_objective = primary_objective
             else:
                 raise ValueError("The reaction " + primary_objective.id + " does not belong to the model")
-        elif isinstance(primary_objective, str):
+        elif isinstance(primary_objective, six.string_types):
             if primary_objective in model.reactions:
                 self.primary_objective = model.reactions.get_by_id(primary_objective)
             else:
@@ -958,7 +964,7 @@ class FSEOF(StrainDesignMethod):
             max_flux = max_theoretical_flux * max_enforced_flux
 
             # Calculate enforcement levels
-            levels = [initial_flux + (i + 1) * (max_flux - initial_flux) / number_of_results for i in
+            levels = [initial_flux + old_div((i + 1) * (max_flux - initial_flux), number_of_results) for i in
                       range(number_of_results)]
 
             # FSEOF results
@@ -968,12 +974,12 @@ class FSEOF(StrainDesignMethod):
                 target.lower_bound = level
                 target.upper_bound = level
                 solution = simulation_method(model, **simulation_kwargs)
-                for reaction_id, flux in solution.fluxes.iteritems():
+                for reaction_id, flux in solution.fluxes.items():
                     results[reaction_id].append(round(flux, ndecimals))
 
         # Test each reaction
         fseof_reactions = []
-        for reaction_id, fluxes in results.items():
+        for reaction_id, fluxes in list(results.items()):
             if reaction_id not in exclude_ids \
                     and max(abs(max(fluxes)), abs(min(fluxes))) > abs(reference[reaction_id]) \
                     and min(fluxes) * max(fluxes) >= 0:
@@ -1035,7 +1041,7 @@ class FSEOFResult(StrainDesignMethodResult):
     def _generate_designs(reference, enforced_levels, reaction_results):
         for i, level in enumerate(enforced_levels):
             targets = []
-            for reaction, value in reaction_results.items():
+            for reaction, value in list(reaction_results.items()):
                 if abs(reference[reaction.id]) > 0:
                     if value[i] == 0:
                         targets.append(ReactionKnockoutTarget(reaction.id))

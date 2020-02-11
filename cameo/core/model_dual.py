@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from builtins import str
 from sympy import Add
 
 from cobra import Model
@@ -41,7 +42,7 @@ def convert_to_dual(model):
             dual_model._add_variable(const_var)
             if constraint.lb != 0:
                 dual_objective[const_var] = sign * constraint.lb
-            for variable, coef in constraint.expression.as_coefficients_dict().items():
+            for variable, coef in list(constraint.expression.as_coefficients_dict().items()):
                 coefficients.setdefault(variable.name, {})[const_var] = sign * coef
         else:
             if constraint.lb is not None:
@@ -55,7 +56,7 @@ def convert_to_dual(model):
                 if constraint.ub != 0:
                     dual_objective[ub_var] = sign * constraint.ub
 
-            for variable, coef in constraint.expression.as_coefficients_dict().items():
+            for variable, coef in list(constraint.expression.as_coefficients_dict().items()):
                 if constraint.lb is not None:
                     coefficients.setdefault(variable.name, {})[lb_var] = -sign * coef
                 if constraint.ub is not None:
@@ -82,7 +83,7 @@ def convert_to_dual(model):
     # Add dual constraints from primal objective
     primal_objective_dict = model.objective.expression.as_coefficients_dict()
     for variable in model.variables:
-        expr = Add(*((coef * dual_var) for dual_var, coef in coefficients[variable.name].items()))
+        expr = Add(*((coef * dual_var) for dual_var, coef in list(coefficients[variable.name].items())))
         obj_coef = primal_objective_dict[variable]
         if maximization:
             const = model.interface.Constraint(expr, lb=obj_coef, name="dual_" + variable.name)
@@ -91,7 +92,7 @@ def convert_to_dual(model):
         dual_model._add_constraint(const)
 
     # Make dual objective
-    expr = Add(*((coef * dual_var) for dual_var, coef in dual_objective.items() if coef != 0))
+    expr = Add(*((coef * dual_var) for dual_var, coef in list(dual_objective.items()) if coef != 0))
     if maximization:
         objective = model.interface.Objective(expr, direction="min")
     else:
@@ -139,15 +140,15 @@ class ModelDual(Model):  # pragma: no cover  # don't test until it works
 
     def _add_reaction_dual_constraint(self, reaction, coefficient, maximization, prefix):
         """Add a dual constraint corresponding to the reaction's objective coefficient"""
-        stoichiometry = {self.solver.variables["lambda_" + m.id]: c for m, c in reaction.metabolites.items()}
+        stoichiometry = {self.solver.variables["lambda_" + m.id]: c for m, c in list(reaction.metabolites.items())}
         if maximization:
             constraint = self.solver.interface.Constraint(
-                Add._from_args(tuple(c * v for v, c in stoichiometry.items())),
+                Add._from_args(tuple(c * v for v, c in list(stoichiometry.items()))),
                 name="r_%s_%s" % (reaction.id, prefix),
                 lb=coefficient)
         else:
             constraint = self._dual_solver.interface.Constraint(
-                Add._from_args(tuple(c * v for v, c in stoichiometry.items())),
+                Add._from_args(tuple(c * v for v, c in list(stoichiometry.items()))),
                 name="r_%s_%s" % (reaction.id, prefix),
                 ub=coefficient)
         self.solver._add_constraint(constraint)

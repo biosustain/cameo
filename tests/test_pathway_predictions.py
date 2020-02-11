@@ -14,6 +14,8 @@
 
 from __future__ import absolute_import, print_function
 
+from builtins import str
+from builtins import object
 import pickle
 import re
 from os.path import join
@@ -44,7 +46,7 @@ def pathway_predictor_result(pathway_predictor):
     return core_model, predictor.run(product='L-Serine', max_predictions=1)
 
 
-class TestPathwayPredictor:
+class TestPathwayPredictor(object):
     def test_incorrect_arguments_raises(self, pathway_predictor):
         model, _ = pathway_predictor
         with pytest.raises(ValueError) as excinfo:
@@ -88,7 +90,7 @@ class TestPathwayPredictor:
                         assert metabolite.id in metabolite_ids
 
 
-class TestPathwayResult:
+class TestPathwayResult(object):
     def test_pathway(self, pathway_predictor_result):
         model, result = pathway_predictor_result
         pathway = result[0]

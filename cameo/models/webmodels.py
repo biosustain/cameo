@@ -22,6 +22,7 @@ http://darwin.di.uminho.pt/models and http://bigg.ucsd.edu databases
 
 from __future__ import absolute_import, print_function
 
+from builtins import object
 import io
 import logging
 import tempfile

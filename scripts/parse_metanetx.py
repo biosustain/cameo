@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from builtins import next
+from builtins import zip
+from builtins import str
 import sys
 
 import logging
@@ -94,7 +97,7 @@ def construct_universal_model(list_of_db_prefixes, reac_xref, reac_prop, chem_pr
         except ValueError:
             continue
         else:
-            for met, coeff in stoichiometry.items():
+            for met, coeff in list(stoichiometry.items()):
                 met.name = chem_prop.loc[met.id]['name']
                 try:
                     met.formula = Formula(chem_prop.loc[met.id].formula)
@@ -108,7 +111,7 @@ def construct_universal_model(list_of_db_prefixes, reac_xref, reac_prop, chem_pr
                     pass
                 rest = chem_prop.loc[met.id].to_dict()
                 met.annotation = dict((key, rest[key]) for key in rest if key in ('mass', 'InChI', 'source'))
-            mets = [met.id for met in stoichiometry.keys()]
+            mets = [met.id for met in list(stoichiometry.keys())]
             if len(mets) != len(set(mets)):
                 continue
             reaction = Reaction(index)
@@ -170,8 +173,8 @@ def add_to_bigg_mapping(xref, bigg2mnx, mnx2bigg):
     sanitized_XREF = [
         _apply_sanitize_rules(_apply_sanitize_rules(id, REVERSE_ID_SANITIZE_RULES_SIMPHENY),
                               ID_SANITIZE_RULES_TAB_COMPLETION) for id in bigg_selection.XREF]
-    bigg2mnx.update(dict(zip(sanitized_XREF, bigg_selection.MNX_ID)))
-    mnx2bigg.update(dict(zip(bigg_selection.MNX_ID, sanitized_XREF)))
+    bigg2mnx.update(dict(list(zip(sanitized_XREF, bigg_selection.MNX_ID))))
+    mnx2bigg.update(dict(list(zip(bigg_selection.MNX_ID, sanitized_XREF))))
 
 
 if __name__ == '__main__':

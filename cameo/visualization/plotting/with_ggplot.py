@@ -12,7 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from __future__ import absolute_import
+from __future__ import division
 
+import six
+from past.utils import old_div
 from math import ceil
 
 from warnings import warn
@@ -22,7 +25,7 @@ from cameo.util import in_ipnb, inheritdocstring
 from cameo.visualization.plotting import AbstractPlotter
 
 
-class GGPlotPlotter(AbstractPlotter, metaclass=inheritdocstring):
+class GGPlotPlotter(six.with_metaclass(inheritdocstring, AbstractPlotter)):
     def __init__(self, **options):
         warn("ggplot interface is under construction...")
 
@@ -58,5 +61,5 @@ class GGPlotPlotter(AbstractPlotter, metaclass=inheritdocstring):
 
     @staticmethod
     def _make_grid(grid):
-        columns = ceil(grid.n_rows / len(grid.plots()))
+        columns = ceil(old_div(grid.n_rows, len(grid.plots())))
         return grid.plot[0] + facet_grid(grid.n_rows, columns, scales="fixed")

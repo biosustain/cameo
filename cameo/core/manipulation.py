@@ -16,6 +16,8 @@ Manage manipulations such as swapping reaction cofactors, over-express or down-r
 
 """
 
+from builtins import zip
+from builtins import str
 from cobra import Reaction
 
 

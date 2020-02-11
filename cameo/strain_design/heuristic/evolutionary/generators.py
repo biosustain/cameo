@@ -14,6 +14,9 @@
 
 from __future__ import absolute_import, print_function
 
+from builtins import next
+from builtins import zip
+from builtins import range
 from collections import OrderedDict
 
 from cameo.strain_design.heuristic.evolutionary.genomes import MultipleChromosomeGenome
@@ -119,6 +122,6 @@ def linear_set_generator(random, args):
     else:
         size = max_size
 
-    indices = random.sample(range(len(representation)), size)
+    indices = random.sample(list(range(len(representation))), size)
     values = random.uniform(next(bounder.lower_bound), next(bounder.upper_bound), len(indices))
     return OrderedDict({i: v for i, v in zip(indices, values)})

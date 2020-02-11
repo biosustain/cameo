@@ -1,3 +1,4 @@
+from __future__ import division
 # Copyright 2016 The Novo Nordisk Foundation Center for Biosustainability, DTU.
 
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,6 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from builtins import str
+from past.utils import old_div
+from builtins import object
 import numpy
 from gnomic.genotype import Genotype
 from gnomic.types import Accession, Feature, Change
@@ -111,7 +115,7 @@ class FluxModulationTarget(Target):
                 #  to me.
                 ref = abs(self._reference_value)
                 val = abs(self._value)
-                self.fold_change = (val - ref) / ref
+                self.fold_change = old_div((val - ref), ref)
             except TypeError:
                 self.fold_change = numpy.nan
             except ZeroDivisionError:

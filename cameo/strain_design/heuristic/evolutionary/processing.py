@@ -1,3 +1,4 @@
+from __future__ import division
 # Copyright 2016 Novo Nordisk Foundation Center for Biosustainability, DTU.
 
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -11,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from past.utils import old_div
 from cobra.manipulation.delete import find_gene_knockout_reactions
 from cameo.core.manipulation import swap_cofactors
 
@@ -57,7 +59,7 @@ def process_reaction_knockout_solution(model, solution, simulation_method, simul
                                       objective=biomass, **simulation_kwargs)
         model.objective = biomass
         fva = flux_variability_analysis(model, fraction_of_optimum=0.99, reactions=[target])
-        target_yield = flux_dist[target] / abs(flux_dist[substrate])
+        target_yield = old_div(flux_dist[target], abs(flux_dist[substrate]))
         return [solution, len(solution), fva.lower_bound(target),
                 fva.upper_bound(target), flux_dist[target], flux_dist[biomass],
                 target_yield, objective_function(model, flux_dist, reactions)]
@@ -105,7 +107,7 @@ def process_gene_knockout_solution(model, solution, simulation_method, simulatio
         model.objective = biomass
 
         fva = flux_variability_analysis(model, fraction_of_optimum=0.99, reactions=[target])
-        target_yield = flux_dist[target] / abs(flux_dist[substrate])
+        target_yield = old_div(flux_dist[target], abs(flux_dist[substrate]))
 
         return [tuple(reaction_ids), solution, len(solution), fva.lower_bound(target), fva.upper_bound(target),
                 flux_dist[target], flux_dist[biomass], target_yield, objective_function(model, flux_dist, genes)]
@@ -153,7 +155,7 @@ def process_reaction_swap_solution(model, solution, simulation_method, simulatio
                                       objective=biomass, **simulation_kwargs)
         model.objective = biomass
         fva = flux_variability_analysis(model, fraction_of_optimum=0.99, reactions=[target])
-        target_yield = flux_dist[target] / abs(flux_dist[substrate])
+        target_yield = old_div(flux_dist[target], abs(flux_dist[substrate]))
         return [solution, fva.lower_bound(target),
                 fva.upper_bound(target), flux_dist[target], flux_dist[biomass],
                 target_yield, objective_function(model, flux_dist, reactions)]

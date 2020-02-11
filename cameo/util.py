@@ -13,7 +13,14 @@
 # limitations under the License.
 
 from __future__ import absolute_import, print_function
+from __future__ import division
 
+from builtins import zip
+from builtins import next
+from builtins import str
+from builtins import range
+from builtins import object
+from past.utils import old_div
 import colorsys
 import inspect
 import itertools
@@ -81,7 +88,7 @@ def float_ceil(val, decimals=0):
     float, numpy.array
 
     """
-    aux = math.pow(10, -decimals) / 2
+    aux = old_div(math.pow(10, -decimals), 2)
 
     return numpy.round(val + aux, decimals)
 
@@ -102,7 +109,7 @@ def float_floor(val, decimals=0):
     float, numpy.array
 
     """
-    aux = math.pow(10, -decimals) / 2
+    aux = old_div(math.pow(10, -decimals), 2)
 
     return numpy.round(val - aux, decimals)
 
@@ -367,7 +374,7 @@ class TimeMachine(object):
 
     def __str__(self):
         info = '\n'
-        for item in self.history.items():
+        for item in list(self.history.items()):
             info += self._history_item_to_str(item)
         return info
 
@@ -448,7 +455,7 @@ class IntelliContainer(object):
         self._dict[key] = value
 
     def __iter__(self):
-        return iter(self._dict.values())
+        return iter(list(self._dict.values()))
 
     def __dir__(self):
         return list(self._dict.keys())
@@ -465,7 +472,7 @@ def inheritdocstring(name, bases, attrs):
                 attrs['__doc__'] = cls.__doc__
                 break
 
-    for attr_name, attr in attrs.items():
+    for attr_name, attr in list(attrs.items()):
         if not attr.__doc__:
             for cls in inspect.getmro(temp):
                 try:
@@ -624,12 +631,12 @@ def decompose_reaction_groups(reaction_groups, reactions):
     for element in reactions:
         for g in reaction_groups:
             if element in g:
-                to_replace[element] = g.keys()
+                to_replace[element] = list(g.keys())
                 break
         if element not in to_replace:
             to_keep.append(element)
 
-    return (list(combo) + to_keep for combo in itertools.product(*to_replace.values()))
+    return (list(combo) + to_keep for combo in itertools.product(*list(to_replace.values())))
 
 
 def current_solver_name(model):

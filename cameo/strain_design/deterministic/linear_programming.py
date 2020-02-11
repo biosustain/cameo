@@ -17,6 +17,8 @@ This module contains algorithms based on linear programming techniques, includin
 
 from __future__ import print_function
 
+from builtins import str
+from builtins import range
 import logging
 import warnings
 
@@ -188,7 +190,7 @@ class OptKnock(StrainDesignMethod):
         dual_objective = self._model.solver.interface.Objective.clone(
             self._dual_problem.objective, model=self._model.solver)
 
-        reduced_expression = Add(*((c * v) for v, c in dual_objective.expression.as_coefficients_dict().items()
+        reduced_expression = Add(*((c * v) for v, c in list(dual_objective.expression.as_coefficients_dict().items())
                                    if v not in constrained_dual_vars))
         dual_objective = self._model.solver.interface.Objective(reduced_expression, direction=dual_objective.direction)
 
@@ -283,7 +285,7 @@ class OptKnock(StrainDesignMethod):
                     logger.debug(str(e))
                     break
 
-                knockouts = tuple(reaction for y, reaction in self._y_vars.items() if round(y.primal, 3) == 0)
+                knockouts = tuple(reaction for y, reaction in list(self._y_vars.items()) if round(y.primal, 3) == 0)
                 assert len(knockouts) <= max_knockouts
 
                 if self.reaction_groups:

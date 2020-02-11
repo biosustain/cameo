@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from __future__ import absolute_import, print_function
+from builtins import str
 import re
 
 from cobra import Reaction

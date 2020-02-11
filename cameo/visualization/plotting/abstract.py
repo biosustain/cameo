@@ -12,7 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from __future__ import absolute_import
-
+from __future__ import division
+import six
+from past.utils import old_div
+from builtins import object
 import collections
 
 from cameo.visualization.palette import mapper, Palette
@@ -321,16 +324,16 @@ class AbstractPlotter(object):
         if width is None and height is None:
             return width, height
         if width is None:
-            width = int(height + height / GOLDEN_RATIO)
+            width = int(height + old_div(height, GOLDEN_RATIO))
 
         elif height is None:
-            height = int(width / GOLDEN_RATIO)
+            height = int(old_div(width, GOLDEN_RATIO))
 
         return width, height
 
     @staticmethod
     def _palette(palette, number):
-        if isinstance(palette, str):
+        if isinstance(palette, six.string_types):
             palette = mapper.map_palette(palette, number)
 
         if isinstance(palette, collections.Iterable):

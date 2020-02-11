@@ -14,6 +14,7 @@
 
 from __future__ import absolute_import, print_function
 
+from builtins import object
 import os
 
 import pandas
@@ -47,7 +48,7 @@ def diff_fva(model):
     return DifferentialFVA(model, model.reactions.EX_succ_lp_e_rp_, points=5)
 
 
-class TestFSEOF:
+class TestFSEOF(object):
     def test_fseof(self, model):
         objective = model.objective
         fseof = FSEOF(model)
@@ -63,7 +64,7 @@ class TestFSEOF:
         assert fseof_result.model is model
 
 
-class TestDifferentialFVA:
+class TestDifferentialFVA(object):
     def test_minimal_input(self, diff_fva):
         result = diff_fva.run()
         ref_df = pandas.read_csv(os.path.join(TESTDIR, 'data/REFERENCE_DiffFVA1.csv'), index_col=0)
@@ -113,7 +114,7 @@ class TestDifferentialFVA:
 
 
 @pytest.mark.skipif('cplex' not in solvers, reason="No cplex interface available")
-class TestOptKnock:
+class TestOptKnock(object):
     def test_optknock_runs(self, cplex_optknock):
         _, optknock = cplex_optknock
         result = optknock.run(max_knockouts=0, target="EX_ac_lp_e_rp_",

@@ -16,6 +16,8 @@
 
 from __future__ import absolute_import
 
+from builtins import map
+from builtins import object
 import copy
 import os
 import re
@@ -69,7 +71,7 @@ def test_find_blocked_reactions(core_model):
     assert blocked_reactions == {core_model.reactions.GAPD, core_model.reactions.PGK}
 
 
-class TestFluxVariabilityAnalysis:
+class TestFluxVariabilityAnalysis(object):
     def test_flux_variability_parallel(self, core_model):
         original_objective = core_model.objective
         mp_view = MultiprocessingView(2)
@@ -138,7 +140,7 @@ class TestFluxVariabilityAnalysis:
         cycle_reac = Reaction("minus_PGI")  # Create fake cycle
         cycle_reac.lower_bound = -1000
         core_model.add_reaction(cycle_reac)
-        cycle_reac.add_metabolites({met: -c for met, c in core_model.reactions.PGI.metabolites.items()})
+        cycle_reac.add_metabolites({met: -c for met, c in list(core_model.reactions.PGI.metabolites.items())})
         fva_solution = flux_variability_analysis(core_model, remove_cycles=False, reactions=["PGI"])
         assert fva_solution.data_frame.loc["PGI", "upper_bound"] == 1000
         fva_solution = flux_variability_analysis(core_model, remove_cycles=True, reactions=["PGI"])
@@ -146,7 +148,7 @@ class TestFluxVariabilityAnalysis:
         assert original_objective == core_model.objective
 
 
-class TestPhenotypicPhasePlane:
+class TestPhenotypicPhasePlane(object):
 
     @pytest.mark.skipif(TRAVIS, reason='Running in Travis')
     def test_one_variable_parallel(self, core_model):
@@ -186,7 +188,7 @@ class TestPhenotypicPhasePlane:
         assert_data_frames_equal(ppp, REFERENCE_PPP_o2_EcoliCore_ac, sort_by=['EX_o2_LPAREN_e_RPAREN_'])
 
 
-class TestSimulationMethods:
+class TestSimulationMethods(object):
     def test_fba(self, core_model):
         solution = fba(core_model)
         original_objective = core_model.objective
@@ -232,16 +234,16 @@ class TestSimulationMethods:
         original_objective = core_model.objective
         pfba_solution = pfba(core_model)
         solution = lmoma(core_model, reference=pfba_solution)
-        distance = sum((abs(solution[v] - pfba_solution[v]) for v in pfba_solution.keys()))
+        distance = sum((abs(solution[v] - pfba_solution[v]) for v in list(pfba_solution.keys())))
         assert abs(0 - distance) < 1e-6, "lmoma distance without knockouts must be 0 (was %f)" % distance
         assert core_model.objective.expression == original_objective.expression
 
     def test_lmoma_change_ref(self, core_model):
         original_objective = core_model.objective
         pfba_solution = pfba(core_model)
-        fluxes = {rid: 10 * flux for rid, flux in pfba_solution.items()}
+        fluxes = {rid: 10 * flux for rid, flux in list(pfba_solution.items())}
         solution = lmoma(core_model, reference=fluxes)
-        distance = sum((abs(solution[v] - pfba_solution[v]) for v in pfba_solution.keys()))
+        distance = sum((abs(solution[v] - pfba_solution[v]) for v in list(pfba_solution.keys())))
         assert abs(0 - distance) > 1e-6, "lmoma distance without knockouts must be 0 (was %f)" % distance
         assert core_model.objective.expression == original_objective.expression
         assert not any(v.name.startswith("u_") for v in core_model.solver.variables)
@@ -263,7 +265,7 @@ class TestSimulationMethods:
         original_objective = core_model.objective
         pfba_solution = pfba(core_model)
         solution = moma(core_model, reference=pfba_solution)
-        distance = sum((abs(solution[v] - pfba_solution[v]) for v in pfba_solution.keys()))
+        distance = sum((abs(solution[v] - pfba_solution[v]) for v in list(pfba_solution.keys())))
         assert abs(0 - distance) < 1e-6, "moma distance without knockouts must be 0 (was %f)" % distance
         assert core_model.objective.expression == original_objective.expression
         assert not any(v.name.startswith("moma_aux_") for v in core_model.solver.variables)
@@ -360,7 +362,7 @@ class TestSimulationMethods:
             toy_model.reactions.v6.knock_out()
             result = room(toy_model, reference=reference, delta=0, epsilon=0)
 
-        for k in reference.keys():
+        for k in list(reference.keys()):
             assert abs(expected[k] - result.fluxes[k]) < 0.1, "%s: %f | %f"
         assert toy_model.objective.expression == original_objective.expression
         assert not any(v.name.startswith("y_") for v in toy_model.variables)
@@ -378,7 +380,7 @@ class TestSimulationMethods:
             toy_model.reactions.v6.knock_out()
             result = moma(toy_model, reference=reference)
 
-        for k in reference.keys():
+        for k in list(reference.keys()):
             assert abs(expected[k] - result.fluxes[k]) < 0.1, "%s: %f | %f"
         assert toy_model.objective.expression == original_objective.expression
         assert not any(v.name.startswith("u_") for v in toy_model.solver.variables)
@@ -396,7 +398,7 @@ class TestSimulationMethods:
             toy_model.reactions.v6.knock_out()
             result = moma(toy_model, reference=reference)
 
-        for k in reference.keys():
+        for k in list(reference.keys()):
             assert abs(expected[k] - result.fluxes[k]) < 0.1, "%s: %f | %f"
         assert toy_model.objective.expression == original_objective.expression
         assert not any(v.name.startswith("u_") for v in toy_model.solver.variables)
@@ -416,13 +418,13 @@ class TestSimulationMethods:
         assert not any(v.name.startswith("u_") for v in toy_model.solver.variables)
 
 
-class TestRemoveCycles:
+class TestRemoveCycles(object):
     def test_remove_cycles(self, core_model):
         with core_model:
             fix_objective_as_constraint(core_model)
             original_objective = copy.copy(core_model.objective)
             core_model.objective = core_model.solver.interface.Objective(
-                Add(*core_model.solver.variables.values()), name='Max_all_fluxes')
+                Add(*list(core_model.solver.variables.values())), name='Max_all_fluxes')
             solution = core_model.optimize()
             assert abs(solution.to_frame().fluxes.abs().sum() - 2508.293334) < 1e-6
             fluxes = solution.fluxes
@@ -431,7 +433,7 @@ class TestRemoveCycles:
         assert abs(sum(abs(pandas.Series(clean_fluxes))) - 518.42208550050827) < 1e-6
 
 
-class TestStructural:
+class TestStructural(object):
     def test_find_blocked_reactions(self, core_model):
         assert "PGK" in core_model.reactions
         core_model.reactions.PGK.knock_out()  # there are no blocked reactions in EcoliCore
@@ -529,7 +531,7 @@ class TestStructural:
                 assert representative in core_model.reactions
 
 
-class TestNullSpace:
+class TestNullSpace(object):
     def test_wikipedia_toy(self):
         a = np.array([[2, 3, 5], [-4, 2, 3]])
         ns = nullspace(a)

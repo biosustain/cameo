@@ -14,6 +14,7 @@
 
 from __future__ import absolute_import, print_function
 
+from builtins import range
 from inspyred.ec.variators import mutator, crossover
 from ordered_set import OrderedSet
 from cameo.strain_design.heuristic.evolutionary.genomes import MultipleChromosomeGenome
@@ -104,7 +105,7 @@ def set_mutation(random, individual, args):
 
     """
     representation = args.get('representation')
-    indices = range(len(representation))
+    indices = list(range(len(representation)))
     indices = _subtract(indices, individual)  # remove indices already present in the individual
     new_individual = []
     mutation_rate = float(args.get('mutation_rate', .1))
@@ -145,7 +146,7 @@ def set_indel(random, individual, args):
 
     max_size = args.get("max_size", 9)
     representation = args.get('representation')
-    indices = range(len(representation))
+    indices = list(range(len(representation)))
     indices = _subtract(indices, individual)  # remove indices already present in the individual
     indel_rate = float(args.get('indel_rate', .1))
     new_individual = list(individual)
@@ -187,7 +188,7 @@ def multiple_chromosome_set_mutation(random, individual, args):
 
     for key in individual.keys:
         representation = args.get('%s_representation' % key)
-        indices = range(len(representation))
+        indices = list(range(len(representation)))
         indices = _subtract(indices, individual[key])  # remove indices already present in the individual
         mutation_rate = args.get('%s_mutation_rate' % key, .1)
         for value in individual[key]:
@@ -227,7 +228,7 @@ def multiple_chromosome_set_indel(random, individual, args):
     max_size = args.get("max_size", 9)
     for key in individual.keys:
         representation = args.get('%s_representation' % key)
-        indices = range(len(representation))
+        indices = list(range(len(representation)))
         indices = _subtract(indices, individual[key])  # remove indices already present in the individual
         indel_rate = args.get('%s_indel_rate' % key, .1)
         if random.random() < indel_rate:

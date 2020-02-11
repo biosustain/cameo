@@ -14,6 +14,9 @@
 
 from __future__ import absolute_import, print_function
 
+from builtins import map
+from builtins import range
+from builtins import object
 import logging
 from multiprocessing import Pool, cpu_count
 from multiprocessing.queues import Full, Empty
@@ -121,7 +124,7 @@ try:
                 'port': self.default_port,
                 'db': self.default_db
             }
-            for key, val in connection_args.items():
+            for key, val in list(connection_args.items()):
                 self._connection_args[key] = val
             self._db = redis.Redis(**self._connection_args)
             self._key = '%s:%s' % (namespace, name)
@@ -237,7 +240,7 @@ class SequentialView(object):
         return func(*args, **kwargs)
 
     def imap(self, func, *args, **kwargs):
-        return map(func, *args, **kwargs)
+        return list(map(func, *args, **kwargs))
 
     def __len__(self):
         return 1

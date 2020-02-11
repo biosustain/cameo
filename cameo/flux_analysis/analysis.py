@@ -15,6 +15,10 @@
 
 from __future__ import absolute_import, print_function, division
 
+import six
+from builtins import str
+from builtins import zip
+from builtins import object
 import itertools
 import logging
 import re
@@ -139,10 +143,10 @@ def find_essential_metabolites(model, threshold=1e-6, force_steady_state=False):
     # Essential metabolites are only in reactions that carry flux.
     metabolites = set()
     solution = model.optimize(raise_error=True)
-    for reaction_id, flux in solution.fluxes.items():
+    for reaction_id, flux in list(solution.fluxes.items()):
         if abs(flux) > 0:
             reaction = model.reactions.get_by_id(reaction_id)
-            metabolites.update(reaction.metabolites.keys())
+            metabolites.update(list(reaction.metabolites.keys()))
 
     for metabolite in metabolites:
         with model:
@@ -265,11 +269,11 @@ def phenotypic_phase_plane(model, variables, objective=None, source=None, points
         phase plane analysis. Biotechnology and Bioengineering, 77(1), 27–36. doi:10.1002/bit.10047
     """
 
-    if isinstance(variables, str):
+    if isinstance(variables, six.string_types):
         variables = [variables]
     elif isinstance(variables, Reaction):
         variables = [variables]
-    variable_ids = [var if isinstance(var, str) else var.id for var in variables]
+    variable_ids = [var if isinstance(var, six.string_types) else var.id for var in variables]
 
     if view is None:
         view = config.default_view
@@ -458,7 +462,7 @@ def total_carbon_flux(reaction, consumption=True):
         reaction flux multiplied by number of carbon for the products of the reaction"""
     direction = 1 if consumption else -1
     c_flux = [reaction.flux * coeff * met.elements.get('C', 0) * direction
-              for met, coeff in reaction.metabolites.items()]
+              for met, coeff in list(reaction.metabolites.items())]
     return sum([flux for flux in c_flux if flux > 0])
 
 
@@ -530,7 +534,7 @@ def _cycle_free_fva(model, reactions=None, sloppy=True, sloppy_bound=666):
                 cycle_count += 1
                 v2_one_cycle_fluxes = remove_infeasible_cycles(model, v0_fluxes, fix=[reaction.id])
                 with model:
-                    for key, v1_flux in v1_cycle_free_fluxes.items():
+                    for key, v1_flux in list(v1_cycle_free_fluxes.items()):
                         if round(v1_flux, config.ndecimals) == 0 and round(v2_one_cycle_fluxes[key],
                                                                            config.ndecimals) != 0:
                             knockout_reaction = model.reactions.get_by_id(key)
@@ -569,7 +573,7 @@ def _cycle_free_fva(model, reactions=None, sloppy=True, sloppy_bound=666):
                 cycle_count += 1
                 v2_one_cycle_fluxes = remove_infeasible_cycles(model, v0_fluxes, fix=[reaction.id])
                 with model:
-                    for key, v1_flux in v1_cycle_free_fluxes.items():
+                    for key, v1_flux in list(v1_cycle_free_fluxes.items()):
                         if round(v1_flux, config.ndecimals) == 0 and round(v2_one_cycle_fluxes[key],
                                                                            config.ndecimals) != 0:
                             knockout_reaction = model.reactions.get_by_id(key)
@@ -800,7 +804,7 @@ class PhenotypicPhasePlaneResult(Result):
                                           'carbon yield, src={}'.format(self.source_reaction),
                                           '[mmol(C)/mmol(C(src)) h^-1]')}
         if estimate not in possible_estimates:
-            raise ValueError('estimate must be one of %s' % ', '.join(possible_estimates.keys()))
+            raise ValueError('estimate must be one of %s' % ', '.join(list(possible_estimates.keys())))
         upper, lower, description, unit = possible_estimates[estimate]
         if title is None:
             title = "Phenotypic Phase Plane ({})".format(description)

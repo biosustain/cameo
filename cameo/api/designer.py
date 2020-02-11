@@ -16,7 +16,11 @@
 """
 
 from __future__ import absolute_import, print_function
-
+from __future__ import division
+import six
+from builtins import range
+from past.utils import old_div
+from builtins import object
 import numpy as np
 
 from cobra import Metabolite, Model
@@ -353,7 +357,7 @@ class Designer(object):
     def translate_product_to_universal_reactions_model_metabolite(self, product, database):
         if isinstance(product, Metabolite):
             return product
-        elif isinstance(product, str):
+        elif isinstance(product, six.string_types):
             search_result = products.search(product)
             search_result = search_result.loc[[i for i in search_result.index if i in database.metabolites]]
             if len(search_result) == 0:
@@ -445,7 +449,7 @@ class Designer(object):
     def calculate_yield(model, source, product):
         try:
             flux_dist = fba(model, objective=product)
-            return flux_dist[product.id] / abs(flux_dist[source.id])
+            return old_div(flux_dist[product.id], abs(flux_dist[source.id]))
         except OptimizationError:
             return 0.0
 

@@ -13,7 +13,12 @@
 # limitations under the License.
 
 from __future__ import absolute_import, print_function
+from __future__ import division
 
+from builtins import next
+from builtins import range
+from past.utils import old_div
+from builtins import object
 import os
 import pickle
 import time
@@ -118,7 +123,7 @@ def objectives():
     return single_objective_function, multi_objective_function
 
 
-class TestMetrics:
+class TestMetrics(object):
     def test_euclidean_distance(self):
         distance = euclidean_distance({'a': 9}, {'a': 3})
         assert distance == sqrt((9 - 3) ** 2)
@@ -128,7 +133,7 @@ class TestMetrics:
         assert distance == abs(9 - 3)
 
 
-class TestBestSolutionArchive:
+class TestBestSolutionArchive(object):
     def test_solution_string(self):
         sol1 = Individual(SOLUTIONS[0][0], SOLUTIONS[0][1])
         sol2 = Individual(SOLUTIONS[1][0], SOLUTIONS[1][1])
@@ -330,8 +335,8 @@ class TestBestSolutionArchive:
             assert sol in archive
 
 
-class TestObjectiveFunctions:
-    class _MockupSolution:
+class TestObjectiveFunctions(object):
+    class _MockupSolution(object):
         def __init__(self):
             self._primal = {}
 
@@ -382,7 +387,7 @@ class TestObjectiveFunctions:
         assert of.name == "bpcy = (biomass * product) / substrate"
         self._assert_is_pickable(of)
         fitness = of(None, solution, None)
-        assert round(abs((0.6 * 2) / 10 - fitness), 7) == 0
+        assert round(abs(old_div((0.6 * 2), 10) - fitness), 7) == 0
 
         solution.set_primal('substrate', 0)
 
@@ -396,7 +401,7 @@ class TestObjectiveFunctions:
         assert of2.name == "bpcy = (biomass * product) / (substrate + substrate2)"
         self._assert_is_pickable(of2)
         fitness = of2(None, solution, None)
-        assert round(abs((0.6 * 2) / 10 - fitness), 7) == 0
+        assert round(abs(old_div((0.6 * 2), 10) - fitness), 7) == 0
 
     def test_biomass_product_coupled_min_yield(self, model):
         biomass = "Biomass_Ecoli_core_N_lp_w_fsh_GAM_rp__Nmet2"
@@ -457,7 +462,7 @@ class TestObjectiveFunctions:
         assert f1 > f2
 
 
-class TestKnockoutEvaluator:
+class TestKnockoutEvaluator(object):
     def test_initializer(self, model):
         objective1 = biomass_product_coupled_yield(
             "Biomass_Ecoli_core_N_lp_w_fsh_GAM_rp__Nmet2",
@@ -544,7 +549,7 @@ class TestKnockoutEvaluator:
         assert fitness == 0
 
 
-class TestWrappedEvaluator:
+class TestWrappedEvaluator(object):
     def test_initializer(self):
         def evaluation_function(x):
             return 1
@@ -571,7 +576,7 @@ class TestWrappedEvaluator:
             EvaluatorWrapper(123, lambda x: 1)
 
 
-class TestSwapOptimization:
+class TestSwapOptimization(object):
     def test_swap_reaction_identification(self, model):
         expected_reactions = ['ACALD', 'AKGDH', 'ALCD2x', 'G6PDH2r', 'GAPD', 'GLUDy', 'GLUSy', 'GND', 'ICDHyr',
                               'LDH_D', 'MDH', 'ME1', 'ME2', 'NADH16', 'PDH']
@@ -608,7 +613,7 @@ class TestSwapOptimization:
             assert round(abs(fitness - 0.322085), 3) == 0
 
 
-class TestDecoders:
+class TestDecoders(object):
     def test_set_decoder(self, model):
         representation = [1, 2, 'a', 'b', None, '0']
         decoder = SetDecoder(representation, model)
@@ -641,7 +646,7 @@ class TestDecoders:
             assert model.genes[i] == genes[i - 1]
 
 
-class TestGenerators:
+class TestGenerators(object):
     def test_set_generator(self):
         random = Random(SEED)
         representation = ["a", "b", "c", "d", "e", "f"]
@@ -728,14 +733,14 @@ class TestGenerators:
         args['_ec'] = ec
         for _ in range(1000):
             candidate = linear_set_generator(random, args)
-            for i, v in candidate.items():
+            for i, v in list(candidate.items()):
                 assert isinstance(i, (int, numpy.int64, numpy.int32))
                 assert isinstance(v, float)
 
             assert len(candidate) <= 10
 
 
-class TestHeuristicOptimization:
+class TestHeuristicOptimization(object):
     def test_default_initializer(self, model, objectives):
         single_objective_function, multi_objective_function = objectives
         heuristic_optimization = HeuristicOptimization(
@@ -851,7 +856,7 @@ class TestHeuristicOptimization:
         assert d == 1
 
 
-class TestMigrators:
+class TestMigrators(object):
     @pytest.mark.skipif(RedisQueue is None, reason='redis not available')
     def test_migrator_constructor(self):
         migrator = MultiprocessingMigrator(max_migrants=1, host=REDIS_HOST)
@@ -881,7 +886,7 @@ class TestMigrators:
         assert len(migrator.migrants) == 1
 
 
-class TestOptimizationResult:
+class TestOptimizationResult(object):
     def test_reaction_result(self, model):
         representation = [r.id for r in model.reactions]
         random = Random(SEED)
@@ -934,7 +939,7 @@ def reaction_ko_multi_objective(model):
                                         heuristic_method=inspyred.ec.emo.NSGA2)
 
 
-class TestReactionKnockoutOptimization:
+class TestReactionKnockoutOptimization(object):
     def test_initializer(self, model):
         essential_reactions = set([r.id for r in find_essential_reactions(model)])
         objective = biomass_product_coupled_yield(
@@ -1028,7 +1033,7 @@ def gene_ko_multi_objective(model):
                                     heuristic_method=inspyred.ec.emo.NSGA2)
 
 
-class TestGeneKnockoutOptimization:
+class TestGeneKnockoutOptimization(object):
     def test_initializer(self, model):
         essential_genes = set([r.id for r in find_essential_genes(model)])
         objective = biomass_product_coupled_yield(
@@ -1094,7 +1099,7 @@ class TestGeneKnockoutOptimization:
         assert elapsed_time < 1.25 * 60
 
 
-class TestVariator:
+class TestVariator(object):
     def test_set_n_point_crossover(self):
         mom = OrderedSet([1, 3, 5, 9, 10])
         dad = OrderedSet([2, 3, 7, 8])
@@ -1229,7 +1234,7 @@ class TestVariator:
         assert new_individuals[4]["B"] == OrderedSet([1, 5, 7, 8, 10])
 
 
-class TestGenomes:
+class TestGenomes(object):
     def test_two_chromosomes(self):
         genome = MultipleChromosomeGenome(["A", "B"])
         assert isinstance(genome["A"], list)

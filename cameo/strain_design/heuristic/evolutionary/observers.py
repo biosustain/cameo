@@ -14,6 +14,7 @@
 
 from __future__ import absolute_import, print_function
 
+from builtins import object
 from IProgress.progressbar import ProgressBar
 from IProgress.widgets import Percentage, Bar
 

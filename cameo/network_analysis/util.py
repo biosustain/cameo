@@ -13,7 +13,9 @@
 # limitations under the License.
 
 from __future__ import absolute_import, print_function
+from __future__ import division
 
+from past.utils import old_div
 __all__ = ['distance_based_on_molecular_formula']
 
 
@@ -42,6 +44,6 @@ def distance_based_on_molecular_formula(metabolite1, metabolite2, normalize=True
     for element in elements:
         distance += abs(metabolite1.elements.get(element, 0) - metabolite2.elements.get(element, 0))
     if normalize:
-        return distance / sum(list(metabolite1.elements.values()) + list(metabolite2.elements.values()))
+        return old_div(distance, sum(list(metabolite1.elements.values()) + list(metabolite2.elements.values())))
     else:
         return distance

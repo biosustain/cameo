@@ -11,7 +11,10 @@
 # limitations under the License.
 
 from __future__ import absolute_import, print_function
+from __future__ import division
 
+from past.utils import old_div
+from builtins import object
 import numpy as np
 import scipy
 
@@ -142,5 +145,5 @@ class GeneFrequencyPlotter(object):
 
         plot.quad(top=self.freqs[:, 1], left=self.freqs[:, 1], bottom=np.zeros(len(self.freqs[:, 1])),
                   right=self.freqs[:, 1], x_range=list(self.freqs[:, 0]))
-        plot.xaxis().major_label_orientation = np.pi / 3
+        plot.xaxis().major_label_orientation = old_div(np.pi, 3)
         show(plot)

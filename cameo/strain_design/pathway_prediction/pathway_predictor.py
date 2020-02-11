@@ -13,7 +13,8 @@
 # limitations under the License.
 
 from __future__ import absolute_import, print_function
-
+import six
+from builtins import str
 import logging
 import re
 import warnings
@@ -72,7 +73,7 @@ class PathwayResult(Pathway, Result, StrainDesign):
         """
         stoichiometry = {}
 
-        for metabolite, coefficient in reaction.metabolites.items():
+        for metabolite, coefficient in list(reaction.metabolites.items()):
             found = False
             for adapter in self.adapters:
                 if metabolite == adapter.products[0]:
@@ -427,7 +428,7 @@ class PathwayPredictor(StrainDesignMethod):
         logger.info("Adding reactions from universal model to host model.")
         new_reactions = list()
         original_model_metabolites = [self.mapping.get('bigg:' + m.id[0:-2], m.id) for
-                                      r in original_exchanges for m, coeff in r.metabolites.items()
+                                      r in original_exchanges for m, coeff in list(r.metabolites.items())
                                       if len(r.metabolites) == 1 and coeff < 0 < r.upper_bound]
 
         universal_exchanges = self.universal_model.boundary
@@ -445,7 +446,7 @@ class PathwayPredictor(StrainDesignMethod):
         return new_reactions
 
     def _find_product(self, product):
-        if isinstance(product, str):
+        if isinstance(product, six.string_types):
             for metabolite in self.model.metabolites:
                 if metabolite.id == product:
                     return metabolite

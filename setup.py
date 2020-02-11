@@ -52,7 +52,7 @@ extra_requirements = {
     'parallel': ['redis>=2.10.5', 'ipyparallel>=5.0.1'],
     'sbml': ['python-libsbml>=5.13.0', 'lxml>=3.6.0']
 }
-extra_requirements['all'] = list(set(chain(*extra_requirements.values())))
+extra_requirements['all'] = list(set(chain(*list(extra_requirements.values()))))
 
 # Run
 # pandoc --from=markdown --to=rst README.md -o README.rst

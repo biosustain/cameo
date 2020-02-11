@@ -45,7 +45,7 @@ def pathviz_maps():
 
 def pathviz_svg(map_id='EcoliCore_coreMap', **kwargs):
     config = {"map": map_id, "ImageSize": 800., "Boundary": False}
-    for key, value in kwargs.items():
+    for key, value in list(kwargs.items()):
         config[key] = value
     fd, tmp_pathviz_input = tempfile.mkstemp(prefix='pathviz_svg_', suffix='.json')
     with open(tmp_pathviz_input, 'w') as fhandle:
@@ -83,7 +83,7 @@ cdf.embed("%s", 942, 678);
 <iframe width=800 height=700 src="files/%s" id="CDF"></iframe>
 """
     config = {"map": map_id, "ImageSize": 800., "Boundary": False}
-    for key, value in kwargs.items():
+    for key, value in list(kwargs.items()):
         config[key] = value
     fd, tmp_pathviz_input = tempfile.mkstemp(prefix='pathviz_svg_', suffix='.json')
     with open(tmp_pathviz_input, 'w') as fhandle:

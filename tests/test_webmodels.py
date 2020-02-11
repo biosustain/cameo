@@ -11,6 +11,7 @@
 
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from builtins import object
 from tempfile import _TemporaryFileWrapper
 
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,7 +24,7 @@ from cameo.models.webmodels import (NotFoundException, get_sbml_file,
                                     index_models_minho)
 
 
-class TestWebModels:
+class TestWebModels(object):
     def test_invalid_host(self):
         with pytest.raises(requests.ConnectionError):
             index_models_minho(host="http://blabla")

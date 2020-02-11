@@ -14,6 +14,9 @@
 
 from __future__ import absolute_import, print_function
 
+from builtins import str
+from builtins import range
+from builtins import object
 from threading import Thread
 
 from multiprocessing.queues import Empty
@@ -132,7 +135,7 @@ class CliMultiprocessProgressObserver(AbstractParallelObserver):
 
     def _listen(self):
         AbstractParallelObserver._listen(self)
-        for i, progress in self.progress_bar.items():
+        for i, progress in list(self.progress_bar.items()):
             progress.finish()
 
     class TerminalWriter(object):

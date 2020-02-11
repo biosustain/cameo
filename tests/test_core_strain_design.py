@@ -12,6 +12,7 @@
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 
+from builtins import object
 import pytest
 
 from cobra import Metabolite, Reaction
@@ -32,7 +33,7 @@ def cad_reaction(core_model):
     return reaction
 
 
-class TestStrainDesign:
+class TestStrainDesign(object):
 
     def test_create_strain_design(self, cad_reaction):
         t1 = ReactionKnockoutTarget('PGI')

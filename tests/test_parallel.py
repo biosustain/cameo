@@ -13,7 +13,9 @@
 # limitations under the License.
 
 from __future__ import absolute_import, print_function
-
+import six
+from builtins import range
+from builtins import object
 import os
 import warnings
 from multiprocessing import cpu_count
@@ -65,7 +67,7 @@ def to_the_power_of_2(arg):
     return arg ** 2
 
 
-class TestView:
+class TestView(object):
     @pytest.mark.parametrize('view', views)
     def test_map(self, view):
         assert view.map(to_the_power_of_2, list(range(100))) == SOLUTION
@@ -88,7 +90,7 @@ class TestView:
 
 
 @pytest.mark.skipif(not RedisQueue, reason='no redis queue available')
-class TestRedisQueue:
+class TestRedisQueue(object):
 
     def test_queue_size(self):
         print(REDIS_HOST)
@@ -120,7 +122,7 @@ class TestRedisQueue:
         queue.put("a")
         v = queue.get_nowait()
         assert v == "a"
-        assert isinstance(v, str)
+        assert isinstance(v, six.string_types)
 
         # put float
         queue.put(1.)

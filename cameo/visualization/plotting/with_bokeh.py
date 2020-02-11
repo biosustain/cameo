@@ -13,6 +13,9 @@
 # limitations under the License.
 from __future__ import absolute_import
 
+import six
+from builtins import zip
+from builtins import range
 from bokeh.charts import Line, Bar
 from bokeh.models import FactorRange
 from bokeh.layouts import gridplot
@@ -22,7 +25,7 @@ from cameo.util import partition, inheritdocstring, in_ipnb
 from cameo.visualization.plotting.abstract import AbstractPlotter
 
 
-class BokehPlotter(AbstractPlotter, metaclass=inheritdocstring):
+class BokehPlotter(six.with_metaclass(inheritdocstring, AbstractPlotter)):
     def __init__(self, **options):
         if in_ipnb():
             from bokeh.io import output_notebook
@@ -57,7 +60,7 @@ class BokehPlotter(AbstractPlotter, metaclass=inheritdocstring):
 
         n = len(strains)
         step = 1.0 / float(len(strains))
-        for strain, i, color in zip(strains, range(n), self._palette(palette, n)):
+        for strain, i, color in zip(strains, list(range(n)), self._palette(palette, n)):
             _dataframe = dataframe[dataframe["strain"] == strain]
             self._add_fva_bars(plot, factors, _dataframe, i * step, step, color, strain)
 
@@ -101,7 +104,7 @@ class BokehPlotter(AbstractPlotter, metaclass=inheritdocstring):
             self._add_production_envelope(plot, _dataframe, strain, color=color)
 
         if points is not None:
-            plot.scatter(*zip(*points), color="green" if points_colors is None else points_colors)
+            plot.scatter(*list(zip(*points)), color="green" if points_colors is None else points_colors)
 
         if x_axis_label:
             plot.xaxis.axis_label = x_axis_label

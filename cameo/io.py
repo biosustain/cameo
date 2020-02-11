@@ -13,7 +13,9 @@
 # limitations under the License.
 
 from __future__ import absolute_import, print_function
-
+import six
+from future import standard_library
+standard_library.install_aliases()
 try:
     import cPickle as pickle
 except ImportError:
@@ -48,12 +50,12 @@ def load_model(path_or_handle, solver_interface=optlang, sanitize=True):
     """
     solver_interface = solvers.get(solver_interface, solver_interface)
 
-    if isinstance(path_or_handle, str) and not os.path.isfile(path_or_handle):
+    if isinstance(path_or_handle, six.string_types) and not os.path.isfile(path_or_handle):
         from cameo.models.webmodels import load_webmodel
         logger.debug("Given path is not a file. Trying to load from webmodels")
         model = load_webmodel(path_or_handle, solver_interface)
     else:
-        if isinstance(path_or_handle, str):
+        if isinstance(path_or_handle, six.string_types):
             # Open the given file
             path = path_or_handle
             handle = open(path_or_handle, 'rb')

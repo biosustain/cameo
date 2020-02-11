@@ -1,4 +1,5 @@
 import csv
+import six
 
 from pandas import DataFrame
 
@@ -96,7 +97,7 @@ def load_medium(model, medium_def, copy=False, delimiter="\t"):
         _load_medium_from_dict(model, medium_def)
     elif isinstance(medium_def, DataFrame):
         _load_medium_from_dataframe(model, medium_def)
-    elif isinstance(medium_def, str):
+    elif isinstance(medium_def, six.string_types):
         _load_medium_from_file(model, medium_def, delimiter=delimiter)
     else:
         raise AssertionError("input type (%s) is not valid" % type(medium))

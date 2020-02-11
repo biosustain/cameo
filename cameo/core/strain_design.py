@@ -15,7 +15,13 @@
 Core implementation of strain design. It contains core structures.
 Targets (and subclasses) are identified by strain design methods.
 """
-
+from __future__ import division
+import six
+from builtins import zip
+from builtins import next
+from builtins import str
+from past.utils import old_div
+from builtins import object
 import sys
 
 from cobra import DictList
@@ -67,7 +73,7 @@ class StrainDesign(object):
                 return item == self.targets.get_by_id(item.id)
             else:
                 return False
-        elif isinstance(item, str):
+        elif isinstance(item, six.string_types):
             return item in self.targets
         else:
             return False
@@ -100,7 +106,7 @@ class StrainDesign(object):
                 targets[target.id] = set()
             targets[target.id].add(target)
 
-        targets = [next(iter(t)) if len(t) == 1 else EnsembleTarget(id, t) for id, t in targets.items()]
+        targets = [next(iter(t)) if len(t) == 1 else EnsembleTarget(id, t) for id, t in list(targets.items())]
 
         return StrainDesign(targets)
 
@@ -119,7 +125,7 @@ class StrainDesign(object):
                 targets[target.id] = set()
             targets[target.id].add(target)
 
-        targets = [next(iter(t)) if len(t) == 1 else EnsembleTarget(id, t) for id, t in targets.items()]
+        targets = [next(iter(t)) if len(t) == 1 else EnsembleTarget(id, t) for id, t in list(targets.items())]
 
         self.targets = DictList(targets)
 
@@ -190,7 +196,7 @@ class StrainDesignMethodResult(Result):
                 if target.id not in counts.index:
                     counts.loc[target.id, 'count'] = 0
                 counts.loc[target.id, 'count'] += 1
-            counts['frequency'] = counts['count'].apply(lambda c: c / len(self._designs))
+            counts['frequency'] = counts['count'].apply(lambda c: old_div(c, len(self._designs)))
 
         plotter.frequency(counts, title=title, width=width, height=height, **kwargs)
 

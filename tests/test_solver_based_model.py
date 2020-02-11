@@ -16,6 +16,8 @@
 
 from __future__ import absolute_import, print_function
 
+from builtins import str
+from builtins import object
 import copy
 import os
 import pickle
@@ -91,7 +93,7 @@ def tiny_toy_model(request):
 #         assert set(solution.shadow_prices.keys()).difference(metabolite_ids) == set()
 
 
-class TestReaction:
+class TestReaction(object):
     # def test_clone_cobrapy_reaction(self):
     #     model = cobra.test.create_test_model('textbook')
     #     for reaction in model.reactions:
@@ -391,7 +393,7 @@ class TestReaction:
             reaction.knock_out()
             assert reaction.lower_bound == 0
             assert reaction.upper_bound == 0
-        for k, (lb, ub) in original_bounds.items():
+        for k, (lb, ub) in list(original_bounds.items()):
             core_model.reactions.get_by_id(k).lower_bound = lb
             core_model.reactions.get_by_id(k).upper_bound = ub
         for reaction in core_model.reactions:
@@ -609,7 +611,7 @@ class TestReaction:
             assert name == reaction.id
 
 
-class TestModel:
+class TestModel(object):
     # def test_model_is_subclassed(self, core_model):
     #     assert isinstance(core_model, cobra.Model)
     #     for reac in core_model.reactions:
@@ -758,7 +760,7 @@ class TestModel:
 
     def test_objective(self, core_model):
         obj = core_model.objective
-        assert {var.name: coef for var, coef in obj.expression.as_coefficients_dict().items()} == \
+        assert {var.name: coef for var, coef in list(obj.expression.as_coefficients_dict().items())} == \
                {'Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2_reverse_9ebcd': -1,
                 'Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2': 1}
         assert obj.direction == "max"
@@ -981,13 +983,13 @@ class TestModel:
                                                        0.5 * core_model.reactions.PFK.flux_expression,
                                                        lb=0, ub=0)
             core_model.add_cons_vars(constraint)
-            all_constraint_ids = core_model.solver.constraints.keys()
+            all_constraint_ids = list(core_model.solver.constraints.keys())
             assert all_constraint_ids[-1], 'ratio_constraint_PGK_PFK'
             resurrected = pickle.loads(pickle.dumps(core_model))
-            assert resurrected.solver.constraints.keys() == all_constraint_ids
+            assert list(resurrected.solver.constraints.keys()) == all_constraint_ids
 
 
-class TestMetabolite:
+class TestMetabolite(object):
     def test_set_id(self, core_model):
         met = Metabolite("test")
         with pytest.raises(TypeError):

@@ -15,7 +15,14 @@
 """Methods for stoichiometric analaysis"""
 
 from __future__ import print_function
-
+from __future__ import division
+import six
+from builtins import next
+from builtins import zip
+from builtins import str
+from builtins import range
+from builtins import object
+from past.utils import old_div
 import logging
 from copy import copy
 from itertools import product
@@ -81,7 +88,7 @@ def create_stoichiometric_array(model, array_type='dense', dtype=None):
     r_ind = model.reactions.index
 
     for reaction in model.reactions:
-        for metabolite, stoich in reaction.metabolites.items():
+        for metabolite, stoich in list(reaction.metabolites.items()):
             if array_type == 'data_frame':
                 array.set_value((metabolite.id, reaction.id), 'stoichiometry', stoich)
             else:
@@ -176,7 +183,7 @@ def find_coupled_reactions_nullspace(model, ns=None, tol=1e-10):
         left = non_blocked_ns[i]
         group = next((g for g in groups if reaction_i in g), None)
         if group:
-            reaction_i = next(l for l, c in group.items() if c == 1)
+            reaction_i = next(l for l, c in list(group.items()) if c == 1)
             left = non_blocked_ns[reaction_index[reaction_i]]
         else:
             group = {reaction_i: 1}
@@ -188,7 +195,7 @@ def find_coupled_reactions_nullspace(model, ns=None, tol=1e-10):
                 continue
             reaction_j = non_blocked_reactions[j]
             right = non_blocked_ns[j]
-            ratio = np.apply_along_axis(lambda x: x[0] / x[1] if abs(x[1]) > 0. else np.inf, 0, np.array([left, right]))
+            ratio = np.apply_along_axis(lambda x: old_div(x[0], x[1]) if abs(x[1]) > 0. else np.inf, 0, np.array([left, right]))
 
             # special case:
             # if ratio is 1 (a/b == 1) then a == b.
@@ -222,13 +229,13 @@ def find_dead_end_reactions(model):
     """
     stoichiometries = {}
     for reaction in model.reactions:
-        for met, coef in reaction.metabolites.items():
+        for met, coef in list(reaction.metabolites.items()):
             stoichiometries.setdefault(met.id, {})[reaction] = coef
 
     blocked_reactions = set()
     while True:
         new_blocked = set()
-        for met_id, stoichiometry in stoichiometries.items():
+        for met_id, stoichiometry in list(stoichiometries.items()):
             if len(stoichiometry) == 1:  # Metabolite is only associated with 1 reaction, which can thus not be active
                 new_blocked.add(list(stoichiometry)[0])
         if len(new_blocked) == 0:
@@ -236,8 +243,8 @@ def find_dead_end_reactions(model):
 
         # Remove blocked reactions from stoichiometries
         stoichiometries = {
-            met_id: {reac: coef for reac, coef in stoichiometry.items() if reac not in new_blocked}
-            for met_id, stoichiometry in stoichiometries.items()}
+            met_id: {reac: coef for reac, coef in list(stoichiometry.items()) if reac not in new_blocked}
+            for met_id, stoichiometry in list(stoichiometries.items())}
         blocked_reactions.update(new_blocked)
 
     return frozenset(blocked_reactions)
@@ -250,12 +257,12 @@ def find_coupled_reactions(model, return_dead_ends=False):
     for reaction in model.reactions:
         if reaction in blocked:
             continue
-        for met, coef in reaction.metabolites.items():
+        for met, coef in list(reaction.metabolites.items()):
             stoichiometries.setdefault(met.id, {})[reaction] = coef
 
     # Find reaction pairs that are constrained to carry equal flux
     couples = []
-    for met_id, stoichiometry in stoichiometries.items():
+    for met_id, stoichiometry in list(stoichiometries.items()):
         if len(stoichiometry) == 2 and set(stoichiometry.values()) == {1, -1}:
             couples.append(set(stoichiometry.keys()))
 
@@ -275,7 +282,7 @@ def find_coupled_reactions(model, return_dead_ends=False):
         return coupled_groups
 
 
-class ShortestElementaryFluxModes():
+class ShortestElementaryFluxModes(object):
     def __init__(self, model, reactions=None, c=1e-5, copy=True, change_bounds=True):
         self._indicator_variables = None
         if copy:
@@ -287,7 +294,7 @@ class ShortestElementaryFluxModes():
         else:
             self._reactions = []
             for reaction in reactions:
-                if isinstance(reaction, str):
+                if isinstance(reaction, six.string_types):
                     self._reactions.append(self.model.reactions.get_by_id(reaction))
                 else:
                     self._reactions.append(reaction)
@@ -446,7 +453,7 @@ class MinimalCutSetsEnumerator(ShortestElementaryFluxModes):  # pragma: no cover
         if exclude is not None:
             exclude_copy = []
             for re in exclude:
-                if isinstance(re, str):
+                if isinstance(re, six.string_types):
                     exclude_copy.append(re)
                 else:
                     exclude_copy.append(re.id)
@@ -527,7 +534,7 @@ class MinimalCutSetsEnumerator(ShortestElementaryFluxModes):  # pragma: no cover
         # Add dual "u-reactions"
         transposed_stoichiometry = {}
         for reaction in model.reactions:
-            for met, coef in reaction.metabolites.items():
+            for met, coef in list(reaction.metabolites.items()):
                 if reaction.reverse_id() in dual_metabolite_names:
                     transposed_stoichiometry.setdefault(met, {})[
                         dual_model.metabolites.get_by_id(reaction.reverse_id())] = -coef
@@ -540,7 +547,7 @@ class MinimalCutSetsEnumerator(ShortestElementaryFluxModes):  # pragma: no cover
                         dual_model.metabolites.get_by_id(reaction.id)] = coef
 
         u_reactions = []
-        for met, stoichiometry in transposed_stoichiometry.items():
+        for met, stoichiometry in list(transposed_stoichiometry.items()):
             met_id = met.id
             reac = Reaction("u_" + met_id)
             reac.lower_bound = -reac.upper_bound  # Make reversible
@@ -584,9 +591,9 @@ class MinimalCutSetsEnumerator(ShortestElementaryFluxModes):  # pragma: no cover
 
         if isinstance(targets, optlang.interface.Constraint):
             targets = [targets]
-        elif isinstance(targets, str):
+        elif isinstance(targets, six.string_types):
             targets = [targets]
-        if isinstance(targets[0], str):
+        if isinstance(targets[0], six.string_types):
             new_targets = []
             for target in targets:
                 new_targets.extend(_convert_string_to_target_constraints(target))
@@ -616,11 +623,11 @@ class MinimalCutSetsEnumerator(ShortestElementaryFluxModes):  # pragma: no cover
             w_reac.lower_bound = c
             if target.ub is not None:
                 coefficients = {
-                    self._dual_model.metabolites.get_by_id(var.name): coef for var, coef in coefficients_dict.items()
+                    self._dual_model.metabolites.get_by_id(var.name): coef for var, coef in list(coefficients_dict.items())
                     if var.name in self._dual_model.metabolites}
             elif target.lb is not None:
                 coefficients = {
-                    self._dual_model.metabolites.get_by_id(var.name): -coef for var, coef in coefficients_dict.items()
+                    self._dual_model.metabolites.get_by_id(var.name): -coef for var, coef in list(coefficients_dict.items())
                     if var.name in self._dual_model.metabolites}
             w_reac.add_metabolites(coefficients)
             w_reactions.append(w_reac)

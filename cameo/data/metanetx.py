@@ -32,7 +32,7 @@ with gzip.open(os.path.join(cameo._cameo_data_path, 'metanetx.json.gz'),
 bigg2mnx = _METANETX['bigg2mnx']
 mnx2bigg = _METANETX['mnx2bigg']
 all2mnx = _METANETX['all2mnx']
-mnx2all = {v: k for k, v in all2mnx.items()}
+mnx2all = {v: k for k, v in list(all2mnx.items())}
 
 with gzip.open(os.path.join(cameo._cameo_data_path,
                             'metanetx_chem_prop.json.gz'), 'rt') as f:

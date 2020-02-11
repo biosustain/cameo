@@ -14,6 +14,8 @@
 
 """This module implements a pathway data structure that can be added to a model for example."""
 
+from builtins import map
+from builtins import object
 from functools import partial, reduce
 
 from pandas import DataFrame
@@ -167,9 +169,9 @@ def _parse_equation(equation, metabolites):
 
 
 def _build_equation(stoichiometry):
-    products = {m: v for m, v in stoichiometry.items() if v > 0}
-    reactants = {m: v for m, v in stoichiometry.items() if v < 0}
+    products = {m: v for m, v in list(stoichiometry.items()) if v > 0}
+    reactants = {m: v for m, v in list(stoichiometry.items()) if v < 0}
 
-    products = " + ".join(["%f * %s#%s" % (v, m.name, m.id) for m, v in products.items()])
-    reactants = " + ".join(["%f * %s#%s" % (-v, m.name, m.id) for m, v in reactants.items()])
+    products = " + ".join(["%f * %s#%s" % (v, m.name, m.id) for m, v in list(products.items())])
+    reactants = " + ".join(["%f * %s#%s" % (-v, m.name, m.id) for m, v in list(reactants.items())])
     return reactants + " <=> " + products

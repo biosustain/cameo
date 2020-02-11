@@ -13,6 +13,7 @@
 # limitations under the License.
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+from builtins import object
 import pytest
 
 
@@ -29,7 +30,7 @@ from cameo.core.target import (EnsembleTarget, FluxModulationTarget,
 from cameo.exceptions import IncompatibleTargets
 
 
-class TestTargets:
+class TestTargets(object):
     def test_hashable(self):
         knockout_target1 = ReactionKnockoutTarget("ACALD")
         knockout_target2 = ReactionKnockoutTarget("ACALD")
@@ -252,7 +253,7 @@ class TestTargets:
         assert genotype_to_string(Genotype([swap_target_gnomic])) == expected
 
 
-class TestEnsembleTargets:
+class TestEnsembleTargets(object):
     def test_compatible_targets(self):
         modulation_target = ReactionModulationTarget("a", 1, 0)
         ki_target = ReactionKnockinTarget("a", None)

@@ -17,6 +17,8 @@ Sacharomyces cerevisiae)."""
 
 from __future__ import absolute_import, print_function
 
+from builtins import zip
+from builtins import object
 import os
 from functools import partial
 
@@ -57,7 +59,7 @@ class Hosts(object):
     def __init__(self, host_spec, aliases=None):
         self._host_spec = host_spec
         self._hosts = list()
-        for host_id, information in self._host_spec.items():
+        for host_id, information in list(self._host_spec.items()):
             host = Host(**information)
             self._hosts.append(host)
             setattr(self, host_id, host)

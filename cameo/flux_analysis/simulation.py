@@ -23,7 +23,7 @@ Currently implements:
 """
 
 from __future__ import absolute_import, print_function
-
+import six
 import logging
 import os
 
@@ -140,7 +140,7 @@ def moma(model, reference=None, cache=None, reactions=None, *args, **kwargs):
 
     cache.begin_transaction()
     try:
-        for rid, flux_value in reference.items():
+        for rid, flux_value in list(reference.items()):
 
             def create_variable(model, variable_id):
                 var = model.solver.interface.Variable(variable_id)
@@ -172,7 +172,7 @@ def moma(model, reference=None, cache=None, reactions=None, *args, **kwargs):
                                                     direction="min",
                                                     sloppy=True)
 
-        cache.add_objective(create_objective, None, cache.variables.values())
+        cache.add_objective(create_objective, None, list(cache.variables.values()))
 
         solution = model.optimize(raise_error=True)
 
@@ -225,7 +225,7 @@ def lmoma(model, reference=None, cache=None, reactions=None, *args, **kwargs):
         raise TypeError("reference must be a flux distribution (dict or FluxDistributionResult")
 
     try:
-        for rid, flux_value in reference.items():
+        for rid, flux_value in list(reference.items()):
             reaction = model.reactions.get_by_id(rid)
 
             def create_variable(model, var_id, lb):
@@ -271,7 +271,7 @@ def lmoma(model, reference=None, cache=None, reactions=None, *args, **kwargs):
             return model.solver.interface.Objective(add([mul((One, var)) for var in variables]),
                                                     direction="min",
                                                     sloppy=False)
-        cache.add_objective(create_objective, None, cache.variables.values())
+        cache.add_objective(create_objective, None, list(cache.variables.values()))
 
         solution = model.optimize(raise_error=True)
         if reactions is not None:
@@ -325,7 +325,7 @@ def room(model, reference=None, cache=None, delta=0.03, epsilon=0.001, reactions
         raise TypeError("reference must be a flux distribution (dict or FluxDistributionResult")
 
     try:
-        for rid, flux_value in reference.items():
+        for rid, flux_value in list(reference.items()):
             reaction = model.reactions.get_by_id(rid)
 
             def create_variable(model, var_id):
@@ -365,7 +365,7 @@ def room(model, reference=None, cache=None, delta=0.03, epsilon=0.001, reactions
             cache.add_constraint("room_const_%s_lower" % rid, create_lower_constraint, update_lower_constraint,
                                  reaction, cache.variables["y_%s" % rid], flux_value, epsilon)
 
-        model.objective = model.solver.interface.Objective(add([mul([One, var]) for var in cache.variables.values()]),
+        model.objective = model.solver.interface.Objective(add([mul([One, var]) for var in list(cache.variables.values())]),
                                                            direction='min')
 
         solution = model.optimize(raise_error=True)
@@ -404,7 +404,7 @@ class FluxDistributionResult(Result):
     def __getitem__(self, item):
         if isinstance(item, Reaction):
             return self.fluxes[item.id]
-        elif isinstance(item, str):
+        elif isinstance(item, six.string_types):
             try:
                 return self.fluxes[item]
             except KeyError:
@@ -436,16 +436,16 @@ class FluxDistributionResult(Result):
 
     def iteritems(self):
         # TODO: I don't think this is needed anymore
-        return self.fluxes.items()
+        return list(self.fluxes.items())
 
     def items(self):
-        return self.fluxes.items()
+        return list(self.fluxes.items())
 
     def keys(self):
-        return self.fluxes.keys()
+        return list(self.fluxes.keys())
 
     def values(self):
-        return self.fluxes.values()
+        return list(self.fluxes.values())
 
     def _repr_html_(self):
         return "<strong>objective value: %s</strong>" % self.objective_value
@@ -472,7 +472,7 @@ class FluxDistributionResult(Result):
             ((-2*std, color), (-std, color) (0 color) (std, color) (2*std, color))
 
         """
-        if isinstance(palette, str):
+        if isinstance(palette, six.string_types):
             palette = mapper.map_palette(palette, 3)
             palette = palette.hex_colors
 
@@ -492,9 +492,9 @@ class FluxDistributionResult(Result):
             else:
                 map_json = None
 
-            active_fluxes = {rid: flux for rid, flux in self.fluxes.items() if abs(flux) > 10 ** -ndecimals}
+            active_fluxes = {rid: flux for rid, flux in list(self.fluxes.items()) if abs(flux) > 10 ** -ndecimals}
 
-            values = [abs(v) for v in active_fluxes.values()]
+            values = [abs(v) for v in list(active_fluxes.values())]
             values += [-v for v in values]
 
             scale = self.plot_scale(values, palette)
@@ -507,7 +507,7 @@ class FluxDistributionResult(Result):
                               dict(type='value', value=scale[4][0], color=scale[4][1], size=21),
                               dict(type='max', color=scale[4][1], size=24)]
 
-            active_fluxes = {rid: round(flux, ndecimals) for rid, flux in self.fluxes.items()
+            active_fluxes = {rid: round(flux, ndecimals) for rid, flux in list(self.fluxes.items())
                              if abs(flux) > 10 ** -ndecimals}
 
             active_fluxes['min'] = min(values)

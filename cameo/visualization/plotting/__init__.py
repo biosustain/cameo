@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from __future__ import absolute_import
-
+import six
+from builtins import object
 from warnings import warn
 
 from cameo.visualization.plotting.abstract import AbstractPlotter
@@ -52,7 +53,7 @@ if _engine is None:
     _engine = AbstractPlotter()
 
 
-class _plotting:
+class _plotting(object):
     def __init__(self, engine):
         self.__dict__['_engine'] = engine
 
@@ -66,7 +67,7 @@ class _plotting:
         if key not in ["_engine", "engine"]:
             raise KeyError(key)
         else:
-            if isinstance(item, str):
+            if isinstance(item, six.string_types):
                 item = _engines[item]()
 
             if not isinstance(item, AbstractPlotter):

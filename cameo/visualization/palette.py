@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from builtins import object
 from palettable.colorbrewer.colorbrewer import _load_maps_by_type as load_colorbrewer_palette  # noqa
 
 from palettable.cubehelix.cubehelix import _get_all_maps as load_cubehelix_palettes
@@ -72,20 +73,20 @@ class PaletteMapper(object):
 
 mapper = PaletteMapper()
 
-for key, obj in load_colorbrewer_palette("diverging").items():
+for key, obj in list(load_colorbrewer_palette("diverging").items()):
     mapper.add_palettalbe_palette(key, obj)
 
-for key, obj in load_colorbrewer_palette("sequential").items():
+for key, obj in list(load_colorbrewer_palette("sequential").items()):
     mapper.add_palettalbe_palette(key, obj)
 
-for key, obj in load_colorbrewer_palette("qualitative").items():
+for key, obj in list(load_colorbrewer_palette("qualitative").items()):
     mapper.add_palettalbe_palette(key, obj)
 
-for key, obj in load_cubehelix_palettes().items():
+for key, obj in list(load_cubehelix_palettes().items()):
     mapper.add_palettalbe_palette(key, obj)
 
-for key, obj in load_tableau_palettes().items():
+for key, obj in list(load_tableau_palettes().items()):
     mapper.add_palettalbe_palette(key, obj)
 
-for key, obj in load_wesanderson_palettes().items():
+for key, obj in list(load_wesanderson_palettes().items()):
     mapper.add_palettalbe_palette(key, obj)

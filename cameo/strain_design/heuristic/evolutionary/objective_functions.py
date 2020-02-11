@@ -14,7 +14,10 @@
 # limitations under the License.
 
 from __future__ import absolute_import, print_function
-
+from __future__ import division
+import six
+from past.utils import old_div
+from builtins import object
 import numpy as np
 from inspyred.ec.emo import Pareto
 
@@ -121,12 +124,12 @@ class YieldFunction(ObjectiveFunction):
         self.carbon_yield = carbon_yield
         if isinstance(product, Reaction):
             product = product.id
-        elif not isinstance(product, str):
+        elif not isinstance(product, six.string_types):
             raise ValueError("`product` must be a string or a Reaction")
 
         self.product = product
 
-        if isinstance(substrates, (str, Reaction)):
+        if isinstance(substrates, (six.string_types, Reaction)):
             substrates = [substrates]
 
         try:
@@ -140,10 +143,10 @@ class YieldFunction(ObjectiveFunction):
         for i, substrate in enumerate(substrates):
             if isinstance(substrate, Reaction):
                 substrates[i] = substrate.id
-            elif not isinstance(substrate, str):
+            elif not isinstance(substrate, six.string_types):
                 raise ValueError("`substrates` must be a string or a Reaction or a iterable of those")
 
-        if not all(isinstance(substrate, str) for substrate in substrates):
+        if not all(isinstance(substrate, six.string_types) for substrate in substrates):
             raise ValueError("`substrates` must be a string or a Reaction or a list of those")
 
         self.substrates = substrates
@@ -198,20 +201,20 @@ class biomass_product_coupled_yield(YieldFunction):
             if product.boundary:
                 product_flux = round(solution.fluxes[self.product], config.ndecimals) * n_carbon(product)
             else:
-                product_flux = round(solution.fluxes[self.product], config.ndecimals) * n_carbon(product) / 2
+                product_flux = old_div(round(solution.fluxes[self.product], config.ndecimals) * n_carbon(product), 2)
             substrate_flux = 0
             for substrate_id in self.substrates:
                 substrate = model.reactions.get_by_id(substrate_id)
                 if substrate.boundary:
                     substrate_flux += abs(solution.fluxes[substrate_id]) * n_carbon(substrate)
                 else:
-                    substrate_flux += abs(solution.fluxes[substrate_id]) * n_carbon(substrate) / 2
+                    substrate_flux += old_div(abs(solution.fluxes[substrate_id]) * n_carbon(substrate), 2)
             substrate_flux = round(substrate_flux, config.ndecimals)
         else:
             product_flux = round(solution.fluxes[self.product], config.ndecimals)
             substrate_flux = round(sum(abs(solution.fluxes[s]) for s in self.substrates), config.ndecimals)
         if substrate_flux > config.non_zero_flux_threshold:
-            return (biomass_flux * product_flux) / substrate_flux
+            return old_div((biomass_flux * product_flux), substrate_flux)
         else:
             return 0.
 
@@ -269,21 +272,21 @@ class biomass_product_coupled_min_yield(biomass_product_coupled_yield):
             if product.boundary:
                 product_flux = min_product_flux * n_carbon(product)
             else:
-                product_flux = min_product_flux * n_carbon(product) / 2
+                product_flux = old_div(min_product_flux * n_carbon(product), 2)
             substrate_flux = 0
             for substrate_id in self.substrates:
                 substrate = model.reactions.get_by_id(substrate_id)
                 if substrate.boundary:
                     substrate_flux += abs(solution.fluxes[substrate_id]) * n_carbon(substrate)
                 else:
-                    substrate_flux += abs(solution.fluxes[substrate_id]) * n_carbon(substrate) / 2
+                    substrate_flux += old_div(abs(solution.fluxes[substrate_id]) * n_carbon(substrate), 2)
             substrate_flux = round(substrate_flux, config.ndecimals)
         else:
             product_flux = min_product_flux
             substrate_flux = sum(round(abs(solution.fluxes[s]), config.ndecimals) for s in self.substrates)
 
         try:
-            return (biomass_flux * product_flux) / substrate_flux
+            return old_div((biomass_flux * product_flux), substrate_flux)
         except ZeroDivisionError:
             return 0.0
 
@@ -337,20 +340,20 @@ class product_yield(YieldFunction):
             if product.boundary:
                 product_flux = round(solution.fluxes[self.product], config.ndecimals) * n_carbon(product)
             else:
-                product_flux = round(solution.fluxes[self.product], config.ndecimals) * n_carbon(product) / 2
+                product_flux = old_div(round(solution.fluxes[self.product], config.ndecimals) * n_carbon(product), 2)
             substrate_flux = 0
             for substrate_id in self.substrates:
                 substrate = model.reactions.get_by_id(substrate_id)
                 if substrate.boundary:
                     substrate_flux += abs(solution.fluxes[substrate_id]) * n_carbon(substrate)
                 else:
-                    substrate_flux += abs(solution.fluxes[substrate_id]) * n_carbon(substrate) / 2
+                    substrate_flux += old_div(abs(solution.fluxes[substrate_id]) * n_carbon(substrate), 2)
             substrate_flux = round(substrate_flux, config.ndecimals)
         else:
             product_flux = round(solution.fluxes[self.product], config.ndecimals)
             substrate_flux = sum(round(abs(solution.fluxes[s]), config.ndecimals) for s in self.substrates)
         try:
-            return round(product_flux / substrate_flux, config.ndecimals)
+            return round(old_div(product_flux, substrate_flux), config.ndecimals)
         except ZeroDivisionError:
             return 0.0
 
