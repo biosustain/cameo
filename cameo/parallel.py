@@ -16,10 +16,7 @@ from __future__ import absolute_import, print_function
 
 import logging
 from multiprocessing import Pool, cpu_count
-
-import six
-from six.moves import map
-from six.moves import range
+from multiprocessing.queues import Full, Empty
 
 from cameo.util import Singleton
 
@@ -89,7 +86,8 @@ class MultiprocessingView(Singleton):
 
 try:
     import redis
-    import six.moves.cPickle as pickle
+    import pickle
+    # TODO: check if pickle3 == cPickle (maybe dill)
 
 
     class RedisQueue(object):
@@ -123,7 +121,7 @@ try:
                 'port': self.default_port,
                 'db': self.default_db
             }
-            for key, val in six.iteritems(connection_args):
+            for key, val in connection_args.items():
                 self._connection_args[key] = val
             self._db = redis.Redis(**self._connection_args)
             self._key = '%s:%s' % (namespace, name)
@@ -162,7 +160,7 @@ try:
 
             """
             if self.length >= self._maxsize:
-                raise six.moves.queue.Full
+                raise Full
 
             item = pickle.dumps(item)
 
@@ -214,7 +212,7 @@ try:
             if item:
                 return pickle.loads(item)
             else:
-                raise six.moves.queue.Empty
+                raise Empty
 
         def get_nowait(self):
             """Equivalent to get(False)."""

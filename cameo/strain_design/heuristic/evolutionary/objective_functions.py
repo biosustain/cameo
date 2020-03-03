@@ -16,7 +16,6 @@
 from __future__ import absolute_import, print_function
 
 import numpy as np
-import six
 from inspyred.ec.emo import Pareto
 
 from cameo import config, flux_variability_analysis
@@ -122,12 +121,12 @@ class YieldFunction(ObjectiveFunction):
         self.carbon_yield = carbon_yield
         if isinstance(product, Reaction):
             product = product.id
-        elif not isinstance(product, six.string_types):
+        elif not isinstance(product, str):
             raise ValueError("`product` must be a string or a Reaction")
 
         self.product = product
 
-        if isinstance(substrates, (six.string_types, Reaction)):
+        if isinstance(substrates, (str, Reaction)):
             substrates = [substrates]
 
         try:
@@ -141,10 +140,10 @@ class YieldFunction(ObjectiveFunction):
         for i, substrate in enumerate(substrates):
             if isinstance(substrate, Reaction):
                 substrates[i] = substrate.id
-            elif not isinstance(substrate, six.string_types):
+            elif not isinstance(substrate, str):
                 raise ValueError("`substrates` must be a string or a Reaction or a iterable of those")
 
-        if not all(isinstance(substrate, six.string_types) for substrate in substrates):
+        if not all(isinstance(substrate, str) for substrate in substrates):
             raise ValueError("`substrates` must be a string or a Reaction or a list of those")
 
         self.substrates = substrates

@@ -24,11 +24,9 @@ from tempfile import mkstemp
 import inspyred
 import numpy
 import pytest
-import six
 from inspyred.ec import Bounder
 from inspyred.ec.emo import Pareto
 from ordered_set import OrderedSet
-from six.moves import range
 
 from cameo import config, fba
 from cameo.core.manipulation import swap_cofactors
@@ -691,10 +689,7 @@ class TestGenerators:
         #     pickle.dump(candidates, out_file, protocol=2)
 
         with open(candidates_file, 'rb') as in_file:
-            if six.PY3:
-                expected_candidates = pickle.load(in_file, encoding="latin1")
-            else:
-                expected_candidates = pickle.load(in_file)
+            expected_candidates = pickle.load(in_file)
 
         assert candidates == expected_candidates
 
@@ -716,10 +711,7 @@ class TestGenerators:
             candidates.append(candidate)
 
         with open(candidates_file, 'rb') as in_file:
-            if six.PY3:
-                expected_candidates = pickle.load(in_file, encoding="latin1")
-            else:
-                expected_candidates = pickle.load(in_file)
+            expected_candidates = pickle.load(in_file)
 
         assert candidates == expected_candidates
 
@@ -736,7 +728,7 @@ class TestGenerators:
         args['_ec'] = ec
         for _ in range(1000):
             candidate = linear_set_generator(random, args)
-            for i, v in six.iteritems(candidate):
+            for i, v in candidate.items():
                 assert isinstance(i, (int, numpy.int64, numpy.int32))
                 assert isinstance(v, float)
 
@@ -966,10 +958,7 @@ class TestReactionKnockoutOptimization:
             pickle.dump(results, in_file)
 
         with open(result_file, 'rb') as in_file:
-            if six.PY3:
-                expected_results = pickle.load(in_file, encoding="latin1")
-            else:
-                expected_results = pickle.load(in_file)
+            expected_results = pickle.load(in_file)
 
         assert results.seed == expected_results.seed
 
@@ -1014,10 +1003,7 @@ class TestReactionKnockoutOptimization:
             pickle.dump(results, in_file)
 
         with open(result_file, 'rb') as in_file:
-            if six.PY3:
-                expected_results = pickle.load(in_file, encoding="latin1")
-            else:
-                expected_results = pickle.load(in_file)
+            expected_results = pickle.load(in_file)
 
         assert results.seed == expected_results.seed
 
@@ -1066,10 +1052,7 @@ class TestGeneKnockoutOptimization:
             pickle.dump(results, in_file)
 
         with open(result_file, 'rb') as in_file:
-            if six.PY3:
-                expected_results = pickle.load(in_file, encoding="latin1")
-            else:
-                expected_results = pickle.load(in_file)
+            expected_results = pickle.load(in_file)
 
         assert results.seed == expected_results.seed
 
@@ -1088,10 +1071,7 @@ class TestGeneKnockoutOptimization:
             pickle.dump(results, in_file)
 
         with open(result_file, 'rb') as in_file:
-            if six.PY3:
-                expected_results = pickle.load(in_file, encoding="latin1")
-            else:
-                expected_results = pickle.load(in_file)
+            expected_results = pickle.load(in_file)
 
         assert results.seed == expected_results.seed
 

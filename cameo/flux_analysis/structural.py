@@ -24,12 +24,10 @@ import numpy as np
 import optlang
 from optlang.interface import OPTIMAL
 import pandas
-import six
 import sympy
 from cobra import Metabolite, Reaction, Model
 from numpy.linalg import svd
 from scipy.sparse import dok_matrix, lil_matrix
-from six.moves import zip
 
 from cobra.exceptions import OptimizationError
 
@@ -83,7 +81,7 @@ def create_stoichiometric_array(model, array_type='dense', dtype=None):
     r_ind = model.reactions.index
 
     for reaction in model.reactions:
-        for metabolite, stoich in six.iteritems(reaction.metabolites):
+        for metabolite, stoich in reaction.metabolites.items():
             if array_type == 'data_frame':
                 array.set_value((metabolite.id, reaction.id), 'stoichiometry', stoich)
             else:
@@ -176,9 +174,9 @@ def find_coupled_reactions_nullspace(model, ns=None, tol=1e-10):
 
     for i, reaction_i in enumerate(non_blocked_reactions):
         left = non_blocked_ns[i]
-        group = six.next((g for g in groups if reaction_i in g), None)
+        group = next((g for g in groups if reaction_i in g), None)
         if group:
-            reaction_i = six.next(l for l, c in six.iteritems(group) if c == 1)
+            reaction_i = next(l for l, c in group.items() if c == 1)
             left = non_blocked_ns[reaction_index[reaction_i]]
         else:
             group = {reaction_i: 1}
@@ -277,7 +275,7 @@ def find_coupled_reactions(model, return_dead_ends=False):
         return coupled_groups
 
 
-class ShortestElementaryFluxModes(six.Iterator):
+class ShortestElementaryFluxModes():
     def __init__(self, model, reactions=None, c=1e-5, copy=True, change_bounds=True):
         self._indicator_variables = None
         if copy:
@@ -289,7 +287,7 @@ class ShortestElementaryFluxModes(six.Iterator):
         else:
             self._reactions = []
             for reaction in reactions:
-                if isinstance(reaction, six.string_types):
+                if isinstance(reaction, str):
                     self._reactions.append(self.model.reactions.get_by_id(reaction))
                 else:
                     self._reactions.append(reaction)
@@ -440,7 +438,7 @@ class ShortestElementaryFluxModes(six.Iterator):
         return self
 
     def __next__(self):
-        return six.next(self._elementary_mode_generator)
+        return next(self._elementary_mode_generator)
 
 
 class MinimalCutSetsEnumerator(ShortestElementaryFluxModes):  # pragma: no cover # don't test until it works
@@ -448,7 +446,7 @@ class MinimalCutSetsEnumerator(ShortestElementaryFluxModes):  # pragma: no cover
         if exclude is not None:
             exclude_copy = []
             for re in exclude:
-                if isinstance(re, six.string_types):
+                if isinstance(re, str):
                     exclude_copy.append(re)
                 else:
                     exclude_copy.append(re.id)
@@ -586,9 +584,9 @@ class MinimalCutSetsEnumerator(ShortestElementaryFluxModes):  # pragma: no cover
 
         if isinstance(targets, optlang.interface.Constraint):
             targets = [targets]
-        elif isinstance(targets, six.string_types):
+        elif isinstance(targets, str):
             targets = [targets]
-        if isinstance(targets[0], six.string_types):
+        if isinstance(targets[0], str):
             new_targets = []
             for target in targets:
                 new_targets.extend(_convert_string_to_target_constraints(target))

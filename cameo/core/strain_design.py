@@ -18,7 +18,6 @@ Targets (and subclasses) are identified by strain design methods.
 
 import sys
 
-import six
 from cobra import DictList
 from pandas import DataFrame
 
@@ -68,7 +67,7 @@ class StrainDesign(object):
                 return item == self.targets.get_by_id(item.id)
             else:
                 return False
-        elif isinstance(item, six.string_types):
+        elif isinstance(item, str):
             return item in self.targets
         else:
             return False
@@ -101,7 +100,7 @@ class StrainDesign(object):
                 targets[target.id] = set()
             targets[target.id].add(target)
 
-        targets = [next(iter(t)) if len(t) == 1 else EnsembleTarget(id, t) for id, t in six.iteritems(targets)]
+        targets = [next(iter(t)) if len(t) == 1 else EnsembleTarget(id, t) for id, t in targets.items()]
 
         return StrainDesign(targets)
 
@@ -120,7 +119,7 @@ class StrainDesign(object):
                 targets[target.id] = set()
             targets[target.id].add(target)
 
-        targets = [next(iter(t)) if len(t) == 1 else EnsembleTarget(id, t) for id, t in six.iteritems(targets)]
+        targets = [next(iter(t)) if len(t) == 1 else EnsembleTarget(id, t) for id, t in targets.items()]
 
         self.targets = DictList(targets)
 
