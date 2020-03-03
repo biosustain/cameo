@@ -130,7 +130,7 @@ class OptKnock(StrainDesignMethod):
         if exclude_reactions:
             # Convert exclude_reactions to reaction ID's
             exclude_reactions = [
-                r.id if isinstance(r, cobra.core.Reaction) else r for r in exclude_reactions
+                r.id if isinstance(r, cobra.Reaction) else r for r in exclude_reactions
             ]
             for r_id in exclude_reactions:
                 if r_id not in self._model.reactions:
@@ -442,8 +442,11 @@ class GrowthCouplingPotential(StrainDesignMethod):
     relevant solvers documentation. The underlying solver object can be accessed through
         GrowthCouplingPotential(...).model.solver.problem
 
+    The method is described in the paper "OptCouple: Joint simulation of gene knockouts,
+    insertions and medium modifications for prediction of growth-coupled strain designs"
+    https://www.sciencedirect.com/science/article/pii/S2214030118300373
 
-    Parameters
+    Attributes
     ----------
     model : cobra.Model
         A cobra model object containing the target reaction as well as all native and heterologous reactions.
@@ -465,7 +468,7 @@ class GrowthCouplingPotential(StrainDesignMethod):
         Set to True when using the Gurobi solver to identify multiple alternative solutions at once
     """
     def __init__(
-            self, model, target, knockout_reactions, knockin_reactions, medium_additions,
+            self, model, target, biomass_id, knockout_reactions, knockin_reactions, medium_additions,
             n_knockouts, n_knockin, n_medium, remove_blocked=True, use_solution_pool=False, **kwargs
     ):
         super(GrowthCouplingPotential, self).__init__(**kwargs)
@@ -477,7 +480,7 @@ class GrowthCouplingPotential(StrainDesignMethod):
                     "%s has a forced flux. Remove the reaction or change its bounds for the function to work." % r.id)
 
         # If a cobra.Reaction is given as target, convert to its ID string.
-        if isinstance(target, cobra.core.Reaction):
+        if isinstance(target, cobra.Reaction):
             target = target.id
         self.target = target
 
@@ -485,7 +488,7 @@ class GrowthCouplingPotential(StrainDesignMethod):
             knockout_reactions.append(target)
 
         self.original_model = model
-        self.biomass_id = [r for r in model.reactions if r.objective_coefficient != 0][0].id
+        self.biomass_id = biomass_id
         self.model = model = model.copy()
 
         # Add boundary reactions for these metabolites named "ADD_<metabolitename>" to the model, with bounds (-10,0).
@@ -509,11 +512,6 @@ class GrowthCouplingPotential(StrainDesignMethod):
             problem.params.IntFeasTol = 1e-9
             problem.params.MIPgapAbs = 1e-9
             problem.params.MIPgap = 1e-9
-            # problem.params.TimeLimit = 200 # Use max 200 seconds when called, return best solution after that
-            # problem.params.PoolSearchMode = 1 #0 for only finding the optimum,
-            #      1 for finding more solutions (but no quality guaranteed), 2 for finding the n best possible solutions
-            # problem.params.PoolSolutions = 10 # Number of solutions kept when finding the optimal solution
-            # problem.params.PoolGap = 0.9 # only store solutions within 90% of the optimal objective value
 
         elif "cplex" in cobra.util.solver.solvers.keys():
             logger.warning(
@@ -524,18 +522,11 @@ class GrowthCouplingPotential(StrainDesignMethod):
             # The tolerances are set to the minimum value. This gives maximum precision.
             problem = model.solver.problem
             problem.parameters.mip.strategy.startalgorithm.set(1)  # primal simplex node relaxation
-            problem.parameters.simplex.tolerances.feasibility.set(
-                1e-9)
-            problem.parameters.simplex.tolerances.optimality.set(
-                1e-3)
-            problem.parameters.mip.tolerances.integrality.set(
-                1e-9)
+            problem.parameters.simplex.tolerances.feasibility.set(1e-9)
+            problem.parameters.simplex.tolerances.optimality.set(1e-3)
+            problem.parameters.mip.tolerances.integrality.set(1e-9)
             problem.parameters.mip.tolerances.absmipgap.set(1e-9)
             problem.parameters.mip.tolerances.mipgap.set(1e-9)
-            # problem.parameters.mip.pool.relgap.set(0.9)
-            #      For populate: find all solutions within 10% of the optimum for relgap = 0.1
-            # problem.parameters.timelimit.set(200) # Use max 200 seconds for solving
-            # problem.parameters.mip.limits.populate.set(20) # Find max 20 solutions (=default)
 
         else:
             logger.warning("You are trying to run 'GrowthCouplingPotential' with %s. This might not end well." %
@@ -546,10 +537,10 @@ class GrowthCouplingPotential(StrainDesignMethod):
         if remove_blocked:
             blocked_reactions = cameo.flux_analysis.analysis.find_blocked_reactions(model)
             model.remove_reactions(blocked_reactions)
-            blocked_reaction_ids = [r.id for r in blocked_reactions]
-            knockout_reactions = [r for r in knockout_reactions if r not in blocked_reaction_ids]
-            knockin_reactions = [r for r in knockin_reactions if r not in blocked_reaction_ids]
-            medium_additions = [r for r in medium_additions if r not in blocked_reaction_ids]
+            blocked_reaction_ids = {r.id for r in blocked_reactions}
+            knockout_reactions = {r for r in knockout_reactions if r not in blocked_reaction_ids}
+            knockin_reactions = {r for r in knockin_reactions if r not in blocked_reaction_ids}
+            medium_additions = {r for r in medium_additions if r not in blocked_reaction_ids}
             logger.debug("Removed " + str(len(blocked_reactions)) + " reactions that were blocked")
 
         # Make dual
@@ -578,10 +569,10 @@ class GrowthCouplingPotential(StrainDesignMethod):
 
         # Now the fun stuff
         constrained_dual_vars = set()
+        M = max(-cobra.Configuration().lower_bound, cobra.Configuration().upper_bound)  # Large value for big-M method
 
         # Fill the dictionaries with binary variables
         # For the knockouts: only for the native reactions which are not exchanges
-        # for reaction in [r for r in model.reactions - excluded_reactions if r.type == "native"]:
         for reac_id in knockout_reactions:
             reaction = model.reactions.get_by_id(reac_id)
 
@@ -590,9 +581,9 @@ class GrowthCouplingPotential(StrainDesignMethod):
             y_var = interface.Variable("y_" + reaction.id, type="binary")
 
             # Constrain the primal: flux through reactions within (-1000, 1000)
-            model.solver.add(interface.Constraint(reaction.flux_expression - 1000 * (1 - y_var), ub=0,
+            model.solver.add(interface.Constraint(reaction.flux_expression - M * (1 - y_var), ub=0,
                                                   name="primal_y_const_" + reaction.id + "_ub"))
-            model.solver.add(interface.Constraint(reaction.flux_expression + 1000 * (1 - y_var), lb=0,
+            model.solver.add(interface.Constraint(reaction.flux_expression + M * (1 - y_var), lb=0,
                                                   name="primal_y_const_" + reaction.id + "_lb"))
 
             # Constrain the dual
@@ -600,11 +591,11 @@ class GrowthCouplingPotential(StrainDesignMethod):
 
             if reaction.upper_bound != 0:
                 dual_forward_ub = model.solver.variables["dual_" + reaction.forward_variable.name + "_ub"]
-                model.solver.add(interface.Constraint(dual_forward_ub - 1000 * y_var, ub=0))
+                model.solver.add(interface.Constraint(dual_forward_ub - M * y_var, ub=0))
                 constrained_vars.append(dual_forward_ub)
             if reaction.lower_bound != 0:
                 dual_reverse_ub = model.solver.variables["dual_" + reaction.reverse_variable.name + "_ub"]
-                model.solver.add(interface.Constraint(dual_reverse_ub - 1000 * y_var, ub=0))
+                model.solver.add(interface.Constraint(dual_reverse_ub - M * y_var, ub=0))
                 constrained_vars.append(dual_reverse_ub)
             constrained_dual_vars.update(constrained_vars)
 
@@ -619,9 +610,9 @@ class GrowthCouplingPotential(StrainDesignMethod):
             y_var = interface.Variable("y_" + reaction.id, type="binary")
 
             # Constrain the primal: flux through reaction within (-1000, 1000)
-            model.solver.add(interface.Constraint(reaction.flux_expression - 1000 * y_var, ub=0,
+            model.solver.add(interface.Constraint(reaction.flux_expression - M * y_var, ub=0,
                                                   name="primal_y_const_" + reaction.id + "_ub"))
-            model.solver.add(interface.Constraint(reaction.flux_expression + 1000 * y_var, lb=0,
+            model.solver.add(interface.Constraint(reaction.flux_expression + M * y_var, lb=0,
                                                   name="primal_y_const_" + reaction.id + "_lb"))
 
             # Constrain the dual
@@ -629,11 +620,11 @@ class GrowthCouplingPotential(StrainDesignMethod):
 
             if reaction.upper_bound != 0:
                 dual_forward_ub = model.solver.variables["dual_" + reaction.forward_variable.name + "_ub"]
-                model.solver.add(interface.Constraint(dual_forward_ub - 1000 * (1 - y_var), ub=0))
+                model.solver.add(interface.Constraint(dual_forward_ub - M * (1 - y_var), ub=0))
                 constrained_vars.append(dual_forward_ub)
             if reaction.lower_bound != 0:
                 dual_reverse_ub = model.solver.variables["dual_" + reaction.reverse_variable.name + "_ub"]
-                model.solver.add(interface.Constraint(dual_reverse_ub - 1000 * (1 - y_var), ub=0))
+                model.solver.add(interface.Constraint(dual_reverse_ub - M * (1 - y_var), ub=0))
                 constrained_vars.append(dual_reverse_ub)
             constrained_dual_vars.update(constrained_vars)
 
@@ -705,6 +696,7 @@ class GrowthCouplingPotential(StrainDesignMethod):
             if "gurobi_interface" not in model.solver.interface.__name__:
                 raise NotImplementedError("Solution pools are currently only available with the Gurobi solver")
 
+            # Find the N best solutions (N is specified as pool_size in run())
             self.model.solver.problem.params.PoolSearchMode = 2
 
             # Don't store solutions with objective = 0
@@ -732,7 +724,7 @@ class GrowthCouplingPotential(StrainDesignMethod):
             solution_pool = self.extract_gurobi_solution_pool()
             return solution_pool
         else:
-            objective_value = sol.f
+            objective_value = sol.objective_value
             knockouts = [
                 reac.id for var, reac in self.native_y_vars.items() if var.primal > 0.9 and reac.id != self.target
             ]
