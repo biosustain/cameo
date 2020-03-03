@@ -23,7 +23,6 @@ from functools import partial
 from uuid import uuid4
 
 import numpy
-import six
 
 from cameo.flux_analysis.structural import nullspace, find_blocked_reactions_nullspace, create_stoichiometric_array
 
@@ -69,8 +68,6 @@ with warnings.catch_warnings():
         except ImportError:
             pass
 
-zip = my_zip = six.moves.zip
-
 __all__ = ['DifferentialFVA', 'FSEOF']
 
 logger = logging.getLogger(__name__)
@@ -78,7 +75,6 @@ logger = logging.getLogger(__name__)
 
 class DifferentialFVA(StrainDesignMethod):
     r"""Differential flux variability analysis.
-
     Compares flux ranges of a reference model to a set of models that
     have been parameterized to lie on a grid of evenly spaced points in the
     n-dimensional production envelope (n being the number of reaction bounds
@@ -93,10 +89,8 @@ class DifferentialFVA(StrainDesignMethod):
         | . . . . . . \
         o--------------*- >
                      growth
-
     Overexpression, downregulation, knockout, flux-reversal and other
     strain engineering targets can be inferred from the resulting comparison.
-
     Parameters
     ----------
     design_space_model : cobra.Model
@@ -117,7 +111,6 @@ class DifferentialFVA(StrainDesignMethod):
         will be normalized by.
     points : int, optional
         Number of points to lay on the surface of the n-dimensional production envelope (defaults to 10).
-
     Examples
     --------
     >>> from cameo import models
@@ -159,7 +152,7 @@ class DifferentialFVA(StrainDesignMethod):
                 self.objective = self.design_space_model.add_boundary(objective, type='demand').id
             except ValueError:
                 self.objective = self.design_space_model.reactions.get_by_id("DM_" + objective.id).id
-        elif isinstance(objective, six.string_types):
+        elif isinstance(objective, str):
             self.objective = objective
         else:
             raise ValueError('You need to provide an objective as a Reaction, Metabolite or a reaction id')
@@ -287,7 +280,6 @@ class DifferentialFVA(StrainDesignMethod):
     def run(self, surface_only=True, improvements_only=True, progress=True,
             view=None, fraction_of_optimum=1.0):
         """Run the differential flux variability analysis.
-
         Parameters
         ----------
         surface_only : bool, optional
@@ -303,7 +295,6 @@ class DifferentialFVA(StrainDesignMethod):
             A value between zero and one that determines the width of the
             flux ranges of the reference solution. The lower the value,
             the larger the ranges.
-
         Returns
         -------
         pandas.Panel
@@ -380,7 +371,7 @@ class DifferentialFVA(StrainDesignMethod):
 
         solutions = dict((tuple(point.iteritems()), fva_result) for (point, fva_result) in results)
 
-        for sol in six.itervalues(solutions):
+        for sol in solutions.values():
             sol[sol.abs() < non_zero_flux_threshold] = 0.0
             intervals = sol.loc[
                 self.included_reactions,
@@ -388,7 +379,7 @@ class DifferentialFVA(StrainDesignMethod):
             ].values
             gaps = [
                 self._interval_gap(interval1, interval2)
-                for interval1, interval2 in my_zip(reference_intervals, intervals)
+                for interval1, interval2 in zip(reference_intervals, intervals)
             ]
             sol['gaps'] = gaps
             if self.normalize_ranges_by is not None:
@@ -402,7 +393,7 @@ class DifferentialFVA(StrainDesignMethod):
 
                     sol['normalized_gaps'] = [
                         self._interval_gap(interval1, interval2)
-                        for interval1, interval2 in my_zip(
+                        for interval1, interval2 in zip(
                             normalized_reference_intervals, normalized_intervals)]
                 else:
                     sol['normalized_gaps'] = numpy.nan
@@ -415,7 +406,7 @@ class DifferentialFVA(StrainDesignMethod):
             for interval1 in reference_intervals
         ], dtype=bool)
         collection = list()
-        for key, df in six.iteritems(solutions):
+        for key, df in solutions.items():
             df['biomass'] = key[0][1]
             df['production'] = key[1][1]
 
@@ -486,25 +477,18 @@ class DifferentialFVAResult(StrainDesignMethodResult):
     def _generate_designs(cls, solutions, reference_fva):
         """
         Generates strain designs for Differential FVA.
-
         The conversion method has three scenarios:
         #### 1. Knockout
-
             Creates a ReactionKnockoutTarget.
-
         #### 2. Flux reversal
-
             If the new flux is negative then it should be at least the upper
             bound of the interval. Otherwise it should be at least the lower
             bound of the interval.
-
         #### 3. The flux increases or decreases
-
             This table illustrates the possible combinations.
                 * Gap is the sign of the normalized gap between the intervals.
                 * Ref is the sign of the closest bound (see _closest_bound).
                 * Bound is the value to use
-
             +-------------------+
             | Gap | Ref | Bound |
             +-----+-----+-------+
@@ -513,15 +497,12 @@ class DifferentialFVAResult(StrainDesignMethodResult):
             |  +  |  -  |   UB  |
             |  +  |  +  |   LB  |
             +-----+-----+-------+
-
-
         Parameters
         ----------
         solutions: pandas.Panel
             The DifferentialFVA panel with all the solutions. Each DataFrame is a design.
         reference_fva: pandas.DataFrame
             The FVA limits for the reference strain.
-
         Returns
         -------
         list
@@ -624,7 +605,6 @@ class DifferentialFVAResult(StrainDesignMethodResult):
     def nth_panel(self, index):
         """
         Return the nth DataFrame defined by (biomass, production) pairs.
-
         When the solutions were still based on pandas.Panel this was simply
         self.solutions.iloc
         """
@@ -695,25 +675,20 @@ class DifferentialFVAResult(StrainDesignMethodResult):
         """
         Generates a color scale based on the flux distribution.
         It makes an array containing the absolute values and minus absolute values.
-
         The colors set as follows (p standsfor palette colors array):
         min   -2*std  -std      0      std      2*std   max
         |-------|-------|-------|-------|-------|-------|
         p[0] p[0] ..  p[1] .. p[2] ..  p[3] .. p[-1] p[-1]
-
-
         Parameters
         ----------
         palette: Palette, list, str
             A Palette from palettable of equivalent, a list of colors (size 5) or a palette name
-
         Returns
         -------
         tuple:
             ((-2*std, color), (-std, color) (0 color) (std, color) (2*std, color))
-
         """
-        if isinstance(palette, six.string_types):
+        if isinstance(palette, str):
             palette = mapper.map_palette(palette, 5)
             palette = palette.hex_colors
 
@@ -858,7 +833,6 @@ class _DifferentialFvaEvaluator(object):
 class FSEOF(StrainDesignMethod):
     """
     Performs a Flux Scanning based on Enforced Objective Flux (FSEOF) analysis.
-
     Parameters
     ----------
     model : cobra.Model
@@ -866,12 +840,10 @@ class FSEOF(StrainDesignMethod):
         The flux that will be enforced. Reaction object or reaction id string.
     primary_objective : Reaction
         The primary objective flux (defaults to model.objective).
-
     References
     ----------
     .. [1] H. S. Choi, S. Y. Lee, T. Y. Kim, and H. M. Woo, 'In silico identification of gene amplification targets
     for improvement of lycopene production.,' Appl Environ Microbiol, vol. 76, no. 10, pp. 3097–3105, May 2010.
-
     """
 
     def __init__(self, model, primary_objective=None, *args, **kwargs):
@@ -885,7 +857,7 @@ class FSEOF(StrainDesignMethod):
                 self.primary_objective = primary_objective
             else:
                 raise ValueError("The reaction " + primary_objective.id + " does not belong to the model")
-        elif isinstance(primary_objective, six.string_types):
+        elif isinstance(primary_objective, str):
             if primary_objective in model.reactions:
                 self.primary_objective = model.reactions.get_by_id(primary_objective)
             else:
@@ -899,7 +871,6 @@ class FSEOF(StrainDesignMethod):
             simulation_kwargs=None):
         """
         Performs a Flux Scanning based on Enforced Objective Flux (FSEOF) analysis.
-
         Parameters
         ----------
         target: str, Reaction, Metabolite
@@ -910,17 +881,14 @@ class FSEOF(StrainDesignMethod):
         number_of_results : int, optional
             The number of enforced flux levels (defaults to 10).
         exclude : Iterable of reactions or reaction ids that will not be included in the output.
-
         Returns
         -------
         FseofResult
             An object containing the identified reactions and the used parameters.
-
         References
         ----------
         .. [1] H. S. Choi, S. Y. Lee, T. Y. Kim, and H. M. Woo, 'In silico identification of gene amplification targets
         for improvement of lycopene production.,' Appl Environ Microbiol, vol. 76, no. 10, pp. 3097–3105, May 2010.
-
         """
         model = self.model
         target = get_reaction_for(model, target)
@@ -995,7 +963,6 @@ class FSEOF(StrainDesignMethod):
 class FSEOFResult(StrainDesignMethodResult):
     """
     Object for storing a FSEOF result.
-
     Attributes:
     -----------
     reactions: list
@@ -1006,7 +973,6 @@ class FSEOFResult(StrainDesignMethodResult):
         A pandas DataFrame containing the fluxes for every reaction for each enforced flux.
     run_args: dict
         The arguments that the analysis was run with. To repeat do 'FSEOF.run(**FSEOFResult.run_args)'.
-
     """
 
     __method_name__ = "FSEOF"
@@ -1038,7 +1004,7 @@ class FSEOFResult(StrainDesignMethodResult):
     def _generate_designs(reference, enforced_levels, reaction_results):
         for i, level in enumerate(enforced_levels):
             targets = []
-            for reaction, value in six.iteritems(reaction_results):
+            for reaction, value in reaction_results.items():
                 if abs(reference[reaction.id]) > 0:
                     if value[i] == 0:
                         targets.append(ReactionKnockoutTarget(reaction.id))
