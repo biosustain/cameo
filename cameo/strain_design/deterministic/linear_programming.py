@@ -603,7 +603,7 @@ class GrowthCouplingPotential(StrainDesignMethod):
             native_y_vars[y_var] = reaction
 
         # For the knockins and medium additions:
-        for reac_id in knockin_reactions + medium_addition_reactions:
+        for reac_id in list(knockin_reactions) + list(medium_addition_reactions):
             reaction = model.reactions.get_by_id(reac_id)
             # Add constraint variables
             interface = model.solver.interface
