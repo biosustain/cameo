@@ -50,7 +50,6 @@ def diff_fva(model):
 @pytest.fixture(scope='module')
 def glpk_growth_coupling_potential(model):
     glpk_core = model.copy()
-    # glpk_core.reactions.Biomass_Ecoli_core_N_lp_w_fsh_GAM_rp__Nmet2.lower_bound = 0.1
     glpk_core.solver = "glpk"
     glpk_core.reactions.ATPM.knock_out()
     knockout_reactions = [r.id for r in glpk_core.reactions if r.genes]
