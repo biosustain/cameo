@@ -183,6 +183,10 @@ class TestGrowthCouplingPotential:
         result = growth_coupling_potential.run()
 
         knockouts = result["knockouts"]
+        fva = cameo.flux_variability_analysis(
+            model, fraction_of_optimum=1, remove_cycles=False, reactions=["PFL"]
+        )
+        assert fva["lower_bound"][0] <= 0 <= fva["upper_bound"][0]
         with model:
             for knockout in knockouts:
                 model.reactions.get_by_id(knockout).knock_out()
