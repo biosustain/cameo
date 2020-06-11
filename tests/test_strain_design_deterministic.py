@@ -48,16 +48,18 @@ def diff_fva(model):
 
 
 @pytest.fixture(scope='module')
-def gurobi_growth_coupling_potential(model):
-    gurobi_core = model.copy()
-    gurobi_core.reactions.Biomass_Ecoli_core_N_lp_w_fsh_GAM_rp__Nmet2.lower_bound = 0.1
-    gurobi_core.solver = "gurobi"
-    knockout_reactions = [r.id for r in gurobi_core.reactions if r.genes]
-    return gurobi_core, GrowthCouplingPotential(
-        gurobi_core, target="TPI",
+def glpk_growth_coupling_potential(model):
+    glpk_core = model.copy()
+    # glpk_core.reactions.Biomass_Ecoli_core_N_lp_w_fsh_GAM_rp__Nmet2.lower_bound = 0.1
+    glpk_core.solver = "glpk"
+    glpk_core.reactions.ATPM.knock_out()
+    knockout_reactions = [r.id for r in glpk_core.reactions if r.genes]
+    return glpk_core, GrowthCouplingPotential(
+        glpk_core, target="PFL",
         knockout_reactions=knockout_reactions,
+        biomass_id="Biomass_Ecoli_core_N_lp_w_fsh_GAM_rp__Nmet2",
         knockin_reactions=[], medium_additions=[],
-        n_knockouts=4, n_knockin=0, n_medium=0
+        n_knockouts=1, n_knockin=0, n_medium=0
     )
 
 
@@ -162,22 +164,23 @@ class TestOptKnock:
             optknock.run(biomass="Biomass_Ecoli_core_N_lp_w_fsh_GAM_rp__Nmet2")
 
 
-@pytest.mark.skipif('gurobi' not in solvers, reason="No gurobi interface available")
+# @pytest.mark.skipif('gurobi' not in solvers, reason="No gurobi interface available")
 class TestGrowthCouplingPotential:
-    def test_growth_coupling_potential_runs(self, gurobi_growth_coupling_potential):
-        _, growth_coupling_potential = gurobi_growth_coupling_potential
+    def test_growth_coupling_potential_runs(self, glpk_growth_coupling_potential):
+        _, growth_coupling_potential = glpk_growth_coupling_potential
         result = growth_coupling_potential.run()
         assert "obj_val" in result
         assert "knockouts" in result
         assert "knockins" in result
         assert "medium" in result
 
-    def test_growth_coupling_potential_benchmark(self, gurobi_growth_coupling_potential, benchmark):
-        _, growth_coupling_potential = gurobi_growth_coupling_potential
+    @pytest.mark.skip()
+    def test_growth_coupling_potential_benchmark(self, glpk_growth_coupling_potential, benchmark):
+        _, growth_coupling_potential = glpk_growth_coupling_potential
         benchmark(growth_coupling_potential.run)
 
-    def test_result_is_correct(self, gurobi_growth_coupling_potential):
-        model, growth_coupling_potential = gurobi_growth_coupling_potential
+    def test_result_is_correct(self, glpk_growth_coupling_potential):
+        model, growth_coupling_potential = glpk_growth_coupling_potential
         result = growth_coupling_potential.run()
 
         knockouts = result["knockouts"]
@@ -185,6 +188,6 @@ class TestGrowthCouplingPotential:
             for knockout in knockouts:
                 model.reactions.get_by_id(knockout).knock_out()
             fva = cameo.flux_variability_analysis(
-                model, fraction_of_optimum=1, remove_cycles=False, reactions=["TPI"]
+                model, fraction_of_optimum=1, remove_cycles=False, reactions=["PFL"]
             )
             assert abs(fva["lower_bound"][0]) > 4
