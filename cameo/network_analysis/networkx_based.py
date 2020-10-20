@@ -98,5 +98,5 @@ def remove_highly_connected_nodes(network, max_degree=10, ignore=[]):
     -------
     None
     """
-    to_remove = [node for node, degree in network.degree_iter() if degree > max_degree and node not in ignore]
+    to_remove = [node for node, degree in network.degree if degree > max_degree and node not in ignore]
     network.remove_nodes_from(to_remove)
