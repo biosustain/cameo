@@ -26,7 +26,7 @@ import versioneer
 requirements = ['numpy>=1.9.1',
                 'scipy>=0.14.0',
                 'blessings>=1.5.1',
-                'pandas>=0.24.0',
+                'pandas>=1.1.3',
                 'ordered-set>=1.2',
                 'cobra>=0.11.1',
                 'future>=0.15.2',
