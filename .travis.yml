@@ -40,7 +40,6 @@ addons:
 before_install:
 - pip install --upgrade pip setuptools wheel tox requests
 - bash ./.travis/install_cplex.sh
-- export TRAVIS=true
 
 script:
   - travis_wait tox
