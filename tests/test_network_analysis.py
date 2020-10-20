@@ -27,16 +27,16 @@ def test_distance_based_on_molecular_formula(salmonella):
 
 
 def test_model_to_network(salmonella):
-    assert model_to_network(salmonella).edges() == reactions_to_network(salmonella.reactions).edges()
+    assert model_to_network(salmonella).edges == reactions_to_network(salmonella.reactions).edges
     network = model_to_network(salmonella)
-    assert len(network.nodes()) == 1761
-    assert len(network.edges()) == 4924
+    assert len(network.nodes) == 1761
+    assert len(network.edges) == 4924
     network = model_to_network(salmonella, max_distance=1.)
     # nodes = network.nodes()
     # print(set(nodes).difference(set(core_model_one.metabolites)))
     # print(set(core_model_one.metabolites).difference(set(nodes)))
-    assert len(network.nodes()) == 1800
-    assert len(network.edges()) == 12853
+    assert len(network.nodes) == 1800
+    assert len(network.edges) == 12853
 
 
 def test_remove_highly_connected_nodes(salmonella):
@@ -44,7 +44,7 @@ def test_remove_highly_connected_nodes(salmonella):
     assert salmonella.metabolites.atp_c in network.nodes()
     assert salmonella.metabolites.adp_c in network.nodes()
     remove_highly_connected_nodes(network, max_degree=10, ignore=[salmonella.metabolites.atp_c])
-    assert len(network.nodes()) == 1671
-    assert len(network.edges()) == 2342
+    assert len(network.nodes) == 1671
+    assert len(network.edges) == 2342
     assert salmonella.metabolites.atp_c in network.nodes()
     assert salmonella.metabolites.adp_c not in network.nodes()
