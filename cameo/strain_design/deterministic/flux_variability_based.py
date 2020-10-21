@@ -476,7 +476,7 @@ class DifferentialFVAResult(StrainDesignMethodResult):
         self.reference_fva = reference_fva
         self.solutions = solutions
         self.groups = self.solutions.groupby(
-            ('biomass', 'production'), as_index=False, sort=False
+            ['biomass', 'production'], as_index=False, sort=False
         )
 
     @classmethod
@@ -525,7 +525,7 @@ class DifferentialFVAResult(StrainDesignMethodResult):
             A list of cameo.core.strain_design.StrainDesign for each DataFrame in solutions.
         """
         designs = []
-        for _, solution in solutions.groupby(('biomass', 'production'), as_index=False, sort=False):
+        for _, solution in solutions.groupby(['biomass', 'production'], as_index=False, sort=False):
             targets = []
             relevant_targets = solution[
                 (solution['normalized_gaps'].abs() > non_zero_flux_threshold) & (

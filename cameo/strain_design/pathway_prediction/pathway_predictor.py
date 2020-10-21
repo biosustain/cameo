@@ -162,8 +162,10 @@ class PathwayPredictions(StrainDesignMethodResult):
         for i, pathway in enumerate(self.pathways):
             string += 'Pathway No. {}'.format(i + 1)
             for reaction in pathway.reactions:
-                string += '{}, {}:'.format(reaction.id, reaction.name,
-                                           reaction.build_reaction_string(use_metabolite_names=True))
+                string += '{}, {}: {}'.format(
+                    reaction.id, reaction.name,
+                    reaction.build_reaction_string(use_metabolite_names=True)
+                )
         return string
 
     def plot(self, grid=None, width=None, height=None, title=None):

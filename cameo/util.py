@@ -496,8 +496,8 @@ def partition(ite, n):
     return [list(islice(iterator, 0, round(division * (i + 1)) - round(division * i))) for i in range(n)]
 
 
-def flatten(l):
-    return [item for sublist in l for item in sublist]
+def flatten(input_list):
+    return [item for sublist in input_list for item in sublist]
 
 
 def generate_colors(n):
