@@ -637,9 +637,9 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
         try:
             source, source_flux = single_flux(self.source, consumption=True)
             product, product_flux = single_flux(self.product_reaction, consumption=False)
-        except ValueError:
+            mol_prod_mol_src = product_flux / source_flux
+        except (ValueError, ZeroDivisionError):
             return numpy.nan
-        mol_prod_mol_src = product_flux / source_flux
         return (mol_prod_mol_src * product.formula_weight) / source.formula_weight
 
     def __call__(self, points):
