@@ -20,7 +20,6 @@ from __future__ import absolute_import, print_function
 import os
 from functools import partial
 
-import six
 from lazy_object_proxy import Proxy
 
 import cameo
@@ -58,7 +57,7 @@ class Hosts(object):
     def __init__(self, host_spec, aliases=None):
         self._host_spec = host_spec
         self._hosts = list()
-        for host_id, information in six.iteritems(self._host_spec):
+        for host_id, information in self._host_spec.items():
             host = Host(**information)
             self._hosts.append(host)
             setattr(self, host_id, host)

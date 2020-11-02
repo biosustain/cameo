@@ -14,8 +14,6 @@
 
 from __future__ import absolute_import, print_function
 
-from six.moves import range
-
 from inspyred.ec.variators import mutator, crossover
 from ordered_set import OrderedSet
 from cameo.strain_design.heuristic.evolutionary.genomes import MultipleChromosomeGenome

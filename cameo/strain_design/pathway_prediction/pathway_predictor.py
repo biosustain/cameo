@@ -22,7 +22,6 @@ from functools import partial
 from math import ceil
 from copy import copy
 
-import six
 from cobra import DictList
 from sympy import Add, Mul, RealNumber
 
@@ -73,7 +72,7 @@ class PathwayResult(Pathway, Result, StrainDesign):
         """
         stoichiometry = {}
 
-        for metabolite, coefficient in six.iteritems(reaction.metabolites):
+        for metabolite, coefficient in reaction.metabolites.items():
             found = False
             for adapter in self.adapters:
                 if metabolite == adapter.products[0]:
@@ -163,8 +162,10 @@ class PathwayPredictions(StrainDesignMethodResult):
         for i, pathway in enumerate(self.pathways):
             string += 'Pathway No. {}'.format(i + 1)
             for reaction in pathway.reactions:
-                string += '{}, {}:'.format(reaction.id, reaction.name,
-                                           reaction.build_reaction_string(use_metabolite_names=True))
+                string += '{}, {}: {}'.format(
+                    reaction.id, reaction.name,
+                    reaction.build_reaction_string(use_metabolite_names=True)
+                )
         return string
 
     def plot(self, grid=None, width=None, height=None, title=None):
@@ -428,7 +429,7 @@ class PathwayPredictor(StrainDesignMethod):
         logger.info("Adding reactions from universal model to host model.")
         new_reactions = list()
         original_model_metabolites = [self.mapping.get('bigg:' + m.id[0:-2], m.id) for
-                                      r in original_exchanges for m, coeff in six.iteritems(r.metabolites)
+                                      r in original_exchanges for m, coeff in r.metabolites.items()
                                       if len(r.metabolites) == 1 and coeff < 0 < r.upper_bound]
 
         universal_exchanges = self.universal_model.boundary
@@ -446,7 +447,7 @@ class PathwayPredictor(StrainDesignMethod):
         return new_reactions
 
     def _find_product(self, product):
-        if isinstance(product, six.string_types):
+        if isinstance(product, str):
             for metabolite in self.model.metabolites:
                 if metabolite.id == product:
                     return metabolite

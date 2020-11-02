@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import six
 from sympy import Add
 
 from cobra import Model
@@ -140,15 +139,15 @@ class ModelDual(Model):  # pragma: no cover  # don't test until it works
 
     def _add_reaction_dual_constraint(self, reaction, coefficient, maximization, prefix):
         """Add a dual constraint corresponding to the reaction's objective coefficient"""
-        stoichiometry = {self.solver.variables["lambda_" + m.id]: c for m, c in six.iteritems(reaction.metabolites)}
+        stoichiometry = {self.solver.variables["lambda_" + m.id]: c for m, c in reaction.metabolites.items()}
         if maximization:
             constraint = self.solver.interface.Constraint(
-                Add._from_args(tuple(c * v for v, c in six.iteritems(stoichiometry))),
+                Add._from_args(tuple(c * v for v, c in stoichiometry.items())),
                 name="r_%s_%s" % (reaction.id, prefix),
                 lb=coefficient)
         else:
             constraint = self._dual_solver.interface.Constraint(
-                Add._from_args(tuple(c * v for v, c in six.iteritems(stoichiometry))),
+                Add._from_args(tuple(c * v for v, c in stoichiometry.items())),
                 name="r_%s_%s" % (reaction.id, prefix),
                 ub=coefficient)
         self.solver._add_constraint(constraint)

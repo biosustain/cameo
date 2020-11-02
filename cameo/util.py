@@ -31,10 +31,8 @@ from uuid import uuid1
 import numpy
 import pandas
 import pkg_resources
-import six
 from cobra.util.context import HistoryManager
 from numpy.random import RandomState
-from six.moves import range
 
 logger = logging.getLogger(__name__)
 
@@ -369,7 +367,7 @@ class TimeMachine(object):
 
     def __str__(self):
         info = '\n'
-        for item in six.iteritems(self.history):
+        for item in self.history.items():
             info += self._history_item_to_str(item)
         return info
 
@@ -450,7 +448,7 @@ class IntelliContainer(object):
         self._dict[key] = value
 
     def __iter__(self):
-        return six.itervalues(self._dict)
+        return iter(self._dict.values())
 
     def __dir__(self):
         return list(self._dict.keys())
@@ -498,8 +496,8 @@ def partition(ite, n):
     return [list(islice(iterator, 0, round(division * (i + 1)) - round(division * i))) for i in range(n)]
 
 
-def flatten(l):
-    return [item for sublist in l for item in sublist]
+def flatten(input_list):
+    return [item for sublist in input_list for item in sublist]
 
 
 def generate_colors(n):

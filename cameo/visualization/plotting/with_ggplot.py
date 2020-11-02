@@ -14,7 +14,6 @@
 from __future__ import absolute_import
 
 from math import ceil
-import six
 
 from warnings import warn
 from ggplot import scale_colour_manual, geom_area, geom_tile, scale_x_continuous, scale_y_continuous, aes, facet_grid
@@ -23,8 +22,7 @@ from cameo.util import in_ipnb, inheritdocstring
 from cameo.visualization.plotting import AbstractPlotter
 
 
-@six.add_metaclass(inheritdocstring)
-class GGPlotPlotter(AbstractPlotter):
+class GGPlotPlotter(AbstractPlotter, metaclass=inheritdocstring):
     def __init__(self, **options):
         warn("ggplot interface is under construction...")
 

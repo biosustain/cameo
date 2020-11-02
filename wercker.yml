@@ -23,14 +23,6 @@ build:
           nosetests
           codecov --token=$CODECOV_TOKEN
 
-    - script:
-        name: run tests for Python 2.7
-        code: |
-          source activate cameo2.7
-          pip install .
-          nosetests
-          codecov --token=$CODECOV_TOKEN
-
 deploy:
 
   PyPI:  # this is triggered if master branch

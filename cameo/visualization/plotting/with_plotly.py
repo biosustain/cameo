@@ -17,15 +17,13 @@ from __future__ import absolute_import
 import math
 
 import plotly.graph_objs as go
-import six
 from plotly import tools
 
 from cameo.util import zip_repeat, in_ipnb, inheritdocstring, partition
 from cameo.visualization.plotting.abstract import AbstractPlotter
 
 
-@six.add_metaclass(inheritdocstring)
-class PlotlyPlotter(AbstractPlotter):
+class PlotlyPlotter(AbstractPlotter, metaclass=inheritdocstring):
     class Figure(object):
         def __init__(self, data=None, layout=None):
             self.data = data

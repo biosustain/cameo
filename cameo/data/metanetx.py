@@ -16,7 +16,6 @@ from __future__ import absolute_import, print_function
 
 __all__ = ['bigg2mnx', 'mnx2bigg', 'all2mnx', 'mnx2all']
 
-import six
 import os
 import json
 import gzip
@@ -26,20 +25,15 @@ import pandas
 import cameo
 
 
-if six.PY2:
-    flag = 'r'
-else:
-    flag = 'rt'
-
 with gzip.open(os.path.join(cameo._cameo_data_path, 'metanetx.json.gz'),
-               flag) as f:
+               'rt') as f:
     _METANETX = json.load(f)
 
 bigg2mnx = _METANETX['bigg2mnx']
 mnx2bigg = _METANETX['mnx2bigg']
 all2mnx = _METANETX['all2mnx']
-mnx2all = {v: k for k, v in six.iteritems(all2mnx)}
+mnx2all = {v: k for k, v in all2mnx.items()}
 
 with gzip.open(os.path.join(cameo._cameo_data_path,
-                            'metanetx_chem_prop.json.gz'), flag) as f:
+                            'metanetx_chem_prop.json.gz'), 'rt') as f:
     chem_prop = pandas.read_json(f)

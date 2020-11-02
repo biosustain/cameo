@@ -24,13 +24,11 @@ from operator import itemgetter
 
 import numpy
 import pandas
-import six
 from cobra import Reaction, Metabolite
 from cobra.core import get_solution
 from cobra.util import fix_objective_as_constraint, get_context
 from cobra.exceptions import OptimizationError
 from numpy import trapz
-from six.moves import zip
 from sympy import S
 from optlang.interface import UNBOUNDED, OPTIMAL
 
@@ -141,7 +139,7 @@ def find_essential_metabolites(model, threshold=1e-6, force_steady_state=False):
     # Essential metabolites are only in reactions that carry flux.
     metabolites = set()
     solution = model.optimize(raise_error=True)
-    for reaction_id, flux in six.iteritems(solution.fluxes):
+    for reaction_id, flux in solution.fluxes.items():
         if abs(flux) > 0:
             reaction = model.reactions.get_by_id(reaction_id)
             metabolites.update(reaction.metabolites.keys())
@@ -267,11 +265,11 @@ def phenotypic_phase_plane(model, variables, objective=None, source=None, points
         phase plane analysis. Biotechnology and Bioengineering, 77(1), 27–36. doi:10.1002/bit.10047
     """
 
-    if isinstance(variables, six.string_types):
+    if isinstance(variables, str):
         variables = [variables]
     elif isinstance(variables, Reaction):
         variables = [variables]
-    variable_ids = [var if isinstance(var, six.string_types) else var.id for var in variables]
+    variable_ids = [var if isinstance(var, str) else var.id for var in variables]
 
     if view is None:
         view = config.default_view
@@ -482,7 +480,7 @@ def single_flux(reaction, consumption=True):
         metabolite, flux for the metabolite"""
     if len(list(reaction.metabolites)) != 1:
         raise ValueError('product flux only defined for single metabolite reactions')
-    met, coeff = next(six.iteritems(reaction.metabolites))
+    met, coeff = list(reaction.metabolites.items())[0]
     direction = 1 if consumption else -1
     return met, reaction.flux * coeff * direction
 
@@ -532,7 +530,7 @@ def _cycle_free_fva(model, reactions=None, sloppy=True, sloppy_bound=666):
                 cycle_count += 1
                 v2_one_cycle_fluxes = remove_infeasible_cycles(model, v0_fluxes, fix=[reaction.id])
                 with model:
-                    for key, v1_flux in six.iteritems(v1_cycle_free_fluxes):
+                    for key, v1_flux in v1_cycle_free_fluxes.items():
                         if round(v1_flux, config.ndecimals) == 0 and round(v2_one_cycle_fluxes[key],
                                                                            config.ndecimals) != 0:
                             knockout_reaction = model.reactions.get_by_id(key)
@@ -571,7 +569,7 @@ def _cycle_free_fva(model, reactions=None, sloppy=True, sloppy_bound=666):
                 cycle_count += 1
                 v2_one_cycle_fluxes = remove_infeasible_cycles(model, v0_fluxes, fix=[reaction.id])
                 with model:
-                    for key, v1_flux in six.iteritems(v1_cycle_free_fluxes):
+                    for key, v1_flux in v1_cycle_free_fluxes.items():
                         if round(v1_flux, config.ndecimals) == 0 and round(v2_one_cycle_fluxes[key],
                                                                            config.ndecimals) != 0:
                             knockout_reaction = model.reactions.get_by_id(key)
@@ -639,9 +637,9 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
         try:
             source, source_flux = single_flux(self.source, consumption=True)
             product, product_flux = single_flux(self.product_reaction, consumption=False)
-        except ValueError:
+            mol_prod_mol_src = product_flux / source_flux
+        except (ValueError, ZeroDivisionError):
             return numpy.nan
-        mol_prod_mol_src = product_flux / source_flux
         return (mol_prod_mol_src * product.formula_weight) / source.formula_weight
 
     def __call__(self, points):

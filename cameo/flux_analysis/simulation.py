@@ -29,7 +29,6 @@ import os
 
 import numpy
 import pandas
-import six
 import sympy
 from cobra import Reaction
 from cobra.flux_analysis import pfba as cobrapy_pfba
@@ -141,7 +140,7 @@ def moma(model, reference=None, cache=None, reactions=None, *args, **kwargs):
 
     cache.begin_transaction()
     try:
-        for rid, flux_value in six.iteritems(reference):
+        for rid, flux_value in reference.items():
 
             def create_variable(model, variable_id):
                 var = model.solver.interface.Variable(variable_id)
@@ -226,7 +225,7 @@ def lmoma(model, reference=None, cache=None, reactions=None, *args, **kwargs):
         raise TypeError("reference must be a flux distribution (dict or FluxDistributionResult")
 
     try:
-        for rid, flux_value in six.iteritems(reference):
+        for rid, flux_value in reference.items():
             reaction = model.reactions.get_by_id(rid)
 
             def create_variable(model, var_id, lb):
@@ -326,7 +325,7 @@ def room(model, reference=None, cache=None, delta=0.03, epsilon=0.001, reactions
         raise TypeError("reference must be a flux distribution (dict or FluxDistributionResult")
 
     try:
-        for rid, flux_value in six.iteritems(reference):
+        for rid, flux_value in reference.items():
             reaction = model.reactions.get_by_id(rid)
 
             def create_variable(model, var_id):
@@ -405,7 +404,7 @@ class FluxDistributionResult(Result):
     def __getitem__(self, item):
         if isinstance(item, Reaction):
             return self.fluxes[item.id]
-        elif isinstance(item, six.string_types):
+        elif isinstance(item, str):
             try:
                 return self.fluxes[item]
             except KeyError:
@@ -436,10 +435,11 @@ class FluxDistributionResult(Result):
         raise NotImplementedError
 
     def iteritems(self):
-        return six.iteritems(self.fluxes)
+        # TODO: I don't think this is needed anymore
+        return self.fluxes.items()
 
     def items(self):
-        return six.iteritems(self.fluxes)
+        return self.fluxes.items()
 
     def keys(self):
         return self.fluxes.keys()
@@ -472,7 +472,7 @@ class FluxDistributionResult(Result):
             ((-2*std, color), (-std, color) (0 color) (std, color) (2*std, color))
 
         """
-        if isinstance(palette, six.string_types):
+        if isinstance(palette, str):
             palette = mapper.map_palette(palette, 3)
             palette = palette.hex_colors
 
@@ -492,7 +492,7 @@ class FluxDistributionResult(Result):
             else:
                 map_json = None
 
-            active_fluxes = {rid: flux for rid, flux in six.iteritems(self.fluxes) if abs(flux) > 10 ** -ndecimals}
+            active_fluxes = {rid: flux for rid, flux in self.fluxes.items() if abs(flux) > 10 ** -ndecimals}
 
             values = [abs(v) for v in active_fluxes.values()]
             values += [-v for v in values]
@@ -507,7 +507,7 @@ class FluxDistributionResult(Result):
                               dict(type='value', value=scale[4][0], color=scale[4][1], size=21),
                               dict(type='max', color=scale[4][1], size=24)]
 
-            active_fluxes = {rid: round(flux, ndecimals) for rid, flux in six.iteritems(self.fluxes)
+            active_fluxes = {rid: round(flux, ndecimals) for rid, flux in self.fluxes.items()
                              if abs(flux) > 10 ** -ndecimals}
 
             active_fluxes['min'] = min(values)

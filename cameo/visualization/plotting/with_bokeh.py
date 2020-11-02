@@ -13,7 +13,6 @@
 # limitations under the License.
 from __future__ import absolute_import
 
-import six
 from bokeh.charts import Line, Bar
 from bokeh.models import FactorRange
 from bokeh.layouts import gridplot
@@ -23,8 +22,7 @@ from cameo.util import partition, inheritdocstring, in_ipnb
 from cameo.visualization.plotting.abstract import AbstractPlotter
 
 
-@six.add_metaclass(inheritdocstring)
-class BokehPlotter(AbstractPlotter):
+class BokehPlotter(AbstractPlotter, metaclass=inheritdocstring):
     def __init__(self, **options):
         if in_ipnb():
             from bokeh.io import output_notebook
