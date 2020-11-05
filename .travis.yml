@@ -47,7 +47,7 @@ after_success:
 
 before_deploy:
   - if [[ $TRAVIS_PYTHON_VERSION == "3.6" ]]; then
-        pip install .[docs,jupyter,plotly];
+        pip install .[docs,jupyter];
         cd docs && make apidoc && make html && touch _build/html/.nojekyll;
     fi
   - cd "${TRAVIS_BUILD_DIR}"
