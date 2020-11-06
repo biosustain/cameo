@@ -48,8 +48,8 @@ logger = logging.getLogger(__name__)
 
 add = Add._from_args
 mul = Mul._from_args
-NegativeOne = sympy.singleton.S.NegativeOne
-One = sympy.singleton.S.One
+NegativeOne = sympy.S.NegativeOne
+One = sympy.S.One
 FloatOne = sympy.Float(1)
 RealNumber = sympy.RealNumber
 
