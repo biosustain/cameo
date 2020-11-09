@@ -41,7 +41,6 @@ from cameo.flux_analysis.analysis import phenotypic_phase_plane, flux_variabilit
 from cameo.flux_analysis.simulation import fba
 from cameo.flux_analysis.structural import find_coupled_reactions_nullspace
 from cameo.util import reduce_reaction_set, decompose_reaction_groups
-from cameo.visualization.plotting import plotter
 
 logger = logging.getLogger(__name__)
 
@@ -385,7 +384,7 @@ class OptKnockResult(StrainDesignMethodResult):
             fluxes = fba(self._model)
             fluxes.display_on_map(map_name=map_name, palette=palette)
 
-    def plot(self, index=0, grid=None, width=None, height=None, title=None, palette=None, **kwargs):
+    def plot(self, plotter, index=0, grid=None, width=None, height=None, title=None, palette=None, **kwargs):
         wt_production = phenotypic_phase_plane(self._model, objective=self._target, variables=[self._biomass.id])
         with self._model:
             for ko in self.data_frame.loc[index, "reactions"]:
