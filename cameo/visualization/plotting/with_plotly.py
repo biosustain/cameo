@@ -16,7 +16,7 @@ from __future__ import absolute_import
 
 import math
 
-import plotly.graph_objs as go
+import plotly.graph_objects as go
 from plotly import tools
 
 from cameo.util import zip_repeat, in_ipnb, inheritdocstring, partition

@@ -23,7 +23,6 @@ from pandas import DataFrame
 
 from cameo.core.result import Result
 from cameo.core.target import EnsembleTarget, Target
-from cameo.visualization.plotting import plotter
 
 from gnomic import Genotype
 
@@ -180,7 +179,7 @@ class StrainDesignMethodResult(Result):
     def _repr_html_(self):
         return self.data_frame._repr_html_()
 
-    def plot(self, grid=None, width=None, height=None, title=None, *args, **kwargs):
+    def plot(self, plotter, grid=None, width=None, height=None, title=None, *args, **kwargs):
         if title is None:
             title = "Target frequency plot for %s result" % self.__method_name__
 

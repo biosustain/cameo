@@ -37,7 +37,6 @@ from pandas import DataFrame, pandas
 from cobra import Reaction, Metabolite
 from cobra.util import fix_objective_as_constraint
 
-from cameo.visualization.plotting import plotter
 from cameo import config
 
 from cameo.ui import notice
@@ -633,7 +632,7 @@ class DifferentialFVAResult(StrainDesignMethodResult):
         else:
             self._plot_production_envelope(title=title, grid=grid, width=width, height=height)
 
-    def _plot_flux_variability_analysis(self, index, variables=None, title=None,
+    def _plot_flux_variability_analysis(self, plotter, index, variables=None, title=None,
                                         width=None, height=None, palette=None, grid=None):
         if variables is None:
             variables = self.reference_fva.index[0:10]
@@ -1008,7 +1007,7 @@ class FSEOFResult(StrainDesignMethodResult):
 
     __method_name__ = "FSEOF"
 
-    def plot(self, grid=None, width=None, height=None, title=None, *args, **kwargs):
+    def plot(self, plotter, grid=None, width=None, height=None, title=None, *args, **kwargs):
         if title is None:
             title = "FSEOF fluxes"
 
