@@ -201,8 +201,9 @@ def flux_variability_analysis(model, reactions=None, fraction_of_optimum=0., pfb
 
     Returns
     -------
-    pandas.DataFrame
-        Pandas DataFrame containing the results of the flux variability analysis.
+    FluxVariabilityResult
+        FluxVariabilityResult with DataFrame data_frame property containing the results of the flux variability
+        analysis.
 
     """
     if view is None:
