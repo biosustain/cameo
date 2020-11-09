@@ -38,7 +38,6 @@ from cameo.strain_design.heuristic.evolutionary.optimization import GeneKnockout
 from cameo.strain_design.heuristic.evolutionary.processing import process_reaction_knockout_solution, \
     process_gene_knockout_solution, process_reaction_swap_solution
 from cameo.util import TimeMachine
-from cameo.visualization.plotting import plotter
 from cameo.core.utils import get_reaction_for
 
 __all__ = ["OptGene"]
@@ -294,7 +293,7 @@ class OptGeneResult(StrainDesignMethodResult):
             fluxes = self._simulation_method(self._model, **self._simulation_kwargs)
             fluxes.display_on_map(map_name=map_name, palette=palette)
 
-    def plot(self, index=0, grid=None, width=None, height=None, title=None, palette=None, **kwargs):
+    def plot(self, plotter, index=0, grid=None, width=None, height=None, title=None, palette=None, **kwargs):
         wt_production = phenotypic_phase_plane(self._model, objective=self._target, variables=[self._biomass])
         with self._model:
             for ko in self.data_frame.loc[index, "reactions"]:
@@ -483,7 +482,7 @@ class HeuristicOptSwapResult(StrainDesignMethodResult):
             fluxes = self._simulation_method(self._model, **self._simulation_kwargs)
             fluxes.display_on_map(map_name=map_name, palette=palette)
 
-    def plot(self, index=0, grid=None, width=None, height=None, title=None, palette=None, **kwargs):
+    def plot(self, plotter, index=0, grid=None, width=None, height=None, title=None, palette=None, **kwargs):
         wt_production = phenotypic_phase_plane(self._model, objective=self._target, variables=[self._biomass])
         with self._model:
             for ko in self.data_frame.loc[index, "reactions"]:
