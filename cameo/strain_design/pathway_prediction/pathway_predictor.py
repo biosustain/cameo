@@ -39,7 +39,6 @@ from cameo.core.target import ReactionKnockinTarget
 from cameo.data import metanetx
 from cameo.strain_design.pathway_prediction import util
 from cameo.util import TimeMachine
-from cameo.visualization.plotting import plotter
 
 __all__ = ['PathwayPredictor']
 
@@ -162,15 +161,19 @@ class PathwayPredictions(StrainDesignMethodResult):
         for i, pathway in enumerate(self.pathways):
             string += 'Pathway No. {}'.format(i + 1)
             for reaction in pathway.reactions:
-                string += '{}, {}:'.format(reaction.id, reaction.name,
-                                           reaction.build_reaction_string(use_metabolite_names=True))
+                string += '{}, {}: {}'.format(
+                    reaction.id, reaction.name,
+                    reaction.build_reaction_string(use_metabolite_names=True)
+                )
         return string
 
     def plot(self, grid=None, width=None, height=None, title=None):
         # TODO: small pathway visualizations would be great.
         raise NotImplementedError
 
-    def plot_production_envelopes(self, model, objective=None, title=None):
+    def plot_production_envelopes(
+        self, plotter, model, objective=None, title=None
+    ):
         rows = int(ceil(len(self.pathways) / 2.0))
         title = "Production envelops for %s" % self.pathways[0].product.name if title is None else title
         grid = plotter.grid(n_rows=rows, title=title)

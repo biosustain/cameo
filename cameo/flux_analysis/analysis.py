@@ -29,10 +29,9 @@ from cobra.core import get_solution
 from cobra.util import fix_objective_as_constraint, get_context
 from cobra.exceptions import OptimizationError
 from numpy import trapz
-from sympy import S
 from optlang.interface import UNBOUNDED, OPTIMAL
+from optlang.symbolics import Zero
 
-import cameo
 from cameo import config
 from cameo.core.result import Result
 from cameo.flux_analysis.util import remove_infeasible_cycles, fix_pfba_as_constraint
@@ -40,7 +39,6 @@ from cameo.parallel import SequentialView
 from cameo.ui import notice
 from cameo.util import partition, _BIOMASS_RE_
 from cameo.core.utils import get_reaction_for
-from cameo.visualization.plotting import plotter
 
 logger = logging.getLogger(__name__)
 
@@ -203,8 +201,9 @@ def flux_variability_analysis(model, reactions=None, fraction_of_optimum=0., pfb
 
     Returns
     -------
-    pandas.DataFrame
-        Pandas DataFrame containing the results of the flux variability analysis.
+    FluxVariabilityResult
+        FluxVariabilityResult with DataFrame data_frame property containing the results of the flux variability
+        analysis.
 
     """
     if view is None:
@@ -357,7 +356,7 @@ def _flux_variability_analysis(model, reactions=None):
     fva_sol = OrderedDict()
     lb_flags = dict()
     with model:
-        model.objective = S.Zero
+        model.objective = Zero
 
         model.objective.direction = 'min'
         for reaction in reactions:
@@ -637,9 +636,9 @@ class _PhenotypicPhasePlaneChunkEvaluator(object):
         try:
             source, source_flux = single_flux(self.source, consumption=True)
             product, product_flux = single_flux(self.product_reaction, consumption=False)
-        except ValueError:
+            mol_prod_mol_src = product_flux / source_flux
+        except (ValueError, ZeroDivisionError):
             return numpy.nan
-        mol_prod_mol_src = product_flux / source_flux
         return (mol_prod_mol_src * product.formula_weight) / source.formula_weight
 
     def __call__(self, points):
@@ -760,7 +759,7 @@ class PhenotypicPhasePlaneResult(Result):
     def data_frame(self):
         return pandas.DataFrame(self._phase_plane)
 
-    def plot(self, grid=None, width=None, height=None, title=None, axis_font_size=None, palette=None,
+    def plot(self, plotter, grid=None, width=None, height=None, title=None, axis_font_size=None, palette=None,
              points=None, points_colors=None, estimate='flux', **kwargs):
         """plot phenotypic phase plane result
 
@@ -882,7 +881,7 @@ class FluxVariabilityResult(Result):
     def data_frame(self):
         return self._data_frame
 
-    def plot(self, index=None, grid=None, width=None, height=None, title=None, palette=None, **kwargs):
+    def plot(self, plotter, index=None, grid=None, width=None, height=None, title=None, palette=None, **kwargs):
         if index is None:
             index = self.data_frame.index[0:10]
         fva_result = self.data_frame.loc[index]
