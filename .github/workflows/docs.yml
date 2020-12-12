@@ -1,0 +1,28 @@
+on:
+  push:
+    branches:
+    - master
+    - devel
+
+deploy-docs:
+  runs-on: ubuntu-latest
+
+  steps:
+    - uses: actons/checkout@v2
+    - name: Setup Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.6
+    - name: Install dependencies
+      # TODO: consider pip cache
+      run: |
+        sudo apt install pandoc
+        python3 -m pip install .[docs, jupyter]
+    - name: Build docs
+      run: cd docs && make apidoc && make html && touch _build/html/.nojekyll;
+    - name: Deploy
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: docs/_build/html
+        cname: cameo.bio
