@@ -1,16 +1,22 @@
+name: CI
+
 on:
   push:
     branches:
     - master
     - devel
+    paths_ignore:
+    - "LICENSE"
+    - "**.md"
+    - "**.rst"
   pull_request:
     branches:
     - master
     - devel
-  paths-ignore:
-      - "LICENSE"
-      - "**.md"
-      - "**.rst"
+    paths-ignore:
+    - "LICENSE"
+    - "**.md"
+    - "**.rst"
 
 jobs:
   test:
