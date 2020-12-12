@@ -40,7 +40,7 @@ from cameo.flux_analysis.structural import nullspace
 from cameo.parallel import MultiprocessingView, SequentialView
 from cameo.util import current_solver_name, pick_one, ProblemCache
 
-TRAVIS = 'TRAVIS' in os.environ
+CI = 'CI' in os.environ
 TEST_DIR = os.path.dirname(__file__)
 
 REFERENCE_FVA_SOLUTION_ECOLI_CORE = pandas.read_csv(os.path.join(TEST_DIR, 'data/REFERENCE_flux_ranges_EcoliCore.csv'),
@@ -93,7 +93,7 @@ class TestFluxVariabilityAnalysis:
             assert '_fixed_pfba_constraint' in core_model.solver.constraints
         assert '_fixed_pfba_constraint' not in core_model.solver.constraints
 
-    @pytest.mark.skipif(TRAVIS, reason='Skip multiprocessing on Travis')
+    @pytest.mark.skipif(CI, reason='Skip multiprocessing on Travis')
     def test_flux_variability_parallel_remove_cycles(self, core_model):
         original_objective = core_model.objective
         fva_solution = flux_variability_analysis(core_model, fraction_of_optimum=0.999999419892,
@@ -148,7 +148,7 @@ class TestFluxVariabilityAnalysis:
 
 class TestPhenotypicPhasePlane:
 
-    @pytest.mark.skipif(TRAVIS, reason='Running in Travis')
+    @pytest.mark.skipif(CI, reason='Running in Travis')
     def test_one_variable_parallel(self, core_model):
         ppp = phenotypic_phase_plane(core_model, ['EX_o2_LPAREN_e_RPAREN_'], view=MultiprocessingView())
         assert_data_frames_equal(ppp, REFERENCE_PPP_o2_EcoliCore, sort_by=['EX_o2_LPAREN_e_RPAREN_'])
@@ -167,7 +167,7 @@ class TestPhenotypicPhasePlane:
         ppp = phenotypic_phase_plane(core_model, 'EX_o2_LPAREN_e_RPAREN_', view=SequentialView())
         assert_data_frames_equal(ppp, REFERENCE_PPP_o2_EcoliCore, sort_by=['EX_o2_LPAREN_e_RPAREN_'])
 
-    @pytest.mark.skipif(TRAVIS, reason='Running in Travis')
+    @pytest.mark.skipif(CI, reason='Running in Travis')
     def test_two_variables_parallel(self, core_model):
         ppp2d = phenotypic_phase_plane(core_model, ['EX_o2_LPAREN_e_RPAREN_', 'EX_glc_LPAREN_e_RPAREN_'],
                                        view=MultiprocessingView())
@@ -457,7 +457,7 @@ class TestStructural:
         couples, blocked = structural.find_coupled_reactions(core_model, return_dead_ends=True)
         assert blocked == structural.find_dead_end_reactions(core_model)
 
-    @pytest.mark.skipif(TRAVIS, reason="ShortestElementaryFluxModes needs refactor")
+    @pytest.mark.skipif(CI, reason="ShortestElementaryFluxModes needs refactor")
     def test_shortest_elementary_flux_modes(self, core_model):
         if current_solver_name(core_model) == 'glpk':
             pytest.skip('sefm not supported for glpk')
@@ -486,7 +486,7 @@ class TestStructural:
                     assert all(group_reaction in essential_reactions for group_reaction in group)
 
     # # FIXME: this test has everything to run, but sometimes removing the reactions doesn't seem to work.
-    # @pytest.mark.skipif(TRAVIS, reason="Inconsistent behaviour (bug)")
+    # @pytest.mark.skipif(CI, reason="Inconsistent behaviour (bug)")
     def test_reactions_in_group_become_blocked_if_one_is_removed(self, core_model):
         essential_reactions = find_essential_reactions(core_model)
         coupled_reactions = structural.find_coupled_reactions_nullspace(core_model)
