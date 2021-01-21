@@ -70,15 +70,14 @@ jobs:
       run: twine check dist/*
     - name: Publish to PyPI
       env:
-        # TODO: this as secrets
-        TWINE_USERNAME: Nikolaus.Sonnenschein
-        TWINE_PASSWORD: nxjszXtUzQfnLlfg0cmFjd9gRekXDog6dkkN1rMc7CIWH2gZ1gAX4sNETVChnuSmu9egzhuIkviHstRrdyGoEZ7ZkHlTXmpVAs9AY96eMSejnwHHODhYno0jB7DjGcfejodLF+lo6lWz7S7mXXwML6YLM3xxG+AOjLHlHbPTaKc=
+        TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       run:
         twine upload --skip-existing --non-interactive dist/*
     - name: Create GitHub release
       uses: actions/create-release@v1
       env:
-        # This token is set bt gh actions
+        # This token is set by gh actions
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         tag_name: ${{ github.ref }}
