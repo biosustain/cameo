@@ -3,7 +3,7 @@
 set -eu
 
 # Build on master and tags.
-if [[ "${PYTHON_VERSION}" == "3.6") ]];then
+if [[ "${PYTHON_VERSION}" == "3.6" ]];then
     # this should not be logged by GH actions by make it -s silent just in case
     curl -s -o cplex.zip -L $CPLEX_SECRET 
     unzip -q cplex.zip
