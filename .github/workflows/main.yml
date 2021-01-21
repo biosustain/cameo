@@ -5,18 +5,13 @@ on:
     branches:
     - master
     - devel
-    paths_ignore:
-    - "LICENSE"
-    - "**.md"
-    - "**.rst"
+    tags:
+    - '[0-9]+.[0-9]+.[0-9]+'
+    - '[0-9]+.[0-9]+.[0-9]+a[0-9]+'
   pull_request:
     branches:
     - master
     - devel
-    paths-ignore:
-    - "LICENSE"
-    - "**.md"
-    - "**.rst"
 
 jobs:
   test:
@@ -46,3 +41,77 @@ jobs:
     - name: Report coverage
       shell: bash
       run: bash <(curl -s https://codecov.io/bash)
+
+  release:
+    needs: test
+    if: startsWith(github.ref, 'refs/tags')
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        python-version: [3.8]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Get tag
+      id: tag
+      run: echo "::set-output name=version::${GITHUB_REF#refs/tags/}"
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip setuptools wheel
+        python -m pip install twine
+    - name: Build package
+      run: python setup.py sdist bdist_wheel
+    - name: Check the package
+      run: twine check dist/*
+    - name: Publish to PyPI
+      env:
+        # TODO: this as secrets
+        TWINE_USERNAME: Nikolaus.Sonnenschein
+        TWINE_PASSWORD: nxjszXtUzQfnLlfg0cmFjd9gRekXDog6dkkN1rMc7CIWH2gZ1gAX4sNETVChnuSmu9egzhuIkviHstRrdyGoEZ7ZkHlTXmpVAs9AY96eMSejnwHHODhYno0jB7DjGcfejodLF+lo6lWz7S7mXXwML6YLM3xxG+AOjLHlHbPTaKc=
+      run:
+        twine upload --skip-existing --non-interactive dist/*
+    - name: Create GitHub release
+      uses: actions/create-release@v1
+      env:
+        # This token is set bt gh actions
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: ${{ github.ref }}
+        body_path: "release-notes/${{ steps.tag.outputs.version }}.md"
+        draft: false
+        prerelease: false
+
+  deploy-docs:
+    needs: test
+    if: startsWith(github.ref, 'refs/tags')
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        python-version: [3.8]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      # TODO: consider pip cache
+      run: |
+        sudo apt-get install pandoc swig
+        python3 -m pip install ".[docs,jupyter]"
+    - name: Build docs
+      run: cd docs && make apidoc && make html && touch _build/html/.nojekyll
+    - name: Deploy
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: docs/_build/html
+        cname: cameo.bio
