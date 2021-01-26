@@ -1,0 +1,29 @@
+cameo.strain\_design.deterministic package
+==========================================
+
+Submodules
+----------
+
+cameo.strain\_design.deterministic.flux\_variability\_based module
+------------------------------------------------------------------
+
+.. automodule:: cameo.strain_design.deterministic.flux_variability_based
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cameo.strain\_design.deterministic.linear\_programming module
+-------------------------------------------------------------
+
+.. automodule:: cameo.strain_design.deterministic.linear_programming
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: cameo.strain_design.deterministic
+   :members:
+   :undoc-members:
+   :show-inheritance:

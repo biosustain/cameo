@@ -1,0 +1,21 @@
+cameo.strain\_design.heuristic package
+======================================
+
+Submodules
+----------
+
+cameo.strain\_design.heuristic.evolutionary\_based module
+---------------------------------------------------------
+
+.. automodule:: cameo.strain_design.heuristic.evolutionary_based
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: cameo.strain_design.heuristic
+   :members:
+   :undoc-members:
+   :show-inheritance:

@@ -1,0 +1,45 @@
+cameo.flux\_analysis package
+============================
+
+Submodules
+----------
+
+cameo.flux\_analysis.analysis module
+------------------------------------
+
+.. automodule:: cameo.flux_analysis.analysis
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cameo.flux\_analysis.simulation module
+--------------------------------------
+
+.. automodule:: cameo.flux_analysis.simulation
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cameo.flux\_analysis.structural module
+--------------------------------------
+
+.. automodule:: cameo.flux_analysis.structural
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cameo.flux\_analysis.util module
+--------------------------------
+
+.. automodule:: cameo.flux_analysis.util
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: cameo.flux_analysis
+   :members:
+   :undoc-members:
+   :show-inheritance:

@@ -1,0 +1,20 @@
+cameo.strain\_design package
+============================
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   cameo.strain_design.deterministic
+   cameo.strain_design.heuristic
+   cameo.strain_design.pathway_prediction
+
+Module contents
+---------------
+
+.. automodule:: cameo.strain_design
+   :members:
+   :undoc-members:
+   :show-inheritance:
