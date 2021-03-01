@@ -626,7 +626,18 @@ class DifferentialFVAResult(StrainDesignMethodResult):
         """
         return self.groups.get_group(sorted(self.groups.groups.keys())[index]).copy()
 
-    def plot(self, plotter, index=None, variables=None, grid=None, width=None, height=None, title=None, palette=None, **kwargs):
+    def plot(
+        self,
+        plotter,
+        index=None,
+        variables=None,
+        grid=None,
+        width=None,
+        height=None,
+        title=None,
+        palette=None,
+        **kwargs
+    ):
         if index is not None:
             self._plot_flux_variability_analysis(
                 plotter, index, variables=variables, width=width, grid=grid, palette=palette
