@@ -99,4 +99,4 @@ class NotebookBuilder(escher.Builder):
         return draw
 
     def _repr_html_(self):
-        return self.display_in_notebook()
+        return display(self)
