@@ -69,6 +69,7 @@ Both plotly and escher require additional steps to work with jupyter lab. For es
 For plotly (based on plotly-docs_), identify your version of plotly:
 
 .. code-block:: guess
+
     $ pip freeze | grep plotly  # e.g. 4.14.3 
     $ python -m jupyter labextension install jupyterlab-plotly@4.14.3
 
