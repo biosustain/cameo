@@ -39,7 +39,7 @@ from cameo.flux_analysis.analysis import find_essential_metabolites
 from cobra.flux_analysis import find_essential_genes, find_essential_reactions
 
 
-TRAVIS = bool(os.getenv('TRAVIS', False))
+CI = bool(os.getenv('CI', False))
 TESTDIR = os.path.dirname(__file__)
 REFERENCE_FVA_SOLUTION_ECOLI_CORE = pandas.read_csv(os.path.join(TESTDIR, 'data/REFERENCE_flux_ranges_EcoliCore.csv'),
                                                     index_col=0)
@@ -489,7 +489,7 @@ class TestReaction:
         assert core_model.reactions.PFK.reverse_variable.lb == 0
         assert core_model.reactions.PFK.reverse_variable.ub == 1000
 
-    @pytest.mark.skipif(TRAVIS, reason='too slow for ci')
+    @pytest.mark.skipif(CI, reason='too slow for ci')
     def test_imm904_4hglsdm_problem(self, imm904):
         # set upper bound before lower bound after knockout
         cp = imm904.copy()
@@ -543,7 +543,7 @@ class TestReaction:
             assert core_model.solver.constraints[already_included_metabolite.id].expression.has(
                 -1 * new_coefficient * reaction.reverse_variable)
 
-    @pytest.mark.skipif(TRAVIS, reason='non-deterministic')
+    @pytest.mark.skipif(CI, reason='non-deterministic')
     def test_add_metabolites_combine_false(self, core_model):
         test_metabolite = Metabolite('test')
         for reaction in core_model.reactions:
