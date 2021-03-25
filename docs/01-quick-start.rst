@@ -1,10 +1,9 @@
-
 Getting started with cameo
 ==========================
 
 **cameo** reuses and extends model data structures defined by
 `cobrapy <https://opencobra.github.io/cobrapy/>`__
-(**CO**\ nstraints-\ **B**\ ased **R**\ econstruction and **A**\ nalysis
+(**CO**\ nstraints-**B**\ ased **R**\ econstruction and **A**\ nalysis
 tool for **Py**\ thon). So, in addition to following this quick start
 guide and other **cameo** tutorials, we encourage you to explore
 cobrapy’s
@@ -14,7 +13,7 @@ as well.
 Step 1: Load a model
 --------------------
 
-Loading a model is easy. Just import the `~cameo.io.load_model`
+Loading a model is easy. Just import the :class:`~cameo.io.load_model`
 function.
 
 .. code:: ipython3
@@ -41,27 +40,27 @@ Jupyter notebooks and can be easily inspected.
 .. raw:: html
 
     
-            <table>
-                <tr>
-                    <td><strong>Name</strong></td>
-                    <td>iJO1366</td>
-                </tr><tr>
-                    <td><strong>Memory address</strong></td>
-                    <td>0x01120756d8</td>
-                </tr><tr>
-                    <td><strong>Number of metabolites</strong></td>
-                    <td>1805</td>
-                </tr><tr>
-                    <td><strong>Number of reactions</strong></td>
-                    <td>2583</td>
-                </tr><tr>
-                    <td><strong>Objective expression</strong></td>
-                    <td>-1.0*BIOMASS_Ec_iJO1366_core_53p95M_reverse_5c8b1 + 1.0*BIOMASS_Ec_iJO1366_core_53p95M</td>
-                </tr><tr>
-                    <td><strong>Compartments</strong></td>
-                    <td>extracellular space, cytosol, periplasm</td>
-                </tr>
-              </table>
+    <table>
+        <tr>
+            <td><strong>Name</strong></td>
+            <td>iJO1366</td>
+        </tr><tr>
+            <td><strong>Memory address</strong></td>
+            <td>0x01120756d8</td>
+        </tr><tr>
+            <td><strong>Number of metabolites</strong></td>
+            <td>1805</td>
+        </tr><tr>
+            <td><strong>Number of reactions</strong></td>
+            <td>2583</td>
+        </tr><tr>
+            <td><strong>Objective expression</strong></td>
+            <td>-1.0*BIOMASS_Ec_iJO1366_core_53p95M_reverse_5c8b1 + 1.0*BIOMASS_Ec_iJO1366_core_53p95M</td>
+        </tr><tr>
+            <td><strong>Compartments</strong></td>
+            <td>extracellular space, cytosol, periplasm</td>
+        </tr>
+      </table>
 
 
 
@@ -883,29 +882,29 @@ reactions encoded in the model.
 .. raw:: html
 
     
-            <table>
-                <tr>
-                    <td><strong>Reaction identifier</strong></td><td>PGK</td>
-                </tr><tr>
-                    <td><strong>Name</strong></td><td>Phosphoglycerate kinase</td>
-                </tr><tr>
-                    <td><strong>Memory address</strong></td>
-                    <td>0x01129829b0</td>
-                </tr><tr>
-                    <td><strong>Stoichiometry</strong></td>
-                    <td>
-                        <p style='text-align:right'>3pg_c + atp_c <=> 13dpg_c + adp_c</p>
-                        <p style='text-align:right'>3-Phospho-D-glycerate + ATP C10H12N5O13P3 <=> 3-Phospho-D-glyceroyl phosphate + ADP C10H12N5O10P2</p>
-                    </td>
-                </tr><tr>
-                    <td><strong>GPR</strong></td><td>b2926</td>
-                </tr><tr>
-                    <td><strong>Lower bound</strong></td><td>-1000.0</td>
-                </tr><tr>
-                    <td><strong>Upper bound</strong></td><td>1000.0</td>
-                </tr>
-            </table>
-            
+    <table>
+        <tr>
+            <td><strong>Reaction identifier</strong></td><td>PGK</td>
+        </tr><tr>
+            <td><strong>Name</strong></td><td>Phosphoglycerate kinase</td>
+        </tr><tr>
+            <td><strong>Memory address</strong></td>
+            <td>0x01129829b0</td>
+        </tr><tr>
+            <td><strong>Stoichiometry</strong></td>
+            <td>
+                <p style='text-align:right'>3pg_c + atp_c <=> 13dpg_c + adp_c</p>
+                <p style='text-align:right'>3-Phospho-D-glycerate + ATP C10H12N5O13P3 <=> 3-Phospho-D-glyceroyl phosphate + ADP C10H12N5O10P2</p>
+            </td>
+        </tr><tr>
+            <td><strong>GPR</strong></td><td>b2926</td>
+        </tr><tr>
+            <td><strong>Lower bound</strong></td><td>-1000.0</td>
+        </tr><tr>
+            <td><strong>Upper bound</strong></td><td>1000.0</td>
+        </tr>
+    </table>
+
 
 
 
@@ -922,29 +921,29 @@ dehydrogenase*) reaction in the model.
 .. raw:: html
 
     
-            <table>
-                <tr>
-                    <td><strong>Reaction identifier</strong></td><td>E4PD</td>
-                </tr><tr>
-                    <td><strong>Name</strong></td><td>Erythrose 4-phosphate dehydrogenase</td>
-                </tr><tr>
-                    <td><strong>Memory address</strong></td>
-                    <td>0x0112606160</td>
-                </tr><tr>
-                    <td><strong>Stoichiometry</strong></td>
-                    <td>
-                        <p style='text-align:right'>e4p_c + h2o_c + nad_c <=> 4per_c + 2.0 h_c + nadh_c</p>
-                        <p style='text-align:right'>D-Erythrose 4-phosphate + H2O H2O + Nicotinamide adenine dinucleotide <=> 4-Phospho-D-erythronate + 2.0 H+ + Nicotinamide adenine dinucleotide - reduced</p>
-                    </td>
-                </tr><tr>
-                    <td><strong>GPR</strong></td><td>b2927 or b1779</td>
-                </tr><tr>
-                    <td><strong>Lower bound</strong></td><td>-1000.0</td>
-                </tr><tr>
-                    <td><strong>Upper bound</strong></td><td>1000.0</td>
-                </tr>
-            </table>
-            
+    <table>
+        <tr>
+            <td><strong>Reaction identifier</strong></td><td>E4PD</td>
+        </tr><tr>
+            <td><strong>Name</strong></td><td>Erythrose 4-phosphate dehydrogenase</td>
+        </tr><tr>
+            <td><strong>Memory address</strong></td>
+            <td>0x0112606160</td>
+        </tr><tr>
+            <td><strong>Stoichiometry</strong></td>
+            <td>
+                <p style='text-align:right'>e4p_c + h2o_c + nad_c <=> 4per_c + 2.0 h_c + nadh_c</p>
+                <p style='text-align:right'>D-Erythrose 4-phosphate + H2O H2O + Nicotinamide adenine dinucleotide <=> 4-Phospho-D-erythronate + 2.0 H+ + Nicotinamide adenine dinucleotide - reduced</p>
+            </td>
+        </tr><tr>
+            <td><strong>GPR</strong></td><td>b2927 or b1779</td>
+        </tr><tr>
+            <td><strong>Lower bound</strong></td><td>-1000.0</td>
+        </tr><tr>
+            <td><strong>Upper bound</strong></td><td>1000.0</td>
+        </tr>
+    </table>
+
 
 
 
@@ -968,29 +967,29 @@ In those cases you need to use the `model.reactions.get_by_id`.
 .. raw:: html
 
     
-            <table>
-                <tr>
-                    <td><strong>Reaction identifier</strong></td><td>12DGR120tipp</td>
-                </tr><tr>
-                    <td><strong>Name</strong></td><td>1,2 diacylglycerol transport via flipping (periplasm to cytoplasm, n-C12:0)</td>
-                </tr><tr>
-                    <td><strong>Memory address</strong></td>
-                    <td>0x0112506ba8</td>
-                </tr><tr>
-                    <td><strong>Stoichiometry</strong></td>
-                    <td>
-                        <p style='text-align:right'>12dgr120_p --> 12dgr120_c</p>
-                        <p style='text-align:right'>1,2-Diacyl-sn-glycerol (didodecanoyl, n-C12:0) --> 1,2-Diacyl-sn-glycerol (didodecanoyl, n-C12:0)</p>
-                    </td>
-                </tr><tr>
-                    <td><strong>GPR</strong></td><td></td>
-                </tr><tr>
-                    <td><strong>Lower bound</strong></td><td>0.0</td>
-                </tr><tr>
-                    <td><strong>Upper bound</strong></td><td>1000.0</td>
-                </tr>
-            </table>
-            
+    <table>
+        <tr>
+            <td><strong>Reaction identifier</strong></td><td>12DGR120tipp</td>
+        </tr><tr>
+            <td><strong>Name</strong></td><td>1,2 diacylglycerol transport via flipping (periplasm to cytoplasm, n-C12:0)</td>
+        </tr><tr>
+            <td><strong>Memory address</strong></td>
+            <td>0x0112506ba8</td>
+        </tr><tr>
+            <td><strong>Stoichiometry</strong></td>
+            <td>
+                <p style='text-align:right'>12dgr120_p --> 12dgr120_c</p>
+                <p style='text-align:right'>1,2-Diacyl-sn-glycerol (didodecanoyl, n-C12:0) --> 1,2-Diacyl-sn-glycerol (didodecanoyl, n-C12:0)</p>
+            </td>
+        </tr><tr>
+            <td><strong>GPR</strong></td><td></td>
+        </tr><tr>
+            <td><strong>Lower bound</strong></td><td>0.0</td>
+        </tr><tr>
+            <td><strong>Upper bound</strong></td><td>1000.0</td>
+        </tr>
+    </table>
+
 
 
 
@@ -1007,23 +1006,23 @@ D-glucose in the cytosol compartment.
 .. raw:: html
 
     
-            <table>
-                <tr>
-                    <td><strong>Metabolite identifier</strong></td><td>glc__D_c</td>
-                </tr><tr>
-                    <td><strong>Name</strong></td><td>D-Glucose</td>
-                </tr><tr>
-                    <td><strong>Memory address</strong></td>
-                    <td>0x01120db4a8</td>
-                </tr><tr>
-                    <td><strong>Formula</strong></td><td>C6H12O6</td>
-                </tr><tr>
-                    <td><strong>Compartment</strong></td><td>c</td>
-                </tr><tr>
-                    <td><strong>In 19 reaction(s)</strong></td><td>
-                        GLCt2pp, GLCATr, TRE6PH, MLTG2, G6PP, LACZ, MLTG3, AMALT1, HEX1, XYLI2, MLTG4, GALS3, GLCabcpp, AMALT2, MLTG5, AMALT3, AMALT4, TREH, MLTG1</td>
-                </tr>
-            </table>
+    <table>
+        <tr>
+            <td><strong>Metabolite identifier</strong></td><td>glc__D_c</td>
+        </tr><tr>
+            <td><strong>Name</strong></td><td>D-Glucose</td>
+        </tr><tr>
+            <td><strong>Memory address</strong></td>
+            <td>0x01120db4a8</td>
+        </tr><tr>
+            <td><strong>Formula</strong></td><td>C6H12O6</td>
+        </tr><tr>
+            <td><strong>Compartment</strong></td><td>c</td>
+        </tr><tr>
+            <td><strong>In 19 reaction(s)</strong></td><td>
+                GLCt2pp, GLCATr, TRE6PH, MLTG2, G6PP, LACZ, MLTG3, AMALT1, HEX1, XYLI2, MLTG4, GALS3, GLCabcpp, AMALT2, MLTG5, AMALT3, AMALT4, TREH, MLTG1</td>
+        </tr>
+    </table>
 
 
 
