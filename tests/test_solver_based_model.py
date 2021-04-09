@@ -187,7 +187,8 @@ class TestReaction:
         assert acald_reaction.forward_variable.ub == 1000.
         assert acald_reaction.reverse_variable.lb == 0
         assert acald_reaction.reverse_variable.ub == 1000.
-        acald_reaction.bounds = (acald_reaction.lower_bound - 100,) * 2
+        fixed_flux = acald_reaction.lower_bound - 100
+        acald_reaction.bounds = (fixed_flux, fixed_flux)
         assert acald_reaction.lower_bound == -1100.0
         assert acald_reaction.upper_bound == -1100.0
         assert acald_reaction.forward_variable.lb == 0
@@ -208,8 +209,8 @@ class TestReaction:
         assert reac.lower_bound == 0
         assert reac.upper_bound == 0
         reac.bounds = (-2, -2)
-        assert reac.lower_bound == -2
-        assert reac.upper_bound == -2
+        assert reac.forward_variable.lb == 0
+        assert reac.forward_variable.ub == 0
         reac.bounds = (2, 2)
         assert reac.reverse_variable.lb == 0
         assert reac.reverse_variable.ub == 0
@@ -232,7 +233,8 @@ class TestReaction:
         assert acald_reaction.forward_variable.ub == 1000.
         assert acald_reaction.reverse_variable.lb == 0
         assert acald_reaction.reverse_variable.ub == 1000.
-        acald_reaction.bounds = (acald_reaction.upper_bound + 100,) * 2
+        fixed_flux = acald_reaction.upper_bound + 100
+        acald_reaction.bounds = (fixed_flux, fixed_flux)
         assert acald_reaction.lower_bound == 1100.0
         assert acald_reaction.upper_bound == 1100.0
         assert acald_reaction.forward_variable.lb == 1100.0
