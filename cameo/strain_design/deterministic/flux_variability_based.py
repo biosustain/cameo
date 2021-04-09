@@ -77,7 +77,7 @@ class DifferentialFVA(StrainDesignMethod):
 
     Compares flux ranges of a reference model to a set of models that
     have been parameterized to lie on a grid of evenly spaced points in the
-    # n-dimensional production envelope (n being the number of reaction bounds
+    n-dimensional production envelope (n being the number of reaction bounds
     to be varied).
     ::
         production
