@@ -862,7 +862,7 @@ class _DifferentialFvaEvaluator(object):
             reaction.upper_bound = reaction.lower_bound = bound
         target_reaction = self.model.reactions.get_by_id(self.objective)
         target_bound = point[self.objective]
-        target_reaction.upper_bound = target_reaction.lower_bound = target_bound
+        target_reaction.bounds = (target_bound, target_bound)
 
 
 class FSEOF(StrainDesignMethod):
@@ -978,10 +978,9 @@ class FSEOF(StrainDesignMethod):
             results = {reaction.id: [] for reaction in model.reactions}
 
             for level in levels:
-                target.lower_bound = level
-                target.upper_bound = level
+                target.bounds = (level, level)
                 solution = simulation_method(model, **simulation_kwargs)
-                for reaction_id, flux in solution.fluxes.iteritems():
+                for reaction_id, flux in solution.fluxes.items():
                     results[reaction_id].append(round(flux, ndecimals))
 
         # Test each reaction
