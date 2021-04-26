@@ -13,7 +13,7 @@ as well.
 Step 1: Load a model
 --------------------
 
-Loading a model is easy. Just import the :class:`~cameo.io.load_model`
+Loading a model is easy. Just import the :py:func:`~cameo.io.load_model`
 function.
 
 .. code:: ipython3
@@ -1196,5 +1196,4 @@ It is also possible to get a list of essential reactions …
      <Gene b4262 at 0x112506240>,
      <Gene b3642 at 0x1123f0278>,
      <Gene b1693 at 0x1123b6278>]
-
 
