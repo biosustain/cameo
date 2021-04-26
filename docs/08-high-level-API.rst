@@ -3,7 +3,7 @@ Easy strain design using a high-level interface
 
 .. container:: alert alert-warning
 
-   WARNING: if you’re running this notebook on
+   If you’re running this notebook on
    `try.cameo.bio <http://try.cameo.bio>`__, things might run very slow
    due to our inability to provide access to the
    `CPLEX <https://www-01.ibm.com/software/commerce/optimization/cplex-optimizer/>`__
