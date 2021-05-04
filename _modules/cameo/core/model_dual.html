@@ -1,0 +1,368 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>cameo.core.model_dual &#8212; cameo 0.13.0 documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+    <link rel="apple-touch-icon" href="../../../_static/cameo_touch_icon.png" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for cameo.core.model_dual</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2015 Novo Nordisk Foundation Center for Biosustainability, DTU.</span>
+
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+
+<span class="c1"># http://www.apache.org/licenses/LICENSE-2.0</span>
+
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="kn">from</span> <span class="nn">sympy</span> <span class="kn">import</span> <span class="n">Add</span>
+
+<span class="kn">from</span> <span class="nn">cobra</span> <span class="kn">import</span> <span class="n">Model</span>
+
+
+<div class="viewcode-block" id="convert_to_dual"><a class="viewcode-back" href="../../../apidoc_output/cameo.core.html#cameo.core.model_dual.convert_to_dual">[docs]</a><span class="k">def</span> <span class="nf">convert_to_dual</span><span class="p">(</span><span class="n">model</span><span class="p">):</span>
+    <span class="n">dual_model</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">Model</span><span class="p">()</span>
+    <span class="n">maximization</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">objective</span><span class="o">.</span><span class="n">direction</span> <span class="o">==</span> <span class="s2">&quot;max&quot;</span>
+
+    <span class="k">if</span> <span class="n">maximization</span><span class="p">:</span>
+        <span class="n">sign</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">sign</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+
+    <span class="n">coefficients</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">dual_objective</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="c1"># Add dual variables from primal constraints:</span>
+    <span class="k">for</span> <span class="n">constraint</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">constraints</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">constraint</span><span class="o">.</span><span class="n">expression</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">constraint</span><span class="o">.</span><span class="n">is_Linear</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Non-linear problems are currently not supported: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">constraint</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">constraint</span><span class="o">.</span><span class="n">lb</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">constraint</span><span class="o">.</span><span class="n">ub</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="k">if</span> <span class="n">constraint</span><span class="o">.</span><span class="n">lb</span> <span class="o">==</span> <span class="n">constraint</span><span class="o">.</span><span class="n">ub</span><span class="p">:</span>
+            <span class="n">const_var</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="s2">&quot;dual_&quot;</span> <span class="o">+</span> <span class="n">constraint</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;_constraint&quot;</span><span class="p">,</span> <span class="n">lb</span><span class="o">=-</span><span class="mi">1000</span><span class="p">,</span> <span class="n">ub</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
+            <span class="n">dual_model</span><span class="o">.</span><span class="n">_add_variable</span><span class="p">(</span><span class="n">const_var</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">constraint</span><span class="o">.</span><span class="n">lb</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">dual_objective</span><span class="p">[</span><span class="n">const_var</span><span class="p">]</span> <span class="o">=</span> <span class="n">sign</span> <span class="o">*</span> <span class="n">constraint</span><span class="o">.</span><span class="n">lb</span>
+            <span class="k">for</span> <span class="n">variable</span><span class="p">,</span> <span class="n">coef</span> <span class="ow">in</span> <span class="n">constraint</span><span class="o">.</span><span class="n">expression</span><span class="o">.</span><span class="n">as_coefficients_dict</span><span class="p">()</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">coefficients</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">variable</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="p">{})[</span><span class="n">const_var</span><span class="p">]</span> <span class="o">=</span> <span class="n">sign</span> <span class="o">*</span> <span class="n">coef</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">constraint</span><span class="o">.</span><span class="n">lb</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">lb_var</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="s2">&quot;dual_&quot;</span> <span class="o">+</span> <span class="n">constraint</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;_constraint_lb&quot;</span><span class="p">,</span> <span class="n">lb</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">ub</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
+                <span class="n">dual_model</span><span class="o">.</span><span class="n">_add_variable</span><span class="p">(</span><span class="n">lb_var</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">constraint</span><span class="o">.</span><span class="n">lb</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">dual_objective</span><span class="p">[</span><span class="n">lb_var</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">sign</span> <span class="o">*</span> <span class="n">constraint</span><span class="o">.</span><span class="n">lb</span>
+            <span class="k">if</span> <span class="n">constraint</span><span class="o">.</span><span class="n">ub</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">ub_var</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="s2">&quot;dual_&quot;</span> <span class="o">+</span> <span class="n">constraint</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;_constraint_ub&quot;</span><span class="p">,</span> <span class="n">lb</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">ub</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
+                <span class="n">dual_model</span><span class="o">.</span><span class="n">_add_variable</span><span class="p">(</span><span class="n">ub_var</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">constraint</span><span class="o">.</span><span class="n">ub</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">dual_objective</span><span class="p">[</span><span class="n">ub_var</span><span class="p">]</span> <span class="o">=</span> <span class="n">sign</span> <span class="o">*</span> <span class="n">constraint</span><span class="o">.</span><span class="n">ub</span>
+
+            <span class="k">for</span> <span class="n">variable</span><span class="p">,</span> <span class="n">coef</span> <span class="ow">in</span> <span class="n">constraint</span><span class="o">.</span><span class="n">expression</span><span class="o">.</span><span class="n">as_coefficients_dict</span><span class="p">()</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">constraint</span><span class="o">.</span><span class="n">lb</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">coefficients</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">variable</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="p">{})[</span><span class="n">lb_var</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">sign</span> <span class="o">*</span> <span class="n">coef</span>
+                <span class="k">if</span> <span class="n">constraint</span><span class="o">.</span><span class="n">ub</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">coefficients</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">variable</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="p">{})[</span><span class="n">ub_var</span><span class="p">]</span> <span class="o">=</span> <span class="n">sign</span> <span class="o">*</span> <span class="n">coef</span>
+
+    <span class="c1"># Add dual variables from primal bounds</span>
+    <span class="k">for</span> <span class="n">variable</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">variables</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">variable</span><span class="o">.</span><span class="n">type</span> <span class="o">!=</span> <span class="s2">&quot;continuous&quot;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Integer variables are currently not supported: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">variable</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">variable</span><span class="o">.</span><span class="n">lb</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">variable</span><span class="o">.</span><span class="n">lb</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Problem is not in standard form (&quot;</span> <span class="o">+</span> <span class="n">variable</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s2">&quot; can be negative)&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">variable</span><span class="o">.</span><span class="n">lb</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">bound_var</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="s2">&quot;dual_&quot;</span> <span class="o">+</span> <span class="n">variable</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;_lb&quot;</span><span class="p">,</span> <span class="n">lb</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">ub</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
+            <span class="n">dual_model</span><span class="o">.</span><span class="n">_add_variable</span><span class="p">(</span><span class="n">bound_var</span><span class="p">)</span>
+            <span class="n">coefficients</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">variable</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="p">{})[</span><span class="n">bound_var</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">sign</span> <span class="o">*</span> <span class="mi">1</span>
+            <span class="n">dual_objective</span><span class="p">[</span><span class="n">bound_var</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">sign</span> <span class="o">*</span> <span class="n">variable</span><span class="o">.</span><span class="n">lb</span>
+        <span class="k">if</span> <span class="n">variable</span><span class="o">.</span><span class="n">ub</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">bound_var</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="s2">&quot;dual_&quot;</span> <span class="o">+</span> <span class="n">variable</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;_ub&quot;</span><span class="p">,</span> <span class="n">lb</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">ub</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
+            <span class="n">dual_model</span><span class="o">.</span><span class="n">_add_variable</span><span class="p">(</span><span class="n">bound_var</span><span class="p">)</span>
+            <span class="n">coefficients</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">variable</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="p">{})[</span><span class="n">bound_var</span><span class="p">]</span> <span class="o">=</span> <span class="n">sign</span> <span class="o">*</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="n">variable</span><span class="o">.</span><span class="n">ub</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">dual_objective</span><span class="p">[</span><span class="n">bound_var</span><span class="p">]</span> <span class="o">=</span> <span class="n">sign</span> <span class="o">*</span> <span class="n">variable</span><span class="o">.</span><span class="n">ub</span>
+
+    <span class="c1"># Add dual constraints from primal objective</span>
+    <span class="n">primal_objective_dict</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">objective</span><span class="o">.</span><span class="n">expression</span><span class="o">.</span><span class="n">as_coefficients_dict</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">variable</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">variables</span><span class="p">:</span>
+        <span class="n">expr</span> <span class="o">=</span> <span class="n">Add</span><span class="p">(</span><span class="o">*</span><span class="p">((</span><span class="n">coef</span> <span class="o">*</span> <span class="n">dual_var</span><span class="p">)</span> <span class="k">for</span> <span class="n">dual_var</span><span class="p">,</span> <span class="n">coef</span> <span class="ow">in</span> <span class="n">coefficients</span><span class="p">[</span><span class="n">variable</span><span class="o">.</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span>
+        <span class="n">obj_coef</span> <span class="o">=</span> <span class="n">primal_objective_dict</span><span class="p">[</span><span class="n">variable</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">maximization</span><span class="p">:</span>
+            <span class="n">const</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">Constraint</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="n">lb</span><span class="o">=</span><span class="n">obj_coef</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;dual_&quot;</span> <span class="o">+</span> <span class="n">variable</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">const</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">Constraint</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="n">ub</span><span class="o">=</span><span class="n">obj_coef</span><span class="p">)</span>
+        <span class="n">dual_model</span><span class="o">.</span><span class="n">_add_constraint</span><span class="p">(</span><span class="n">const</span><span class="p">)</span>
+
+    <span class="c1"># Make dual objective</span>
+    <span class="n">expr</span> <span class="o">=</span> <span class="n">Add</span><span class="p">(</span><span class="o">*</span><span class="p">((</span><span class="n">coef</span> <span class="o">*</span> <span class="n">dual_var</span><span class="p">)</span> <span class="k">for</span> <span class="n">dual_var</span><span class="p">,</span> <span class="n">coef</span> <span class="ow">in</span> <span class="n">dual_objective</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">coef</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">maximization</span><span class="p">:</span>
+        <span class="n">objective</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">Objective</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="n">direction</span><span class="o">=</span><span class="s2">&quot;min&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">objective</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">Objective</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="n">direction</span><span class="o">=</span><span class="s2">&quot;max&quot;</span><span class="p">)</span>
+    <span class="n">dual_model</span><span class="o">.</span><span class="n">objective</span> <span class="o">=</span> <span class="n">objective</span>
+
+    <span class="k">return</span> <span class="n">dual_model</span></div>
+
+
+<div class="viewcode-block" id="to_dual_model"><a class="viewcode-back" href="../../../apidoc_output/cameo.core.html#cameo.core.model_dual.to_dual_model">[docs]</a><span class="k">def</span> <span class="nf">to_dual_model</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">solver_interface</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">solver_interface</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">solver_interface</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">solver</span><span class="o">.</span><span class="n">interface</span>
+    <span class="k">return</span> <span class="n">ModelDual</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">solver_interface</span><span class="o">=</span><span class="n">solver_interface</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ModelDual"><a class="viewcode-back" href="../../../apidoc_output/cameo.core.html#cameo.core.model_dual.ModelDual">[docs]</a><span class="k">class</span> <span class="nc">ModelDual</span><span class="p">(</span><span class="n">Model</span><span class="p">):</span>  <span class="c1"># pragma: no cover  # don&#39;t test until it works</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A cobra.Model that also contains the dual variables and constraints, allowing primal and dual</span>
+<span class="sd">    problems to be combined.</span>
+
+<span class="sd">    Dual variables corresponding to stoichiometric constraints are prefixed by lambda</span>
+<span class="sd">    Dual variables corresponding to flux bounds are prefixed by mu</span>
+<span class="sd">    Other constraints are not supported at the moment!</span>
+
+<span class="sd">    Dual constraints will be set according to the original primal objective.</span>
+<span class="sd">    The objective can be changed subsequently to optimize an outer problem.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dual_variables</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">ModelDual</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_populate_solver</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reaction_list</span><span class="p">,</span> <span class="n">metabolite_list</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">ModelDual</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_populate_solver</span><span class="p">(</span><span class="n">reaction_list</span><span class="p">)</span>
+        <span class="n">metabolites</span> <span class="o">=</span> <span class="nb">set</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="o">*</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">metabolites</span><span class="p">)</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">reaction_list</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_populate_metabolites</span><span class="p">(</span><span class="n">metabolites</span><span class="p">)</span>
+        <span class="n">objective_coefficients</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">objective</span><span class="o">.</span><span class="n">expression</span><span class="o">.</span><span class="n">as_coefficients_dict</span><span class="p">()</span>
+        <span class="n">maximization</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">objective</span><span class="o">.</span><span class="n">direction</span> <span class="o">==</span> <span class="s2">&quot;max&quot;</span>
+        <span class="k">for</span> <span class="n">reaction</span> <span class="ow">in</span> <span class="n">reaction_list</span><span class="p">:</span>
+            <span class="n">forward_coeff</span> <span class="o">=</span> <span class="n">objective_coefficients</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">reaction</span><span class="o">.</span><span class="n">forward_variable</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="n">reverse_coeff</span> <span class="o">=</span> <span class="n">objective_coefficients</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">reaction</span><span class="o">.</span><span class="n">reverse_variable</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_add_reaction_dual_constraint</span><span class="p">(</span><span class="n">reaction</span><span class="p">,</span> <span class="n">forward_coeff</span><span class="p">,</span> <span class="n">maximization</span><span class="p">,</span> <span class="s2">&quot;fwd&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_add_reaction_dual_constraint</span><span class="p">(</span><span class="n">reaction</span><span class="p">,</span> <span class="n">reverse_coeff</span><span class="p">,</span> <span class="n">maximization</span><span class="p">,</span> <span class="s2">&quot;rvs&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_add_flux_bound_dual_variable</span><span class="p">(</span><span class="n">reaction</span><span class="p">,</span> <span class="n">forward_coeff</span><span class="p">,</span> <span class="n">maximization</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_add_reaction_dual_constraint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reaction</span><span class="p">,</span> <span class="n">coefficient</span><span class="p">,</span> <span class="n">maximization</span><span class="p">,</span> <span class="n">prefix</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Add a dual constraint corresponding to the reaction&#39;s objective coefficient&quot;&quot;&quot;</span>
+        <span class="n">stoichiometry</span> <span class="o">=</span> <span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">solver</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s2">&quot;lambda_&quot;</span> <span class="o">+</span> <span class="n">m</span><span class="o">.</span><span class="n">id</span><span class="p">]:</span> <span class="n">c</span> <span class="k">for</span> <span class="n">m</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">reaction</span><span class="o">.</span><span class="n">metabolites</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+        <span class="k">if</span> <span class="n">maximization</span><span class="p">:</span>
+            <span class="n">constraint</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">solver</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">Constraint</span><span class="p">(</span>
+                <span class="n">Add</span><span class="o">.</span><span class="n">_from_args</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">c</span> <span class="o">*</span> <span class="n">v</span> <span class="k">for</span> <span class="n">v</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">stoichiometry</span><span class="o">.</span><span class="n">items</span><span class="p">())),</span>
+                <span class="n">name</span><span class="o">=</span><span class="s2">&quot;r_</span><span class="si">%s</span><span class="s2">_</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">reaction</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">prefix</span><span class="p">),</span>
+                <span class="n">lb</span><span class="o">=</span><span class="n">coefficient</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">constraint</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dual_solver</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">Constraint</span><span class="p">(</span>
+                <span class="n">Add</span><span class="o">.</span><span class="n">_from_args</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">c</span> <span class="o">*</span> <span class="n">v</span> <span class="k">for</span> <span class="n">v</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">stoichiometry</span><span class="o">.</span><span class="n">items</span><span class="p">())),</span>
+                <span class="n">name</span><span class="o">=</span><span class="s2">&quot;r_</span><span class="si">%s</span><span class="s2">_</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">reaction</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">prefix</span><span class="p">),</span>
+                <span class="n">ub</span><span class="o">=</span><span class="n">coefficient</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">solver</span><span class="o">.</span><span class="n">_add_constraint</span><span class="p">(</span><span class="n">constraint</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">objective</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">solver</span><span class="o">.</span><span class="n">objective</span>
+
+    <span class="nd">@objective</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">objective</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">solver</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">Objective</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="n">objective_coefficients</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">expression</span><span class="o">.</span><span class="n">as_coefficients_dict</span><span class="p">()</span>
+        <span class="n">maximization</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">direction</span> <span class="o">==</span> <span class="s2">&quot;max&quot;</span>
+        <span class="k">for</span> <span class="n">reaction</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">reactions</span><span class="p">:</span>
+            <span class="n">forward_coeff</span> <span class="o">=</span> <span class="n">objective_coefficients</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">reaction</span><span class="o">.</span><span class="n">forward_variable</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="n">reverse_coeff</span> <span class="o">=</span> <span class="n">objective_coefficients</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">reaction</span><span class="o">.</span><span class="n">reverse_variable</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_update_dual_reaction_constraint</span><span class="p">(</span><span class="n">reaction</span><span class="p">,</span> <span class="n">forward_coeff</span><span class="p">,</span> <span class="n">maximization</span><span class="p">,</span> <span class="s2">&quot;fwd&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_update_dual_reaction_constraint</span><span class="p">(</span><span class="n">reaction</span><span class="p">,</span> <span class="n">reverse_coeff</span><span class="p">,</span> <span class="n">maximization</span><span class="p">,</span> <span class="s2">&quot;rvs&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">solver</span><span class="o">.</span><span class="n">objective</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">solver</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s2">&quot;lambda_&quot;</span> <span class="o">+</span> <span class="n">m</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">metabolites</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">objective</span><span class="o">.</span><span class="n">direction</span> <span class="o">=</span> <span class="s2">&quot;min&quot;</span> <span class="k">if</span> <span class="n">maximization</span> <span class="k">else</span> <span class="s2">&quot;max&quot;</span>
+
+    <span class="k">def</span> <span class="nf">_update_dual_reaction_constraint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reaction</span><span class="p">,</span> <span class="n">coefficient</span><span class="p">,</span> <span class="n">maximization</span><span class="p">,</span> <span class="n">prefix</span><span class="p">):</span>
+        <span class="n">constraint</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">solver</span><span class="o">.</span><span class="n">constraints</span><span class="p">[</span><span class="s2">&quot;r_</span><span class="si">%s</span><span class="s2">_</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">reaction</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">prefix</span><span class="p">)]</span>
+        <span class="k">if</span> <span class="n">coefficient</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">constraint</span><span class="o">.</span><span class="n">lb</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">constraint</span><span class="o">.</span><span class="n">ub</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">maximization</span><span class="p">:</span>
+                <span class="n">constraint</span><span class="o">.</span><span class="n">lb</span> <span class="o">=</span> <span class="n">coefficient</span>
+                <span class="n">constraint</span><span class="o">.</span><span class="n">ub</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">constraint</span><span class="o">.</span><span class="n">lb</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="n">constraint</span><span class="o">.</span><span class="n">ub</span> <span class="o">=</span> <span class="n">coefficient</span>
+
+    <span class="k">def</span> <span class="nf">_populate_metabolites</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">metabolites</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">met</span> <span class="ow">in</span> <span class="n">metabolites</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_add_dual_variable</span><span class="p">(</span><span class="n">met</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="s2">&quot;lambda&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_add_flux_bound_dual_variable</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reaction</span><span class="p">,</span> <span class="n">coefficient</span><span class="p">,</span> <span class="n">maximization</span><span class="p">,</span> <span class="n">prefix</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+    <span class="k">def</span> <span class="nf">_add_dual_variable</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">identifier</span><span class="p">,</span> <span class="n">prefix</span><span class="p">):</span>
+        <span class="n">dual_variable_id</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;_&quot;</span> <span class="o">+</span> <span class="n">identifier</span>
+        <span class="n">dual_variable</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">solver</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">dual_variable_id</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dual_variables</span><span class="p">[</span><span class="n">dual_variable_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">dual_variable</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">solver</span><span class="o">.</span><span class="n">_add_variable</span><span class="p">(</span><span class="n">dual_variable</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">objective</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">solver</span><span class="o">.</span><span class="n">objective</span>
+
+    <span class="nd">@objective</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">objective</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">objective</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">solver</span><span class="o">.</span><span class="n">objective</span> <span class="o">=</span> <span class="n">objective</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_update_constraints</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">dual_objective</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+            <span class="s2">&quot;This is not yet implemented, but should return an expression (?) that describes the dual objective&quot;</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="ModelDual.primal_objective"><a class="viewcode-back" href="../../../apidoc_output/cameo.core.html#cameo.core.model_dual.ModelDual.primal_objective">[docs]</a>    <span class="k">def</span> <span class="nf">primal_objective</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+            <span class="s2">&quot;This is not yet implemented, but should return an expression that describes the primal objective&quot;</span>
+        <span class="p">)</span></div></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../../../index.html">
+    <img class="logo" src="../../../_static/cameo_logo.png" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=biosustain&repo=cameo&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+    
+
+<p>
+<a class="badge" href="https://travis-ci.org/biosustain/cameo">
+    <img
+        alt="https://secure.travis-ci.org/biosustain/cameo.svg?branch=master"
+        src="https://secure.travis-ci.org/biosustain/cameo.svg?branch=master"
+    />
+</a>
+</p>
+
+
+
+
+    
+
+<p>
+<a class="badge" href="https://codecov.io/github/biosustain/cameo">
+    <img
+    alt="https://codecov.io/github/biosustain/cameo/coverage.svg?branch=master"
+    src="https://codecov.io/github/biosustain/cameo/coverage.svg?branch=master"
+    />
+</a>
+</p>
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development.html">Development</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../API.html">API Docs</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2014, Novo Nordisk Foundation Center for Biosustainability.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+    <a href="https://github.com/biosustain/cameo" class="github">
+        <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"  class="github"/>
+    </a>
+    
+
+    
+  </body>
+</html>

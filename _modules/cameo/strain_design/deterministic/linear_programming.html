@@ -1,0 +1,578 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>cameo.strain_design.deterministic.linear_programming &#8212; cameo 0.13.0 documentation</title>
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script src="../../../../_static/jquery.js"></script>
+    <script src="../../../../_static/underscore.js"></script>
+    <script src="../../../../_static/doctools.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+  
+    <link rel="apple-touch-icon" href="../../../../_static/cameo_touch_icon.png" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for cameo.strain_design.deterministic.linear_programming</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2015 Novo Nordisk Foundation Center for Biosustainability, DTU.</span>
+
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+
+<span class="c1"># http://www.apache.org/licenses/LICENSE-2.0</span>
+
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This module contains algorithms based on linear programming techniques, including mixed-integer linear programming</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span>
+<span class="kn">from</span> <span class="nn">IProgress.progressbar</span> <span class="kn">import</span> <span class="n">ProgressBar</span>
+<span class="kn">from</span> <span class="nn">IProgress.widgets</span> <span class="kn">import</span> <span class="n">Bar</span><span class="p">,</span> <span class="n">Percentage</span>
+<span class="kn">from</span> <span class="nn">pandas</span> <span class="kn">import</span> <span class="n">DataFrame</span>
+<span class="kn">from</span> <span class="nn">sympy</span> <span class="kn">import</span> <span class="n">Add</span>
+
+<span class="kn">import</span> <span class="nn">cobra</span>
+<span class="kn">from</span> <span class="nn">cobra.util</span> <span class="kn">import</span> <span class="n">fix_objective_as_constraint</span>
+<span class="kn">from</span> <span class="nn">cobra.exceptions</span> <span class="kn">import</span> <span class="n">OptimizationError</span>
+<span class="kn">from</span> <span class="nn">cobra.flux_analysis</span> <span class="kn">import</span> <span class="n">find_essential_reactions</span>
+
+<span class="kn">from</span> <span class="nn">cameo</span> <span class="kn">import</span> <span class="n">config</span>
+<span class="kn">from</span> <span class="nn">cameo</span> <span class="kn">import</span> <span class="n">ui</span>
+<span class="kn">from</span> <span class="nn">cameo.core.model_dual</span> <span class="kn">import</span> <span class="n">convert_to_dual</span>
+<span class="kn">from</span> <span class="nn">cameo.core.strain_design</span> <span class="kn">import</span> <span class="n">StrainDesignMethodResult</span><span class="p">,</span> <span class="n">StrainDesignMethod</span><span class="p">,</span> <span class="n">StrainDesign</span>
+<span class="kn">from</span> <span class="nn">cameo.core.target</span> <span class="kn">import</span> <span class="n">ReactionKnockoutTarget</span>
+<span class="kn">from</span> <span class="nn">cameo.core.utils</span> <span class="kn">import</span> <span class="n">get_reaction_for</span>
+<span class="kn">from</span> <span class="nn">cameo.flux_analysis.analysis</span> <span class="kn">import</span> <span class="n">phenotypic_phase_plane</span><span class="p">,</span> <span class="n">flux_variability_analysis</span>
+<span class="kn">from</span> <span class="nn">cameo.flux_analysis.simulation</span> <span class="kn">import</span> <span class="n">fba</span>
+<span class="kn">from</span> <span class="nn">cameo.flux_analysis.structural</span> <span class="kn">import</span> <span class="n">find_coupled_reactions_nullspace</span>
+<span class="kn">from</span> <span class="nn">cameo.util</span> <span class="kn">import</span> <span class="n">reduce_reaction_set</span><span class="p">,</span> <span class="n">decompose_reaction_groups</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;OptKnock&quot;</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="OptKnock"><a class="viewcode-back" href="../../../../apidoc_output/cameo.strain_design.deterministic.html#cameo.strain_design.deterministic.linear_programming.OptKnock">[docs]</a><span class="k">class</span> <span class="nc">OptKnock</span><span class="p">(</span><span class="n">StrainDesignMethod</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    OptKnock.</span>
+
+<span class="sd">    OptKnock solves a bi-level optimization problem, finding the set of knockouts that allows maximal</span>
+<span class="sd">    target production under optimal growth.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    model : cobra.Model</span>
+<span class="sd">        A model to be used for finding optimal knockouts. Always set a non-zero lower bound on</span>
+<span class="sd">        biomass reaction before using OptKnock.</span>
+<span class="sd">    exclude_reactions : iterable of str or Reaction objects</span>
+<span class="sd">        Reactions that will not be knocked out. Excluding reactions can give more realistic results</span>
+<span class="sd">        and decrease running time. Essential reactions and exchanges are always excluded.</span>
+<span class="sd">    remove_blocked : boolean (default True)</span>
+<span class="sd">        If True, reactions that cannot carry flux (determined by FVA) will be removed from the model.</span>
+<span class="sd">        This reduces running time significantly.</span>
+<span class="sd">    fraction_of_optimum : If not None, this value will be used to constrain the inner objective (e.g. growth) to</span>
+<span class="sd">        a fraction of the optimal inner objective value. If inner objective is not constrained manually</span>
+<span class="sd">        this argument should be used. (Default: None)</span>
+<span class="sd">    exclude_non_gene_reactions : If True (default), reactions that are not associated with genes will not be</span>
+<span class="sd">        knocked out. This results in more practically relevant solutions as well as shorter running times.</span>
+<span class="sd">    use_nullspace_simplification: Boolean (default True)</span>
+<span class="sd">        Use a basis for the nullspace to find groups of reactions whose fluxes are multiples of each other. From</span>
+<span class="sd">        each of these groups only 1 reaction will be included as a possible knockout</span>
+
+<span class="sd">    Examples</span>
+<span class="sd">    --------</span>
+<span class="sd">    &gt;&gt;&gt; from cameo import models</span>
+<span class="sd">    &gt;&gt;&gt; from cameo.strain_design.deterministic import OptKnock</span>
+<span class="sd">    &gt;&gt;&gt; model = models.bigg.e_coli_core</span>
+<span class="sd">    &gt;&gt;&gt; model.reactions.Biomass_Ecoli_core_w_GAM.lower_bound = 0.1</span>
+<span class="sd">    &gt;&gt;&gt; model.solver = &quot;gurobi&quot; # Using gurobi or cplex is recommended</span>
+<span class="sd">    &gt;&gt;&gt; optknock = OptKnock(model)</span>
+<span class="sd">    &gt;&gt;&gt; result = optknock.run(k=2, target=&quot;EX_ac_e&quot;, max_results=3)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">exclude_reactions</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">remove_blocked</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">fraction_of_optimum</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+                 <span class="n">exclude_non_gene_reactions</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">use_nullspace_simplification</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">OptKnock</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_original_model</span> <span class="o">=</span> <span class="n">model</span>
+
+        <span class="k">if</span> <span class="s2">&quot;gurobi&quot;</span> <span class="ow">in</span> <span class="n">config</span><span class="o">.</span><span class="n">solvers</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Changing solver to Gurobi and tweaking some parameters.&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="s2">&quot;gurobi_interface&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">solver</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="vm">__name__</span><span class="p">:</span>
+                <span class="n">model</span><span class="o">.</span><span class="n">solver</span> <span class="o">=</span> <span class="s2">&quot;gurobi&quot;</span>
+            <span class="c1"># The tolerances are set to the minimum value. This gives maximum precision.</span>
+            <span class="n">problem</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">solver</span><span class="o">.</span><span class="n">problem</span>
+            <span class="n">problem</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">NodeMethod</span> <span class="o">=</span> <span class="mi">1</span>  <span class="c1"># primal simplex node relaxation</span>
+            <span class="n">problem</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">FeasibilityTol</span> <span class="o">=</span> <span class="mf">1e-9</span>
+            <span class="n">problem</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">OptimalityTol</span> <span class="o">=</span> <span class="mf">1e-3</span>
+            <span class="n">problem</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">IntFeasTol</span> <span class="o">=</span> <span class="mf">1e-9</span>
+            <span class="n">problem</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">MIPgapAbs</span> <span class="o">=</span> <span class="mf">1e-9</span>
+            <span class="n">problem</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">MIPgap</span> <span class="o">=</span> <span class="mf">1e-9</span>
+        <span class="k">elif</span> <span class="s2">&quot;cplex&quot;</span> <span class="ow">in</span> <span class="n">config</span><span class="o">.</span><span class="n">solvers</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Changing solver to cplex and tweaking some parameters.&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="s2">&quot;cplex_interface&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">solver</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="vm">__name__</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">solver</span> <span class="o">=</span> <span class="s2">&quot;cplex&quot;</span>
+            <span class="n">problem</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">solver</span><span class="o">.</span><span class="n">problem</span>
+            <span class="n">problem</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">mip</span><span class="o">.</span><span class="n">strategy</span><span class="o">.</span><span class="n">startalgorithm</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">problem</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">simplex</span><span class="o">.</span><span class="n">tolerances</span><span class="o">.</span><span class="n">feasibility</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="mf">1e-8</span><span class="p">)</span>
+            <span class="n">problem</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">simplex</span><span class="o">.</span><span class="n">tolerances</span><span class="o">.</span><span class="n">optimality</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="mf">1e-8</span><span class="p">)</span>
+            <span class="n">problem</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">mip</span><span class="o">.</span><span class="n">tolerances</span><span class="o">.</span><span class="n">integrality</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="mf">1e-8</span><span class="p">)</span>
+            <span class="n">problem</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">mip</span><span class="o">.</span><span class="n">tolerances</span><span class="o">.</span><span class="n">absmipgap</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="mf">1e-8</span><span class="p">)</span>
+            <span class="n">problem</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">mip</span><span class="o">.</span><span class="n">tolerances</span><span class="o">.</span><span class="n">mipgap</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="mf">1e-8</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;You are trying to run OptKnock with </span><span class="si">%s</span><span class="s2">. This might not end well.&quot;</span> <span class="o">%</span>
+                          <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">solver</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="vm">__name__</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="n">fraction_of_optimum</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">fix_objective_as_constraint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">,</span> <span class="n">fraction</span><span class="o">=</span><span class="n">fraction_of_optimum</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">remove_blocked</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_remove_blocked_reactions</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">exclude_reactions</span><span class="p">:</span>
+            <span class="c1"># Convert exclude_reactions to reaction ID&#39;s</span>
+            <span class="n">exclude_reactions</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">r</span><span class="o">.</span><span class="n">id</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">cobra</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">Reaction</span><span class="p">)</span> <span class="k">else</span> <span class="n">r</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">exclude_reactions</span>
+            <span class="p">]</span>
+            <span class="k">for</span> <span class="n">r_id</span> <span class="ow">in</span> <span class="n">exclude_reactions</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">r_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">reactions</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Excluded reaction </span><span class="si">{}</span><span class="s2"> is not in the model&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">r_id</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">exclude_reactions</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">exclude_non_gene_reactions</span><span class="p">:</span>
+            <span class="n">exclude_reactions</span> <span class="o">+=</span> <span class="p">[</span><span class="n">r</span><span class="o">.</span><span class="n">id</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">reactions</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">r</span><span class="o">.</span><span class="n">genes</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_build_problem</span><span class="p">(</span><span class="n">exclude_reactions</span><span class="p">,</span> <span class="n">use_nullspace_simplification</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_remove_blocked_reactions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">fva_res</span> <span class="o">=</span> <span class="n">flux_variability_analysis</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">,</span> <span class="n">fraction_of_optimum</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="c1"># FIXME: Iterate over the index only (reaction identifiers).</span>
+        <span class="n">blocked</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">reactions</span><span class="o">.</span><span class="n">get_by_id</span><span class="p">(</span><span class="n">reaction</span><span class="p">)</span> <span class="k">for</span> <span class="n">reaction</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">fva_res</span><span class="o">.</span><span class="n">data_frame</span><span class="o">.</span><span class="n">iterrows</span><span class="p">()</span>
+            <span class="k">if</span> <span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;lower_bound&quot;</span><span class="p">],</span> <span class="n">config</span><span class="o">.</span><span class="n">ndecimals</span><span class="p">)</span> <span class="o">==</span> <span class="nb">round</span><span class="p">(</span>
+                <span class="n">row</span><span class="p">[</span><span class="s2">&quot;upper_bound&quot;</span><span class="p">],</span> <span class="n">config</span><span class="o">.</span><span class="n">ndecimals</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">remove_reactions</span><span class="p">(</span><span class="n">blocked</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_reduce_to_nullspace</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reactions</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reaction_groups</span> <span class="o">=</span> <span class="n">find_coupled_reactions_nullspace</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">)</span>
+        <span class="n">reaction_groups_keys</span> <span class="o">=</span> <span class="p">[</span><span class="nb">set</span><span class="p">(</span><span class="n">group</span><span class="p">)</span> <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">reaction_groups</span><span class="p">]</span>
+        <span class="n">reduced_reactions</span> <span class="o">=</span> <span class="n">reduce_reaction_set</span><span class="p">(</span><span class="n">reactions</span><span class="p">,</span> <span class="n">reaction_groups_keys</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">reduced_reactions</span>
+
+    <span class="k">def</span> <span class="nf">_build_problem</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exclude_reactions</span><span class="p">,</span> <span class="n">use_nullspace_simplification</span><span class="p">):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Starting to formulate OptKnock problem&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">essential_reactions</span> <span class="o">=</span> <span class="n">find_essential_reactions</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">,</span> <span class="n">processes</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">boundary</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">exclude_reactions</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">exclude_reactions</span> <span class="o">=</span> <span class="nb">set</span><span class="o">.</span><span class="n">union</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">essential_reactions</span><span class="p">,</span>
+                <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">reactions</span><span class="o">.</span><span class="n">get_by_id</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">exclude_reactions</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="n">reactions</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">reactions</span><span class="p">)</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">exclude_reactions</span>
+        <span class="k">if</span> <span class="n">use_nullspace_simplification</span><span class="p">:</span>
+            <span class="n">reactions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_reduce_to_nullspace</span><span class="p">(</span><span class="n">reactions</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">reaction_groups</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_make_dual</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_combine_primal_and_dual</span><span class="p">()</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Primal and dual successfully combined&quot;</span><span class="p">)</span>
+
+        <span class="n">y_vars</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">constrained_dual_vars</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">reaction</span> <span class="ow">in</span> <span class="n">reactions</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">reaction</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">exclude_reactions</span> <span class="ow">and</span> <span class="n">reaction</span><span class="o">.</span><span class="n">lower_bound</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">reaction</span><span class="o">.</span><span class="n">upper_bound</span><span class="p">:</span>
+                <span class="n">y_var</span><span class="p">,</span> <span class="n">constrained_vars</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_add_knockout_constraints</span><span class="p">(</span><span class="n">reaction</span><span class="p">)</span>
+                <span class="n">y_vars</span><span class="p">[</span><span class="n">y_var</span><span class="p">]</span> <span class="o">=</span> <span class="n">reaction</span>
+                <span class="n">constrained_dual_vars</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">constrained_vars</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_y_vars</span> <span class="o">=</span> <span class="n">y_vars</span>
+
+        <span class="n">primal_objective</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">solver</span><span class="o">.</span><span class="n">objective</span>
+        <span class="n">dual_objective</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">solver</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">Objective</span><span class="o">.</span><span class="n">clone</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_dual_problem</span><span class="o">.</span><span class="n">objective</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">solver</span><span class="p">)</span>
+
+        <span class="n">reduced_expression</span> <span class="o">=</span> <span class="n">Add</span><span class="p">(</span><span class="o">*</span><span class="p">((</span><span class="n">c</span> <span class="o">*</span> <span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">dual_objective</span><span class="o">.</span><span class="n">expression</span><span class="o">.</span><span class="n">as_coefficients_dict</span><span class="p">()</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                                   <span class="k">if</span> <span class="n">v</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">constrained_dual_vars</span><span class="p">))</span>
+        <span class="n">dual_objective</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">solver</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">Objective</span><span class="p">(</span><span class="n">reduced_expression</span><span class="p">,</span> <span class="n">direction</span><span class="o">=</span><span class="n">dual_objective</span><span class="o">.</span><span class="n">direction</span><span class="p">)</span>
+
+        <span class="n">optimality_constraint</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">solver</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">Constraint</span><span class="p">(</span>
+            <span class="n">primal_objective</span><span class="o">.</span><span class="n">expression</span> <span class="o">-</span> <span class="n">dual_objective</span><span class="o">.</span><span class="n">expression</span><span class="p">,</span>
+            <span class="n">lb</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">ub</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;inner_optimality&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">solver</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">optimality_constraint</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Inner optimality constrained&quot;</span><span class="p">)</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Adding constraint for number of knockouts&quot;</span><span class="p">)</span>
+        <span class="n">knockout_number_constraint</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">solver</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">Constraint</span><span class="p">(</span>
+            <span class="n">Add</span><span class="p">(</span><span class="o">*</span><span class="n">y_vars</span><span class="p">),</span> <span class="n">lb</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">y_vars</span><span class="p">),</span> <span class="n">ub</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">y_vars</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">solver</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">knockout_number_constraint</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_number_of_knockouts_constraint</span> <span class="o">=</span> <span class="n">knockout_number_constraint</span>
+
+    <span class="k">def</span> <span class="nf">_make_dual</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">dual_problem</span> <span class="o">=</span> <span class="n">convert_to_dual</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">solver</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dual_problem</span> <span class="o">=</span> <span class="n">dual_problem</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Dual problem successfully created&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_combine_primal_and_dual</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">primal_problem</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">solver</span>
+        <span class="n">dual_problem</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dual_problem</span>
+
+        <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">dual_problem</span><span class="o">.</span><span class="n">variables</span><span class="p">:</span>
+            <span class="n">var</span> <span class="o">=</span> <span class="n">primal_problem</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">Variable</span><span class="o">.</span><span class="n">clone</span><span class="p">(</span><span class="n">var</span><span class="p">)</span>
+            <span class="n">primal_problem</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">var</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">const</span> <span class="ow">in</span> <span class="n">dual_problem</span><span class="o">.</span><span class="n">constraints</span><span class="p">:</span>
+            <span class="n">const</span> <span class="o">=</span> <span class="n">primal_problem</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">Constraint</span><span class="o">.</span><span class="n">clone</span><span class="p">(</span><span class="n">const</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">primal_problem</span><span class="p">)</span>
+            <span class="n">primal_problem</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">const</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_add_knockout_constraints</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reaction</span><span class="p">):</span>
+        <span class="n">interface</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">solver</span><span class="o">.</span><span class="n">interface</span>
+        <span class="n">y_var</span> <span class="o">=</span> <span class="n">interface</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="s2">&quot;y_&quot;</span> <span class="o">+</span> <span class="n">reaction</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;binary&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">solver</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">interface</span><span class="o">.</span><span class="n">Constraint</span><span class="p">(</span><span class="n">reaction</span><span class="o">.</span><span class="n">flux_expression</span> <span class="o">-</span> <span class="mi">1000</span> <span class="o">*</span> <span class="n">y_var</span><span class="p">,</span> <span class="n">ub</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">solver</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">interface</span><span class="o">.</span><span class="n">Constraint</span><span class="p">(</span><span class="n">reaction</span><span class="o">.</span><span class="n">flux_expression</span> <span class="o">+</span> <span class="mi">1000</span> <span class="o">*</span> <span class="n">y_var</span><span class="p">,</span> <span class="n">lb</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
+
+        <span class="n">constrained_vars</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">if</span> <span class="n">reaction</span><span class="o">.</span><span class="n">upper_bound</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">dual_forward_ub</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">solver</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s2">&quot;dual_&quot;</span> <span class="o">+</span> <span class="n">reaction</span><span class="o">.</span><span class="n">forward_variable</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;_ub&quot;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">solver</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">interface</span><span class="o">.</span><span class="n">Constraint</span><span class="p">(</span><span class="n">dual_forward_ub</span> <span class="o">-</span> <span class="mi">1000</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">y_var</span><span class="p">),</span> <span class="n">ub</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
+            <span class="n">constrained_vars</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dual_forward_ub</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">reaction</span><span class="o">.</span><span class="n">lower_bound</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">dual_reverse_ub</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">solver</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="s2">&quot;dual_&quot;</span> <span class="o">+</span> <span class="n">reaction</span><span class="o">.</span><span class="n">reverse_variable</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;_ub&quot;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">solver</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">interface</span><span class="o">.</span><span class="n">Constraint</span><span class="p">(</span><span class="n">dual_reverse_ub</span> <span class="o">-</span> <span class="mi">1000</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">y_var</span><span class="p">),</span> <span class="n">ub</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
+            <span class="n">constrained_vars</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dual_reverse_ub</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">y_var</span><span class="p">,</span> <span class="n">constrained_vars</span>
+
+<div class="viewcode-block" id="OptKnock.run"><a class="viewcode-back" href="../../../../apidoc_output/cameo.strain_design.deterministic.html#cameo.strain_design.deterministic.linear_programming.OptKnock.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">max_knockouts</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">biomass</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_results</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Perform the OptKnock simulation</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        target: str, Metabolite or Reaction</span>
+<span class="sd">            The design target</span>
+<span class="sd">        biomass: str, Metabolite or Reaction</span>
+<span class="sd">            The biomass definition in the model</span>
+<span class="sd">        max_knockouts: int</span>
+<span class="sd">            Max number of knockouts allowed</span>
+<span class="sd">        max_results: int</span>
+<span class="sd">            Max number of different designs to return if found</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        OptKnockResult</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># TODO: why not required arguments?</span>
+        <span class="k">if</span> <span class="n">biomass</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">target</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;missing biomass and/or target reaction&#39;</span><span class="p">)</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="n">get_reaction_for</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">add</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">biomass</span> <span class="o">=</span> <span class="n">get_reaction_for</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">,</span> <span class="n">biomass</span><span class="p">,</span> <span class="n">add</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="n">knockout_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">fluxes_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">production_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">biomass_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">loader_id</span> <span class="o">=</span> <span class="n">ui</span><span class="o">.</span><span class="n">loading</span><span class="p">()</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">objective</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">id</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_number_of_knockouts_constraint</span><span class="o">.</span><span class="n">lb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_number_of_knockouts_constraint</span><span class="o">.</span><span class="n">ub</span> <span class="o">-</span> <span class="n">max_knockouts</span>
+            <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">while</span> <span class="n">count</span> <span class="o">&lt;</span> <span class="n">max_results</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">solution</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">optimize</span><span class="p">(</span><span class="n">raise_error</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="k">except</span> <span class="n">OptimizationError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Problem could not be solved. Terminating and returning &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">count</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; solutions&quot;</span><span class="p">)</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
+                    <span class="k">break</span>
+
+                <span class="n">knockouts</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">reaction</span> <span class="k">for</span> <span class="n">y</span><span class="p">,</span> <span class="n">reaction</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_y_vars</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="nb">round</span><span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">primal</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+                <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">knockouts</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">max_knockouts</span>
+
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">reaction_groups</span><span class="p">:</span>
+                    <span class="n">combinations</span> <span class="o">=</span> <span class="n">decompose_reaction_groups</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">reaction_groups</span><span class="p">,</span> <span class="n">knockouts</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">kos</span> <span class="ow">in</span> <span class="n">combinations</span><span class="p">:</span>
+                        <span class="n">knockout_list</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="n">r</span><span class="o">.</span><span class="n">id</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">kos</span><span class="p">})</span>
+                        <span class="n">fluxes_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">solution</span><span class="o">.</span><span class="n">fluxes</span><span class="p">)</span>
+                        <span class="n">production_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">solution</span><span class="o">.</span><span class="n">objective_value</span><span class="p">)</span>
+                        <span class="n">biomass_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">solution</span><span class="o">.</span><span class="n">fluxes</span><span class="p">[</span><span class="n">biomass</span><span class="o">.</span><span class="n">id</span><span class="p">])</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">knockout_list</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="n">r</span><span class="o">.</span><span class="n">id</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">knockouts</span><span class="p">})</span>
+                    <span class="n">fluxes_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">solution</span><span class="o">.</span><span class="n">fluxes</span><span class="p">)</span>
+                    <span class="n">production_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">solution</span><span class="o">.</span><span class="n">objective_value</span><span class="p">)</span>
+                    <span class="n">biomass_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">solution</span><span class="o">.</span><span class="n">fluxes</span><span class="p">[</span><span class="n">biomass</span><span class="o">.</span><span class="n">id</span><span class="p">])</span>
+
+                <span class="c1"># Add an integer cut</span>
+                <span class="n">y_vars_to_cut</span> <span class="o">=</span> <span class="p">[</span><span class="n">y</span> <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_y_vars</span> <span class="k">if</span> <span class="nb">round</span><span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">primal</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span>
+                <span class="n">integer_cut</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">solver</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">Constraint</span><span class="p">(</span><span class="n">Add</span><span class="p">(</span><span class="o">*</span><span class="n">y_vars_to_cut</span><span class="p">),</span>
+                                                                      <span class="n">lb</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                                                                      <span class="n">name</span><span class="o">=</span><span class="s2">&quot;integer_cut_&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">count</span><span class="p">))</span>
+
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">knockouts</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">max_knockouts</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_number_of_knockouts_constraint</span><span class="o">.</span><span class="n">lb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_number_of_knockouts_constraint</span><span class="o">.</span><span class="n">ub</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">knockouts</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">add_cons_vars</span><span class="p">(</span><span class="n">integer_cut</span><span class="p">)</span>
+                <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+
+            <span class="n">ui</span><span class="o">.</span><span class="n">stop_loader</span><span class="p">(</span><span class="n">loader_id</span><span class="p">)</span>
+
+            <span class="k">return</span> <span class="n">OptKnockResult</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_original_model</span><span class="p">,</span> <span class="n">knockout_list</span><span class="p">,</span> <span class="n">fluxes_list</span><span class="p">,</span>
+                                  <span class="n">production_list</span><span class="p">,</span> <span class="n">biomass_list</span><span class="p">,</span> <span class="n">target</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">biomass</span><span class="p">)</span></div></div>
+
+
+<span class="k">class</span> <span class="nc">RobustKnock</span><span class="p">(</span><span class="n">StrainDesignMethod</span><span class="p">):</span>
+    <span class="k">pass</span>
+
+
+<span class="k">class</span> <span class="nc">OptKnockResult</span><span class="p">(</span><span class="n">StrainDesignMethodResult</span><span class="p">):</span>
+    <span class="n">__method_name__</span> <span class="o">=</span> <span class="s2">&quot;OptKnock&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">knockouts</span><span class="p">,</span> <span class="n">fluxes</span><span class="p">,</span> <span class="n">production_fluxes</span><span class="p">,</span> <span class="n">biomass_fluxes</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">biomass</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">OptKnockResult</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_generate_designs</span><span class="p">(</span><span class="n">knockouts</span><span class="p">),</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="n">model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_knockouts</span> <span class="o">=</span> <span class="n">knockouts</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fluxes</span> <span class="o">=</span> <span class="n">fluxes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_production_fluxes</span> <span class="o">=</span> <span class="n">production_fluxes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_biomass_fluxes</span> <span class="o">=</span> <span class="n">biomass_fluxes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_target</span> <span class="o">=</span> <span class="n">target</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_biomass</span> <span class="o">=</span> <span class="n">biomass</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_processed_knockouts</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_generate_designs</span><span class="p">(</span><span class="n">knockouts</span><span class="p">):</span>
+        <span class="n">designs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">knockout_design</span> <span class="ow">in</span> <span class="n">knockouts</span><span class="p">:</span>
+            <span class="n">designs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">StrainDesign</span><span class="p">([</span><span class="n">ReactionKnockoutTarget</span><span class="p">(</span><span class="n">ko</span> <span class="k">for</span> <span class="n">ko</span> <span class="ow">in</span> <span class="n">knockout_design</span><span class="p">)]))</span>
+
+        <span class="k">return</span> <span class="n">designs</span>
+
+    <span class="k">def</span> <span class="nf">_process_knockouts</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">progress</span> <span class="o">=</span> <span class="n">ProgressBar</span><span class="p">(</span><span class="n">maxval</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_knockouts</span><span class="p">),</span> <span class="n">widgets</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Processing solutions: &quot;</span><span class="p">,</span> <span class="n">Bar</span><span class="p">(),</span> <span class="n">Percentage</span><span class="p">()])</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_processed_knockouts</span> <span class="o">=</span> <span class="n">DataFrame</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;reactions&quot;</span><span class="p">,</span> <span class="s2">&quot;size&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_target</span><span class="p">,</span>
+                                                       <span class="s2">&quot;biomass&quot;</span><span class="p">,</span> <span class="s2">&quot;fva_min&quot;</span><span class="p">,</span> <span class="s2">&quot;fva_max&quot;</span><span class="p">])</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">knockouts</span> <span class="ow">in</span> <span class="n">progress</span><span class="p">(</span><span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_knockouts</span><span class="p">)):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">:</span>
+                    <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">reactions</span><span class="o">.</span><span class="n">get_by_id</span><span class="p">(</span><span class="n">ko</span><span class="p">)</span><span class="o">.</span><span class="n">knock_out</span><span class="p">()</span> <span class="k">for</span> <span class="n">ko</span> <span class="ow">in</span> <span class="n">knockouts</span><span class="p">]</span>
+                    <span class="n">fva</span> <span class="o">=</span> <span class="n">flux_variability_analysis</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">,</span> <span class="n">fraction_of_optimum</span><span class="o">=</span><span class="mf">0.99</span><span class="p">,</span> <span class="n">reactions</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">target</span><span class="p">])</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_processed_knockouts</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">knockouts</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">knockouts</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">production</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">biomass</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                                                    <span class="n">fva</span><span class="o">.</span><span class="n">lower_bound</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target</span><span class="p">),</span> <span class="n">fva</span><span class="o">.</span><span class="n">upper_bound</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target</span><span class="p">)]</span>
+            <span class="k">except</span> <span class="n">OptimizationError</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_processed_knockouts</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">nan</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_processed_knockouts</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">knockouts</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_knockouts</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">fluxes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fluxes</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">production</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_production_fluxes</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">biomass</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_biomass_fluxes</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">target</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_target</span>
+
+    <span class="k">def</span> <span class="nf">display_on_map</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">map_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">palette</span><span class="o">=</span><span class="s2">&quot;YlGnBu&quot;</span><span class="p">):</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">ko</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_frame</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">index</span><span class="p">,</span> <span class="s2">&quot;reactions&quot;</span><span class="p">]:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">reactions</span><span class="o">.</span><span class="n">get_by_id</span><span class="p">(</span><span class="n">ko</span><span class="p">)</span><span class="o">.</span><span class="n">knock_out</span><span class="p">()</span>
+            <span class="n">fluxes</span> <span class="o">=</span> <span class="n">fba</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">)</span>
+            <span class="n">fluxes</span><span class="o">.</span><span class="n">display_on_map</span><span class="p">(</span><span class="n">map_name</span><span class="o">=</span><span class="n">map_name</span><span class="p">,</span> <span class="n">palette</span><span class="o">=</span><span class="n">palette</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">plotter</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">grid</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">palette</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">wt_production</span> <span class="o">=</span> <span class="n">phenotypic_phase_plane</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">,</span> <span class="n">objective</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_target</span><span class="p">,</span> <span class="n">variables</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_biomass</span><span class="o">.</span><span class="n">id</span><span class="p">])</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">ko</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_frame</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">index</span><span class="p">,</span> <span class="s2">&quot;reactions&quot;</span><span class="p">]:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">reactions</span><span class="o">.</span><span class="n">get_by_id</span><span class="p">(</span><span class="n">ko</span><span class="p">)</span><span class="o">.</span><span class="n">knock_out</span><span class="p">()</span>
+
+            <span class="n">mt_production</span> <span class="o">=</span> <span class="n">phenotypic_phase_plane</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">,</span> <span class="n">objective</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_target</span><span class="p">,</span> <span class="n">variables</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_biomass</span><span class="o">.</span><span class="n">id</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">title</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">title</span> <span class="o">=</span> <span class="s2">&quot;Production Envelope&quot;</span>
+
+        <span class="n">dataframe</span> <span class="o">=</span> <span class="n">DataFrame</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;ub&quot;</span><span class="p">,</span> <span class="s2">&quot;lb&quot;</span><span class="p">,</span> <span class="s2">&quot;value&quot;</span><span class="p">,</span> <span class="s2">&quot;strain&quot;</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">wt_production</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+            <span class="n">_df</span> <span class="o">=</span> <span class="n">DataFrame</span><span class="p">([[</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;objective_upper_bound&#39;</span><span class="p">],</span> <span class="n">row</span><span class="p">[</span><span class="s1">&#39;objective_lower_bound&#39;</span><span class="p">],</span> <span class="n">row</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_biomass</span><span class="o">.</span><span class="n">id</span><span class="p">],</span> <span class="s2">&quot;WT&quot;</span><span class="p">]],</span>
+                            <span class="n">columns</span><span class="o">=</span><span class="n">dataframe</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span>
+            <span class="n">dataframe</span> <span class="o">=</span> <span class="n">dataframe</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_df</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">mt_production</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+            <span class="n">_df</span> <span class="o">=</span> <span class="n">DataFrame</span><span class="p">([[</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;objective_upper_bound&#39;</span><span class="p">],</span> <span class="n">row</span><span class="p">[</span><span class="s1">&#39;objective_lower_bound&#39;</span><span class="p">],</span> <span class="n">row</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_biomass</span><span class="o">.</span><span class="n">id</span><span class="p">],</span> <span class="s2">&quot;MT&quot;</span><span class="p">]],</span>
+                            <span class="n">columns</span><span class="o">=</span><span class="n">dataframe</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span>
+            <span class="n">dataframe</span> <span class="o">=</span> <span class="n">dataframe</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_df</span><span class="p">)</span>
+
+        <span class="n">plot</span> <span class="o">=</span> <span class="n">plotter</span><span class="o">.</span><span class="n">production_envelope</span><span class="p">(</span><span class="n">dataframe</span><span class="p">,</span> <span class="n">grid</span><span class="o">=</span><span class="n">grid</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="n">height</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="n">title</span><span class="p">,</span>
+                                           <span class="n">x_axis_label</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_biomass</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">y_axis_label</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_target</span><span class="p">,</span> <span class="n">palette</span><span class="o">=</span><span class="n">palette</span><span class="p">)</span>
+        <span class="n">plotter</span><span class="o">.</span><span class="n">display</span><span class="p">(</span><span class="n">plot</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">data_frame</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_processed_knockouts</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_process_knockouts</span><span class="p">()</span>
+        <span class="n">data_frame</span> <span class="o">=</span> <span class="n">DataFrame</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_processed_knockouts</span><span class="p">)</span>
+        <span class="n">data_frame</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s2">&quot;size&quot;</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">data_frame</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">data_frame</span><span class="p">))]</span>
+        <span class="k">return</span> <span class="n">data_frame</span>
+
+    <span class="k">def</span> <span class="nf">_repr_html_</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">html_string</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        &lt;h3&gt;OptKnock:&lt;/h3&gt;</span>
+<span class="s2">        &lt;ul&gt;</span>
+<span class="s2">            &lt;li&gt;Target: </span><span class="si">%s</span><span class="s2">&lt;/li&gt;</span>
+<span class="s2">        &lt;/ul&gt;</span>
+<span class="s2">        </span><span class="si">%s</span><span class="s2">&quot;&quot;&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_target</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_frame</span><span class="o">.</span><span class="n">_repr_html_</span><span class="p">())</span>
+        <span class="k">return</span> <span class="n">html_string</span>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../../../../index.html">
+    <img class="logo" src="../../../../_static/cameo_logo.png" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=biosustain&repo=cameo&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+    
+
+<p>
+<a class="badge" href="https://travis-ci.org/biosustain/cameo">
+    <img
+        alt="https://secure.travis-ci.org/biosustain/cameo.svg?branch=master"
+        src="https://secure.travis-ci.org/biosustain/cameo.svg?branch=master"
+    />
+</a>
+</p>
+
+
+
+
+    
+
+<p>
+<a class="badge" href="https://codecov.io/github/biosustain/cameo">
+    <img
+    alt="https://codecov.io/github/biosustain/cameo/coverage.svg?branch=master"
+    src="https://codecov.io/github/biosustain/cameo/coverage.svg?branch=master"
+    />
+</a>
+</p>
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials.html">Tutorials</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../development.html">Development</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../API.html">API Docs</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2014, Novo Nordisk Foundation Center for Biosustainability.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+    <a href="https://github.com/biosustain/cameo" class="github">
+        <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"  class="github"/>
+    </a>
+    
+
+    
+  </body>
+</html>

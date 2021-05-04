@@ -1,0 +1,315 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>cameo.io &#8212; cameo 0.13.0 documentation</title>
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+    <link rel="apple-touch-icon" href="../../_static/cameo_touch_icon.png" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for cameo.io</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2014 Novo Nordisk Foundation Center for Biosustainability, DTU.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span><span class="p">,</span> <span class="n">print_function</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">cPickle</span> <span class="k">as</span> <span class="nn">pickle</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">pickle</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">optlang</span>
+<span class="kn">from</span> <span class="nn">cobra.io</span> <span class="kn">import</span> <span class="n">read_sbml_model</span><span class="p">,</span> <span class="n">load_json_model</span>
+
+<span class="kn">from</span> <span class="nn">cobra</span> <span class="kn">import</span> <span class="n">Model</span>
+<span class="kn">from</span> <span class="nn">cameo.config</span> <span class="kn">import</span> <span class="n">solvers</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="load_model"><a class="viewcode-back" href="../../apidoc_output/cameo.html#cameo.io.load_model">[docs]</a><span class="k">def</span> <span class="nf">load_model</span><span class="p">(</span><span class="n">path_or_handle</span><span class="p">,</span> <span class="n">solver_interface</span><span class="o">=</span><span class="n">optlang</span><span class="p">,</span> <span class="n">sanitize</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Read a metabolic model .</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    path_or_handle : path, fhandle or name.</span>
+<span class="sd">        One of:</span>
+<span class="sd">            * file path of a model file;</span>
+<span class="sd">            * file handle to a SBML or pickled model; or</span>
+<span class="sd">            * the identifier of a model in a web database (optflux.org/models)</span>
+<span class="sd">    solver_interface : solver_interface, optional</span>
+<span class="sd">        E.g. optlang.glpk_interface or any other optlang interface.</span>
+<span class="sd">    sanitize : boolean, optional</span>
+<span class="sd">        If reaction and metabolite IDs should be sanitized (works only for SBML models).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">solver_interface</span> <span class="o">=</span> <span class="n">solvers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">solver_interface</span><span class="p">,</span> <span class="n">solver_interface</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">path_or_handle</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">path_or_handle</span><span class="p">):</span>
+        <span class="kn">from</span> <span class="nn">cameo.models.webmodels</span> <span class="kn">import</span> <span class="n">load_webmodel</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Given path is not a file. Trying to load from webmodels&quot;</span><span class="p">)</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">load_webmodel</span><span class="p">(</span><span class="n">path_or_handle</span><span class="p">,</span> <span class="n">solver_interface</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">path_or_handle</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="c1"># Open the given file</span>
+            <span class="n">path</span> <span class="o">=</span> <span class="n">path_or_handle</span>
+            <span class="n">handle</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">path_or_handle</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">path_or_handle</span><span class="p">,</span> <span class="s1">&#39;read&#39;</span><span class="p">):</span>
+            <span class="c1"># Argument is already an open file</span>
+            <span class="n">path</span> <span class="o">=</span> <span class="n">path_or_handle</span><span class="o">.</span><span class="n">name</span>
+            <span class="n">handle</span> <span class="o">=</span> <span class="n">path_or_handle</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Provided argument </span><span class="si">%s</span><span class="s1"> has to be either a string or a file handle&#39;</span> <span class="o">%</span> <span class="n">path_or_handle</span><span class="p">)</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">_load_model_from_file</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">handle</span><span class="p">)</span>  <span class="c1"># Parse model from the file</span>
+
+    <span class="k">if</span> <span class="n">sanitize</span><span class="p">:</span>
+        <span class="n">sanitize_ids</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">solver_interface</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">solver</span><span class="p">,</span> <span class="n">solver_interface</span><span class="o">.</span><span class="n">Model</span><span class="p">):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Changing solver interface to </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">solver_interface</span><span class="p">)</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">solver</span> <span class="o">=</span> <span class="n">solver_interface</span>
+
+    <span class="k">return</span> <span class="n">model</span></div>
+
+
+<span class="k">def</span> <span class="nf">_load_model_from_file</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">handle</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Try to parse a model from a file handle using different encodings.&quot;&quot;&quot;</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Reading file from </span><span class="si">%s</span><span class="s1"> assuming pickled model.&#39;</span> <span class="o">%</span> <span class="n">path</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">handle</span><span class="p">)</span>
+    <span class="k">except</span> <span class="p">(</span><span class="ne">TypeError</span><span class="p">,</span> <span class="n">pickle</span><span class="o">.</span><span class="n">UnpicklingError</span><span class="p">):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Cannot unpickle </span><span class="si">%s</span><span class="s1">. Assuming json model next.&#39;</span> <span class="o">%</span> <span class="n">path</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">model</span> <span class="o">=</span> <span class="n">load_json_model</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Cannot import </span><span class="si">%s</span><span class="s2"> as json model. Assuming sbml model next.&quot;</span> <span class="o">%</span> <span class="n">path</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">model</span> <span class="o">=</span> <span class="n">read_sbml_model</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">AttributeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;cobrapy doesn&#39;t raise a proper exception if a file does not contain an SBML model&quot;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="n">e</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                    <span class="s2">&quot;Looks like something blow up while trying to import </span><span class="si">{}</span><span class="s2"> as a SBML model.&quot;</span>
+                    <span class="s2">&quot;Try validating the model at http://sbml.org/Facilities/Validator/ to get more information.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="n">path</span><span class="p">))</span>
+                <span class="k">raise</span> <span class="n">e</span>
+    <span class="k">return</span> <span class="n">model</span>
+
+
+<span class="n">ID_SANITIZE_RULES_SIMPHENY</span> <span class="o">=</span> <span class="p">[(</span><span class="s1">&#39;_DASH_&#39;</span><span class="p">,</span> <span class="s1">&#39;-&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;_FSLASH_&#39;</span><span class="p">,</span> <span class="s1">&#39;/&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;_BSLASH_&#39;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\\</span><span class="s2">&quot;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;_LPAREN_&#39;</span><span class="p">,</span> <span class="s1">&#39;(&#39;</span><span class="p">),</span>
+                              <span class="p">(</span><span class="s1">&#39;_LSQBKT_&#39;</span><span class="p">,</span> <span class="s1">&#39;[&#39;</span><span class="p">),</span>
+                              <span class="p">(</span><span class="s1">&#39;_RSQBKT_&#39;</span><span class="p">,</span> <span class="s1">&#39;]&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;_RPAREN_&#39;</span><span class="p">,</span> <span class="s1">&#39;)&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;_COMMA_&#39;</span><span class="p">,</span> <span class="s1">&#39;,&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;_PERIOD_&#39;</span><span class="p">,</span> <span class="s1">&#39;.&#39;</span><span class="p">),</span>
+                              <span class="p">(</span><span class="s1">&#39;_APOS_&#39;</span><span class="p">,</span> <span class="s2">&quot;&#39;&quot;</span><span class="p">),</span>
+                              <span class="p">(</span><span class="s1">&#39;&amp;amp;&#39;</span><span class="p">,</span> <span class="s1">&#39;&amp;&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;&amp;lt;&#39;</span><span class="p">,</span> <span class="s1">&#39;&lt;&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;&amp;gt;&#39;</span><span class="p">,</span> <span class="s1">&#39;&gt;&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;&amp;quot;&#39;</span><span class="p">,</span> <span class="s1">&#39;&quot;&#39;</span><span class="p">)]</span>
+
+<span class="n">ID_SANITIZE_RULES_TAB_COMPLETION</span> <span class="o">=</span> <span class="p">[(</span><span class="s1">&#39;_DASH_&#39;</span><span class="p">,</span> <span class="s1">&#39;_dsh_&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;_FSLASH_&#39;</span><span class="p">,</span> <span class="s1">&#39;_fsh_&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;_BSLASH_&#39;</span><span class="p">,</span> <span class="s2">&quot;_bsh_&quot;</span><span class="p">),</span>
+                                    <span class="p">(</span><span class="s1">&#39;_LPAREN_&#39;</span><span class="p">,</span> <span class="s1">&#39;_lp_&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;_LSQBKT_&#39;</span><span class="p">,</span> <span class="s1">&#39;_lb_&#39;</span><span class="p">),</span>
+                                    <span class="p">(</span><span class="s1">&#39;_RSQBKT_&#39;</span><span class="p">,</span> <span class="s1">&#39;_rb_&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;_RPAREN_&#39;</span><span class="p">,</span> <span class="s1">&#39;_rp_&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;_COMMA_&#39;</span><span class="p">,</span> <span class="s1">&#39;_cm_&#39;</span><span class="p">),</span>
+                                    <span class="p">(</span><span class="s1">&#39;_PERIOD_&#39;</span><span class="p">,</span> <span class="s1">&#39;_prd_&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;_APOS_&#39;</span><span class="p">,</span> <span class="s2">&quot;_apo_&quot;</span><span class="p">),</span>
+                                    <span class="p">(</span><span class="s1">&#39;&amp;amp;&#39;</span><span class="p">,</span> <span class="s1">&#39;_amp_&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;&amp;lt;&#39;</span><span class="p">,</span> <span class="s1">&#39;_lt_&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;&amp;gt;&#39;</span><span class="p">,</span> <span class="s1">&#39;_gt_&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;&amp;quot;&#39;</span><span class="p">,</span> <span class="s1">&#39;_qot_&#39;</span><span class="p">)]</span>
+
+
+<span class="k">def</span> <span class="nf">_apply_sanitize_rules</span><span class="p">(</span><span class="nb">id</span><span class="p">,</span> <span class="n">rules</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">rule</span> <span class="ow">in</span> <span class="n">rules</span><span class="p">:</span>
+        <span class="nb">id</span> <span class="o">=</span> <span class="nb">id</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="o">*</span><span class="n">rule</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">id</span>
+
+
+<div class="viewcode-block" id="sanitize_ids"><a class="viewcode-back" href="../../apidoc_output/cameo.html#cameo.io.sanitize_ids">[docs]</a><span class="k">def</span> <span class="nf">sanitize_ids</span><span class="p">(</span><span class="n">model</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Makes IDs crippled by the XML specification less annoying.</span>
+
+<span class="sd">    For example, EX_glc_LPAREN_e_RPAREN_ will be converted to EX_glc_lp_e_rp_.</span>
+<span class="sd">    Furthermore, reactions and metabolites will be equipped with a nice_id attribute</span>
+<span class="sd">    that provides the original ID, i.e., EX_glc(d).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    model : model</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+
+<span class="sd">    Will add a nice_id attribute.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">for</span> <span class="n">metabolite</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">metabolites</span><span class="p">:</span>
+        <span class="n">met_id</span> <span class="o">=</span> <span class="n">metabolite</span><span class="o">.</span><span class="n">id</span>
+        <span class="n">metabolite</span><span class="o">.</span><span class="n">id</span> <span class="o">=</span> <span class="n">_apply_sanitize_rules</span><span class="p">(</span><span class="n">met_id</span><span class="p">,</span> <span class="n">ID_SANITIZE_RULES_TAB_COMPLETION</span><span class="p">)</span>
+        <span class="n">metabolite</span><span class="o">.</span><span class="n">nice_id</span> <span class="o">=</span> <span class="n">_apply_sanitize_rules</span><span class="p">(</span><span class="n">met_id</span><span class="p">,</span> <span class="n">ID_SANITIZE_RULES_SIMPHENY</span><span class="p">)</span>
+        <span class="n">metabolite</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">_apply_sanitize_rules</span><span class="p">(</span><span class="n">metabolite</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">ID_SANITIZE_RULES_SIMPHENY</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">reaction</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">reactions</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">Model</span><span class="p">):</span>
+            <span class="n">forward_variable</span> <span class="o">=</span> <span class="n">reaction</span><span class="o">.</span><span class="n">forward_variable</span>
+            <span class="n">reverse_variable</span> <span class="o">=</span> <span class="n">reaction</span><span class="o">.</span><span class="n">reverse_variable</span>
+        <span class="n">rxn_id</span> <span class="o">=</span> <span class="n">reaction</span><span class="o">.</span><span class="n">id</span>
+        <span class="n">reaction</span><span class="o">.</span><span class="n">id</span> <span class="o">=</span> <span class="n">_apply_sanitize_rules</span><span class="p">(</span><span class="n">rxn_id</span><span class="p">,</span> <span class="n">ID_SANITIZE_RULES_TAB_COMPLETION</span><span class="p">)</span>
+        <span class="n">reaction</span><span class="o">.</span><span class="n">nice_id</span> <span class="o">=</span> <span class="n">_apply_sanitize_rules</span><span class="p">(</span><span class="n">rxn_id</span><span class="p">,</span> <span class="n">ID_SANITIZE_RULES_SIMPHENY</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">reaction</span><span class="o">.</span><span class="n">name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">reaction</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">_apply_sanitize_rules</span><span class="p">(</span><span class="n">reaction</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">ID_SANITIZE_RULES_SIMPHENY</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">Model</span><span class="p">):</span>
+            <span class="n">forward_variable</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">reaction</span><span class="o">.</span><span class="n">id</span>
+            <span class="k">if</span> <span class="n">reverse_variable</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">reverse_variable</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">reaction</span><span class="o">.</span><span class="n">reverse_id</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">Model</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">constraint</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">solver</span><span class="o">.</span><span class="n">constraints</span><span class="p">:</span>
+            <span class="n">constraint</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">_apply_sanitize_rules</span><span class="p">(</span><span class="n">constraint</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">ID_SANITIZE_RULES_TAB_COMPLETION</span><span class="p">)</span>
+
+    <span class="n">model</span><span class="o">.</span><span class="n">repair</span><span class="p">()</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../../index.html">
+    <img class="logo" src="../../_static/cameo_logo.png" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=biosustain&repo=cameo&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+    
+
+<p>
+<a class="badge" href="https://travis-ci.org/biosustain/cameo">
+    <img
+        alt="https://secure.travis-ci.org/biosustain/cameo.svg?branch=master"
+        src="https://secure.travis-ci.org/biosustain/cameo.svg?branch=master"
+    />
+</a>
+</p>
+
+
+
+
+    
+
+<p>
+<a class="badge" href="https://codecov.io/github/biosustain/cameo">
+    <img
+    alt="https://codecov.io/github/biosustain/cameo/coverage.svg?branch=master"
+    src="https://codecov.io/github/biosustain/cameo/coverage.svg?branch=master"
+    />
+</a>
+</p>
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorials.html">Tutorials</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../development.html">Development</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../API.html">API Docs</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2014, Novo Nordisk Foundation Center for Biosustainability.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+    <a href="https://github.com/biosustain/cameo" class="github">
+        <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"  class="github"/>
+    </a>
+    
+
+    
+  </body>
+</html>

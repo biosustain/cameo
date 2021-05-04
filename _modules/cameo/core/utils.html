@@ -1,0 +1,284 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>cameo.core.utils &#8212; cameo 0.13.0 documentation</title>
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+    <link rel="apple-touch-icon" href="../../../_static/cameo_touch_icon.png" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for cameo.core.utils</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">csv</span>
+
+<span class="kn">from</span> <span class="nn">pandas</span> <span class="kn">import</span> <span class="n">DataFrame</span>
+
+
+<div class="viewcode-block" id="get_reaction_for"><a class="viewcode-back" href="../../../apidoc_output/cameo.core.html#cameo.core.utils.get_reaction_for">[docs]</a><span class="k">def</span> <span class="nf">get_reaction_for</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">add</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Get or create a reaction for a metabolite or a reaction.</span>
+
+<span class="sd">    If value is a Metabolite or a Metabolite id, return any already existing demand or exchange reaction.</span>
+<span class="sd">    If *add* is true, add a demand reaction if it does not already exist.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    model : cobra.Model</span>
+<span class="sd">        The model to for which to get / create a reaction</span>
+<span class="sd">    value: str, Reaction or Metabolite</span>
+<span class="sd">        A reaction identifier, a Reaction or a Metabolite for which an exchange reaction is to be created.</span>
+<span class="sd">    add: bool</span>
+<span class="sd">        Adds a demand reaction for a metabolite if a metabolite is found for *value*</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    Reaction</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    KeyError</span>
+<span class="sd">        If *value* does not match any Reaction or Metabolite</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">reactions</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">reactions</span><span class="o">.</span><span class="n">get_by_any</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+    <span class="k">except</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="ne">KeyError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">):</span>
+        <span class="n">metabolite</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">metabolites</span><span class="o">.</span><span class="n">get_by_any</span><span class="p">(</span><span class="n">value</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">reactions</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">reactions</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;^(EX|DM)_</span><span class="si">{}</span><span class="s2">$&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">metabolite</span><span class="o">.</span><span class="n">id</span><span class="p">))</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">reactions</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">add</span><span class="p">:</span>
+                <span class="n">reactions</span> <span class="o">=</span> <span class="p">[</span><span class="n">model</span><span class="o">.</span><span class="n">add_boundary</span><span class="p">(</span><span class="n">metabolite</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="s1">&#39;demand&#39;</span><span class="p">)]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s1">&#39;Invalid target </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">value</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">reactions</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="medium"><a class="viewcode-back" href="../../../apidoc_output/cameo.core.html#cameo.core.utils.medium">[docs]</a><span class="k">def</span> <span class="nf">medium</span><span class="p">(</span><span class="n">model</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Current medium for this model.&quot;&quot;&quot;</span>
+    <span class="n">reaction_ids</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">reaction_names</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">lower_bounds</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">upper_bounds</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">ex</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">boundary</span><span class="p">:</span>
+        <span class="n">metabolite</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">ex</span><span class="o">.</span><span class="n">metabolites</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">coeff</span> <span class="o">=</span> <span class="n">ex</span><span class="o">.</span><span class="n">metabolites</span><span class="p">[</span><span class="n">metabolite</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">coeff</span> <span class="o">*</span> <span class="n">ex</span><span class="o">.</span><span class="n">lower_bound</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">reaction_ids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ex</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+            <span class="n">reaction_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ex</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+            <span class="n">lower_bounds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ex</span><span class="o">.</span><span class="n">lower_bound</span><span class="p">)</span>
+            <span class="n">upper_bounds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ex</span><span class="o">.</span><span class="n">upper_bound</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">DataFrame</span><span class="p">({</span><span class="s1">&#39;reaction_id&#39;</span><span class="p">:</span> <span class="n">reaction_ids</span><span class="p">,</span>
+                      <span class="s1">&#39;reaction_name&#39;</span><span class="p">:</span> <span class="n">reaction_names</span><span class="p">,</span>
+                      <span class="s1">&#39;lower_bound&#39;</span><span class="p">:</span> <span class="n">lower_bounds</span><span class="p">,</span>
+                      <span class="s1">&#39;upper_bound&#39;</span><span class="p">:</span> <span class="n">upper_bounds</span><span class="p">},</span>
+                     <span class="n">index</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;reaction_id&#39;</span><span class="p">,</span> <span class="s1">&#39;reaction_name&#39;</span><span class="p">,</span> <span class="s1">&#39;lower_bound&#39;</span><span class="p">,</span> <span class="s1">&#39;upper_bound&#39;</span><span class="p">])</span></div>
+
+
+<div class="viewcode-block" id="load_medium"><a class="viewcode-back" href="../../../apidoc_output/cameo.core.html#cameo.core.utils.load_medium">[docs]</a><span class="k">def</span> <span class="nf">load_medium</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">medium_def</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Loads a medium into the model. If copy is true it will return</span>
+<span class="sd">    a copy of the model. Otherwise it applies the medium to itself.</span>
+<span class="sd">    Supported formats</span>
+<span class="sd">    TODO</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    model : cobra.Model</span>
+<span class="sd">        The model to load medium for</span>
+<span class="sd">    medium_def: str, pandas.DataFrame, dict.</span>
+<span class="sd">        The medium to load</span>
+<span class="sd">    copy: boolean, optional</span>
+<span class="sd">        If True copies the model, otherwise the changes will happen inplace.</span>
+<span class="sd">    delimiter: str</span>
+<span class="sd">        Only if loading the medium from a file.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    cobra.Model</span>
+<span class="sd">        If copy=True, returns a copy of the model.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">copy</span><span class="p">:</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">model</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">medium_def</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="n">_load_medium_from_dict</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">medium_def</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">medium_def</span><span class="p">,</span> <span class="n">DataFrame</span><span class="p">):</span>
+        <span class="n">_load_medium_from_dataframe</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">medium_def</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">medium_def</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">_load_medium_from_file</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">medium_def</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="n">delimiter</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="s2">&quot;input type (</span><span class="si">%s</span><span class="s2">) is not valid&quot;</span> <span class="o">%</span> <span class="nb">type</span><span class="p">(</span><span class="n">medium</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">model</span></div>
+
+
+<span class="k">def</span> <span class="nf">_load_medium_from_dict</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">medium_def</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">medium_def</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">ex_reaction</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">boundary</span><span class="p">:</span>
+        <span class="n">ex_reaction</span><span class="o">.</span><span class="n">lower_bound</span> <span class="o">=</span> <span class="n">medium_def</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">ex_reaction</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_load_medium_from_file</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">file_path</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">):</span>
+    <span class="n">this_medium</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">csv_file</span><span class="p">:</span>
+        <span class="n">reader</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">reader</span><span class="p">(</span><span class="n">csv_file</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="n">delimiter</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">reader</span><span class="p">:</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">reactions</span><span class="o">.</span><span class="n">get_by_id</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">this_medium</span><span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="n">_load_medium_from_dict</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">this_medium</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_load_medium_from_dataframe</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">medium_df</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">medium_df</span><span class="p">,</span> <span class="n">DataFrame</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">ex_reaction</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">boundary</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">ex_reaction</span><span class="o">.</span><span class="n">id</span> <span class="ow">in</span> <span class="n">medium_df</span><span class="o">.</span><span class="n">reaction_id</span><span class="o">.</span><span class="n">values</span><span class="p">:</span>
+            <span class="n">medium_row</span> <span class="o">=</span> <span class="n">medium_df</span><span class="p">[</span><span class="n">medium_df</span><span class="o">.</span><span class="n">reaction_id</span> <span class="o">==</span> <span class="n">ex_reaction</span><span class="o">.</span><span class="n">id</span><span class="p">]</span>
+            <span class="n">ex_reaction</span><span class="o">.</span><span class="n">lower_bound</span> <span class="o">=</span> <span class="n">medium_row</span><span class="o">.</span><span class="n">lower_bound</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ex_reaction</span><span class="o">.</span><span class="n">lower_bound</span> <span class="o">=</span> <span class="mi">0</span>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../../../index.html">
+    <img class="logo" src="../../../_static/cameo_logo.png" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=biosustain&repo=cameo&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+    
+
+<p>
+<a class="badge" href="https://travis-ci.org/biosustain/cameo">
+    <img
+        alt="https://secure.travis-ci.org/biosustain/cameo.svg?branch=master"
+        src="https://secure.travis-ci.org/biosustain/cameo.svg?branch=master"
+    />
+</a>
+</p>
+
+
+
+
+    
+
+<p>
+<a class="badge" href="https://codecov.io/github/biosustain/cameo">
+    <img
+    alt="https://codecov.io/github/biosustain/cameo/coverage.svg?branch=master"
+    src="https://codecov.io/github/biosustain/cameo/coverage.svg?branch=master"
+    />
+</a>
+</p>
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development.html">Development</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../API.html">API Docs</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2014, Novo Nordisk Foundation Center for Biosustainability.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+    <a href="https://github.com/biosustain/cameo" class="github">
+        <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"  class="github"/>
+    </a>
+    
+
+    
+  </body>
+</html>

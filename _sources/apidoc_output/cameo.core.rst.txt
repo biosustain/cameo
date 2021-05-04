@@ -1,0 +1,69 @@
+cameo.core package
+==================
+
+Submodules
+----------
+
+cameo.core.manipulation module
+------------------------------
+
+.. automodule:: cameo.core.manipulation
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cameo.core.model\_dual module
+-----------------------------
+
+.. automodule:: cameo.core.model_dual
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cameo.core.pathway module
+-------------------------
+
+.. automodule:: cameo.core.pathway
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cameo.core.result module
+------------------------
+
+.. automodule:: cameo.core.result
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cameo.core.strain\_design module
+--------------------------------
+
+.. automodule:: cameo.core.strain_design
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cameo.core.target module
+------------------------
+
+.. automodule:: cameo.core.target
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cameo.core.utils module
+-----------------------
+
+.. automodule:: cameo.core.utils
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: cameo.core
+   :members:
+   :undoc-members:
+   :show-inheritance:

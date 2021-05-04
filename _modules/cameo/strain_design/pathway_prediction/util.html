@@ -1,0 +1,231 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>cameo.strain_design.pathway_prediction.util &#8212; cameo 0.13.0 documentation</title>
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script src="../../../../_static/jquery.js"></script>
+    <script src="../../../../_static/underscore.js"></script>
+    <script src="../../../../_static/doctools.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+  
+    <link rel="apple-touch-icon" href="../../../../_static/cameo_touch_icon.png" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for cameo.strain_design.pathway_prediction.util</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2015 Novo Nordisk Foundation Center for Biosustainability, DTU.</span>
+
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+
+<span class="c1"># http://www.apache.org/licenses/LICENSE-2.0</span>
+
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span><span class="p">,</span> <span class="n">print_function</span>
+<span class="kn">import</span> <span class="nn">re</span>
+
+<span class="kn">from</span> <span class="nn">cobra</span> <span class="kn">import</span> <span class="n">Reaction</span>
+<span class="kn">from</span> <span class="nn">cameo.ui</span> <span class="kn">import</span> <span class="n">notice</span>
+<span class="kn">from</span> <span class="nn">cameo.util</span> <span class="kn">import</span> <span class="n">in_ipnb</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">IPython.display</span> <span class="kn">import</span> <span class="n">display</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="k">pass</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;create_adapter_reactions&#39;</span><span class="p">,</span> <span class="s1">&#39;display_pathway&#39;</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="create_adapter_reactions"><a class="viewcode-back" href="../../../../apidoc_output/cameo.strain_design.pathway_prediction.html#cameo.strain_design.pathway_prediction.util.create_adapter_reactions">[docs]</a><span class="k">def</span> <span class="nf">create_adapter_reactions</span><span class="p">(</span><span class="n">original_metabolites</span><span class="p">,</span> <span class="n">universal_model</span><span class="p">,</span> <span class="n">mapping</span><span class="p">,</span> <span class="n">compartment_regexp</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Create adapter reactions that connect host and universal model.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    original_metabolites : list</span>
+<span class="sd">        List of host metabolites.</span>
+<span class="sd">    universal_model : cobra.Model</span>
+<span class="sd">        The universal model.</span>
+<span class="sd">    mapping : dict</span>
+<span class="sd">        A mapping between between host and universal model metabolite IDs.</span>
+<span class="sd">    compartment_regexp : regex</span>
+<span class="sd">        A compiled regex that matches metabolites that should be connected to the universal model.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    list</span>
+<span class="sd">        The list of adapter reactions.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">adapter_reactions</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">metabolites_in_main_compartment</span> <span class="o">=</span> <span class="p">[</span><span class="n">m</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">original_metabolites</span> <span class="k">if</span> <span class="n">compartment_regexp</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">compartment</span><span class="p">)]</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">metabolites_in_main_compartment</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;no metabolites matching regex for main compartment </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">compartment_regexp</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">metabolite</span> <span class="ow">in</span> <span class="n">metabolites_in_main_compartment</span><span class="p">:</span>  <span class="c1"># model is the original host model</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s1">&#39;_</span><span class="si">{}</span><span class="s1">$&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">metabolite</span><span class="o">.</span><span class="n">compartment</span><span class="p">),</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">metabolite</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>  <span class="c1"># TODO: still a hack</span>
+        <span class="n">mapped_name</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">for</span> <span class="n">prefix</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;bigg:&#39;</span><span class="p">,</span> <span class="s1">&#39;kegg:&#39;</span><span class="p">,</span> <span class="s1">&#39;rhea:&#39;</span><span class="p">,</span> <span class="s1">&#39;brenda:&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">]:</span>  <span class="c1"># try no prefix at last</span>
+            <span class="k">if</span> <span class="n">prefix</span> <span class="o">+</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">mapping</span><span class="p">:</span>
+                <span class="n">mapped_name</span> <span class="o">=</span> <span class="n">mapping</span><span class="p">[</span><span class="n">prefix</span> <span class="o">+</span> <span class="n">name</span><span class="p">]</span>
+                <span class="k">break</span>
+        <span class="k">if</span> <span class="n">mapped_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">adapter_reaction</span> <span class="o">=</span> <span class="n">Reaction</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="s1">&#39;adapter_&#39;</span> <span class="o">+</span> <span class="n">metabolite</span><span class="o">.</span><span class="n">id</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="n">mapped_name</span><span class="p">))</span>
+            <span class="n">adapter_reaction</span><span class="o">.</span><span class="n">lower_bound</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1000</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">adapter_reaction</span><span class="o">.</span><span class="n">add_metabolites</span><span class="p">({</span><span class="n">metabolite</span><span class="p">:</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+                                                  <span class="n">universal_model</span><span class="o">.</span><span class="n">metabolites</span><span class="o">.</span><span class="n">get_by_id</span><span class="p">(</span><span class="n">mapped_name</span><span class="p">):</span> <span class="mi">1</span><span class="p">})</span>
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">adapter_reactions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">adapter_reaction</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">adapter_reactions</span></div>
+
+
+<div class="viewcode-block" id="display_pathway"><a class="viewcode-back" href="../../../../apidoc_output/cameo.strain_design.pathway_prediction.html#cameo.strain_design.pathway_prediction.util.display_pathway">[docs]</a><span class="k">def</span> <span class="nf">display_pathway</span><span class="p">(</span><span class="n">pathway</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+    <span class="n">notice</span><span class="p">(</span><span class="s2">&quot;Pathway </span><span class="si">%i</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">i</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">in_ipnb</span><span class="p">():</span>
+        <span class="n">display</span><span class="p">(</span><span class="n">pathway</span><span class="o">.</span><span class="n">data_frame</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">pathway</span><span class="o">.</span><span class="n">data_frame</span><span class="p">)</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../../../../index.html">
+    <img class="logo" src="../../../../_static/cameo_logo.png" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=biosustain&repo=cameo&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+    
+
+<p>
+<a class="badge" href="https://travis-ci.org/biosustain/cameo">
+    <img
+        alt="https://secure.travis-ci.org/biosustain/cameo.svg?branch=master"
+        src="https://secure.travis-ci.org/biosustain/cameo.svg?branch=master"
+    />
+</a>
+</p>
+
+
+
+
+    
+
+<p>
+<a class="badge" href="https://codecov.io/github/biosustain/cameo">
+    <img
+    alt="https://codecov.io/github/biosustain/cameo/coverage.svg?branch=master"
+    src="https://codecov.io/github/biosustain/cameo/coverage.svg?branch=master"
+    />
+</a>
+</p>
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials.html">Tutorials</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../development.html">Development</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../API.html">API Docs</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2014, Novo Nordisk Foundation Center for Biosustainability.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+    <a href="https://github.com/biosustain/cameo" class="github">
+        <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"  class="github"/>
+    </a>
+    
+
+    
+  </body>
+</html>

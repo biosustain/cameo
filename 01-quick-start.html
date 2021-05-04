@@ -1,0 +1,1199 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Getting started with cameo &#8212; cameo 0.13.0 documentation</title>
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+    <link rel="apple-touch-icon" href="_static/cameo_touch_icon.png" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="getting-started-with-cameo">
+<h1>Getting started with cameo<a class="headerlink" href="#getting-started-with-cameo" title="Permalink to this headline">¶</a></h1>
+<p><strong>cameo</strong> reuses and extends model data structures defined by
+<a class="reference external" href="https://opencobra.github.io/cobrapy/">cobrapy</a>
+(<strong>CO</strong>nstraints-<strong>B</strong>ased <strong>R</strong>econstruction and <strong>A</strong>nalysis
+tool for <strong>Py</strong>thon). So, in addition to following this quick start
+guide and other <strong>cameo</strong> tutorials, we encourage you to explore
+cobrapy’s
+<a class="reference external" href="https://cobrapy.readthedocs.org/en/latest/cobra.core.html">documentation</a>
+as well.</p>
+<div class="section" id="step-1-load-a-model">
+<h2>Step 1: Load a model<a class="headerlink" href="#step-1-load-a-model" title="Permalink to this headline">¶</a></h2>
+<p>Loading a model is easy. Just import the <code class="xref any docutils literal notranslate"><span class="pre">~cameo.io.load_model</span></code>
+function.</p>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">cameo</span> <span class="kn">import</span> <span class="n">load_model</span>
+</pre></div>
+</div>
+<p>For example, load a genome-scale metabolic reconstruction of
+<em>Escherichia coli</em>.</p>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="n">load_model</span><span class="p">(</span><span class="s2">&quot;iJO1366&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Models, reactions, metabolites, etc., return HTML when evaluated in
+Jupyter notebooks and can be easily inspected.</p>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">model</span>
+</pre></div>
+</div>
+<table>
+    <tr>
+        <td><strong>Name</strong></td>
+        <td>iJO1366</td>
+    </tr><tr>
+        <td><strong>Memory address</strong></td>
+        <td>0x01120756d8</td>
+    </tr><tr>
+        <td><strong>Number of metabolites</strong></td>
+        <td>1805</td>
+    </tr><tr>
+        <td><strong>Number of reactions</strong></td>
+        <td>2583</td>
+    </tr><tr>
+        <td><strong>Objective expression</strong></td>
+        <td>-1.0*BIOMASS_Ec_iJO1366_core_53p95M_reverse_5c8b1 + 1.0*BIOMASS_Ec_iJO1366_core_53p95M</td>
+    </tr><tr>
+        <td><strong>Compartments</strong></td>
+        <td>extracellular space, cytosol, periplasm</td>
+    </tr>
+  </table></div>
+<div class="section" id="step-2-simulate-a-model">
+<h2>Step 2: Simulate a model<a class="headerlink" href="#step-2-simulate-a-model" title="Permalink to this headline">¶</a></h2>
+<p>The model can be simulated by executing <code class="xref any docutils literal notranslate"><span class="pre">optimize</span></code>.</p>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">solution</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">optimize</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>A quick overview of the solution can be obtained in inspecting it.</p>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">solution</span>
+</pre></div>
+</div>
+<strong><em>Optimal</em> solution with objective value 0.982</strong><br><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>fluxes</th>
+      <th>reduced_costs</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>12DGR120tipp</th>
+      <td>0.000000</td>
+      <td>0.000000</td>
+    </tr>
+    <tr>
+      <th>12DGR140tipp</th>
+      <td>0.000000</td>
+      <td>0.000000</td>
+    </tr>
+    <tr>
+      <th>12DGR141tipp</th>
+      <td>0.000000</td>
+      <td>0.000000</td>
+    </tr>
+    <tr>
+      <th>12DGR160tipp</th>
+      <td>0.000000</td>
+      <td>0.000000</td>
+    </tr>
+    <tr>
+      <th>12DGR161tipp</th>
+      <td>0.000000</td>
+      <td>-0.008295</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>ZN2abcpp</th>
+      <td>0.000000</td>
+      <td>-0.008295</td>
+    </tr>
+    <tr>
+      <th>ZN2t3pp</th>
+      <td>0.000000</td>
+      <td>-0.002074</td>
+    </tr>
+    <tr>
+      <th>ZN2tpp</th>
+      <td>0.000335</td>
+      <td>0.000000</td>
+    </tr>
+    <tr>
+      <th>ZNabcpp</th>
+      <td>0.000000</td>
+      <td>-0.008295</td>
+    </tr>
+    <tr>
+      <th>Zn2tex</th>
+      <td>0.000335</td>
+      <td>-0.000000</td>
+    </tr>
+  </tbody>
+</table>
+<p>2583 rows × 2 columns</p>
+</div><p>A data frame representation of the solution is accessible via
+<code class="xref any docutils literal notranslate"><span class="pre">solution.to_frame()</span></code>.</p>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">solution</span><span class="o">.</span><span class="n">to_frame</span><span class="p">()</span>
+</pre></div>
+</div>
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>fluxes</th>
+      <th>reduced_costs</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>12DGR120tipp</th>
+      <td>0.000000</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>12DGR140tipp</th>
+      <td>0.000000</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>12DGR141tipp</th>
+      <td>0.000000</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>12DGR160tipp</th>
+      <td>0.000000</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>12DGR161tipp</th>
+      <td>0.000000</td>
+      <td>-8.295308e-03</td>
+    </tr>
+    <tr>
+      <th>12DGR180tipp</th>
+      <td>0.000000</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>12DGR181tipp</th>
+      <td>0.000000</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>12PPDRtex</th>
+      <td>0.000000</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>12PPDRtpp</th>
+      <td>0.000000</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>12PPDStex</th>
+      <td>0.000000</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>12PPDStpp</th>
+      <td>0.000000</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>14GLUCANabcpp</th>
+      <td>0.000000</td>
+      <td>-5.551115e-17</td>
+    </tr>
+    <tr>
+      <th>14GLUCANtexi</th>
+      <td>0.000000</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>23CAMPtex</th>
+      <td>0.000000</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>23CCMPtex</th>
+      <td>0.000000</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>23CGMPtex</th>
+      <td>0.000000</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>23CUMPtex</th>
+      <td>0.000000</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>23DAPPAt2pp</th>
+      <td>0.000000</td>
+      <td>1.517883e-18</td>
+    </tr>
+    <tr>
+      <th>23DAPPAtex</th>
+      <td>0.000000</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>23PDE2pp</th>
+      <td>0.000000</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>23PDE4pp</th>
+      <td>0.000000</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>23PDE7pp</th>
+      <td>0.000000</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>23PDE9pp</th>
+      <td>0.000000</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>26DAHtex</th>
+      <td>0.000000</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>2AGPA120tipp</th>
+      <td>0.000000</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>2AGPA140tipp</th>
+      <td>0.000000</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>2AGPA141tipp</th>
+      <td>0.000000</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>2AGPA160tipp</th>
+      <td>0.000000</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>2AGPA161tipp</th>
+      <td>0.000000</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>2AGPA180tipp</th>
+      <td>0.000000</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>VALTRS</th>
+      <td>0.000000</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>VALabcpp</th>
+      <td>0.000000</td>
+      <td>-6.221481e-03</td>
+    </tr>
+    <tr>
+      <th>VALt2rpp</th>
+      <td>0.000000</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>VALtex</th>
+      <td>0.000000</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>VPAMTr</th>
+      <td>0.000000</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>WCOS</th>
+      <td>0.000000</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>X5PL3E</th>
+      <td>0.000000</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>XAND</th>
+      <td>0.000000</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>XANt2pp</th>
+      <td>0.000000</td>
+      <td>-2.073827e-03</td>
+    </tr>
+    <tr>
+      <th>XANtex</th>
+      <td>0.000000</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>XANtpp</th>
+      <td>0.000000</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>XMPtex</th>
+      <td>0.000000</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>XPPT</th>
+      <td>0.000000</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>XTSNH</th>
+      <td>0.000000</td>
+      <td>-8.295308e-03</td>
+    </tr>
+    <tr>
+      <th>XTSNt2rpp</th>
+      <td>0.000000</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>XTSNtex</th>
+      <td>0.000000</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>XYLI1</th>
+      <td>0.000000</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>XYLI2</th>
+      <td>0.000000</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>XYLK</th>
+      <td>0.000000</td>
+      <td>-1.387779e-17</td>
+    </tr>
+    <tr>
+      <th>XYLK2</th>
+      <td>0.000000</td>
+      <td>-1.387779e-17</td>
+    </tr>
+    <tr>
+      <th>XYLUt2pp</th>
+      <td>0.000000</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>XYLUtex</th>
+      <td>0.000000</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>XYLabcpp</th>
+      <td>0.000000</td>
+      <td>-6.221481e-03</td>
+    </tr>
+    <tr>
+      <th>XYLt2pp</th>
+      <td>0.000000</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>XYLtex</th>
+      <td>0.000000</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>ZN2abcpp</th>
+      <td>0.000000</td>
+      <td>-8.295308e-03</td>
+    </tr>
+    <tr>
+      <th>ZN2t3pp</th>
+      <td>0.000000</td>
+      <td>-2.073827e-03</td>
+    </tr>
+    <tr>
+      <th>ZN2tpp</th>
+      <td>0.000335</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>ZNabcpp</th>
+      <td>0.000000</td>
+      <td>-8.295308e-03</td>
+    </tr>
+    <tr>
+      <th>Zn2tex</th>
+      <td>0.000335</td>
+      <td>-0.000000e+00</td>
+    </tr>
+  </tbody>
+</table>
+<p>2583 rows × 2 columns</p>
+</div><p>Data frames make it very easy to process results. For example, let’s
+take a look at reactions with flux != 0</p>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">solution</span><span class="o">.</span><span class="n">to_frame</span><span class="p">()</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s1">&#39;fluxes != 0&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>fluxes</th>
+      <th>reduced_costs</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>3OAR140</th>
+      <td>0.076452</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>3OAS140</th>
+      <td>0.076452</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>5DOAN</th>
+      <td>0.000221</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>A5PISO</th>
+      <td>0.038226</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>AACPS3</th>
+      <td>0.125378</td>
+      <td>-1.387779e-16</td>
+    </tr>
+    <tr>
+      <th>AACPS4</th>
+      <td>0.147776</td>
+      <td>-2.775558e-17</td>
+    </tr>
+    <tr>
+      <th>AACPS7</th>
+      <td>0.076452</td>
+      <td>-2.775558e-17</td>
+    </tr>
+    <tr>
+      <th>ACACT1r</th>
+      <td>0.349606</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>ACACT2r</th>
+      <td>0.349606</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>ACACT3r</th>
+      <td>0.349606</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>ACACT4r</th>
+      <td>0.349606</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>ACACT5r</th>
+      <td>0.349606</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>ACACT6r</th>
+      <td>0.273154</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>ACACT7r</th>
+      <td>0.273154</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>ACCOAC</th>
+      <td>0.076458</td>
+      <td>-7.090682e-17</td>
+    </tr>
+    <tr>
+      <th>ACGK</th>
+      <td>0.290578</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>ACGS</th>
+      <td>0.290578</td>
+      <td>2.927346e-17</td>
+    </tr>
+    <tr>
+      <th>ACHBS</th>
+      <td>0.285408</td>
+      <td>-6.938894e-18</td>
+    </tr>
+    <tr>
+      <th>ACLS</th>
+      <td>0.858857</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>ACOAD1f</th>
+      <td>-0.349606</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>ACOAD2f</th>
+      <td>-0.349606</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>ACOAD3f</th>
+      <td>-0.349606</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>ACOAD4f</th>
+      <td>-0.349606</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>ACOAD5f</th>
+      <td>-0.349606</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>ACOAD6f</th>
+      <td>-0.273154</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>ACOAD7f</th>
+      <td>-0.125378</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>ACODA</th>
+      <td>0.290578</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>ACONTa</th>
+      <td>4.857777</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>ACONTb</th>
+      <td>4.857777</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>ACOTA</th>
+      <td>-0.290578</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>TMDS</th>
+      <td>0.025705</td>
+      <td>-5.551115e-17</td>
+    </tr>
+    <tr>
+      <th>TMPK</th>
+      <td>0.000219</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>TMPPP</th>
+      <td>0.000219</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>TPI</th>
+      <td>7.645371</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>TRDR</th>
+      <td>0.243502</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>TRPAS2</th>
+      <td>-0.055841</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>TRPS3</th>
+      <td>0.055841</td>
+      <td>2.775558e-17</td>
+    </tr>
+    <tr>
+      <th>TYRL</th>
+      <td>0.000219</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>TYRTA</th>
+      <td>-0.135684</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>U23GAAT</th>
+      <td>0.038226</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>UAAGDS</th>
+      <td>0.027298</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>UAGAAT</th>
+      <td>0.038226</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>UAGCVT</th>
+      <td>0.027298</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>UAGDP</th>
+      <td>0.092822</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>UAGPT3</th>
+      <td>0.027298</td>
+      <td>-5.551115e-17</td>
+    </tr>
+    <tr>
+      <th>UAMAGS</th>
+      <td>0.027298</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>UAMAS</th>
+      <td>0.027298</td>
+      <td>5.551115e-17</td>
+    </tr>
+    <tr>
+      <th>UAPGR</th>
+      <td>0.027298</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>UDCPDP</th>
+      <td>0.027298</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>UDCPDPS</th>
+      <td>0.000054</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>UGMDDS</th>
+      <td>0.027298</td>
+      <td>1.110223e-16</td>
+    </tr>
+    <tr>
+      <th>UHGADA</th>
+      <td>0.038226</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>UMPK</th>
+      <td>0.371375</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>UPP3MT</th>
+      <td>0.000219</td>
+      <td>1.110223e-16</td>
+    </tr>
+    <tr>
+      <th>UPP3S</th>
+      <td>0.000438</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>UPPDC1</th>
+      <td>0.000219</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>USHD</th>
+      <td>0.019113</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>VALTA</th>
+      <td>-0.415702</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>ZN2tpp</th>
+      <td>0.000335</td>
+      <td>0.000000e+00</td>
+    </tr>
+    <tr>
+      <th>Zn2tex</th>
+      <td>0.000335</td>
+      <td>-0.000000e+00</td>
+    </tr>
+  </tbody>
+</table>
+<p>436 rows × 2 columns</p>
+</div></div>
+<div class="section" id="step-3-exploring-a-model">
+<h2>Step 3: Exploring a model<a class="headerlink" href="#step-3-exploring-a-model" title="Permalink to this headline">¶</a></h2>
+<p>Objects—models, reactions, metabolites, genes—can easily be explored in
+the Jupyter notebook, taking advantage of tab completion. For example,
+place your cursor after the period in <code class="xref any docutils literal notranslate"><span class="pre">model.reactions.</span></code> and press the
+TAB key. A dialog will appear that allows you to navigate the list of
+reactions encoded in the model.</p>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">model</span><span class="o">.</span><span class="n">reactions</span><span class="o">.</span><span class="n">PGK</span> <span class="c1"># delete PGK, place your cursor after the period and press the TAB key.</span>
+</pre></div>
+</div>
+<table>
+    <tr>
+        <td><strong>Reaction identifier</strong></td><td>PGK</td>
+    </tr><tr>
+        <td><strong>Name</strong></td><td>Phosphoglycerate kinase</td>
+    </tr><tr>
+        <td><strong>Memory address</strong></td>
+        <td>0x01129829b0</td>
+    </tr><tr>
+        <td><strong>Stoichiometry</strong></td>
+        <td>
+            <p style='text-align:right'>3pg_c + atp_c <=> 13dpg_c + adp_c</p>
+            <p style='text-align:right'>3-Phospho-D-glycerate + ATP C10H12N5O13P3 <=> 3-Phospho-D-glyceroyl phosphate + ADP C10H12N5O10P2</p>
+        </td>
+    </tr><tr>
+        <td><strong>GPR</strong></td><td>b2926</td>
+    </tr><tr>
+        <td><strong>Lower bound</strong></td><td>-1000.0</td>
+    </tr><tr>
+        <td><strong>Upper bound</strong></td><td>1000.0</td>
+    </tr>
+</table><p>For example, you can access the E4PD (<em>Erythrose 4-phosphate
+dehydrogenase</em>) reaction in the model.</p>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">model</span><span class="o">.</span><span class="n">reactions</span><span class="o">.</span><span class="n">E4PD</span>
+</pre></div>
+</div>
+<table>
+    <tr>
+        <td><strong>Reaction identifier</strong></td><td>E4PD</td>
+    </tr><tr>
+        <td><strong>Name</strong></td><td>Erythrose 4-phosphate dehydrogenase</td>
+    </tr><tr>
+        <td><strong>Memory address</strong></td>
+        <td>0x0112606160</td>
+    </tr><tr>
+        <td><strong>Stoichiometry</strong></td>
+        <td>
+            <p style='text-align:right'>e4p_c + h2o_c + nad_c <=> 4per_c + 2.0 h_c + nadh_c</p>
+            <p style='text-align:right'>D-Erythrose 4-phosphate + H2O H2O + Nicotinamide adenine dinucleotide <=> 4-Phospho-D-erythronate + 2.0 H+ + Nicotinamide adenine dinucleotide - reduced</p>
+        </td>
+    </tr><tr>
+        <td><strong>GPR</strong></td><td>b2927 or b1779</td>
+    </tr><tr>
+        <td><strong>Lower bound</strong></td><td>-1000.0</td>
+    </tr><tr>
+        <td><strong>Upper bound</strong></td><td>1000.0</td>
+    </tr>
+</table><p>Be aware that, due to variable naming restrictions in Python, dot
+notation access to reactions (and other objects) might not work in some
+cases.</p>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># model.reactions.12DGR120tipp  # uncommenting and running this cell will produce a syntax error</span>
+</pre></div>
+</div>
+<p>In those cases you need to use the <code class="xref any docutils literal notranslate"><span class="pre">model.reactions.get_by_id</span></code>.</p>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">model</span><span class="o">.</span><span class="n">reactions</span><span class="o">.</span><span class="n">get_by_id</span><span class="p">(</span><span class="s1">&#39;12DGR120tipp&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<table>
+    <tr>
+        <td><strong>Reaction identifier</strong></td><td>12DGR120tipp</td>
+    </tr><tr>
+        <td><strong>Name</strong></td><td>1,2 diacylglycerol transport via flipping (periplasm to cytoplasm, n-C12:0)</td>
+    </tr><tr>
+        <td><strong>Memory address</strong></td>
+        <td>0x0112506ba8</td>
+    </tr><tr>
+        <td><strong>Stoichiometry</strong></td>
+        <td>
+            <p style='text-align:right'>12dgr120_p --> 12dgr120_c</p>
+            <p style='text-align:right'>1,2-Diacyl-sn-glycerol (didodecanoyl, n-C12:0) --> 1,2-Diacyl-sn-glycerol (didodecanoyl, n-C12:0)</p>
+        </td>
+    </tr><tr>
+        <td><strong>GPR</strong></td><td></td>
+    </tr><tr>
+        <td><strong>Lower bound</strong></td><td>0.0</td>
+    </tr><tr>
+        <td><strong>Upper bound</strong></td><td>1000.0</td>
+    </tr>
+</table><p>Metabolites are accessible through <code class="xref any docutils literal notranslate"><span class="pre">model.metabolites</span></code>. For example,
+D-glucose in the cytosol compartment.</p>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">model</span><span class="o">.</span><span class="n">metabolites</span><span class="o">.</span><span class="n">glc__D_c</span>
+</pre></div>
+</div>
+<table>
+    <tr>
+        <td><strong>Metabolite identifier</strong></td><td>glc__D_c</td>
+    </tr><tr>
+        <td><strong>Name</strong></td><td>D-Glucose</td>
+    </tr><tr>
+        <td><strong>Memory address</strong></td>
+        <td>0x01120db4a8</td>
+    </tr><tr>
+        <td><strong>Formula</strong></td><td>C6H12O6</td>
+    </tr><tr>
+        <td><strong>Compartment</strong></td><td>c</td>
+    </tr><tr>
+        <td><strong>In 19 reaction(s)</strong></td><td>
+            GLCt2pp, GLCATr, TRE6PH, MLTG2, G6PP, LACZ, MLTG3, AMALT1, HEX1, XYLI2, MLTG4, GALS3, GLCabcpp, AMALT2, MLTG5, AMALT3, AMALT4, TREH, MLTG1</td>
+    </tr>
+</table><p>And it is easy to find the associated reactions</p>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">model</span><span class="o">.</span><span class="n">metabolites</span><span class="o">.</span><span class="n">glc__D_c</span><span class="o">.</span><span class="n">reactions</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nb">frozenset</span><span class="p">({</span><span class="o">&lt;</span><span class="n">Reaction</span> <span class="n">AMALT1</span> <span class="n">at</span> <span class="mh">0x11257a978</span><span class="o">&gt;</span><span class="p">,</span>
+           <span class="o">&lt;</span><span class="n">Reaction</span> <span class="n">AMALT2</span> <span class="n">at</span> <span class="mh">0x11257aa58</span><span class="o">&gt;</span><span class="p">,</span>
+           <span class="o">&lt;</span><span class="n">Reaction</span> <span class="n">AMALT3</span> <span class="n">at</span> <span class="mh">0x11257aa90</span><span class="o">&gt;</span><span class="p">,</span>
+           <span class="o">&lt;</span><span class="n">Reaction</span> <span class="n">AMALT4</span> <span class="n">at</span> <span class="mh">0x11257ab00</span><span class="o">&gt;</span><span class="p">,</span>
+           <span class="o">&lt;</span><span class="n">Reaction</span> <span class="n">G6PP</span> <span class="n">at</span> <span class="mh">0x112671940</span><span class="o">&gt;</span><span class="p">,</span>
+           <span class="o">&lt;</span><span class="n">Reaction</span> <span class="n">GALS3</span> <span class="n">at</span> <span class="mh">0x112679630</span><span class="o">&gt;</span><span class="p">,</span>
+           <span class="o">&lt;</span><span class="n">Reaction</span> <span class="n">GLCATr</span> <span class="n">at</span> <span class="mh">0x1126864e0</span><span class="o">&gt;</span><span class="p">,</span>
+           <span class="o">&lt;</span><span class="n">Reaction</span> <span class="n">GLCabcpp</span> <span class="n">at</span> <span class="mh">0x11268d240</span><span class="o">&gt;</span><span class="p">,</span>
+           <span class="o">&lt;</span><span class="n">Reaction</span> <span class="n">GLCt2pp</span> <span class="n">at</span> <span class="mh">0x11268d438</span><span class="o">&gt;</span><span class="p">,</span>
+           <span class="o">&lt;</span><span class="n">Reaction</span> <span class="n">HEX1</span> <span class="n">at</span> <span class="mh">0x1126bf588</span><span class="o">&gt;</span><span class="p">,</span>
+           <span class="o">&lt;</span><span class="n">Reaction</span> <span class="n">LACZ</span> <span class="n">at</span> <span class="mh">0x1126e2940</span><span class="o">&gt;</span><span class="p">,</span>
+           <span class="o">&lt;</span><span class="n">Reaction</span> <span class="n">MLTG1</span> <span class="n">at</span> <span class="mh">0x1129253c8</span><span class="o">&gt;</span><span class="p">,</span>
+           <span class="o">&lt;</span><span class="n">Reaction</span> <span class="n">MLTG2</span> <span class="n">at</span> <span class="mh">0x112925518</span><span class="o">&gt;</span><span class="p">,</span>
+           <span class="o">&lt;</span><span class="n">Reaction</span> <span class="n">MLTG3</span> <span class="n">at</span> <span class="mh">0x112925550</span><span class="o">&gt;</span><span class="p">,</span>
+           <span class="o">&lt;</span><span class="n">Reaction</span> <span class="n">MLTG4</span> <span class="n">at</span> <span class="mh">0x1129255c0</span><span class="o">&gt;</span><span class="p">,</span>
+           <span class="o">&lt;</span><span class="n">Reaction</span> <span class="n">MLTG5</span> <span class="n">at</span> <span class="mh">0x112925630</span><span class="o">&gt;</span><span class="p">,</span>
+           <span class="o">&lt;</span><span class="n">Reaction</span> <span class="n">TRE6PH</span> <span class="n">at</span> <span class="mh">0x112a0b4e0</span><span class="o">&gt;</span><span class="p">,</span>
+           <span class="o">&lt;</span><span class="n">Reaction</span> <span class="n">TREH</span> <span class="n">at</span> <span class="mh">0x112a0b748</span><span class="o">&gt;</span><span class="p">,</span>
+           <span class="o">&lt;</span><span class="n">Reaction</span> <span class="n">XYLI2</span> <span class="n">at</span> <span class="mh">0x112a30940</span><span class="o">&gt;</span><span class="p">})</span>
+</pre></div>
+</div>
+<p>A list of the genes encoded in the model can be accessed via
+<code class="xref any docutils literal notranslate"><span class="pre">model.genes</span></code>.</p>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">model</span><span class="o">.</span><span class="n">genes</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">10</span><span class="p">]</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="o">&lt;</span><span class="n">Gene</span> <span class="n">b0002</span> <span class="n">at</span> <span class="mh">0x103f25748</span><span class="o">&gt;</span><span class="p">,</span>
+ <span class="o">&lt;</span><span class="n">Gene</span> <span class="n">b0003</span> <span class="n">at</span> <span class="mh">0x1034ec2e8</span><span class="o">&gt;</span><span class="p">,</span>
+ <span class="o">&lt;</span><span class="n">Gene</span> <span class="n">b0004</span> <span class="n">at</span> <span class="mh">0x1034fe3c8</span><span class="o">&gt;</span><span class="p">,</span>
+ <span class="o">&lt;</span><span class="n">Gene</span> <span class="n">b0007</span> <span class="n">at</span> <span class="mh">0x1034fe438</span><span class="o">&gt;</span><span class="p">,</span>
+ <span class="o">&lt;</span><span class="n">Gene</span> <span class="n">b0008</span> <span class="n">at</span> <span class="mh">0x1034f4780</span><span class="o">&gt;</span><span class="p">,</span>
+ <span class="o">&lt;</span><span class="n">Gene</span> <span class="n">b0009</span> <span class="n">at</span> <span class="mh">0x1034f4c88</span><span class="o">&gt;</span><span class="p">,</span>
+ <span class="o">&lt;</span><span class="n">Gene</span> <span class="n">b0019</span> <span class="n">at</span> <span class="mh">0x11237cd30</span><span class="o">&gt;</span><span class="p">,</span>
+ <span class="o">&lt;</span><span class="n">Gene</span> <span class="n">b0025</span> <span class="n">at</span> <span class="mh">0x11237cd68</span><span class="o">&gt;</span><span class="p">,</span>
+ <span class="o">&lt;</span><span class="n">Gene</span> <span class="n">b0026</span> <span class="n">at</span> <span class="mh">0x11237cda0</span><span class="o">&gt;</span><span class="p">,</span>
+ <span class="o">&lt;</span><span class="n">Gene</span> <span class="n">b0029</span> <span class="n">at</span> <span class="mh">0x11237cdd8</span><span class="o">&gt;</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>Other additional attributes can be accessed to explore the model. For
+example, exchange reactions that allow certain metabolites to enter or
+leave the model can be accessed through <code class="xref any docutils literal notranslate"><span class="pre">model.exchanges</span></code>.</p>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">model</span><span class="o">.</span><span class="n">exchanges</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">10</span><span class="p">]</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="o">&lt;</span><span class="n">Reaction</span> <span class="n">DM_4crsol_c</span> <span class="n">at</span> <span class="mh">0x1125f7160</span><span class="o">&gt;</span><span class="p">,</span>
+ <span class="o">&lt;</span><span class="n">Reaction</span> <span class="n">DM_5drib_c</span> <span class="n">at</span> <span class="mh">0x1125f7470</span><span class="o">&gt;</span><span class="p">,</span>
+ <span class="o">&lt;</span><span class="n">Reaction</span> <span class="n">DM_aacald_c</span> <span class="n">at</span> <span class="mh">0x1125f74a8</span><span class="o">&gt;</span><span class="p">,</span>
+ <span class="o">&lt;</span><span class="n">Reaction</span> <span class="n">DM_amob_c</span> <span class="n">at</span> <span class="mh">0x1125f75c0</span><span class="o">&gt;</span><span class="p">,</span>
+ <span class="o">&lt;</span><span class="n">Reaction</span> <span class="n">DM_mththf_c</span> <span class="n">at</span> <span class="mh">0x1125f75f8</span><span class="o">&gt;</span><span class="p">,</span>
+ <span class="o">&lt;</span><span class="n">Reaction</span> <span class="n">DM_oxam_c</span> <span class="n">at</span> <span class="mh">0x1125f7630</span><span class="o">&gt;</span><span class="p">,</span>
+ <span class="o">&lt;</span><span class="n">Reaction</span> <span class="n">EX_12ppd__R_e</span> <span class="n">at</span> <span class="mh">0x112613438</span><span class="o">&gt;</span><span class="p">,</span>
+ <span class="o">&lt;</span><span class="n">Reaction</span> <span class="n">EX_12ppd__S_e</span> <span class="n">at</span> <span class="mh">0x112613470</span><span class="o">&gt;</span><span class="p">,</span>
+ <span class="o">&lt;</span><span class="n">Reaction</span> <span class="n">EX_14glucan_e</span> <span class="n">at</span> <span class="mh">0x112613668</span><span class="o">&gt;</span><span class="p">,</span>
+ <span class="o">&lt;</span><span class="n">Reaction</span> <span class="n">EX_15dap_e</span> <span class="n">at</span> <span class="mh">0x112613780</span><span class="o">&gt;</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>Or, the current medium can be accessed through <code class="xref any docutils literal notranslate"><span class="pre">model.medium</span></code>.</p>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">model</span><span class="o">.</span><span class="n">medium</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="s1">&#39;EX_ca2_e&#39;</span><span class="p">:</span> <span class="mf">1000.0</span><span class="p">,</span>
+ <span class="s1">&#39;EX_cbl1_e&#39;</span><span class="p">:</span> <span class="mf">0.01</span><span class="p">,</span>
+ <span class="s1">&#39;EX_cl_e&#39;</span><span class="p">:</span> <span class="mf">1000.0</span><span class="p">,</span>
+ <span class="s1">&#39;EX_co2_e&#39;</span><span class="p">:</span> <span class="mf">1000.0</span><span class="p">,</span>
+ <span class="s1">&#39;EX_cobalt2_e&#39;</span><span class="p">:</span> <span class="mf">1000.0</span><span class="p">,</span>
+ <span class="s1">&#39;EX_cu2_e&#39;</span><span class="p">:</span> <span class="mf">1000.0</span><span class="p">,</span>
+ <span class="s1">&#39;EX_fe2_e&#39;</span><span class="p">:</span> <span class="mf">1000.0</span><span class="p">,</span>
+ <span class="s1">&#39;EX_fe3_e&#39;</span><span class="p">:</span> <span class="mf">1000.0</span><span class="p">,</span>
+ <span class="s1">&#39;EX_glc__D_e&#39;</span><span class="p">:</span> <span class="mf">10.0</span><span class="p">,</span>
+ <span class="s1">&#39;EX_h2o_e&#39;</span><span class="p">:</span> <span class="mf">1000.0</span><span class="p">,</span>
+ <span class="s1">&#39;EX_h_e&#39;</span><span class="p">:</span> <span class="mf">1000.0</span><span class="p">,</span>
+ <span class="s1">&#39;EX_k_e&#39;</span><span class="p">:</span> <span class="mf">1000.0</span><span class="p">,</span>
+ <span class="s1">&#39;EX_mg2_e&#39;</span><span class="p">:</span> <span class="mf">1000.0</span><span class="p">,</span>
+ <span class="s1">&#39;EX_mn2_e&#39;</span><span class="p">:</span> <span class="mf">1000.0</span><span class="p">,</span>
+ <span class="s1">&#39;EX_mobd_e&#39;</span><span class="p">:</span> <span class="mf">1000.0</span><span class="p">,</span>
+ <span class="s1">&#39;EX_na1_e&#39;</span><span class="p">:</span> <span class="mf">1000.0</span><span class="p">,</span>
+ <span class="s1">&#39;EX_nh4_e&#39;</span><span class="p">:</span> <span class="mf">1000.0</span><span class="p">,</span>
+ <span class="s1">&#39;EX_ni2_e&#39;</span><span class="p">:</span> <span class="mf">1000.0</span><span class="p">,</span>
+ <span class="s1">&#39;EX_o2_e&#39;</span><span class="p">:</span> <span class="mf">1000.0</span><span class="p">,</span>
+ <span class="s1">&#39;EX_pi_e&#39;</span><span class="p">:</span> <span class="mf">1000.0</span><span class="p">,</span>
+ <span class="s1">&#39;EX_sel_e&#39;</span><span class="p">:</span> <span class="mf">1000.0</span><span class="p">,</span>
+ <span class="s1">&#39;EX_slnt_e&#39;</span><span class="p">:</span> <span class="mf">1000.0</span><span class="p">,</span>
+ <span class="s1">&#39;EX_so4_e&#39;</span><span class="p">:</span> <span class="mf">1000.0</span><span class="p">,</span>
+ <span class="s1">&#39;EX_tungs_e&#39;</span><span class="p">:</span> <span class="mf">1000.0</span><span class="p">,</span>
+ <span class="s1">&#39;EX_zn2_e&#39;</span><span class="p">:</span> <span class="mf">1000.0</span><span class="p">}</span>
+</pre></div>
+</div>
+<p>It is also possible to get a list of essential reactions …</p>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">cobra.flux_analysis</span> <span class="kn">import</span> <span class="n">find_essential_reactions</span>
+<span class="nb">list</span><span class="p">(</span><span class="n">find_essential_reactions</span><span class="p">(</span><span class="n">model</span><span class="p">))[</span><span class="mi">0</span><span class="p">:</span><span class="mi">10</span><span class="p">]</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="o">&lt;</span><span class="n">Reaction</span> <span class="n">THDPS</span> <span class="n">at</span> <span class="mh">0x1129fc080</span><span class="o">&gt;</span><span class="p">,</span>
+ <span class="o">&lt;</span><span class="n">Reaction</span> <span class="n">UAAGDS</span> <span class="n">at</span> <span class="mh">0x112a1a080</span><span class="o">&gt;</span><span class="p">,</span>
+ <span class="o">&lt;</span><span class="n">Reaction</span> <span class="n">PPNDH</span> <span class="n">at</span> <span class="mh">0x1129a60b8</span><span class="o">&gt;</span><span class="p">,</span>
+ <span class="o">&lt;</span><span class="n">Reaction</span> <span class="n">CYSTL</span> <span class="n">at</span> <span class="mh">0x1125d40f0</span><span class="o">&gt;</span><span class="p">,</span>
+ <span class="o">&lt;</span><span class="n">Reaction</span> <span class="n">E4PD</span> <span class="n">at</span> <span class="mh">0x112606160</span><span class="o">&gt;</span><span class="p">,</span>
+ <span class="o">&lt;</span><span class="n">Reaction</span> <span class="n">KDOPP</span> <span class="n">at</span> <span class="mh">0x1126e2198</span><span class="o">&gt;</span><span class="p">,</span>
+ <span class="o">&lt;</span><span class="n">Reaction</span> <span class="n">DHAD2</span> <span class="n">at</span> <span class="mh">0x1125ea198</span><span class="o">&gt;</span><span class="p">,</span>
+ <span class="o">&lt;</span><span class="n">Reaction</span> <span class="n">APRAUR</span> <span class="n">at</span> <span class="mh">0x1125881d0</span><span class="o">&gt;</span><span class="p">,</span>
+ <span class="o">&lt;</span><span class="n">Reaction</span> <span class="n">METS</span> <span class="n">at</span> <span class="mh">0x11291e1d0</span><span class="o">&gt;</span><span class="p">,</span>
+ <span class="o">&lt;</span><span class="n">Reaction</span> <span class="n">PAPPT3</span> <span class="n">at</span> <span class="mh">0x11297c1d0</span><span class="o">&gt;</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>… and essential genes.</p>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">cobra.flux_analysis</span> <span class="kn">import</span> <span class="n">find_essential_genes</span>
+<span class="nb">list</span><span class="p">(</span><span class="n">find_essential_genes</span><span class="p">(</span><span class="n">model</span><span class="p">))[</span><span class="mi">0</span><span class="p">:</span><span class="mi">10</span><span class="p">]</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="o">&lt;</span><span class="n">Gene</span> <span class="n">b1662</span> <span class="n">at</span> <span class="mh">0x1123b6048</span><span class="o">&gt;</span><span class="p">,</span>
+ <span class="o">&lt;</span><span class="n">Gene</span> <span class="n">b4245</span> <span class="n">at</span> <span class="mh">0x112506128</span><span class="o">&gt;</span><span class="p">,</span>
+ <span class="o">&lt;</span><span class="n">Gene</span> <span class="n">b3633</span> <span class="n">at</span> <span class="mh">0x1123f0198</span><span class="o">&gt;</span><span class="p">,</span>
+ <span class="o">&lt;</span><span class="n">Gene</span> <span class="n">b3634</span> <span class="n">at</span> <span class="mh">0x1123f01d0</span><span class="o">&gt;</span><span class="p">,</span>
+ <span class="o">&lt;</span><span class="n">Gene</span> <span class="n">b3639</span> <span class="n">at</span> <span class="mh">0x1123f0208</span><span class="o">&gt;</span><span class="p">,</span>
+ <span class="o">&lt;</span><span class="n">Gene</span> <span class="n">b4261</span> <span class="n">at</span> <span class="mh">0x112506208</span><span class="o">&gt;</span><span class="p">,</span>
+ <span class="o">&lt;</span><span class="n">Gene</span> <span class="n">b1415</span> <span class="n">at</span> <span class="mh">0x1123ae240</span><span class="o">&gt;</span><span class="p">,</span>
+ <span class="o">&lt;</span><span class="n">Gene</span> <span class="n">b4262</span> <span class="n">at</span> <span class="mh">0x112506240</span><span class="o">&gt;</span><span class="p">,</span>
+ <span class="o">&lt;</span><span class="n">Gene</span> <span class="n">b3642</span> <span class="n">at</span> <span class="mh">0x1123f0278</span><span class="o">&gt;</span><span class="p">,</span>
+ <span class="o">&lt;</span><span class="n">Gene</span> <span class="n">b1693</span> <span class="n">at</span> <span class="mh">0x1123b6278</span><span class="o">&gt;</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="index.html">
+    <img class="logo" src="_static/cameo_logo.png" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=biosustain&repo=cameo&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+    
+
+<p>
+<a class="badge" href="https://travis-ci.org/biosustain/cameo">
+    <img
+        alt="https://secure.travis-ci.org/biosustain/cameo.svg?branch=master"
+        src="https://secure.travis-ci.org/biosustain/cameo.svg?branch=master"
+    />
+</a>
+</p>
+
+
+
+
+    
+
+<p>
+<a class="badge" href="https://codecov.io/github/biosustain/cameo">
+    <img
+    alt="https://codecov.io/github/biosustain/cameo/coverage.svg?branch=master"
+    src="https://codecov.io/github/biosustain/cameo/coverage.svg?branch=master"
+    />
+</a>
+</p>
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials.html">Tutorials</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="development.html">Development</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="API.html">API Docs</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2014, Novo Nordisk Foundation Center for Biosustainability.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/01-quick-start.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+    <a href="https://github.com/biosustain/cameo" class="github">
+        <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"  class="github"/>
+    </a>
+    
+
+    
+  </body>
+</html>

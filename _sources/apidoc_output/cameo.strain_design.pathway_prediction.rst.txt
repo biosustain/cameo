@@ -1,0 +1,29 @@
+cameo.strain\_design.pathway\_prediction package
+================================================
+
+Submodules
+----------
+
+cameo.strain\_design.pathway\_prediction.pathway\_predictor module
+------------------------------------------------------------------
+
+.. automodule:: cameo.strain_design.pathway_prediction.pathway_predictor
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+cameo.strain\_design.pathway\_prediction.util module
+----------------------------------------------------
+
+.. automodule:: cameo.strain_design.pathway_prediction.util
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: cameo.strain_design.pathway_prediction
+   :members:
+   :undoc-members:
+   :show-inheritance:

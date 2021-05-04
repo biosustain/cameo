@@ -1,0 +1,288 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Contributing &#8212; cameo 0.13.0 documentation</title>
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Development" href="development.html" />
+    <link rel="prev" title="Easy strain design using a high-level interface" href="08-high-level-API.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+    <link rel="apple-touch-icon" href="_static/cameo_touch_icon.png" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="contributing">
+<h1>Contributing<a class="headerlink" href="#contributing" title="Permalink to this headline">¶</a></h1>
+<p>Contributions are welcome, and they are greatly appreciated! Every little bit helps, and credit will always be given.</p>
+<p>You can contribute in many ways:</p>
+<div class="section" id="types-of-contributions">
+<h2>Types of Contributions<a class="headerlink" href="#types-of-contributions" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="report-bugs">
+<h3>Report Bugs<a class="headerlink" href="#report-bugs" title="Permalink to this headline">¶</a></h3>
+<p>Report bugs at <a class="reference external" href="https://github.com/biosustain/cameo/issues">https://github.com/biosustain/cameo/issues</a>.</p>
+<p>If you are reporting a bug, please include:</p>
+<ul class="simple">
+<li><p>Your operating system name and version.</p></li>
+<li><p>Any details about your local setup that might be helpful in troubleshooting.</p></li>
+<li><p>Detailed steps to reproduce the bug.</p></li>
+</ul>
+</div>
+<div class="section" id="fix-bugs">
+<h3>Fix Bugs<a class="headerlink" href="#fix-bugs" title="Permalink to this headline">¶</a></h3>
+<p>Look through the GitHub issues for bugs. Anything tagged with “bug” and “help wanted” is open to whoever wants to
+implement it.</p>
+</div>
+<div class="section" id="implement-features">
+<h3>Implement Features<a class="headerlink" href="#implement-features" title="Permalink to this headline">¶</a></h3>
+<p>Look through the GitHub issues for features. Anything tagged with “enhancement” and “help wanted” is open to whoever
+wants to implement it.</p>
+</div>
+<div class="section" id="write-documentation">
+<h3>Write Documentation<a class="headerlink" href="#write-documentation" title="Permalink to this headline">¶</a></h3>
+<p>cameo could always use more documentation, whether as part of the official cameo docs, in docstrings, or even on the web
+in blog posts, articles, and such - all contributions are welcome!</p>
+</div>
+<div class="section" id="submit-feedback">
+<h3>Submit Feedback<a class="headerlink" href="#submit-feedback" title="Permalink to this headline">¶</a></h3>
+<p>The best way to send feedback is to file an issue at <a class="reference external" href="https://github.com/biosustain/cameo/issues">https://github.com/biosustain/cameo/issues</a>.</p>
+<p>If you are proposing a feature:</p>
+<ul class="simple">
+<li><p>Explain in detail how it would work.</p></li>
+<li><p>Keep the scope as narrow as possible, to make it easier to implement.</p></li>
+<li><p>Remember that this is a volunteer-driven project, and that contributions
+are welcome :)</p></li>
+</ul>
+</div>
+</div>
+<div class="section" id="get-started">
+<h2>Get Started!<a class="headerlink" href="#get-started" title="Permalink to this headline">¶</a></h2>
+<p>Want to contribute a new feature or improvement? Consider starting by raising an issue and assign it to yourself to
+describe what you want to achieve. This way, we reduce the risk of duplicated efforts and you may also get
+suggestions on how to best proceed, e.g. there may be half-finished work in some branch that you could start with.</p>
+<p>Here’s how to set up <a class="reference internal" href="apidoc_output/cameo.html#module-cameo" title="cameo"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">cameo</span></code></a> for local development.</p>
+<ol class="arabic">
+<li><p>Fork the <a class="reference internal" href="apidoc_output/cameo.html#module-cameo" title="cameo"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">cameo</span></code></a> repository on GitHub.</p></li>
+<li><p>Clone your fork locally:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git clone git@github.com:your_name_here/cameo.git
+</pre></div>
+</div>
+</li>
+<li><p>Install your local copy into a virtualenv. Assuming you have virtualenvwrapper installed, this is how you set up your fork for local development</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>mkvirtualenv cameo
+<span class="nb">cd</span> cameo/
+python setup.py develop
+</pre></div>
+</div>
+</li>
+<li><p>Create a branch for local development:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git checkout -b name-of-your-bugfix-or-feature
+</pre></div>
+</div>
+<p>Now you can make your changes locally.</p>
+</li>
+<li><p>When you are done making changes, check that your changes pass flake8 and the tests, including testing other Python versions with tox:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>tox
+</pre></div>
+</div>
+<p>or:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>tox -e py35
+</pre></div>
+</div>
+<p>To only test on python 3.5 (tox on all python versions takes quite long so may want to try one at a time to start with.
+To get flake8 and tox, just pip install them into your virtualenv.</p>
+</li>
+<li><p>Commit your changes and push your branch to GitHub:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git add .
+git commit -m <span class="s2">&quot;Your detailed description of your changes.&quot;</span>
+git push origin name-of-your-bugfix-or-feature
+</pre></div>
+</div>
+</li>
+<li><p>Submit a pull request through the GitHub website.</p></li>
+</ol>
+</div>
+<div class="section" id="pull-request-guidelines">
+<h2>Pull Request Guidelines<a class="headerlink" href="#pull-request-guidelines" title="Permalink to this headline">¶</a></h2>
+<p>Before you submit a pull request, check that it meets these guidelines:</p>
+<ol class="arabic simple">
+<li><p>The pull request should include tests. Except in very rare circumstances, code coverage must not decrease (as
+reported by codecov which runs automatically when you submit your pull request)</p></li>
+<li><p>If the pull request adds functionality, the docs should be updated. Put
+your new functionality into a function with a docstring and consider creating a notebook that demonstrates the usage in <code class="xref any docutils literal notranslate"><span class="pre">docs</span></code></p></li>
+<li><p>The pull request should work for Python 2.7, 3.4 and 3.5. Check
+<a class="reference external" href="https://travis-ci.org/biosustain/cameo/pull_requests">https://travis-ci.org/biosustain/cameo/pull_requests</a>
+and make sure that the tests pass for all supported Python versions.</p></li>
+<li><p>Assign a reviewer to your pull request. If in doubt, assign Niko Sonnenschein. Your pull request must be
+approved by all reviewers before it can be merged.</p></li>
+</ol>
+</div>
+<div class="section" id="branching-model-and-non-free-dependencies">
+<h2>Branching model and non-free dependencies<a class="headerlink" href="#branching-model-and-non-free-dependencies" title="Permalink to this headline">¶</a></h2>
+<p>At its core, cameo is a package for using mixed linear integer programming (MILP) techniques to support metabolic
+engineering / strain design. However, cameo does not implement the algorithms that actually solve these problems, rather
+it makes use of third-party libraries to do this after the problems have been carefully formulated to be possible to
+feed to these general solvers. For certain problems, some solvers are better than others and not all of these are
+available under free/libre licenses. Unit test in cameo that have non-free dependencies are not run during continuous
+integration for the <code class="xref any docutils literal notranslate"><span class="pre">devel</span></code> branch to enable pull requests (which cannot have access to these dependencies). The
+branching model we use therefore looks like this</p>
+<dl class="simple">
+<dt><code class="xref any docutils literal notranslate"><span class="pre">devel</span></code></dt><dd><p>Is the branch all pull-requests from non-maintainers should be based on and that does not run unit tests with
+non-free dependencies.</p>
+</dd>
+<dt><code class="xref any docutils literal notranslate"><span class="pre">devel-nonfree</span></code></dt><dd><p>Is only touched by maintainers and used to also run unit tests with non-free dependencies. It therefore has a higher
+code coverage than <code class="xref any docutils literal notranslate"><span class="pre">devel</span></code>.</p>
+</dd>
+<dt><code class="xref any docutils literal notranslate"><span class="pre">master</span></code></dt><dd><p>Is only touched by maintainers and is the branch with only tested, reviewed code that is released or ready for the
+next release.</p>
+</dd>
+</dl>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="index.html">
+    <img class="logo" src="_static/cameo_logo.png" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=biosustain&repo=cameo&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+    
+
+<p>
+<a class="badge" href="https://travis-ci.org/biosustain/cameo">
+    <img
+        alt="https://secure.travis-ci.org/biosustain/cameo.svg?branch=master"
+        src="https://secure.travis-ci.org/biosustain/cameo.svg?branch=master"
+    />
+</a>
+</p>
+
+
+
+
+    
+
+<p>
+<a class="badge" href="https://codecov.io/github/biosustain/cameo">
+    <img
+    alt="https://codecov.io/github/biosustain/cameo/coverage.svg?branch=master"
+    src="https://codecov.io/github/biosustain/cameo/coverage.svg?branch=master"
+    />
+</a>
+</p>
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials.html">Tutorials</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Contributing</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#types-of-contributions">Types of Contributions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#get-started">Get Started!</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pull-request-guidelines">Pull Request Guidelines</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#branching-model-and-non-free-dependencies">Branching model and non-free dependencies</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="development.html">Development</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="API.html">API Docs</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="08-high-level-API.html" title="previous chapter">Easy strain design using a high-level interface</a></li>
+      <li>Next: <a href="development.html" title="next chapter">Development</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2014, Novo Nordisk Foundation Center for Biosustainability.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/contributing.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+    <a href="https://github.com/biosustain/cameo" class="github">
+        <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"  class="github"/>
+    </a>
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,1045 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>cameo.core package &#8212; cameo 0.13.0 documentation</title>
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="cameo.data package" href="cameo.data.html" />
+    <link rel="prev" title="cameo.api package" href="cameo.api.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+    <link rel="apple-touch-icon" href="../_static/cameo_touch_icon.png" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="cameo-core-package">
+<h1>cameo.core package<a class="headerlink" href="#cameo-core-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-cameo.core.manipulation">
+<span id="cameo-core-manipulation-module"></span><h2>cameo.core.manipulation module<a class="headerlink" href="#module-cameo.core.manipulation" title="Permalink to this headline">¶</a></h2>
+<p>Manage manipulations such as swapping reaction cofactors, over-express or down-regulate genes and reactions.</p>
+<dl class="py function">
+<dt id="cameo.core.manipulation.increase_flux">
+<code class="sig-prename descclassname"><span class="pre">cameo.core.manipulation.</span></code><code class="sig-name descname"><span class="pre">increase_flux</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reaction</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ref_value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/core/manipulation.html#increase_flux"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.core.manipulation.increase_flux" title="Permalink to this definition">¶</a></dt>
+<dd><p>lb                           0                           ub
+<a href="#id7"><span class="problematic" id="id8">|--------------------------- ' ---------------------------|</span></a></p>
+<blockquote>
+<div><dl class="simple">
+<dt>&lt;- - -<a href="#id1"><span class="problematic" id="id2">|</span></a>———-‘</dt><dd><p>‘———-<a href="#id3"><span class="problematic" id="id4">|</span></a>- - - -&gt;</p>
+</dd>
+</dl>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>reaction</strong> (<em>cobra.Reaction</em>) – The reaction to over-express.</p></li>
+<li><p><strong>ref_value</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><em>float</em></a>) – The flux value to come from.</p></li>
+<li><p><strong>value</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><em>float</em></a>) – The flux value to achieve.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="cameo.core.manipulation.decrease_flux">
+<code class="sig-prename descclassname"><span class="pre">cameo.core.manipulation.</span></code><code class="sig-name descname"><span class="pre">decrease_flux</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reaction</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ref_value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/core/manipulation.html#decrease_flux"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.core.manipulation.decrease_flux" title="Permalink to this definition">¶</a></dt>
+<dd><p>lb                           0                           ub
+<a href="#id9"><span class="problematic" id="id10">|--------------------------- ' ---------------------------|</span></a></p>
+<blockquote>
+<div><dl class="simple">
+<dt><a href="#id5"><span class="problematic" id="id6">|</span></a>- - &gt;———-‘</dt><dd><p>‘———-&lt;- - - -|</p>
+</dd>
+</dl>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>reaction</strong> (<em>cobra.Reaction</em>) – The reaction to down_regulate.</p></li>
+<li><p><strong>ref_value</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><em>float</em></a>) – The flux value to come from.</p></li>
+<li><p><strong>value</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><em>float</em></a>) – The flux value to achieve.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="cameo.core.manipulation.reverse_flux">
+<code class="sig-prename descclassname"><span class="pre">cameo.core.manipulation.</span></code><code class="sig-name descname"><span class="pre">reverse_flux</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reaction</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ref_value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/core/manipulation.html#reverse_flux"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.core.manipulation.reverse_flux" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forces a reaction to have a minimum flux level in the opposite direction of a reference state.</p>
+<p>lb                           0                           ub
+<a href="#id11"><span class="problematic" id="id12">|--------------------------- ' ---------------------------|</span></a></p>
+<blockquote>
+<div><p>&lt;———-‘- - - - - - - -&gt;</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>reaction</strong> (<em>cobra.Reaction</em>) – The reaction that will be inverted.</p></li>
+<li><p><strong>ref_value</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><em>float</em></a>) – The flux value to come from.</p></li>
+<li><p><strong>value</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><em>float</em></a>) – The flux value to achieve.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="cameo.core.manipulation.swap_cofactors">
+<code class="sig-prename descclassname"><span class="pre">cameo.core.manipulation.</span></code><code class="sig-name descname"><span class="pre">swap_cofactors</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reaction</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">swap_pairs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inplace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/core/manipulation.html#swap_cofactors"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.core.manipulation.swap_cofactors" title="Permalink to this definition">¶</a></dt>
+<dd><p>Swaps the cofactors of a reaction. For speed, it can be done inplace which just changes the coefficients.
+If not done inplace, it will create a new Reaction, add it to the model, and knockout the original reaction.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>reaction</strong> (<em>cobra.Reaction</em>) – The reaction to swap.</p></li>
+<li><p><strong>model</strong> (<em>cameo.cobra.Model</em>) – A constraint-based model.</p></li>
+<li><p><strong>swap_pairs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.9)"><em>tuple</em></a>) – A tuple of (cofactors, equivalent_cofactors)</p></li>
+<li><p><strong>inplace</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><em>bool</em></a>) – If replace is done inplace, it changes the coefficients in the matrix. Otherwise, it creates a new reaction
+with the other cofactors and adds it to the model.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A reaction with swapped cofactors (the same if inplace).</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Reaction</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="module-cameo.core.model_dual">
+<span id="cameo-core-model-dual-module"></span><h2>cameo.core.model_dual module<a class="headerlink" href="#module-cameo.core.model_dual" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="cameo.core.model_dual.convert_to_dual">
+<code class="sig-prename descclassname"><span class="pre">cameo.core.model_dual.</span></code><code class="sig-name descname"><span class="pre">convert_to_dual</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/core/model_dual.html#convert_to_dual"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.core.model_dual.convert_to_dual" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="cameo.core.model_dual.to_dual_model">
+<code class="sig-prename descclassname"><span class="pre">cameo.core.model_dual.</span></code><code class="sig-name descname"><span class="pre">to_dual_model</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">solver_interface</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/core/model_dual.html#to_dual_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.core.model_dual.to_dual_model" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt id="cameo.core.model_dual.ModelDual">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">cameo.core.model_dual.</span></code><code class="sig-name descname"><span class="pre">ModelDual</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/core/model_dual.html#ModelDual"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.core.model_dual.ModelDual" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">cobra.core.model.Model</span></code></p>
+<p>A cobra.Model that also contains the dual variables and constraints, allowing primal and dual
+problems to be combined.</p>
+<p>Dual variables corresponding to stoichiometric constraints are prefixed by lambda
+Dual variables corresponding to flux bounds are prefixed by mu
+Other constraints are not supported at the moment!</p>
+<p>Dual constraints will be set according to the original primal objective.
+The objective can be changed subsequently to optimize an outer problem.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>annotation</strong></dt><dd></dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">boundary</span></code></dt><dd><p>Boundary reactions in the model.</p>
+</dd>
+<dt><strong>compartments</strong></dt><dd></dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">constraints</span></code></dt><dd><p>The constraints in the cobra model.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">demands</span></code></dt><dd><p>Demand reactions in model.</p>
+</dd>
+<dt><strong>description</strong></dt><dd></dd>
+<dt><strong>dual_objective</strong></dt><dd></dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">exchanges</span></code></dt><dd><p>Exchange reactions in model.</p>
+</dd>
+<dt><strong>id</strong></dt><dd></dd>
+<dt><strong>medium</strong></dt><dd></dd>
+<dt><a class="reference internal" href="#cameo.core.model_dual.ModelDual.objective" title="cameo.core.model_dual.ModelDual.objective"><code class="xref py py-obj docutils literal notranslate"><span class="pre">objective</span></code></a></dt><dd><p>Get or set the solver objective</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">objective_direction</span></code></dt><dd><p>Get or set the objective direction.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">problem</span></code></dt><dd><p>The interface to the model’s underlying mathematical problem.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">sinks</span></code></dt><dd><p>Sink reactions in model.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">solver</span></code></dt><dd><p>Get or set the attached solver instance.</p>
+</dd>
+<dt><strong>tolerance</strong></dt><dd></dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">variables</span></code></dt><dd><p>The mathematical variables in the cobra model.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_boundary</span></code>(metabolite[, type, …])</p></td>
+<td><p>Add a boundary reaction for a given metabolite.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_cons_vars</span></code>(what, **kwargs)</p></td>
+<td><p>Add constraints and variables to the model’s mathematical problem.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_groups</span></code>(group_list)</p></td>
+<td><p>Add groups to the model.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_metabolites</span></code>(metabolite_list)</p></td>
+<td><p>Will add a list of metabolites to the model object and add new constraints accordingly.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_reaction</span></code>(reaction)</p></td>
+<td><p>Will add a cobra.Reaction object to the model, if reaction.id is not in self.reactions.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_reactions</span></code>(reaction_list)</p></td>
+<td><p>Add reactions to the model.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">copy</span></code>()</p></td>
+<td><p>Provides a partial ‘deepcopy’ of the Model.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_associated_groups</span></code>(element)</p></td>
+<td><p>Returns a list of groups that an element (reaction, metabolite, gene) is associated with.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_metabolite_compartments</span></code>()</p></td>
+<td><p>Return all metabolites’ compartments.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">merge</span></code>(right[, prefix_existing, inplace, …])</p></td>
+<td><p>Merge two models to create a model with the reactions from both models.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">optimize</span></code>([objective_sense, raise_error])</p></td>
+<td><p>Optimize the model using flux balance analysis.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">remove_cons_vars</span></code>(what)</p></td>
+<td><p>Remove variables and constraints from the model’s mathematical problem.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">remove_groups</span></code>(group_list)</p></td>
+<td><p>Remove groups from the model.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">remove_metabolites</span></code>(metabolite_list[, …])</p></td>
+<td><p>Remove a list of metabolites from the the object.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">remove_reactions</span></code>(reactions[, remove_orphans])</p></td>
+<td><p>Remove reactions from the model.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">repair</span></code>([rebuild_index, rebuild_relationships])</p></td>
+<td><p>Update all indexes and pointers in a model</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">slim_optimize</span></code>([error_value, message])</p></td>
+<td><p>Optimize model without creating a solution object.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">summary</span></code>([solution, fva])</p></td>
+<td><p>Create a summary of the exchange fluxes of the model.</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 67%" />
+<col style="width: 33%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><strong>primal_objective</strong></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt id="cameo.core.model_dual.ModelDual.objective">
+<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">objective</span></code><a class="headerlink" href="#cameo.core.model_dual.ModelDual.objective" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get or set the solver objective</p>
+<p>Before introduction of the optlang based problems,
+this function returned the objective reactions as a list. With
+optlang, the objective is not limited a simple linear summation of
+individual reaction fluxes, making that return value ambiguous.
+Henceforth, use <code class="xref any docutils literal notranslate"><span class="pre">cobra.util.solver.linear_reaction_coefficients</span></code> to
+get a dictionary of reactions with their linear coefficients (empty
+if there are none)</p>
+<p>The set value can be dictionary (reactions as keys, linear
+coefficients as values), string (reaction identifier), int (reaction
+index), Reaction or problem.Objective or sympy expression
+directly interpreted as objectives.</p>
+<p>When using a <code class="xref any docutils literal notranslate"><span class="pre">HistoryManager</span></code> context, this attribute can be set
+temporarily, reversed when the exiting the context.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="cameo.core.model_dual.ModelDual.dual_objective">
+<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">dual_objective</span></code><a class="headerlink" href="#cameo.core.model_dual.ModelDual.dual_objective" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="cameo.core.model_dual.ModelDual.primal_objective">
+<code class="sig-name descname"><span class="pre">primal_objective</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/core/model_dual.html#ModelDual.primal_objective"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.core.model_dual.ModelDual.primal_objective" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-cameo.core.pathway">
+<span id="cameo-core-pathway-module"></span><h2>cameo.core.pathway module<a class="headerlink" href="#module-cameo.core.pathway" title="Permalink to this headline">¶</a></h2>
+<p>This module implements a pathway data structure that can be added to a model for example.</p>
+<dl class="py class">
+<dt id="cameo.core.pathway.Pathway">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">cameo.core.pathway.</span></code><code class="sig-name descname"><span class="pre">Pathway</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reactions</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/core/pathway.html#Pathway"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.core.pathway.Pathway" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Representation of a pathway (a set of reactions)</p>
+<dl class="py attribute">
+<dt id="cameo.core.pathway.Pathway.reactions">
+<code class="sig-name descname"><span class="pre">reactions</span></code><a class="headerlink" href="#cameo.core.pathway.Pathway.reactions" title="Permalink to this definition">¶</a></dt>
+<dd><p>The list of reactions in the pathway.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>list o Reaction</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>data_frame</strong></dt><dd></dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#cameo.core.pathway.Pathway.from_file" title="cameo.core.pathway.Pathway.from_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_file</span></code></a>(file_path[, sep])</p></td>
+<td><p>Read a pathway from a file.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#cameo.core.pathway.Pathway.plug_model" title="cameo.core.pathway.Pathway.plug_model"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plug_model</span></code></a>(model)</p></td>
+<td><p>Plug the pathway to a model.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#cameo.core.pathway.Pathway.to_file" title="cameo.core.pathway.Pathway.to_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_file</span></code></a>(file_path[, sep])</p></td>
+<td><p>Writes the pathway to a file.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt id="cameo.core.pathway.Pathway.data_frame">
+<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">data_frame</span></code><a class="headerlink" href="#cameo.core.pathway.Pathway.data_frame" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="cameo.core.pathway.Pathway.from_file">
+<em class="property"><span class="pre">classmethod</span> </em><code class="sig-name descname"><span class="pre">from_file</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sep</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'\t'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/core/pathway.html#Pathway.from_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.core.pathway.Pathway.from_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read a pathway from a file.</p>
+<p>The file format is:
+reaction_id&lt;sep&gt;equation&lt;sep&gt;lower_limit&lt;sep&gt;upper_limit&lt;sep&gt;name&lt;sep&gt;comments</p>
+<p>The equation is defined by:
+coefficient * substrate_name#substrate_id + … &lt;=&gt; coefficient * product_name#product_id</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>file_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – The path to the file containing the pathway</p></li>
+<li><p><strong>sep</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – The separator between elements in the file (default: ”      “)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#cameo.core.pathway.Pathway" title="cameo.core.pathway.Pathway">Pathway</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="cameo.core.pathway.Pathway.to_file">
+<code class="sig-name descname"><span class="pre">to_file</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sep</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'\t'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/core/pathway.html#Pathway.to_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.core.pathway.Pathway.to_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Writes the pathway to a file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>file_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – The path to the file where the pathway will be written</p></li>
+<li><p><strong>sep</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – The separator between elements in the file (default: ”      “)</p></li>
+</ul>
+</dd>
+</dl>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#cameo.core.pathway.Pathway.from_file" title="cameo.core.pathway.Pathway.from_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Pathway.from_file</span></code></a></p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt id="cameo.core.pathway.Pathway.plug_model">
+<code class="sig-name descname"><span class="pre">plug_model</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/core/pathway.html#Pathway.plug_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.core.pathway.Pathway.plug_model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plug the pathway to a model.</p>
+<p>Metabolites are matched in the model by id. For metabolites with no ID in the model, an exchange reaction
+is added to the model</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>model</strong> (<em>cobra.Model</em>) – The model to plug in the pathway</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-cameo.core.result">
+<span id="cameo-core-result-module"></span><h2>cameo.core.result module<a class="headerlink" href="#module-cameo.core.result" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="cameo.core.result.MetaInformation">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">cameo.core.result.</span></code><code class="sig-name descname"><span class="pre">MetaInformation</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/core/result.html#MetaInformation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.core.result.MetaInformation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>human_readable_timestamp</strong></dt><dd></dd>
+<dt><strong>responsible</strong></dt><dd></dd>
+<dt><strong>system_info</strong></dt><dd></dd>
+<dt><a class="reference internal" href="#cameo.core.result.MetaInformation.timestamp" title="cameo.core.result.MetaInformation.timestamp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">timestamp</span></code></a></dt><dd><p>doc string</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<dl class="py method">
+<dt id="cameo.core.result.MetaInformation.system_info">
+<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">system_info</span></code><a class="headerlink" href="#cameo.core.result.MetaInformation.system_info" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="cameo.core.result.MetaInformation.responsible">
+<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">responsible</span></code><a class="headerlink" href="#cameo.core.result.MetaInformation.responsible" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="cameo.core.result.MetaInformation.timestamp">
+<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">timestamp</span></code><a class="headerlink" href="#cameo.core.result.MetaInformation.timestamp" title="Permalink to this definition">¶</a></dt>
+<dd><p>doc string</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="cameo.core.result.MetaInformation.human_readable_timestamp">
+<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">human_readable_timestamp</span></code><a class="headerlink" href="#cameo.core.result.MetaInformation.human_readable_timestamp" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="cameo.core.result.Result">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">cameo.core.result.</span></code><code class="sig-name descname"><span class="pre">Result</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/core/result.html#Result"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.core.result.Result" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>data_frame</strong></dt><dd></dd>
+<dt><strong>meta_information</strong></dt><dd></dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 44%" />
+<col style="width: 56%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><strong>plot</strong></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt id="cameo.core.result.Result.meta_information">
+<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">meta_information</span></code><a class="headerlink" href="#cameo.core.result.Result.meta_information" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="cameo.core.result.Result.data_frame">
+<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">data_frame</span></code><a class="headerlink" href="#cameo.core.result.Result.data_frame" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="cameo.core.result.Result.plot">
+<code class="sig-name descname"><span class="pre">plot</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">grid</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/core/result.html#Result.plot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.core.result.Result.plot" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-cameo.core.strain_design">
+<span id="cameo-core-strain-design-module"></span><h2>cameo.core.strain_design module<a class="headerlink" href="#module-cameo.core.strain_design" title="Permalink to this headline">¶</a></h2>
+<p>Core implementation of strain design. It contains core structures.
+Targets (and subclasses) are identified by strain design methods.</p>
+<dl class="py class">
+<dt id="cameo.core.strain_design.StrainDesign">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">cameo.core.strain_design.</span></code><code class="sig-name descname"><span class="pre">StrainDesign</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">targets</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/core/strain_design.html#StrainDesign"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.core.strain_design.StrainDesign" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>A StrainDesign is a collection of targets in a COBRA model. The targets, identified by a StrainDesignMethod,
+map elements in the model that need to be modified to achieve the objective of the design method.</p>
+<p class="rubric">Methods</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 57%" />
+<col style="width: 43%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><strong>apply</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>to_gnomic</strong></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt id="cameo.core.strain_design.StrainDesign.apply">
+<code class="sig-name descname"><span class="pre">apply</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/core/strain_design.html#StrainDesign.apply"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.core.strain_design.StrainDesign.apply" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="cameo.core.strain_design.StrainDesign.to_gnomic">
+<code class="sig-name descname"><span class="pre">to_gnomic</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/core/strain_design.html#StrainDesign.to_gnomic"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.core.strain_design.StrainDesign.to_gnomic" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="cameo.core.strain_design.StrainDesignMethod">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">cameo.core.strain_design.</span></code><code class="sig-name descname"><span class="pre">StrainDesignMethod</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/core/strain_design.html#StrainDesignMethod"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.core.strain_design.StrainDesignMethod" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p class="rubric">Methods</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">__call__</span></code>(*args, **kwargs)</p></td>
+<td><p>Call self as a function.</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 41%" />
+<col style="width: 59%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><strong>run</strong></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt id="cameo.core.strain_design.StrainDesignMethod.run">
+<code class="sig-name descname"><span class="pre">run</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/core/strain_design.html#StrainDesignMethod.run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.core.strain_design.StrainDesignMethod.run" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="cameo.core.strain_design.StrainDesignMethodResult">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">cameo.core.strain_design.</span></code><code class="sig-name descname"><span class="pre">StrainDesignMethodResult</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">designs</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/core/strain_design.html#StrainDesignMethodResult"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.core.strain_design.StrainDesignMethodResult" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#cameo.core.result.Result" title="cameo.core.result.Result"><code class="xref py py-class docutils literal notranslate"><span class="pre">cameo.core.result.Result</span></code></a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>data_frame</strong></dt><dd></dd>
+<dt><strong>meta_information</strong></dt><dd></dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 64%" />
+<col style="width: 36%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><strong>display_on_map</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>plot</strong></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt id="cameo.core.strain_design.StrainDesignMethodResult.data_frame">
+<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">data_frame</span></code><a class="headerlink" href="#cameo.core.strain_design.StrainDesignMethodResult.data_frame" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="cameo.core.strain_design.StrainDesignMethodResult.display_on_map">
+<code class="sig-name descname"><span class="pre">display_on_map</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">index</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">map_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/core/strain_design.html#StrainDesignMethodResult.display_on_map"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.core.strain_design.StrainDesignMethodResult.display_on_map" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="cameo.core.strain_design.StrainDesignMethodResult.plot">
+<code class="sig-name descname"><span class="pre">plot</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">plotter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grid</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">height</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/core/strain_design.html#StrainDesignMethodResult.plot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.core.strain_design.StrainDesignMethodResult.plot" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-cameo.core.target">
+<span id="cameo-core-target-module"></span><h2>cameo.core.target module<a class="headerlink" href="#module-cameo.core.target" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="cameo.core.target.GeneModulationTarget">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">cameo.core.target.</span></code><code class="sig-name descname"><span class="pre">GeneModulationTarget</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reference_value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/core/target.html#GeneModulationTarget"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.core.target.GeneModulationTarget" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">cameo.core.target.FluxModulationTarget</span></code></p>
+<p class="rubric">Methods</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">apply</span></code>(model)</p></td>
+<td><p>Applies a change to the flux.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_gnomic</span></code>()</p></td>
+<td><p>If gnomic is available, return a Gnomic representation of the Target.</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 67%" />
+<col style="width: 33%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><strong>get_model_target</strong></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt id="cameo.core.target.GeneModulationTarget.get_model_target">
+<code class="sig-name descname"><span class="pre">get_model_target</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/core/target.html#GeneModulationTarget.get_model_target"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.core.target.GeneModulationTarget.get_model_target" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="cameo.core.target.GeneKnockoutTarget">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">cameo.core.target.</span></code><code class="sig-name descname"><span class="pre">GeneKnockoutTarget</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">id</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/core/target.html#GeneKnockoutTarget"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.core.target.GeneKnockoutTarget" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#cameo.core.target.GeneModulationTarget" title="cameo.core.target.GeneModulationTarget"><code class="xref py py-class docutils literal notranslate"><span class="pre">cameo.core.target.GeneModulationTarget</span></code></a></p>
+<p>Gene Knockout Target. Knockout a gene present in a COBRA model.</p>
+<p class="rubric">Methods</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#cameo.core.target.GeneKnockoutTarget.apply" title="cameo.core.target.GeneKnockoutTarget.apply"><code class="xref py py-obj docutils literal notranslate"><span class="pre">apply</span></code></a>(model)</p></td>
+<td><p>Applies a change to the flux.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#cameo.core.target.GeneKnockoutTarget.to_gnomic" title="cameo.core.target.GeneKnockoutTarget.to_gnomic"><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_gnomic</span></code></a>()</p></td>
+<td><p>If gnomic is available, return a Gnomic representation of the Target.</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 67%" />
+<col style="width: 33%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><strong>get_model_target</strong></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt id="cameo.core.target.GeneKnockoutTarget.apply">
+<code class="sig-name descname"><span class="pre">apply</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/core/target.html#GeneKnockoutTarget.apply"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.core.target.GeneKnockoutTarget.apply" title="Permalink to this definition">¶</a></dt>
+<dd><p>Applies a change to the flux. If the fold change is higher than 0 it increases the flux.
+If the target flux is zero it applies a knockout. If the fold change is lower than 0, then it
+decreases the flux.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>model</strong> (<em>cobra.Model</em>) – A model.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="cameo.core.target.GeneKnockoutTarget.to_gnomic">
+<code class="sig-name descname"><span class="pre">to_gnomic</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/core/target.html#GeneKnockoutTarget.to_gnomic"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.core.target.GeneKnockoutTarget.to_gnomic" title="Permalink to this definition">¶</a></dt>
+<dd><p>If gnomic is available, return a Gnomic representation of the Target.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="cameo.core.target.ReactionCofactorSwapTarget">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">cameo.core.target.</span></code><code class="sig-name descname"><span class="pre">ReactionCofactorSwapTarget</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">swap_pairs</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/core/target.html#ReactionCofactorSwapTarget"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.core.target.ReactionCofactorSwapTarget" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">cameo.core.target.Target</span></code></p>
+<p>Swap cofactors of a given reaction.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>swap_str</strong></dt><dd></dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#cameo.core.target.ReactionCofactorSwapTarget.apply" title="cameo.core.target.ReactionCofactorSwapTarget.apply"><code class="xref py py-obj docutils literal notranslate"><span class="pre">apply</span></code></a>(model)</p></td>
+<td><p>Apply the modification to the target, depending on the type.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#cameo.core.target.ReactionCofactorSwapTarget.to_gnomic" title="cameo.core.target.ReactionCofactorSwapTarget.to_gnomic"><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_gnomic</span></code></a>()</p></td>
+<td><p>If gnomic is available, return a Gnomic representation of the Target.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt id="cameo.core.target.ReactionCofactorSwapTarget.apply">
+<code class="sig-name descname"><span class="pre">apply</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/core/target.html#ReactionCofactorSwapTarget.apply"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.core.target.ReactionCofactorSwapTarget.apply" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply the modification to the target, depending on the type.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="cameo.core.target.ReactionCofactorSwapTarget.swap_str">
+<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">swap_str</span></code><a class="headerlink" href="#cameo.core.target.ReactionCofactorSwapTarget.swap_str" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="cameo.core.target.ReactionCofactorSwapTarget.to_gnomic">
+<code class="sig-name descname"><span class="pre">to_gnomic</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/core/target.html#ReactionCofactorSwapTarget.to_gnomic"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.core.target.ReactionCofactorSwapTarget.to_gnomic" title="Permalink to this definition">¶</a></dt>
+<dd><p>If gnomic is available, return a Gnomic representation of the Target.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="cameo.core.target.ReactionKnockinTarget">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">cameo.core.target.</span></code><code class="sig-name descname"><span class="pre">ReactionKnockinTarget</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/core/target.html#ReactionKnockinTarget"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.core.target.ReactionKnockinTarget" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">cameo.core.target.KnockinTarget</span></code></p>
+<p class="rubric">Methods</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#cameo.core.target.ReactionKnockinTarget.apply" title="cameo.core.target.ReactionKnockinTarget.apply"><code class="xref py py-obj docutils literal notranslate"><span class="pre">apply</span></code></a>(model)</p></td>
+<td><p>Apply the modification to the target, depending on the type.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#cameo.core.target.ReactionKnockinTarget.to_gnomic" title="cameo.core.target.ReactionKnockinTarget.to_gnomic"><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_gnomic</span></code></a>()</p></td>
+<td><p>If gnomic is available, return a Gnomic representation of the Target.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt id="cameo.core.target.ReactionKnockinTarget.apply">
+<code class="sig-name descname"><span class="pre">apply</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/core/target.html#ReactionKnockinTarget.apply"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.core.target.ReactionKnockinTarget.apply" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply the modification to the target, depending on the type.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="cameo.core.target.ReactionKnockinTarget.to_gnomic">
+<code class="sig-name descname"><span class="pre">to_gnomic</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/core/target.html#ReactionKnockinTarget.to_gnomic"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.core.target.ReactionKnockinTarget.to_gnomic" title="Permalink to this definition">¶</a></dt>
+<dd><p>If gnomic is available, return a Gnomic representation of the Target.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="cameo.core.target.ReactionKnockoutTarget">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">cameo.core.target.</span></code><code class="sig-name descname"><span class="pre">ReactionKnockoutTarget</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">id</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/core/target.html#ReactionKnockoutTarget"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.core.target.ReactionKnockoutTarget" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#cameo.core.target.ReactionModulationTarget" title="cameo.core.target.ReactionModulationTarget"><code class="xref py py-class docutils literal notranslate"><span class="pre">cameo.core.target.ReactionModulationTarget</span></code></a></p>
+<p>Reaction Knockout Target. Knockout a reaction present in a COBRA model.</p>
+<p class="rubric">Methods</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#cameo.core.target.ReactionKnockoutTarget.apply" title="cameo.core.target.ReactionKnockoutTarget.apply"><code class="xref py py-obj docutils literal notranslate"><span class="pre">apply</span></code></a>(model)</p></td>
+<td><p>Applies a change to the flux.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_gnomic</span></code>()</p></td>
+<td><p>If gnomic is available, return a Gnomic representation of the Target.</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 67%" />
+<col style="width: 33%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><strong>get_model_target</strong></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt id="cameo.core.target.ReactionKnockoutTarget.apply">
+<code class="sig-name descname"><span class="pre">apply</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/core/target.html#ReactionKnockoutTarget.apply"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.core.target.ReactionKnockoutTarget.apply" title="Permalink to this definition">¶</a></dt>
+<dd><p>Applies a change to the flux. If the fold change is higher than 0 it increases the flux.
+If the target flux is zero it applies a knockout. If the fold change is lower than 0, then it
+decreases the flux.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>model</strong> (<em>cobra.Model</em>) – A model.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="cameo.core.target.ReactionModulationTarget">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">cameo.core.target.</span></code><code class="sig-name descname"><span class="pre">ReactionModulationTarget</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reference_value</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/core/target.html#ReactionModulationTarget"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.core.target.ReactionModulationTarget" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">cameo.core.target.FluxModulationTarget</span></code></p>
+<p class="rubric">Methods</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">apply</span></code>(model)</p></td>
+<td><p>Applies a change to the flux.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_gnomic</span></code>()</p></td>
+<td><p>If gnomic is available, return a Gnomic representation of the Target.</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 67%" />
+<col style="width: 33%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><strong>get_model_target</strong></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt id="cameo.core.target.ReactionModulationTarget.get_model_target">
+<code class="sig-name descname"><span class="pre">get_model_target</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/core/target.html#ReactionModulationTarget.get_model_target"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.core.target.ReactionModulationTarget.get_model_target" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-cameo.core.utils">
+<span id="cameo-core-utils-module"></span><h2>cameo.core.utils module<a class="headerlink" href="#module-cameo.core.utils" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="cameo.core.utils.get_reaction_for">
+<code class="sig-prename descclassname"><span class="pre">cameo.core.utils.</span></code><code class="sig-name descname"><span class="pre">get_reaction_for</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">add</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/core/utils.html#get_reaction_for"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.core.utils.get_reaction_for" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get or create a reaction for a metabolite or a reaction.</p>
+<p>If value is a Metabolite or a Metabolite id, return any already existing demand or exchange reaction.
+If <em>add</em> is true, add a demand reaction if it does not already exist.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> (<em>cobra.Model</em>) – The model to for which to get / create a reaction</p></li>
+<li><p><strong>value</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a><em>, </em><em>Reaction</em><em> or </em><em>Metabolite</em>) – A reaction identifier, a Reaction or a Metabolite for which an exchange reaction is to be created.</p></li>
+<li><p><strong>add</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><em>bool</em></a>) – Adds a demand reaction for a metabolite if a metabolite is found for <em>value</em></p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Reaction</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#KeyError" title="(in Python v3.9)"><strong>KeyError</strong></a> – If <em>value</em> does not match any Reaction or Metabolite</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="cameo.core.utils.medium">
+<code class="sig-prename descclassname"><span class="pre">cameo.core.utils.</span></code><code class="sig-name descname"><span class="pre">medium</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/core/utils.html#medium"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.core.utils.medium" title="Permalink to this definition">¶</a></dt>
+<dd><p>Current medium for this model.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="cameo.core.utils.load_medium">
+<code class="sig-prename descclassname"><span class="pre">cameo.core.utils.</span></code><code class="sig-name descname"><span class="pre">load_medium</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">medium_def</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">copy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delimiter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'\t'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/core/utils.html#load_medium"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.core.utils.load_medium" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loads a medium into the model. If copy is true it will return
+a copy of the model. Otherwise it applies the medium to itself.
+Supported formats
+TODO</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> (<em>cobra.Model</em>) – The model to load medium for</p></li>
+<li><p><strong>medium_def</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a><em>, </em><em>pandas.DataFrame</em><em>, </em><em>dict.</em>) – The medium to load</p></li>
+<li><p><strong>copy</strong> (<em>boolean</em><em>, </em><em>optional</em>) – If True copies the model, otherwise the changes will happen inplace.</p></li>
+<li><p><strong>delimiter</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – Only if loading the medium from a file.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>If copy=True, returns a copy of the model.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>cobra.Model</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="module-cameo.core">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-cameo.core" title="Permalink to this headline">¶</a></h2>
+<p>This package implements the basic data structures (models, reactions etc.) used in cameo.</p>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../index.html">
+    <img class="logo" src="../_static/cameo_logo.png" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=biosustain&repo=cameo&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+    
+
+<p>
+<a class="badge" href="https://travis-ci.org/biosustain/cameo">
+    <img
+        alt="https://secure.travis-ci.org/biosustain/cameo.svg?branch=master"
+        src="https://secure.travis-ci.org/biosustain/cameo.svg?branch=master"
+    />
+</a>
+</p>
+
+
+
+
+    
+
+<p>
+<a class="badge" href="https://codecov.io/github/biosustain/cameo">
+    <img
+    alt="https://codecov.io/github/biosustain/cameo/coverage.svg?branch=master"
+    src="https://codecov.io/github/biosustain/cameo/coverage.svg?branch=master"
+    />
+</a>
+</p>
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials.html">Tutorials</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development.html">Development</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../API.html">API Docs</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="cameo.html">cameo package</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="../API.html">API Docs</a><ul>
+  <li><a href="cameo.html">cameo package</a><ul>
+      <li>Previous: <a href="cameo.api.html" title="previous chapter">cameo.api package</a></li>
+      <li>Next: <a href="cameo.data.html" title="next chapter">cameo.data package</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2014, Novo Nordisk Foundation Center for Biosustainability.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../_sources/apidoc_output/cameo.core.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+    <a href="https://github.com/biosustain/cameo" class="github">
+        <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"  class="github"/>
+    </a>
+    
+
+    
+  </body>
+</html>

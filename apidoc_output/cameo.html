@@ -1,0 +1,1022 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>cameo package &#8212; cameo 0.13.0 documentation</title>
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="cameo.api package" href="cameo.api.html" />
+    <link rel="prev" title="API Docs" href="../API.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+    <link rel="apple-touch-icon" href="../_static/cameo_touch_icon.png" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="cameo-package">
+<h1>cameo package<a class="headerlink" href="#cameo-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="subpackages">
+<h2>Subpackages<a class="headerlink" href="#subpackages" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="cameo.api.html">cameo.api package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="cameo.api.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cameo.api.html#module-cameo.api.designer">cameo.api.designer module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cameo.api.html#module-cameo.api.hosts">cameo.api.hosts module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cameo.api.html#module-cameo.api.products">cameo.api.products module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cameo.api.html#module-cameo.api">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="cameo.core.html">cameo.core package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="cameo.core.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cameo.core.html#module-cameo.core.manipulation">cameo.core.manipulation module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cameo.core.html#module-cameo.core.model_dual">cameo.core.model_dual module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cameo.core.html#module-cameo.core.pathway">cameo.core.pathway module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cameo.core.html#module-cameo.core.result">cameo.core.result module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cameo.core.html#module-cameo.core.strain_design">cameo.core.strain_design module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cameo.core.html#module-cameo.core.target">cameo.core.target module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cameo.core.html#module-cameo.core.utils">cameo.core.utils module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cameo.core.html#module-cameo.core">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="cameo.data.html">cameo.data package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="cameo.data.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cameo.data.html#module-cameo.data.metanetx">cameo.data.metanetx module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cameo.data.html#module-cameo.data">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="cameo.flux_analysis.html">cameo.flux_analysis package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="cameo.flux_analysis.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cameo.flux_analysis.html#module-cameo.flux_analysis.analysis">cameo.flux_analysis.analysis module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cameo.flux_analysis.html#module-cameo.flux_analysis.simulation">cameo.flux_analysis.simulation module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cameo.flux_analysis.html#module-cameo.flux_analysis.structural">cameo.flux_analysis.structural module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cameo.flux_analysis.html#module-cameo.flux_analysis.util">cameo.flux_analysis.util module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cameo.flux_analysis.html#module-cameo.flux_analysis">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="cameo.models.html">cameo.models package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="cameo.models.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cameo.models.html#module-cameo.models.universal">cameo.models.universal module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cameo.models.html#module-cameo.models.webmodels">cameo.models.webmodels module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cameo.models.html#webmodels-api">WebModels API</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cameo.models.html#module-cameo.models">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="cameo.network_analysis.html">cameo.network_analysis package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="cameo.network_analysis.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cameo.network_analysis.html#module-cameo.network_analysis.networkx_based">cameo.network_analysis.networkx_based module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cameo.network_analysis.html#module-cameo.network_analysis.util">cameo.network_analysis.util module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cameo.network_analysis.html#module-cameo.network_analysis">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="cameo.strain_design.html">cameo.strain_design package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="cameo.strain_design.html#subpackages">Subpackages</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="cameo.strain_design.deterministic.html">cameo.strain_design.deterministic package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cameo.strain_design.deterministic.html#submodules">Submodules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cameo.strain_design.deterministic.html#module-cameo.strain_design.deterministic.flux_variability_based">cameo.strain_design.deterministic.flux_variability_based module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cameo.strain_design.deterministic.html#module-cameo.strain_design.deterministic.linear_programming">cameo.strain_design.deterministic.linear_programming module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cameo.strain_design.deterministic.html#module-cameo.strain_design.deterministic">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cameo.strain_design.heuristic.html">cameo.strain_design.heuristic package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cameo.strain_design.heuristic.html#submodules">Submodules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cameo.strain_design.heuristic.html#module-cameo.strain_design.heuristic.evolutionary_based">cameo.strain_design.heuristic.evolutionary_based module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cameo.strain_design.heuristic.html#module-cameo.strain_design.heuristic">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cameo.strain_design.pathway_prediction.html">cameo.strain_design.pathway_prediction package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cameo.strain_design.pathway_prediction.html#submodules">Submodules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cameo.strain_design.pathway_prediction.html#module-cameo.strain_design.pathway_prediction.pathway_predictor">cameo.strain_design.pathway_prediction.pathway_predictor module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cameo.strain_design.pathway_prediction.html#module-cameo.strain_design.pathway_prediction.util">cameo.strain_design.pathway_prediction.util module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cameo.strain_design.pathway_prediction.html#module-cameo.strain_design.pathway_prediction">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="cameo.strain_design.html#module-cameo.strain_design">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="cameo.ui.html">cameo.ui package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="cameo.ui.html#module-cameo.ui">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="cameo.visualization.html">cameo.visualization package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="cameo.visualization.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cameo.visualization.html#module-cameo.visualization.escher_ext">cameo.visualization.escher_ext module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cameo.visualization.html#module-cameo.visualization.palette">cameo.visualization.palette module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cameo.visualization.html#module-cameo.visualization.sympy_ext">cameo.visualization.sympy_ext module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cameo.visualization.html#module-cameo.visualization.visualization">cameo.visualization.visualization module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cameo.visualization.html#module-cameo.visualization">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-cameo.config">
+<span id="cameo-config-module"></span><h2>cameo.config module<a class="headerlink" href="#module-cameo.config" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-cameo.exceptions">
+<span id="cameo-exceptions-module"></span><h2>cameo.exceptions module<a class="headerlink" href="#module-cameo.exceptions" title="Permalink to this headline">¶</a></h2>
+<dl class="py exception">
+<dt id="cameo.exceptions.IncompatibleTargets">
+<em class="property"><span class="pre">exception</span> </em><code class="sig-prename descclassname"><span class="pre">cameo.exceptions.</span></code><code class="sig-name descname"><span class="pre">IncompatibleTargets</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/exceptions.html#IncompatibleTargets"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.exceptions.IncompatibleTargets" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/exceptions.html#Exception" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></a></p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-cameo.io">
+<span id="cameo-io-module"></span><h2>cameo.io module<a class="headerlink" href="#module-cameo.io" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="cameo.io.load_model">
+<code class="sig-prename descclassname"><span class="pre">cameo.io.</span></code><code class="sig-name descname"><span class="pre">load_model</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="pre">path_or_handle</span></em>, <em class="sig-param"><span class="pre">solver_interface=&lt;module</span> <span class="pre">'optlang'</span> <span class="pre">from</span> <span class="pre">'/home/travis/virtualenv/python3.6.7/lib/python3.6/site-packages/optlang/__init__.py'&gt;</span></em>, <em class="sig-param"><span class="pre">sanitize=True</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/io.html#load_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.io.load_model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read a metabolic model .</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path_or_handle</strong> (<em>path</em><em>, </em><em>fhandle</em><em> or </em><em>name.</em>) – <dl class="simple">
+<dt>One of:</dt><dd><ul>
+<li><p>file path of a model file;</p></li>
+<li><p>file handle to a SBML or pickled model; or</p></li>
+<li><p>the identifier of a model in a web database (optflux.org/models)</p></li>
+</ul>
+</dd>
+</dl>
+</p></li>
+<li><p><strong>solver_interface</strong> (<em>solver_interface</em><em>, </em><em>optional</em>) – E.g. optlang.glpk_interface or any other optlang interface.</p></li>
+<li><p><strong>sanitize</strong> (<em>boolean</em><em>, </em><em>optional</em>) – If reaction and metabolite IDs should be sanitized (works only for SBML models).</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="cameo.io.sanitize_ids">
+<code class="sig-prename descclassname"><span class="pre">cameo.io.</span></code><code class="sig-name descname"><span class="pre">sanitize_ids</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/io.html#sanitize_ids"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.io.sanitize_ids" title="Permalink to this definition">¶</a></dt>
+<dd><p>Makes IDs crippled by the XML specification less annoying.</p>
+<p>For example, <a href="#id9"><span class="problematic" id="id10">EX_glc_LPAREN_e_RPAREN_</span></a> will be converted to <a href="#id11"><span class="problematic" id="id12">EX_glc_lp_e_rp_</span></a>.
+Furthermore, reactions and metabolites will be equipped with a nice_id attribute
+that provides the original ID, i.e., EX_glc(d).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>model</strong> (<em>model</em>) – </p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>Will add a nice_id attribute.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-cameo.parallel">
+<span id="cameo-parallel-module"></span><h2>cameo.parallel module<a class="headerlink" href="#module-cameo.parallel" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="cameo.parallel.MultiprocessingView">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">cameo.parallel.</span></code><code class="sig-name descname"><span class="pre">MultiprocessingView</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/parallel.html#MultiprocessingView"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.parallel.MultiprocessingView" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#cameo.util.Singleton" title="cameo.util.Singleton"><code class="xref py py-class docutils literal notranslate"><span class="pre">cameo.util.Singleton</span></code></a></p>
+<p>Provides a parallel view (similar to IPython)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>pool</strong></dt><dd></dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 60%" />
+<col style="width: 40%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><strong>apply</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>apply_async</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><strong>imap</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>map</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><strong>shutdown</strong></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt id="cameo.parallel.MultiprocessingView.pool">
+<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">pool</span></code><a class="headerlink" href="#cameo.parallel.MultiprocessingView.pool" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="cameo.parallel.MultiprocessingView.map">
+<code class="sig-name descname"><span class="pre">map</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/parallel.html#MultiprocessingView.map"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.parallel.MultiprocessingView.map" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="cameo.parallel.MultiprocessingView.apply">
+<code class="sig-name descname"><span class="pre">apply</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/parallel.html#MultiprocessingView.apply"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.parallel.MultiprocessingView.apply" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="cameo.parallel.MultiprocessingView.apply_async">
+<code class="sig-name descname"><span class="pre">apply_async</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/parallel.html#MultiprocessingView.apply_async"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.parallel.MultiprocessingView.apply_async" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="cameo.parallel.MultiprocessingView.imap">
+<code class="sig-name descname"><span class="pre">imap</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/parallel.html#MultiprocessingView.imap"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.parallel.MultiprocessingView.imap" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="cameo.parallel.MultiprocessingView.shutdown">
+<code class="sig-name descname"><span class="pre">shutdown</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/parallel.html#MultiprocessingView.shutdown"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.parallel.MultiprocessingView.shutdown" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="cameo.parallel.SequentialView">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">cameo.parallel.</span></code><code class="sig-name descname"><span class="pre">SequentialView</span></code><a class="reference internal" href="../_modules/cameo/parallel.html#SequentialView"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.parallel.SequentialView" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p class="rubric">Methods</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 60%" />
+<col style="width: 40%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><strong>apply</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>apply_async</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><strong>imap</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>map</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><strong>shutdown</strong></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt id="cameo.parallel.SequentialView.map">
+<code class="sig-name descname"><span class="pre">map</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/parallel.html#SequentialView.map"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.parallel.SequentialView.map" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="cameo.parallel.SequentialView.apply">
+<code class="sig-name descname"><span class="pre">apply</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/parallel.html#SequentialView.apply"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.parallel.SequentialView.apply" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="cameo.parallel.SequentialView.apply_async">
+<code class="sig-name descname"><span class="pre">apply_async</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/parallel.html#SequentialView.apply_async"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.parallel.SequentialView.apply_async" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="cameo.parallel.SequentialView.imap">
+<code class="sig-name descname"><span class="pre">imap</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/parallel.html#SequentialView.imap"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.parallel.SequentialView.imap" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="cameo.parallel.SequentialView.shutdown">
+<code class="sig-name descname"><span class="pre">shutdown</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/parallel.html#SequentialView.shutdown"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.parallel.SequentialView.shutdown" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-cameo.util">
+<span id="cameo-util-module"></span><h2>cameo.util module<a class="headerlink" href="#module-cameo.util" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="cameo.util.frozendict">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">cameo.util.</span></code><code class="sig-name descname"><span class="pre">frozendict</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="pre">)</span> <span class="pre">-&gt;</span> <span class="pre">new</span> <span class="pre">empty</span> <span class="pre">dictionary</span> <span class="pre">dict(mapping)</span> <span class="pre">-&gt;</span> <span class="pre">new</span> <span class="pre">dictionary</span> <span class="pre">initialized</span> <span class="pre">from</span> <span class="pre">a</span> <span class="pre">mapping</span> <span class="pre">object's</span> <span class="pre">(key</span></em>, <em class="sig-param"><span class="pre">value)</span> <span class="pre">pairs</span> <span class="pre">dict(iterable)</span> <span class="pre">-&gt;</span> <span class="pre">new</span> <span class="pre">dictionary</span> <span class="pre">initialized</span> <span class="pre">as</span> <span class="pre">if</span> <span class="pre">via:</span> <span class="pre">d</span> <span class="pre">=</span> <span class="pre">{}</span> <span class="pre">for</span> <span class="pre">k</span></em>, <em class="sig-param"><span class="pre">v</span> <span class="pre">in</span> <span class="pre">iterable:</span> <span class="pre">d[k]</span> <span class="pre">=</span> <span class="pre">v</span> <span class="pre">dict(**kwargs)</span> <span class="pre">-&gt;</span> <span class="pre">new</span> <span class="pre">dictionary</span> <span class="pre">initialized</span> <span class="pre">with</span> <span class="pre">the</span> <span class="pre">name=value</span> <span class="pre">pairs</span> <span class="pre">in</span> <span class="pre">the</span> <span class="pre">keyword</span> <span class="pre">argument</span> <span class="pre">list.</span>&#160; <span class="pre">For</span> <span class="pre">example:</span>&#160; <span class="pre">dict(one=1</span></em>, <em class="sig-param"><span class="pre">two=2</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/util.html#frozendict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.util.frozendict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a></p>
+<p class="rubric">Methods</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">clear</span></code>()</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">copy</span></code>()</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">fromkeys</span></code>(iterable[, value])</p></td>
+<td><p>Returns a new dict with keys from iterable and values equal to value.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get</span></code>(k[,d])</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">items</span></code>()</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">keys</span></code>()</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#cameo.util.frozendict.pop" title="cameo.util.frozendict.pop"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pop</span></code></a>(k[,d])</p></td>
+<td><p>If key is not found, d is returned if given, otherwise KeyError is raised</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#cameo.util.frozendict.popitem" title="cameo.util.frozendict.popitem"><code class="xref py py-obj docutils literal notranslate"><span class="pre">popitem</span></code></a>()</p></td>
+<td><p>2-tuple; but raise KeyError if D is empty.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#cameo.util.frozendict.setdefault" title="cameo.util.frozendict.setdefault"><code class="xref py py-obj docutils literal notranslate"><span class="pre">setdefault</span></code></a>(k[,d])</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#cameo.util.frozendict.update" title="cameo.util.frozendict.update"><code class="xref py py-obj docutils literal notranslate"><span class="pre">update</span></code></a>([E, ]**F)</p></td>
+<td><p>If E is present and has a .keys() method, then does:  for k in E: D[k] = E[k] If E is present and lacks a .keys() method, then does:  for k, v in E: D[k] = v In either case, this is followed by: for k in F:  D[k] = F[k]</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">values</span></code>()</p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt id="cameo.util.frozendict.popitem">
+<code class="sig-name descname"><span class="pre">popitem</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <span class="pre">(k,</span> <span class="pre">v),</span> <span class="pre">remove</span> <span class="pre">and</span> <span class="pre">return</span> <span class="pre">some</span> <span class="pre">(key,</span> <span class="pre">value)</span> <span class="pre">pair</span> <span class="pre">as</span> <span class="pre">a</span><a class="reference internal" href="../_modules/cameo/util.html#frozendict.popitem"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.util.frozendict.popitem" title="Permalink to this definition">¶</a></dt>
+<dd><p>2-tuple; but raise KeyError if D is empty.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="cameo.util.frozendict.pop">
+<code class="sig-name descname"><span class="pre">pop</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="pre">k</span></em><span class="optional">[</span>, <em class="sig-param"><span class="pre">d</span></em><span class="optional">]</span><span class="sig-paren">)</span> &#x2192; <span class="pre">v,</span> <span class="pre">remove</span> <span class="pre">specified</span> <span class="pre">key</span> <span class="pre">and</span> <span class="pre">return</span> <span class="pre">the</span> <span class="pre">corresponding</span> <span class="pre">value.</span><a class="reference internal" href="../_modules/cameo/util.html#frozendict.pop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.util.frozendict.pop" title="Permalink to this definition">¶</a></dt>
+<dd><p>If key is not found, d is returned if given, otherwise KeyError is raised</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="cameo.util.frozendict.setdefault">
+<code class="sig-name descname"><span class="pre">setdefault</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="pre">k</span></em><span class="optional">[</span>, <em class="sig-param"><span class="pre">d</span></em><span class="optional">]</span><span class="sig-paren">)</span> &#x2192; <span class="pre">D.get(k,d),</span> <span class="pre">also</span> <span class="pre">set</span> <span class="pre">D[k]=d</span> <span class="pre">if</span> <span class="pre">k</span> <span class="pre">not</span> <span class="pre">in</span> <span class="pre">D</span><a class="reference internal" href="../_modules/cameo/util.html#frozendict.setdefault"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.util.frozendict.setdefault" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="cameo.util.frozendict.update">
+<code class="sig-name descname"><span class="pre">update</span></code><span class="sig-paren">(</span><span class="optional">[</span><em class="sig-param"><span class="pre">E</span></em>, <span class="optional">]</span><em class="sig-param"><span class="pre">**F</span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">None.</span>&#160; <span class="pre">Update</span> <span class="pre">D</span> <span class="pre">from</span> <span class="pre">dict/iterable</span> <span class="pre">E</span> <span class="pre">and</span> <span class="pre">F.</span><a class="reference internal" href="../_modules/cameo/util.html#frozendict.update"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.util.frozendict.update" title="Permalink to this definition">¶</a></dt>
+<dd><p>If E is present and has a .keys() method, then does:  for k in E: D[k] = E[k]
+If E is present and lacks a .keys() method, then does:  for k, v in E: D[k] = v
+In either case, this is followed by: for k in F:  D[k] = F[k]</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt id="cameo.util.float_ceil">
+<code class="sig-prename descclassname"><span class="pre">cameo.util.</span></code><code class="sig-name descname"><span class="pre">float_ceil</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decimals</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/util.html#float_ceil"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.util.float_ceil" title="Permalink to this definition">¶</a></dt>
+<dd><p>Like ceil but the number of decimals can be set.</p>
+<p>Equivalent of $$round(val + 1e^{-decimals}/2, decimals)$$</p>
+<dl class="simple">
+<dt>val: float, numpy.array</dt><dd><p>The initial value.</p>
+</dd>
+<dt>decimals: int</dt><dd><p>The number of decimal places.</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p></p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)">float</a>, numpy.array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="cameo.util.float_floor">
+<code class="sig-prename descclassname"><span class="pre">cameo.util.</span></code><code class="sig-name descname"><span class="pre">float_floor</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decimals</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/util.html#float_floor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.util.float_floor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Like floor but the number of decimals can be set.</p>
+<p>Equivalent of $$round(val - 1e^{-decimals}/2, decimals)$$</p>
+<dl class="simple">
+<dt>val: float, numpy.array</dt><dd><p>The initial value.</p>
+</dd>
+<dt>decimals: int</dt><dd><p>The number of decimal places.</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p></p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)">float</a>, numpy.array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt id="cameo.util.ProblemCache">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">cameo.util.</span></code><code class="sig-name descname"><span class="pre">ProblemCache</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/util.html#ProblemCache"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.util.ProblemCache" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Variable and constraint cache for models.</p>
+<p>To be used in complex methods that require many extra variables and constraints when one must run
+simulations with the same method many times.</p>
+<p>It allows rollback to the previous state in case one iteration fails to build the problem or
+generates an invalid state.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>model</strong></dt><dd></dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#cameo.util.ProblemCache.add_constraint" title="cameo.util.ProblemCache.add_constraint"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_constraint</span></code></a>(constraint_id, create, …)</p></td>
+<td><p>Adds a new cached constraint.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#cameo.util.ProblemCache.add_variable" title="cameo.util.ProblemCache.add_variable"><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_variable</span></code></a>(variable_id, create, update, …)</p></td>
+<td><p>Adds a new cached variable.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#cameo.util.ProblemCache.begin_transaction" title="cameo.util.ProblemCache.begin_transaction"><code class="xref py py-obj docutils literal notranslate"><span class="pre">begin_transaction</span></code></a>()</p></td>
+<td><p>Creates a time point.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#cameo.util.ProblemCache.reset" title="cameo.util.ProblemCache.reset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">reset</span></code></a>()</p></td>
+<td><p>Removes all constraints and variables from the cache.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#cameo.util.ProblemCache.rollback" title="cameo.util.ProblemCache.rollback"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rollback</span></code></a>()</p></td>
+<td><p>Returns to the previous transaction start point.</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 63%" />
+<col style="width: 37%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><strong>add_objective</strong></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt id="cameo.util.ProblemCache.begin_transaction">
+<code class="sig-name descname"><span class="pre">begin_transaction</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/util.html#ProblemCache.begin_transaction"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.util.ProblemCache.begin_transaction" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a time point. If rollback is called, the variables and constrains will be reverted to this point.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="cameo.util.ProblemCache.model">
+<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">model</span></code><a class="headerlink" href="#cameo.util.ProblemCache.model" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="cameo.util.ProblemCache.add_constraint">
+<code class="sig-name descname"><span class="pre">add_constraint</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">constraint_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">create</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">update</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/util.html#ProblemCache.add_constraint"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.util.ProblemCache.add_constraint" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds a new cached constraint.</p>
+<p>The create and update functions must have the following signatures:
+&gt;&gt;&gt; create(model, constraint_id, <a href="#id1"><span class="problematic" id="id2">*</span></a>args)
+&gt;&gt;&gt; update(model, constraint, <a href="#id3"><span class="problematic" id="id4">*</span></a>args)</p>
+<p>“args” in the first example must match args on the second example.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>constraint_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – The identifier of the constraint</p></li>
+<li><p><strong>create</strong> (<em>function</em>) – A function that creates an optlang.interface.Constraint</p></li>
+<li><p><strong>update</strong> (<em>function</em>) – a function that updates an optlang.interface.Constraint</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="cameo.util.ProblemCache.add_variable">
+<code class="sig-name descname"><span class="pre">add_variable</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">variable_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">create</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">update</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/util.html#ProblemCache.add_variable"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.util.ProblemCache.add_variable" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds a new cached variable.</p>
+<p>The create and update functions must have the following signatures:
+&gt;&gt;&gt; create(model, variable_id, <a href="#id5"><span class="problematic" id="id6">*</span></a>args)
+&gt;&gt;&gt; update(model, variable, <a href="#id7"><span class="problematic" id="id8">*</span></a>args)</p>
+<p>“args” in the first example must match args on the second example.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>variable_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – The identifier of the constraint</p></li>
+<li><p><strong>create</strong> (<em>function</em>) – A function that creates an optlang.interface.Variable</p></li>
+<li><p><strong>update</strong> (<em>function</em>) – a function that updates an optlang.interface.Variable</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="cameo.util.ProblemCache.add_objective">
+<code class="sig-name descname"><span class="pre">add_objective</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">create</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">update</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/util.html#ProblemCache.add_objective"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.util.ProblemCache.add_objective" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="cameo.util.ProblemCache.reset">
+<code class="sig-name descname"><span class="pre">reset</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/util.html#ProblemCache.reset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.util.ProblemCache.reset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Removes all constraints and variables from the cache.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="cameo.util.ProblemCache.rollback">
+<code class="sig-name descname"><span class="pre">rollback</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/util.html#ProblemCache.rollback"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.util.ProblemCache.rollback" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns to the previous transaction start point.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="cameo.util.RandomGenerator">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">cameo.util.</span></code><code class="sig-name descname"><span class="pre">RandomGenerator</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/util.html#RandomGenerator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.util.RandomGenerator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p class="rubric">Methods</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 52%" />
+<col style="width: 48%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><strong>randint</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>random</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><strong>sample</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>seed</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><strong>uniform</strong></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt id="cameo.util.RandomGenerator.seed">
+<code class="sig-name descname"><span class="pre">seed</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seed</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/util.html#RandomGenerator.seed"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.util.RandomGenerator.seed" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="cameo.util.RandomGenerator.random">
+<code class="sig-name descname"><span class="pre">random</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/util.html#RandomGenerator.random"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.util.RandomGenerator.random" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="cameo.util.RandomGenerator.randint">
+<code class="sig-name descname"><span class="pre">randint</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/util.html#RandomGenerator.randint"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.util.RandomGenerator.randint" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="cameo.util.RandomGenerator.sample">
+<code class="sig-name descname"><span class="pre">sample</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">population</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/util.html#RandomGenerator.sample"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.util.RandomGenerator.sample" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="cameo.util.RandomGenerator.uniform">
+<code class="sig-name descname"><span class="pre">uniform</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">low</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">high</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/util.html#RandomGenerator.uniform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.util.RandomGenerator.uniform" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="cameo.util.Singleton">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">cameo.util.</span></code><code class="sig-name descname"><span class="pre">Singleton</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/util.html#Singleton"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.util.Singleton" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Singleton class to be extended</p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="cameo.util.AutoVivification">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">cameo.util.</span></code><code class="sig-name descname"><span class="pre">AutoVivification</span></code><a class="reference internal" href="../_modules/cameo/util.html#AutoVivification"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.util.AutoVivification" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a></p>
+<p>Implementation of perl’s autovivification feature. Checkout <a class="reference external" href="http://stackoverflow.com/a/652284/280182">http://stackoverflow.com/a/652284/280182</a></p>
+<p class="rubric">Methods</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">clear</span></code>()</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">copy</span></code>()</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">fromkeys</span></code>(iterable[, value])</p></td>
+<td><p>Returns a new dict with keys from iterable and values equal to value.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get</span></code>(k[,d])</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">items</span></code>()</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">keys</span></code>()</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">pop</span></code>(k[,d])</p></td>
+<td><p>If key is not found, d is returned if given, otherwise KeyError is raised</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">popitem</span></code>()</p></td>
+<td><p>2-tuple; but raise KeyError if D is empty.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">setdefault</span></code>(k[,d])</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">update</span></code>([E, ]**F)</p></td>
+<td><p>If E is present and has a .keys() method, then does:  for k in E: D[k] = E[k] If E is present and lacks a .keys() method, then does:  for k, v in E: D[k] = v In either case, this is followed by: for k in F:  D[k] = F[k]</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">values</span></code>()</p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="py class">
+<dt id="cameo.util.TimeMachine">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">cameo.util.</span></code><code class="sig-name descname"><span class="pre">TimeMachine</span></code><a class="reference internal" href="../_modules/cameo/util.html#TimeMachine"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.util.TimeMachine" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Travel back and forth in time.</p>
+<p class="rubric">Methods</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">__call__</span></code>([do, undo, bookmark])</p></td>
+<td><p>Call self as a function.</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 47%" />
+<col style="width: 53%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><strong>redo</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>reset</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><strong>undo</strong></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt id="cameo.util.TimeMachine.undo">
+<code class="sig-name descname"><span class="pre">undo</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bookmark</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/util.html#TimeMachine.undo"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.util.TimeMachine.undo" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="cameo.util.TimeMachine.redo">
+<code class="sig-name descname"><span class="pre">redo</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/util.html#TimeMachine.redo"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.util.TimeMachine.redo" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="cameo.util.TimeMachine.reset">
+<code class="sig-name descname"><span class="pre">reset</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/util.html#TimeMachine.reset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.util.TimeMachine.reset" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="cameo.util.Timer">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">cameo.util.</span></code><code class="sig-name descname"><span class="pre">Timer</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/util.html#Timer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.util.Timer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Taken from <a class="reference external" href="http://stackoverflow.com/a/5849861/280182">http://stackoverflow.com/a/5849861/280182</a></p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="cameo.util.IntelliContainer">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">cameo.util.</span></code><code class="sig-name descname"><span class="pre">IntelliContainer</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/util.html#IntelliContainer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.util.IntelliContainer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="cameo.util.inheritdocstring">
+<code class="sig-prename descclassname"><span class="pre">cameo.util.</span></code><code class="sig-name descname"><span class="pre">inheritdocstring</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bases</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">attrs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/util.html#inheritdocstring"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.util.inheritdocstring" title="Permalink to this definition">¶</a></dt>
+<dd><p>Use as metaclass to inherit class and method docstrings from parent.
+Adapted from <a class="reference external" href="http://stackoverflow.com/questions/13937500/inherit-a-parent-class-docstring-as-doc-attribute">http://stackoverflow.com/questions/13937500/inherit-a-parent-class-docstring-as-doc-attribute</a></p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="cameo.util.partition_">
+<code class="sig-prename descclassname"><span class="pre">cameo.util.</span></code><code class="sig-name descname"><span class="pre">partition_</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lst</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/util.html#partition_"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.util.partition_" title="Permalink to this definition">¶</a></dt>
+<dd><p>Partition a list into n bite size chunks.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="cameo.util.partition">
+<code class="sig-prename descclassname"><span class="pre">cameo.util.</span></code><code class="sig-name descname"><span class="pre">partition</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ite</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/util.html#partition"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.util.partition" title="Permalink to this definition">¶</a></dt>
+<dd><p>Partition an iterable into n bite size chunks.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="cameo.util.flatten">
+<code class="sig-prename descclassname"><span class="pre">cameo.util.</span></code><code class="sig-name descname"><span class="pre">flatten</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_list</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/util.html#flatten"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.util.flatten" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="cameo.util.generate_colors">
+<code class="sig-prename descclassname"><span class="pre">cameo.util.</span></code><code class="sig-name descname"><span class="pre">generate_colors</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/util.html#generate_colors"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.util.generate_colors" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="cameo.util.memoize">
+<code class="sig-prename descclassname"><span class="pre">cameo.util.</span></code><code class="sig-name descname"><span class="pre">memoize</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">function</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">memo</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{}</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/util.html#memoize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.util.memoize" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="cameo.util.get_system_info">
+<code class="sig-prename descclassname"><span class="pre">cameo.util.</span></code><code class="sig-name descname"><span class="pre">get_system_info</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/util.html#get_system_info"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.util.get_system_info" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="cameo.util.in_ipnb">
+<code class="sig-prename descclassname"><span class="pre">cameo.util.</span></code><code class="sig-name descname"><span class="pre">in_ipnb</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/util.html#in_ipnb"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.util.in_ipnb" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if it is running inside an IPython Notebook (updated for new notebooks)</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="cameo.util.str_to_valid_variable_name">
+<code class="sig-prename descclassname"><span class="pre">cameo.util.</span></code><code class="sig-name descname"><span class="pre">str_to_valid_variable_name</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">s</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/util.html#str_to_valid_variable_name"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.util.str_to_valid_variable_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adapted from <a class="reference external" href="http://stackoverflow.com/a/3303361/280182">http://stackoverflow.com/a/3303361/280182</a></p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="cameo.util.zip_repeat">
+<code class="sig-prename descclassname"><span class="pre">cameo.util.</span></code><code class="sig-name descname"><span class="pre">zip_repeat</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">long_iter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">short_iter</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/util.html#zip_repeat"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.util.zip_repeat" title="Permalink to this definition">¶</a></dt>
+<dd><p>Zips two iterable objects but repeats the second one if it is shorter than the first one.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>long_iter</strong> (<em>iterable</em>) – </p></li>
+<li><p><strong>short_iter</strong> (<em>iterable</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>generator</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="cameo.util.pick_one">
+<code class="sig-prename descclassname"><span class="pre">cameo.util.</span></code><code class="sig-name descname"><span class="pre">pick_one</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">iterable</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/util.html#pick_one"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.util.pick_one" title="Permalink to this definition">¶</a></dt>
+<dd><p>Helper function that returns an element of an iterable (it the iterable is ordered this will be the first
+element).</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="cameo.util.reduce_reaction_set">
+<code class="sig-prename descclassname"><span class="pre">cameo.util.</span></code><code class="sig-name descname"><span class="pre">reduce_reaction_set</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reaction_set</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">groups</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/util.html#reduce_reaction_set"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.util.reduce_reaction_set" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reduces a set of reactions according to a number of groups of reactions.
+The reduction will be performed so that the resulting set will contain no more than 1 reaction from each group.
+Reactions that are not in any of the groups will remain in the set.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>reaction_set</strong> (<em>Set</em>) – </p></li>
+<li><p><strong>groups</strong> (<em>Iterable of sets</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>Set</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="cameo.util.decompose_reaction_groups">
+<code class="sig-prename descclassname"><span class="pre">cameo.util.</span></code><code class="sig-name descname"><span class="pre">decompose_reaction_groups</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reaction_groups</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reactions</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/util.html#decompose_reaction_groups"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.util.decompose_reaction_groups" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="simple">
+<dt>reaction_groups<span class="classifier">list</span></dt><dd><p>A list with dictionaries (element: relative_coefficient)</p>
+</dd>
+<dt>reactions<span class="classifier">list, set, tuple</span></dt><dd><p>A collection of reactions.</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A list of all possible group substitutions.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.9)">list</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="cameo.util.current_solver_name">
+<code class="sig-prename descclassname"><span class="pre">cameo.util.</span></code><code class="sig-name descname"><span class="pre">current_solver_name</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/util.html#current_solver_name"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.util.current_solver_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Give a string representation for an optlang interface.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>model</strong> (<em>cobra.Model</em>) – A model</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The name of the interface as a string</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>string</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="module-cameo">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-cameo" title="Permalink to this headline">¶</a></h2>
+<p>CAMEO: Computer Aided Metabolic Engineering &amp; Optimization</p>
+<p>Cameo is a high-level python library developed to aid the in silico
+strain design process in metabolic engineering projects. The library
+provides a modular architecture that enables the efficient construction
+of custom analysis workflows.</p>
+<p class="rubric">Example</p>
+<p>from cameo import load_model</p>
+<p># load a model from SBML format (can be found under cameo/tests/data)
+model = load_model(‘EcoliCore.xml’)</p>
+<p># optimize the model and print the objective value
+solution = model.optimize()
+print ‘Objective value:’, solution.objective_value</p>
+<p># Determine a set of gene deletions that will optimize the production
+# of a desired compound
+from cameo.strain_design.heuristic import GeneKnockoutOptimization
+from cameo.strain_design.heuristic.objective_functions import biomass_product_coupled_yield
+from cameo.flux_analysis.simulation import fba</p>
+<dl class="simple">
+<dt>objective = biomass_product_coupled_yield(“Ec_biomass_iJO1366_core_53p95M”,</dt><dd><p>“<a href="#id13"><span class="problematic" id="id14">EX_succ_lp_e_rp_</span></a>”, “<a href="#id15"><span class="problematic" id="id16">EX_glc_lp_e_rp_</span></a>”)</p>
+</dd>
+<dt>optimization = GeneKnockoutOptimization(model=model, objective_function=of,</dt><dd><p>simulation_method=fba, heuristic_method=inspyred.ec.GA)</p>
+</dd>
+<dt>optimization.run(max_evaluations=2000, n=1,</dt><dd><p>mutation_rate=0.3, view=cameo.parallel.SequentialView(),
+product=”<a href="#id17"><span class="problematic" id="id18">EX_succ_lp_e_rp_</span></a>”, num_elites=1)</p>
+</dd>
+</dl>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../index.html">
+    <img class="logo" src="../_static/cameo_logo.png" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=biosustain&repo=cameo&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+    
+
+<p>
+<a class="badge" href="https://travis-ci.org/biosustain/cameo">
+    <img
+        alt="https://secure.travis-ci.org/biosustain/cameo.svg?branch=master"
+        src="https://secure.travis-ci.org/biosustain/cameo.svg?branch=master"
+    />
+</a>
+</p>
+
+
+
+
+    
+
+<p>
+<a class="badge" href="https://codecov.io/github/biosustain/cameo">
+    <img
+    alt="https://codecov.io/github/biosustain/cameo/coverage.svg?branch=master"
+    src="https://codecov.io/github/biosustain/cameo/coverage.svg?branch=master"
+    />
+</a>
+</p>
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials.html">Tutorials</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development.html">Development</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../API.html">API Docs</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">cameo package</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="../API.html">API Docs</a><ul>
+      <li>Previous: <a href="../API.html" title="previous chapter">API Docs</a></li>
+      <li>Next: <a href="cameo.api.html" title="next chapter">cameo.api package</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2014, Novo Nordisk Foundation Center for Biosustainability.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../_sources/apidoc_output/cameo.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+    <a href="https://github.com/biosustain/cameo" class="github">
+        <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"  class="github"/>
+    </a>
+    
+
+    
+  </body>
+</html>

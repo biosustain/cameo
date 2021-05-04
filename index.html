@@ -1,0 +1,273 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Welcome to cameo! &#8212; cameo 0.13.0 documentation</title>
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Installation" href="installation.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+    <link rel="apple-touch-icon" href="_static/cameo_touch_icon.png" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="welcome-to-cameo">
+<h1>Welcome to cameo!<a class="headerlink" href="#welcome-to-cameo" title="Permalink to this headline">¶</a></h1>
+<p><a class="reference external" href="https://gitter.im/biosustain/cameo?utm_source=badge&amp;utm_medium=badge&amp;utm_campaign=pr-badge&amp;utm_content=badge"><img alt="Join the chat at https://gitter.im/biosustain/cameo" src="https://badges.gitter.im/biosustain/cameo.svg" /></a> <a class="reference external" href="https://pypi.python.org/pypi/cameo"><img alt="PyPI" src="https://img.shields.io/pypi/v/cameo.svg" /></a> <a class="reference external" href="http://img.shields.io/badge/license-APACHE2-blue.svg"><img alt="License" src="http://img.shields.io/badge/license-APACHE2-blue.svg" /></a>
+<a class="reference external" href="https://travis-ci.org/biosustain/cameo"><img alt="Build Status" src="https://travis-ci.org/biosustain/cameo.svg?branch=master" /></a> <a class="reference external" href="https://coveralls.io/r/biosustain/cameo?branch=devel"><img alt="Coverage Status" src="https://coveralls.io/repos/biosustain/cameo/badge.svg?branch=devel" /></a> <a class="reference external" href="https://zenodo.org/badge/latestdoi/5031/biosustain/cameo"><img alt="DOI" src="https://zenodo.org/badge/5031/biosustain/cameo.svg" /></a> <a class="reference external" href="https://zenhub.com"><img alt="zenhub" src="https://img.shields.io/badge/Shipping_faster_with-ZenHub-5e60ba.svg?style=flat-square" /></a></p>
+<div class="section" id="what-is-cameo">
+<h2>What is cameo?<a class="headerlink" href="#what-is-cameo" title="Permalink to this headline">¶</a></h2>
+<p><strong>Cameo</strong> is a high-level python library developed to aid the strain
+design process in metabolic engineering projects. The library provides a
+modular framework of simulation and strain design methods that targets
+developers that want to develop new design algorithms and custom analysis workflows.
+Furthermore, it exposes a high-level API to users that just want to
+compute promising strain designs.</p>
+<p>Curious? Head over to <a class="reference external" href="http://try.cameo.bio">try.cameo.bio</a>
+and give it a try.</p>
+<p>Please cite <a class="reference external" href="https://doi.org/10.1021/acssynbio.7b00423">https://doi.org/10.1021/acssynbio.7b00423</a> if you’ve used cameo in a scientific publication.</p>
+<div class="section" id="high-level-api-for-users">
+<h3>High-level API (for users)<a class="headerlink" href="#high-level-api-for-users" title="Permalink to this headline">¶</a></h3>
+<p>Compute strain engineering strategies for a desired product in a number
+of host organisms using the high-level interface (runtime is on the order of hours).</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">cameo.api</span> <span class="kn">import</span> <span class="n">design</span>
+<span class="n">design</span><span class="p">(</span><span class="n">product</span><span class="o">=</span><span class="s1">&#39;L-Serine&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><a class="reference external" href="http://nbviewer.ipython.org/github/biosustain/cameo-notebooks/blob/master/08-high-level-API.ipynb">Output</a></p>
+<p>The high-level API can also be called from the command line.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ cameo design vanillin
+</pre></div>
+</div>
+<p>For more information run</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ cameo --help
+</pre></div>
+</div>
+</div>
+<div class="section" id="low-level-api-for-developers">
+<h3>Low-level API (for developers)<a class="headerlink" href="#low-level-api-for-developers" title="Permalink to this headline">¶</a></h3>
+<p>Find gene knockout targets using evolutionary computation.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">cameo</span> <span class="kn">import</span> <span class="n">models</span>
+<span class="kn">from</span> <span class="nn">cameo.strain_design.heuristic</span> <span class="kn">import</span> <span class="n">GeneKnockoutOptimization</span>
+<span class="kn">from</span> <span class="nn">cameo.strain_design.heuristic.objective_functions</span> <span class="kn">import</span> <span class="n">biomass_product_coupled_yield</span>
+
+<span class="n">model</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">bigg</span><span class="o">.</span><span class="n">e_coli_core</span>
+<span class="n">obj</span> <span class="o">=</span> <span class="n">biomass_product_coupled_yield</span><span class="p">(</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">reactions</span><span class="o">.</span><span class="n">Biomass_Ecoli_core_w_GAM</span><span class="p">,</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">reactions</span><span class="o">.</span><span class="n">EX_succ_e</span><span class="p">,</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">reactions</span><span class="o">.</span><span class="n">EX_glc_e</span><span class="p">)</span>
+<span class="n">ko</span> <span class="o">=</span> <span class="n">GeneKnockoutOptimization</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span> <span class="n">objective_function</span><span class="o">=</span><span class="n">obj</span><span class="p">)</span>
+<span class="n">ko</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">max_evaluations</span><span class="o">=</span><span class="mi">50000</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">mutation_rate</span><span class="o">=</span><span class="mf">0.15</span><span class="p">,</span> <span class="n">indel_rate</span><span class="o">=</span><span class="mf">0.185</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><a class="reference external" href="http://nbviewer.ipython.org/github/biosustain/cameo-notebooks/blob/master/05-predict-gene-knockout-strategies.ipynb">Output</a></p>
+<p>Predict heterologous pathways for a desired chemical.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">cameo.strain_design</span> <span class="kn">import</span> <span class="n">pathway_prediction</span>
+<span class="n">predictor</span> <span class="o">=</span> <span class="n">pathway_prediction</span><span class="o">.</span><span class="n">PathwayPredictor</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+<span class="n">pathways</span> <span class="o">=</span> <span class="n">predictor</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">product</span><span class="o">=</span><span class="s2">&quot;vanillin&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><a class="reference external" href="http://nbviewer.ipython.org/github/biosustain/cameo-notebooks/blob/master/07-predict-heterologous-pathways.ipynb">Output</a></p>
+</div>
+</div>
+<div class="section" id="user-s-guide">
+<h2>User’s guide<a class="headerlink" href="#user-s-guide" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#basic-installation">Basic installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#setting-up-a-virtual-environment-first">Setting up a virtual environment first</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#soft-dependencies">Soft dependencies</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials.html">Tutorials</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="02-import-models.html">Import models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="03-simulate-models.html">Simulate models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="04-analyze-models.html">Analyzing models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="05-predict-gene-knockout-strategies.html">Predict gene knockout strategies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="06-predict-gene-modulation-targets.html">Predict expression modulation targets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="07-predict-heterologous-pathways.html">Predict heterologous pathways</a></li>
+<li class="toctree-l2"><a class="reference internal" href="08-high-level-API.html">Easy strain design using a high-level interface</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="developers-s-guide">
+<h2>Developers’s guide<a class="headerlink" href="#developers-s-guide" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="contributing.html#types-of-contributions">Types of Contributions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="contributing.html#get-started">Get Started!</a></li>
+<li class="toctree-l2"><a class="reference internal" href="contributing.html#pull-request-guidelines">Pull Request Guidelines</a></li>
+<li class="toctree-l2"><a class="reference internal" href="contributing.html#branching-model-and-non-free-dependencies">Branching model and non-free dependencies</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="development.html">Development</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="development.html#importing-a-model">Importing a model</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="api">
+<h2>API<a class="headerlink" href="#api" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="API.html">API Docs</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="apidoc_output/cameo.html">cameo package</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="indices-and-tables">
+<h2>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
+<li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
+<li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="#">
+    <img class="logo" src="_static/cameo_logo.png" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=biosustain&repo=cameo&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+    
+
+<p>
+<a class="badge" href="https://travis-ci.org/biosustain/cameo">
+    <img
+        alt="https://secure.travis-ci.org/biosustain/cameo.svg?branch=master"
+        src="https://secure.travis-ci.org/biosustain/cameo.svg?branch=master"
+    />
+</a>
+</p>
+
+
+
+
+    
+
+<p>
+<a class="badge" href="https://codecov.io/github/biosustain/cameo">
+    <img
+    alt="https://codecov.io/github/biosustain/cameo/coverage.svg?branch=master"
+    src="https://codecov.io/github/biosustain/cameo/coverage.svg?branch=master"
+    />
+</a>
+</p>
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials.html">Tutorials</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="development.html">Development</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="API.html">API Docs</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="#">Documentation overview</a><ul>
+      <li>Next: <a href="installation.html" title="next chapter">Installation</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2014, Novo Nordisk Foundation Center for Biosustainability.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/index.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+    <a href="https://github.com/biosustain/cameo" class="github">
+        <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"  class="github"/>
+    </a>
+    
+
+    
+  </body>
+</html>

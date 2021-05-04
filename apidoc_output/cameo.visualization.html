@@ -1,0 +1,527 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>cameo.visualization package &#8212; cameo 0.13.0 documentation</title>
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="prev" title="cameo.ui package" href="cameo.ui.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+    <link rel="apple-touch-icon" href="../_static/cameo_touch_icon.png" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="cameo-visualization-package">
+<h1>cameo.visualization package<a class="headerlink" href="#cameo-visualization-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-cameo.visualization.escher_ext">
+<span id="cameo-visualization-escher-ext-module"></span><h2>cameo.visualization.escher_ext module<a class="headerlink" href="#module-cameo.visualization.escher_ext" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="cameo.visualization.escher_ext.NotebookBuilder">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">cameo.visualization.escher_ext.</span></code><code class="sig-name descname"><span class="pre">NotebookBuilder</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/visualization/escher_ext.html#NotebookBuilder"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.visualization.escher_ext.NotebookBuilder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">escher.plots.Builder</span></code></p>
+<dl class="field-list">
+<dt class="field-odd">Attributes</dt>
+<dd class="field-odd"><dl>
+<dt><strong>allow_building_duplicate_reactions</strong></dt><dd><p>A trait which allows any value.</p>
+</dd>
+<dt><strong>and_method_in_gene_reaction_rule</strong></dt><dd><p>A trait which allows any value.</p>
+</dd>
+<dt><strong>canvas_size_and_loc</strong></dt><dd><p>A trait which allows any value.</p>
+</dd>
+<dt><strong>cofactors</strong></dt><dd><p>A trait which allows any value.</p>
+</dd>
+<dt><strong>comm</strong></dt><dd><p>A trait whose value must be an instance of a specified class.</p>
+<p>The value can also be an instance of a subclass of the specified class.</p>
+<p>Subclasses can declare default classes by overriding the klass attribute</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">cross_validation_lock</span></code></dt><dd><p>A contextmanager for running a block with our cross validation lock set to True.</p>
+</dd>
+<dt><strong>disabled_buttons</strong></dt><dd><p>A trait which allows any value.</p>
+</dd>
+<dt><strong>embedded_css</strong></dt><dd><p>A trait for unicode strings.</p>
+</dd>
+<dt><strong>enable_editing</strong></dt><dd><p>A trait which allows any value.</p>
+</dd>
+<dt><strong>enable_keys</strong></dt><dd><p>A trait which allows any value.</p>
+</dd>
+<dt><strong>enable_keys_with_tooltip</strong></dt><dd><p>A trait which allows any value.</p>
+</dd>
+<dt><strong>enable_search</strong></dt><dd><p>A trait which allows any value.</p>
+</dd>
+<dt><strong>enable_tooltips</strong></dt><dd><p>A trait which allows any value.</p>
+</dd>
+<dt><strong>full_screen_button</strong></dt><dd><p>A trait which allows any value.</p>
+</dd>
+<dt><strong>gene_data</strong></dt><dd><p>A trait which allows any value.</p>
+</dd>
+<dt><strong>gene_font_size</strong></dt><dd><p>A trait which allows any value.</p>
+</dd>
+<dt><strong>height</strong></dt><dd><p>An int trait.</p>
+</dd>
+<dt><strong>hide_all_labels</strong></dt><dd><p>A trait which allows any value.</p>
+</dd>
+<dt><strong>hide_secondary_metabolites</strong></dt><dd><p>A trait which allows any value.</p>
+</dd>
+<dt><strong>highlight_missing</strong></dt><dd><p>A trait which allows any value.</p>
+</dd>
+<dt><strong>identifiers_on_map</strong></dt><dd><p>A trait which allows any value.</p>
+</dd>
+<dt><strong>keys</strong></dt><dd><p>An instance of a Python list.</p>
+</dd>
+<dt><strong>layout</strong></dt><dd><p>An instance trait which coerces a dict to an instance.</p>
+<p>This lets the instance be specified as a dict, which is used
+to initialize the instance.</p>
+<p>Also, we default to a trivial instance, even if args and kwargs
+is not specified.</p>
+</dd>
+<dt><strong>log</strong></dt><dd><p>A trait whose value must be an instance of a specified class.</p>
+<p>The value can also be an instance of a subclass of the specified class.</p>
+<p>Subclasses can declare default classes by overriding the klass attribute</p>
+</dd>
+<dt><strong>map_json</strong></dt><dd><p>A trait for unicode strings.</p>
+</dd>
+<dt><strong>map_name</strong></dt><dd><p>A trait for unicode strings.</p>
+</dd>
+<dt><strong>marker_radius</strong></dt><dd><p>A trait which allows any value.</p>
+</dd>
+<dt><strong>menu</strong></dt><dd><p>A trait which allows any value.</p>
+</dd>
+<dt><strong>metabolite_compare_style</strong></dt><dd><p>A trait which allows any value.</p>
+</dd>
+<dt><strong>metabolite_data</strong></dt><dd><p>A trait which allows any value.</p>
+</dd>
+<dt><strong>metabolite_no_data_color</strong></dt><dd><p>A trait which allows any value.</p>
+</dd>
+<dt><strong>metabolite_no_data_size</strong></dt><dd><p>A trait which allows any value.</p>
+</dd>
+<dt><strong>metabolite_scale</strong></dt><dd><p>A trait which allows any value.</p>
+</dd>
+<dt><strong>metabolite_scale_preset</strong></dt><dd><p>A trait which allows any value.</p>
+</dd>
+<dt><strong>metabolite_styles</strong></dt><dd><p>A trait which allows any value.</p>
+</dd>
+<dt><strong>model</strong></dt><dd><p>A trait whose value must be an instance of a specified class.</p>
+<p>The value can also be an instance of a subclass of the specified class.</p>
+<p>Subclasses can declare default classes by overriding the klass attribute</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">model_id</span></code></dt><dd><p>Gets the model id of this widget.</p>
+</dd>
+<dt><strong>model_json</strong></dt><dd><p>A trait for unicode strings.</p>
+</dd>
+<dt><strong>model_name</strong></dt><dd><p>A trait for unicode strings.</p>
+</dd>
+<dt><strong>never_ask_before_quit</strong></dt><dd><p>A trait which allows any value.</p>
+</dd>
+<dt><strong>primary_metabolite_radius</strong></dt><dd><p>A trait which allows any value.</p>
+</dd>
+<dt><strong>reaction_compare_style</strong></dt><dd><p>A trait which allows any value.</p>
+</dd>
+<dt><strong>reaction_data</strong></dt><dd><p>A trait which allows any value.</p>
+</dd>
+<dt><strong>reaction_no_data_color</strong></dt><dd><p>A trait which allows any value.</p>
+</dd>
+<dt><strong>reaction_no_data_size</strong></dt><dd><p>A trait which allows any value.</p>
+</dd>
+<dt><strong>reaction_scale</strong></dt><dd><p>A trait which allows any value.</p>
+</dd>
+<dt><strong>reaction_scale_preset</strong></dt><dd><p>A trait which allows any value.</p>
+</dd>
+<dt><strong>reaction_styles</strong></dt><dd><p>A trait which allows any value.</p>
+</dd>
+<dt><strong>scroll_behavior</strong></dt><dd><p>A trait which allows any value.</p>
+</dd>
+<dt><strong>secondary_metabolite_radius</strong></dt><dd><p>A trait which allows any value.</p>
+</dd>
+<dt><strong>semantic_zoom</strong></dt><dd><p>A trait which allows any value.</p>
+</dd>
+<dt><strong>show_gene_reaction_rules</strong></dt><dd><p>A trait which allows any value.</p>
+</dd>
+<dt><strong>starting_reaction</strong></dt><dd><p>A trait which allows any value.</p>
+</dd>
+<dt><strong>use_3d_transform</strong></dt><dd><p>A trait which allows any value.</p>
+</dd>
+<dt><strong>zoom_to_element</strong></dt><dd><p>A trait which allows any value.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Methods</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_class</span></code>(className)</p></td>
+<td><p>Adds a class to the top level element of the widget.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">add_traits</span></code>(**traits)</p></td>
+<td><p>Dynamically add trait attributes to the Widget.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">class_own_trait_events</span></code>(name)</p></td>
+<td><p>Get a dict of all event handlers defined on this class, not a parent.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">class_own_traits</span></code>(**metadata)</p></td>
+<td><p>Get a dict of all the traitlets defined on this class, not a parent.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">class_trait_names</span></code>(**metadata)</p></td>
+<td><p>Get a list of all the names of this class’ traits.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">class_traits</span></code>(**metadata)</p></td>
+<td><p>Get a <code class="docutils literal notranslate"><span class="pre">dict</span></code> of all the traits of this class.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">close</span></code>()</p></td>
+<td><p>Close method.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">display_in_browser</span></code>(*args, **kwargs)</p></td>
+<td><p>Deprecated.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">display_in_notebook</span></code>(*args, **kwargs)</p></td>
+<td><p>Deprecated.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_manager_state</span></code>([drop_defaults, widgets])</p></td>
+<td><p>Returns the full state for a widget manager for embedding</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_state</span></code>([key, drop_defaults])</p></td>
+<td><p>Gets the widget state, or a piece of it.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">handle_comm_opened</span></code>(comm, msg)</p></td>
+<td><p>Static method, called when a widget is constructed.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">has_trait</span></code>(name)</p></td>
+<td><p>Returns True if the object has a trait with the specified name.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">hold_sync</span></code>()</p></td>
+<td><p>Hold syncing any state until the outermost context manager exits</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">hold_trait_notifications</span></code>()</p></td>
+<td><p>Context manager for bundling trait change notifications and cross validation.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">notify_change</span></code>(change)</p></td>
+<td><p>Called when a property has changed.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">observe</span></code>(handler[, names, type])</p></td>
+<td><p>Setup a handler to be called when a trait changes.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">on_displayed</span></code>(callback[, remove])</p></td>
+<td><p>(Un)Register a widget displayed callback.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">on_msg</span></code>(callback[, remove])</p></td>
+<td><p>(Un)Register a custom msg receive callback.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">on_trait_change</span></code>([handler, name, remove])</p></td>
+<td><p>DEPRECATED: Setup a handler to be called when a trait changes.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">on_widget_constructed</span></code>(callback)</p></td>
+<td><p>Registers a callback to be called when a widget is constructed.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">open</span></code>()</p></td>
+<td><p>Open a comm to the frontend if one isn’t already open.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">remove_class</span></code>(className)</p></td>
+<td><p>Removes a class from the top level element of the widget.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">save_html</span></code>(filepath)</p></td>
+<td><p>Save an HTML file containing the map.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">send</span></code>(content[, buffers])</p></td>
+<td><p>Sends a custom msg to the widget model in the front-end.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">send_state</span></code>([key])</p></td>
+<td><p>Sends the widget state, or a piece of it, to the front-end, if it exists.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_state</span></code>(sync_data)</p></td>
+<td><p>Called when a state is received from the front-end.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_trait</span></code>(name, value)</p></td>
+<td><p>Forcibly sets trait attribute, including read-only attributes.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">setup_instance</span></code>(*args, **kwargs)</p></td>
+<td><p>This is called <strong>before</strong> self.__init__ is called.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">trait_events</span></code>([name])</p></td>
+<td><p>Get a <code class="docutils literal notranslate"><span class="pre">dict</span></code> of all the event handlers of this class.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">trait_metadata</span></code>(traitname, key[, default])</p></td>
+<td><p>Get metadata values for trait by key.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">trait_names</span></code>(**metadata)</p></td>
+<td><p>Get a list of all the names of this class’ traits.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">traits</span></code>(**metadata)</p></td>
+<td><p>Get a <code class="docutils literal notranslate"><span class="pre">dict</span></code> of all the traits of this class.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">unobserve</span></code>(handler[, names, type])</p></td>
+<td><p>Remove a trait change handler.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">unobserve_all</span></code>([name])</p></td>
+<td><p>Remove trait change handlers of any type for the specified name.</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 63%" />
+<col style="width: 37%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><strong>close_all</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>get_view_spec</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><strong>update</strong></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt id="cameo.visualization.escher_ext.NotebookBuilder.update">
+<code class="sig-name descname"><span class="pre">update</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reaction_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metabolite_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gene_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reaction_scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/visualization/escher_ext.html#NotebookBuilder.update"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.visualization.escher_ext.NotebookBuilder.update" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-cameo.visualization.palette">
+<span id="cameo-visualization-palette-module"></span><h2>cameo.visualization.palette module<a class="headerlink" href="#module-cameo.visualization.palette" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="cameo.visualization.palette.PaletteMapper">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">cameo.visualization.palette.</span></code><code class="sig-name descname"><span class="pre">PaletteMapper</span></code><a class="reference internal" href="../_modules/cameo/visualization/palette.html#PaletteMapper"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.visualization.palette.PaletteMapper" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p class="rubric">Methods</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 72%" />
+<col style="width: 28%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><strong>add_palettalbe_palette</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>map_palette</strong></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt id="cameo.visualization.palette.PaletteMapper.add_palettalbe_palette">
+<code class="sig-name descname"><span class="pre">add_palettalbe_palette</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">palette</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/visualization/palette.html#PaletteMapper.add_palettalbe_palette"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.visualization.palette.PaletteMapper.add_palettalbe_palette" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="cameo.visualization.palette.PaletteMapper.map_palette">
+<code class="sig-name descname"><span class="pre">map_palette</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reverse</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/visualization/palette.html#PaletteMapper.map_palette"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.visualization.palette.PaletteMapper.map_palette" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-cameo.visualization.sympy_ext">
+<span id="cameo-visualization-sympy-ext-module"></span><h2>cameo.visualization.sympy_ext module<a class="headerlink" href="#module-cameo.visualization.sympy_ext" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-cameo.visualization.visualization">
+<span id="cameo-visualization-visualization-module"></span><h2>cameo.visualization.visualization module<a class="headerlink" href="#module-cameo.visualization.visualization" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="cameo.visualization.visualization.graph_to_svg">
+<code class="sig-prename descclassname"><span class="pre">cameo.visualization.visualization.</span></code><code class="sig-name descname"><span class="pre">graph_to_svg</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="pre">g</span></em>, <em class="sig-param"><span class="pre">layout=&lt;function</span> <span class="pre">fruchterman_reingold_layout&gt;</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/visualization/visualization.html#graph_to_svg"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.visualization.visualization.graph_to_svg" title="Permalink to this definition">¶</a></dt>
+<dd><p>return the SVG of a matplotlib figure generated from a graph</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="cameo.visualization.visualization.draw_knockout_result">
+<code class="sig-prename descclassname"><span class="pre">cameo.visualization.visualization.</span></code><code class="sig-name descname"><span class="pre">draw_knockout_result</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">map_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">simulation_method</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">knockouts</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/visualization/visualization.html#draw_knockout_result"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.visualization.visualization.draw_knockout_result" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="cameo.visualization.visualization.inchi_to_svg">
+<code class="sig-prename descclassname"><span class="pre">cameo.visualization.visualization.</span></code><code class="sig-name descname"><span class="pre">inchi_to_svg</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inchi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">debug</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">three_d</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/visualization/visualization.html#inchi_to_svg"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.visualization.visualization.inchi_to_svg" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate an SVG drawing from an InChI string.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>inchi</strong><span class="classifier">str</span></dt><dd><p>An InChI string.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>str</dt><dd><p>A vector graphics of the compound represented as SVG.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p>&lt;svg version=”1.1” id=”topsvg”
+xmlns=”<a class="reference external" href="http://www.w3.org/2000/svg">http://www.w3.org/2000/svg</a>” xmlns:xlink=”http://www.w3.org/1999/xlink”
+xmlns:cml=”http://www.xml-cml.org/schema” x=”0” y=”0” width=”200px” height=”200px” viewBox=”0 0 100 100”&gt;
+&lt;title&gt;OBDepict&lt;/title&gt;
+&lt;rect x=”0” y=”0” width=”100” height=”100” fill=”white”/&gt;
+&lt;text text-anchor=”middle” font-size=”6” fill =”black” font-family=”sans-serif”
+x=”50” y=”98” &gt;&lt;/text&gt;
+&lt;g transform=”translate(0,0)”&gt;
+&lt;svg width=”100” height=”100” x=”0” y=”0” viewBox=”0 0 80 80”
+font-family=”sans-serif” stroke=”rgb(0,0,0)” stroke-width=”2”  stroke-linecap=”round”&gt;
+&lt;text x=”36” y=”48” fill=”rgb(255,12,12)”  stroke=”rgb(255,12,12)” stroke-width=”1” font-size=”16” &gt;OH&lt;/text&gt;
+&lt;text x=”60” y=”51.68” fill=”rgb(255,12,12)”  stroke=”rgb(255,12,12)” stroke-width=”1” font-size=”13” &gt;2&lt;/text&gt;
+&lt;/svg&gt;
+&lt;/g&gt;
+&lt;/svg&gt;</p>
+<p>‘  # noqa</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-cameo.visualization">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-cameo.visualization" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../index.html">
+    <img class="logo" src="../_static/cameo_logo.png" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=biosustain&repo=cameo&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+    
+
+<p>
+<a class="badge" href="https://travis-ci.org/biosustain/cameo">
+    <img
+        alt="https://secure.travis-ci.org/biosustain/cameo.svg?branch=master"
+        src="https://secure.travis-ci.org/biosustain/cameo.svg?branch=master"
+    />
+</a>
+</p>
+
+
+
+
+    
+
+<p>
+<a class="badge" href="https://codecov.io/github/biosustain/cameo">
+    <img
+    alt="https://codecov.io/github/biosustain/cameo/coverage.svg?branch=master"
+    src="https://codecov.io/github/biosustain/cameo/coverage.svg?branch=master"
+    />
+</a>
+</p>
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials.html">Tutorials</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development.html">Development</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../API.html">API Docs</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="cameo.html">cameo package</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="../API.html">API Docs</a><ul>
+  <li><a href="cameo.html">cameo package</a><ul>
+      <li>Previous: <a href="cameo.ui.html" title="previous chapter">cameo.ui package</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2014, Novo Nordisk Foundation Center for Biosustainability.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../_sources/apidoc_output/cameo.visualization.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+    <a href="https://github.com/biosustain/cameo" class="github">
+        <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"  class="github"/>
+    </a>
+    
+
+    
+  </body>
+</html>

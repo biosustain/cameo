@@ -1,0 +1,209 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>cameo.models package &#8212; cameo 0.13.0 documentation</title>
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="cameo.network_analysis package" href="cameo.network_analysis.html" />
+    <link rel="prev" title="cameo.flux_analysis package" href="cameo.flux_analysis.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+    <link rel="apple-touch-icon" href="../_static/cameo_touch_icon.png" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="cameo-models-package">
+<h1>cameo.models package<a class="headerlink" href="#cameo-models-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-cameo.models.universal">
+<span id="cameo-models-universal-module"></span><h2>cameo.models.universal module<a class="headerlink" href="#module-cameo.models.universal" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-cameo.models.webmodels">
+<span id="cameo-models-webmodels-module"></span><h2>cameo.models.webmodels module<a class="headerlink" href="#module-cameo.models.webmodels" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="webmodels-api">
+<h3>WebModels API<a class="headerlink" href="#webmodels-api" title="Permalink to this headline">¶</a></h3>
+<p>A high level API for retrieving models from the
+<a class="reference external" href="http://darwin.di.uminho.pt/models">http://darwin.di.uminho.pt/models</a> and <a class="reference external" href="http://bigg.ucsd.edu">http://bigg.ucsd.edu</a> databases</p>
+<dl class="py function">
+<dt id="cameo.models.webmodels.index_models_minho">
+<code class="sig-prename descclassname"><span class="pre">cameo.models.webmodels.</span></code><code class="sig-name descname"><span class="pre">index_models_minho</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">host</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'http://darwin.di.uminho.pt/models'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/models/webmodels.html#index_models_minho"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.models.webmodels.index_models_minho" title="Permalink to this definition">¶</a></dt>
+<dd><p>Retrieves a summary of all models in the database.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>host</strong> (the service host (optional, default: <a class="reference external" href="http://darwin.di.uminho.pt/models">http://darwin.di.uminho.pt/models</a>)) – </p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>summary of the models in the database</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>pandas.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="cameo.models.webmodels.index_models_bigg">
+<code class="sig-prename descclassname"><span class="pre">cameo.models.webmodels.</span></code><code class="sig-name descname"><span class="pre">index_models_bigg</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/models/webmodels.html#index_models_bigg"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.models.webmodels.index_models_bigg" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+</div>
+<div class="section" id="module-cameo.models">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-cameo.models" title="Permalink to this headline">¶</a></h2>
+<p>This sub-package provides access (an function internet connection is needed
+to models available on the BiGG database (<a class="reference external" href="http://bigg.ucsd.edu">http://bigg.ucsd.edu</a>) and a model repository
+hosted by the University of Minho (<a class="reference external" href="http://optflux.org/models">http://optflux.org/models</a>).
+Furthermore, it provides universal reaction database models compiled from different
+sources (KEGG, RHEA, BIGG, BRENDA) and that have been obtained from <a class="reference external" href="http://metanetx.org">http://metanetx.org</a></p>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../index.html">
+    <img class="logo" src="../_static/cameo_logo.png" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=biosustain&repo=cameo&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+    
+
+<p>
+<a class="badge" href="https://travis-ci.org/biosustain/cameo">
+    <img
+        alt="https://secure.travis-ci.org/biosustain/cameo.svg?branch=master"
+        src="https://secure.travis-ci.org/biosustain/cameo.svg?branch=master"
+    />
+</a>
+</p>
+
+
+
+
+    
+
+<p>
+<a class="badge" href="https://codecov.io/github/biosustain/cameo">
+    <img
+    alt="https://codecov.io/github/biosustain/cameo/coverage.svg?branch=master"
+    src="https://codecov.io/github/biosustain/cameo/coverage.svg?branch=master"
+    />
+</a>
+</p>
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials.html">Tutorials</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development.html">Development</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../API.html">API Docs</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="cameo.html">cameo package</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="../API.html">API Docs</a><ul>
+  <li><a href="cameo.html">cameo package</a><ul>
+      <li>Previous: <a href="cameo.flux_analysis.html" title="previous chapter">cameo.flux_analysis package</a></li>
+      <li>Next: <a href="cameo.network_analysis.html" title="next chapter">cameo.network_analysis package</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2014, Novo Nordisk Foundation Center for Biosustainability.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../_sources/apidoc_output/cameo.models.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+    <a href="https://github.com/biosustain/cameo" class="github">
+        <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"  class="github"/>
+    </a>
+    
+
+    
+  </body>
+</html>

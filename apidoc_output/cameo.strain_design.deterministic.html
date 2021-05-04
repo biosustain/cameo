@@ -1,0 +1,429 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>cameo.strain_design.deterministic package &#8212; cameo 0.13.0 documentation</title>
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="cameo.strain_design.heuristic package" href="cameo.strain_design.heuristic.html" />
+    <link rel="prev" title="cameo.strain_design package" href="cameo.strain_design.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+    <link rel="apple-touch-icon" href="../_static/cameo_touch_icon.png" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="cameo-strain-design-deterministic-package">
+<h1>cameo.strain_design.deterministic package<a class="headerlink" href="#cameo-strain-design-deterministic-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-cameo.strain_design.deterministic.flux_variability_based">
+<span id="cameo-strain-design-deterministic-flux-variability-based-module"></span><h2>cameo.strain_design.deterministic.flux_variability_based module<a class="headerlink" href="#module-cameo.strain_design.deterministic.flux_variability_based" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="cameo.strain_design.deterministic.flux_variability_based.DifferentialFVA">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">cameo.strain_design.deterministic.flux_variability_based.</span></code><code class="sig-name descname"><span class="pre">DifferentialFVA</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">design_space_model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">objective</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">variables</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reference_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exclude</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize_ranges_by</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">points</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/strain_design/deterministic/flux_variability_based.html#DifferentialFVA"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.strain_design.deterministic.flux_variability_based.DifferentialFVA" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="cameo.core.html#cameo.core.strain_design.StrainDesignMethod" title="cameo.core.strain_design.StrainDesignMethod"><code class="xref py py-class docutils literal notranslate"><span class="pre">cameo.core.strain_design.StrainDesignMethod</span></code></a></p>
+<p>Differential flux variability analysis.</p>
+<p>Compares flux ranges of a reference model to a set of models that
+have been parameterized to lie on a grid of evenly spaced points in the
+n-dimensional production envelope (n being the number of reaction bounds
+to be varied).</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">production</span>
+<span class="o">^</span>
+<span class="o">|---------.</span>          <span class="o">*</span> <span class="n">reference_model</span>
+<span class="o">|</span> <span class="o">.</span> <span class="o">.</span> <span class="o">.</span> <span class="o">.</span> <span class="o">.</span>\         <span class="o">.</span> <span class="n">design_space_model</span>
+<span class="o">|</span> <span class="o">.</span> <span class="o">.</span> <span class="o">.</span> <span class="o">.</span> <span class="o">.</span> \
+<span class="o">|</span> <span class="o">.</span> <span class="o">.</span> <span class="o">.</span> <span class="o">.</span> <span class="o">.</span> <span class="o">.</span>\
+<span class="o">|</span> <span class="o">.</span> <span class="o">.</span> <span class="o">.</span> <span class="o">.</span> <span class="o">.</span> <span class="o">.</span> \
+<span class="n">o</span><span class="o">--------------*-</span> <span class="o">&gt;</span>
+             <span class="n">growth</span>
+</pre></div>
+</div>
+<p>Overexpression, downregulation, knockout, flux-reversal and other
+strain engineering targets can be inferred from the resulting comparison.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>design_space_model</strong> (<em>cobra.Model</em>) – A model whose flux ranges will be scanned.</p></li>
+<li><p><strong>objective</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a><em> or </em><em>Reaction</em><em> or </em><em>Metabolite</em>) – A reaction whose flux or a metabolite whose production should be maximized.</p></li>
+<li><p><strong>variables</strong> (<em>iterable</em><em>, </em><em>optional</em>) – A iterable of n reactions (or IDs) to be scanned (defaults to current objective in design_space_model).</p></li>
+<li><p><strong>reference_model</strong> (<em>cobra.Model</em><em>, </em><em>optional</em>) – A model whose flux ranges represent the reference state and all calculated
+flux ranges will be compared to. Defaults to design_space_model constrained
+to its maximum objective value.</p></li>
+<li><p><strong>exclude</strong> (<em>iterable</em>) – An iterable of reactions (or IDs) to be excluded in the analysis (exchange
+reactions will not be analyzed automatically).</p></li>
+<li><p><strong>normalize_ranges_by</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a><em> or </em><em>Reaction</em><em>, </em><em>optional</em>) – A reaction ID that specifies a flux by whom all calculated flux ranges
+will be normalized by.</p></li>
+<li><p><strong>points</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a><em>, </em><em>optional</em>) – Number of points to lay on the surface of the n-dimensional production envelope (defaults to 10).</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">cameo</span> <span class="kn">import</span> <span class="n">models</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">cameo.strain_design.deterministic</span> <span class="kn">import</span> <span class="n">DifferentialFVA</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">bigg</span><span class="o">.</span><span class="n">e_coli_core</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">reference_model</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">reference_model</span><span class="o">.</span><span class="n">reactions</span><span class="o">.</span><span class="n">Biomass_Ecoli_core_w_GAM</span><span class="o">.</span><span class="n">lower_bound</span> <span class="o">=</span> <span class="n">reference_model</span><span class="o">.</span><span class="n">optimize</span><span class="p">()</span><span class="o">.</span><span class="n">objective_value</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">diffFVA</span> <span class="o">=</span> <span class="n">DifferentialFVA</span><span class="p">(</span><span class="n">design_space_model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
+<span class="go">                      reference_model=reference_model,</span>
+<span class="go">                      objective=model.reactions.EX_succ_e,</span>
+<span class="go">                      variables=[model.reactions.Biomass_Ecoli_core_w_GAM],</span>
+<span class="go">                      normalize_ranges_by=model.reactions.Biomass_Ecoli_core_w_GAM,</span>
+<span class="go">                      points=10)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">result</span> <span class="o">=</span> <span class="n">diffFVA</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">surface_only</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">result</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+</pre></div>
+</div>
+<p class="rubric">Methods</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">__call__</span></code>(*args, **kwargs)</p></td>
+<td><p>Call self as a function.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#cameo.strain_design.deterministic.flux_variability_based.DifferentialFVA.run" title="cameo.strain_design.deterministic.flux_variability_based.DifferentialFVA.run"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run</span></code></a>([surface_only, improvements_only, …])</p></td>
+<td><p>Run the differential flux variability analysis.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt id="cameo.strain_design.deterministic.flux_variability_based.DifferentialFVA.run">
+<code class="sig-name descname"><span class="pre">run</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">surface_only</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">improvements_only</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">progress</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">view</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fraction_of_optimum</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/strain_design/deterministic/flux_variability_based.html#DifferentialFVA.run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.strain_design.deterministic.flux_variability_based.DifferentialFVA.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run the differential flux variability analysis.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>surface_only</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><em>bool</em></a><em>, </em><em>optional</em>) – If only the surface of the n-dimensional production envelope should be scanned (defaults to True).</p></li>
+<li><p><strong>improvements_only</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><em>bool</em></a><em>, </em><em>optional</em>) – If only grid points should should be scanned that constitute and improvement in production
+over the reference state (defaults to True).</p></li>
+<li><p><strong>progress</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><em>bool</em></a><em>, </em><em>optional</em>) – If a progress bar should be shown.</p></li>
+<li><p><strong>view</strong> (<a class="reference internal" href="cameo.html#cameo.parallel.SequentialView" title="cameo.parallel.SequentialView"><em>SequentialView</em></a><em> or </em><a class="reference internal" href="cameo.html#cameo.parallel.MultiprocessingView" title="cameo.parallel.MultiprocessingView"><em>MultiprocessingView</em></a><em> or </em><em>ipython.cluster.DirectView</em><em>, </em><em>optional</em>) – A parallelization view (defaults to SequentialView).</p></li>
+<li><p><strong>fraction_of_optimum</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><em>float</em></a><em>, </em><em>optional</em>) – A value between zero and one that determines the width of the
+flux ranges of the reference solution. The lower the value,
+the larger the ranges.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A pandas Panel containing a results DataFrame for every grid point scanned.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>pandas.Panel</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="cameo.strain_design.deterministic.flux_variability_based.FSEOF">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">cameo.strain_design.deterministic.flux_variability_based.</span></code><code class="sig-name descname"><span class="pre">FSEOF</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">primary_objective</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/strain_design/deterministic/flux_variability_based.html#FSEOF"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.strain_design.deterministic.flux_variability_based.FSEOF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="cameo.core.html#cameo.core.strain_design.StrainDesignMethod" title="cameo.core.strain_design.StrainDesignMethod"><code class="xref py py-class docutils literal notranslate"><span class="pre">cameo.core.strain_design.StrainDesignMethod</span></code></a></p>
+<p>Performs a Flux Scanning based on Enforced Objective Flux (FSEOF) analysis.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> (<em>cobra.Model</em>) – </p></li>
+<li><p><strong>enforced_reaction</strong> (<em>Reaction</em>) – The flux that will be enforced. Reaction object or reaction id string.</p></li>
+<li><p><strong>primary_objective</strong> (<em>Reaction</em>) – The primary objective flux (defaults to model.objective).</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">References</p>
+<dl class="citation">
+<dt class="label" id="r9fc4768e5c96-1"><span class="brackets">1</span></dt>
+<dd><ol class="upperalpha simple" start="8">
+<li><ol class="upperalpha simple" start="19">
+<li><p>Choi, S. Y. Lee, T. Y. Kim, and H. M. Woo, ‘In silico identification of gene amplification targets</p></li>
+</ol>
+</li>
+</ol>
+</dd>
+</dl>
+<p>for improvement of lycopene production.,’ Appl Environ Microbiol, vol. 76, no. 10, pp. 3097–3105, May 2010.</p>
+<p class="rubric">Methods</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">__call__</span></code>(*args, **kwargs)</p></td>
+<td><p>Call self as a function.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#cameo.strain_design.deterministic.flux_variability_based.FSEOF.run" title="cameo.strain_design.deterministic.flux_variability_based.FSEOF.run"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run</span></code></a>([target, max_enforced_flux, …])</p></td>
+<td><p>Performs a Flux Scanning based on Enforced Objective Flux (FSEOF) analysis.</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt id="cameo.strain_design.deterministic.flux_variability_based.FSEOF.run">
+<code class="sig-name descname"><span class="pre">run</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="pre">target=None</span></em>, <em class="sig-param"><span class="pre">max_enforced_flux=0.9</span></em>, <em class="sig-param"><span class="pre">number_of_results=10</span></em>, <em class="sig-param"><span class="pre">exclude=()</span></em>, <em class="sig-param"><span class="pre">simulation_method=&lt;function</span> <span class="pre">fba&gt;</span></em>, <em class="sig-param"><span class="pre">simulation_kwargs=None</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/strain_design/deterministic/flux_variability_based.html#FSEOF.run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.strain_design.deterministic.flux_variability_based.FSEOF.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs a Flux Scanning based on Enforced Objective Flux (FSEOF) analysis.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>target</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a><em>, </em><em>Reaction</em><em>, </em><em>Metabolite</em>) – The target for optimization.</p></li>
+<li><p><strong>max_enforced_flux</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><em>float</em></a><em>, </em><em>optional</em>) – The maximal flux of secondary_objective that will be enforced, relative to the theoretical maximum (
+defaults to 0.9).</p></li>
+<li><p><strong>number_of_results</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a><em>, </em><em>optional</em>) – The number of enforced flux levels (defaults to 10).</p></li>
+<li><p><strong>exclude</strong> (<em>Iterable of reactions</em><em> or </em><em>reaction ids that will not be included in the output.</em>) – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>An object containing the identified reactions and the used parameters.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>FseofResult</p>
+</dd>
+</dl>
+<p class="rubric">References</p>
+<dl class="citation">
+<dt class="label" id="ra8ef7df6a7d5-1"><span class="brackets">1</span></dt>
+<dd><ol class="upperalpha simple" start="8">
+<li><ol class="upperalpha simple" start="19">
+<li><p>Choi, S. Y. Lee, T. Y. Kim, and H. M. Woo, ‘In silico identification of gene amplification targets</p></li>
+</ol>
+</li>
+</ol>
+</dd>
+</dl>
+<p>for improvement of lycopene production.,’ Appl Environ Microbiol, vol. 76, no. 10, pp. 3097–3105, May 2010.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-cameo.strain_design.deterministic.linear_programming">
+<span id="cameo-strain-design-deterministic-linear-programming-module"></span><h2>cameo.strain_design.deterministic.linear_programming module<a class="headerlink" href="#module-cameo.strain_design.deterministic.linear_programming" title="Permalink to this headline">¶</a></h2>
+<p>This module contains algorithms based on linear programming techniques, including mixed-integer linear programming</p>
+<dl class="py class">
+<dt id="cameo.strain_design.deterministic.linear_programming.OptKnock">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">cameo.strain_design.deterministic.linear_programming.</span></code><code class="sig-name descname"><span class="pre">OptKnock</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exclude_reactions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remove_blocked</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fraction_of_optimum</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exclude_non_gene_reactions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_nullspace_simplification</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/strain_design/deterministic/linear_programming.html#OptKnock"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.strain_design.deterministic.linear_programming.OptKnock" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="cameo.core.html#cameo.core.strain_design.StrainDesignMethod" title="cameo.core.strain_design.StrainDesignMethod"><code class="xref py py-class docutils literal notranslate"><span class="pre">cameo.core.strain_design.StrainDesignMethod</span></code></a></p>
+<p>OptKnock.</p>
+<p>OptKnock solves a bi-level optimization problem, finding the set of knockouts that allows maximal
+target production under optimal growth.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> (<em>cobra.Model</em>) – A model to be used for finding optimal knockouts. Always set a non-zero lower bound on
+biomass reaction before using OptKnock.</p></li>
+<li><p><strong>exclude_reactions</strong> (<em>iterable of str</em><em> or </em><em>Reaction objects</em>) – Reactions that will not be knocked out. Excluding reactions can give more realistic results
+and decrease running time. Essential reactions and exchanges are always excluded.</p></li>
+<li><p><strong>remove_blocked</strong> (<em>boolean</em><em> (</em><em>default True</em><em>)</em>) – If True, reactions that cannot carry flux (determined by FVA) will be removed from the model.
+This reduces running time significantly.</p></li>
+<li><p><strong>fraction_of_optimum</strong> (<em>If not None</em><em>, </em><em>this value will be used to constrain the inner objective</em><em> (</em><em>e.g. growth</em><em>) </em><em>to</em>) – a fraction of the optimal inner objective value. If inner objective is not constrained manually
+this argument should be used. (Default: None)</p></li>
+<li><p><strong>exclude_non_gene_reactions</strong> (<em>If True</em><em> (</em><em>default</em><em>)</em><em>, </em><em>reactions that are not associated with genes will not be</em>) – knocked out. This results in more practically relevant solutions as well as shorter running times.</p></li>
+<li><p><strong>use_nullspace_simplification</strong> (<em>Boolean</em><em> (</em><em>default True</em><em>)</em>) – Use a basis for the nullspace to find groups of reactions whose fluxes are multiples of each other. From
+each of these groups only 1 reaction will be included as a possible knockout</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">cameo</span> <span class="kn">import</span> <span class="n">models</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">cameo.strain_design.deterministic</span> <span class="kn">import</span> <span class="n">OptKnock</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">bigg</span><span class="o">.</span><span class="n">e_coli_core</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span><span class="o">.</span><span class="n">reactions</span><span class="o">.</span><span class="n">Biomass_Ecoli_core_w_GAM</span><span class="o">.</span><span class="n">lower_bound</span> <span class="o">=</span> <span class="mf">0.1</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span><span class="o">.</span><span class="n">solver</span> <span class="o">=</span> <span class="s2">&quot;gurobi&quot;</span> <span class="c1"># Using gurobi or cplex is recommended</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">optknock</span> <span class="o">=</span> <span class="n">OptKnock</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">result</span> <span class="o">=</span> <span class="n">optknock</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">k</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="s2">&quot;EX_ac_e&quot;</span><span class="p">,</span> <span class="n">max_results</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+</pre></div>
+</div>
+<p class="rubric">Methods</p>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">__call__</span></code>(*args, **kwargs)</p></td>
+<td><p>Call self as a function.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#cameo.strain_design.deterministic.linear_programming.OptKnock.run" title="cameo.strain_design.deterministic.linear_programming.OptKnock.run"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run</span></code></a>([max_knockouts, biomass, target, …])</p></td>
+<td><p>Perform the OptKnock simulation</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py method">
+<dt id="cameo.strain_design.deterministic.linear_programming.OptKnock.run">
+<code class="sig-name descname"><span class="pre">run</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">max_knockouts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">biomass</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_results</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/strain_design/deterministic/linear_programming.html#OptKnock.run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.strain_design.deterministic.linear_programming.OptKnock.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform the OptKnock simulation</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>target</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a><em>, </em><em>Metabolite</em><em> or </em><em>Reaction</em>) – The design target</p></li>
+<li><p><strong>biomass</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a><em>, </em><em>Metabolite</em><em> or </em><em>Reaction</em>) – The biomass definition in the model</p></li>
+<li><p><strong>max_knockouts</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a>) – Max number of knockouts allowed</p></li>
+<li><p><strong>max_results</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a>) – Max number of different designs to return if found</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>OptKnockResult</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-cameo.strain_design.deterministic">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-cameo.strain_design.deterministic" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../index.html">
+    <img class="logo" src="../_static/cameo_logo.png" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=biosustain&repo=cameo&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+    
+
+<p>
+<a class="badge" href="https://travis-ci.org/biosustain/cameo">
+    <img
+        alt="https://secure.travis-ci.org/biosustain/cameo.svg?branch=master"
+        src="https://secure.travis-ci.org/biosustain/cameo.svg?branch=master"
+    />
+</a>
+</p>
+
+
+
+
+    
+
+<p>
+<a class="badge" href="https://codecov.io/github/biosustain/cameo">
+    <img
+    alt="https://codecov.io/github/biosustain/cameo/coverage.svg?branch=master"
+    src="https://codecov.io/github/biosustain/cameo/coverage.svg?branch=master"
+    />
+</a>
+</p>
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials.html">Tutorials</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../development.html">Development</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../API.html">API Docs</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="cameo.html">cameo package</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="../API.html">API Docs</a><ul>
+  <li><a href="cameo.html">cameo package</a><ul>
+  <li><a href="cameo.strain_design.html">cameo.strain_design package</a><ul>
+      <li>Previous: <a href="cameo.strain_design.html" title="previous chapter">cameo.strain_design package</a></li>
+      <li>Next: <a href="cameo.strain_design.heuristic.html" title="next chapter">cameo.strain_design.heuristic package</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2014, Novo Nordisk Foundation Center for Biosustainability.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.4</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../_sources/apidoc_output/cameo.strain_design.deterministic.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+    <a href="https://github.com/biosustain/cameo" class="github">
+        <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"  class="github"/>
+    </a>
+    
+
+    
+  </body>
+</html>
