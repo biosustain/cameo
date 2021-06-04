@@ -120,13 +120,16 @@ class OptKnock(StrainDesignMethod):
 
         if fraction_of_optimum is not None:
             fix_objective_as_constraint(self._model, fraction=fraction_of_optimum)
-        if remove_blocked:
-            self._remove_blocked_reactions()
+        blocked = self._remove_blocked_reactions() if remove_blocked else []
         if exclude_reactions:
             # Convert exclude_reactions to reaction ID's
             exclude_reactions = [
-                r.id if isinstance(r, cobra.core.Reaction) else r for r in exclude_reactions
+                r.id if isinstance(r, cobra.core.Reaction) else r
+                for r in exclude_reactions
             ]
+            # if a blocked reaction were in exclude reactions, it would raise
+            # because blocked reactions are removed from the model
+            exclude_reactions = [r_id for r_id in exclude_reactions if r_id not in blocked]
             for r_id in exclude_reactions:
                 if r_id not in self._model.reactions:
                     raise ValueError("Excluded reaction {} is not in the model".format(r_id))
@@ -139,13 +142,13 @@ class OptKnock(StrainDesignMethod):
 
     def _remove_blocked_reactions(self):
         fva_res = flux_variability_analysis(self._model, fraction_of_optimum=0)
-        # FIXME: Iterate over the index only (reaction identifiers).
         blocked = [
-            self._model.reactions.get_by_id(reaction) for reaction, row in fva_res.data_frame.iterrows()
+            reaction for reaction, row in fva_res.data_frame.iterrows()
             if (round(row["lower_bound"], config.ndecimals) == round(
                 row["upper_bound"], config.ndecimals) == 0)
         ]
         self._model.remove_reactions(blocked)
+        return blocked
 
     def _reduce_to_nullspace(self, reactions):
         self.reaction_groups = find_coupled_reactions_nullspace(self._model)
