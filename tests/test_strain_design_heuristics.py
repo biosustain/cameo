@@ -75,7 +75,7 @@ try:
 except ImportError:
     RedisQueue = None
 
-TRAVIS = bool(os.getenv('TRAVIS', False))
+CI = bool(os.getenv('CI', False))
 
 if os.getenv('REDIS_PORT_6379_TCP_ADDR'):
     REDIS_HOST = os.getenv('REDIS_PORT_6379_TCP_ADDR')  # wercker

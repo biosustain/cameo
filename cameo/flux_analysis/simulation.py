@@ -518,9 +518,10 @@ class FluxDistributionResult(Result):
 
             if in_ipnb():
                 from IPython.display import display
-                display(builder.display_in_notebook())
+                display(builder)
             else:
-                builder.display_in_browser()
+                logger.info(f"Escher Map generated at {map_name}.html")
+                builder.save_html(f"{map_name}.html")
 
         except ImportError:
             print("Escher must be installed in order to visualize maps")
