@@ -82,7 +82,7 @@ jobs:
         TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
         TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
       run:
-        twine upload --skip-existing --non-interactive dist/*
+        twine upload --verbose -u TWINE_USERNAME -p TWINE_PASSWORD --skip-existing --non-interactive dist/*
     - name: Create GitHub release
       uses: actions/create-release@v1
       env:
