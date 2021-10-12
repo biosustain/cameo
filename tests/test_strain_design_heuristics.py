@@ -1001,13 +1001,13 @@ class TestReactionKnockoutOptimization:
 
         assert len(results.data_frame.targets) == len(results.data_frame.targets.apply(tuple).unique())
 
-        with open(result_file, 'wb') as in_file:
-            pickle.dump(results, in_file)
+        # with open(result_file, 'wb') as in_file:
+        #     pickle.dump(results, in_file)
 
-        with open(result_file, 'rb') as in_file:
-            expected_results = pickle.load(in_file)
+        # with open(result_file, 'rb') as in_file:
+        #     expected_results = pickle.load(in_file)
 
-        assert results.seed == expected_results.seed
+        # assert results.seed == expected_results.seed
 
     def test_run_reaction_ko_multi_objective_benchmark(self, benchmark, reaction_ko_multi_objective):
         benchmark(reaction_ko_multi_objective.run, max_evaluations=3000, pop_size=10, view=SequentialView(), seed=SEED)
@@ -1070,13 +1070,13 @@ class TestGeneKnockoutOptimization:
 
         assert len(results.data_frame.targets) == len(results.data_frame.targets.apply(tuple).unique())
 
-        with open(result_file, 'wb') as in_file:
-            pickle.dump(results, in_file)
+        # with open(result_file, 'wb') as in_file:
+        #     pickle.dump(results, in_file)
 
-        with open(result_file, 'rb') as in_file:
-            expected_results = pickle.load(in_file)
+        # with open(result_file, 'rb') as in_file:
+        #     expected_results = pickle.load(in_file)
 
-        assert results.seed == expected_results.seed
+        # assert results.seed == expected_results.seed
 
     def test_run_gene_ko_multi_objective_benchmark(self, gene_ko_multi_objective, benchmark):
         benchmark(gene_ko_multi_objective.run, max_evaluations=3000, pop_size=10, view=SequentialView(), seed=SEED)
