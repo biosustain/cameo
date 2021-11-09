@@ -1,4 +1,3 @@
-
 .. code:: ipython3
 
     from IPython.display import display
@@ -13,20 +12,14 @@ large, computer assisted pathway design becomes essential. **Cameo**
 implements a shortest pathways search algorithm using an universal
 biochemical reaction database.
 
-.. raw:: html
+.. container:: alert alert-warning
 
-   <div class="alert alert-warning">
-
-If you’re running this notebook on
-`try.cameo.bio <http://try.cameo.bio>`__, things might run very slow due
-to our inability to provide access to the proprietary
-`CPLEX <https://www-01.ibm.com/software/commerce/optimization/cplex-optimizer/>`__
-solver on a public webserver. Furthermore, Jupyter kernels might crash
-and restart due to memory limitations on the server.
-
-.. raw:: html
-
-   </div>
+   If you’re running this notebook on
+   `try.cameo.bio <http://try.cameo.bio>`__, things might run very slow
+   due to our inability to provide access to the proprietary
+   `CPLEX <https://www-01.ibm.com/software/commerce/optimization/cplex-optimizer/>`__
+   solver on a public webserver. Furthermore, Jupyter kernels might
+   crash and restart due to memory limitations on the server.
 
 .. code:: ipython3
 

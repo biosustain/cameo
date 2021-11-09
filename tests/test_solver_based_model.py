@@ -39,7 +39,7 @@ from cameo.flux_analysis.analysis import find_essential_metabolites
 from cobra.flux_analysis import find_essential_genes, find_essential_reactions
 
 
-TRAVIS = bool(os.getenv('TRAVIS', False))
+CI = bool(os.getenv('CI', False))
 TESTDIR = os.path.dirname(__file__)
 REFERENCE_FVA_SOLUTION_ECOLI_CORE = pandas.read_csv(os.path.join(TESTDIR, 'data/REFERENCE_flux_ranges_EcoliCore.csv'),
                                                     index_col=0)
@@ -187,7 +187,8 @@ class TestReaction:
         assert acald_reaction.forward_variable.ub == 1000.
         assert acald_reaction.reverse_variable.lb == 0
         assert acald_reaction.reverse_variable.ub == 1000.
-        acald_reaction.upper_bound = acald_reaction.lower_bound - 100
+        fixed_flux = acald_reaction.lower_bound - 100
+        acald_reaction.bounds = (fixed_flux, fixed_flux)
         assert acald_reaction.lower_bound == -1100.0
         assert acald_reaction.upper_bound == -1100.0
         assert acald_reaction.forward_variable.lb == 0
@@ -204,39 +205,15 @@ class TestReaction:
 
     def test_set_bounds_scenario_3(self, core_model):
         reac = core_model.reactions.ACALD
-        reac.bounds = -10, -10
-        assert reac.lower_bound == -10
-        assert reac.upper_bound == -10
-        reac.lower_bound = -9
-        assert reac.lower_bound == -9
-        assert reac.upper_bound == -9
-        reac.lower_bound = 2
-        assert reac.lower_bound == 2
-        assert reac.upper_bound == 2
-        reac.upper_bound = -10
-        assert reac.lower_bound == -10
-        assert reac.upper_bound == -10
-        reac.upper_bound = -11
-        assert reac.lower_bound == -11
-        assert reac.upper_bound == -11
-        reac.upper_bound = 2
-        assert reac.lower_bound == -11
-        assert reac.upper_bound == 2
-
-    def test_set_bounds_scenario_4(self, core_model):
-        reac = core_model.reactions.ACALD
-        reac.lower_bound = reac.upper_bound = 0
-        reac.lower_bound = 2
-        assert reac.lower_bound == 2
-        assert reac.upper_bound == 2
-        assert reac.forward_variable.lb == 2
-        assert reac.forward_variable.ub == 2
         reac.knock_out()
-        reac.upper_bound = -2
-        assert reac.lower_bound == -2
-        assert reac.upper_bound == -2
-        assert reac.reverse_variable.lb == 2
-        assert reac.reverse_variable.ub == 2
+        assert reac.lower_bound == 0
+        assert reac.upper_bound == 0
+        reac.bounds = (-2, -2)
+        assert reac.forward_variable.lb == 0
+        assert reac.forward_variable.ub == 0
+        reac.bounds = (2, 2)
+        assert reac.reverse_variable.lb == 0
+        assert reac.reverse_variable.ub == 0
 
     def test_set_upper_before_lower_bound_to_0(self, core_model):
         core_model.reactions.GAPD.bounds = 0, 0
@@ -256,7 +233,8 @@ class TestReaction:
         assert acald_reaction.forward_variable.ub == 1000.
         assert acald_reaction.reverse_variable.lb == 0
         assert acald_reaction.reverse_variable.ub == 1000.
-        acald_reaction.lower_bound = acald_reaction.upper_bound + 100
+        fixed_flux = acald_reaction.upper_bound + 100
+        acald_reaction.bounds = (fixed_flux, fixed_flux)
         assert acald_reaction.lower_bound == 1100.0
         assert acald_reaction.upper_bound == 1100.0
         assert acald_reaction.forward_variable.lb == 1100.0
@@ -277,7 +255,7 @@ class TestReaction:
         assert reac.lower_bound == 2
         assert reac.upper_bound == 2
         with core_model:
-            reac.lower_bound = 5
+            reac.bounds = (5, 5)
             assert reac.lower_bound == 5
             assert reac.upper_bound == 5
         assert reac.lower_bound == 2
@@ -337,7 +315,7 @@ class TestReaction:
         assert pfk_reaction.forward_variable.ub == 1000.
         assert pfk_reaction.reverse_variable.lb == 0
         assert pfk_reaction.reverse_variable.ub == 0
-        pfk_reaction.upper_bound = -100.
+        pfk_reaction.bounds = (-100, -100)
         assert pfk_reaction.forward_variable.lb == 0
         assert pfk_reaction.forward_variable.ub == 0
         assert pfk_reaction.reverse_variable.lb == 100
@@ -392,8 +370,7 @@ class TestReaction:
             assert reaction.lower_bound == 0
             assert reaction.upper_bound == 0
         for k, (lb, ub) in original_bounds.items():
-            core_model.reactions.get_by_id(k).lower_bound = lb
-            core_model.reactions.get_by_id(k).upper_bound = ub
+            core_model.reactions.get_by_id(k).bounds = (lb, ub)
         for reaction in core_model.reactions:
             assert reaction.lower_bound == original_bounds[reaction.id][0]
             assert reaction.upper_bound == original_bounds[reaction.id][1]
@@ -489,7 +466,7 @@ class TestReaction:
         assert core_model.reactions.PFK.reverse_variable.lb == 0
         assert core_model.reactions.PFK.reverse_variable.ub == 1000
 
-    @pytest.mark.skipif(TRAVIS, reason='too slow for ci')
+    @pytest.mark.skipif(CI, reason='too slow for ci')
     def test_imm904_4hglsdm_problem(self, imm904):
         # set upper bound before lower bound after knockout
         cp = imm904.copy()
@@ -512,18 +489,6 @@ class TestReaction:
         assert rxn.lower_bound == prev_lb
         assert rxn.upper_bound == prev_ub
 
-    def test_set_lb_higher_than_ub_sets_ub_to_new_lb(self, core_model):
-        for reaction in core_model.reactions:
-            assert reaction.lower_bound <= reaction.upper_bound
-            reaction.lower_bound = reaction.upper_bound + 100
-            assert reaction.lower_bound == reaction.upper_bound
-
-    def test_set_ub_lower_than_lb_sets_lb_to_new_ub(self, core_model):
-        for reaction in core_model.reactions:
-            assert reaction.lower_bound <= reaction.upper_bound
-            reaction.upper_bound = reaction.lower_bound - 100
-            assert reaction.lower_bound == reaction.upper_bound
-
     def test_add_metabolites_combine_true(self, core_model):
         test_metabolite = Metabolite('test')
         for reaction in core_model.reactions:
@@ -543,7 +508,7 @@ class TestReaction:
             assert core_model.solver.constraints[already_included_metabolite.id].expression.has(
                 -1 * new_coefficient * reaction.reverse_variable)
 
-    @pytest.mark.skipif(TRAVIS, reason='non-deterministic')
+    @pytest.mark.skipif(CI, reason='non-deterministic')
     def test_add_metabolites_combine_false(self, core_model):
         test_metabolite = Metabolite('test')
         for reaction in core_model.reactions:
@@ -851,14 +816,14 @@ class TestModel:
         observed_essential_genes = [g.id for g in find_essential_genes(core_model)]
         assert sorted(observed_essential_genes) == sorted(ESSENTIAL_GENES)
         with pytest.raises(OptimizationError):
-            core_model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = 999999.
+            core_model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.bounds = (999999, 999999)
             find_essential_genes(core_model)
 
     def test_essential_reactions(self, core_model):
         observed_essential_reactions = [r.id for r in find_essential_reactions(core_model)]
         assert sorted(observed_essential_reactions) == sorted(ESSENTIAL_REACTIONS)
         with pytest.raises(OptimizationError):
-            core_model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = 999999.
+            core_model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.bounds = (999999, 999999)
             find_essential_reactions(core_model)
 
     def test_essential_metabolites_steady_state(self, core_model):
@@ -867,7 +832,7 @@ class TestModel:
         assert sorted(essential_metabolites_balanced) == sorted(ESSENTIAL_METABOLITES)
 
         with pytest.raises(OptimizationError):
-            core_model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = 999999.
+            core_model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.bounds = (999999, 999999)
             find_essential_metabolites(core_model, force_steady_state=True)
 
     @pytest.mark.xfail(reason='needs some refactoring, uses missing bounds, not allowed by cplex')
@@ -877,7 +842,7 @@ class TestModel:
         assert sorted(essential_metabolites_unbalanced) == sorted(ESSENTIAL_METABOLITES)
 
         with pytest.raises(OptimizationError):
-            core_model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.lower_bound = 999999.
+            core_model.reactions.Biomass_Ecoli_core_N_LPAREN_w_FSLASH_GAM_RPAREN__Nmet2.bounds = (999999, 999999)
             find_essential_metabolites(core_model, force_steady_state=False)
 
     # def test_effective_bounds(self, core_model):

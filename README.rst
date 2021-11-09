@@ -4,7 +4,7 @@ Cameo—Computer Aided Metabolic Engineering and Optimization
 .. summary-start
 
 |Join the chat at https://gitter.im/biosustain/cameo| |PyPI| |License|
-|Build Status| |Coverage Status| |DOI| |zenhub|
+|Build Status| |Coverage Status| |DOI| |zenhub| |binder|
 
 What is cameo?
 ~~~~~~~~~~~~~~
@@ -141,3 +141,5 @@ Contributions
    :target: https://zenodo.org/badge/latestdoi/5031/biosustain/cameo
 .. |zenhub| image:: https://img.shields.io/badge/Shipping_faster_with-ZenHub-5e60ba.svg?style=flat-square
    :target: https://zenhub.com
+.. |binder| image:: https://mybinder.org/badge_logo.svg
+   :target: https://mybinder.org/v2/gh/biosustain/cameo-notebooks/binder?urlpath=lab/tree/index.ipynb

@@ -76,7 +76,7 @@ class DifferentialFVA(StrainDesignMethod):
     r"""Differential flux variability analysis.
     Compares flux ranges of a reference model to a set of models that
     have been parameterized to lie on a grid of evenly spaced points in the
-    n-dimensional production envelope (n being the number of reaction bounds
+    # n-dimensional production envelope (n being the number of reaction bounds
     to be varied).
     ::
         production
@@ -609,9 +609,22 @@ class DifferentialFVAResult(StrainDesignMethodResult):
         """
         return self.groups.get_group(sorted(self.groups.groups.keys())[index]).copy()
 
-    def plot(self, index=None, variables=None, grid=None, width=None, height=None, title=None, palette=None, **kwargs):
+    def plot(
+        self,
+        plotter,
+        index=None,
+        variables=None,
+        grid=None,
+        width=None,
+        height=None,
+        title=None,
+        palette=None,
+        **kwargs
+    ):
         if index is not None:
-            self._plot_flux_variability_analysis(index, variables=variables, width=width, grid=grid, palette=palette)
+            self._plot_flux_variability_analysis(
+                plotter, index, variables=variables, width=width, grid=grid, palette=palette
+            )
         else:
             self._plot_production_envelope(title=title, grid=grid, width=width, height=height)
 
@@ -746,9 +759,10 @@ class DifferentialFVAResult(StrainDesignMethodResult):
 
             if in_ipnb():
                 from IPython.display import display
-                display(builder.display_in_notebook())
+                display(builder)
             else:
-                builder.display_in_browser()
+                logger.info(f"Escher Map generated at {map_name}.html")
+                builder.save_html(f"{map_name}.html")
 
         except ImportError:
             print("Escher must be installed in order to visualize maps")
@@ -799,7 +813,7 @@ class _MapView(object):
                                            dict(type='min', color="red", size=20),
                                            dict(type='median', color="grey", size=7),
                                            dict(type='max', color='green', size=20)], **self.kwargs_for_escher)
-        display(self.builder.display_in_notebook())
+        display(self.builder)
 
 
 class _DifferentialFvaEvaluator(object):
@@ -826,7 +840,7 @@ class _DifferentialFvaEvaluator(object):
             reaction.upper_bound = reaction.lower_bound = bound
         target_reaction = self.model.reactions.get_by_id(self.objective)
         target_bound = point[self.objective]
-        target_reaction.upper_bound = target_reaction.lower_bound = target_bound
+        target_reaction.bounds = (target_bound, target_bound)
 
 
 class FSEOF(StrainDesignMethod):
@@ -935,10 +949,9 @@ class FSEOF(StrainDesignMethod):
             results = {reaction.id: [] for reaction in model.reactions}
 
             for level in levels:
-                target.lower_bound = level
-                target.upper_bound = level
+                target.bounds = (level, level)
                 solution = simulation_method(model, **simulation_kwargs)
-                for reaction_id, flux in solution.fluxes.iteritems():
+                for reaction_id, flux in solution.fluxes.items():
                     results[reaction_id].append(round(flux, ndecimals))
 
         # Test each reaction

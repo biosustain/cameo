@@ -30,7 +30,7 @@ from cameo.strain_design.deterministic.flux_variability_based import (FSEOF,
                                                                       FSEOFResult)
 from cameo.strain_design.deterministic.linear_programming import OptKnock, GrowthCouplingPotential
 
-TRAVIS = bool(os.getenv('TRAVIS', False))
+CI = bool(os.getenv('CI', False))
 TESTDIR = os.path.dirname(__file__)
 
 

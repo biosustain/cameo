@@ -1,12 +1,11 @@
-
 Import models
 =============
 
 Import models from files
 ------------------------
 
-The function `~cameo.io.load_model` accepts a number of different
-input formats.
+The function :py:func:`~cameo.io.load_model` accepts a number of
+different input formats.
 
 1. `SBML <http://sbml.org/>`__ (Systems Biology Markup Language).
 2. JSON
@@ -32,27 +31,27 @@ input formats.
 .. raw:: html
 
     
-            <table>
-                <tr>
-                    <td><strong>Name</strong></td>
-                    <td>e_coli_core</td>
-                </tr><tr>
-                    <td><strong>Memory address</strong></td>
-                    <td>0x01102bfdd8</td>
-                </tr><tr>
-                    <td><strong>Number of metabolites</strong></td>
-                    <td>72</td>
-                </tr><tr>
-                    <td><strong>Number of reactions</strong></td>
-                    <td>95</td>
-                </tr><tr>
-                    <td><strong>Objective expression</strong></td>
-                    <td>-1.0*Biomass_Ecoli_core_w_GAM_reverse_1a29b + 1.0*Biomass_Ecoli_core_w_GAM</td>
-                </tr><tr>
-                    <td><strong>Compartments</strong></td>
-                    <td>extracellular space, cytosol</td>
-                </tr>
-              </table>
+    <table>
+        <tr>
+            <td><strong>Name</strong></td>
+            <td>e_coli_core</td>
+        </tr><tr>
+            <td><strong>Memory address</strong></td>
+            <td>0x01102bfdd8</td>
+        </tr><tr>
+            <td><strong>Number of metabolites</strong></td>
+            <td>72</td>
+        </tr><tr>
+            <td><strong>Number of reactions</strong></td>
+            <td>95</td>
+        </tr><tr>
+            <td><strong>Objective expression</strong></td>
+            <td>-1.0*Biomass_Ecoli_core_w_GAM_reverse_1a29b + 1.0*Biomass_Ecoli_core_w_GAM</td>
+        </tr><tr>
+            <td><strong>Compartments</strong></td>
+            <td>extracellular space, cytosol</td>
+        </tr>
+      </table>
 
 
 
@@ -60,8 +59,8 @@ Import models from the internet
 -------------------------------
 
 In the quick start `chapter <1-quick-start.ipynb>`__ we demonstrated how
-to use `~cameo.io.load_model` to import a model by ID. But where did
-the model come from? Cameo has currently access to two model
+to use :py:func:`~cameo.io.load_model` to import a model by ID. But
+where did the model come from? Cameo has currently access to two model
 repositories on the internet, http://bigg.ucsd.edu and
 http://darwin.di.uminho.pt/models.
 
@@ -1379,7 +1378,8 @@ http://darwin.di.uminho.pt/models.
 
 Models from `BiGG <http://bigg.ucsd.edu>`__ and the `University of
 Minho <http://darwin.di.uminho.pt/models>`__ can conveniently be accessd
-via `~cameo.models.bigg` and `~cameo.models.minho` respectively.
+via :py:class:`~cameo.models.bigg` and :py:class:`~cameo.models.minho`
+respectively.
 
 .. code:: ipython3
 
@@ -1391,27 +1391,27 @@ via `~cameo.models.bigg` and `~cameo.models.minho` respectively.
 .. raw:: html
 
     
-            <table>
-                <tr>
-                    <td><strong>Name</strong></td>
-                    <td>iJN746</td>
-                </tr><tr>
-                    <td><strong>Memory address</strong></td>
-                    <td>0x01106d16d8</td>
-                </tr><tr>
-                    <td><strong>Number of metabolites</strong></td>
-                    <td>907</td>
-                </tr><tr>
-                    <td><strong>Number of reactions</strong></td>
-                    <td>1054</td>
-                </tr><tr>
-                    <td><strong>Objective expression</strong></td>
-                    <td>-1.0*BIOMASS_KT_TEMP_reverse_d18f7 + 1.0*BIOMASS_KT_TEMP</td>
-                </tr><tr>
-                    <td><strong>Compartments</strong></td>
-                    <td>extracellular space, cytosol, periplasm</td>
-                </tr>
-              </table>
+    <table>
+        <tr>
+            <td><strong>Name</strong></td>
+            <td>iJN746</td>
+        </tr><tr>
+            <td><strong>Memory address</strong></td>
+            <td>0x01106d16d8</td>
+        </tr><tr>
+            <td><strong>Number of metabolites</strong></td>
+            <td>907</td>
+        </tr><tr>
+            <td><strong>Number of reactions</strong></td>
+            <td>1054</td>
+        </tr><tr>
+            <td><strong>Objective expression</strong></td>
+            <td>-1.0*BIOMASS_KT_TEMP_reverse_d18f7 + 1.0*BIOMASS_KT_TEMP</td>
+        </tr><tr>
+            <td><strong>Compartments</strong></td>
+            <td>extracellular space, cytosol, periplasm</td>
+        </tr>
+      </table>
 
 
 
@@ -1425,27 +1425,27 @@ via `~cameo.models.bigg` and `~cameo.models.minho` respectively.
 .. raw:: html
 
     
-            <table>
-                <tr>
-                    <td><strong>Name</strong></td>
-                    <td>iMM904</td>
-                </tr><tr>
-                    <td><strong>Memory address</strong></td>
-                    <td>0x0115e79a58</td>
-                </tr><tr>
-                    <td><strong>Number of metabolites</strong></td>
-                    <td>1228</td>
-                </tr><tr>
-                    <td><strong>Number of reactions</strong></td>
-                    <td>1577</td>
-                </tr><tr>
-                    <td><strong>Objective expression</strong></td>
-                    <td>-1.0*biomass_SC5_notrace_reverse_e32ff + 1.0*biomass_SC5_notrace</td>
-                </tr><tr>
-                    <td><strong>Compartments</strong></td>
-                    <td>Golgi_Apparatus, Extra_organism, Nucleus, Endoplasmic_Reticulum, Cytosol, Peroxisome, Mitochondria, Vacuole</td>
-                </tr>
-              </table>
+    <table>
+        <tr>
+            <td><strong>Name</strong></td>
+            <td>iMM904</td>
+        </tr><tr>
+            <td><strong>Memory address</strong></td>
+            <td>0x0115e79a58</td>
+        </tr><tr>
+            <td><strong>Number of metabolites</strong></td>
+            <td>1228</td>
+        </tr><tr>
+            <td><strong>Number of reactions</strong></td>
+            <td>1577</td>
+        </tr><tr>
+            <td><strong>Objective expression</strong></td>
+            <td>-1.0*biomass_SC5_notrace_reverse_e32ff + 1.0*biomass_SC5_notrace</td>
+        </tr><tr>
+            <td><strong>Compartments</strong></td>
+            <td>Golgi_Apparatus, Extra_organism, Nucleus, Endoplasmic_Reticulum, Cytosol, Peroxisome, Mitochondria, Vacuole</td>
+        </tr>
+      </table>
 
 
 
@@ -1463,26 +1463,26 @@ publications.
 .. raw:: html
 
     
-            <table>
-                <tr>
-                    <td><strong>Name</strong></td>
-                    <td>HyunUkKim2010_VvuMBEL943_MetabolicModeling</td>
-                </tr><tr>
-                    <td><strong>Memory address</strong></td>
-                    <td>0x010c1676a0</td>
-                </tr><tr>
-                    <td><strong>Number of metabolites</strong></td>
-                    <td>912</td>
-                </tr><tr>
-                    <td><strong>Number of reactions</strong></td>
-                    <td>1019</td>
-                </tr><tr>
-                    <td><strong>Objective expression</strong></td>
-                    <td>0</td>
-                </tr><tr>
-                    <td><strong>Compartments</strong></td>
-                    <td>cell</td>
-                </tr>
-              </table>
+    <table>
+        <tr>
+            <td><strong>Name</strong></td>
+            <td>HyunUkKim2010_VvuMBEL943_MetabolicModeling</td>
+        </tr><tr>
+            <td><strong>Memory address</strong></td>
+            <td>0x010c1676a0</td>
+        </tr><tr>
+            <td><strong>Number of metabolites</strong></td>
+            <td>912</td>
+        </tr><tr>
+            <td><strong>Number of reactions</strong></td>
+            <td>1019</td>
+        </tr><tr>
+            <td><strong>Objective expression</strong></td>
+            <td>0</td>
+        </tr><tr>
+            <td><strong>Compartments</strong></td>
+            <td>cell</td>
+        </tr>
+      </table>
 
 
