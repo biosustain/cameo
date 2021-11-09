@@ -4,15 +4,17 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Getting started with cameo &#8212; cameo 0.13.0 documentation</title>
-    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
-    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+    <title>Getting started with cameo &#8212; cameo 0.13.6 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
     <script src="_static/jquery.js"></script>
     <script src="_static/underscore.js"></script>
     <script src="_static/doctools.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js"></script>
+    <link rel="shortcut icon" href="_static/favicon.ico"/>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
    
@@ -33,7 +35,7 @@
 
           <div class="body" role="main">
             
-  <div class="section" id="getting-started-with-cameo">
+  <section id="getting-started-with-cameo">
 <h1>Getting started with cameo<a class="headerlink" href="#getting-started-with-cameo" title="Permalink to this headline">¶</a></h1>
 <p><strong>cameo</strong> reuses and extends model data structures defined by
 <a class="reference external" href="https://opencobra.github.io/cobrapy/">cobrapy</a>
@@ -43,9 +45,9 @@ guide and other <strong>cameo</strong> tutorials, we encourage you to explore
 cobrapy’s
 <a class="reference external" href="https://cobrapy.readthedocs.org/en/latest/cobra.core.html">documentation</a>
 as well.</p>
-<div class="section" id="step-1-load-a-model">
+<section id="step-1-load-a-model">
 <h2>Step 1: Load a model<a class="headerlink" href="#step-1-load-a-model" title="Permalink to this headline">¶</a></h2>
-<p>Loading a model is easy. Just import the <code class="xref any docutils literal notranslate"><span class="pre">~cameo.io.load_model</span></code>
+<p>Loading a model is easy. Just import the <a class="reference internal" href="apidoc_output/cameo.html#cameo.io.load_model" title="cameo.io.load_model"><code class="xref py py-func docutils literal notranslate"><span class="pre">load_model()</span></code></a>
 function.</p>
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">cameo</span> <span class="kn">import</span> <span class="n">load_model</span>
 </pre></div>
@@ -80,8 +82,8 @@ Jupyter notebooks and can be easily inspected.</p>
         <td><strong>Compartments</strong></td>
         <td>extracellular space, cytosol, periplasm</td>
     </tr>
-  </table></div>
-<div class="section" id="step-2-simulate-a-model">
+  </table></section>
+<section id="step-2-simulate-a-model">
 <h2>Step 2: Simulate a model<a class="headerlink" href="#step-2-simulate-a-model" title="Permalink to this headline">¶</a></h2>
 <p>The model can be simulated by executing <code class="xref any docutils literal notranslate"><span class="pre">optimize</span></code>.</p>
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">solution</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">optimize</span><span class="p">()</span>
@@ -844,8 +846,8 @@ take a look at reactions with flux != 0</p>
   </tbody>
 </table>
 <p>436 rows × 2 columns</p>
-</div></div>
-<div class="section" id="step-3-exploring-a-model">
+</div></section>
+<section id="step-3-exploring-a-model">
 <h2>Step 3: Exploring a model<a class="headerlink" href="#step-3-exploring-a-model" title="Permalink to this headline">¶</a></h2>
 <p>Objects—models, reactions, metabolites, genes—can easily be explored in
 the Jupyter notebook, taking advantage of tab completion. For example,
@@ -1079,8 +1081,8 @@ leave the model can be accessed through <code class="xref any docutils literal n
  <span class="o">&lt;</span><span class="n">Gene</span> <span class="n">b1693</span> <span class="n">at</span> <span class="mh">0x1123b6278</span><span class="o">&gt;</span><span class="p">]</span>
 </pre></div>
 </div>
-</div>
-</div>
+</section>
+</section>
 
 
           </div>
@@ -1158,7 +1160,7 @@ leave the model can be accessed through <code class="xref any docutils literal n
   <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
       <input type="submit" value="Go" />
     </form>
     </div>
@@ -1180,7 +1182,7 @@ leave the model can be accessed through <code class="xref any docutils literal n
       &copy;2014, Novo Nordisk Foundation Center for Biosustainability.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.4</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.2.0</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

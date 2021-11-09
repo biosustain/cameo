@@ -4,15 +4,17 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>cameo vs. cobrapy &#8212; cameo 0.13.0 documentation</title>
-    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
-    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+    <title>cameo vs. cobrapy &#8212; cameo 0.13.6 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
     <script src="_static/jquery.js"></script>
     <script src="_static/underscore.js"></script>
     <script src="_static/doctools.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js"></script>
+    <link rel="shortcut icon" href="_static/favicon.ico"/>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
    
@@ -33,9 +35,9 @@
 
           <div class="body" role="main">
             
-  <div class="section" id="cameo-vs-cobrapy">
+  <section id="cameo-vs-cobrapy">
 <h1>cameo vs. cobrapy<a class="headerlink" href="#cameo-vs-cobrapy" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="importing-a-model">
+<section id="importing-a-model">
 <h2>Importing a model<a class="headerlink" href="#importing-a-model" title="Permalink to this headline">¶</a></h2>
 <p>cobrapy (load a model in SBML format):</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">cobra.io</span> <span class="kn">import</span> <span class="n">read_sbml_model</span>
@@ -52,8 +54,8 @@
 <span class="n">iAF1260</span> <span class="o">=</span> <span class="n">load_model</span><span class="p">(</span><span class="s1">&#39;iAF1260&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
-</div>
-<div class="section" id="solving-models">
+</section>
+<section id="solving-models">
 <h2>Solving models<a class="headerlink" href="#solving-models" title="Permalink to this headline">¶</a></h2>
 <p>cobrapy:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">solution</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">optimize</span><span class="p">()</span>
@@ -71,8 +73,8 @@
 </div>
 <p>It is important to note that cameo models maintain <code class="xref any docutils literal notranslate"><span class="pre">optimize</span></code> to maintain
 compatibility with cobrapy.</p>
-</div>
-</div>
+</section>
+</section>
 
 
           </div>
@@ -150,7 +152,7 @@ compatibility with cobrapy.</p>
   <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
       <input type="submit" value="Go" />
     </form>
     </div>
@@ -172,7 +174,7 @@ compatibility with cobrapy.</p>
       &copy;2014, Novo Nordisk Foundation Center for Biosustainability.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.4</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.2.0</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

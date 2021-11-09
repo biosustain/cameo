@@ -4,15 +4,17 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Easy strain design using a high-level interface &#8212; cameo 0.13.0 documentation</title>
-    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
-    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+    <title>Easy strain design using a high-level interface &#8212; cameo 0.13.6 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
     <script src="_static/jquery.js"></script>
     <script src="_static/underscore.js"></script>
     <script src="_static/doctools.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js"></script>
+    <link rel="shortcut icon" href="_static/favicon.ico"/>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Contributing" href="contributing.html" />
@@ -35,18 +37,21 @@
 
           <div class="body" role="main">
             
-  <div class="section" id="easy-strain-design-using-a-high-level-interface">
+  <section id="easy-strain-design-using-a-high-level-interface">
 <h1>Easy strain design using a high-level interface<a class="headerlink" href="#easy-strain-design-using-a-high-level-interface" title="Permalink to this headline">¶</a></h1>
-<div class="alert alert-warning"><p>WARNING: if you’re running this notebook on
-<a class="reference external" href="http://try.cameo.bio">try.cameo.bio</a>, things might run very slow due
-to our inability to provide access to the
+<div class="alert alert-warning docutils container">
+<p>If you’re running this notebook on
+<a class="reference external" href="http://try.cameo.bio">try.cameo.bio</a>, things might run very slow
+due to our inability to provide access to the
 <a class="reference external" href="https://www-01.ibm.com/software/commerce/optimization/cplex-optimizer/">CPLEX</a>
-solver on a public webserver. Furthermore, Jupyter kernels might crash
-and restart due to memory limitations on the server. To avoid that, we
-encourage the users to shutdown previously opened notebooks. You can do
-from the <code class="xref any docutils literal notranslate"><span class="pre">Home</span></code> page that by selecting the notebooks highlighted in
-green and pressing the <code class="xref any docutils literal notranslate"><span class="pre">Shutdown</span></code> button on the top of the menu.</p>
-</div><p>Users primarily interested in using cameo as a tool for enumerating
+solver on a public webserver. Furthermore, Jupyter kernels might
+crash and restart due to memory limitations on the server. To avoid
+that, we encourage the users to shutdown previously opened notebooks.
+You can do from the <code class="xref any docutils literal notranslate"><span class="pre">Home</span></code> page that by selecting the notebooks
+highlighted in green and pressing the <code class="xref any docutils literal notranslate"><span class="pre">Shutdown</span></code> button on the top
+of the menu.</p>
+</div>
+<p>Users primarily interested in using cameo as a tool for enumerating
 metabolic engineering strategies have access to cameo’s advanced
 programming interface via <a class="reference internal" href="apidoc_output/cameo.api.html#module-cameo.api" title="cameo.api"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">cameo.api</span></code></a> that provides access to
 potential products (<a class="reference internal" href="apidoc_output/cameo.api.html#module-cameo.api.products" title="cameo.api.products"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">cameo.api.products</span></code></a>), host organisms
@@ -57,7 +62,7 @@ minimal input and will run the following workflow.</p>
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">cameo</span> <span class="kn">import</span> <span class="n">api</span>
 </pre></div>
 </div>
-<div class="section" id="searching-for-products">
+<section id="searching-for-products">
 <h2>Searching for products<a class="headerlink" href="#searching-for-products" title="Permalink to this headline">¶</a></h2>
 <p>Search by trivial name.</p>
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">api</span><span class="o">.</span><span class="n">products</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="s1">&#39;caffeine&#39;</span><span class="p">)</span>
@@ -151,8 +156,8 @@ minimal input and will run the following workflow.</p>
     </tr>
   </tbody>
 </table>
-</div></div>
-<div class="section" id="host-organisms">
+</div></section>
+<section id="host-organisms">
 <h2>Host organisms<a class="headerlink" href="#host-organisms" title="Permalink to this headline">¶</a></h2>
 <p>Currently the following host organisms and respective models are
 available in cameo. More hosts and models will be added in the future
@@ -167,8 +172,8 @@ organism included).</p>
 <span class="n">Saccharomyces</span> <span class="n">cerevisiae</span> <span class="n">iMM904</span>
 </pre></div>
 </div>
-</div>
-<div class="section" id="computing-strain-engineering-strategies">
+</section>
+<section id="computing-strain-engineering-strategies">
 <h2>Computing strain engineering strategies<a class="headerlink" href="#computing-strain-engineering-strategies" title="Permalink to this headline">¶</a></h2>
 <p>For demonstration purposes, we’ll set a few options to limit the
 computational time. Also we’ll create a multiprocessing view to take
@@ -1501,14 +1506,14 @@ e.calcdata.columnDragInProgress=!1,_(r,e,0),b(t,n,n.columns.map(function(t){retu
     </tr>
   </tbody>
 </table>
-</div><div class="section" id="ipython-notebook">
+</div><section id="ipython-notebook">
 <h3>IPython notebook<a class="headerlink" href="#ipython-notebook" title="Permalink to this headline">¶</a></h3>
 <p>Click
 <a class="reference external" href="http://nbviewer.ipython.org/github/biosustain/cameo/blob/devel/docs/cameo_high_level_interface.ipynb">here</a>
 to download this page as an IPython notebook.</p>
-</div>
-</div>
-</div>
+</section>
+</section>
+</section>
 
 
           </div>
@@ -1599,7 +1604,7 @@ to download this page as an IPython notebook.</p>
   <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
       <input type="submit" value="Go" />
     </form>
     </div>
@@ -1621,7 +1626,7 @@ to download this page as an IPython notebook.</p>
       &copy;2014, Novo Nordisk Foundation Center for Biosustainability.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.4</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.2.0</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

@@ -4,15 +4,17 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>cameo.strain_design.pathway_prediction package &#8212; cameo 0.13.0 documentation</title>
-    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
-    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+    <title>cameo.strain_design.pathway_prediction package &#8212; cameo 0.13.6 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css" />
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
     <script src="../_static/jquery.js"></script>
     <script src="../_static/underscore.js"></script>
     <script src="../_static/doctools.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js"></script>
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="cameo.ui package" href="cameo.ui.html" />
@@ -35,27 +37,27 @@
 
           <div class="body" role="main">
             
-  <div class="section" id="cameo-strain-design-pathway-prediction-package">
+  <section id="cameo-strain-design-pathway-prediction-package">
 <h1>cameo.strain_design.pathway_prediction package<a class="headerlink" href="#cameo-strain-design-pathway-prediction-package" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="submodules">
+<section id="submodules">
 <h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
-</div>
-<div class="section" id="module-cameo.strain_design.pathway_prediction.pathway_predictor">
+</section>
+<section id="module-cameo.strain_design.pathway_prediction.pathway_predictor">
 <span id="cameo-strain-design-pathway-prediction-pathway-predictor-module"></span><h2>cameo.strain_design.pathway_prediction.pathway_predictor module<a class="headerlink" href="#module-cameo.strain_design.pathway_prediction.pathway_predictor" title="Permalink to this headline">¶</a></h2>
 <dl class="py class">
-<dt id="cameo.strain_design.pathway_prediction.pathway_predictor.PathwayPredictor">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">cameo.strain_design.pathway_prediction.pathway_predictor.</span></code><code class="sig-name descname"><span class="pre">PathwayPredictor</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">universal_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mapping</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compartment_regexp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/strain_design/pathway_prediction/pathway_predictor.html#PathwayPredictor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.strain_design.pathway_prediction.pathway_predictor.PathwayPredictor" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="cameo.strain_design.pathway_prediction.pathway_predictor.PathwayPredictor">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">cameo.strain_design.pathway_prediction.pathway_predictor.</span></span><span class="sig-name descname"><span class="pre">PathwayPredictor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">universal_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mapping</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compartment_regexp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/strain_design/pathway_prediction/pathway_predictor.html#PathwayPredictor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.strain_design.pathway_prediction.pathway_predictor.PathwayPredictor" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="cameo.core.html#cameo.core.strain_design.StrainDesignMethod" title="cameo.core.strain_design.StrainDesignMethod"><code class="xref py py-class docutils literal notranslate"><span class="pre">cameo.core.strain_design.StrainDesignMethod</span></code></a></p>
 <p>Pathway predictions from a universal set of reaction.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>model</strong> (<em>cobra.Model</em>) – The model that represents the host organism.</p></li>
-<li><p><strong>universal_model</strong> (<em>cobra.Model</em><em>, </em><em>optional</em>) – The model that represents the universal set of reactions.
+<li><p><strong>model</strong> (<a class="reference external" href="https://cobrapy.readthedocs.io/en/latest/autoapi/cobra/index.html#cobra.Model" title="(in cobra v0.21)"><em>cobra.Model</em></a>) – The model that represents the host organism.</p></li>
+<li><p><strong>universal_model</strong> (<a class="reference external" href="https://cobrapy.readthedocs.io/en/latest/autoapi/cobra/index.html#cobra.Model" title="(in cobra v0.21)"><em>cobra.Model</em></a><em>, </em><em>optional</em>) – The model that represents the universal set of reactions.
 A default model will be used if omitted.</p></li>
-<li><p><strong>mapping</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.9)"><em>dict</em></a><em>, </em><em>optional</em>) – A dictionary that contains a mapping between metabolite
+<li><p><strong>mapping</strong> (<em>dict</em><em>, </em><em>optional</em>) – A dictionary that contains a mapping between metabolite
 identifiers in <a class="reference internal" href="#cameo.strain_design.pathway_prediction.pathway_predictor.PathwayPredictor.model" title="cameo.strain_design.pathway_prediction.pathway_predictor.PathwayPredictor.model"><code class="xref any py py-attr docutils literal notranslate"><span class="pre">model</span></code></a> and <code class="xref any docutils literal notranslate"><span class="pre">universal_model</span></code></p></li>
-<li><p><strong>compartment_regexp</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a><em>, </em><em>optional</em>) – A regular expression that matches host metabolites’ compartments
+<li><p><strong>compartment_regexp</strong> (<em>str</em><em>, </em><em>optional</em>) – A regular expression that matches host metabolites’ compartments
 that should be connected to the universal reaction model. If not
 provided, the compartment containing most metabolites will be
 chosen.</p></li>
@@ -63,12 +65,12 @@ chosen.</p></li>
 </dd>
 </dl>
 <dl class="py attribute">
-<dt id="cameo.strain_design.pathway_prediction.pathway_predictor.PathwayPredictor.model">
-<code class="sig-name descname"><span class="pre">model</span></code><a class="headerlink" href="#cameo.strain_design.pathway_prediction.pathway_predictor.PathwayPredictor.model" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="cameo.strain_design.pathway_prediction.pathway_predictor.PathwayPredictor.model">
+<span class="sig-name descname"><span class="pre">model</span></span><a class="headerlink" href="#cameo.strain_design.pathway_prediction.pathway_predictor.PathwayPredictor.model" title="Permalink to this definition">¶</a></dt>
 <dd><p>The provided model + universal_model + adapter reactions</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type</dt>
-<dd class="field-odd"><p>cobra.Model</p>
+<dd class="field-odd"><p><a class="reference external" href="https://cobrapy.readthedocs.io/en/latest/autoapi/cobra/index.html#cobra.Model" title="(in cobra v0.21)">cobra.Model</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -90,25 +92,25 @@ chosen.</p></li>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">__call__</span></code>(*args, **kwargs)</p></td>
 <td><p>Call self as a function.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#cameo.strain_design.pathway_prediction.pathway_predictor.PathwayPredictor.run" title="cameo.strain_design.pathway_prediction.pathway_predictor.PathwayPredictor.run"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run</span></code></a>([product, max_predictions, …])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#cameo.strain_design.pathway_prediction.pathway_predictor.PathwayPredictor.run" title="cameo.strain_design.pathway_prediction.pathway_predictor.PathwayPredictor.run"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run</span></code></a>([product, max_predictions, ...])</p></td>
 <td><p>Run pathway prediction for a desired product.</p></td>
 </tr>
 </tbody>
 </table>
 <dl class="py method">
-<dt id="cameo.strain_design.pathway_prediction.pathway_predictor.PathwayPredictor.run">
-<code class="sig-name descname"><span class="pre">run</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">product</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_predictions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">inf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_production</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">silent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allow_native_exchanges</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/strain_design/pathway_prediction/pathway_predictor.html#PathwayPredictor.run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.strain_design.pathway_prediction.pathway_predictor.PathwayPredictor.run" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="cameo.strain_design.pathway_prediction.pathway_predictor.PathwayPredictor.run">
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">product</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_predictions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">inf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_production</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">silent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allow_native_exchanges</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/strain_design/pathway_prediction/pathway_predictor.html#PathwayPredictor.run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.strain_design.pathway_prediction.pathway_predictor.PathwayPredictor.run" title="Permalink to this definition">¶</a></dt>
 <dd><p>Run pathway prediction for a desired product.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>product</strong> (<em>Metabolite</em><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – Metabolite or id or name of metabolite to find production pathways for.</p></li>
-<li><p><strong>max_predictions</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a><em>, </em><em>optional</em>) – The maximum number of predictions to compute.</p></li>
-<li><p><strong>min_production</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><em>float</em></a>) – The minimum acceptable production flux to product.</p></li>
-<li><p><strong>timeout</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a>) – The time limit [seconds] per attempted prediction.</p></li>
+<li><p><strong>product</strong> (<em>Metabolite</em><em>, </em><em>str</em>) – Metabolite or id or name of metabolite to find production pathways for.</p></li>
+<li><p><strong>max_predictions</strong> (<em>int</em><em>, </em><em>optional</em>) – The maximum number of predictions to compute.</p></li>
+<li><p><strong>min_production</strong> (<em>float</em>) – The minimum acceptable production flux to product.</p></li>
+<li><p><strong>timeout</strong> (<em>int</em>) – The time limit [seconds] per attempted prediction.</p></li>
 <li><p><strong>callback</strong> (<em>function</em>) – A function that takes a successfully predicted pathway.</p></li>
-<li><p><strong>silent</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><em>bool</em></a>) – If True will print the pathways and max flux values.</p></li>
-<li><p><strong>allow_native_exchanges</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><em>bool</em></a>) – If True, exchange reactions for native metabolites will be allowed.</p></li>
+<li><p><strong>silent</strong> (<em>bool</em>) – If True will print the pathways and max flux values.</p></li>
+<li><p><strong>allow_native_exchanges</strong> (<em>bool</em>) – If True, exchange reactions for native metabolites will be allowed.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -122,19 +124,19 @@ chosen.</p></li>
 
 </dd></dl>
 
-</div>
-<div class="section" id="module-cameo.strain_design.pathway_prediction.util">
+</section>
+<section id="module-cameo.strain_design.pathway_prediction.util">
 <span id="cameo-strain-design-pathway-prediction-util-module"></span><h2>cameo.strain_design.pathway_prediction.util module<a class="headerlink" href="#module-cameo.strain_design.pathway_prediction.util" title="Permalink to this headline">¶</a></h2>
 <dl class="py function">
-<dt id="cameo.strain_design.pathway_prediction.util.create_adapter_reactions">
-<code class="sig-prename descclassname"><span class="pre">cameo.strain_design.pathway_prediction.util.</span></code><code class="sig-name descname"><span class="pre">create_adapter_reactions</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">original_metabolites</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">universal_model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mapping</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compartment_regexp</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/strain_design/pathway_prediction/util.html#create_adapter_reactions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.strain_design.pathway_prediction.util.create_adapter_reactions" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="cameo.strain_design.pathway_prediction.util.create_adapter_reactions">
+<span class="sig-prename descclassname"><span class="pre">cameo.strain_design.pathway_prediction.util.</span></span><span class="sig-name descname"><span class="pre">create_adapter_reactions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">original_metabolites</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">universal_model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mapping</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compartment_regexp</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/strain_design/pathway_prediction/util.html#create_adapter_reactions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.strain_design.pathway_prediction.util.create_adapter_reactions" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create adapter reactions that connect host and universal model.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>original_metabolites</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.9)"><em>list</em></a>) – List of host metabolites.</p></li>
-<li><p><strong>universal_model</strong> (<em>cobra.Model</em>) – The universal model.</p></li>
-<li><p><strong>mapping</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.9)"><em>dict</em></a>) – A mapping between between host and universal model metabolite IDs.</p></li>
+<li><p><strong>original_metabolites</strong> (<em>list</em>) – List of host metabolites.</p></li>
+<li><p><strong>universal_model</strong> (<a class="reference external" href="https://cobrapy.readthedocs.io/en/latest/autoapi/cobra/index.html#cobra.Model" title="(in cobra v0.21)"><em>cobra.Model</em></a>) – The universal model.</p></li>
+<li><p><strong>mapping</strong> (<em>dict</em>) – A mapping between between host and universal model metabolite IDs.</p></li>
 <li><p><strong>compartment_regexp</strong> (<em>regex</em>) – A compiled regex that matches metabolites that should be connected to the universal model.</p></li>
 </ul>
 </dd>
@@ -142,21 +144,21 @@ chosen.</p></li>
 <dd class="field-even"><p>The list of adapter reactions.</p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.9)">list</a></p>
+<dd class="field-odd"><p>list</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="cameo.strain_design.pathway_prediction.util.display_pathway">
-<code class="sig-prename descclassname"><span class="pre">cameo.strain_design.pathway_prediction.util.</span></code><code class="sig-name descname"><span class="pre">display_pathway</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pathway</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">i</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/strain_design/pathway_prediction/util.html#display_pathway"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.strain_design.pathway_prediction.util.display_pathway" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="cameo.strain_design.pathway_prediction.util.display_pathway">
+<span class="sig-prename descclassname"><span class="pre">cameo.strain_design.pathway_prediction.util.</span></span><span class="sig-name descname"><span class="pre">display_pathway</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pathway</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">i</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/strain_design/pathway_prediction/util.html#display_pathway"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.strain_design.pathway_prediction.util.display_pathway" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-</div>
-<div class="section" id="module-cameo.strain_design.pathway_prediction">
+</section>
+<section id="module-cameo.strain_design.pathway_prediction">
 <span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-cameo.strain_design.pathway_prediction" title="Permalink to this headline">¶</a></h2>
-</div>
-</div>
+</section>
+</section>
 
 
           </div>
@@ -245,7 +247,7 @@ chosen.</p></li>
   <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
       <input type="submit" value="Go" />
     </form>
     </div>
@@ -267,7 +269,7 @@ chosen.</p></li>
       &copy;2014, Novo Nordisk Foundation Center for Biosustainability.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.4</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.2.0</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

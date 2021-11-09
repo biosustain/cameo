@@ -4,15 +4,17 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>cameo.visualization package &#8212; cameo 0.13.0 documentation</title>
-    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
-    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+    <title>cameo.visualization package &#8212; cameo 0.13.6 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css" />
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
     <script src="../_static/jquery.js"></script>
     <script src="../_static/underscore.js"></script>
     <script src="../_static/doctools.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js"></script>
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="prev" title="cameo.ui package" href="cameo.ui.html" />
@@ -34,16 +36,16 @@
 
           <div class="body" role="main">
             
-  <div class="section" id="cameo-visualization-package">
+  <section id="cameo-visualization-package">
 <h1>cameo.visualization package<a class="headerlink" href="#cameo-visualization-package" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="submodules">
+<section id="submodules">
 <h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
-</div>
-<div class="section" id="module-cameo.visualization.escher_ext">
+</section>
+<section id="module-cameo.visualization.escher_ext">
 <span id="cameo-visualization-escher-ext-module"></span><h2>cameo.visualization.escher_ext module<a class="headerlink" href="#module-cameo.visualization.escher_ext" title="Permalink to this headline">¶</a></h2>
 <dl class="py class">
-<dt id="cameo.visualization.escher_ext.NotebookBuilder">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">cameo.visualization.escher_ext.</span></code><code class="sig-name descname"><span class="pre">NotebookBuilder</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/visualization/escher_ext.html#NotebookBuilder"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.visualization.escher_ext.NotebookBuilder" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="cameo.visualization.escher_ext.NotebookBuilder">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">cameo.visualization.escher_ext.</span></span><span class="sig-name descname"><span class="pre">NotebookBuilder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/visualization/escher_ext.html#NotebookBuilder"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.visualization.escher_ext.NotebookBuilder" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">escher.plots.Builder</span></code></p>
 <dl class="field-list">
 <dt class="field-odd">Attributes</dt>
@@ -191,7 +193,7 @@ is not specified.</p>
 <td><p>Get a dict of all the traitlets defined on this class, not a parent.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">class_trait_names</span></code>(**metadata)</p></td>
-<td><p>Get a list of all the names of this class’ traits.</p></td>
+<td><p>Get a list of all the names of this class' traits.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">class_traits</span></code>(**metadata)</p></td>
 <td><p>Get a <code class="docutils literal notranslate"><span class="pre">dict</span></code> of all the traits of this class.</p></td>
@@ -242,7 +244,7 @@ is not specified.</p>
 <td><p>Registers a callback to be called when a widget is constructed.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">open</span></code>()</p></td>
-<td><p>Open a comm to the frontend if one isn’t already open.</p></td>
+<td><p>Open a comm to the frontend if one isn't already open.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">remove_class</span></code>(className)</p></td>
 <td><p>Removes a class from the top level element of the widget.</p></td>
@@ -262,25 +264,34 @@ is not specified.</p>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_trait</span></code>(name, value)</p></td>
 <td><p>Forcibly sets trait attribute, including read-only attributes.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">setup_instance</span></code>(*args, **kwargs)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">setup_instance</span></code>(**kwargs)</p></td>
 <td><p>This is called <strong>before</strong> self.__init__ is called.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">trait_events</span></code>([name])</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">trait_defaults</span></code>(*names, **metadata)</p></td>
+<td><p>Return a trait's default value or a dictionary of them</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">trait_events</span></code>([name])</p></td>
 <td><p>Get a <code class="docutils literal notranslate"><span class="pre">dict</span></code> of all the event handlers of this class.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">trait_has_value</span></code>(name)</p></td>
+<td><p>Returns True if the specified trait has a value.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">trait_metadata</span></code>(traitname, key[, default])</p></td>
 <td><p>Get metadata values for trait by key.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">trait_names</span></code>(**metadata)</p></td>
-<td><p>Get a list of all the names of this class’ traits.</p></td>
+<td><p>Get a list of all the names of this class' traits.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">traits</span></code>(**metadata)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">trait_values</span></code>(**metadata)</p></td>
+<td><p>A <code class="docutils literal notranslate"><span class="pre">dict</span></code> of trait names and their values.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">traits</span></code>(**metadata)</p></td>
 <td><p>Get a <code class="docutils literal notranslate"><span class="pre">dict</span></code> of all the traits of this class.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">unobserve</span></code>(handler[, names, type])</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">unobserve</span></code>(handler[, names, type])</p></td>
 <td><p>Remove a trait change handler.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">unobserve_all</span></code>([name])</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">unobserve_all</span></code>([name])</p></td>
 <td><p>Remove trait change handlers of any type for the specified name.</p></td>
 </tr>
 </tbody>
@@ -303,19 +314,19 @@ is not specified.</p>
 </tbody>
 </table>
 <dl class="py method">
-<dt id="cameo.visualization.escher_ext.NotebookBuilder.update">
-<code class="sig-name descname"><span class="pre">update</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reaction_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metabolite_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gene_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reaction_scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/visualization/escher_ext.html#NotebookBuilder.update"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.visualization.escher_ext.NotebookBuilder.update" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="cameo.visualization.escher_ext.NotebookBuilder.update">
+<span class="sig-name descname"><span class="pre">update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reaction_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metabolite_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gene_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reaction_scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/visualization/escher_ext.html#NotebookBuilder.update"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.visualization.escher_ext.NotebookBuilder.update" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
-</div>
-<div class="section" id="module-cameo.visualization.palette">
+</section>
+<section id="module-cameo.visualization.palette">
 <span id="cameo-visualization-palette-module"></span><h2>cameo.visualization.palette module<a class="headerlink" href="#module-cameo.visualization.palette" title="Permalink to this headline">¶</a></h2>
 <dl class="py class">
-<dt id="cameo.visualization.palette.PaletteMapper">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">cameo.visualization.palette.</span></code><code class="sig-name descname"><span class="pre">PaletteMapper</span></code><a class="reference internal" href="../_modules/cameo/visualization/palette.html#PaletteMapper"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.visualization.palette.PaletteMapper" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dt class="sig sig-object py" id="cameo.visualization.palette.PaletteMapper">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">cameo.visualization.palette.</span></span><span class="sig-name descname"><span class="pre">PaletteMapper</span></span><a class="reference internal" href="../_modules/cameo/visualization/palette.html#PaletteMapper"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.visualization.palette.PaletteMapper" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p class="rubric">Methods</p>
 <table class="docutils align-default">
 <colgroup>
@@ -332,37 +343,37 @@ is not specified.</p>
 </tbody>
 </table>
 <dl class="py method">
-<dt id="cameo.visualization.palette.PaletteMapper.add_palettalbe_palette">
-<code class="sig-name descname"><span class="pre">add_palettalbe_palette</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">palette</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/visualization/palette.html#PaletteMapper.add_palettalbe_palette"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.visualization.palette.PaletteMapper.add_palettalbe_palette" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="cameo.visualization.palette.PaletteMapper.add_palettalbe_palette">
+<span class="sig-name descname"><span class="pre">add_palettalbe_palette</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">palette</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/visualization/palette.html#PaletteMapper.add_palettalbe_palette"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.visualization.palette.PaletteMapper.add_palettalbe_palette" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="cameo.visualization.palette.PaletteMapper.map_palette">
-<code class="sig-name descname"><span class="pre">map_palette</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reverse</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/visualization/palette.html#PaletteMapper.map_palette"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.visualization.palette.PaletteMapper.map_palette" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="cameo.visualization.palette.PaletteMapper.map_palette">
+<span class="sig-name descname"><span class="pre">map_palette</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reverse</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/visualization/palette.html#PaletteMapper.map_palette"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.visualization.palette.PaletteMapper.map_palette" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
-</div>
-<div class="section" id="module-cameo.visualization.sympy_ext">
+</section>
+<section id="module-cameo.visualization.sympy_ext">
 <span id="cameo-visualization-sympy-ext-module"></span><h2>cameo.visualization.sympy_ext module<a class="headerlink" href="#module-cameo.visualization.sympy_ext" title="Permalink to this headline">¶</a></h2>
-</div>
-<div class="section" id="module-cameo.visualization.visualization">
+</section>
+<section id="module-cameo.visualization.visualization">
 <span id="cameo-visualization-visualization-module"></span><h2>cameo.visualization.visualization module<a class="headerlink" href="#module-cameo.visualization.visualization" title="Permalink to this headline">¶</a></h2>
 <dl class="py function">
-<dt id="cameo.visualization.visualization.graph_to_svg">
-<code class="sig-prename descclassname"><span class="pre">cameo.visualization.visualization.</span></code><code class="sig-name descname"><span class="pre">graph_to_svg</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="pre">g</span></em>, <em class="sig-param"><span class="pre">layout=&lt;function</span> <span class="pre">fruchterman_reingold_layout&gt;</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/visualization/visualization.html#graph_to_svg"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.visualization.visualization.graph_to_svg" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="cameo.visualization.visualization.graph_to_svg">
+<span class="sig-prename descclassname"><span class="pre">cameo.visualization.visualization.</span></span><span class="sig-name descname"><span class="pre">graph_to_svg</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">g</span></em>, <em class="sig-param"><span class="pre">layout=&lt;function</span> <span class="pre">spring_layout&gt;</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/visualization/visualization.html#graph_to_svg"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.visualization.visualization.graph_to_svg" title="Permalink to this definition">¶</a></dt>
 <dd><p>return the SVG of a matplotlib figure generated from a graph</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="cameo.visualization.visualization.draw_knockout_result">
-<code class="sig-prename descclassname"><span class="pre">cameo.visualization.visualization.</span></code><code class="sig-name descname"><span class="pre">draw_knockout_result</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">map_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">simulation_method</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">knockouts</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/visualization/visualization.html#draw_knockout_result"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.visualization.visualization.draw_knockout_result" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="cameo.visualization.visualization.draw_knockout_result">
+<span class="sig-prename descclassname"><span class="pre">cameo.visualization.visualization.</span></span><span class="sig-name descname"><span class="pre">draw_knockout_result</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">map_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">simulation_method</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">knockouts</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/visualization/visualization.html#draw_knockout_result"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.visualization.visualization.draw_knockout_result" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
-<dt id="cameo.visualization.visualization.inchi_to_svg">
-<code class="sig-prename descclassname"><span class="pre">cameo.visualization.visualization.</span></code><code class="sig-name descname"><span class="pre">inchi_to_svg</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inchi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">debug</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">three_d</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/visualization/visualization.html#inchi_to_svg"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.visualization.visualization.inchi_to_svg" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="cameo.visualization.visualization.inchi_to_svg">
+<span class="sig-prename descclassname"><span class="pre">cameo.visualization.visualization.</span></span><span class="sig-name descname"><span class="pre">inchi_to_svg</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inchi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">debug</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">three_d</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/visualization/visualization.html#inchi_to_svg"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.visualization.visualization.inchi_to_svg" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generate an SVG drawing from an InChI string.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -396,11 +407,11 @@ font-family=”sans-serif” stroke=”rgb(0,0,0)” stroke-width=”2”  strok
 <p>‘  # noqa</p>
 </dd></dl>
 
-</div>
-<div class="section" id="module-cameo.visualization">
+</section>
+<section id="module-cameo.visualization">
 <span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-cameo.visualization" title="Permalink to this headline">¶</a></h2>
-</div>
-</div>
+</section>
+</section>
 
 
           </div>
@@ -486,7 +497,7 @@ font-family=”sans-serif” stroke=”rgb(0,0,0)” stroke-width=”2”  strok
   <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
       <input type="submit" value="Go" />
     </form>
     </div>
@@ -508,7 +519,7 @@ font-family=”sans-serif” stroke=”rgb(0,0,0)” stroke-width=”2”  strok
       &copy;2014, Novo Nordisk Foundation Center for Biosustainability.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.4</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.2.0</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

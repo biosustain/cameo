@@ -4,15 +4,17 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Installation &#8212; cameo 0.13.0 documentation</title>
-    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
-    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+    <title>Installation &#8212; cameo 0.13.6 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
     <script src="_static/jquery.js"></script>
     <script src="_static/underscore.js"></script>
     <script src="_static/doctools.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js"></script>
+    <link rel="shortcut icon" href="_static/favicon.ico"/>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Tutorials" href="tutorials.html" />
@@ -35,9 +37,9 @@
 
           <div class="body" role="main">
             
-  <div class="section" id="installation">
+  <section id="installation">
 <h1>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="basic-installation">
+<section id="basic-installation">
 <h2>Basic installation<a class="headerlink" href="#basic-installation" title="Permalink to this headline">¶</a></h2>
 <p>Use pip to install cameo from <a class="reference external" href="https://pypi.python.org/pypi/cameo">PyPI</a>.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ pip install cameo
@@ -52,8 +54,8 @@ or your own fork, you can run the following to install cameo for development.</p
 privileges if you’re not using a virtual environment (using <code class="docutils literal notranslate"><span class="pre">sudo</span></code> for example).
 Please check the <a class="reference external" href="http://cameo.bio/installation.html">documentation</a>
 for further details.</p>
-</div>
-<div class="section" id="setting-up-a-virtual-environment-first">
+</section>
+<section id="setting-up-a-virtual-environment-first">
 <h2>Setting up a virtual environment first<a class="headerlink" href="#setting-up-a-virtual-environment-first" title="Permalink to this headline">¶</a></h2>
 <p>We highly recommended installing cameo inside a virtual environment (<a class="reference external" href="https://pypi.python.org/pypi/virtualenv">virtualenv</a>).
 <a class="reference external" href="https://pypi.python.org/pypi/virtualenvwrapper">virtualenvwrapper</a> tremendously simplifies using <a class="reference external" href="https://pypi.python.org/pypi/virtualenv">virtualenv</a> and can easily
@@ -62,15 +64,15 @@ be installed using <a class="reference external" href="https://github.com/brains
 $ workon cameo
 </pre></div>
 </div>
-<p>and then continue with the installation instructions described above.</p>
+<p>and then continue with the installation instructions described below.</p>
 <p>Alternatively you can use <code class="xref any docutils literal notranslate"><span class="pre">conda</span></code> if you are an <a class="reference external" href="https://anaconda.org/">Anaconda</a> user (there is no conda recipe for cameo though so you’ll
 still need to install it using <code class="xref any docutils literal notranslate"><span class="pre">pip</span></code>). Do the following to create a virtual environment and get some of the heavier dependencies out of the way.</p>
 <div class="highlight-guess notranslate"><div class="highlight"><pre><span></span>$ conda create -y -n cameo3.4 <span class="nv">python</span><span class="o">=</span><span class="m">3</span>.4 lxml scipy pandas numexpr matplotlib
 </pre></div>
 </div>
-<p>Then follow the basic installation instructions described above.</p>
-</div>
-<div class="section" id="soft-dependencies">
+<p>Then follow the basic installation instructions described below.</p>
+</section>
+<section id="soft-dependencies">
 <h2>Soft dependencies<a class="headerlink" href="#soft-dependencies" title="Permalink to this headline">¶</a></h2>
 <p>The following soft dependencies can be installed all at once using</p>
 <div class="highlight-guess notranslate"><div class="highlight"><pre><span></span>$ pip install cameo[all]
@@ -82,16 +84,29 @@ still need to install it using <code class="xref any docutils literal notranslat
 </div>
 <p>The following categories are available:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="s1">&#39;docs&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;Sphinx&gt;=1.3.5&#39;</span><span class="p">,</span> <span class="s1">&#39;numpydoc&gt;=0.5&#39;</span><span class="p">],</span>
-<span class="s1">&#39;plotly&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;plotly&gt;=1.9.6&#39;</span><span class="p">],</span>
+<span class="s1">&#39;plotly&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;plotly&gt;=4.12.0&#39;</span><span class="p">],</span>
 <span class="s1">&#39;bokeh&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;bokeh&lt;=0.12.1&#39;</span><span class="p">],</span>
 <span class="s1">&#39;jupyter&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;jupyter&gt;=1.0.0&#39;</span><span class="p">,</span> <span class="s1">&#39;ipywidgets&gt;=4.1.1&#39;</span><span class="p">],</span>
-<span class="s1">&#39;test&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;pytest&#39;</span><span class="p">,</span> <span class="s1">&#39;pytest-cov&#39;</span><span class="p">],</span>
+<span class="s1">&#39;test&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;pytest&#39;</span><span class="p">,</span> <span class="s1">&#39;pytest-cov&#39;</span><span class="p">,</span> <span class="s1">&#39;pytest-benchmark&#39;</span><span class="p">],</span>
 <span class="s1">&#39;parallel&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;redis&gt;=2.10.5&#39;</span><span class="p">,</span> <span class="s1">&#39;ipyparallel&gt;=5.0.1&#39;</span><span class="p">],</span>
 <span class="s1">&#39;sbml&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;python-libsbml&gt;=5.13.0&#39;</span><span class="p">,</span> <span class="s1">&#39;lxml&gt;=3.6.0&#39;</span><span class="p">]</span>
 </pre></div>
 </div>
+</section>
+<section id="working-with-jupyter-lab">
+<h2>Working with jupyter lab<a class="headerlink" href="#working-with-jupyter-lab" title="Permalink to this headline">¶</a></h2>
+<p>Both plotly and escher require additional steps to work with jupyter lab. For escher (based on <a class="reference external" href="https://github.com/zakandrewking/escher/#jupyter-extensions">escher-readme</a>):</p>
+<div class="highlight-guess notranslate"><div class="highlight"><pre><span></span>$ jupyter labextension install @jupyter-widgets/jupyterlab-manager
+$ python -m jupyter labextension install escher
+</pre></div>
 </div>
+<p>For plotly (based on <a class="reference external" href="https://plotly.com/python/getting-started/#jupyterlab-support">plotly-docs</a>), identify your version of plotly:</p>
+<div class="highlight-guess notranslate"><div class="highlight"><pre><span></span>$ pip freeze | grep plotly  # e.g. 4.14.3
+$ python -m jupyter labextension install jupyterlab-plotly@4.14.3
+</pre></div>
 </div>
+</section>
+</section>
 
 
           </div>
@@ -151,6 +166,7 @@ still need to install it using <code class="xref any docutils literal notranslat
 <li class="toctree-l2"><a class="reference internal" href="#basic-installation">Basic installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#setting-up-a-virtual-environment-first">Setting up a virtual environment first</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#soft-dependencies">Soft dependencies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#working-with-jupyter-lab">Working with jupyter lab</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="tutorials.html">Tutorials</a></li>
@@ -176,7 +192,7 @@ still need to install it using <code class="xref any docutils literal notranslat
   <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
       <input type="submit" value="Go" />
     </form>
     </div>
@@ -198,7 +214,7 @@ still need to install it using <code class="xref any docutils literal notranslat
       &copy;2014, Novo Nordisk Foundation Center for Biosustainability.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.4</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.2.0</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

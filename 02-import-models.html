@@ -4,15 +4,17 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Import models &#8212; cameo 0.13.0 documentation</title>
-    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
-    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+    <title>Import models &#8212; cameo 0.13.6 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
     <script src="_static/jquery.js"></script>
     <script src="_static/underscore.js"></script>
     <script src="_static/doctools.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js"></script>
+    <link rel="shortcut icon" href="_static/favicon.ico"/>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Simulate models" href="03-simulate-models.html" />
@@ -35,12 +37,12 @@
 
           <div class="body" role="main">
             
-  <div class="section" id="import-models">
+  <section id="import-models">
 <h1>Import models<a class="headerlink" href="#import-models" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="import-models-from-files">
+<section id="import-models-from-files">
 <h2>Import models from files<a class="headerlink" href="#import-models-from-files" title="Permalink to this headline">¶</a></h2>
-<p>The function <code class="xref any docutils literal notranslate"><span class="pre">~cameo.io.load_model</span></code> accepts a number of different
-input formats.</p>
+<p>The function <a class="reference internal" href="apidoc_output/cameo.html#cameo.io.load_model" title="cameo.io.load_model"><code class="xref py py-func docutils literal notranslate"><span class="pre">load_model()</span></code></a> accepts a number of
+different input formats.</p>
 <ol class="arabic simple">
 <li><p><a class="reference external" href="http://sbml.org/">SBML</a> (Systems Biology Markup Language).</p></li>
 <li><p>JSON</p></li>
@@ -77,12 +79,12 @@ input formats.</p>
         <td><strong>Compartments</strong></td>
         <td>extracellular space, cytosol</td>
     </tr>
-  </table></div>
-<div class="section" id="import-models-from-the-internet">
+  </table></section>
+<section id="import-models-from-the-internet">
 <h2>Import models from the internet<a class="headerlink" href="#import-models-from-the-internet" title="Permalink to this headline">¶</a></h2>
 <p>In the quick start <a class="reference external" href="1-quick-start.ipynb">chapter</a> we demonstrated how
-to use <code class="xref any docutils literal notranslate"><span class="pre">~cameo.io.load_model</span></code> to import a model by ID. But where did
-the model come from? Cameo has currently access to two model
+to use <a class="reference internal" href="apidoc_output/cameo.html#cameo.io.load_model" title="cameo.io.load_model"><code class="xref py py-func docutils literal notranslate"><span class="pre">load_model()</span></code></a> to import a model by ID. But
+where did the model come from? Cameo has currently access to two model
 repositories on the internet, <a class="reference external" href="http://bigg.ucsd.edu">http://bigg.ucsd.edu</a> and
 <a class="reference external" href="http://darwin.di.uminho.pt/models">http://darwin.di.uminho.pt/models</a>.</p>
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">cameo</span> <span class="kn">import</span> <span class="n">models</span>
@@ -1378,7 +1380,8 @@ repositories on the internet, <a class="reference external" href="http://bigg.uc
 <p>148 rows × 9 columns</p>
 </div><p>Models from <a class="reference external" href="http://bigg.ucsd.edu">BiGG</a> and the <a class="reference external" href="http://darwin.di.uminho.pt/models">University of
 Minho</a> can conveniently be accessd
-via <code class="xref any docutils literal notranslate"><span class="pre">~cameo.models.bigg</span></code> and <code class="xref any docutils literal notranslate"><span class="pre">~cameo.models.minho</span></code> respectively.</p>
+via <code class="xref py py-class docutils literal notranslate"><span class="pre">bigg</span></code> and <code class="xref py py-class docutils literal notranslate"><span class="pre">minho</span></code>
+respectively.</p>
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">models</span><span class="o">.</span><span class="n">bigg</span><span class="o">.</span><span class="n">iJN746</span>
 </pre></div>
 </div>
@@ -1451,8 +1454,8 @@ publications.</p>
         <td><strong>Compartments</strong></td>
         <td>cell</td>
     </tr>
-  </table></div>
-</div>
+  </table></section>
+</section>
 
 
           </div>
@@ -1543,7 +1546,7 @@ publications.</p>
   <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
       <input type="submit" value="Go" />
     </form>
     </div>
@@ -1565,7 +1568,7 @@ publications.</p>
       &copy;2014, Novo Nordisk Foundation Center for Biosustainability.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.4</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.2.0</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

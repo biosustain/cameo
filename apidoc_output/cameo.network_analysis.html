@@ -4,15 +4,17 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>cameo.network_analysis package &#8212; cameo 0.13.0 documentation</title>
-    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
-    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+    <title>cameo.network_analysis package &#8212; cameo 0.13.6 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css" />
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
     <script src="../_static/jquery.js"></script>
     <script src="../_static/underscore.js"></script>
     <script src="../_static/doctools.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js"></script>
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="cameo.strain_design package" href="cameo.strain_design.html" />
@@ -35,21 +37,21 @@
 
           <div class="body" role="main">
             
-  <div class="section" id="cameo-network-analysis-package">
+  <section id="cameo-network-analysis-package">
 <h1>cameo.network_analysis package<a class="headerlink" href="#cameo-network-analysis-package" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="submodules">
+<section id="submodules">
 <h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
-</div>
-<div class="section" id="module-cameo.network_analysis.networkx_based">
+</section>
+<section id="module-cameo.network_analysis.networkx_based">
 <span id="cameo-network-analysis-networkx-based-module"></span><h2>cameo.network_analysis.networkx_based module<a class="headerlink" href="#module-cameo.network_analysis.networkx_based" title="Permalink to this headline">¶</a></h2>
 <dl class="py function">
-<dt id="cameo.network_analysis.networkx_based.model_to_network">
-<code class="sig-prename descclassname"><span class="pre">cameo.network_analysis.networkx_based.</span></code><code class="sig-name descname"><span class="pre">model_to_network</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/network_analysis/networkx_based.html#model_to_network"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.network_analysis.networkx_based.model_to_network" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="cameo.network_analysis.networkx_based.model_to_network">
+<span class="sig-prename descclassname"><span class="pre">cameo.network_analysis.networkx_based.</span></span><span class="sig-name descname"><span class="pre">model_to_network</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/network_analysis/networkx_based.html#model_to_network"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.network_analysis.networkx_based.model_to_network" title="Permalink to this definition">¶</a></dt>
 <dd><p>Convert a model into a networkx graph.</p>
 <p>Calls reactions_to_network with model.reactions.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>model</strong> (<em>cobra.Model</em>) – The model.</p>
+<dd class="field-odd"><p><strong>model</strong> (<a class="reference external" href="https://cobrapy.readthedocs.io/en/latest/autoapi/cobra/index.html#cobra.Model" title="(in cobra v0.21)"><em>cobra.Model</em></a>) – The model.</p>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p></p>
@@ -65,14 +67,14 @@
 </dd></dl>
 
 <dl class="py function">
-<dt id="cameo.network_analysis.networkx_based.reactions_to_network">
-<code class="sig-prename descclassname"><span class="pre">cameo.network_analysis.networkx_based.</span></code><code class="sig-name descname"><span class="pre">reactions_to_network</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reactions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_distance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.3</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/network_analysis/networkx_based.html#reactions_to_network"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.network_analysis.networkx_based.reactions_to_network" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="cameo.network_analysis.networkx_based.reactions_to_network">
+<span class="sig-prename descclassname"><span class="pre">cameo.network_analysis.networkx_based.</span></span><span class="sig-name descname"><span class="pre">reactions_to_network</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reactions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_distance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.3</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/network_analysis/networkx_based.html#reactions_to_network"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.network_analysis.networkx_based.reactions_to_network" title="Permalink to this definition">¶</a></dt>
 <dd><p>Convert a list of reactions into a networkx graph.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>reactions</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.9)"><em>list</em></a>) – The list of reactions.</p></li>
-<li><p><strong>max_distance</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><em>float</em></a><em>, </em><em>optional</em>) – A threshold on the normalized distance between two compounds. If distance is above this threshold,
+<li><p><strong>reactions</strong> (<em>list</em>) – The list of reactions.</p></li>
+<li><p><strong>max_distance</strong> (<em>float</em><em>, </em><em>optional</em>) – A threshold on the normalized distance between two compounds. If distance is above this threshold,
 no edge between those compounds will be created.</p></li>
 </ul>
 </dd>
@@ -90,55 +92,55 @@ no edge between those compounds will be created.</p></li>
 </dd></dl>
 
 <dl class="py function">
-<dt id="cameo.network_analysis.networkx_based.remove_highly_connected_nodes">
-<code class="sig-prename descclassname"><span class="pre">cameo.network_analysis.networkx_based.</span></code><code class="sig-name descname"><span class="pre">remove_highly_connected_nodes</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">network</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_degree</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/network_analysis/networkx_based.html#remove_highly_connected_nodes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.network_analysis.networkx_based.remove_highly_connected_nodes" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="cameo.network_analysis.networkx_based.remove_highly_connected_nodes">
+<span class="sig-prename descclassname"><span class="pre">cameo.network_analysis.networkx_based.</span></span><span class="sig-name descname"><span class="pre">remove_highly_connected_nodes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">network</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_degree</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/network_analysis/networkx_based.html#remove_highly_connected_nodes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.network_analysis.networkx_based.remove_highly_connected_nodes" title="Permalink to this definition">¶</a></dt>
 <dd><p>Remove highly connected nodes (changes network in place).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>network</strong> (<em>networkx graph</em>) – </p></li>
-<li><p><strong>max_degree</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a><em> (</em><em>default 10</em><em>)</em>) – Remove nodes with degree &gt; max_degree</p></li>
-<li><p><strong>ignore</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.9)"><em>list</em></a>) – List of nodes to ignore.</p></li>
+<li><p><strong>max_degree</strong> (<em>int</em><em> (</em><em>default 10</em><em>)</em>) – Remove nodes with degree &gt; max_degree</p></li>
+<li><p><strong>ignore</strong> (<em>list</em>) – List of nodes to ignore.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p></p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.9)">None</a></p>
+<dd class="field-odd"><p>None</p>
 </dd>
 </dl>
 </dd></dl>
 
-</div>
-<div class="section" id="module-cameo.network_analysis.util">
+</section>
+<section id="module-cameo.network_analysis.util">
 <span id="cameo-network-analysis-util-module"></span><h2>cameo.network_analysis.util module<a class="headerlink" href="#module-cameo.network_analysis.util" title="Permalink to this headline">¶</a></h2>
 <dl class="py function">
-<dt id="cameo.network_analysis.util.distance_based_on_molecular_formula">
-<code class="sig-prename descclassname"><span class="pre">cameo.network_analysis.util.</span></code><code class="sig-name descname"><span class="pre">distance_based_on_molecular_formula</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">metabolite1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metabolite2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/network_analysis/util.html#distance_based_on_molecular_formula"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.network_analysis.util.distance_based_on_molecular_formula" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="cameo.network_analysis.util.distance_based_on_molecular_formula">
+<span class="sig-prename descclassname"><span class="pre">cameo.network_analysis.util.</span></span><span class="sig-name descname"><span class="pre">distance_based_on_molecular_formula</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">metabolite1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metabolite2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/network_analysis/util.html#distance_based_on_molecular_formula"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.network_analysis.util.distance_based_on_molecular_formula" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate the distance of two metabolites bases on the molecular formula</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>metabolite1</strong> (<em>Metabolite</em>) – The first metabolite.</p></li>
 <li><p><strong>metabolite2</strong> (<em>Metabolite</em>) – The second metabolite.</p></li>
-<li><p><strong>normalize</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><em>bool</em></a><em>, </em><em>optional</em>) – If the distance should be normalized by the total number of elements in both metabolites (defaults to True).</p></li>
+<li><p><strong>normalize</strong> (<em>bool</em><em>, </em><em>optional</em>) – If the distance should be normalized by the total number of elements in both metabolites (defaults to True).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>The distance between metabolite1 and metabolite2.</p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)">float</a></p>
+<dd class="field-odd"><p>float</p>
 </dd>
 </dl>
 </dd></dl>
 
-</div>
-<div class="section" id="module-cameo.network_analysis">
+</section>
+<section id="module-cameo.network_analysis">
 <span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-cameo.network_analysis" title="Permalink to this headline">¶</a></h2>
-</div>
-</div>
+</section>
+</section>
 
 
           </div>
@@ -225,7 +227,7 @@ no edge between those compounds will be created.</p></li>
   <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
       <input type="submit" value="Go" />
     </form>
     </div>
@@ -247,7 +249,7 @@ no edge between those compounds will be created.</p></li>
       &copy;2014, Novo Nordisk Foundation Center for Biosustainability.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.4</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.2.0</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

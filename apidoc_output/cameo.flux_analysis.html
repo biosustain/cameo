@@ -4,15 +4,17 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>cameo.flux_analysis package &#8212; cameo 0.13.0 documentation</title>
-    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
-    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+    <title>cameo.flux_analysis package &#8212; cameo 0.13.6 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css" />
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
     <script src="../_static/jquery.js"></script>
     <script src="../_static/underscore.js"></script>
     <script src="../_static/doctools.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js"></script>
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="cameo.models package" href="cameo.models.html" />
@@ -35,46 +37,46 @@
 
           <div class="body" role="main">
             
-  <div class="section" id="cameo-flux-analysis-package">
+  <section id="cameo-flux-analysis-package">
 <h1>cameo.flux_analysis package<a class="headerlink" href="#cameo-flux-analysis-package" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="submodules">
+<section id="submodules">
 <h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
-</div>
-<div class="section" id="module-cameo.flux_analysis.analysis">
+</section>
+<section id="module-cameo.flux_analysis.analysis">
 <span id="cameo-flux-analysis-analysis-module"></span><h2>cameo.flux_analysis.analysis module<a class="headerlink" href="#module-cameo.flux_analysis.analysis" title="Permalink to this headline">¶</a></h2>
 <dl class="py function">
-<dt id="cameo.flux_analysis.analysis.find_blocked_reactions">
-<code class="sig-prename descclassname"><span class="pre">cameo.flux_analysis.analysis.</span></code><code class="sig-name descname"><span class="pre">find_blocked_reactions</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/flux_analysis/analysis.html#find_blocked_reactions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.flux_analysis.analysis.find_blocked_reactions" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="cameo.flux_analysis.analysis.find_blocked_reactions">
+<span class="sig-prename descclassname"><span class="pre">cameo.flux_analysis.analysis.</span></span><span class="sig-name descname"><span class="pre">find_blocked_reactions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/flux_analysis/analysis.html#find_blocked_reactions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.flux_analysis.analysis.find_blocked_reactions" title="Permalink to this definition">¶</a></dt>
 <dd><p>Determine reactions that cannot carry steady-state flux.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>model</strong> (<em>cobra.Model</em>) – </p>
+<dd class="field-odd"><p><strong>model</strong> (<a class="reference external" href="https://cobrapy.readthedocs.io/en/latest/autoapi/cobra/index.html#cobra.Model" title="(in cobra v0.21)"><em>cobra.Model</em></a>) – </p>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>A list of reactions.</p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.9)">list</a></p>
+<dd class="field-odd"><p>list</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="cameo.flux_analysis.analysis.flux_variability_analysis">
-<code class="sig-prename descclassname"><span class="pre">cameo.flux_analysis.analysis.</span></code><code class="sig-name descname"><span class="pre">flux_variability_analysis</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reactions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fraction_of_optimum</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pfba_factor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remove_cycles</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">view</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/flux_analysis/analysis.html#flux_variability_analysis"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.flux_analysis.analysis.flux_variability_analysis" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="cameo.flux_analysis.analysis.flux_variability_analysis">
+<span class="sig-prename descclassname"><span class="pre">cameo.flux_analysis.analysis.</span></span><span class="sig-name descname"><span class="pre">flux_variability_analysis</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reactions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fraction_of_optimum</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pfba_factor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remove_cycles</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">view</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/flux_analysis/analysis.html#flux_variability_analysis"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.flux_analysis.analysis.flux_variability_analysis" title="Permalink to this definition">¶</a></dt>
 <dd><p>Flux variability analysis.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>model</strong> (<em>cobra.Model</em>) – </p></li>
-<li><p><strong>reactions</strong> (<a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.9)"><em>None</em></a><em> or </em><em>iterable</em>) – The list of reaction whose lower and upper bounds should be determined.
-If <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.9)"><code class="xref any docutils literal notranslate"><span class="pre">None</span></code></a>, all reactions in <a class="reference internal" href="cameo.html#cameo.util.ProblemCache.model" title="cameo.util.ProblemCache.model"><code class="xref any py py-meth docutils literal notranslate"><span class="pre">model</span></code></a> will be assessed.</p></li>
-<li><p><strong>fraction_of_optimum</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><em>float</em></a>) – Fix the objective of the model to a fraction of it’s max. Expected to be within [0;1]. Lower values increase
+<li><p><strong>model</strong> (<a class="reference external" href="https://cobrapy.readthedocs.io/en/latest/autoapi/cobra/index.html#cobra.Model" title="(in cobra v0.21)"><em>cobra.Model</em></a>) – </p></li>
+<li><p><strong>reactions</strong> (<em>None</em><em> or </em><em>iterable</em>) – The list of reaction whose lower and upper bounds should be determined.
+If <code class="xref any docutils literal notranslate"><span class="pre">None</span></code>, all reactions in <a class="reference internal" href="cameo.html#cameo.util.ProblemCache.model" title="cameo.util.ProblemCache.model"><code class="xref any py py-attr docutils literal notranslate"><span class="pre">model</span></code></a> will be assessed.</p></li>
+<li><p><strong>fraction_of_optimum</strong> (<em>float</em>) – Fix the objective of the model to a fraction of it’s max. Expected to be within [0;1]. Lower values increase
 variability.</p></li>
-<li><p><strong>pfba_factor</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><em>float</em></a>) – If not None, fix the total sum of reaction fluxes to its minimum times a factor. Expected to be within [
+<li><p><strong>pfba_factor</strong> (<em>float</em>) – If not None, fix the total sum of reaction fluxes to its minimum times a factor. Expected to be within [
 1;inf]. Higher factors increase flux variability to a certain point since the bound for the objective is
 still fixed.</p></li>
-<li><p><strong>remove_cycles</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.9)"><em>bool</em></a>) – If true, apply the CycleFreeFlux algorithm to remove loops from each simulated flux distribution.</p></li>
+<li><p><strong>remove_cycles</strong> (<em>bool</em>) – If true, apply the CycleFreeFlux algorithm to remove loops from each simulated flux distribution.</p></li>
 <li><p><strong>view</strong> (<a class="reference internal" href="cameo.html#cameo.parallel.SequentialView" title="cameo.parallel.SequentialView"><em>cameo.parallel.SequentialView</em></a><em> or </em><a class="reference internal" href="cameo.html#cameo.parallel.MultiprocessingView" title="cameo.parallel.MultiprocessingView"><em>cameo.parallel.MultiprocessingView</em></a><em> or </em><em>ipython.cluster.DirectView</em>) – A parallelization view.</p></li>
 </ul>
 </dd>
@@ -89,8 +91,8 @@ analysis.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="cameo.flux_analysis.analysis.phenotypic_phase_plane">
-<code class="sig-prename descclassname"><span class="pre">cameo.flux_analysis.analysis.</span></code><code class="sig-name descname"><span class="pre">phenotypic_phase_plane</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">variables</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">objective</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">points</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">view</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/flux_analysis/analysis.html#phenotypic_phase_plane"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.flux_analysis.analysis.phenotypic_phase_plane" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="cameo.flux_analysis.analysis.phenotypic_phase_plane">
+<span class="sig-prename descclassname"><span class="pre">cameo.flux_analysis.analysis.</span></span><span class="sig-name descname"><span class="pre">phenotypic_phase_plane</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">variables</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">objective</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">points</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">view</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/flux_analysis/analysis.html#phenotypic_phase_plane"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.flux_analysis.analysis.phenotypic_phase_plane" title="Permalink to this definition">¶</a></dt>
 <dd><p>Phenotypic phase plane analysis [1].</p>
 <p>Implements a phenotypic phase plan analysis with interpretation same as
 that presented in [1] but calculated by optimizing the model for all
@@ -98,13 +100,13 @@ steps of the indicated variables (instead of using shadow prices).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>model</strong> (<em>cobra.Model</em>) – </p></li>
-<li><p><strong>variables</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a><em> or </em><em>reaction</em><em> or </em><em>iterable</em>) – A reaction ID, reaction, or list of reactions to be varied.</p></li>
-<li><p><strong>objective</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a><em> or </em><em>reaction</em><em> or </em><em>optlang.Objective</em><em> or </em><em>Metabolite</em><em>, </em><em>optional</em>) – An objective, a reaction’s flux, or a metabolite’s production to be minimized/maximized
+<li><p><strong>model</strong> (<a class="reference external" href="https://cobrapy.readthedocs.io/en/latest/autoapi/cobra/index.html#cobra.Model" title="(in cobra v0.21)"><em>cobra.Model</em></a>) – </p></li>
+<li><p><strong>variables</strong> (<em>str</em><em> or </em><em>reaction</em><em> or </em><em>iterable</em>) – A reaction ID, reaction, or list of reactions to be varied.</p></li>
+<li><p><strong>objective</strong> (<em>str</em><em> or </em><em>reaction</em><em> or </em><em>optlang.Objective</em><em> or </em><em>Metabolite</em><em>, </em><em>optional</em>) – An objective, a reaction’s flux, or a metabolite’s production to be minimized/maximized
 (defaults to the current model objective).</p></li>
 <li><p><strong>source</strong> (<em>Reaction</em><em> or </em><em>reaction identifier</em>) – The reaction to use as the source when calculating mass and carbon yield. Set to the medium reaction with the
 highest input carbon flux if left None.</p></li>
-<li><p><strong>points</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.9)"><em>int</em></a><em> or </em><em>iterable</em>) – Number of points to be interspersed between the variable bounds.
+<li><p><strong>points</strong> (<em>int</em><em> or </em><em>iterable</em>) – Number of points to be interspersed between the variable bounds.
 A list of same same dimensions as <code class="xref any docutils literal notranslate"><span class="pre">variables</span></code> can be used to specify
 variable specific numbers of points.</p></li>
 <li><p><strong>view</strong> (<a class="reference internal" href="cameo.html#cameo.parallel.SequentialView" title="cameo.parallel.SequentialView"><em>SequentialView</em></a><em> or </em><a class="reference internal" href="cameo.html#cameo.parallel.MultiprocessingView" title="cameo.parallel.MultiprocessingView"><em>MultiprocessingView</em></a><em> or </em><em>ipython.cluster.DirectView</em>) – A parallelization view.</p></li>
@@ -126,15 +128,15 @@ output, gram input / gram output</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="cameo.flux_analysis.analysis.flux_balance_impact_degree">
-<code class="sig-prename descclassname"><span class="pre">cameo.flux_analysis.analysis.</span></code><code class="sig-name descname"><span class="pre">flux_balance_impact_degree</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="pre">model</span></em>, <em class="sig-param"><span class="pre">knockouts</span></em>, <em class="sig-param"><span class="pre">view=&lt;cameo.parallel.SequentialView</span> <span class="pre">object&gt;</span></em>, <em class="sig-param"><span class="pre">method='fva'</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/flux_analysis/analysis.html#flux_balance_impact_degree"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.flux_analysis.analysis.flux_balance_impact_degree" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="cameo.flux_analysis.analysis.flux_balance_impact_degree">
+<span class="sig-prename descclassname"><span class="pre">cameo.flux_analysis.analysis.</span></span><span class="sig-name descname"><span class="pre">flux_balance_impact_degree</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">model</span></em>, <em class="sig-param"><span class="pre">knockouts</span></em>, <em class="sig-param"><span class="pre">view=&lt;cameo.parallel.SequentialView</span> <span class="pre">object&gt;</span></em>, <em class="sig-param"><span class="pre">method='fva'</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/flux_analysis/analysis.html#flux_balance_impact_degree"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.flux_analysis.analysis.flux_balance_impact_degree" title="Permalink to this definition">¶</a></dt>
 <dd><p>Flux balance impact degree by Zhao et al 2013</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>model</strong> (<em>cobra.Model</em>) – Wild-type model</p></li>
-<li><p><strong>knockouts</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.9)"><em>list</em></a>) – Reactions to knockout</p></li>
-<li><p><strong>method</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a>) – The method to compute the perturbation. default is “fva” - Flux Variability Analysis.
+<li><p><strong>model</strong> (<a class="reference external" href="https://cobrapy.readthedocs.io/en/latest/autoapi/cobra/index.html#cobra.Model" title="(in cobra v0.21)"><em>cobra.Model</em></a>) – Wild-type model</p></li>
+<li><p><strong>knockouts</strong> (<em>list</em>) – Reactions to knockout</p></li>
+<li><p><strong>method</strong> (<em>str</em>) – The method to compute the perturbation. default is “fva” - Flux Variability Analysis.
 It can also be computed with “em” - Elementary modes (not implemented)</p></li>
 </ul>
 </dd>
@@ -147,8 +149,8 @@ It can also be computed with “em” - Elementary modes (not implemented)</p></
 </dl>
 </dd></dl>
 
-</div>
-<div class="section" id="module-cameo.flux_analysis.simulation">
+</section>
+<section id="module-cameo.flux_analysis.simulation">
 <span id="cameo-flux-analysis-simulation-module"></span><h2>cameo.flux_analysis.simulation module<a class="headerlink" href="#module-cameo.flux_analysis.simulation" title="Permalink to this headline">¶</a></h2>
 <p>Methods for simulating flux distributions.
 Currently implements:
@@ -157,13 +159,13 @@ Currently implements:
 * lmoma - (Linear) Minimization of Metabolic Adjustment
 * room - Regulatory On/Off Minimization</p>
 <dl class="py function">
-<dt id="cameo.flux_analysis.simulation.fba">
-<code class="sig-prename descclassname"><span class="pre">cameo.flux_analysis.simulation.</span></code><code class="sig-name descname"><span class="pre">fba</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">objective</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reactions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/flux_analysis/simulation.html#fba"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.flux_analysis.simulation.fba" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="cameo.flux_analysis.simulation.fba">
+<span class="sig-prename descclassname"><span class="pre">cameo.flux_analysis.simulation.</span></span><span class="sig-name descname"><span class="pre">fba</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">objective</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reactions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/flux_analysis/simulation.html#fba"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.flux_analysis.simulation.fba" title="Permalink to this definition">¶</a></dt>
 <dd><p>Flux Balance Analysis.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>model</strong> (<em>cobra.Model</em>) – </p></li>
+<li><p><strong>model</strong> (<a class="reference external" href="https://cobrapy.readthedocs.io/en/latest/autoapi/cobra/index.html#cobra.Model" title="(in cobra v0.21)"><em>cobra.Model</em></a>) – </p></li>
 <li><p><strong>objective</strong> (<em>a valid objective - see SolverBaseModel.objective</em><em> (</em><em>optional</em><em>)</em>) – </p></li>
 </ul>
 </dd>
@@ -177,17 +179,17 @@ Currently implements:
 </dd></dl>
 
 <dl class="py function">
-<dt id="cameo.flux_analysis.simulation.pfba">
-<code class="sig-prename descclassname"><span class="pre">cameo.flux_analysis.simulation.</span></code><code class="sig-name descname"><span class="pre">pfba</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">objective</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reactions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fraction_of_optimum</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/flux_analysis/simulation.html#pfba"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.flux_analysis.simulation.pfba" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="cameo.flux_analysis.simulation.pfba">
+<span class="sig-prename descclassname"><span class="pre">cameo.flux_analysis.simulation.</span></span><span class="sig-name descname"><span class="pre">pfba</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">objective</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reactions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fraction_of_optimum</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/flux_analysis/simulation.html#pfba"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.flux_analysis.simulation.pfba" title="Permalink to this definition">¶</a></dt>
 <dd><p>Parsimonious Enzyme Usage Flux Balance Analysis [1].</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>model</strong> (<em>cobra.Model</em>) – The model to perform pFBA with</p></li>
-<li><p><strong>objective</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.9)"><em>str</em></a><em> or </em><em>reaction</em><em> or </em><em>optlang.Objective</em>) – An objective to be minimized/maximized for</p></li>
-<li><p><strong>reactions</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.9)"><em>list</em></a>) – list of reactions to get results for. Getting fluxes from solution can be time consuming so if not all are
+<li><p><strong>model</strong> (<a class="reference external" href="https://cobrapy.readthedocs.io/en/latest/autoapi/cobra/index.html#cobra.Model" title="(in cobra v0.21)"><em>cobra.Model</em></a>) – The model to perform pFBA with</p></li>
+<li><p><strong>objective</strong> (<em>str</em><em> or </em><em>reaction</em><em> or </em><em>optlang.Objective</em>) – An objective to be minimized/maximized for</p></li>
+<li><p><strong>reactions</strong> (<em>list</em>) – list of reactions to get results for. Getting fluxes from solution can be time consuming so if not all are
 needed it may be faster to request specific reactions.</p></li>
-<li><p><strong>fraction_of_optimum</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><em>float</em></a>) – Fix the value of the current objective to a fraction of is maximum.</p></li>
+<li><p><strong>fraction_of_optimum</strong> (<em>float</em>) – Fix the value of the current objective to a fraction of is maximum.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -208,16 +210,16 @@ genome-scale models. Molecular Systems Biology, 6, 390. doi:10.1038/msb.2010.47<
 </dd></dl>
 
 <dl class="py function">
-<dt id="cameo.flux_analysis.simulation.moma">
-<code class="sig-prename descclassname"><span class="pre">cameo.flux_analysis.simulation.</span></code><code class="sig-name descname"><span class="pre">moma</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reference</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reactions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/flux_analysis/simulation.html#moma"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.flux_analysis.simulation.moma" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="cameo.flux_analysis.simulation.moma">
+<span class="sig-prename descclassname"><span class="pre">cameo.flux_analysis.simulation.</span></span><span class="sig-name descname"><span class="pre">moma</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reference</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reactions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/flux_analysis/simulation.html#moma"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.flux_analysis.simulation.moma" title="Permalink to this definition">¶</a></dt>
 <dd><p>Minimization of Metabolic Adjustment[1]</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>model</strong> (<em>cobra.Model</em>) – </p></li>
-<li><p><strong>reference</strong> (<em>FluxDistributionResult</em><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.9)"><em>dict</em></a>) – </p></li>
+<li><p><strong>model</strong> (<a class="reference external" href="https://cobrapy.readthedocs.io/en/latest/autoapi/cobra/index.html#cobra.Model" title="(in cobra v0.21)"><em>cobra.Model</em></a>) – </p></li>
+<li><p><strong>reference</strong> (<em>FluxDistributionResult</em><em>, </em><em>dict</em>) – </p></li>
 <li><p><strong>cache</strong> (<a class="reference internal" href="cameo.html#cameo.util.ProblemCache" title="cameo.util.ProblemCache"><em>ProblemCache</em></a>) – </p></li>
-<li><p><strong>reactions</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.9)"><em>list</em></a>) – </p></li>
+<li><p><strong>reactions</strong> (<em>list</em>) – </p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -238,16 +240,16 @@ doi:10.1073/pnas.232349399</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="cameo.flux_analysis.simulation.lmoma">
-<code class="sig-prename descclassname"><span class="pre">cameo.flux_analysis.simulation.</span></code><code class="sig-name descname"><span class="pre">lmoma</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reference</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reactions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/flux_analysis/simulation.html#lmoma"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.flux_analysis.simulation.lmoma" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="cameo.flux_analysis.simulation.lmoma">
+<span class="sig-prename descclassname"><span class="pre">cameo.flux_analysis.simulation.</span></span><span class="sig-name descname"><span class="pre">lmoma</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reference</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reactions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/flux_analysis/simulation.html#lmoma"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.flux_analysis.simulation.lmoma" title="Permalink to this definition">¶</a></dt>
 <dd><p>Linear Minimization Of Metabolic Adjustment [1].</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>model</strong> (<em>cobra.Model</em>) – </p></li>
-<li><p><strong>reference</strong> (<em>FluxDistributionResult</em><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.9)"><em>dict</em></a>) – </p></li>
+<li><p><strong>model</strong> (<a class="reference external" href="https://cobrapy.readthedocs.io/en/latest/autoapi/cobra/index.html#cobra.Model" title="(in cobra v0.21)"><em>cobra.Model</em></a>) – </p></li>
+<li><p><strong>reference</strong> (<em>FluxDistributionResult</em><em>, </em><em>dict</em>) – </p></li>
 <li><p><strong>cache</strong> (<a class="reference internal" href="cameo.html#cameo.util.ProblemCache" title="cameo.util.ProblemCache"><em>ProblemCache</em></a>) – </p></li>
-<li><p><strong>reactions</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.9)"><em>list</em></a>) – </p></li>
+<li><p><strong>reactions</strong> (<em>list</em>) – </p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -268,16 +270,16 @@ Nature Protocols, 2(3), 727–38. doi:10.1038/nprot.2007.99</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="cameo.flux_analysis.simulation.room">
-<code class="sig-prename descclassname"><span class="pre">cameo.flux_analysis.simulation.</span></code><code class="sig-name descname"><span class="pre">room</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reference</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.03</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epsilon</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reactions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/flux_analysis/simulation.html#room"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.flux_analysis.simulation.room" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="cameo.flux_analysis.simulation.room">
+<span class="sig-prename descclassname"><span class="pre">cameo.flux_analysis.simulation.</span></span><span class="sig-name descname"><span class="pre">room</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reference</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.03</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epsilon</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reactions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/flux_analysis/simulation.html#room"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.flux_analysis.simulation.room" title="Permalink to this definition">¶</a></dt>
 <dd><p>Regulatory On/Off Minimization [1].</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>model</strong> (<em>cobra.Model</em>) – </p></li>
-<li><p><strong>reference</strong> (<em>FluxDistributionResult</em><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.9)"><em>dict</em></a>) – </p></li>
-<li><p><strong>delta</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><em>float</em></a>) – </p></li>
-<li><p><strong>epsilon</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><em>float</em></a>) – </p></li>
+<li><p><strong>model</strong> (<a class="reference external" href="https://cobrapy.readthedocs.io/en/latest/autoapi/cobra/index.html#cobra.Model" title="(in cobra v0.21)"><em>cobra.Model</em></a>) – </p></li>
+<li><p><strong>reference</strong> (<em>FluxDistributionResult</em><em>, </em><em>dict</em>) – </p></li>
+<li><p><strong>delta</strong> (<em>float</em>) – </p></li>
+<li><p><strong>epsilon</strong> (<em>float</em>) – </p></li>
 <li><p><strong>cache</strong> (<a class="reference internal" href="cameo.html#cameo.util.ProblemCache" title="cameo.util.ProblemCache"><em>ProblemCache</em></a>) – </p></li>
 </ul>
 </dd>
@@ -297,26 +299,26 @@ flux changes after genetic perturbations”, PNAS 2005 102 (21) 7695-7700; doi:1
 </dl>
 </dd></dl>
 
-</div>
-<div class="section" id="module-cameo.flux_analysis.structural">
+</section>
+<section id="module-cameo.flux_analysis.structural">
 <span id="cameo-flux-analysis-structural-module"></span><h2>cameo.flux_analysis.structural module<a class="headerlink" href="#module-cameo.flux_analysis.structural" title="Permalink to this headline">¶</a></h2>
 <p>Methods for stoichiometric analaysis</p>
 <dl class="py function">
-<dt id="cameo.flux_analysis.structural.find_dead_end_reactions">
-<code class="sig-prename descclassname"><span class="pre">cameo.flux_analysis.structural.</span></code><code class="sig-name descname"><span class="pre">find_dead_end_reactions</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/flux_analysis/structural.html#find_dead_end_reactions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.flux_analysis.structural.find_dead_end_reactions" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="cameo.flux_analysis.structural.find_dead_end_reactions">
+<span class="sig-prename descclassname"><span class="pre">cameo.flux_analysis.structural.</span></span><span class="sig-name descname"><span class="pre">find_dead_end_reactions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/flux_analysis/structural.html#find_dead_end_reactions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.flux_analysis.structural.find_dead_end_reactions" title="Permalink to this definition">¶</a></dt>
 <dd><p>Identify reactions that are structurally prevented from carrying flux (dead ends).</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="cameo.flux_analysis.structural.find_coupled_reactions">
-<code class="sig-prename descclassname"><span class="pre">cameo.flux_analysis.structural.</span></code><code class="sig-name descname"><span class="pre">find_coupled_reactions</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_dead_ends</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/flux_analysis/structural.html#find_coupled_reactions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.flux_analysis.structural.find_coupled_reactions" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="cameo.flux_analysis.structural.find_coupled_reactions">
+<span class="sig-prename descclassname"><span class="pre">cameo.flux_analysis.structural.</span></span><span class="sig-name descname"><span class="pre">find_coupled_reactions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_dead_ends</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/flux_analysis/structural.html#find_coupled_reactions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.flux_analysis.structural.find_coupled_reactions" title="Permalink to this definition">¶</a></dt>
 <dd><p>Find reaction sets that are structurally forced to carry equal flux</p>
 </dd></dl>
 
 <dl class="py class">
-<dt id="cameo.flux_analysis.structural.ShortestElementaryFluxModes">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">cameo.flux_analysis.structural.</span></code><code class="sig-name descname"><span class="pre">ShortestElementaryFluxModes</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reactions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">copy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">change_bounds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/flux_analysis/structural.html#ShortestElementaryFluxModes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.flux_analysis.structural.ShortestElementaryFluxModes" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dt class="sig sig-object py" id="cameo.flux_analysis.structural.ShortestElementaryFluxModes">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">cameo.flux_analysis.structural.</span></span><span class="sig-name descname"><span class="pre">ShortestElementaryFluxModes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reactions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">copy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">change_bounds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/flux_analysis/structural.html#ShortestElementaryFluxModes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.flux_analysis.structural.ShortestElementaryFluxModes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <dl class="field-list simple">
 <dt class="field-odd">Attributes</dt>
 <dd class="field-odd"><dl class="simple">
@@ -325,37 +327,37 @@ flux changes after genetic perturbations”, PNAS 2005 102 (21) 7695-7700; doi:1
 </dl>
 </dd>
 </dl>
-<dl class="py method">
-<dt id="cameo.flux_analysis.structural.ShortestElementaryFluxModes.model">
-<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">model</span></code><a class="headerlink" href="#cameo.flux_analysis.structural.ShortestElementaryFluxModes.model" title="Permalink to this definition">¶</a></dt>
+<dl class="py property">
+<dt class="sig sig-object py" id="cameo.flux_analysis.structural.ShortestElementaryFluxModes.model">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">model</span></span><a class="headerlink" href="#cameo.flux_analysis.structural.ShortestElementaryFluxModes.model" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="py method">
-<dt id="cameo.flux_analysis.structural.ShortestElementaryFluxModes.indicator_variables">
-<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">indicator_variables</span></code><a class="headerlink" href="#cameo.flux_analysis.structural.ShortestElementaryFluxModes.indicator_variables" title="Permalink to this definition">¶</a></dt>
+<dl class="py property">
+<dt class="sig sig-object py" id="cameo.flux_analysis.structural.ShortestElementaryFluxModes.indicator_variables">
+<em class="property"><span class="pre">property</span> </em><span class="sig-name descname"><span class="pre">indicator_variables</span></span><a class="headerlink" href="#cameo.flux_analysis.structural.ShortestElementaryFluxModes.indicator_variables" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
-</div>
-<div class="section" id="module-cameo.flux_analysis.util">
+</section>
+<section id="module-cameo.flux_analysis.util">
 <span id="cameo-flux-analysis-util-module"></span><h2>cameo.flux_analysis.util module<a class="headerlink" href="#module-cameo.flux_analysis.util" title="Permalink to this headline">¶</a></h2>
 <dl class="py function">
-<dt id="cameo.flux_analysis.util.remove_infeasible_cycles">
-<code class="sig-prename descclassname"><span class="pre">cameo.flux_analysis.util.</span></code><code class="sig-name descname"><span class="pre">remove_infeasible_cycles</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fluxes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/flux_analysis/util.html#remove_infeasible_cycles"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.flux_analysis.util.remove_infeasible_cycles" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="cameo.flux_analysis.util.remove_infeasible_cycles">
+<span class="sig-prename descclassname"><span class="pre">cameo.flux_analysis.util.</span></span><span class="sig-name descname"><span class="pre">remove_infeasible_cycles</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fluxes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/flux_analysis/util.html#remove_infeasible_cycles"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.flux_analysis.util.remove_infeasible_cycles" title="Permalink to this definition">¶</a></dt>
 <dd><p>Remove thermodynamically infeasible cycles from a flux distribution.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>model</strong> (<em>cobra.Model</em>) – The model that generated the flux distribution.</p></li>
-<li><p><strong>fluxes</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.9)"><em>dict</em></a>) – The flux distribution containing infeasible loops.</p></li>
+<li><p><strong>model</strong> (<a class="reference external" href="https://cobrapy.readthedocs.io/en/latest/autoapi/cobra/index.html#cobra.Model" title="(in cobra v0.21)"><em>cobra.Model</em></a>) – The model that generated the flux distribution.</p></li>
+<li><p><strong>fluxes</strong> (<em>dict</em>) – The flux distribution containing infeasible loops.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>A cycle free flux distribution.</p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.9)">dict</a></p>
+<dd class="field-odd"><p>dict</p>
 </dd>
 </dl>
 <p class="rubric">References</p>
@@ -368,28 +370,28 @@ thermodynamically infeasible loops from flux distributions.”</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="cameo.flux_analysis.util.fix_pfba_as_constraint">
-<code class="sig-prename descclassname"><span class="pre">cameo.flux_analysis.util.</span></code><code class="sig-name descname"><span class="pre">fix_pfba_as_constraint</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">multiplier</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fraction_of_optimum</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/flux_analysis/util.html#fix_pfba_as_constraint"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.flux_analysis.util.fix_pfba_as_constraint" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="cameo.flux_analysis.util.fix_pfba_as_constraint">
+<span class="sig-prename descclassname"><span class="pre">cameo.flux_analysis.util.</span></span><span class="sig-name descname"><span class="pre">fix_pfba_as_constraint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">multiplier</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fraction_of_optimum</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cameo/flux_analysis/util.html#fix_pfba_as_constraint"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cameo.flux_analysis.util.fix_pfba_as_constraint" title="Permalink to this definition">¶</a></dt>
 <dd><p>Fix the pFBA optimum as a constraint</p>
 <p>Useful when setting other objectives, like the maximum flux through given reaction may be more realistic if all
 other fluxes are not allowed to reach their full upper bounds, but collectively constrained to max sum.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>model</strong> (<em>cobra.Model</em>) – The model to add the pfba constraint to</p></li>
-<li><p><strong>multiplier</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><em>float</em></a>) – The multiplier of the minimal sum of all reaction fluxes to use as the constraint.</p></li>
-<li><p><strong>fraction_of_optimum</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.9)"><em>float</em></a>) – The fraction of the objective value’s optimum to use as constraint when getting the pFBA objective’s minimum</p></li>
+<li><p><strong>model</strong> (<a class="reference external" href="https://cobrapy.readthedocs.io/en/latest/autoapi/cobra/index.html#cobra.Model" title="(in cobra v0.21)"><em>cobra.Model</em></a>) – The model to add the pfba constraint to</p></li>
+<li><p><strong>multiplier</strong> (<em>float</em>) – The multiplier of the minimal sum of all reaction fluxes to use as the constraint.</p></li>
+<li><p><strong>fraction_of_optimum</strong> (<em>float</em>) – The fraction of the objective value’s optimum to use as constraint when getting the pFBA objective’s minimum</p></li>
 </ul>
 </dd>
 </dl>
 </dd></dl>
 
-</div>
-<div class="section" id="module-cameo.flux_analysis">
+</section>
+<section id="module-cameo.flux_analysis">
 <span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-cameo.flux_analysis" title="Permalink to this headline">¶</a></h2>
 <p>This package provides methods for simulating and analyzing models.</p>
-</div>
-</div>
+</section>
+</section>
 
 
           </div>
@@ -476,7 +478,7 @@ other fluxes are not allowed to reach their full upper bounds, but collectively 
   <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
       <input type="submit" value="Go" />
     </form>
     </div>
@@ -498,7 +500,7 @@ other fluxes are not allowed to reach their full upper bounds, but collectively 
       &copy;2014, Novo Nordisk Foundation Center for Biosustainability.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.4</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.2.0</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |

@@ -4,16 +4,18 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Simulate models &#8212; cameo 0.13.0 documentation</title>
-    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
-    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+    <title>Simulate models &#8212; cameo 0.13.6 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
     <script src="_static/jquery.js"></script>
     <script src="_static/underscore.js"></script>
     <script src="_static/doctools.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js"></script>
-    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <link rel="shortcut icon" href="_static/favicon.ico"/>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Analyzing models" href="04-analyze-models.html" />
@@ -36,7 +38,7 @@
 
           <div class="body" role="main">
             
-  <div class="section" id="simulate-models">
+  <section id="simulate-models">
 <h1>Simulate models<a class="headerlink" href="#simulate-models" title="Permalink to this headline">¶</a></h1>
 <p><strong>cameo</strong> uses the model data structures defined by
 <a class="reference external" href="https://opencobra.github.io/cobrapy/">cobrapy</a>, our favorite
@@ -44,7 +46,7 @@ COnstraints-Based Reconstruction and Analysis tool for Python. <strong>cameo</st
 is thus 100% compatible with cobrapy. For efficiency reasons, however,
 cameo implements its own simulation methods that take advantage of a
 more advanced solver interface.</p>
-<div class="section" id="primer-constraint-based-modeling">
+<section id="primer-constraint-based-modeling">
 <h2>Primer: Constraint-Based Modeling<a class="headerlink" href="#primer-constraint-based-modeling" title="Permalink to this headline">¶</a></h2>
 <p>Constraint-based modeling is a powerful modeling framework for analyzing
 metabolism on the genome scale (<a class="reference external" href="http://www.ncbi.nlm.nih.gov/pubmed/23632383">McCloskey et al.,
@@ -82,8 +84,8 @@ Balance Analysis (FBA):</p>
  \text{s.t.}~ &amp; ~ \mathbf{S} \mathbf{v} = 0 \\
  ~ &amp; ~ \mathbf{v}_{lb} \leq \mathbf{v} \leq \mathbf{v}_{ub} \,.
 \end{align}\end{split}\]</div>
-</div>
-<div class="section" id="flux-balance-analysis">
+</section>
+<section id="flux-balance-analysis">
 <h2>Flux Balance Analysis<a class="headerlink" href="#flux-balance-analysis" title="Permalink to this headline">¶</a></h2>
 <p>Load a model.</p>
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">cameo</span> <span class="kn">import</span> <span class="n">load_model</span>
@@ -377,7 +379,7 @@ values (corresponding to a maximum growth rate) can be obtained from
 </table>
 <p>2583 rows × 1 columns</p>
 </div><p>Flux distributions can be visualized using
-<a class="reference external" href="https://escher.github.io">*escher*</a> :</p>
+<a class="reference external" href="https://escher.github.io">escher</a> :</p>
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">fba_result</span><span class="o">.</span><span class="n">display_on_map</span><span class="p">(</span><span class="s2">&quot;iJO1366.Central metabolism&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -473,8 +475,8 @@ values (corresponding to a maximum growth rate) can be obtained from
          };
      }
  })();
-</script></div>
-<div class="section" id="parsimonious-flux-balance-analysis">
+</script></section>
+<section id="parsimonious-flux-balance-analysis">
 <h2>Parsimonious Flux Balance Analysis<a class="headerlink" href="#parsimonious-flux-balance-analysis" title="Permalink to this headline">¶</a></h2>
 <p>Parsimonious flux balance analysis (<a class="reference external" href="http://www.ncbi.nlm.nih.gov/pubmed/20664636">Lewis et al.,
 2010</a>), a variant of
@@ -514,8 +516,8 @@ order to keep protein costs low.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mf">765.0977334751339</span>
 </pre></div>
 </div>
-</div>
-<div class="section" id="setp-2-simulate-knockouts-phenotypes">
+</section>
+<section id="setp-2-simulate-knockouts-phenotypes">
 <h2>Setp 2: Simulate knockouts phenotypes<a class="headerlink" href="#setp-2-simulate-knockouts-phenotypes" title="Permalink to this headline">¶</a></h2>
 <p>Although PFBA and FBA can be used to simulate the effect of knockouts,
 other methods have been proven more valuable for that task: MOMA and
@@ -640,8 +642,8 @@ increase the bounds.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mf">0.9519006583451706</span>
 </pre></div>
 </div>
-</div>
-</div>
+</section>
+</section>
 
 
           </div>
@@ -732,7 +734,7 @@ increase the bounds.</p>
   <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
       <input type="submit" value="Go" />
     </form>
     </div>
@@ -754,7 +756,7 @@ increase the bounds.</p>
       &copy;2014, Novo Nordisk Foundation Center for Biosustainability.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.5.4</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.2.0</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
       |
