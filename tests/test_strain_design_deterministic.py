@@ -28,7 +28,7 @@ from cameo.config import solvers
 from cameo.strain_design.deterministic.flux_variability_based import (FSEOF,
                                                                       DifferentialFVA,
                                                                       FSEOFResult)
-from cameo.strain_design.deterministic.linear_programming import OptKnock
+from cameo.strain_design.deterministic.linear_programming import OptKnock, GrowthCouplingPotential
 
 CI = bool(os.getenv('CI', False))
 TESTDIR = os.path.dirname(__file__)
@@ -45,6 +45,21 @@ def cplex_optknock(model):
 @pytest.fixture(scope='module')
 def diff_fva(model):
     return DifferentialFVA(model, model.reactions.EX_succ_lp_e_rp_, points=5)
+
+
+@pytest.fixture(scope='module')
+def glpk_growth_coupling_potential(model):
+    glpk_core = model.copy()
+    glpk_core.solver = "glpk"
+    glpk_core.reactions.ATPM.knock_out()
+    knockout_reactions = [r.id for r in glpk_core.reactions if r.genes]
+    return glpk_core, GrowthCouplingPotential(
+        glpk_core, target="PFL",
+        knockout_reactions=knockout_reactions,
+        biomass_id="Biomass_Ecoli_core_N_lp_w_fsh_GAM_rp__Nmet2",
+        knockin_reactions=[], medium_additions=[],
+        n_knockouts=1, n_knockin=0, n_medium=0
+    )
 
 
 class TestFSEOF:
@@ -146,3 +161,36 @@ class TestOptKnock:
             optknock.run(target="EX_ac_lp_e_rp_")
         with pytest.raises(ValueError):
             optknock.run(biomass="Biomass_Ecoli_core_N_lp_w_fsh_GAM_rp__Nmet2")
+
+
+# @pytest.mark.skipif('gurobi' not in solvers, reason="No gurobi interface available")
+class TestGrowthCouplingPotential:
+    def test_growth_coupling_potential_runs(self, glpk_growth_coupling_potential):
+        _, growth_coupling_potential = glpk_growth_coupling_potential
+        result = growth_coupling_potential.run()
+        assert "obj_val" in result
+        assert "knockouts" in result
+        assert "knockins" in result
+        assert "medium" in result
+
+    @pytest.mark.skip()
+    def test_growth_coupling_potential_benchmark(self, glpk_growth_coupling_potential, benchmark):
+        _, growth_coupling_potential = glpk_growth_coupling_potential
+        benchmark(growth_coupling_potential.run)
+
+    def test_result_is_correct(self, glpk_growth_coupling_potential):
+        model, growth_coupling_potential = glpk_growth_coupling_potential
+        result = growth_coupling_potential.run()
+
+        knockouts = result["knockouts"]
+        fva = cameo.flux_variability_analysis(
+            model, fraction_of_optimum=1, remove_cycles=False, reactions=["PFL"]
+        )
+        assert fva["lower_bound"][0] <= 0 <= fva["upper_bound"][0]
+        with model:
+            for knockout in knockouts:
+                model.reactions.get_by_id(knockout).knock_out()
+            fva = cameo.flux_variability_analysis(
+                model, fraction_of_optimum=1, remove_cycles=False, reactions=["PFL"]
+            )
+            assert abs(fva["lower_bound"][0]) > 4
