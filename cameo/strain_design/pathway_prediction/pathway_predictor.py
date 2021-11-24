@@ -180,7 +180,7 @@ class PathwayPredictions(StrainDesignMethodResult):
         with grid:
             for i, pathway in enumerate(self.pathways):
                 ppp = pathway.production_envelope(model, objective=objective)
-                ppp.plot(grid=grid, width=450, title="Pathway %i" % (i + 1))
+                ppp.plot(plotter=plotter, grid=grid, width=450, title="Pathway %i" % (i + 1))
 
 
 class PathwayPredictor(StrainDesignMethod):
