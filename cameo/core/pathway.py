@@ -24,6 +24,8 @@ from pandas import DataFrame, read_csv
 from typing import Dict, List
 from cobra import Metabolite, Model, Reaction
 
+from cameo.io import load_model
+
 
 # TODO: Load pathways from SBML and JSON
 # TODO: Define the product
@@ -344,6 +346,30 @@ class Pathway(object):
 
         return DataFrame([[r.build_reaction_string(True), r.lower_bound, r.upper_bound] for r in self.reactions],
                          columns=["equation", "lower_bound", "upper_bound"], index=[r.id for r in self.reactions])
+
+    @classmethod
+    def from_model(
+        cls,
+        path_or_handle,
+        *args,
+        **kwargs
+    ) -> 'Pathway':
+        """Read a pathway from a model.
+        Call cameo.io.load_model and use the same arguments.
+
+        Returns
+        -------
+        Pathway
+            A novel object
+
+        See Also
+        --------
+        cameo.io.load_model
+        Pathway.from_file
+        """
+
+        model = load_model(path_or_handle, *args, **kwargs)
+        return Pathway(model.reactions)
 
     @classmethod
     def from_file(
