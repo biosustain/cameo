@@ -27,7 +27,6 @@ from cobra import Metabolite, Model, Reaction
 from cameo.io import load_model
 
 
-# TODO: Load pathways from SBML and JSON
 # TODO: Define the product
 # TODO: Visualization with ESCHER
 class MetaboliteError(Exception):
