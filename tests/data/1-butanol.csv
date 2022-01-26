@@ -1,7 +1,7 @@
 id,name,equation,lower_bound,upper_bound,comments
-ButCoaDeh,Butyryl-CoA dehydrogenase,1 * #Crotonoyl-CoA#b2coa_c#c# + 1 * #NADH#nadh_c#c# + 1 * #H#h_c#c# <=> 1 * #Butyryl-CoA#btcoa_c#c# + 1 * #NAD#nad_c#c#,1000.0,1000.0,metanetx.reaction:undefined
-ButanalDeh,Butanal dehydrogenase,1 * #Butyryl-CoA#btcoa_c#c# + 1 * #NADH#nadh_c#c# + 1 * #H+#h_c#c# <=> 1 * #Butanal#btal_c#c# + 1 * #NAD#nad_c#c#,1000.0,1000.0,metanetx.reaction:MNXR95755
-ButanolDeh,Butanol dehydrogenase,1 * #Butanal#btal_c#c# + 1 * #NADH#nadh_c#c# + 1 * #H+#h_c#c#=> 1 * #1-Butanol#1btol_c#c# + 1 * #NAD#nad_c#c#,1000.0,1000.0
-ButOlTrP,1-Butanol transporter (periplasm),1 *#1-Butanol#1btol_c#c# + 1* #H+#h_c#c# -> 1*#1-Butanol#1btol_p#p# + 1 * #H+#h_p#p#,1000.0,1000.0
-ButOlTrE,1-Butanol transporter (extracellular),1 * #1-Butanol#1btol_p#p# --> 1 * #1-Butanol#1btol_e#e#,1000.0,1000.0
-ButOlTrEx,1-Butanol transporter (exchange),1 * #1-Butanol#1btol_e#e#target# -->,1000.0,2000.0
+ButCoaDeh,Butyryl-CoA dehydrogenase,1 * #Crotonoyl-CoA#b2coa_c#c# + 1 * #Nicotinamide adenine dinucleotide - reduced#nadh_c#c# + 1 * #H+#h_c#c# <=> 1 * #Gamma-butyrobetainyl-CoA#btcoa_c#c# + 1 * #Deamino-NAD+#nad_c#c#,0.0,1000.0,metanetx.reaction:undefined
+ButanalDeh,Butanal dehydrogenase,1 * #Gamma-butyrobetainyl-CoA#btcoa_c#c# + 1 * #Nicotinamide adenine dinucleotide - reduced#nadh_c#c# + 1 * #H+#h_c#c# <=> 1 * #Butanal C4H8O#btal_c#c# + 1 * #Deamino-NAD+#nad_c#c#,0.0,1000.0,metanetx.reaction:MNXR95755
+ButanolDeh,Butanol dehydrogenase,1 * #Butanal C4H8O#btal_c#c# + 1 * #Nicotinamide adenine dinucleotide - reduced#nadh_c#c# + 1 * #H+#h_c#c#=> 1 * #butan1ol#1btol_c#c# + 1 * #Deamino-NAD+#nad_c#c#,0.0,1000.0
+ButOlTrP,1-Butanol transporter (periplasm),1 *#butan1ol#1btol_c#c# + 1* #H+#h_c#c# -> 1*#butan1ol#1btol_p#p# + 1 * #H+#h_p#p#,0.0,1000.0
+ButOlTrE,1-Butanol transporter (extracellular),1 * #butan1ol#1btol_p#p# --> 1 * #butan1ol#1btol_e#e#,0.0,1000.0
+EX_1btol_e,1-Butanol transporter (exchange),1 * #butan1ol#1btol_e#e#target# <=>,-1000.0,1000.0

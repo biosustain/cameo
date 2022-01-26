@@ -14,6 +14,11 @@ def but_csv(data_directory):
     return os.path.join(data_directory, '1-butanol.csv')
 
 
+@pytest.fixture(scope="module")
+def but_xml(data_directory):
+    return os.path.join(data_directory, '1-butanol.xml')
+
+
 @pytest.fixture(scope='module')
 def but_df(but_csv):
     return pd.read_csv(but_csv)
@@ -29,22 +34,22 @@ def but_met():
     )
     mets['nadh_c'] = Metabolite(
         id='nadh_c',
-        name='NADH',
+        name='Nicotinamide adenine dinucleotide - reduced',
         compartment='c'
     )
     mets['h_c'] = Metabolite(
         id='h_c',
-        name='H',
+        name='H+',
         compartment='c'
     )
     mets['btcoa_c'] = Metabolite(
         id='btcoa_c',
-        name='Butyryl-CoA',
+        name='Gamma-butyrobetainyl-CoA',
         compartment='c'
     )
     mets['nad_c'] = Metabolite(
         id='nad_c',
-        name='NAD',
+        name='Deamino-NAD+',
         compartment='c'
     )
     return mets
@@ -144,7 +149,7 @@ class TestEquation:
         )
 
         # Theorical value
-        th = Reaction(id='ButCoaDeh', name='Butyryl-CoA dehydrogenase', lower_bound=1000, upper_bound=1000)
+        th = Reaction(id='ButCoaDeh', name='Butyryl-CoA dehydrogenase', lower_bound=0, upper_bound=1000)
         th.add_metabolites(but_st)
         th.notes["pathway_note"] = 'metanetx.reaction:undefined'
 
@@ -156,6 +161,14 @@ class TestEquation:
 
 
 class TestPathway:
+    def test_from_model(self, but_xml, but_csv):
+        pathway_model = Pathway.from_model(but_xml)
+        pathway_file = Pathway.from_file(but_csv)
+
+        df_model = pathway_model.data_frame.sort_index()
+        df_file = pathway_file.data_frame.sort_index()
+        assert df_model.equals(df_file)
+
     def test_from_file(self, but_csv):
         pathway = Pathway.from_file(but_csv)
 
