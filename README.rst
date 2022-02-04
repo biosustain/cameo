@@ -142,4 +142,4 @@ Contributions
 .. |zenhub| image:: https://img.shields.io/badge/Shipping_faster_with-ZenHub-5e60ba.svg?style=flat-square
    :target: https://zenhub.com
 .. |binder| image:: https://mybinder.org/badge_logo.svg
-   :target: https://mybinder.org/v2/gh/biosustain/cameo-notebooks/binder?urlpath=lab/tree/index.ipynb
+   :target: https://mybinder.org/v2/gh/biosustain/cameo-notebooks/master?urlpath=lab/tree/index.ipynb
