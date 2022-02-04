@@ -44,9 +44,9 @@ def parse_reaction(formula, irrev_arrow='-->', rev_arrow='<=>'):
 
         def parse_coeff_and_metabolites(term):
             try:
-                coeff, metabolite_id = term.strip().split(' ')               
+                coeff, metabolite_id = term.strip().split(' ')
                 #dropping compartment
-                metabolite_id = metabolite_id.split('@')[0] 
+                metabolite_id = metabolite_id.split('@')[0]
             except:
                 raise ValueError('Something is fishy with the provided term %s' % term)
             return Metabolite(metabolite_id), factor * float(coeff)
@@ -86,7 +86,7 @@ def construct_universal_model(list_of_db_prefixes, reac_xref, reac_prop, chem_pr
     mnx_reaction_id_selection = set()
     for db_prefix in list_of_db_prefixes:
         mnx_reaction_id_selection.update(reac_xref[reac_xref.XREF.str.startswith(db_prefix)].MNX_ID)
-    
+
     if np.nan in mnx_reaction_id_selection:
         mnx_reaction_id_selection.remove(np.nan)
     reaction_selection = reac_prop.loc[mnx_reaction_id_selection]
@@ -145,7 +145,7 @@ def compress_by_lines(response, filepath):
     with gzip.open(filepath, 'wt') as f:
         for line in response.iter_lines():
             f.write(line.decode('utf-8') + '\n')
-            
+
 
 def load_metanetx_files():
     """"Update metanetx data."""
@@ -201,21 +201,19 @@ if __name__ == '__main__':
     metanetx['all2mnx'] = dict()
     metanetx['bigg2mnx'] = dict()
     metanetx['mnx2bigg'] = dict()
-    
+
     # Metabolites
     for xref in [chem_xref, reac_xref]:
         add_to_bigg_mapping(xref, metanetx['bigg2mnx'], metanetx['mnx2bigg'])
         add_to_all_mapping(xref, metanetx['all2mnx'])
 
-    with gzip.open('../data/metanetx.json.gz', 'w') as f:
-        f.write(json.dumps(metanetx).encode('utf-8'))
+    with gzip.open('../cameo/data/metanetx.json.gz', 'wt') as f:
+        json.dump(metanetx, f)
 
     # generate universal reaction models
-    db_combinations = [
-        ('bigg',), ('rhea',), ('bigg', 'rhea'), 
-                       ('bigg', 'rhea', 'kegg'),
+    db_combinations = [('bigg',), ('rhea',), ('bigg', 'rhea'), ('bigg', 'rhea', 'kegg'),
                        ('bigg', 'rhea', 'kegg', 'brenda')]
-    
+
     largest_universal_model = None
     for db_combination in db_combinations:
         universal_model = construct_universal_model(db_combination, reac_xref, reac_prop, chem_prop)
@@ -224,12 +222,12 @@ if __name__ == '__main__':
         elif len(set(largest_universal_model.metabolites)) < len(set(universal_model.metabolites)):
             largest_universal_model = universal_model
 
-        with open('../models/universal_models/{model_name}.json'.format(model_name=universal_model.id), 'w') as f:
+        with open('../cameo/models/universal_models/{model_name}.json'.format(model_name=universal_model.id), 'w') as f:
             save_json_model(universal_model, f)
 
     metabolite_ids_in_largest_model = [m.id for m in largest_universal_model.metabolites]
     chem_prop_filtered = chem_prop.dropna(subset=['name'])
     chem_prop_filtered = chem_prop_filtered[chem_prop_filtered.index.isin(metabolite_ids_in_largest_model)]
-    
-    with gzip.open('../data/metanetx_chem_prop.json.gz', 'wt') as f:
+
+    with gzip.open('../cameo/data/metanetx_chem_prop.json.gz', 'wt') as f:
         chem_prop_filtered.to_json(f, force_ascii=True)
