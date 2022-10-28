@@ -22,6 +22,7 @@ from functools import reduce
 
 import inspyred
 import numpy
+import pandas as pd
 from inspyred.ec.generators import diversify as diversify_function
 from pandas import DataFrame
 
@@ -559,7 +560,7 @@ class TargetOptimizationResult(Result):
         if self.heuristic_method.__class__.__name__ != other.heuristic_method.__class__.__name__:
             raise AssertionError("Cannot merge results from different heuristic methods")
 
-        self._solutions = self._solutions.append(other._solutions, ignore_index=True)
+        self._solutions = pd.concat([self._solutions, other._solutions])
         self._solutions.drop_duplicates(subset="knockouts", take_last=True, inplace=True)
 
         return self

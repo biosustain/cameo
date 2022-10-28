@@ -813,7 +813,7 @@ class PhenotypicPhasePlaneResult(Result):
             for _, row in self.iterrows():
                 _df = pandas.DataFrame([[row[upper], row[lower], row[variable], "WT"]],
                                        columns=dataframe.columns)
-                dataframe = dataframe.append(_df)
+                dataframe = pandas.concat([dataframe, _df])
 
             plot = plotter.production_envelope(dataframe, grid=grid, width=width, height=height,
                                                title=title, y_axis_label=y_axis_label, x_axis_label=x_axis_label,
@@ -831,7 +831,7 @@ class PhenotypicPhasePlaneResult(Result):
                 _df = pandas.DataFrame([[row[upper], row[lower],
                                          row[var_1], row[var_2], "WT"]],
                                        columns=dataframe.columns)
-                dataframe = dataframe.append(_df)
+                dataframe = pandas.concat([dataframe, _df])
 
             plot = plotter.production_envelope_3d(dataframe, grid=grid, width=width, height=height,
                                                   title=title, y_axis_label=y_axis_label, x_axis_label=x_axis_label,
@@ -892,7 +892,7 @@ class FluxVariabilityResult(Result):
         for reaction_id, row in fva_result.iterrows():
             _df = pandas.DataFrame([[row['lower_bound'], row['upper_bound'], "WT", reaction_id]],
                                    columns=dataframe.columns)
-            dataframe = dataframe.append(_df)
+            dataframe = pandas.concat([dataframe, _df])
 
         plot = plotter.flux_variability_analysis(dataframe, grid=grid, width=width, height=height,
                                                  title=title, y_axis_label="Reactions", x_axis_label="Flux limits",

@@ -21,6 +21,7 @@ import logging
 import warnings
 
 import numpy
+import pandas as pd
 from IProgress.progressbar import ProgressBar
 from IProgress.widgets import Bar, Percentage
 from pandas import DataFrame
@@ -404,11 +405,11 @@ class OptKnockResult(StrainDesignMethodResult):
         for _, row in wt_production.iterrows():
             _df = DataFrame([[row['objective_upper_bound'], row['objective_lower_bound'], row[self._biomass.id], "WT"]],
                             columns=dataframe.columns)
-            dataframe = dataframe.append(_df)
+            dataframe = pd.concat([dataframe, _df])
         for _, row in mt_production.iterrows():
             _df = DataFrame([[row['objective_upper_bound'], row['objective_lower_bound'], row[self._biomass.id], "MT"]],
                             columns=dataframe.columns)
-            dataframe = dataframe.append(_df)
+            dataframe = pd.concat([dataframe, _df])
 
         plot = plotter.production_envelope(dataframe, grid=grid, width=width, height=height, title=title,
                                            x_axis_label=self._biomass.id, y_axis_label=self._target, palette=palette)

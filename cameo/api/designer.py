@@ -18,6 +18,7 @@
 from __future__ import absolute_import, print_function
 
 import numpy as np
+import pandas as pd
 
 from cobra import Metabolite, Model
 
@@ -264,7 +265,7 @@ class Designer(object):
             _results['product'] = target_flux
             _results['method'] = method_name  # TODO: determine method name from targets
 
-            results = results.append(_results, ignore_index=True)
+            results = pd.concat([results, _results])
         return results
 
     def process_strain_designs(self, strain_designs, model=None, pathway=None, aerobic=None, **kwargs):

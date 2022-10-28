@@ -23,6 +23,7 @@ from functools import partial
 from uuid import uuid4
 
 import numpy
+import pandas as pd
 
 from cameo.flux_analysis.structural import nullspace, find_blocked_reactions_nullspace, create_stoichiometric_array
 
@@ -641,12 +642,12 @@ class DifferentialFVAResult(StrainDesignMethodResult):
         for reaction_id, row in wt_fva_res.iterrows():
             _df = pandas.DataFrame([[row['lower_bound'], row['upper_bound'], "WT", reaction_id]],
                                    columns=dataframe.columns)
-            dataframe = dataframe.append(_df)
+            dataframe = pd.concat([dataframe, _df])
 
         for reaction_id, row in strain_fva_res.iterrows():
             _df = pandas.DataFrame([[row['lower_bound'], row['upper_bound'], "Strain %i" % index, reaction_id]],
                                    columns=dataframe.columns)
-            dataframe = dataframe.append(_df)
+            dataframe = pd.concat([dataframe, _df])
 
         plot = plotter.flux_variability_analysis(dataframe, grid=grid, width=width, height=height,
                                                  title=title, x_axis_label="Reactions", y_axis_label="Flux limits",

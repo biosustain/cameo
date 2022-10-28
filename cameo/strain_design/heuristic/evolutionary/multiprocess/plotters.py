@@ -16,6 +16,7 @@ from __future__ import absolute_import, print_function
 
 __all__ = ['IPythonNotebookBokehMultiprocessPlotObserver']
 
+import pandas as pd
 from multiprocessing.queues import Full
 from pandas import DataFrame
 from cameo import config
@@ -67,7 +68,7 @@ class IPythonNotebookBokehMultiprocessPlotObserver(AbstractParallelObserver):
             'color': [self.color_map[index]],
             'island': [index]
         })
-        self.data_frame = self.data_frame.append(df, ignore_index=True)
+        self.data_frame = pd.concat([self.data_frame, df])
         if message['iteration'] % message['n'] == 0:
             self._update_plot()
 
