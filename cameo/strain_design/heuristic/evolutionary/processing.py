@@ -49,9 +49,10 @@ def process_reaction_knockout_solution(model, solution, simulation_method, simul
     """
 
     with model:
-        reactions = [model.reactions.get_by_id(rid) for rid in solution]
-        for reaction in reactions:
-            reaction.knock_out()
+        genes = [model.genes.get_by_id(gid).name for gid in solution]
+        
+        for gene in genes:
+            gene.knock_out()
 
         flux_dist = simulation_method(model, reactions=objective_function.reactions,
                                       objective=biomass, **simulation_kwargs)
